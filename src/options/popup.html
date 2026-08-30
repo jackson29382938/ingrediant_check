@@ -1,0 +1,39 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Ingredient Check</title><style>
+ body{font:13px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;width:270px;margin:0;padding:16px;color:#0f1111}
+ h1{font-size:14px;margin:0 0 2px}
+ .sub{color:#565959;font-size:11px;margin-bottom:14px}
+ label{display:flex;align-items:flex-start;gap:9px;padding:9px 0;border-top:1px solid #eaeded;cursor:pointer}
+ label:first-of-type{border-top:0}
+ input{margin-top:2px}
+ .t{font-weight:600}
+ .d{color:#565959;font-size:11px;display:block;margin-top:1px}
+ #openSettings,#clear{display:block;margin-top:14px;padding:0;border:0;background:none;font:inherit;font-size:11px;
+   color:#007185;text-decoration:none;cursor:pointer}
+ #clear{margin-top:8px}
+ #openSettings:hover,#clear:hover{text-decoration:underline}
+ input:focus-visible,#openSettings:focus-visible,#clear:focus-visible{
+   outline:3px solid #007185;outline-offset:2px}
+</style></head><body>
+ <h1>Ingredient Check</h1>
+ <div class="sub">Ingredient quality, additives and processing — scored on your computer.</div>
+ <label><input type="checkbox" id="enabled" checked><span><span class="t">Show ratings</span>
+   <span class="d">Injects the score panel on Amazon product pages.</span></span></label>
+ <label><input type="checkbox" id="badges" checked><span><span class="t">Search result badges</span>
+   <span class="d">Score chips on tiles you've already opened.</span></span></label>
+ <label><input type="checkbox" id="foodOnly" checked><span><span class="t">Only rate food &amp; supplements</span>
+   <span class="d">Skip shoes, toys, cosmetics and cleaning products, and say why instead of
+   scoring them. Shampoo has an ingredient list too, and a score on one implies it was judged as
+   something you could eat.</span></span></label>
+ <label><input type="checkbox" id="autoScoreSearch"><span><span class="t">Rate every search result</span>
+   <span class="d">Scores tiles automatically as you scroll a results page, so you see ratings without
+   pointing at anything. Fetches each product page once, a few at a time, and remembers them.</span></span></label>
+ <label><input type="checkbox" id="hoverScore"><span><span class="t">Score on hover</span>
+   <span class="d">Hover or tab to a search result for half a second and it fetches that product
+   page to score it. Only the tile you point at.</span></span></label>
+ <label><input type="checkbox" id="useOpenFoodFacts"><span><span class="t">Open Food Facts fallback</span>
+   <span class="d">When a page has a barcode but no readable ingredients, look it up. This is the
+   only feature that sends anything over the network.</span></span></label>
+ <a href="#" id="openSettings">Scoring weights, allergens &amp; avoid list</a>
+ <button type="button" id="clear">Clear cached scores</button>
+ <script src="popup.js"></script>
+</body></html>

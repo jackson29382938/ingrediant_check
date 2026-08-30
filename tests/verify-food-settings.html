@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ingredient Check — food-only + settings verify</title>
+<style>
+  body { font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; padding: 24px; background: #f7f8f8; color: #0f1111; }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 8px; }
+  .lede { color: #565959; margin: 0 0 18px; }
+  section { background: #fff; border: 1px solid #d5d9d9; border-radius: 10px; padding: 16px 18px; margin-bottom: 14px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .7px; color: #565959; margin: 0 0 10px; }
+  label { display: flex; gap: 8px; align-items: center; margin: 6px 0; }
+  button { border: 1px solid #d5d9d9; background: #ffd814; border-radius: 999px; padding: 7px 14px; font-weight: 600; cursor: pointer; }
+  button.sec { background: #f7f8f8; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  #log { font: 12px/1.45 ui-monospace, monospace; white-space: pre-wrap; background: #0f1111; color: #e8f5ec; padding: 12px; border-radius: 8px; min-height: 80px; }
+  .ok { color: #0f7b3f; } .fail { color: #a4161a; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Food-only targeting + settings</h1>
+  <p class="lede">Same engine and panel the extension uses. Settings here are the same keys the popup and options page write to storage.</p>
+
+  <section>
+    <h2>Settings</h2>
+    <label><input type="checkbox" id="foodOnly" checked> Only rate food and supplements</label>
+    <label><input type="checkbox" id="sesame"> Flag sesame</label>
+    <label><input type="checkbox" id="avoidOil"> Avoid list: sunflower oil</label>
+    <p id="persist" class="lede" style="margin:8px 0 0">Persistence: …</p>
+  </section>
+
+  <section>
+    <h2>Check a product</h2>
+    <div class="row">
+      <button type="button" id="checkFood">Check oats (food)</button>
+      <button type="button" id="checkShampoo" class="sec">Check shampoo (not food)</button>
+    </div>
+    <div id="panelHost"></div>
+  </section>
+
+  <section>
+    <h2>Automated checks</h2>
+    <div id="log"></div>
+  </section>
+</div>
+
+<script src="../src/engine/db/_module.js"></script>
+<script src="../src/engine/db/oils.js"></script>
+<script src="../src/engine/db/sugars.js"></script>
+<script src="../src/engine/db/additives.js"></script>
+<script src="../src/engine/db/labels.js"></script>
+<script src="../src/engine/db/allergens.js"></script>
+<script src="../src/engine/db/ingestible.js"></script>
+<script src="../src/engine/db/provenance.js"></script>
+<script src="../src/engine/categories.js"></script>
+<script src="../src/engine/score.js"></script>
+<script src="../src/content/extract.js"></script>
+<script src="../src/content/panel.js"></script>
+<script>
+const KEY = 'air-verify-settings';
+const foodOnly = document.getElementById('foodOnly');
+const sesame = document.getElementById('sesame');
+const avoidOil = document.getElementById('avoidOil');
+const host = document.getElementById('panelHost');
+const persist = document.getElementById('persist');
+const log = document.getElementById('log');
+
+function prefs() {
+  return {
+    foodOnly: foodOnly.checked,
+    weights: {},
+    allergens: sesame.checked ? ['sesame'] : [],
+    diets: [],
+    avoidList: avoidOil.checked ? ['sunflower oil'] : [],
+  };
+}
+
+function save() {
+  localStorage.setItem(KEY, JSON.stringify({
+    foodOnly: foodOnly.checked, sesame: sesame.checked, avoidOil: avoidOil.checked,
+  }));
+  persist.textContent = 'Persistence: saved foodOnly=' + foodOnly.checked;
+}
+
+function load() {
+  try {
+    const o = JSON.parse(localStorage.getItem(KEY) || '{}');
+    if ('foodOnly' in o) foodOnly.checked = !!o.foodOnly;
+    if ('sesame' in o) sesame.checked = !!o.sesame;
+    if ('avoidOil' in o) avoidOil.checked = !!o.avoidOil;
+    persist.textContent = 'Persistence: restored foodOnly=' + foodOnly.checked;
+  } catch (e) { persist.textContent = 'Persistence: empty'; }
+}
+
+function mockDoc(title, { ingredients, crumbs, nutrition }) {
+  const map = {
+    '#productTitle': { innerText: title },
+    '#nic-ingredients-content': ingredients ? { innerText: ingredients } : null,
+    '#wayfinding-breadcrumbs_feature_div': crumbs ? { innerText: crumbs } : null,
+    '#nutritionalInfoAndIngredients_feature_div': nutrition ? { innerText: nutrition } : null,
+  };
+  return {
+    title,
+    querySelector(sel) {
+      for (const p of String(sel).split(',').map(s => s.trim())) {
+        if (map[p]) return map[p];
+      }
+      return null;
+    },
+    querySelectorAll() { return []; },
+  };
+}
+
+const PRODUCTS = {
+  oats: mockDoc('365 Everyday Value Organic Rolled Oats', {
+    ingredients: 'Organic rolled oats, sesame seeds, sunflower oil',
+    crumbs: 'Grocery & Gourmet Food',
+    nutrition: 'Nutrition Facts Serving size 40g Calories 150',
+  }),
+  shampoo: mockDoc('Head & Shoulders Classic Clean Shampoo', {
+    ingredients: 'Water, Sodium Laureth Sulfate, Cocamidopropyl Betaine, Fragrance',
+    crumbs: 'Beauty & Personal Care',
+  }),
+};
+
+function check(which) {
+  const p = prefs();
+  const data = AIR.extract.extract(PRODUCTS[which], { foodOnly: p.foodOnly });
+  host.textContent = '';
+  if (p.foodOnly && data.ingestible && !data.ingestible.ok) {
+    AIR.panel.mount(host, AIR.panel.renderNotFood(data));
+    host.shadowRoot.querySelector('button.anyway')?.addEventListener('click', () => {
+      const again = AIR.extract.extract(PRODUCTS[which], { foodOnly: false });
+      const result = AIR.engine.score({
+        name: again.title, ingredients_text: again.text, labels: '',
+      }, p);
+      AIR.panel.mount(host, AIR.panel.render(result, { title: again.title, confidence: 1, via: 'score-anyway' }));
+    });
+    return { kind: 'not-food', data };
+  }
+  if (!data.ok) {
+    AIR.panel.mount(host, AIR.panel.renderFailure(data));
+    return { kind: 'failure', data };
+  }
+  const result = AIR.engine.score({
+    name: data.title, ingredients_text: data.text, labels: '',
+  }, p);
+  AIR.panel.mount(host, AIR.panel.render(result, { title: data.title, confidence: data.confidence, via: data.via }));
+  return { kind: 'scored', data, result };
+}
+
+[foodOnly, sesame, avoidOil].forEach(el => el.addEventListener('change', save));
+document.getElementById('checkFood').addEventListener('click', () => check('oats'));
+document.getElementById('checkShampoo').addEventListener('click', () => check('shampoo'));
+load();
+
+const lines = [];
+function pass(name, cond, detail) {
+  lines.push((cond ? 'PASS' : 'FAIL') + '  ' + name + (detail ? ' — ' + detail : ''));
+}
+
+function runSuite() {
+  foodOnly.checked = true; sesame.checked = true; avoidOil.checked = true; save();
+  const food = check('oats');
+  pass('food item is scored', food.kind === 'scored', food.kind);
+  pass('sesame flag from settings', !!(food.result && food.result.flags.some(f => f.id === 'sesame')));
+  pass('avoid-list flag from settings', !!(food.result && food.result.flags.some(f => f.kind === 'avoid')));
+
+  const blocked = check('shampoo');
+  pass('shampoo is not scored when foodOnly is on', blocked.kind === 'not-food', blocked.kind);
+  pass('not-food card explains itself', !!(host.shadowRoot && /does not look like food/i.test(host.shadowRoot.textContent)));
+
+  foodOnly.checked = false; save();
+  const allowed = check('shampoo');
+  pass('shampoo can be scored when foodOnly is off', allowed.kind === 'scored', allowed.kind);
+
+  foodOnly.checked = true; save();
+  check('shampoo');
+  host.shadowRoot.querySelector('button.anyway')?.click();
+  pass('Score anyway overrides one page', !!(host.shadowRoot && host.shadowRoot.querySelector('.score')));
+
+  const restored = JSON.parse(localStorage.getItem(KEY));
+  pass('settings persist in storage', restored.foodOnly === true);
+
+  pass('short whole-food list is readable', AIR.extract.looksLikeIngredients('Whole Milk'));
+  pass('olive oil phrase is readable', AIR.extract.looksLikeIngredients('Organic extra virgin olive oil'));
+  pass('chicken pot pie is not kitchen equipment', !AIR.db.ingestible.looksNonFoodFromTitle("Marie Callender's Chicken Pot Pie"));
+  pass('peter pan peanut butter is not kitchen equipment', !AIR.db.ingestible.looksNonFoodFromTitle('Peter Pan Creamy Peanut Butter'));
+
+  log.textContent = lines.join('\n');
+  log.className = lines.some(l => l.startsWith('FAIL')) ? 'fail' : 'ok';
+}
+
+runSuite();
+</script>
+</body>
+</html>

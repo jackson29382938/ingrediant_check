@@ -1,0 +1,10 @@
+{
+  "name": "ingredient-check",
+  "private": true,
+  "description": "Local Chrome session for Ingredient Check (unpacked MV3).",
+  "scripts": {
+    "chrome": "node scripts/dev-chrome.mjs",
+    "chrome:reload": "node scripts/reload-extension.mjs",
+    "ab": "node scripts/ab.mjs"
+  }
+}

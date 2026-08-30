@@ -1,0 +1,596 @@
+// Content-script entry point.
+//
+// Amazon swaps page content without a navigation event, so nothing here can rely on
+// DOMContentLoaded. Detection is driven by a MutationObserver plus history-API patching, debounced
+// so a busy page doesn't cause repeated rescoring.
+
+(function () {
+  const HOST_ID = 'air-score-panel';
+  const BADGE_ATTR = 'data-air-badge';
+  const state = { enabled: true, badges: true, hoverScore: false, autoScoreSearch: false, foodOnly: true,
+    prefs: { weights: {}, allergens: [], diets: [], avoidList: [] }, lastKey: null, busy: false, requestId: 0 };
+
+  const isProductPage = () => /\/(dp|gp\/product)\/[A-Z0-9]{10}/.test(location.pathname);
+  const isListPage = () => /\/(s|b|gp\/browse|stores)\b/.test(location.pathname) || location.search.includes('k=');
+
+  // ---------------------------------------------------------------- product page
+  function mountPoint() {
+    return document.querySelector('#nutritionalInfoAndIngredients_feature_div')
+      || document.querySelector('#important-information')
+      || document.querySelector('#feature-bullets')
+      || document.querySelector('#centerCol')
+      || document.querySelector('#dp-container');
+  }
+
+  function scoreCurrentPage() {
+    // Cheap identity check BEFORE the expensive DOM walk. extract() costs ~16ms cold on a real
+    // Amazon PDP and used to run on every debounce fire, even when the answer was already on
+    // screen. The ASIN is in the URL, so nothing needs to be extracted to know it's the same page.
+    const urlAsin = (location.pathname.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/) || [])[1];
+    const earlyKey = urlAsin || location.pathname;
+    const existing = document.getElementById(HOST_ID);
+    const existingState = existing && existing.dataset.airState;
+    // A first pass can run before Amazon injects the ingredients card. Skipping every later
+    // tick just because a failure card is already mounted left "Organic Rolled Oats." unread.
+    // Only a completed score (or an in-flight barcode lookup) is final.
+    if (earlyKey === state.lastKey && (existingState === 'scored' || existingState === 'loading')) return;
+
+    const data = AIR.extract.extract(document, { asin: urlAsin, foodOnly: state.foodOnly });
+    // Not food: say so. A missing card looks like a bug; a score looks like we judged it as food.
+    if (state.foodOnly && data.ingestible && !data.ingestible.ok) {
+      const key = data.asin || earlyKey;
+      if (existingState === 'not-food' && key === state.lastKey) return;
+      const anchor = mountPoint();
+      if (!anchor) { state.lastKey = earlyKey; return; }
+      let host = document.getElementById(HOST_ID);
+      if (!host) {
+        host = document.createElement('div');
+        host.id = HOST_ID;
+        anchor.parentNode.insertBefore(host, anchor);
+      }
+      state.lastKey = key;
+      host.dataset.airState = 'not-food';
+      const shadow = AIR.panel.mount(host, AIR.panel.renderNotFood(data));
+      wireScoreAnyway(shadow, host, data, key);
+      return;
+    }
+    const key = data.asin || earlyKey;
+    if (key === state.lastKey && existingState === 'scored') return;
+
+    const anchor = mountPoint();
+    if (!anchor) return;
+
+    let host = document.getElementById(HOST_ID);
+    if (!host) {
+      host = document.createElement('div');
+      host.id = HOST_ID;
+      anchor.parentNode.insertBefore(host, anchor);
+    }
+    state.lastKey = key;
+
+    if (!data.ok) {
+      if (host.dataset.airState === 'fail' || host.dataset.airState === 'loading') return;
+      cache(key, null);
+      if (data.upc) {
+        const requestId = ++state.requestId;
+        chrome.storage.local.get('useOpenFoodFacts', options => {
+          if (requestId !== state.requestId || state.lastKey !== key || !host.isConnected) return;
+          if (!options.useOpenFoodFacts) {
+            showFailure(host, data, key);
+            return;
+          }
+          host.dataset.airState = 'loading';
+          AIR.panel.mount(host, AIR.panel.renderLoading(data));
+          chrome.runtime.sendMessage({ type: 'lookupBarcode', code: data.upc, foodOnly: state.foodOnly }, fallback => {
+            // Reading lastError prevents Chrome from logging a noisy unchecked-error warning when
+            // the service worker is restarting or optional permission disappears mid-request.
+            const messageError = chrome.runtime.lastError;
+            if (requestId !== state.requestId || state.lastKey !== key || !host.isConnected) return;
+            if (fallback && fallback.rejected === 'not-food') {
+              host.dataset.airState = 'not-food';
+              const shadow = AIR.panel.mount(host, AIR.panel.renderNotFood({
+                ...data,
+                ingestible: { ok: false, reason: fallback.reason || 'Open Food Facts lists this as a non-food product' },
+              }));
+              wireScoreAnyway(shadow, host, data, key);
+              return;
+            }
+            if (messageError || !fallback || !fallback.ingredients_text) {
+              showFailure(host, { ...data, lookupAttempted: true }, key);
+              return;
+            }
+            const result = AIR.engine.score({
+              name: fallback.name || data.title,
+              labels: `${data.labels || ''} ${fallback.labels || ''}`,
+              ingredients_text: fallback.ingredients_text,
+            }, state.prefs);
+            host.dataset.airState = 'scored';
+            AIR.panel.mount(host, AIR.panel.render(result, {
+              title: data.title || fallback.name,
+              confidence: 0.55,
+              via: 'open-food-facts',
+            }));
+            cache(key, { score: result.score, verdict: result.verdict, nova: result.nova });
+          });
+        });
+        return;
+      }
+      showFailure(host, data, key);
+      return;
+    }
+
+    const requestId = ++state.requestId;
+    const result = AIR.engine.score({
+      // A brand name such as "Organic Valley" is not evidence that this specific product is
+      // certified organic. Only ingredient text and page-level claims feed provenance bonuses.
+      name: data.title, labels: data.labels, certifications: data.certifications,
+      nutrition: data.nutrition, ingredients_text: data.text,
+    }, state.prefs);
+    host.dataset.airState = 'scored';
+    AIR.panel.mount(host, AIR.panel.render(result, {
+      title: data.title, confidence: data.confidence, via: data.via,
+    }), reporter(data, result));
+    cache(key, { score: result.score, verdict: result.verdict, nova: result.nova });
+
+    // Whole foods get a second pass against the shared provenance database. The panel renders
+    // immediately from the page alone and upgrades in place if a record exists, rather than making
+    // every product wait on a network round trip that most of them do not need.
+    if (result.provenance) enrichProvenance(host, data, key, result, requestId);
+  }
+
+  function enrichProvenance(host, data, key, first, requestId) {
+    try {
+      chrome.runtime.sendMessage({
+        type: 'provenanceLookup',
+        key: { asin: data.asin, upc: data.upc, brand: data.brand },
+      }, record => {
+        const err = chrome.runtime.lastError;   // service worker may be restarting
+        if (err || !record) { maybeContribute(data, first); return; }
+        if (requestId !== state.requestId || !host.isConnected) return;
+        const better = AIR.engine.score({
+          name: data.title, labels: data.labels, certifications: data.certifications,
+          nutrition: data.nutrition, ingredients_text: data.text, provenanceRecord: record,
+        }, state.prefs);
+        host.dataset.airState = 'scored';
+        AIR.panel.mount(host, AIR.panel.render(better, {
+          title: data.title, confidence: data.confidence, via: data.via,
+          provenanceSource: record.source,
+        }));
+        cache(key, { score: better.score, verdict: better.verdict, nova: better.nova });
+      });
+    } catch (e) { /* messaging unavailable in some frames */ }
+  }
+
+  // Offer back what this page disclosed, so the next person does not have to re-derive it. Only
+  // certification text and identifiers — never anything about the user or their browsing.
+  function maybeContribute(data, result) {
+    if (!result.provenance || !result.provenance.verified.length) return;
+    try {
+      chrome.runtime.sendMessage({ type: 'contribute', payload: {
+        asin: data.asin || '', upc: data.upc || '', brand: data.brand || '',
+        product_name: data.title || '', kind: result.provenance.kind,
+        certifications: result.provenance.verified.map(v => v.label).join(', '),
+        verified_by: 'amazon certification widget',
+      } }, () => void chrome.runtime.lastError);
+    } catch (e) { /* ignore */ }
+  }
+
+  // A report carries what the extension actually did, so a wrong score can be diagnosed rather
+  // than just complained about: which tier read the ingredients, what fired, what it concluded.
+  function reporter(data, result) {
+    return done => {
+      try {
+        chrome.runtime.sendMessage({ type: 'report', payload: {
+          asin: data.asin || '', upc: data.upc || '', brand: data.brand || '',
+          product_name: data.title || '',
+          notes: `scored ${result.score} (${result.verdict}); NOVA ${result.nova}; ` +
+                 `read via ${data.via || 'unknown'}; ` +
+                 `hits: ${result.bad.slice(0, 6).map(b => b.why).join('; ')}`,
+          certifications: '', verified_by: 'user report',
+        } }, res => { void chrome.runtime.lastError; done(!!(res && res.ok)); });
+      } catch (e) { done(false); }
+    };
+  }
+
+  function showFailure(host, data, key) {
+    if (state.lastKey !== key || !host.isConnected) return;
+    if (host.dataset.airState === 'fail') return;
+    host.dataset.airState = 'fail';
+    AIR.panel.mount(host, AIR.panel.renderFailure(data), null, text => {
+      const result = AIR.engine.score({
+        name: data.title, labels: data.labels, certifications: data.certifications,
+        nutrition: data.nutrition, ingredients_text: text,
+      }, state.prefs);
+      host.dataset.airState = 'scored';
+      AIR.panel.mount(host, AIR.panel.render(result, {
+        title: data.title, confidence: 1, via: 'manual-paste',
+      }), reporter(data, result));
+      cache(key, { score: result.score, verdict: result.verdict, nova: result.nova });
+    });
+  }
+
+  // One-page override of the food-only gate. Does not flip the setting — only this product.
+  function wireScoreAnyway(shadow, host, data, key) {
+    const btn = shadow && shadow.querySelector('button.anyway');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const data2 = AIR.extract.extract(document, { asin: data.asin, foodOnly: false });
+      if (!data2.ok) { showFailure(host, data2, key); return; }
+      const result = AIR.engine.score({
+        name: data2.title, labels: data2.labels, certifications: data2.certifications,
+        nutrition: data2.nutrition, ingredients_text: data2.text,
+      }, state.prefs);
+      host.dataset.airState = 'scored';
+      AIR.panel.mount(host, AIR.panel.render(result, {
+        title: data2.title, confidence: data2.confidence, via: data2.via,
+      }), reporter(data2, result));
+      cache(key, { score: result.score, verdict: result.verdict, nova: result.nova });
+    });
+  }
+
+  // ---------------------------------------------------------------- search result badges
+  // The highest-leverage surface: this is what changes what goes in the cart.
+  function badgeSearchResults() {
+    const tiles = document.querySelectorAll('[data-asin]:not([' + BADGE_ATTR + '])');
+    tiles.forEach(tile => {
+      const asin = tile.getAttribute('data-asin');
+      if (!asin || asin.length !== 10) return;
+      tile.setAttribute(BADGE_ATTR, '1');
+      // A score cached while food-only was off must not reappear on shampoo, shoes, etc.
+      if (state.foodOnly && AIR.db.ingestible && AIR.db.ingestible.looksNonFoodFromTitle(tileTitle(tile))) {
+        return;
+      }
+      chrome.storage.local.get(`s:${asin}`, obj => {
+        if (!state.enabled || !state.badges || !tile.isConnected) return;
+        const hit = obj[`s:${asin}`];
+        if (!hit || typeof hit.score !== 'number') return;
+        paintBadge(tile, hit);
+      });
+    });
+    armHoverPass();
+    armAutoScorePass();
+  }
+
+  // Separate pass, deliberately not gated by BADGE_ATTR. Settings arrive asynchronously, so the
+  // first badge pass can run while hoverScore is still false; if arming lived inside that loop,
+  // every tile would already be marked processed by the time the setting arrived and hover would
+  // never work on a page that doesn't happen to mutate afterwards.
+  function armHoverPass() {
+    if (!state.enabled || !state.badges || !state.hoverScore) return;
+    document.querySelectorAll('[data-asin]:not([data-air-hover])').forEach(tile => {
+      const asin = tile.getAttribute('data-asin');
+      if (!asin || !/^[A-Z0-9]{10}$/.test(asin)) return;
+      armHover(tile, asin);
+    });
+  }
+
+  const BADGE_CSS = `display:inline-grid;place-items:center;min-width:26px;height:26px;
+    padding:0 6px;margin-right:8px;border-radius:999px;font:700 12px/1 sans-serif;
+    vertical-align:middle;`;
+
+  function paintBadge(tile, hit) {
+    const titleEl = tile.querySelector('h2, [data-cy="title-recipe"]');
+    if (!titleEl) return null;
+    let b = tile.querySelector('.air-badge');
+    if (!b) {
+      b = document.createElement('span');
+      b.className = 'air-badge';
+      titleEl.insertBefore(b, titleEl.firstChild);
+    }
+    if (hit === 'pending') {
+      b.textContent = '…';
+      b.title = 'Reading ingredients…';
+      b.setAttribute('aria-label', 'Reading ingredients');
+      b.setAttribute('role', 'status');
+      b.style.cssText = BADGE_CSS + 'color:#565959;background:#f0f2f2;border:2px solid #d5d9d9;';
+      return b;
+    }
+    if (hit === 'unreadable') {
+      b.textContent = '?';
+      b.title = "Amazon doesn't publish readable ingredients for this one";
+      b.setAttribute('aria-label', "Amazon doesn't publish readable ingredients for this one");
+      b.style.cssText = BADGE_CSS + 'color:#767676;background:#f7f8f8;border:2px dashed #d5d9d9;';
+      return b;
+    }
+    const c = AIR.panel.BAND_COLOR(hit.score);
+    b.textContent = hit.score;
+    b.title = `Ingredient Check: ${hit.score}/100 — ${hit.verdict}`;
+    b.setAttribute('aria-label', b.title);
+    b.style.cssText = BADGE_CSS + `color:${c.fg};background:${c.bg};border:2px solid ${c.ring};`;
+    return b;
+  }
+
+  // ---------------------------------------------------------------- tile scoring
+  // Two ways a search-result tile gets a score, sharing one polite request queue:
+  //
+  //   hover      — point at a tile for 600ms. Always available when badges are on.
+  //   auto-score — score every tile as it scrolls into view. Opt-in, off by default, and it stays
+  //                on once you turn it on.
+  //
+  // Auto-score only fetches tiles that actually enter the viewport, runs at most MAX_CONCURRENT at
+  // a time with a gap between requests, and never re-fetches something already cached. A results
+  // page holds ~60 tiles; firing 60 simultaneous requests at Amazon is how an extension gets its
+  // user rate-limited, so the queue is the feature, not an afterthought.
+  const HOVER_DELAY_MS = 600;
+  const MAX_CONCURRENT = 3;
+  const REQUEST_GAP_MS = 250;
+
+  const queue = { pending: [], active: 0, seen: new Set(), lastStart: 0 };
+
+  function tileTitle(tile) {
+    const el = tile.querySelector('h2 a, h2, [data-cy="title-recipe"]');
+    return ((el && el.innerText) || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function enqueue(tile, asin, { front = false } = {}) {
+    if (queue.seen.has(asin)) return;
+    // Skip the Amazon fetch when the tile title is already a cosmetic, shoe, detergent, etc.
+    // Ambiguous titles still fetch — store-brand oats should not die on a weak title.
+    if (state.foodOnly && AIR.db.ingestible && AIR.db.ingestible.looksNonFoodFromTitle(tileTitle(tile))) {
+      queue.seen.add(asin);
+      return;
+    }
+    queue.seen.add(asin);
+    const job = { tile, asin };
+    if (front) queue.pending.unshift(job); else queue.pending.push(job);
+    pump();
+  }
+
+  function pump() {
+    while (queue.active < MAX_CONCURRENT && queue.pending.length) {
+      const job = queue.pending.shift();
+      if (!job.tile.isConnected) continue;
+      queue.active++;
+      const wait = Math.max(0, queue.lastStart + REQUEST_GAP_MS - Date.now());
+      queue.lastStart = Date.now() + wait;
+      setTimeout(() => scoreTile(job.tile, job.asin).finally(() => { queue.active--; pump(); }), wait);
+    }
+  }
+
+  function armHover(tile, asin) {
+    if (tile.hasAttribute('data-air-hover')) return;
+    tile.setAttribute('data-air-hover', '1');
+    let timer = null;
+    const start = () => {
+      if (!state.enabled || !state.badges || !state.hoverScore) return;
+      if (tile.querySelector('.air-badge')) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => enqueue(tile, asin, { front: true }), HOVER_DELAY_MS);
+    };
+    const cancel = () => clearTimeout(timer);
+    tile.addEventListener('mouseenter', start);
+    tile.addEventListener('mouseleave', cancel);
+    // Keyboard users never fire mouseenter. The tile itself is rarely tabbable, but the
+    // product link inside it is, and focusin/focusout bubble.
+    tile.addEventListener('focusin', start);
+    tile.addEventListener('focusout', cancel);
+  }
+
+  // Visibility-gated auto-scoring. Tiles below the fold cost nothing until you scroll to them.
+  let tileObserver = null;
+  function autoObserver() {
+    if (tileObserver) return tileObserver;
+    tileObserver = new IntersectionObserver(entries => {
+      if (!state.enabled || !state.badges || !state.autoScoreSearch) return;
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const tile = entry.target;
+        tileObserver.unobserve(tile);
+        const asin = tile.getAttribute('data-asin');
+        if (!asin || tile.querySelector('.air-badge')) continue;
+        // Cached scores paint instantly and cost no request.
+        chrome.storage.local.get(`s:${asin}`, obj => {
+          const hit = obj[`s:${asin}`];
+          if (hit && typeof hit.score === 'number') { paintBadge(tile, hit); queue.seen.add(asin); return; }
+          if (state.autoScoreSearch) enqueue(tile, asin);
+        });
+      }
+    }, { rootMargin: '150px' });
+    return tileObserver;
+  }
+
+  function armAutoScorePass() {
+    if (!state.enabled || !state.badges || !state.autoScoreSearch) return;
+    const obs = autoObserver();
+    document.querySelectorAll('[data-asin]:not([data-air-auto])').forEach(tile => {
+      const asin = tile.getAttribute('data-asin');
+      if (!asin || !/^[A-Z0-9]{10}$/.test(asin)) return;
+      tile.setAttribute('data-air-auto', '1');
+      obs.observe(tile);
+    });
+  }
+
+  async function scoreTile(tile, asin) {
+    if (!tile.isConnected) return;
+    paintBadge(tile, 'pending');
+    try {
+      const res = await fetch(`/dp/${asin}`, { credentials: 'same-origin' });
+      if (!res.ok) throw new Error(String(res.status));
+      const html = await res.text();
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      // The ASIN must be passed explicitly: this document is not the page we are standing on.
+      const data = AIR.extract.extract(doc, { asin, foodOnly: state.foodOnly });
+      if (!tile.isConnected) return;
+      // A non-food tile gets no badge at all — not even "?" — because there is nothing to say.
+      if (state.foodOnly && data.ingestible && !data.ingestible.ok) {
+        const b = tile.querySelector('.air-badge');
+        if (b) b.remove();
+        return;
+      }
+      if (!data.ok) { paintBadge(tile, 'unreadable'); return; }
+      const result = AIR.engine.score({
+        name: data.title, labels: data.labels, certifications: data.certifications,
+        nutrition: data.nutrition, ingredients_text: data.text,
+      }, state.prefs);
+      paintBadge(tile, result);
+      cache(asin, { score: result.score, verdict: result.verdict, nova: result.nova });
+    } catch (e) {
+      const b = tile.querySelector('.air-badge');
+      if (b && b.textContent === '…') b.remove();
+      queue.seen.delete(asin);   // a failed fetch may be worth retrying on the next pass
+    }
+  }
+
+  function cache(key, value) {
+    if (!key) return;
+    try {
+      if (value) chrome.storage.local.set({ [`s:${key}`]: { ...value, t: Date.now() } });
+      else chrome.storage.local.remove(`s:${key}`);
+    }
+    catch (e) { /* storage unavailable in some frames */ }
+  }
+
+  function clearScoreCache(done) {
+    try {
+      chrome.storage.local.get(null, all => {
+        const keys = Object.keys(all || {}).filter(k => /^s:/.test(k));
+        if (!keys.length) { if (done) done(); return; }
+        chrome.storage.local.remove(keys, () => { if (done) done(); });
+      });
+    } catch (e) { if (done) done(); }
+  }
+
+  function resetListState() {
+    queue.seen.clear();
+    queue.pending.length = 0;
+    document.querySelectorAll('[data-air-auto]').forEach(t => t.removeAttribute('data-air-auto'));
+    clearBadges();
+  }
+
+  // ---------------------------------------------------------------- lifecycle
+  function tick() {
+    if (!state.enabled || state.busy) return;
+    state.busy = true;
+    try {
+      if (isProductPage()) scoreCurrentPage();
+      else if (isListPage()) {
+        removePanel();
+        if (state.badges) badgeSearchResults();
+        else clearBadges();
+      } else teardown();
+    } catch (e) {
+      // An extension must never take the host page down with it.
+      console.debug('[AIR]', e);
+    } finally { state.busy = false; }
+  }
+
+  // A pure trailing debounce starves under sustained churn: measured on the real extension, any
+  // mutation cadence faster than ~400ms meant tick() never ran and no panel ever appeared. Amazon
+  // PDPs have ad refresh, lazy image swaps and carousels, so that is a live page, not a stress
+  // test. MAX_WAIT guarantees a run even if mutations never stop.
+  const DEBOUNCE_MS = 400;
+  const MAX_WAIT_MS = 1500;
+  let timer = null, firstRequest = 0;
+  const schedule = () => {
+    const now = Date.now();
+    if (!firstRequest) firstRequest = now;
+    if (now - firstRequest >= MAX_WAIT_MS) { clearTimeout(timer); firstRequest = 0; tick(); return; }
+    clearTimeout(timer);
+    timer = setTimeout(() => { firstRequest = 0; tick(); }, DEBOUNCE_MS);
+  };
+
+  // Content scripts run in an isolated world, so reassigning history.pushState here is invisible to
+  // Amazon's own scripts — verified: the page world still sees the native function. The patch was
+  // inert. popstate does cross worlds, and a cheap URL poll covers pushState/replaceState without
+  // injecting anything into the page.
+  function watchNavigation() {
+    addEventListener('popstate', schedule);
+    let lastUrl = location.href;
+    setInterval(() => {
+      if (location.href === lastUrl) return;
+      lastUrl = location.href;
+      state.lastKey = null;      // a new URL is a new product; don't reuse the last render
+      schedule();
+    }, 500);
+  }
+
+  function removePanel() {
+    document.getElementById(HOST_ID)?.remove();
+    state.lastKey = null;
+    state.requestId++;
+  }
+
+  function clearBadges() {
+    document.querySelectorAll('.air-badge').forEach(b => b.remove());
+    document.querySelectorAll(`[${BADGE_ATTR}]`).forEach(tile => tile.removeAttribute(BADGE_ATTR));
+  }
+
+  function teardown() {
+    removePanel();
+    clearBadges();
+  }
+
+  chrome.storage.local.get(['enabled', 'badges', 'hoverScore', 'autoScoreSearch', 'foodOnly', 'weights', 'allergens', 'diets', 'avoidList'], o => {
+    state.enabled = o.enabled !== false;
+    state.badges = o.badges !== false;
+    state.hoverScore = o.hoverScore === true;             // opt-in: makes requests
+    state.autoScoreSearch = o.autoScoreSearch === true;   // opt-in: makes requests
+    state.foodOnly = o.foodOnly !== false;                // on unless deliberately turned off
+    readPrefs(o);
+    if (state.enabled) { schedule(); armHoverPass(); armAutoScorePass(); }
+  });
+
+  function readPrefs(o) {
+    state.prefs = {
+      weights: o.weights || {},
+      allergens: Array.isArray(o.allergens) ? o.allergens : [],
+      diets: Array.isArray(o.diets) ? o.diets : [],
+      avoidList: Array.isArray(o.avoidList) ? o.avoidList : [],
+    };
+  }
+
+  chrome.storage.onChanged.addListener(changes => {
+    // Changing a weight changes every score on screen, so the panel and badges are rebuilt and the
+    // cache is discarded — a cached number computed under the old weights is simply wrong now.
+    if (changes.weights || changes.allergens || changes.diets || changes.avoidList) {
+      chrome.storage.local.get(['weights', 'allergens', 'diets', 'avoidList'], o => {
+        readPrefs(o);
+        const rescore = () => {
+          resetListState();
+          removePanel();
+          state.lastKey = null;
+          if (state.enabled) { schedule(); armAutoScorePass(); }
+        };
+        // The comment used to claim the cache was discarded. Only the DOM badges were.
+        // Search chips read chrome.storage, so old weights came right back.
+        if (changes.weights) clearScoreCache(rescore);
+        else rescore();
+      });
+    }
+    if (changes.enabled) {
+      state.enabled = changes.enabled.newValue !== false;
+      if (state.enabled) { state.lastKey = null; schedule(); } else teardown();
+    }
+    if (changes.badges) {
+      state.badges = changes.badges.newValue !== false;
+      if (!state.badges) clearBadges();
+      else if (state.enabled) schedule();
+    }
+    if (changes.hoverScore) {
+      state.hoverScore = changes.hoverScore.newValue === true;
+      if (state.enabled && state.badges && state.hoverScore) armHoverPass();
+    }
+    if (changes.foodOnly) {
+      state.foodOnly = changes.foodOnly.newValue !== false;
+      state.lastKey = null;
+      removePanel();
+      resetListState();
+      if (state.enabled) { schedule(); armAutoScorePass(); }
+    }
+    if (changes.autoScoreSearch) {
+      state.autoScoreSearch = changes.autoScoreSearch.newValue === true;
+      if (state.enabled && state.badges && state.autoScoreSearch) {
+        document.querySelectorAll('[data-air-auto]').forEach(t => t.removeAttribute('data-air-auto'));
+        armAutoScorePass();
+      }
+    }
+    if (changes.useOpenFoodFacts && state.enabled && isProductPage()) {
+      removePanel();
+      schedule();
+    }
+  });
+
+  new MutationObserver(schedule).observe(document.documentElement, { childList: true, subtree: true });
+  watchNavigation();
+  schedule();
+})();

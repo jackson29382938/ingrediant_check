@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Chrome + Ingredient Check",
+      "type": "chrome",
+      "request": "launch",
+      "url": "https://www.amazon.com/s?k=oat+milk&i=grocery",
+      "runtimeExecutable": "/Users/a2938/.agent-browser/browsers/chrome-148.0.7778.97/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+      "runtimeArgs": [
+        "--load-extension=${workspaceFolder}",
+        "--disable-extensions-except=${workspaceFolder}",
+        "--remote-debugging-port=9333"
+      ],
+      "userDataDir": "${workspaceFolder}/.chrome-profile"
+    }
+  ]
+}
