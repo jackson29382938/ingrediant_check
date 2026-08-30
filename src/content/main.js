@@ -104,6 +104,9 @@
               labels: `${data.labels || ''} ${fallback.labels || ''}`,
               ingredients_text: fallback.ingredients_text,
             }, state.prefs);
+            // Open Food Facts is multilingual, so this path meets unreadable text more often than
+            // the page path does.
+            if (unreadable(result)) { showFailure(host, { ...data, lookupAttempted: true, lowCoverage: true }, key); return; }
             host.dataset.airState = 'scored';
             AIR.panel.mount(host, AIR.panel.render(result, {
               title: data.title || fallback.name,
@@ -126,6 +129,11 @@
       name: data.title, labels: data.labels, certifications: data.certifications,
       nutrition: data.nutrition, ingredients_text: data.text,
     }, state.prefs);
+    // The engine only penalises what it recognises, so text it cannot read comes back looking
+    // clean: an unknown ingredient scored 93, and the same drink scored 5 in English and 80 in
+    // Spanish. A score we cannot stand behind is worse than no score, which is the same rule the
+    // extractor already applies to placeholder text. Say so and offer the paste box instead.
+    if (unreadable(result)) { showFailure(host, { ...data, lowCoverage: true }, key); return; }
     host.dataset.airState = 'scored';
     AIR.panel.mount(host, AIR.panel.render(result, {
       title: data.title, confidence: data.confidence, via: data.via,
@@ -422,6 +430,8 @@
         name: data.title, labels: data.labels, certifications: data.certifications,
         nutrition: data.nutrition, ingredients_text: data.text,
       }, state.prefs);
+      // Same rule as the product page: a badge is a claim, and we do not make one we cannot read.
+      if (unreadable(result)) { paintBadge(tile, 'unreadable'); return; }
       paintBadge(tile, result);
       cache(asin, { score: result.score, verdict: result.verdict, nova: result.nova });
     } catch (e) {
@@ -430,6 +440,14 @@
       queue.seen.delete(asin);   // a failed fetch may be worth retrying on the next pass
     }
   }
+
+  // Below this share of the ingredient list matching anything the rulebase knows, the score is not
+  // evidence about the product — it is evidence that the rules are in the wrong language. Measured
+  // against the corpus: the lowest legitimate product sits at 50% and unreadable text at 0%, so
+  // the threshold sits in the empty space between them.
+  const MIN_COVERAGE = 0.34;
+  const unreadable = result =>
+    typeof result.coverage === 'number' && result.parsed > 0 && result.coverage < MIN_COVERAGE;
 
   function cache(key, value) {
     if (!key) return;

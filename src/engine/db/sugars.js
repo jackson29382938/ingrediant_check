@@ -35,6 +35,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // REFINED — full penalty. Position-weighted by the caller.
   const REFINED = [
     { m: /^(organic )?(cane |raw |turbinado |demerara |muscovado )?sugar$/i, pts: 14, why: 'Refined added sugar' },
+    { m: /^(az[uú]car|sucre|zucker)( blanc[oa]| refinad[oa]| de ca[ñn]a| blanc| raffin[ée])?$/i, pts: 14, why: 'Refined added sugar' },
     { m: /^(evaporated )?cane (juice|sugar|syrup)$/i,   pts: 14, why: 'Cane sugar' },
     { m: /^brown sugar$/i,                              pts: 14, why: 'Brown sugar' },
     { m: /^beet sugar$/i,                               pts: 14, why: 'Beet sugar' },
@@ -55,18 +56,18 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
 
   // INDUSTRIAL — hard cap territory.
   const INDUSTRIAL = [
-    { m: /\bhigh[- ]fructose corn syrup\b|\bhfcs\b/i, cap: 30, why: 'High-fructose corn syrup' },
+    { m: /\bhigh[- ]fructose corn syrup\b|\bhfcs\b|\bjarabe de ma[ií]z de alta fructosa\b|\bsirop de ma[ïi]s [àa] haute teneur en fructose\b/i, cap: 30, why: 'High-fructose corn syrup' },
     // Do not fire a second generic cap inside "high-fructose corn syrup".
-    { m: /(?<!fructose )\bcorn syrup( solids)?\b/i,   cap: 30, why: 'Corn syrup' },
+    { m: /(?<!fructose )\bcorn syrup( solids)?\b|\bjarabe de ma[ií]z\b|\bsirop de ma[ïi]s\b/i, cap: 30, why: 'Corn syrup' },
     { m: /\bglucose[- ]fructose( syrup)?\b/i,         cap: 30, why: 'Glucose-fructose syrup' },
   ];
 
   // ARTIFICIAL — treated as more concerning than sugar by default; adjustable in settings.
   const ARTIFICIAL = [
-    { m: /\bsucralose\b|\bsplenda\b/i,          cap: 22, why: 'Sucralose' },
-    { m: /\baspartame\b|\bnutrasweet\b/i,       cap: 22, why: 'Aspartame' },
-    { m: /\bacesulfame([- ]?k| potassium)?\b|\bace[- ]k\b/i, cap: 22, why: 'Acesulfame potassium' },
-    { m: /\bsaccharin\b/i,                      cap: 22, why: 'Saccharin' },
+    { m: /\bsucralos[ae]\b|\bsplenda\b/i,       cap: 22, why: 'Sucralose' },
+    { m: /\baspartam[eo]?\b|\bnutrasweet\b/i,   cap: 22, why: 'Aspartame' },
+    { m: /\bacesulfam[eo]([- ]?k| potassium| pot[áa]sico)?\b|\bace[- ]k\b/i, cap: 22, why: 'Acesulfame potassium' },
+    { m: /\bsaccharin[e]?\b|\bsacarina\b/i,     cap: 22, why: 'Saccharin' },
     { m: /\bneotame\b/i,                        cap: 22, why: 'Neotame' },
     { m: /\badvantame\b/i,                      cap: 22, why: 'Advantame' },
     { m: /\bcyclamate\b/i,                      cap: 22, why: 'Cyclamate' },

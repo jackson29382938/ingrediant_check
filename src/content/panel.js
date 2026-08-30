@@ -224,7 +224,9 @@
     <div class="card" style="--fg:#565959;--bg:#f7f8f8;--ring:#d5d9d9">
       <div class="fail" role="status">
         <b>Couldn't read the ingredients on this page.</b>
-        ${meta && meta.lookupAttempted
+        ${meta && meta.lowCoverage
+          ? "The ingredients are published, but almost none of them match anything this tool knows — usually that means the label is in a language it cannot read yet. Scoring it anyway would produce a confident wrong answer. "
+          : meta && meta.lookupAttempted
           ? "The optional barcode lookup didn't return an ingredient list. "
           : "Amazon doesn't always publish them as text — sometimes they only exist inside the label photo. "}
         Paste them here and I'll score it.

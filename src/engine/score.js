@@ -191,6 +191,75 @@ const CAPS = [
   ...sugars.ARTIFICIAL.map(x => ({ ...x, why: `${x.why} — artificial sweetener`, cat: 'artificialSweetener' })),
 ];
 
+// ---------------------------------------------------------------- recognition coverage
+//
+// The engine penalises what it recognises, so anything it does not recognise is free. That makes
+// silence indistinguishable from cleanliness: an unknown single ingredient scores 93, and the same
+// product scored 5 in English and 80 in Spanish purely because none of the rules are in Spanish.
+// novaClass already refuses to call unrecognised text NOVA 1 for this reason; coverage extends the
+// same scepticism to the score as a whole.
+//
+// This measures how much of the list the rulebase can actually see. The caller decides what to do
+// with a low number — content/main.js declines to show a score rather than showing a confident
+// wrong one.
+//
+// Vocabulary that is unmistakably an ingredient panel but matches no scoring rule, so a clean
+// short list is never mistaken for an unreadable one. Deliberately generous: being liberal with
+// ENGLISH food nouns costs the gate nothing, because the text this is meant to catch — another
+// language, OCR noise, a cosmetics panel — will not match English food words either. Matched
+// anywhere in the entry, since "turmeric root powder" should count as much as "turmeric".
+const COMMON_PANEL = new RegExp('\\b(?:' + [
+  // panel staples
+  'water|salt|spices?|herbs?|seasoning|vinegar|yeast|baking soda|baking powder|sodium bicarbonate',
+  'culture|cultures|rennet|enzymes?|pectin|gelatin|agar|broth|stock|juice|puree|paste|extract',
+  // beverages and their raw forms
+  'tea|green tea|black tea|matcha|coffee|arabica|robusta|espresso|chicory|kombucha|cocoa|cacao|chocolate',
+  // aromatics, spices, seasonings
+  'vanilla|cinnamon|turmeric|ginger|paprika|cumin|coriander|oregano|basil|thyme|rosemary|sage|dill',
+  'nutmeg|clove|cardamom|allspice|fennel|anise|saffron|chili|chilli|cayenne|peppercorns?|mustard',
+  'garlic|onion|shallot|leek|celery|parsley|cilantro|bay leaf|bay leaves|lemongrass|mint',
+  // produce
+  'tomato|potato|carrot|cabbage|cauliflower|broccoli|spinach|kale|lettuce|cucumber|zucchini|squash',
+  'pumpkin|beet|beetroot|turnip|radish|asparagus|artichoke|pepper|eggplant|aubergine|mushrooms?',
+  'apple|banana|orange|lemon|lime|grape|berry|berries|mango|pineapple|peach|pear|plum|cherry|melon',
+  'avocado|olive|coconut|date|fig|raisin|apricot|cranberry|currant',
+  // grains, legumes, seeds, nuts
+  'oats?|rice|quinoa|barley|millet|sorghum|buckwheat|amaranth|teff|rye|spelt|farro|couscous|pasta',
+  'beans?|lentils?|chickpeas?|peas?|soy|edamame|tofu|tempeh|hummus',
+  'chia|flax|linseed|hemp|sesame|tahini|sunflower seeds?|pumpkin seeds?|poppy',
+  'almonds?|walnuts?|pecans?|cashews?|pistachios?|hazelnuts?|macadamias?|peanuts?|nuts?',
+  'flour|starch|bran|germ|semolina|masa|tapioca|arrowroot|cornmeal',
+  // animal foods
+  'beef|pork|chicken|turkey|lamb|duck|bison|veal|venison|goat|liver|bone|gelatine',
+  'fish|salmon|tuna|cod|halibut|sardines?|anchov(?:y|ies)|mackerel|trout|shrimp|crab|scallops?|oysters?',
+  'milk|cream|butter|cheese|yogh?urt|kefir|ghee|whey|curd|eggs?',
+  // seaweed, fungi, ferments
+  'nori|kombu|wakame|seaweed|kelp|spirulina|chlorella|miso|kimchi|sauerkraut|sourdough|nutritional yeast',
+  'honey|maple|molasses|syrup',
+  // Non-English staples, so a Spanish/French panel that DOES hit the cap rules above clears the
+  // coverage gate and gets scored rather than declined.
+  'agua|eau|wasser|sal|sel|salz|az[uú]car|sucre|zucker|leche|lait|milch|harina|farine|mehl',
+  'aceite|huile|[öo]l|jarabe|sirop|jugo|jus|saft|ma[ií]z|ma[ïi]s|trigo|bl[ée]|arroz|riz|reis',
+  'soja|girasol|tournesol|colza|vegetal|v[ée]g[ée]tale|almid[óo]n|amidon|levadura|levure',
+].join('|') + ')\\b', 'i');
+
+function recognitionCoverage(list) {
+  if (!list.length) return 0;
+  let seen = 0;
+  for (const ing of list) {
+    const known =
+      labels.WHOLE.some(w => w.test(ing))
+      || labels.CULINARY.test(ing)
+      || COMMON_PANEL.test(ing)
+      || sugars.FREE.some(f => f.test(ing))
+      || PENALTIES.some(r => r.m.test(ing))
+      || CAPS.some(c => c.m.test(ing))
+      || labels.BONUSES.some(b => b.m.test(ing));
+    if (known) seen++;
+  }
+  return seen / list.length;
+}
+
 // ---------------------------------------------------------------- parsing
 function parse(text) {
   return text
@@ -518,6 +587,10 @@ function score(product, options = {}) {
        ...db.allergens.matchAvoidList(list, options.avoidList || [])]
     : [];
 
+  // How much of this list the rulebase could actually read. Reported, never scored — a low number
+  // means "we cannot assess this", which is a different statement from a low score.
+  const coverage = recognitionCoverage(list);
+
   const rawTotal_ = Math.round(pts);
   // Ceiling only at this point. The floor and the hard cap are applied AFTER the display rows are
   // reconciled below, and each pushes its own row, so every clamp stays visible in the panel.
@@ -572,6 +645,7 @@ function score(product, options = {}) {
     nova, base: displayBase, novaBase: base, cap: capWhy, flags, provenance,
     good, bad,
     parsed: list.length,
+    coverage,
     ruleCount: PENALTIES.length + CAPS.length + labels.BONUSES.length,
   };
 }

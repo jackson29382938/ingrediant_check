@@ -13,27 +13,27 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
 
   const HARD = [
     // Solvent-extracted, high-PUFA industrial oils. Any one of these caps the score.
-    { id: 'canola',      m: /\b(canola|rapeseed)\s*(oil|seed oil)?\b/i,           why: 'Canola/rapeseed oil' },
-    { id: 'soybean',     m: /\b(soybean|soya bean|soy)\s+oil\b/i,                 why: 'Soybean oil' },
-    { id: 'sunflower',   m: /\bsunflower\s+oil\b/i,                               why: 'Sunflower oil' },
+    { id: 'canola',      m: /\b(canola|rapeseed|colza)\s*(oil|seed oil)?\b/i,     why: 'Canola/rapeseed oil' },
+    { id: 'soybean',     m: /\b(soybean|soya bean|soy)\s+oil\b|\b(aceite|huile)\s+de\s+soja\b/i, why: 'Soybean oil' },
+    { id: 'sunflower',   m: /\bsunflower\s+oil\b|\b(aceite\s+de\s+girasol|huile\s+de\s+tournesol|sonnenblumen[öo]l)\b/i, why: 'Sunflower oil' },
     { id: 'safflower',   m: /\bsafflower\s+oil\b/i,                               why: 'Safflower oil' },
-    { id: 'corn',        m: /\bcorn\s+oil\b/i,                                    why: 'Corn oil' },
+    { id: 'corn',        m: /\bcorn\s+oil\b|\b(aceite\s+de\s+ma[ií]z|huile\s+de\s+ma[ïi]s)\b/i, why: 'Corn oil' },
     { id: 'cottonseed',  m: /\bcottonseed\s+oil\b/i,                              why: 'Cottonseed oil' },
     { id: 'grapeseed',   m: /\bgrape\s?seed\s+oil\b/i,                            why: 'Grapeseed oil' },
     { id: 'ricebran',    m: /\brice\s?bran\s+oil\b/i,                             why: 'Rice bran oil' },
     { id: 'peanutoil',   m: /\bpeanut\s+oil\b/i,                                  why: 'Peanut oil' },
     { id: 'sesameind',   m: /\brefined\s+sesame\s+oil\b/i,                         why: 'Refined sesame oil' },
-    { id: 'vegetable',   m: /\bvegetable\s+oil\b/i,                               why: 'Unspecified "vegetable oil"' },
+    { id: 'vegetable',   m: /\bvegetable\s+oil\b|\b(aceite\s+vegetal|huile\s+v[ée]g[ée]tale|pflanzen[öo]l)\b/i, why: 'Unspecified "vegetable oil"' },
     { id: 'blend',       m: /\b(oil\s+blend|blend\s+of\s+\w+\s+oils?)\b/i,        why: 'Unspecified oil blend' },
     { id: 'shortening',  m: /\bshortening\b/i,                                    why: 'Vegetable shortening' },
     { id: 'margarine',   m: /\bmargarine\b/i,                                     why: 'Margarine' },
     { id: 'interester',  m: /\binte?re?sterified\b/i,                             why: 'Interesterified fat' },
-    { id: 'hydrogen',    m: /\b(fully )?hydrogenated\b/i,                         why: 'Hydrogenated oil' },
+    { id: 'hydrogen',    m: /\b(fully )?hydrogenated\b|\b(totalmente\s+)?hidrogenad[oa]\b|\bhydrog[ée]n[ée]e?\b/i, why: 'Hydrogenated oil' },
     { id: 'monoglyoil',  m: /\bhigh\s+oleic\s+(soybean|sunflower|safflower)\b/i,  why: 'High-oleic industrial seed oil' },
   ];
 
   // Artificial trans fat. Its own, far lower cap.
-  const TRANS = { m: /\bpartially\s+hydrogenated\b/i, why: 'Partially hydrogenated oil (artificial trans fat)', cap: 5 };
+  const TRANS = { m: /\bpartially\s+hydrogenated\b|\bparcialmente\s+hidrogenad[oa]\b|\bpartiellement\s+hydrog[ée]n[ée]e?\b/i, why: 'Partially hydrogenated oil (artificial trans fat)', cap: 5 };
 
   const TRADITIONAL = [
     { id: 'butter',   m: /(?<!peanut |almond |cashew |sunflower |seed |nut |cocoa |shea |apple |soy |coconut )\bbutter\b/i, why: 'Butter' },

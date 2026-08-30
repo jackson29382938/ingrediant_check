@@ -18,9 +18,7 @@ require(src('engine/db/_module.js'));
 const engine = require(src('engine/score.js'));
 const corpus = require('./corpus.json');
 
-const OPEN_DEFECTS = new Set([
-  'unknown-scores-high',
-]);
+const OPEN_DEFECTS = new Set([]);
 
 let failed = 0, known = 0, fixed = [];
 
@@ -46,6 +44,28 @@ for (const entry of corpus.defects) {
   else if (ok) { console.log('  ok  ' + msg); }
   else if (open) { known++; console.log('  known-fail  ' + msg + `  [${entry.defect}]`); }
   else { failed++; console.error('  FAIL ' + msg + (entry.note ? '\n       ' + entry.note : '')); }
+}
+
+console.log('\ncorpus — recognition coverage');
+// The gate that stops unreadable text from being scored. Entries carrying an explicit expectation
+// assert it; everything else must clear the threshold content/main.js uses, or the tool would go
+// silent on a product it can actually read.
+const MIN_COVERAGE = 0.34;
+for (const entry of [...corpus.products, ...corpus.defects]) {
+  const { coverage } = engine.score(entry.product, {});
+  const pct = (coverage * 100).toFixed(0) + '%';
+  if (typeof entry.maxCoverage === 'number') {
+    if (coverage < entry.maxCoverage) console.log(`  ok  ${entry.id}: ${pct} — correctly unreadable`);
+    else { failed++; console.error(`  FAIL ${entry.id}: ${pct} coverage, expected below ${entry.maxCoverage}`); }
+  } else if (typeof entry.minCoverage === 'number') {
+    if (coverage >= entry.minCoverage) console.log(`  ok  ${entry.id}: ${pct} — readable, so it gets scored`);
+    else { failed++; console.error(`  FAIL ${entry.id}: ${pct} coverage, expected at least ${entry.minCoverage}`); }
+  } else if (coverage >= MIN_COVERAGE) {
+    console.log(`  ok  ${entry.id}: ${pct}`);
+  } else {
+    failed++;
+    console.error(`  FAIL ${entry.id}: ${pct} coverage — a real product would be suppressed as unreadable`);
+  }
 }
 
 // Cross-checks that state the defect as a relationship rather than an absolute number. These are

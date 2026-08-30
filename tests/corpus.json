@@ -196,7 +196,7 @@
       "product": { "name": "Store Brand Crackers",
         "ingredients_text": "Enriched flour, Non GMO Canola Oil, Salt, Yeast" } },
 
-    { "id": "spanish-junk-panel", "defect": "unknown-scores-high", "band": [3, 30],
+    { "id": "spanish-junk-panel", "defect": null, "band": [3, 30], "minCoverage": 0.34,
       "note": "DEFECT 2. Same product as english-junk-panel below; must not score 55 points higher for being in Spanish.",
       "product": { "name": "Refresco",
         "ingredients_text": "Agua, Jarabe de maiz de alta fructosa, Aceite vegetal parcialmente hidrogenado, Rojo 40, Glutamato monosodico, Benzoato de sodio" } },
@@ -206,8 +206,8 @@
       "product": { "name": "Soft Drink",
         "ingredients_text": "Water, High Fructose Corn Syrup, Partially Hydrogenated Vegetable Oil, Red 40, Monosodium Glutamate, Sodium Benzoate" } },
 
-    { "id": "gibberish-ingredient", "defect": "unknown-scores-high", "band": [3, 74],
-      "note": "DEFECT 2. Unparseable text must not come back as a confident 93.",
+    { "id": "gibberish-ingredient", "defect": null, "band": [3, 100], "maxCoverage": 0.34,
+      "note": "The engine still scores this; recognitionCoverage() is what makes it unshowable, and content/main.js is what declines it. Asserted on coverage, which is the actual contract.",
       "product": { "name": "Mystery Product", "ingredients_text": "Zzyzxian flargle concentrate" } },
 
     { "id": "cold-pressed-sunflower-oil", "defect": "dead-unrefined-rule", "band": [40, 100],
