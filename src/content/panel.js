@@ -123,9 +123,12 @@
   function rowsHTML(items, kind) {
     if (!items.length) return '';
     return `<ul>${items.map(h => {
-      const isCap = h.c === 'CAP';
-      const cls = isCap ? 'capflag' : kind;
-      const pts = isCap ? 'CAP' : (h.c > 0 ? `+${h.c}` : `${h.c}`);
+      // A cap that BINDS now carries its own arithmetic (h.cap, numeric), because the score used
+      // to jump without any row explaining the gap. A cap that matched but was not the binding
+      // one stays a bare 'CAP' label — it constrains nothing, so it has no number to show.
+      const isCapLabel = h.c === 'CAP';
+      const cls = isCapLabel ? 'capflag' : (h.cap ? 'minus' : kind);
+      const pts = isCapLabel ? 'CAP' : (h.c > 0 ? `+${h.c}` : `${h.c}`);
       const ing = h.ing ? ` <span class="ing">— ${esc(h.ing)}</span>` : '';
       return `<li class="${cls}"><span class="pts">${pts}</span><span class="why">${esc(h.why)}${ing}</span></li>`;
     }).join('')}</ul>`;
@@ -144,8 +147,9 @@
   // `result` is the engine output; `meta` carries title/confidence/source.
   function render(result, meta) {
     const c = BAND_COLOR(result.score);
-    const caps = result.bad.filter(h => h.c === 'CAP');
-    const minus = result.bad.filter(h => h.c !== 'CAP');
+    const isCapRow = h => h.c === 'CAP' || h.cap === true;
+    const caps = result.bad.filter(isCapRow);
+    const minus = result.bad.filter(h => !isCapRow(h));
     const plus = result.good.filter(h => h.c > 0);
     const refinedSugarPresent = result.bad.some(h => /^(Refined added sugar|Cane sugar|Brown sugar|Beet sugar|Powdered sugar|Invert sugar|Dextrose|Glucose syrup|Isolated fructose|Sucrose|Maltose|Agave|Rice syrup|Tapioca syrup|Barley malt syrup|Caramel|Honey powder)/i.test(h.why));
     // A zero-point note about milk or fruit sugar is useful on a clean food, but reads like a health

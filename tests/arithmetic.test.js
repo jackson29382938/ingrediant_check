@@ -18,7 +18,7 @@ const corpus = require('./corpus.json');
 
 // Same convention as corpus.test.js: a listed defect is known-broken, so its failures are
 // reported and not counted. Remove the id once fixed and the assertion becomes hard.
-const OPEN_DEFECTS = new Set(['display-arithmetic']);
+const OPEN_DEFECTS = new Set([]);
 
 let failed = 0, known = 0;
 const check = (name, fn) => {

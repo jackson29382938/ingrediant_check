@@ -32,9 +32,11 @@ const CAPPED = [
   'aspartame', 'acesulfame potassium', 'saccharin', 'red 40', 'yellow 5', 'blue 1',
   'titanium dioxide', 'caramel color', 'carrageenan', 'BHA', 'BHT', 'TBHQ', 'potassium bromate',
 ];
-// Adjectives that really appear glued to an ingredient, plus two denial phrases that a badly
-// punctuated panel can run into the ingredient. Neither form may launder the cap.
-const PREFIXES = ['Non-GMO', 'Non GMO', 'Expeller-Pressed', 'No cholesterol added', 'Zero trans fat'];
+// Denial adjectives that really appear glued to an ingredient, plus two denial phrases that a
+// badly punctuated panel can run into it. None of these may launder the cap. Cold-pressed and
+// expeller-pressed are deliberately NOT here: those are not denials, and oils.UNREFINED softens
+// the ceiling for them on purpose (asserted separately below).
+const PREFIXES = ['Non-GMO', 'Non GMO', 'No cholesterol added', 'Zero trans fat'];
 
 console.log('a capped ingredient still caps behind a denial adjective');
 for (const ing of CAPPED) {
@@ -78,6 +80,19 @@ for (const [text, why] of [
     assert.strictEqual(parsed, items, `parsed ${parsed} of ${items} entries from "${text}" — one was eaten`);
   });
 }
+
+console.log('\nthe unrefined qualifier softens rather than launders');
+check('cold-pressed seed oil lands between the cap and a clean score', () => {
+  const capped = scoreOf('Sunflower oil');
+  const softened = scoreOf('Cold-pressed unrefined sunflower oil');
+  assert.ok(softened > capped, `cold-pressed scored ${softened}, refined ${capped} — softening is inert`);
+  assert.ok(softened < 75, `cold-pressed scored ${softened} — softened into "Good", which is not softening`);
+});
+check('a qualifier on one oil does not lift the cap on another', () => {
+  const mixed = engine.score(
+    { name: 'x', ingredients_text: 'Potatoes, sunflower oil, cold-pressed olive oil, salt' }, {});
+  assert.ok(mixed.score <= 30, `scored ${mixed.score} — the olive oil qualifier lifted the sunflower cap`);
+});
 
 console.log('\nthe two surfaces stay separate');
 check('a title denial does not condemn, an ingredient adjective does not launder', () => {

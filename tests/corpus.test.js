@@ -20,7 +20,6 @@ const corpus = require('./corpus.json');
 
 const OPEN_DEFECTS = new Set([
   'unknown-scores-high',
-  'dead-unrefined-rule',
 ]);
 
 let failed = 0, known = 0, fixed = [];

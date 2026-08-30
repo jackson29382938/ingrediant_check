@@ -178,7 +178,14 @@ function collapse(hits) {
 // Hard caps from every source that can set a ceiling.
 const CAPS = [
   { m: oils.TRANS.m, cap: oils.TRANS.cap, why: oils.TRANS.why, cat: 'transFat' },
-  ...oils.HARD.map(o => ({ m: o.m, cap: 25, why: `${o.why} — refined seed oil`, cat: 'refinedOil' })),
+  // `soften` lifts the ceiling when the ingredient itself carries a cold-pressed / unrefined
+  // qualifier. oils.js has said this softening exists since the file was written, but UNREFINED
+  // was never exported and never referenced, so "cold-pressed unrefined sunflower oil" was capped
+  // at 25 identically to the refined version — while labels.BONUSES paid points for the same
+  // words. Softened rather than lifted: mechanical pressing changes the extraction, not the fact
+  // that these are high-linoleic oils.
+  ...oils.HARD.map(o => ({ m: o.m, cap: 25, why: `${o.why} — refined seed oil`, cat: 'refinedOil',
+                           unless: oils.UNREFINED, soften: 55 })),
   ...add.CAPS,
   ...sugars.INDUSTRIAL.map(x => ({ ...x, cat: 'industrialSyrup' })),
   ...sugars.ARTIFICIAL.map(x => ({ ...x, why: `${x.why} — artificial sweetener`, cat: 'artificialSweetener' })),
@@ -391,10 +398,18 @@ function score(product, options = {}) {
   let cap = 100, capWhy = null;
   for (const c of CAPS) {
     if (!c.m.test(txt)) continue;
+    let ceiling = c.cap;
+    if (c.unless) {
+      // Checked per entry, not against the whole text: a product listing both "sunflower oil" and
+      // "cold-pressed olive oil" must keep the sunflower cap. Only when every entry naming this
+      // oil carries the qualifier does the softer ceiling apply.
+      const naming = list.filter(i => c.m.test(i));
+      if (naming.length && naming.every(i => c.unless.test(i))) ceiling = c.soften;
+    }
     // A ceiling of 25 at weight 1 becomes no ceiling at weight 0 and a ceiling of 0 at weight 2.
     // Clamped at the floor: at weight 2 the arithmetic can produce a negative ceiling, which then
     // escaped the band lookup entirely and crashed on an undefined verdict.
-    const eff = Math.max(SCORE_FLOOR, Math.round(100 - (100 - c.cap) * w_(c.cat)));
+    const eff = Math.max(SCORE_FLOOR, Math.round(100 - (100 - ceiling) * w_(c.cat)));
     if (eff >= 100) continue;                            // category switched off by the user
     if (eff < cap) { cap = eff; capWhy = c.why; }
     if (!bad.some(h => h.why === c.why)) bad.push({ c: 'CAP', why: `${c.why} — caps score at ${eff}` });
@@ -504,7 +519,9 @@ function score(product, options = {}) {
     : [];
 
   const rawTotal_ = Math.round(pts);
-  let final = Math.max(SCORE_FLOOR, Math.min(100, Math.round(softCeiling(pts))));
+  // Ceiling only at this point. The floor and the hard cap are applied AFTER the display rows are
+  // reconciled below, and each pushes its own row, so every clamp stays visible in the panel.
+  let final = Math.min(100, Math.round(softCeiling(pts)));
 
   // The panel prints a number beside every line, and those lines have to add up to the score the
   // user is looking at. The soft ceiling shaves points off the total after the fact, which would
@@ -527,7 +544,27 @@ function score(product, options = {}) {
     displayBase -= shave;
   }
 
-  if (final > cap) final = cap;
+  // Every clamp below this line has to leave the panel adding up. The soft ceiling above is
+  // redistributed into the bonus rows; the floor and the cap cannot be, because neither is a
+  // proportional adjustment — a cap is a ceiling imposed on the whole product. So each one pushes
+  // an explicit row carrying its own arithmetic instead of moving the score silently.
+  //
+  // Before this, both were applied after the reconciliation and the panel simply lied: plain
+  // salted chips in safflower oil rendered "+3 minimally refined cooking fat" with no penalties
+  // at all beside a red 25, and the CAP row that explained it carried no number. 7 of 47 corpus
+  // products were wrong at default weights, more under the presets.
+  if (final > cap) {
+    const drop = final - cap;
+    // Attach the arithmetic to the cap that actually binds; the others stay as bare labels.
+    const row = bad.find(h => h.c === 'CAP' && h.why.startsWith(capWhy));
+    if (row) { row.c = -drop; row.cap = true; }
+    else bad.push({ c: -drop, cap: true, why: `${capWhy} — caps score at ${cap}` });
+    final = cap;
+  }
+  if (final < SCORE_FLOOR) {
+    good.push({ c: SCORE_FLOOR - final, why: `Score floor — the scale stops at ${SCORE_FLOOR}` });
+    final = SCORE_FLOOR;
+  }
 
   return {
     score: final,
