@@ -6,6 +6,6 @@
     "chrome": "node scripts/dev-chrome.mjs",
     "chrome:reload": "node scripts/reload-extension.mjs",
     "ab": "node scripts/ab.mjs",
-    "test": "node tests/food-gate.test.js && node tests/negation.test.js && node tests/corpus.test.js && node tests/arithmetic.test.js"
+    "test": "node tests/sanity.test.js && node tests/food-gate.test.js && node tests/negation.test.js && node tests/corpus.test.js && node tests/arithmetic.test.js"
   }
 }
