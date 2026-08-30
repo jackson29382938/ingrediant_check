@@ -1,0 +1,221 @@
+{
+  "_comment": [
+    "Calibration corpus. Each entry pins a product to a SCORE BAND, not an exact number,",
+    "so recalibration is allowed but silent drift is not. Bands are inclusive.",
+    "",
+    "Verdict bands from score.js BANDS: 90+ Excellent, 75-89 Good, 50-74 Mediocre,",
+    "25-49 Poor, 0-24 Avoid.",
+    "",
+    "Products marked \"defect\" encode the CORRECT answer for a known open bug and are",
+    "expected to fail until that bug is fixed. corpus.test.js reports them separately",
+    "and does not count them as failures while the defect is listed in OPEN_DEFECTS.",
+    "",
+    "Ingredient text is representative of the real product panel, transcribed by hand.",
+    "Sources for the seed set are the products named throughout the engine comments."
+  ],
+
+  "products": [
+    { "id": "organic-whole-milk", "band": [90, 100],
+      "note": "score.js ceiling comment: was pinned at exactly 100 before the soft ceiling",
+      "product": { "name": "Organic Valley Whole Milk", "ingredients_text": "Organic Grade A Milk, Vitamin D3" } },
+
+    { "id": "a2-grassfed-milk", "band": [90, 100],
+      "note": "score.js ceiling comment: must separate from plain organic milk, not tie at 100",
+      "product": { "name": "Alexandre Family Farm A2/A2 Grass-Fed Whole Milk",
+        "ingredients_text": "Organic grass-fed whole milk, vitamin D3",
+        "certifications": "Certified Regenerative, USDA Organic, American Grassfed Association" } },
+
+    { "id": "ultra-pasteurized-skim", "band": [30, 70],
+      "note": "dairy processing penalties: ultra-pasteurised AND fat-reduced",
+      "product": { "name": "Store Brand Fat Free Skim Milk",
+        "ingredients_text": "Ultra-pasteurized nonfat milk, vitamin A palmitate, vitamin D3" } },
+
+    { "id": "whole-milk-yogurt", "band": [75, 100],
+      "note": "score.js:407 — plain whole-milk yoghurt fell to 68 under a bad provenance rule",
+      "product": { "name": "Straus Family Creamery Organic Whole Milk Yogurt",
+        "ingredients_text": "Organic whole milk, live active cultures" } },
+
+    { "id": "wild-sockeye-salmon", "band": [90, 100],
+      "note": "score.js ceiling comment",
+      "product": { "name": "Wild Alaskan Sockeye Salmon Fillet", "ingredients_text": "Wild caught sockeye salmon",
+        "certifications": "Marine Stewardship Council certified" } },
+
+    { "id": "atlantic-salmon-color-added", "band": [60, 92],
+      "note": "score.js:170 — 'salmon with a note', must not read as a manufactured product",
+      "product": { "name": "Farmed Atlantic Salmon", "ingredients_text": "Atlantic Salmon, Color Added" } },
+
+    { "id": "commodity-ground-beef", "band": [70, 90],
+      "note": "provenance.js — silent label is conventionally raised; must not score like pasture beef",
+      "product": { "name": "Ground Beef 80/20", "ingredients_text": "Ground beef" } },
+
+    { "id": "aga-grassfed-beef", "band": [85, 100],
+      "note": "audited certification must clearly beat the silent commodity version above",
+      "product": { "name": "Force of Nature Grass Fed Grass Finished Ground Beef",
+        "ingredients_text": "100% grass-fed grass-finished beef",
+        "certifications": "American Grassfed Association Certified, Certified Regenerative" } },
+
+    { "id": "grassfed-butter", "band": [85, 100],
+      "note": "score.js:223 — must keep generic label credit; dairy is not provenance-critical",
+      "product": { "name": "Kerrygold Pure Irish Grass-Fed Butter",
+        "ingredients_text": "Pasteurized cream, salt", "labels": "Grass-fed" } },
+
+    { "id": "extra-virgin-olive-oil", "band": [85, 100],
+      "product": { "name": "California Olive Ranch Extra Virgin Olive Oil",
+        "ingredients_text": "100% extra virgin olive oil" } },
+
+    { "id": "refined-coconut-oil", "band": [80, 100],
+      "note": "score.js ceiling comment: was pinned at 100",
+      "product": { "name": "Refined Coconut Oil", "ingredients_text": "Refined coconut oil" } },
+
+    { "id": "rolled-oats", "band": [88, 100],
+      "product": { "name": "365 Organic Rolled Oats", "ingredients_text": "Organic whole grain rolled oats" } },
+
+    { "id": "raw-honey", "band": [80, 100],
+      "product": { "name": "Raw Unfiltered Wildflower Honey", "ingredients_text": "Raw unfiltered honey" } },
+
+    { "id": "pasture-raised-eggs", "band": [85, 100],
+      "product": { "name": "Vital Farms Pasture-Raised Large Brown Eggs", "ingredients_text": "Eggs",
+        "certifications": "Certified Humane, Pasture-Raised" } },
+
+    { "id": "soy-sauce", "band": [30, 70],
+      "note": "score.js:174 — unrecognised text used to fall back to NOVA 1 and score 96",
+      "product": { "name": "Kikkoman Soy Sauce", "ingredients_text": "Water, wheat, soybeans, salt, sodium benzoate" } },
+
+    { "id": "sprouted-ezekiel-bread", "band": [70, 100],
+      "note": "score.js:268 — traditional prep must halve the grain penalty, not push NOVA 4",
+      "product": { "name": "Food For Life Ezekiel 4:9 Sprouted Whole Grain Bread",
+        "ingredients_text": "Organic sprouted wheat, filtered water, organic sprouted barley, organic sprouted millet, organic malted barley, organic sprouted lentils, organic sprouted soybeans, organic sprouted spelt, fresh yeast, organic wheat gluten, sea salt" } },
+
+    { "id": "sourdough-bread", "band": [50, 85],
+      "product": { "name": "Organic Sourdough Bread",
+        "ingredients_text": "Organic wheat flour, water, sourdough culture, sea salt" } },
+
+    { "id": "white-sandwich-bread", "band": [3, 35],
+      "product": { "name": "Wonder Classic White Bread",
+        "ingredients_text": "Enriched wheat flour (flour, niacin, reduced iron, thiamine mononitrate, riboflavin, folic acid), water, high fructose corn syrup, yeast, soybean oil, salt, calcium propionate, monoglycerides, datem, calcium sulfate" } },
+
+    { "id": "breakfast-cereal", "band": [10, 50],
+      "note": "score.js:97 — group collapse exists so this does not hit the floor purely by stacking vitamins",
+      "product": { "name": "Kellogg's Frosted Flakes",
+        "ingredients_text": "Milled corn, sugar, malt flavor, contains 2% or less of salt, BHT for freshness, iron, niacinamide, pyridoxine hydrochloride, riboflavin, thiamin mononitrate, folic acid, vitamin D3" } },
+
+    { "id": "soy-protein-bar", "band": [3, 40],
+      "note": "score.js:212 — ad-copy 'grass-fed' on the title must not bank full bonus points here",
+      "product": { "name": "100% GRASS-FED Protein Bar",
+        "ingredients_text": "Soy protein isolate, glycerin, maltitol syrup, palm kernel oil, natural and artificial flavors, sucralose, soy lecithin",
+        "labels": "100% grass-fed, non-gmo" } },
+
+    { "id": "soda-hfcs", "band": [3, 30],
+      "product": { "name": "Classic Cola",
+        "ingredients_text": "Carbonated water, high fructose corn syrup, caramel color, phosphoric acid, natural flavors, caffeine" } },
+
+    { "id": "diet-soda", "band": [3, 30],
+      "product": { "name": "Diet Cola",
+        "ingredients_text": "Carbonated water, caramel color, aspartame, phosphoric acid, potassium benzoate, natural flavors, citric acid, caffeine" } },
+
+    { "id": "toaster-pastry", "band": [3, 30],
+      "product": { "name": "Frosted Strawberry Toaster Pastries",
+        "ingredients_text": "Enriched flour, corn syrup, high fructose corn syrup, dextrose, soybean and palm oil, sugar, cracker meal, contains 2% or less of wheat starch, salt, dried strawberries, leavening, citric acid, modified corn starch, gelatin, xanthan gum, red 40, yellow 6, blue 1, TBHQ" } },
+
+    { "id": "potato-chips-plain", "band": [20, 60],
+      "product": { "name": "Kettle Brand Sea Salt Potato Chips",
+        "ingredients_text": "Potatoes, safflower oil, sea salt" } },
+
+    { "id": "potato-chips-avocado-oil", "band": [70, 100],
+      "product": { "name": "Jackson's Sea Salt Potato Chips",
+        "ingredients_text": "Sweet potatoes, avocado oil, sea salt" } },
+
+    { "id": "peanut-butter-simple", "band": [80, 100],
+      "note": "NOT_REAL_BUTTER: must not earn the 'minimally refined cooking fat' bonus",
+      "product": { "name": "Smucker's Natural Creamy Peanut Butter", "ingredients_text": "Peanuts, salt" } },
+
+    { "id": "peanut-butter-industrial", "band": [25, 70],
+      "product": { "name": "Jif Creamy Peanut Butter",
+        "ingredients_text": "Roasted peanuts, sugar, molasses, fully hydrogenated vegetable oils, mono and diglycerides, salt" } },
+
+    { "id": "canned-tomatoes", "band": [75, 100],
+      "product": { "name": "Bianco DiNapoli Organic Whole Peeled Tomatoes",
+        "ingredients_text": "Organic tomatoes, organic tomato juice, sea salt, organic basil" } },
+
+    { "id": "pasta-sauce-sugary", "band": [15, 50],
+      "product": { "name": "Ragu Traditional Pasta Sauce",
+        "ingredients_text": "Tomato puree, soybean oil, salt, sugar, dehydrated onions, spices, natural flavor, citric acid" } },
+
+    { "id": "chicken-broth", "band": [40, 85],
+      "product": { "name": "Swanson Chicken Broth",
+        "ingredients_text": "Chicken stock, contains less than 2% of salt, natural flavoring, yeast extract, carrot juice concentrate, celery juice concentrate, onion juice concentrate" } },
+
+    { "id": "bone-broth-clean", "band": [80, 100],
+      "product": { "name": "Kettle & Fire Chicken Bone Broth",
+        "ingredients_text": "Chicken bone broth, organic onion, organic carrot, sea salt, organic parsley, organic bay leaf" } },
+
+    { "id": "deli-turkey-nitrite", "band": [20, 65],
+      "product": { "name": "Oscar Mayer Deli Fresh Oven Roasted Turkey Breast",
+        "ingredients_text": "Turkey breast, water, contains less than 2% of salt, sugar, sodium phosphate, sodium nitrite, sodium erythorbate, carrageenan" } },
+
+    { "id": "uncured-bacon", "band": [70, 95],
+      "product": { "name": "Applegate Naturals Uncured Sunday Bacon",
+        "ingredients_text": "Pork, water, sea salt, cultured celery powder, raw cane sugar",
+        "labels": "No nitrates or nitrites added, humanely raised" } },
+
+    { "id": "almond-milk-gums", "band": [25, 70],
+      "product": { "name": "Almond Breeze Original Almondmilk",
+        "ingredients_text": "Almondmilk (filtered water, almonds), cane sugar, calcium carbonate, sea salt, potassium citrate, sunflower lecithin, gellan gum, natural flavors, vitamin A palmitate, vitamin D2, d-alpha-tocopherol" } },
+
+    { "id": "greek-yogurt-fruit", "band": [10, 45],
+      "product": { "name": "Yoplait Greek 100 Strawberry",
+        "ingredients_text": "Cultured pasteurized grade A nonfat milk, strawberries, sugar, corn starch, natural flavor, sucralose, potassium sorbate, carmine, vitamin D3" } },
+
+    { "id": "dates-only", "band": [88, 100],
+      "note": "RULE GAP: cultured celery powder is the standard nitrite workaround and carries no penalty, so this scores 85 while the nitrite version scores 37. Band pinned to current behaviour; see notes/findings.md.",
+      "product": { "name": "Organic Medjool Dates", "ingredients_text": "Organic medjool dates" } },
+
+    { "id": "larabar-fruit-nut", "band": [75, 100],
+      "product": { "name": "Larabar Cashew Cookie", "ingredients_text": "Dates, cashews" } },
+
+    { "id": "granola-bar-industrial", "band": [3, 25],
+      "product": { "name": "Quaker Chewy Chocolate Chip Granola Bar",
+        "ingredients_text": "Granola (whole grain rolled oats, brown sugar, crisp rice, whole grain rolled wheat, soybean oil, dried coconut, whole wheat flour, sodium bicarbonate, soy lecithin, caramel color, nonfat dry milk), corn syrup, brown rice crisp, invert sugar, sugar, corn syrup solids, glycerin, chocolate chips, partially hydrogenated cottonseed oil, salt, water, natural and artificial flavor, BHT" } },
+
+    { "id": "sea-salt", "band": [85, 100],
+      "product": { "name": "Redmond Real Salt", "ingredients_text": "Unrefined ancient sea salt" } },
+
+    { "id": "apple-cider-vinegar", "band": [80, 100],
+      "product": { "name": "Bragg Organic Apple Cider Vinegar",
+        "ingredients_text": "Organic raw apple cider vinegar" } }
+  ],
+
+  "defects": [
+    { "id": "non-gmo-soybean-oil", "defect": "negation-laundering", "band": [3, 30],
+      "note": "DEFECT 1. Must score identically to plain soybean oil (capped at 25). Currently 68 because stripNegations() erases the whole ingredient.",
+      "product": { "name": "Store Brand Mayonnaise",
+        "ingredients_text": "Water, Non-GMO Soybean Oil, Sugar, Distilled Vinegar, Salt" } },
+
+    { "id": "non-gmo-canola-oil", "defect": "negation-laundering", "band": [3, 30],
+      "note": "DEFECT 1. Same shape, spaced rather than hyphenated form.",
+      "product": { "name": "Store Brand Crackers",
+        "ingredients_text": "Enriched flour, Non GMO Canola Oil, Salt, Yeast" } },
+
+    { "id": "spanish-junk-panel", "defect": "unknown-scores-high", "band": [3, 30],
+      "note": "DEFECT 2. Same product as english-junk-panel below; must not score 55 points higher for being in Spanish.",
+      "product": { "name": "Refresco",
+        "ingredients_text": "Agua, Jarabe de maiz de alta fructosa, Aceite vegetal parcialmente hidrogenado, Rojo 40, Glutamato monosodico, Benzoato de sodio" } },
+
+    { "id": "english-junk-panel", "defect": null, "band": [3, 30],
+      "note": "Control for spanish-junk-panel. This one already passes.",
+      "product": { "name": "Soft Drink",
+        "ingredients_text": "Water, High Fructose Corn Syrup, Partially Hydrogenated Vegetable Oil, Red 40, Monosodium Glutamate, Sodium Benzoate" } },
+
+    { "id": "gibberish-ingredient", "defect": "unknown-scores-high", "band": [3, 74],
+      "note": "DEFECT 2. Unparseable text must not come back as a confident 93.",
+      "product": { "name": "Mystery Product", "ingredients_text": "Zzyzxian flargle concentrate" } },
+
+    { "id": "cold-pressed-sunflower-oil", "defect": "dead-unrefined-rule", "band": [40, 100],
+      "note": "DEFECT 3. oils.UNREFINED is defined but never exported, so this is capped at 25 identically to the refined version.",
+      "product": { "name": "Cold Pressed Sunflower Oil", "ingredients_text": "Cold-pressed unrefined sunflower oil" } },
+
+    { "id": "refined-sunflower-oil", "defect": null, "band": [3, 30],
+      "note": "Control for cold-pressed-sunflower-oil. Must stay capped.",
+      "product": { "name": "Sunflower Oil", "ingredients_text": "Sunflower oil" } }
+  ]
+}
