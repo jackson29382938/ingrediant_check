@@ -77,6 +77,7 @@
             color: #007185; cursor: pointer; text-decoration: underline; }
   .report:hover { color: #c7511f; }
   .report[disabled] { color: #767676; text-decoration: none; cursor: default; }
+  .disclaim { margin-top: 10px; font-size: 11px; line-height: 1.45; color: #767676; }
   .fail { padding: 14px 16px; font-size: 13px; color: #0f1111; line-height: 1.5; }
   .fail b { display: block; margin-bottom: 4px; }
   .paste { margin-top: 10px; display: flex; gap: 8px; }
@@ -94,9 +95,16 @@
   // be told about sesame, you should not have to expand a card to find out.
   function flagsHTML(flags) {
     if (!flags || !flags.length) return '';
+    // A missing flag is the dangerous direction: flags come only from the text we managed to read,
+    // so a truncated, unread or unrecognised list produces none at all — which looks identical to
+    // "clear". Say so next to the chips rather than anywhere a user has to go looking.
+    const hasAllergen = flags.some(f => f.kind === 'allergen');
     return `<div class="flags" role="status">${flags.map(f =>
       `<span class="flag${f.kind === 'avoid' ? ' avoid' : ''}" title="${esc(f.ingredient || '')}">${esc(f.label)}</span>`
-    ).join('')}</div>`;
+    ).join('')}</div>${hasAllergen
+      ? `<p class="disclaim" style="padding:6px 16px 0">Found in the ingredient text on this page.
+         Absence of a warning is not a safety check — never rely on this for an allergy.</p>`
+      : ''}`;
   }
 
   // For a whole food this is the section that carries the actual information. A certification is
@@ -178,6 +186,8 @@
           <span>${esc(NOVA_TEXT[result.nova])} · base ${result.base}</span>
           <span>${esc(sourceLabel(meta))} · <button class="report" type="button">Looks wrong?</button></span>
         </div>
+        <p class="disclaim">A guide to what is on the label, not health advice. Ingredient text can
+          be incomplete or out of date — check the package before you rely on this.</p>
       </div>
     </div>`;
   }

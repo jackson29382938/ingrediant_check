@@ -25,15 +25,18 @@
    scoring them. Shampoo has an ingredient list too, and a score on one implies it was judged as
    something you could eat.</span></span></label>
  <label><input type="checkbox" id="autoScoreSearch"><span><span class="t">Rate every search result</span>
-   <span class="d">Scores tiles automatically as you scroll a results page, so you see ratings without
-   pointing at anything. Fetches each product page once, a few at a time, and remembers them.</span></span></label>
+   <span class="d">Scores tiles automatically as you scroll a results page. Requests each product
+   page from Amazon once, a few at a time, using your normal signed-in session — so Amazon sees
+   them much as it would if you had opened the products yourself.</span></span></label>
  <label><input type="checkbox" id="hoverScore"><span><span class="t">Score on hover</span>
-   <span class="d">Hover or tab to a search result for half a second and it fetches that product
-   page to score it. Only the tile you point at.</span></span></label>
+   <span class="d">Hover or tab to a search result for half a second and it requests that product
+   page from Amazon to score it. Only the tile you point at.</span></span></label>
  <label><input type="checkbox" id="useOpenFoodFacts"><span><span class="t">Open Food Facts fallback</span>
-   <span class="d">When a page has a barcode but no readable ingredients, look it up. This is the
-   only feature that sends anything over the network.</span></span></label>
+   <span class="d">When a page has a barcode but no readable ingredients, look it up. Sends the
+   barcode to Open Food Facts and nothing else — no page content, no browsing history.</span></span></label>
  <a href="#" id="openSettings">Scoring weights, allergens &amp; avoid list</a>
+ <div class="sub" style="margin-top:12px;font-size:11px">Scores are a guide, not health or allergy
+   advice. Always read the label.</div>
  <button type="button" id="clear">Clear cached scores</button>
  <script src="popup.js"></script>
 </body></html>

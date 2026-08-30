@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Ingredient Check",
   "version": "0.9.0",
-  "description": "Rates grocery products 0-100 on ingredient quality, additives and processing. Every category is a weight you control. Runs entirely on your computer \u2014 no account, no AI, no tracking.",
+  "description": "Rates grocery products 0\u2013100 on ingredients, additives and processing. You set every weight. Scoring runs on your computer.",
   "permissions": [
     "storage",
     "alarms"

@@ -97,6 +97,12 @@
       Flagged on the panel. These never change the score — whether a food contains sesame is a
       different question from whether it is a good food.
     </p>
+    <p class="note" style="margin: -6px 0 12px; color:#a4161a">
+      <strong>Not a safety check.</strong> Warnings come only from the ingredient text this
+      extension could read on the page. If that text is missing, truncated, out of date, or in a
+      language the rules do not cover, you will see no warning at all — which looks exactly like
+      no allergen. Never rely on this for an allergy. Read the package.
+    </p>
     <div class="chips" id="allergens"></div>
   </section>
 
@@ -153,6 +159,45 @@
     </div>
     <p class="note">Only product identifiers and certification text are ever sent. Never anything
       about you or what you browse, and never without this box ticked.</p>
+  </section>
+
+  <section>
+    <h2>What leaves your computer</h2>
+    <p class="note" style="margin: -6px 0 12px">
+      Scoring itself is entirely local: the rules, your weights and every score are computed in
+      your browser, and there is no account, no analytics and no telemetry. Four optional features
+      do make network requests. All four are off until you turn them on.
+    </p>
+    <ul class="note" style="margin: 0 0 4px 18px; padding: 0">
+      <li><strong>Rate every search result</strong> and <strong>Score on hover</strong> — request
+        product pages from amazon.com using your normal signed-in session, so Amazon sees them
+        much as it would if you had opened the products yourself. At most three at a time. Nothing
+        is sent anywhere else.</li>
+      <li><strong>Open Food Facts fallback</strong> — sends a barcode to
+        world.openfoodfacts.org when a page has one but no readable ingredients. The barcode and
+        nothing else.</li>
+      <li><strong>Shared provenance database</strong> — reads the Google Sheet whose URL you enter
+        below. Nothing is sent to it unless you also tick the sharing box.</li>
+      <li><strong>Share what this page disclosed</strong> — posts product identifiers and
+        certification text to the endpoint you configure. Never anything about you or your
+        browsing. "Looks wrong?" reports use the same endpoint.</li>
+    </ul>
+    <p class="note">Turning all four off leaves an extension that makes no network requests at all.</p>
+  </section>
+
+  <section>
+    <h2>What a score is, and is not</h2>
+    <p class="note" style="margin: -6px 0 10px">
+      A score reads the ingredient list against a rulebase and your weights. It is a guide to
+      what is written on the label, not a health assessment, and it is not medical, dietary or
+      allergy advice. Two things follow from how it works:
+    </p>
+    <ul class="note" style="margin: 0 0 4px 18px; padding: 0">
+      <li>It can only judge what it can read. When too little of a list matches anything the
+        rulebase knows, no score is shown at all rather than a confident guess.</li>
+      <li>Amazon's ingredient text is sometimes incomplete, sometimes out of date, and sometimes
+        for a different size or flavour of the product. The package is the authority.</li>
+    </ul>
   </section>
 
   <section>
