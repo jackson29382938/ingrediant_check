@@ -19,7 +19,6 @@ const engine = require(src('engine/score.js'));
 const corpus = require('./corpus.json');
 
 const OPEN_DEFECTS = new Set([
-  'negation-laundering',
   'unknown-scores-high',
   'dead-unrefined-rule',
 ]);

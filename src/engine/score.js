@@ -57,6 +57,49 @@ const NEGATION = /(^|[.;,()%\-–—])\s*(?:\d+%\s*)?(?:(?:made|produced|prepare
 const NEGATION_SUFFIX = /\b[a-z][a-z0-9 '&-]{1,28}?[- ]free\b/gi;
 const stripNegations = t => t.replace(NEGATION, '$1 ').replace(NEGATION_SUFFIX, ' ');
 
+// ...but ONLY on those claim surfaces. Run over an ingredient list it is destructive, because it
+// consumes from the negation word to the next delimiter and a comma is the delimiter — so the rest
+// of the ingredient goes with it. "Water, Non-GMO Soybean Oil, Sugar" became "Water, , Sugar": the
+// most heavily penalised ingredient class in the engine, erased by its own marketing adjective, and
+// a product that should cap at 25 read 68. "Non-GMO Canola Oil" is on a large share of US panels.
+//
+// An ingredient list gets entry-level treatment instead. A parsed entry is dropped only when the
+// WHOLE entry is a denial, so "made with no artificial colors" goes and "non-gmo soybean oil"
+// stays and still trips the cap. Note there is no bare `non` here on purpose: "non-dairy creamer"
+// and "nonfat dry milk" are ingredients, not denials.
+// A denial's scope is its object: "free from artificial colors" denies the colours, and the
+// entry is pure marketing. But "no cholesterol added soybean oil" denies the cholesterol, and the
+// soybean oil is a real ingredient that must still cap. Dropping the entry wholesale gets the
+// first right and launders the second; keeping it gets the second right and re-fires a false
+// colour cap on the first. So the object is identified rather than assumed.
+//
+// `non` is deliberately absent from the head: "non-gmo", "non-dairy" and "nonfat" are adjectives
+// on real ingredients, and it was bare `non` in the old NEGATION pattern that erased
+// "Non-GMO Soybean Oil" down to nothing. `not` excludes "not from concentrate", which is a juice.
+const DENIAL_HEAD = /^(?:\d+%\s*)?(?:(?:made|produced|prepared|formulated|packed)\s+(?:with\s+)?|certified\s+|absolutely\s+|completely\s+|totally\s+|guaranteed\s+)?(?:contains\s+)?(?:no|not(?!\s+from\b)|never|none|free\s+(?:of|from)|without|zero|devoid\s+of|0\s*g?\s+of)\b/i;
+const DENIAL_SUFFIX_ENTRY = /^[a-z][a-z0-9 '&-]{0,28}[- ]free$/i;
+const CLAIM_ENTRY = /^(?:non[- ]?gmo|gmo[- ]free|all[- ]natural|kosher|halal|certified [a-z ]+)$/i;
+
+// True when the whole entry is a claim and carries no ingredient worth scoring.
+// CAPS is defined below; this only ever runs from score(), by which point it exists.
+function isDenialEntry(entry) {
+  if (DENIAL_SUFFIX_ENTRY.test(entry) || CLAIM_ENTRY.test(entry)) return true;
+  const head = entry.match(DENIAL_HEAD);
+  if (!head) return false;
+  const after = entry.slice(head[0].length).trim();
+  if (!after) return true;                       // "contains no" and nothing else
+  for (const c of CAPS) {
+    const hit = after.match(c.m);
+    if (!hit) continue;
+    // Words between the negation and the capped term. None or one means the cap IS what is being
+    // denied, so the entry is a claim. More than that means the denial was about something else
+    // and this entry still names a disqualifying ingredient — keep it, and let it cap.
+    const gap = after.slice(0, hit.index).trim().split(/\s+/).filter(Boolean).length;
+    if (gap > 1) return false;
+  }
+  return true;
+}
+
 // "Butter" is a cooking fat; "peanut butter" and "cocoa butter" are not.
 const NOT_REAL_BUTTER = /(peanut|almond|cashew|sunflower|seed|nut|cocoa|shea|apple|soy|coconut)\s+butter|\bbutter\s+(flavou?r|powder|solids|substitute)\b|\bartificial\s+butter\b/gi;
 
@@ -200,8 +243,12 @@ function score(product, options = {}) {
   const W = db.categories ? db.categories.resolveWeights(options.weights) : {};
   const w_ = id => (id in W ? W[id] : 1);
   const rawTxt = product.ingredients_text || '';
-  const txt = stripNegations(rawTxt);
-  const list = parse(txt);
+  // Parse the list as written, then drop only the entries that are themselves denials. The
+  // scoring surface is rebuilt from what survives, so caps and penalties see the real ingredients
+  // and never see "no artificial colors". See DENIAL_ENTRY above for why this replaced running
+  // stripNegations() over the list.
+  const list = parse(rawTxt).filter(ing => !isDenialEntry(ing));
+  const txt = list.join(', ');
 
   // "Cultured dextrose" and "cultured celery powder" are preservative systems, not living food.
   // Without this the same panel showed "-8 a preservative in disguise" and "+6 Fermented / live
@@ -212,7 +259,12 @@ function score(product, options = {}) {
   // the feature bullets — are claims, worth half and labelled unverified. Bullets used to feed the
   // strong path, which let "100% GRASS-FED" ad copy add full points to a soy-protein-isolate bar.
   const hayStrong = ((product.certifications || '') + ' ' + bonusText).toLowerCase().replace(NOT_REAL_BUTTER, '$1 spread');
-  const hayTitle = ((product.name || '') + ' ' + (product.labels || '')).toLowerCase().replace(NOT_REAL_BUTTER, '$1 spread');
+  // The seller-written title and bullets are exactly the surface stripNegations() was written for:
+  // "Made without artificial colors" is an absence, and reading it as a presence condemned clean
+  // products for their own marketing. This is where that pass belongs, and it used to be missing
+  // here while running over the ingredient list instead.
+  const hayTitle = stripNegations((product.name || '') + ' ' + (product.labels || ''))
+    .toLowerCase().replace(NOT_REAL_BUTTER, '$1 spread');
 
   const prov = db.provenance;
   const kindInfo = prov ? prov.classify(product.ingredients_text || product.name || '') : null;
