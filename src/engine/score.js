@@ -529,7 +529,12 @@ function score(product, options = {}) {
     ].join(' ');
     const claimed = [product.name || '', product.labels || '', txt].join(' ');
 
-    const hollow = w_('hollowClaims') ? prov.detectHollowClaims(claimed, kindInfo) : [];
+    // Hollow claims are things the SELLER said, so they are read off the seller's surfaces only.
+    // Reading them off `claimed`, which includes the ingredient text, made "natural flavors" in a
+    // chicken breast's ingredient list render as '"Natural" means nothing here' — a rebuttal to a
+    // claim nobody made.
+    const marketing = [product.name || '', product.labels || ''].join(' ');
+    const hollow = w_('hollowClaims') ? prov.detectHollowClaims(marketing, kindInfo) : [];
 
     // A whole animal food starts from "we don't know how this was produced" and certifications buy
     // that back. Adding them on top instead left an uncertified "grass-fed" claim and an audited

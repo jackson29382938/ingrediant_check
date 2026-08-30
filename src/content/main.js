@@ -8,7 +8,20 @@
   const HOST_ID = 'air-score-panel';
   const BADGE_ATTR = 'data-air-badge';
   const state = { enabled: true, badges: true, hoverScore: false, autoScoreSearch: false, foodOnly: true,
-    prefs: { weights: {}, allergens: [], diets: [], avoidList: [] }, lastKey: null, busy: false, requestId: 0 };
+    prefs: { weights: {}, allergens: [], diets: [], avoidList: [] }, lastKey: null, requestId: 0,
+    failedExtracts: 0 };
+
+  // Cached scores are stamped with the extension version. Rules change between releases, and a
+  // 30-day TTL meant badges kept painting numbers from the previous engine for a month after an
+  // update — including, before this release, the laundered and unreadable ones. Only a WEIGHT
+  // change cleared them. A version mismatch is now simply a cache miss.
+  const ENGINE_VERSION = (() => {
+    try { return chrome.runtime.getManifest().version; } catch (e) { return '0'; }
+  })();
+  const usableCache = hit => !!hit && typeof hit.score === 'number' && hit.v === ENGINE_VERSION;
+
+  // How many times a page that has already failed extraction is re-walked before we stop.
+  const MAX_EXTRACT_RETRIES = 8;
 
   const isProductPage = () => /\/(dp|gp\/product)\/[A-Z0-9]{10}/.test(location.pathname);
   const isListPage = () => /\/(s|b|gp\/browse|stores)\b/.test(location.pathname) || location.search.includes('k=');
@@ -35,7 +48,15 @@
     // Only a completed score (or an in-flight barcode lookup) is final.
     if (earlyKey === state.lastKey && (existingState === 'scored' || existingState === 'loading')) return;
 
+    // A 'fail' card is deliberately not final, because Amazon can inject the ingredients card
+    // late. But extract() is a ~16ms DOM walk and the MutationObserver fires on every ad refresh
+    // and carousel tick, so an unreadable page re-walked the DOM forever and threw the result
+    // away each time. Give the late card a bounded number of chances instead of unbounded ones.
+    if (earlyKey !== state.lastKey) state.failedExtracts = 0;
+    if (existingState === 'fail' && state.failedExtracts >= MAX_EXTRACT_RETRIES) return;
+
     const data = AIR.extract.extract(document, { asin: urlAsin, foodOnly: state.foodOnly });
+    if (!data.ok) state.failedExtracts++;
     // Not food: say so. A missing card looks like a bug; a score looks like we judged it as food.
     if (state.foodOnly && data.ingestible && !data.ingestible.ok) {
       const key = data.asin || earlyKey;
@@ -251,7 +272,7 @@
       chrome.storage.local.get(`s:${asin}`, obj => {
         if (!state.enabled || !state.badges || !tile.isConnected) return;
         const hit = obj[`s:${asin}`];
-        if (!hit || typeof hit.score !== 'number') return;
+        if (!usableCache(hit)) return;
         paintBadge(tile, hit);
       });
     });
@@ -389,7 +410,7 @@
         // Cached scores paint instantly and cost no request.
         chrome.storage.local.get(`s:${asin}`, obj => {
           const hit = obj[`s:${asin}`];
-          if (hit && typeof hit.score === 'number') { paintBadge(tile, hit); queue.seen.add(asin); return; }
+          if (usableCache(hit)) { paintBadge(tile, hit); queue.seen.add(asin); return; }
           if (state.autoScoreSearch) enqueue(tile, asin);
         });
       }
@@ -452,7 +473,7 @@
   function cache(key, value) {
     if (!key) return;
     try {
-      if (value) chrome.storage.local.set({ [`s:${key}`]: { ...value, t: Date.now() } });
+      if (value) chrome.storage.local.set({ [`s:${key}`]: { ...value, t: Date.now(), v: ENGINE_VERSION } });
       else chrome.storage.local.remove(`s:${key}`);
     }
     catch (e) { /* storage unavailable in some frames */ }
@@ -477,8 +498,9 @@
 
   // ---------------------------------------------------------------- lifecycle
   function tick() {
-    if (!state.enabled || state.busy) return;
-    state.busy = true;
+    // There was a `busy` guard here. tick() is fully synchronous, so it could never be observed
+    // true and never guarded anything.
+    if (!state.enabled) return;
     try {
       if (isProductPage()) scoreCurrentPage();
       else if (isListPage()) {
@@ -489,7 +511,7 @@
     } catch (e) {
       // An extension must never take the host page down with it.
       console.debug('[AIR]', e);
-    } finally { state.busy = false; }
+    }
   }
 
   // A pure trailing debounce starves under sustained churn: measured on the real extension, any

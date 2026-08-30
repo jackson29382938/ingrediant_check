@@ -46,7 +46,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\bwhey protein (isolate|concentrate|hydrolysate)\b/i, pts: 10, why: 'Whey protein isolate — processed dairy fraction' },
     { m: /\bmilk protein (isolate|concentrate)\b/i,  pts: 10, why: 'Milk protein isolate' },
     { m: /\bcasein(ate)?\b|\b(sodium|calcium) caseinate\b/i, pts: 12, why: 'Caseinate — chemically extracted milk protein' },
-    { m: /\bcollagen (peptides|hydrolysate)\b/i,     pts: 0,  why: 'Collagen peptides' },
+    // Collagen peptides are deliberately absent: they are an isolated protein, but not an
+    // industrial one in the sense the rest of this table is about. A pts:0 entry used to sit here,
+    // which tag() filters out, so it never reached the panel in any form.
     { m: /\bsoy leghemoglobin\b/i,                   pts: 20, why: 'Soy leghemoglobin — genetically engineered heme' },
     { m: /\begg white (protein )?(powder|solids)\b/i, pts: 4, why: 'Dried egg white' },
   ];

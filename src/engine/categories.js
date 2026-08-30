@@ -187,7 +187,10 @@ function resolveWeights(stored) {
   const w = { ...DEFAULT_WEIGHTS };
   if (stored && typeof stored === 'object') {
     for (const [k, v] of Object.entries(stored)) {
-      if (k in w && typeof v === 'number' && isFinite(v)) w[k] = Math.max(0, Math.min(3, v));
+      // Clamped to the range the settings slider can actually express. This used to allow 3,
+      // so an imported or hand-edited file could set a weight the UI could neither display nor
+      // reproduce, and moving any slider afterwards silently discarded it.
+      if (k in w && typeof v === 'number' && isFinite(v)) w[k] = Math.max(0, Math.min(2, v));
     }
   }
   return w;

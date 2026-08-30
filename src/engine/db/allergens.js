@@ -54,7 +54,6 @@ const DIETS = [
 
 // Scan a parsed ingredient list. `selected` is the list of ids the user asked to be warned about.
 function detect(list, selectedAllergens = [], selectedDiets = []) {
-  const text = list.join(', ');
   const found = [];
   for (const a of ALLERGENS) {
     if (!selectedAllergens.includes(a.id)) continue;

@@ -122,10 +122,11 @@ async function sweepCache() {
   const stale = entries
     .filter(([, v]) => v && v.t && Date.now() - v.t > TTL_MS)
     .map(([k]) => k);
+  const staleSet = new Set(stale);   // `stale.includes` inside the filter below was O(n²) at 5k+ keys
   // Hard cap as well as a TTL: a heavy auto-scoring session can add thousands of fresh entries
   // that a time-based sweep will not touch for a month. Oldest go first.
   const MAX_ENTRIES = 5000;
-  const fresh = entries.filter(([k]) => !stale.includes(k));
+  const fresh = entries.filter(([k]) => !staleSet.has(k));
   const overflow = fresh.length > MAX_ENTRIES
     ? fresh.sort((a, b) => (a[1]?.t || 0) - (b[1]?.t || 0)).slice(0, fresh.length - MAX_ENTRIES).map(([k]) => k)
     : [];
@@ -178,9 +179,13 @@ function parseCsv(text) {
 }
 
 function indexRows(rows) {
-  if (!rows.length) return { byAsin: {}, byUpc: {}, byBrand: {}, count: 0 };
+  // Null-prototype maps: every key here comes from an untrusted CSV, and on a plain object a row
+  // with brand "__proto__" made lookupRecord() return Object.prototype as a truthy "record".
+  const empty = () => ({ byAsin: Object.create(null), byUpc: Object.create(null),
+                         byBrand: Object.create(null), count: 0 });
+  if (!rows.length) return empty();
   const head = rows[0].map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
-  const idx = { byAsin: {}, byUpc: {}, byBrand: {}, count: 0 };
+  const idx = empty();
   for (const r of rows.slice(1)) {
     const rec = {};
     head.forEach((h, i) => { rec[h] = (r[i] || '').trim(); });
@@ -238,9 +243,9 @@ async function loadProducerIndex(force = false) {
     if (!res.ok) throw new Error(String(res.status));
     const rows = parseCsv(await res.text());
     const head = rows[0].map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
-    const index = {};
+    const index = Object.create(null);
     for (const r of rows.slice(1)) {
-      const rec = {};
+      const rec = Object.create(null);
       head.forEach((h, i) => { rec[h] = (r[i] || '').trim(); });
       if (!rec.brand || !rec.certifications) continue;
       index[rec.brand.toLowerCase()] = rec;
