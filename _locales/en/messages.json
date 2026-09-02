@@ -1,0 +1,201 @@
+{
+  "appName": {
+    "message": "Ingredient Check",
+    "description": "Extension name, shown in the browser and the store."
+  },
+  "appDescription": {
+    "message": "Rates grocery products 0–100 on ingredients, additives and processing. You set every weight. Scoring runs on your computer.",
+    "description": "Store description. Must stay under 132 characters in every locale."
+  },
+  "novaWhole": {
+    "message": "Whole / minimally processed"
+  },
+  "novaCulinary": {
+    "message": "Culinary ingredient"
+  },
+  "novaProcessed": {
+    "message": "Processed"
+  },
+  "novaUltra": {
+    "message": "Ultra-processed"
+  },
+  "headDisqualifying": {
+    "message": "Disqualifying",
+    "description": "Panel section: ingredients that cap the score."
+  },
+  "headGood": {
+    "message": "What's good"
+  },
+  "headHurt": {
+    "message": "What hurt"
+  },
+  "headNeutral": {
+    "message": "Not counted against it"
+  },
+  "headProduced": {
+    "message": "How this was produced"
+  },
+  "footRules": {
+    "message": "$COUNT$ rules",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "footCoverage": {
+    "message": "$PCT$% of the list recognised",
+    "placeholders": {
+      "pct": {
+        "content": "$1"
+      }
+    }
+  },
+  "footBase": {
+    "message": "base $N$",
+    "placeholders": {
+      "n": {
+        "content": "$1"
+      }
+    }
+  },
+  "reportLink": {
+    "message": "Looks wrong?"
+  },
+  "reportSending": {
+    "message": "Sending…"
+  },
+  "reportThanks": {
+    "message": "Thanks — logged"
+  },
+  "reportNoUrl": {
+    "message": "Set a contribution URL in settings"
+  },
+  "srcPasted": {
+    "message": "Ingredients you pasted"
+  },
+  "srcBarcode": {
+    "message": "Matched by barcode via Open Food Facts — not from this page"
+  },
+  "srcPage": {
+    "message": "Ingredients read from page"
+  },
+  "srcPageConf": {
+    "message": "Ingredients read from page ($PCT$% confidence)",
+    "placeholders": {
+      "pct": {
+        "content": "$1"
+      }
+    }
+  },
+  "disclaimer": {
+    "message": "A guide to what is on the label, not health advice. Ingredient text can be incomplete or out of date — check the package before you rely on this."
+  },
+  "allergenCaveat": {
+    "message": "Found in the ingredient text on this page. Absence of a warning is not a safety check — never rely on this for an allergy."
+  },
+  "failTitle": {
+    "message": "Couldn't read the ingredients on this page."
+  },
+  "failUnreadable": {
+    "message": "The ingredients are published, but almost none of them match anything this tool knows — usually that means the label is in a language it cannot read yet. Scoring it anyway would produce a confident wrong answer. "
+  },
+  "failLookup": {
+    "message": "The optional barcode lookup didn't return an ingredient list. "
+  },
+  "failNoText": {
+    "message": "Amazon doesn't always publish them as text — sometimes they only exist inside the label photo. "
+  },
+  "failPastePrompt": {
+    "message": "Paste them here and I'll score it."
+  },
+  "pastePlaceholder": {
+    "message": "Paste the ingredient list…"
+  },
+  "pasteLabel": {
+    "message": "Ingredient list"
+  },
+  "pasteInvalid": {
+    "message": "That doesn't look like an ingredient list yet."
+  },
+  "scoreButton": {
+    "message": "Score"
+  },
+  "loadingTitle": {
+    "message": "Checking Open Food Facts…"
+  },
+  "loadingBody": {
+    "message": "Amazon didn't publish readable ingredients, so the optional barcode fallback is looking for this product. No Amazon page or browsing data is sent."
+  },
+  "notFoodTitle": {
+    "message": "Not scored — this does not look like food."
+  },
+  "notFoodBody": {
+    "message": "A score here would treat it as something you eat."
+  },
+  "notFoodButton": {
+    "message": "Score anyway"
+  },
+  "notFoodWhy": {
+    "message": "This is on because “Only rate food & supplements” is enabled in settings."
+  },
+  "notFoodNothing": {
+    "message": "Nothing disclosed about how this was produced"
+  },
+  "popupShowRatings": {
+    "message": "Show ratings"
+  },
+  "popupShowRatingsD": {
+    "message": "Injects the score panel on Amazon product pages."
+  },
+  "popupBadges": {
+    "message": "Search result badges"
+  },
+  "popupBadgesD": {
+    "message": "Score chips on tiles you've already opened."
+  },
+  "popupFoodOnly": {
+    "message": "Only rate food & supplements"
+  },
+  "popupAutoScore": {
+    "message": "Rate every search result"
+  },
+  "popupHover": {
+    "message": "Score on hover"
+  },
+  "popupOff": {
+    "message": "Open Food Facts fallback"
+  },
+  "popupSettingsLink": {
+    "message": "Scoring weights, allergens & avoid list"
+  },
+  "popupClear": {
+    "message": "Clear cached scores"
+  },
+  "popupCleared": {
+    "message": "Cleared $N$ cached scores",
+    "placeholders": {
+      "n": {
+        "content": "$1"
+      }
+    }
+  },
+  "popupDisclaimer": {
+    "message": "Scores are a guide, not health or allergy advice. Always read the label."
+  },
+  "popupFoodOnlyD": {
+    "message": "Skip shoes, toys, cosmetics and cleaning products, and say why instead of scoring them. Shampoo has an ingredient list too, and a score on one implies it was judged as something you could eat."
+  },
+  "popupAutoScoreD": {
+    "message": "Scores tiles automatically as you scroll a results page. Requests each product page from Amazon once, a few at a time, using your normal signed-in session — so Amazon sees them much as it would if you had opened the products yourself."
+  },
+  "popupHoverD": {
+    "message": "Hover or tab to a search result for half a second and it requests that product page from Amazon to score it. Only the tile you point at."
+  },
+  "popupOffD": {
+    "message": "When a page has a barcode but no readable ingredients, look it up. Sends the barcode to Open Food Facts and nothing else — no page content, no browsing history."
+  },
+  "popupTagline": {
+    "message": "Ingredient quality, additives and processing — scored on your computer."
+  }
+}

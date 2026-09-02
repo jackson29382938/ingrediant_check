@@ -13,11 +13,23 @@
     : score >= 25 ? { fg: '#a8480f', bg: '#fdeee5', ring: '#f46d43' }
     : { fg: '#a4161a', bg: '#fdecec', ring: '#d73027' };
 
+  // chrome.i18n where it exists, the English string otherwise. The fallback keeps this file
+  // runnable under Node — the test suites render the panel — and keeps the source readable, so a
+  // reviewer can see the copy without opening messages.json. Every key here must exist in
+  // _locales/en/messages.json; tests/sanity.test.js enforces that.
+  function t(key, fallback, ...subs) {
+    let out = null;
+    try { out = chrome.i18n.getMessage(key, subs.map(String)) || null; }
+    catch (e) { /* not running inside an extension */ }
+    if (!out) out = fallback;
+    return subs.reduce((acc, v, i) => acc.split('$' + (i + 1)).join(String(v)), out);
+  }
+
   const NOVA_TEXT = {
-    1: 'Whole / minimally processed',
-    2: 'Culinary ingredient',
-    3: 'Processed',
-    4: 'Ultra-processed',
+    get 1() { return t('novaWhole', 'Whole / minimally processed'); },
+    get 2() { return t('novaCulinary', 'Culinary ingredient'); },
+    get 3() { return t('novaProcessed', 'Processed'); },
+    get 4() { return t('novaUltra', 'Ultra-processed'); },
   };
 
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
@@ -102,8 +114,8 @@
     return `<div class="flags" role="status">${flags.map(f =>
       `<span class="flag${f.kind === 'avoid' ? ' avoid' : ''}" title="${esc(f.ingredient || '')}">${esc(f.label)}</span>`
     ).join('')}</div>${hasAllergen
-      ? `<p class="disclaim" style="padding:6px 16px 0">Found in the ingredient text on this page.
-         Absence of a warning is not a safety check — never rely on this for an allergy.</p>`
+      ? `<p class="disclaim" style="padding:6px 16px 0">${esc(t('allergenCaveat',
+          'Found in the ingredient text on this page. Absence of a warning is not a safety check — never rely on this for an allergy.'))}</p>`
       : ''}`;
   }
 
@@ -125,7 +137,7 @@
         page. Commodity ${esc(p.kind)} with a silent label is conventionally raised by default.</span></span></div>`);
     }
     const src = meta && meta.provenanceSource ? ` · ${esc(meta.provenanceSource)}` : '';
-    return `<div class="prov"><h5>How this was produced${src}</h5>${rows.join('')}</div>`;
+    return `<div class="prov"><h5>${esc(t('headProduced', 'How this was produced'))}${src}</h5>${rows.join('')}</div>`;
   }
 
   function rowsHTML(items, kind) {
@@ -146,10 +158,10 @@
   // a materially weaker statement than text read off the product page, and used to render as an
   // indistinguishable "55% confidence".
   function sourceLabel(meta) {
-    if (meta.via === 'manual-paste') return 'Ingredients you pasted';
-    if (meta.via === 'open-food-facts') return 'Matched by barcode via Open Food Facts — not from this page';
-    if (meta.confidence >= 0.9) return 'Ingredients read from page';
-    return `Ingredients read from page (${Math.round((meta.confidence || 0) * 100)}% confidence)`;
+    if (meta.via === 'manual-paste') return t('srcPasted', 'Ingredients you pasted');
+    if (meta.via === 'open-food-facts') return t('srcBarcode', 'Matched by barcode via Open Food Facts — not from this page');
+    if (meta.confidence >= 0.9) return t('srcPage', 'Ingredients read from page');
+    return t('srcPageConf', 'Ingredients read from page ($1% confidence)', Math.round((meta.confidence || 0) * 100));
   }
 
   // `result` is the engine output; `meta` carries title/confidence/source.
@@ -178,16 +190,19 @@
       ${flagsHTML(result.flags)}
       ${provenanceHTML(result.provenance, meta)}
       <div class="body" id="air-panel-details">
-        ${caps.length ? `<h4>Disqualifying</h4>${rowsHTML(caps, 'minus')}` : ''}
-        ${plus.length ? `<h4>What's good</h4>${rowsHTML(plus, 'plus')}` : ''}
-        ${minus.length ? `<h4>What hurt</h4>${rowsHTML(minus, 'minus')}` : ''}
-        ${neutral.length ? `<h4>Not counted against it</h4>${rowsHTML(neutral, 'plus')}` : ''}
+        ${caps.length ? `<h4>${esc(t('headDisqualifying', 'Disqualifying'))}</h4>${rowsHTML(caps, 'minus')}` : ''}
+        ${plus.length ? `<h4>${esc(t('headGood', "What's good"))}</h4>${rowsHTML(plus, 'plus')}` : ''}
+        ${minus.length ? `<h4>${esc(t('headHurt', 'What hurt'))}</h4>${rowsHTML(minus, 'minus')}` : ''}
+        ${neutral.length ? `<h4>${esc(t('headNeutral', 'Not counted against it'))}</h4>${rowsHTML(neutral, 'plus')}` : ''}
         <div class="foot">
-          <span>${esc(NOVA_TEXT[result.nova])} · base ${result.base}</span>
-          <span>${esc(sourceLabel(meta))} · <button class="report" type="button">Looks wrong?</button></span>
+          <span>${esc(NOVA_TEXT[result.nova])} · ${esc(t('footBase', 'base $1', result.base))}${
+            result.ruleCount ? ' · ' + esc(t('footRules', '$1 rules', result.ruleCount)) : ''}${
+            typeof result.coverage === 'number' && result.coverage < 1
+              ? ' · ' + esc(t('footCoverage', '$1% of the list recognised', Math.round(result.coverage * 100))) : ''}</span>
+          <span>${esc(sourceLabel(meta))} · <button class="report" type="button">${esc(t('reportLink', 'Looks wrong?'))}</button></span>
         </div>
-        <p class="disclaim">A guide to what is on the label, not health advice. Ingredient text can
-          be incomplete or out of date — check the package before you rely on this.</p>
+        <p class="disclaim">${esc(t('disclaimer',
+          'A guide to what is on the label, not health advice. Ingredient text can be incomplete or out of date — check the package before you rely on this.'))}</p>
       </div>
     </div>`;
   }
@@ -197,9 +212,8 @@
     <style>${CSS}</style>
     <div class="card" style="--fg:#565959;--bg:#f7f8f8;--ring:#d5d9d9">
       <div class="fail" role="status" aria-live="polite">
-        <b>Checking Open Food Facts…</b>
-        Amazon didn't publish readable ingredients, so the optional barcode fallback is looking for
-        this product. No Amazon page or browsing data is sent.
+        <b>${esc(t('loadingTitle', 'Checking Open Food Facts…'))}</b>
+        ${esc(t('loadingBody', "Amazon didn't publish readable ingredients, so the optional barcode fallback is looking for this product. No Amazon page or browsing data is sent."))}
       </div>
     </div>`;
   }
@@ -214,11 +228,11 @@
     <style>${CSS}</style>
     <div class="card" style="--fg:#565959;--bg:#f7f8f8;--ring:#d5d9d9">
       <div class="fail" role="status">
-        <b>Not scored — this does not look like food.</b>
-        ${esc(reason)}. A score here would treat it as something you eat.
+        <b>${esc(t('notFoodTitle', 'Not scored — this does not look like food.'))}</b>
+        ${esc(reason)}. ${esc(t('notFoodBody', 'A score here would treat it as something you eat.'))}
         ${title ? `<div class="sub" style="white-space:normal;margin-top:6px">${esc(title)}</div>` : ''}
         <div class="paste">
-          <button class="go anyway" type="button">Score anyway</button>
+          <button class="go anyway" type="button">${esc(t('notFoodButton', 'Score anyway'))}</button>
         </div>
         <p style="margin-top:10px;font-size:12px;color:#565959">
           This is on because “Only rate food &amp; supplements” is enabled in settings.
@@ -233,16 +247,16 @@
     <style>${CSS}</style>
     <div class="card" style="--fg:#565959;--bg:#f7f8f8;--ring:#d5d9d9">
       <div class="fail" role="status">
-        <b>Couldn't read the ingredients on this page.</b>
+        <b>${esc(t('failTitle', "Couldn't read the ingredients on this page."))}</b>
         ${meta && meta.lowCoverage
-          ? "The ingredients are published, but almost none of them match anything this tool knows — usually that means the label is in a language it cannot read yet. Scoring it anyway would produce a confident wrong answer. "
+          ? esc(t('failUnreadable', 'The ingredients are published, but almost none of them match anything this tool knows — usually that means the label is in a language it cannot read yet. Scoring it anyway would produce a confident wrong answer. '))
           : meta && meta.lookupAttempted
-          ? "The optional barcode lookup didn't return an ingredient list. "
-          : "Amazon doesn't always publish them as text — sometimes they only exist inside the label photo. "}
-        Paste them here and I'll score it.
+          ? esc(t('failLookup', "The optional barcode lookup didn't return an ingredient list. "))
+          : esc(t('failNoText', "Amazon doesn't always publish them as text — sometimes they only exist inside the label photo. "))}
+        ${esc(t('failPastePrompt', "Paste them here and I'll score it."))}
         <div class="paste">
-          <textarea id="air-paste" aria-label="Ingredient list" aria-describedby="air-paste-hint" placeholder="Paste the ingredient list…"></textarea>
-          <button class="go" type="button" disabled>Score</button>
+          <textarea id="air-paste" aria-label="${esc(t('pasteLabel', 'Ingredient list'))}" aria-describedby="air-paste-hint" placeholder="${esc(t('pastePlaceholder', 'Paste the ingredient list…'))}"></textarea>
+          <button class="go" type="button" disabled>${esc(t('scoreButton', 'Score'))}</button>
         </div>
         <p class="hint" id="air-paste-hint" role="status"></p>
       </div>
@@ -270,7 +284,7 @@
       ta.setAttribute('aria-invalid', text && !ok ? 'true' : 'false');
       if (hint) {
         hint.textContent = text && !ok
-          ? "That doesn't look like an ingredient list yet."
+          ? t('pasteInvalid', "That doesn't look like an ingredient list yet.")
           : '';
       }
     };
@@ -300,8 +314,11 @@
       report.addEventListener('click', e => {
         e.stopPropagation();          // the whole header is a toggle; don't expand on report
         report.disabled = true;
-        report.textContent = 'Sending…';
-        const done = ok => { report.textContent = ok ? 'Thanks — logged' : 'Set a contribution URL in settings'; };
+        report.textContent = t('reportSending', 'Sending…');
+        const done = ok => {
+          report.textContent = ok ? t('reportThanks', 'Thanks — logged')
+            : t('reportNoUrl', 'Set a contribution URL in settings');
+        };
         if (typeof onReport === 'function') onReport(done); else done(false);
       });
     }
@@ -314,6 +331,6 @@
     return shadow;
   }
 
-  root.AIR.panel = { render, renderLoading, renderFailure, renderNotFood, mount, BAND_COLOR, pasteLooksValid };
+  root.AIR.panel = { render, renderLoading, renderFailure, renderNotFood, mount, BAND_COLOR, pasteLooksValid, t };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.AIR.panel;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

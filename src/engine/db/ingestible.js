@@ -22,13 +22,18 @@ const STRONG_POSITIVE = [
   { id: 'nutritionCard', pts: 6, why: "Amazon's grocery nutrition and ingredients card is present",
     test: doc => !!doc.querySelector('#nutritionalInfoAndIngredients_feature_div, #nic-ingredients-content, .nicDesktop') },
   { id: 'nutritionPanel', pts: 5, why: 'Nutrition Facts panel',
-    test: (doc, text) => /\bnutrition facts\b/i.test(text) },
+    // Amazon's international stores print the same panel under local names. Without these the
+    // food gate scores 0 outside the US and every product is judged not-food, which would make
+    // enabling those domains worse than not supporting them.
+    test: (doc, text) => /\bnutrition(al)? (facts|information)\b|\bn[äa]hrwert(angaben|e)?\b|\bvaleurs nutritionnelles\b|\binformaci[óo]n nutricional\b|\bvalori nutrizionali\b|\binforma[çc][ãa]o nutricional\b|\bvoedingswaarde\b|\bn[äa]ringsv[äa]rde\b|栄養成分/i.test(text) },
   { id: 'supplementPanel', pts: 5, why: 'Supplement Facts panel',
     test: (doc, text) => /\bsupplement facts\b/i.test(text) },
   { id: 'servingSize', pts: 3, why: 'Serving size and servings per container',
-    test: (doc, text) => /\bserving size\b|\bservings per container\b/i.test(text) },
+    test: (doc, text) => /\bserving size\b|\bservings per container\b|\bportionsgr[öo]sse\b|\bpro portion\b|\bportion\b|\bpor[cç][ãa]o\b|\bporci[óo]n\b|\bporzione\b|\bper 100 ?g\b/i.test(text) },
   { id: 'foodDept', pts: 5, why: 'Listed in a food or supplement department',
-    test: (doc, text) => /\b(grocery & gourmet food|grocery and gourmet food|whole foods market|amazon fresh|vitamins & dietary supplements|vitamins and dietary supplements|sports nutrition|baby food)\b/i.test(text) },
+    test: (doc, text) => /\b(grocery & gourmet food|grocery and gourmet food|grocery|food cupboard|fresh food|whole foods market|amazon fresh|vitamins & dietary supplements|vitamins and dietary supplements|sports nutrition|baby food|health & personal care)\b/i.test(text)
+      || /\b(lebensmittel|getr[äa]nke|drogerie & k[öo]rperpflege|[ée]picerie|alimentation|produits frais|alimentaci[óo]n|supermercado|alimentari|generi alimentari|mercearia|boodschappen|livsmedel|artyku[łl]y spo[żz]ywcze|g[ıi]da)\b/i.test(text)
+      || /食品|飲料|食品・飲料/.test(text) },
   { id: 'foodForm', pts: 2, why: 'Food-specific product attributes',
     test: (doc, text) => /\b(food form|diet type|flavou?r name|allergen information|country of origin)\b/i.test(text) },
 ];
@@ -48,7 +53,8 @@ const HARD_NEGATIVE = [
   { id: 'drugFacts', pts: 16, why: 'Drug Facts panel — medicine, not food',
     test: (doc, text) => /\bdrug facts\b/i.test(text) },
   { id: 'nonFoodDept', pts: 14, why: 'Listed in a non-food department',
-    test: (doc, text) => /\b(clothing, shoes & jewelry|shoes & (bags|jewelry)|toys & games|electronics|cell phones & accessories|tools & home improvement|automotive|books|video games|musical instruments|office products|patio, lawn & garden|sports & outdoors|arts, crafts & sewing|industrial & scientific|appliances|luggage|beauty & personal care|beauty and personal care|luxury beauty|premium beauty)\b/i.test(text) },
+    test: (doc, text) => /\b(clothing, shoes & jewelry|shoes & (bags|jewelry)|toys & games|electronics|cell phones & accessories|tools & home improvement|automotive|books|video games|musical instruments|office products|patio, lawn & garden|sports & outdoors|arts, crafts & sewing|industrial & scientific|appliances|luggage|beauty & personal care|beauty and personal care|luxury beauty|premium beauty|fashion|garden & outdoors|home & kitchen)\b/i.test(text)
+      || /\b(bekleidung|schuhe & handtaschen|elektronik|spielzeug|b[üu]cher|baumarkt|auto & motorrad|k[üu]che & haushalt|beleuchtung|schmuck|v[êe]tements|chaussures|informatique|livres|bricolage|jardin|jeux et jouets|beaut[ée] et parfum|ropa|zapatos|electr[óo]nica|libros|juguetes|bricolaje|belleza|abbigliamento|scarpe|elettronica|libri|giocattoli|bellezza|kleding|schoenen|elektronica|speelgoed|odzie[żz]|elektronika|zabawki)\b/i.test(text) },
   { id: 'cosmetic', pts: 12, why: 'Cosmetic or topical personal-care product',
     test: (doc, text, title) => /\b(shampoo|conditioner|body wash|body lotion|face cream|moisturi[sz]er|serum|deodorant|antiperspirant|sunscreen|sunblock|makeup|foundation|mascara|lipstick|lip gloss|nail polish|perfume|cologne|shaving|aftershave|toothpaste|mouthwash|hand soap|hand sanitizer|hair (dye|colou?r|spray|gel|mask)|face mask|exfoliant|cleanser|toner)\b/i.test(title) },
   { id: 'household', pts: 12, why: 'Cleaning or household chemical product',

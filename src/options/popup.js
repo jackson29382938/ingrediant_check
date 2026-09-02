@@ -6,6 +6,16 @@ const TOGGLE_KEYS = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'hoverS
 const DEFAULTS = { enabled: true, badges: true, foodOnly: true, autoScoreSearch: false, hoverScore: false, useOpenFoodFacts: false };
 const OFF_PERMISSION = { origins: ['https://world.openfoodfacts.org/*'] };
 
+// Swap in the active locale. The English copy stays in the HTML so the popup is readable and
+// reviewable as source, and so it still renders if a message key is ever missing.
+(function localise() {
+  if (!chrome.i18n || typeof chrome.i18n.getMessage !== 'function') return;
+  for (const el of document.querySelectorAll('[data-i18n]')) {
+    const msg = chrome.i18n.getMessage(el.dataset.i18n);
+    if (msg) el.textContent = msg;
+  }
+})();
+
 function save(key, value) {
   chrome.storage.local.set({ [key]: value });
 }
@@ -86,5 +96,6 @@ document.getElementById('clear').addEventListener('click', async event => {
   const all = await chrome.storage.local.get(null);
   const keys = Object.keys(all).filter(key => /^(s|off):/.test(key));
   await chrome.storage.local.remove(keys);
-  event.target.textContent = `Cleared ${keys.length} cached scores`;
+  const msg = chrome.i18n && chrome.i18n.getMessage('popupCleared', [String(keys.length)]);
+  event.target.textContent = msg || `Cleared ${keys.length} cached scores`;
 });

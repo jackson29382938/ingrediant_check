@@ -14,29 +14,29 @@
  input:focus-visible,#openSettings:focus-visible,#clear:focus-visible{
    outline:3px solid #007185;outline-offset:2px}
 </style></head><body>
- <h1>Ingredient Check</h1>
- <div class="sub">Ingredient quality, additives and processing — scored on your computer.</div>
- <label><input type="checkbox" id="enabled" checked><span><span class="t">Show ratings</span>
-   <span class="d">Injects the score panel on Amazon product pages.</span></span></label>
- <label><input type="checkbox" id="badges" checked><span><span class="t">Search result badges</span>
-   <span class="d">Score chips on tiles you've already opened.</span></span></label>
- <label><input type="checkbox" id="foodOnly" checked><span><span class="t">Only rate food &amp; supplements</span>
-   <span class="d">Skip shoes, toys, cosmetics and cleaning products, and say why instead of
+ <h1 data-i18n="appName">Ingredient Check</h1>
+ <div class="sub" data-i18n="popupTagline">Ingredient quality, additives and processing — scored on your computer.</div>
+ <label><input type="checkbox" id="enabled" checked><span><span class="t" data-i18n="popupShowRatings">Show ratings</span>
+   <span class="d" data-i18n="popupShowRatingsD">Injects the score panel on Amazon product pages.</span></span></label>
+ <label><input type="checkbox" id="badges" checked><span><span class="t" data-i18n="popupBadges">Search result badges</span>
+   <span class="d" data-i18n="popupBadgesD">Score chips on tiles you've already opened.</span></span></label>
+ <label><input type="checkbox" id="foodOnly" checked><span><span class="t" data-i18n="popupFoodOnly">Only rate food &amp; supplements</span>
+   <span class="d" data-i18n="popupFoodOnlyD">Skip shoes, toys, cosmetics and cleaning products, and say why instead of
    scoring them. Shampoo has an ingredient list too, and a score on one implies it was judged as
    something you could eat.</span></span></label>
- <label><input type="checkbox" id="autoScoreSearch"><span><span class="t">Rate every search result</span>
-   <span class="d">Scores tiles automatically as you scroll a results page. Requests each product
+ <label><input type="checkbox" id="autoScoreSearch"><span><span class="t" data-i18n="popupAutoScore">Rate every search result</span>
+   <span class="d" data-i18n="popupAutoScoreD">Scores tiles automatically as you scroll a results page. Requests each product
    page from Amazon once, a few at a time, using your normal signed-in session — so Amazon sees
    them much as it would if you had opened the products yourself.</span></span></label>
- <label><input type="checkbox" id="hoverScore"><span><span class="t">Score on hover</span>
-   <span class="d">Hover or tab to a search result for half a second and it requests that product
+ <label><input type="checkbox" id="hoverScore"><span><span class="t" data-i18n="popupHover">Score on hover</span>
+   <span class="d" data-i18n="popupHoverD">Hover or tab to a search result for half a second and it requests that product
    page from Amazon to score it. Only the tile you point at.</span></span></label>
- <label><input type="checkbox" id="useOpenFoodFacts"><span><span class="t">Open Food Facts fallback</span>
-   <span class="d">When a page has a barcode but no readable ingredients, look it up. Sends the
+ <label><input type="checkbox" id="useOpenFoodFacts"><span><span class="t" data-i18n="popupOff">Open Food Facts fallback</span>
+   <span class="d" data-i18n="popupOffD">When a page has a barcode but no readable ingredients, look it up. Sends the
    barcode to Open Food Facts and nothing else — no page content, no browsing history.</span></span></label>
- <a href="#" id="openSettings">Scoring weights, allergens &amp; avoid list</a>
- <div class="sub" style="margin-top:12px;font-size:11px">Scores are a guide, not health or allergy
+ <a href="#" id="openSettings" data-i18n="popupSettingsLink">Scoring weights, allergens &amp; avoid list</a>
+ <div class="sub" data-i18n="popupDisclaimer" style="margin-top:12px;font-size:11px">Scores are a guide, not health or allergy
    advice. Always read the label.</div>
- <button type="button" id="clear">Clear cached scores</button>
+ <button type="button" id="clear" data-i18n="popupClear">Clear cached scores</button>
  <script src="popup.js"></script>
 </body></html>

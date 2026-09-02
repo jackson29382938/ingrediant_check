@@ -71,8 +71,11 @@ check('db files load before the engine that consumes them', () => {
 });
 
 check('store description is within the 132-character limit', () => {
-  assert.ok(manifest.description.length <= 132,
-    `description is ${manifest.description.length} characters; the Chrome Web Store cuts off at 132`);
+  // Now a __MSG_ reference; the real string is checked in the localisation section below.
+  const d = manifest.description.startsWith('__MSG_')
+    ? JSON.parse(read('_locales/en/messages.json')).appDescription.message
+    : manifest.description;
+  assert.ok(d.length <= 132, `description is ${d.length} characters; the store cuts off at 132`);
 });
 
 console.log('\nHTML pages point at files that exist, and carry no inline handlers');
@@ -122,6 +125,48 @@ check('every category is reachable by at least one rule or the engine itself', (
   const orphans = [...ids].filter(id => !used.has(id));
   assert.strictEqual(orphans.length, 0,
     `these categories have a slider but nothing reads them: ${orphans.join(', ')}`);
+});
+
+console.log('\nlocalisation keys resolve');
+const messages = JSON.parse(read('_locales/en/messages.json'));
+const keys = new Set(Object.keys(messages));
+
+check('manifest __MSG_ references exist', () => {
+  const raw = read('manifest.json');
+  const missing = [...raw.matchAll(/__MSG_([A-Za-z0-9_]+)__/g)].map(m => m[1]).filter(k => !keys.has(k));
+  assert.strictEqual(missing.length, 0, `missing from messages.json: ${missing.join(', ')}`);
+  assert.strictEqual(manifest.default_locale, 'en', 'default_locale is required once __MSG_ is used');
+});
+
+check('every t() key in panel.js exists', () => {
+  // A missing key silently falls back to English, so nothing breaks — it just never translates.
+  // That is exactly the kind of rot no other check would catch.
+  const raw = read('src/content/panel.js');
+  const used = [...raw.matchAll(/\bt\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]);
+  assert.ok(used.length > 10, `only found ${used.length} t() calls; the scan is broken`);
+  const missing = [...new Set(used)].filter(k => !keys.has(k));
+  assert.strictEqual(missing.length, 0, `missing from messages.json: ${missing.join(', ')}`);
+});
+
+check('every data-i18n key in the popup exists', () => {
+  const raw = read('src/options/popup.html');
+  const used = [...raw.matchAll(/data-i18n="([A-Za-z0-9_]+)"/g)].map(m => m[1]);
+  assert.ok(used.length > 5, `only found ${used.length} data-i18n attributes`);
+  const missing = [...new Set(used)].filter(k => !keys.has(k));
+  assert.strictEqual(missing.length, 0, `missing from messages.json: ${missing.join(', ')}`);
+});
+
+check('the localised description still fits the store limit', () => {
+  const d = messages.appDescription && messages.appDescription.message;
+  assert.ok(d, 'appDescription is missing');
+  assert.ok(d.length <= 132, `appDescription is ${d.length} characters; the store cuts off at 132`);
+});
+
+check('every message has a non-empty string', () => {
+  const bad = Object.entries(messages)
+    .filter(([, v]) => !v || typeof v.message !== 'string' || !v.message.trim())
+    .map(([k]) => k);
+  assert.strictEqual(bad.length, 0, `empty messages: ${bad.join(', ')}`);
 });
 
 if (failed) { console.error('\n' + failed + ' failed'); process.exit(1); }
