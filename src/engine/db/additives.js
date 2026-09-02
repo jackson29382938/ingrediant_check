@@ -135,6 +135,13 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\benzymes?\b/i, exemptIfText: /\b(cultured|cheese|milk|rennet|yogh?urt)\b/i, pts: 3, why: 'Processing enzymes' },
     { m: /^alcohol$|\bethyl alcohol\b|\bethanol\b/i,     pts: 6,  why: 'Added alcohol (preservative / solvent)' },
   { m: /\bcultured dextrose\b/i,                      pts: 9,  why: 'Cultured dextrose — a preservative in disguise' },
+  // Celery powder is nitrite. It is cultured specifically to convert its natural nitrate, and USDA
+  // labelling rules then permit "uncured — no nitrates or nitrites added". The chemistry reaching
+  // the meat is the same as sodium nitrite; only the paperwork differs. Without this, Applegate-
+  // style bacon scored 85 while the honestly-labelled nitrite version scored 37, which rewarded the
+  // labelling workaround rather than the product.
+  { m: /\b(cultured )?celery (juice )?powder\b|\bcelery juice concentrate\b|\bcultured celery\b/i,
+    pts: 14, why: 'Celery powder — nitrite by another name, which is what "uncured" means here' },
     ];
 
   // ---------------------------------------------------------------- synthetic fortification

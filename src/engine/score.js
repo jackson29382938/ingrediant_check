@@ -236,6 +236,11 @@ const COMMON_PANEL = new RegExp('\\b(?:' + [
   // seaweed, fungi, ferments
   'nori|kombu|wakame|seaweed|kelp|spirulina|chlorella|miso|kimchi|sauerkraut|sourdough|nutritional yeast',
   'honey|maple|molasses|syrup',
+  // Fortification vocabulary, which real cereal panels are full of. Without it a fortified product
+  // reads as barely recognisable: Kellogg's Frosted Flakes measured 44% coverage against live
+  // Amazon text, uncomfortably close to the 34% floor for a list the engine reads perfectly well.
+  'corn|maize|vitamins?|minerals?|malt|niacin|thiamin[e]?|riboflavin|folate|folic|pyridoxine',
+  'cobalamin|tocopherol|ascorb(ic|ate)|calcium|iron|zinc|magnesium|potassium|phosphate',
   // Non-English staples, so a Spanish/French panel that DOES hit the cap rules above clears the
   // coverage gate and gets scored rather than declined.
   'agua|eau|wasser|sal|sel|salz|az[uú]car|sucre|zucker|leche|lait|milch|harina|farine|mehl',

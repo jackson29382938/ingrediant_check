@@ -93,6 +93,8 @@ pair('audited beef must beat silent commodity beef', 'aga-grassfed-beef', 'commo
   (a, b) => a > b, 'certifications are where the real variation lives');
 pair('clean chips must beat seed-oil chips', 'potato-chips-avocado-oil', 'potato-chips-plain',
   (a, b) => a > b, 'avocado oil vs safflower oil is the whole difference');
+pair('"uncured" must not beat honest nitrite by much', 'uncured-bacon', 'deli-turkey-nitrite',
+  (a, b) => a - b < 25, 'celery powder IS nitrite; the label wording is the only difference');
 
 if (fixed.length) {
   console.log(`\n${fixed.length} defect case(s) now pass — update OPEN_DEFECTS.`);

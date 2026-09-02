@@ -141,7 +141,7 @@
       "product": { "name": "Ragu Traditional Pasta Sauce",
         "ingredients_text": "Tomato puree, soybean oil, salt, sugar, dehydrated onions, spices, natural flavor, citric acid" } },
 
-    { "id": "chicken-broth", "band": [40, 85],
+    { "id": "chicken-broth", "band": [25, 60],
       "product": { "name": "Swanson Chicken Broth",
         "ingredients_text": "Chicken stock, contains less than 2% of salt, natural flavoring, yeast extract, carrot juice concentrate, celery juice concentrate, onion juice concentrate" } },
 
@@ -153,7 +153,7 @@
       "product": { "name": "Oscar Mayer Deli Fresh Oven Roasted Turkey Breast",
         "ingredients_text": "Turkey breast, water, contains less than 2% of salt, sugar, sodium phosphate, sodium nitrite, sodium erythorbate, carrageenan" } },
 
-    { "id": "uncured-bacon", "band": [70, 95],
+    { "id": "uncured-bacon", "band": [40, 70],
       "product": { "name": "Applegate Naturals Uncured Sunday Bacon",
         "ingredients_text": "Pork, water, sea salt, cultured celery powder, raw cane sugar",
         "labels": "No nitrates or nitrites added, humanely raised" } },
@@ -167,7 +167,7 @@
         "ingredients_text": "Cultured pasteurized grade A nonfat milk, strawberries, sugar, corn starch, natural flavor, sucralose, potassium sorbate, carmine, vitamin D3" } },
 
     { "id": "dates-only", "band": [88, 100],
-      "note": "RULE GAP: cultured celery powder is the standard nitrite workaround and carries no penalty, so this scores 85 while the nitrite version scores 37. Band pinned to current behaviour; see notes/findings.md.",
+      "note": "Celery powder is cultured to convert its nitrate to nitrite, then labelled \"uncured\". Must not score far above the honestly-labelled nitrite version (deli-turkey-nitrite).",
       "product": { "name": "Organic Medjool Dates", "ingredients_text": "Organic medjool dates" } },
 
     { "id": "larabar-fruit-nut", "band": [75, 100],

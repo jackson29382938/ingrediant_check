@@ -171,7 +171,66 @@
     ['calories',     /\bcalories\b[^0-9]{0,20}([\d.]+)/i],
   ];
 
+  // Amazon's grocery card renders its nutrition summary as a table with the VALUES row above the
+  // LABELS row:
+  //     <tr><td>180</td><td>0mg</td><td>3g</td> ...
+  //     <tr><td>Calories</td><td>Sodium</td><td>Dietary Fiber</td> ...
+  // Every regex below reads label-then-number, so none of them matched and the whole nutrition
+  // feature was silently inert on real grocery pages. Verified against live amazon.com.
+  const SUMMARY_LABELS = [
+    [/^calories$/i, 'calories'], [/^sodium$/i, 'sodium'],
+    [/^(dietary )?fib(er|re)$/i, 'fibre'], [/^protein$/i, 'protein'],
+    [/^(total )?sugars?$/i, 'sugar'], [/^added sugars?$/i, 'addedSugar'],
+    [/^(total )?fat$/i, 'fat'], [/^saturated( fat)?$/i, 'saturatedFat'],
+    [/^trans( fat)?$/i, 'transFat'], [/^(total )?carb(ohydrate)?s?$/i, 'carbs'],
+  ];
+  const VALUE_CELL = /^([\d.]+)\s*(mg|mcg|g|kcal)?$/i;
+
+  function nutritionSummaryTable(doc) {
+    let tables = [];
+    try { tables = [...doc.querySelectorAll('#nutritionalInfoAndIngredients_feature_div table, .nicDesktop table')]; }
+    catch (e) { return null; }
+    for (const table of tables) {
+      const rows = [...table.querySelectorAll('tr')];
+      for (let i = 0; i < rows.length - 1; i++) {
+        const values = [...rows[i].querySelectorAll('td, th')].map(c => clean(c.innerText));
+        const labels = [...rows[i + 1].querySelectorAll('td, th')].map(c => clean(c.innerText));
+        if (values.length < 2 || values.length !== labels.length) continue;
+        if (!values.every(v => VALUE_CELL.test(v))) continue;
+        const out = {};
+        labels.forEach((label, col) => {
+          const hit = SUMMARY_LABELS.find(([re]) => re.test(label));
+          if (!hit) return;
+          const m = values[col].match(VALUE_CELL);
+          const n = m && parseFloat(m[1]);
+          if (isFinite(n)) out[hit[1]] = n;
+        });
+        if (Object.keys(out).length >= 2) return out;
+      }
+    }
+    return null;
+  }
+
+  // "19.0 servings per container | 0.5 cup" — Amazon's own serving line, which sits outside the
+  // Nutrition Facts prose the regex path reads.
+  function servingFromCard(doc) {
+    let el = null;
+    try { el = doc.querySelector('#nic-nutrition-summary-serving'); } catch (e) { return null; }
+    return el ? norm(el.innerText) : null;
+  }
+
   function nutritionFacts(doc) {
+    const fromTable = nutritionSummaryTable(doc);
+    if (fromTable) {
+      const serving = servingFromCard(doc);
+      if (serving) {
+        fromTable.servingSize = serving;
+        const measure = serving.match(/\(?\s*([\d.]+)\s*(?:g|grams?)\b/i)
+          || serving.match(/\(?\s*([\d.]+)\s*(?:ml|milliliters?|millilitres?)\b/i);
+        if (measure) { const v = parseFloat(measure[1]); if (isFinite(v) && v > 0) fromTable.servingGrams = v; }
+      }
+      return fromTable;
+    }
     const scopes = ['#nic-nutrition-facts-content', '#nutritionalInfoAndIngredients_feature_div',
                     '#important-information'];
     for (const sel of scopes) {
@@ -230,8 +289,19 @@
     // `certifications` come from Amazon's own dietary/certification widget — structured data.
     // `labels` are seller-written feature bullets, i.e. marketing, and are scored at half weight
     // and labelled unverified. Merging them let "100% GRASS-FED" ad copy bank full points.
-    const certifications = [...doc.querySelectorAll('[data-feature-name="dietaryShoppingWidget"] span, #dietary-shopping-title')]
-      .map(e => clean(e.innerText)).join(' ');
+    // Verified against live amazon.com: the id that used to be scraped, #dietary-shopping-title,
+    // holds only the words "Diet type" — the heading. The certification pills themselves live in a
+    // sibling, #nic-diet-type-logos-wrapper, and [data-feature-name="dietaryShoppingWidget"] no
+    // longer exists at all. So `certifications` was literally the string "Diet type", and USDA
+    // Organic on a certified product was never seen as structured data — only as an unverified
+    // title claim, which is the exact distinction the provenance block exists to draw.
+    //
+    // The pills are read span by span rather than off the wrapper, whose innerText concatenates
+    // them ("USDA OrganicKosher").
+    const certifications = [...doc.querySelectorAll(
+      '#nic-diet-type-logos-wrapper span, .cpf-dpx-attribute-pil span, '
+      + '[data-feature-name="dietaryShoppingWidget"] span')]
+      .map(e => clean(e.innerText)).filter(Boolean).join(', ');
     const bulletClaims = [...doc.querySelectorAll('#feature-bullets li')]
       .map(e => clean(e.innerText)).join(' ');
     return { asin, upc, title, brand, certifications, labels: bulletClaims, nutrition: nutritionFacts(doc) };
@@ -275,6 +345,6 @@
     return { ok: false, ...identity, reason: identity.upc ? 'no-dom-match-barcode-available' : 'no-dom-match' };
   }
 
-  root.AIR.extract = { extract, looksLikeIngredients, LINE_BLOCK, productIdentity, nutritionFacts };
+  root.AIR.extract = { extract, looksLikeIngredients, LINE_BLOCK, productIdentity, nutritionFacts, nutritionSummaryTable };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.AIR.extract;
 })(typeof globalThis !== 'undefined' ? globalThis : self);
