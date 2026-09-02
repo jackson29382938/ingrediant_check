@@ -261,16 +261,53 @@ function recognitionCoverage(list) {
 }
 
 // ---------------------------------------------------------------- parsing
-function parse(text) {
-  return text
-    .replace(/\(([^)]*)\)/g, ',$1,')
-    .replace(/\b(contains \d+% or less of|less than \d+% of|\d+% or less of|and\/or)\b/gi, ',')
-    .split(/[,;.]/)
-    .map(s => s.replace(/^[\s*•\-–]+/, '').replace(/\s+/g, ' ').trim().toLowerCase())
-    .filter(s => s.length > 1 && s.length < 80);
+const tidy = s => s.replace(/^[\s*•\-–]+/, '').replace(/\s+/g, ' ').trim().toLowerCase();
+const usable = s => s.length > 1 && s.length < 80;
+
+// Split on commas at the TOP level only, leaving parenthesised sub-lists attached to their parent.
+function splitTopLevel(text) {
+  const parts = [];
+  let depth = 0, buf = '';
+  for (const ch of text) {
+    if (ch === '(') { depth++; buf += ch; }
+    else if (ch === ')') { depth = Math.max(0, depth - 1); buf += ch; }
+    else if (depth === 0 && (ch === ',' || ch === ';' || ch === '.')) { parts.push(buf); buf = ''; }
+    else buf += ch;
+  }
+  if (buf.trim()) parts.push(buf);
+  return parts;
 }
 
-// Earlier ingredients make up more of the product, so they carry more weight.
+// One top-level ingredient becomes its own head plus any sub-ingredients it declares, and they all
+// share its position. This is the point: position is a proxy for how much of the product something
+// is, and a sub-ingredient of the first item is not the seventh most abundant thing in the jar.
+//
+// Flattening parentheses into the main list made the engine reward opacity. "Enriched Flour, Sugar"
+// charged sugar 13 points at position 1; spelling out the flour's own six sub-ingredients pushed
+// sugar to position 7, where the weight drops to 0.5, and the same sugar cost 5. A manufacturer got
+// a better score on everything downstream by disclosing more.
+function expandEntry(part) {
+  const pieces = [part.replace(/\([^)]*\)/g, ' ')];
+  for (const m of part.matchAll(/\(([^)]*)\)/g)) pieces.push(...m[1].split(/[,;]/));
+  return pieces.map(tidy).filter(usable);
+}
+
+// [{ ing, pos }] where pos is the TOP-LEVEL position, shared by an ingredient's own sub-list.
+function parseEntries(text) {
+  const flat = text.replace(/\b(contains \d+% or less of|less than \d+% of|\d+% or less of|and\/or)\b/gi, ',');
+  const out = [];
+  splitTopLevel(flat).forEach((part, pos) => {
+    for (const ing of expandEntry(part)) out.push({ ing, pos });
+  });
+  return out;
+}
+
+function parse(text) {
+  return parseEntries(text).map(e => e.ing);
+}
+
+// Earlier ingredients make up more of the product, so they carry more weight. Indexed by TOP-LEVEL
+// position: a sub-ingredient declared inside the first item shares the first item's weight.
 const weight = i => (i === 0 ? 1.5 : i <= 2 ? 1.25 : i <= 6 ? 1.0 : 0.5);
 
 // ---------------------------------------------------------------- NOVA
@@ -323,7 +360,13 @@ function score(product, options = {}) {
   // scoring surface is rebuilt from what survives, so caps and penalties see the real ingredients
   // and never see "no artificial colors". See DENIAL_ENTRY above for why this replaced running
   // stripNegations() over the list.
-  const list = parse(rawTxt).filter(ing => !isDenialEntry(ing));
+  const entries = parseEntries(rawTxt).filter(e => !isDenialEntry(e.ing));
+  // Close the gaps left by dropped claim entries, so a leading "no artificial colors" does not
+  // leave the real first ingredient sitting at position 1.
+  const dense = new Map();
+  for (const e of entries) if (!dense.has(e.pos)) dense.set(e.pos, dense.size);
+  for (const e of entries) e.pos = dense.get(e.pos);
+  const list = entries.map(e => e.ing);
   const txt = list.join(', ');
 
   // "Cultured dextrose" and "cultured celery powder" are preservative systems, not living food.
@@ -357,8 +400,8 @@ function score(product, options = {}) {
   let hardHits = 0, softHits = 0;
   const tradPrep = add.TRADITIONAL_PREP.test(txt);
 
-  list.forEach((ing, i) => {
-    const w = weight(i);
+  entries.forEach(({ ing, pos }) => {
+    const w = weight(pos);
 
     const isFreeSugar = sugars.FREE.some(f => f.test(ing));
     if (isFreeSugar && !seen.has('freesugar')) {
@@ -490,7 +533,19 @@ function score(product, options = {}) {
     // Normalise to 100g where the label declares a serving weight. Without this a cereal declaring
     // a 28g serving scores better than an identical one declaring 55g, purely on packaging choice.
     const grams = nut.servingGrams;
-    const per100 = (grams && grams > 0) ? (100 / grams) : 1;
+    let per100 = (grams && grams > 0) ? (100 / grams) : 1;
+    // Defence in depth against a serving weight read off the wrong line. No food contains more
+    // than 100g of a macronutrient per 100g, and nothing out-salts pure salt, so a normalisation
+    // that produces one is arithmetic on a parse error rather than a fact about the product.
+    // Seen in the wild shape: a 1g "serving" turned 2g of sugar into 200g per 100g and dropped
+    // plain bread from 54 to 15 under the conventional-nutrition preset.
+    if (per100 !== 1) {
+      const impossible =
+        ['saturatedFat', 'sugar', 'addedSugar', 'fibre', 'protein']
+          .some(f => typeof nut[f] === 'number' && nut[f] * per100 > 100)
+        || (typeof nut.sodium === 'number' && nut.sodium * per100 > 40000);
+      if (impossible) per100 = 1;                     // score per serving instead, and say so
+    }
     if (per100 !== 1) nut._normalised = true;
     for (const n of NUTRITION) {
       const weight = w_(n.cat);
@@ -655,5 +710,5 @@ function score(product, options = {}) {
   };
 }
 
-return { score, parse, stripNegations, PENALTIES, CAPS, BANDS, NOVA_BASE };
+return { score, parse, parseEntries, stripNegations, PENALTIES, CAPS, BANDS, NOVA_BASE };
 });

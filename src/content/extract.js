@@ -16,7 +16,12 @@
 
   const NEXT_SECTION = /^(directions|legal disclaimer|safety information|allergen information|warnings?|storage|nutrition facts|product description)\b/i;
   const MIN_LEN = 4;
-  const MAX_LEN = 3000;
+  // Rejecting rather than truncating is deliberate: the tail of a list is exactly where the
+  // additives live, so a truncated list would score clean for the wrong reason. But 3000 was tight
+  // enough to reject real products — a variety pack or a composed meal declares every component's
+  // own sub-list — and rejecting a readable list is its own failure. Raised, with the recognition
+  // coverage gate in score.js now catching the scraped-the-wrong-block case that this guarded.
+  const MAX_LEN = 6000;
 
   const clean = t => (t || '').replace(/ /g, ' ').replace(/[ \t]+/g, ' ').trim();
   const norm = t => clean(t).replace(/\s+/g, ' ');
@@ -179,7 +184,13 @@
         const m = text.match(re);
         if (m) { const v = parseFloat(m[1]); if (isFinite(v)) out[key] = v; }
       }
-      const serving = text.match(/serving size[^0-9a-z]{0,10}([^\n]{1,40})/i);
+      // Stop at the next panel field. An unbounded 40-character window ran straight past the end
+      // of the size declaration and into the rows below it, so "Serving size 1 slice Calories 80
+      // Total Fat 1g" yielded a ONE GRAM serving — read off the fat line — and every per-100g
+      // figure was then multiplied by a hundred.
+      const serving = text.match(
+        /serving size[^0-9a-z]{0,10}([^\n]{1,60}?)(?=\s*(?:calories|servings?\s+per|amount per|total fat|saturated|trans fat|cholesterol|sodium|total carb|dietary fib|total sugars|protein|nutrition facts|%|$))/i)
+        || text.match(/serving size[^0-9a-z]{0,10}([^\n]{1,24})/i);
       if (serving) {
         out.servingSize = norm(serving[1]);
         // Serving size is the most gameable number on a label: declare 28g where a competitor
@@ -187,7 +198,13 @@
         // out so the engine can compare per 100g instead.
         const grams = out.servingSize.match(/\(?\s*([\d.]+)\s*g\b/i)
           || out.servingSize.match(/([\d.]+)\s*(?:grams?)\b/i);
-        if (grams) { const v = parseFloat(grams[1]); if (isFinite(v) && v > 0) out.servingGrams = v; }
+        // Drinks declare millilitres, and matching only grams meant no beverage was ever
+        // normalised — so the gaming this exists to defeat still worked on exactly the category
+        // where serving sizes vary most (240ml vs 355ml vs 500ml for the same drink). Water-based
+        // beverages are close enough to 1 g/ml for a per-100 comparison.
+        const millilitres = out.servingSize.match(/\(?\s*([\d.]+)\s*(?:ml|milliliters?|millilitres?)\b/i);
+        const measure = grams || millilitres;
+        if (measure) { const v = parseFloat(measure[1]); if (isFinite(v) && v > 0) out.servingGrams = v; }
       }
       if (Object.keys(out).length >= 2) return out;
     }
