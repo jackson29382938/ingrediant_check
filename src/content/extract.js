@@ -33,7 +33,39 @@
   const PLACEHOLDER = /\b(see (the )?(label|package|packaging|product)|refer to (the )?(label|package)|listed on (the )?(label|package)|information (is )?unavailable|not available|varies by|may vary|check (the )?(label|package)|photo|image)\b/i;
   const NON_INGREDIENT = /\b(product of|distributed by|manufactured (by|for)|keep (refrigerated|frozen|cool)|best (by|before)|use by|sell by|store in|net wt|serving size|calories|made in|packed (in|by)|questions\??|call \d|www\.|http)/i;
 
-  function looksLikeIngredients(text) {
+  // Amazon's ingredients field is sometimes populated with the product NAME plus its pack specs.
+  // Verified on live amazon.com: Lifeway Low Fat Kefir (B00LOAW7U6) publishes
+  //   "Lifeway Lowfat Kefir, Strawberry, 32 Ounce, 11g Protein, 12 Live Active Cultures"
+  // in #nic-ingredients-content. That is comma-dense, mentions a food, and passes every check
+  // below, so it parsed as five ingredients and scored 86/100 Good — while the actual label
+  // (cultured lowfat milk, strawberry, CANE SUGAR, natural flavor, pectin, vitamin A palmitate)
+  // scores 31 Poor. A 55-point error, and the real list exists only in the label photo.
+  //
+  // Entries that state a size, a count, or a nutrition claim rather than naming an ingredient.
+  const SPEC_ENTRY = new RegExp('^(?:'
+    + '\\d+(?:\\.\\d+)?\\s*(?:g|mg|kg|oz|fl\\.?\\s*oz|ounces?|lbs?|pounds?|ml|l|liters?|litres?|ct|count|pk|packs?|servings?|pieces?|bars?|bags?|cans?|bottles?)\\b'
+    + '|(?:pack|case|box|set) of\\b'
+    + '|\\d+\\s*(?:live|active|billion|cfu)\\b'
+    + '|\\d+(?:\\.\\d+)?\\s*g\\s+(?:protein|fib(?:er|re)|sugars?|carbs?|fat)\\b'
+    + '|net\\s*wt\\b'
+    + ')', 'i');
+
+  // How much of the candidate is just the product name repeated back.
+  function echoesTitle(text, title) {
+    if (!title) return 0;
+    const words = v => String(v).toLowerCase().replace(/[^a-z0-9%]+/g, ' ').split(' ')
+      .filter(w => w.length > 2);
+    const inTitle = new Set(words(title));
+    const candidate = words(text);
+    if (candidate.length < 3) return 0;
+    return candidate.filter(w => inTitle.has(w)).length / candidate.length;
+  }
+
+  // `title` is optional. Without it the spec-density test still applies; with it, a list that is
+  // largely the title AND carries spec noise is rejected. Both conditions are required together,
+  // because a genuine single-ingredient food legitimately repeats its own title — "Organic Whole
+  // Grain Rolled Oats" is both the name and the entire ingredient list, and must still be read.
+  function looksLikeIngredients(text, title) {
     const t = norm(text);
     if (t.length < MIN_LEN || t.length > MAX_LEN) return false;
     if (PLACEHOLDER.test(t)) return false;
@@ -61,13 +93,18 @@
     const nonFood = parts.filter(p => NON_INGREDIENT.test(p)).length;
     if (nonFood > 0 && nonFood / parts.length >= 0.34) return false;
     if (parts.every(p => NON_INGREDIENT.test(p) || PLACEHOLDER.test(p))) return false;
+
+    // Product name and pack specs rather than a recipe.
+    const specs = parts.filter(p => SPEC_ENTRY.test(p.trim())).length;
+    if (specs / parts.length >= 0.34) return false;          // mostly specs, whatever the title says
+    if (specs > 0 && echoesTitle(t, title) >= 0.6) return false;
     return true;
   }
 
   // ---- Tier 1: verified stable selectors -------------------------------------------------
-  function tier1(doc) {
+  function tier1(doc, title) {
     const direct = doc.querySelector('#nic-ingredients-content');
-    if (direct && looksLikeIngredients(direct.innerText)) {
+    if (direct && looksLikeIngredients(direct.innerText, title)) {
       return { text: clean(direct.innerText), via: 'nic-ingredients-content', confidence: 0.98 };
     }
     // Scope anchors, used when the exact id is absent but the card is present.
@@ -75,7 +112,7 @@
     for (const sel of scopes) {
       const scope = doc.querySelector(sel);
       if (!scope) continue;
-      const found = fromExpander(scope) || fromLabelledSection(scope);
+      const found = fromExpander(scope, title) || fromLabelledSection(scope, title);
       if (found) return { ...found, via: `scope:${sel}`, confidence: 0.9 };
     }
     return null;
@@ -84,13 +121,13 @@
   // ---- Tier 2a: expander-aware heading scan ----------------------------------------------
   // The fix that Phase 0 forced: content is a sibling of the heading's header, inside the
   // shared .a-expander-container.
-  function fromExpander(scope) {
+  function fromExpander(scope, title) {
     const heads = leafNodesMatching(scope, /^\s*ingredients\s*:?\s*$/i);
     for (const h of heads) {
       const container = h.closest('.a-expander-container');
       if (!container) continue;
       const content = container.querySelector('.a-expander-content');
-      if (content && looksLikeIngredients(content.innerText)) {
+      if (content && looksLikeIngredients(content.innerText, title)) {
         return { text: clean(content.innerText) };
       }
     }
@@ -99,7 +136,7 @@
 
   // ---- Tier 2b: #important-information labelled section -----------------------------------
   // That block is a series of .content sections, each opening with its own heading.
-  function fromLabelledSection(scope) {
+  function fromLabelledSection(scope, title) {
     const sections = scope.querySelectorAll('.content, .a-section');
     for (const sec of sections) {
       const head = sec.querySelector('h1,h2,h3,h4,h5,h6,.a-text-bold,b,strong');
@@ -114,16 +151,16 @@
         .filter(t => t && !/^\s*ingredients\s*:?\s*$/i.test(t) && !NEXT_SECTION.test(t));
       const seenBlocks = new Set();
       const text = norm(blocks.filter(b => !seenBlocks.has(b) && seenBlocks.add(b)).join(' '));
-      if (looksLikeIngredients(text)) return { text };
+      if (looksLikeIngredients(text, title)) return { text };
     }
     return null;
   }
 
-  function tier2(doc) {
+  function tier2(doc, title) {
     for (const sel of ['#important-information', '#nutritionalInfoAndIngredients_feature_div', 'body']) {
       const scope = doc.querySelector(sel);
       if (!scope) continue;
-      const found = fromExpander(scope) || fromLabelledSection(scope);
+      const found = fromExpander(scope, title) || fromLabelledSection(scope, title);
       if (found) return { ...found, via: `heading-scan:${sel}`, confidence: 0.85 };
     }
     return null;
@@ -137,7 +174,7 @@
   // half whenever Amazon split them across paragraphs.
   const LINE_BLOCK = /(?:^|\n)[ \t]*Ingredients[ \t]*:?[ \t]*\n+([\s\S]{4,2000}?)(?=\n[ \t]*(?:Directions|Legal Disclaimer|Safety Information|Allergen Information|Warnings?|Storage|Nutrition Facts|Product Description|About this item)\b|$)/i;
 
-  function tier3(doc) {
+  function tier3(doc, title) {
     const regions = ['#important-information', '#productDetails_feature_div', '#detailBullets_feature_div', '#aplus'];
     for (const sel of regions) {
       const el = doc.querySelector(sel);
@@ -149,7 +186,7 @@
       const lines = m[1].split('\n');
       const stop = lines.findIndex(l => NEXT_SECTION.test(l.trim()));
       const body = (stop === -1 ? lines : lines.slice(0, stop)).join(' ');
-      if (looksLikeIngredients(body)) {
+      if (looksLikeIngredients(body, title)) {
         return { text: norm(body), via: `line-sweep:${sel}`, confidence: 0.6 };
       }
     }
@@ -338,13 +375,14 @@
     if (!gate.ok && opts.foodOnly !== false) return { ok: false, ...identity, reason: 'not-ingestible' };
     for (const tier of [tier1, tier2, tier3]) {
       let hit = null;
-      try { hit = tier(doc); } catch (e) { /* a broken tier must never break the page */ }
+      // The title is passed in so a tier can tell a real list from the product name echoed back.
+      try { hit = tier(doc, identity.title); } catch (e) { /* a broken tier must never break the page */ }
       if (hit) return { ok: true, ...identity, ...hit };
     }
     // Honest failure. A wrong score is worse than no score.
     return { ok: false, ...identity, reason: identity.upc ? 'no-dom-match-barcode-available' : 'no-dom-match' };
   }
 
-  root.AIR.extract = { extract, looksLikeIngredients, LINE_BLOCK, productIdentity, nutritionFacts, nutritionSummaryTable };
+  root.AIR.extract = { extract, looksLikeIngredients, echoesTitle, LINE_BLOCK, productIdentity, nutritionFacts, nutritionSummaryTable };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.AIR.extract;
 })(typeof globalThis !== 'undefined' ? globalThis : self);
