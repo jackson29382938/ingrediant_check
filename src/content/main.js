@@ -257,6 +257,64 @@
     });
   }
 
+  // ---------------------------------------------------------------- search-page gate
+  //
+  // The per-product gate says whether a thing is food. It never said whether the SEARCH was about
+  // food, so a search for running shoes still swept every tile, armed a hover listener on each and
+  // ran the IntersectionObserver across the results. Nothing visible happened with default
+  // settings, but the extension was running where it had no business running — and with hover or
+  // auto-score enabled it would fetch product pages for them.
+  //
+  // Decided once per URL, because it reads the DOM and tick() fires on every mutation.
+  const searchGate = { url: null, decision: null };
+
+  function searchContext() {
+    const params = new URLSearchParams(location.search);
+    let label = '';
+    try {
+      const el = document.querySelector('#searchDropdownBox option:checked')
+        || document.querySelector('.nav-search-scope .nav-search-label')
+        || document.querySelector('#nav-search-dropdown-card .nav-search-label');
+      label = ((el && el.textContent) || '').replace(/\s+/g, ' ').trim();
+    } catch (e) { /* :checked is unsupported in a few embedded contexts */ }
+    return { query: params.get('k') || '', alias: params.get('i') || '', label };
+  }
+
+  function resetSearchGate() { searchGate.url = null; searchGate.decision = null; }
+
+  function searchAllowed() {
+    if (!state.foodOnly) return true;                      // the user turned the gate off
+    const gate = AIR.db && AIR.db.ingestible;
+    if (!gate || typeof gate.assessSearch !== 'function') return true;
+    if (searchGate.url === location.href && searchGate.decision !== null) return searchGate.decision;
+
+    const verdict = gate.assessSearch(searchContext());
+    let ok = verdict.ok;
+
+    if (ok && verdict.signal === 'none') {
+      // Department and query are both silent — a brand-name search like "nike air max" names no
+      // category at all. Amazon's own results are the last word.
+      const titles = [...document.querySelectorAll('[data-asin]')].slice(0, 24)
+        .map(tileTitle).filter(Boolean);
+      if (titles.length < gate.RESULT_SAMPLE_MIN) return true;   // results not in yet; decide later
+      ok = !gate.looksNonFoodFromResults(titles);
+    }
+
+    searchGate.url = location.href;
+    searchGate.decision = ok;
+    return ok;
+  }
+
+  // Leave the page exactly as we found it: no badges, no queued fetches, no observer, and every
+  // armed tile unmarked so re-entering a food search re-arms cleanly.
+  function standDown() {
+    clearBadges();
+    queue.pending.length = 0;
+    queue.seen.clear();
+    if (tileObserver) { tileObserver.disconnect(); tileObserver = null; }
+    document.querySelectorAll('[data-air-auto]').forEach(t => t.removeAttribute('data-air-auto'));
+  }
+
   // ---------------------------------------------------------------- search result badges
   // The highest-leverage surface: this is what changes what goes in the cart.
   function badgeSearchResults() {
@@ -286,6 +344,7 @@
   // never work on a page that doesn't happen to mutate afterwards.
   function armHoverPass() {
     if (!state.enabled || !state.badges || !state.hoverScore) return;
+    if (isListPage() && !searchAllowed()) return;
     document.querySelectorAll('[data-asin]:not([data-air-hover])').forEach(tile => {
       const asin = tile.getAttribute('data-asin');
       if (!asin || !/^[A-Z0-9]{10}$/.test(asin)) return;
@@ -382,6 +441,8 @@
     let timer = null;
     const start = () => {
       if (!state.enabled || !state.badges || !state.hoverScore) return;
+      // A listener attached on a previous search stays attached after Amazon swaps the results in.
+      if (!searchAllowed()) return;
       if (tile.querySelector('.air-badge')) return;
       clearTimeout(timer);
       timer = setTimeout(() => enqueue(tile, asin, { front: true }), HOVER_DELAY_MS);
@@ -401,6 +462,7 @@
     if (tileObserver) return tileObserver;
     tileObserver = new IntersectionObserver(entries => {
       if (!state.enabled || !state.badges || !state.autoScoreSearch) return;
+      if (!searchAllowed()) return;
       for (const entry of entries) {
         if (!entry.isIntersecting) continue;
         const tile = entry.target;
@@ -420,6 +482,7 @@
 
   function armAutoScorePass() {
     if (!state.enabled || !state.badges || !state.autoScoreSearch) return;
+    if (isListPage() && !searchAllowed()) return;
     const obs = autoObserver();
     document.querySelectorAll('[data-asin]:not([data-air-auto])').forEach(tile => {
       const asin = tile.getAttribute('data-asin');
@@ -505,6 +568,7 @@
       if (isProductPage()) scoreCurrentPage();
       else if (isListPage()) {
         removePanel();
+        if (!searchAllowed()) { standDown(); return; }
         if (state.badges) badgeSearchResults();
         else clearBadges();
       } else teardown();
@@ -540,6 +604,7 @@
       if (location.href === lastUrl) return;
       lastUrl = location.href;
       state.lastKey = null;      // a new URL is a new product; don't reuse the last render
+      resetSearchGate();         // ...and a new search, which may be about something else entirely
       schedule();
     }, 500);
   }
@@ -613,6 +678,7 @@
     if (changes.foodOnly) {
       state.foodOnly = changes.foodOnly.newValue !== false;
       state.lastKey = null;
+      resetSearchGate();
       removePanel();
       resetListState();
       if (state.enabled) { schedule(); armAutoScorePass(); }

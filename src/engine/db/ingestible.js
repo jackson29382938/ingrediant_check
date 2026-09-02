@@ -63,6 +63,8 @@ const HARD_NEGATIVE = [
     test: (doc, text, title) => /\b(blenders?|cookware|skillets?|frying pans?|sauce pans?|stock pots?|dutch ovens?|instant pots?|pressure cookers?|chef'?s? knives|steak knives|cutting boards?|food storage|storage containers?|bottle openers?|utensils?|travel mugs?|dinner plates?|bowl sets?|thermos|lunch box(es)?|air fryers?|stand mixers?|food processors?|electric (grill|smoker|kettle)s?|gas grills?|pellet (grill|smoker)s?)\b/i.test(title) },
   { id: 'apparel', pts: 12, why: 'Apparel or footwear',
     test: (doc, text, title) => /\b(shoes?|sneakers?|boots?|sandals?|shirt|t-shirt|pants|jeans|jacket|hoodie|socks?|hat|cap|dress|skirt|shorts|underwear|bra|watch|handbag|backpack|wallet)\b/i.test(title) },
+  { id: 'merchandise', pts: 12, why: 'General merchandise rather than something you eat',
+    test: (doc, text, title) => /\b(laptops?|desktops?|monitors?|keyboards?|headphones?|earbuds?|speakers?|chargers?|cables?|adapters?|batteries|battery|tablets? (computer|pc)|smartphones?|iphones?|ipads?|cameras?|printers?|routers?|televisions?|\btvs?\b|consoles?|controllers?|video games?|puzzles?|board games?|lego|dolls?|action figures?|mattress(es)?|pillows?|blankets?|towels?|curtains?|rugs?|lamps?|desks?|chairs?|sofas?|couch(es)?|bookshel(f|ves)|vacuums?|paperback|hardcover|dvds?|blu[- ]?rays?|tires?|brake pads?|drills?|hammers?|screwdrivers?|wrench(es)?|paint(brush(es)?)?|notebooks?|binders?|staplers?|printer paper|light bulbs?|extension cords?)\b/i.test(title) },
   { id: 'supplementEquipment', pts: 8, why: 'Accessory rather than a consumable',
     test: (doc, text, title) => /\b(shaker bottle|pill organi[sz]er|scoop|dispenser|funnel|case|holder)\b/i.test(title) },
 ];
@@ -130,6 +132,75 @@ function looksNonFoodFromTitle(title) {
   return !g.ok && g.negatives.length > 0;
 }
 
+// ---------------------------------------------------------------- search-page gate
+//
+// assess() answers "is THIS thing food". It cannot answer "is this whole search about food", and
+// nothing did: searching for running shoes still swept every result tile, armed hover listeners on
+// each one and ran the IntersectionObserver over the page. Individually harmless, collectively the
+// extension was running everywhere it had no business running.
+//
+// Amazon states the department in the URL, which is a far better signal than any single tile
+// title. `i=` carries the search alias; the dropdown carries the human label. Query text is the
+// weakest of the three and is only consulted when neither department signal is present.
+//
+// Ambiguity resolves to ALLOW, unlike the per-product gate. A search page is not a claim about
+// anything — the per-tile filter and the per-product gate still stand behind it — so the cost of
+// staying on is low, while wrongly standing down on a grocery search makes the extension look
+// broken. Only clear negative evidence stops it.
+
+// Amazon search-alias values (the `i=` parameter).
+const FOOD_ALIASES = /^(grocery|amazonfresh|fresh|wholefoods|gourmet-food|natural-foods|specialty-foods|beverages|nutrition)$/i;
+const NONFOOD_ALIASES = /^(fashion(-\w+)?|apparel|shoes|watches|jewelry|handbags|luggage|electronics|computers|mobile|photo|videogames|software|instant-video|movies-tv|dvd|music|popular|classical|stripbooks|digital-text|audible|audiobooks|toys-and-games|baby-toys|tools|hi|garden|lawngarden|appliances|automotive|industrial|mi|office-products|arts-crafts|sporting|outdoor|pets|beauty|luxury-beauty|premium-beauty|gift-cards|collectibles|handmade|vehicles|financial|localservices|smart-home|furniture|kitchen)$/i;
+
+const STUB_DOC = { querySelector: () => null };
+const ruleById = (list, id) => list.find(r => r.id === id);
+
+// ctx: { query, alias, label } — all plain strings, so this is testable without a DOM.
+function assessSearch(ctx = {}) {
+  const query = String(ctx.query || '').trim();
+  const alias = String(ctx.alias || '').trim();
+  const label = String(ctx.label || '').trim();
+
+  if (alias && FOOD_ALIASES.test(alias)) {
+    return { ok: true, signal: 'department', reason: `Searching a food department (${alias})` };
+  }
+  if (alias && NONFOOD_ALIASES.test(alias)) {
+    return { ok: false, signal: 'department', reason: `Searching the ${alias.replace(/-/g, ' ')} department` };
+  }
+
+  // The visible dropdown label, for the shapes where Amazon omits `i=`.
+  if (label) {
+    const food = ruleById(STRONG_POSITIVE, 'foodDept');
+    if (food && food.test(STUB_DOC, label, label)) {
+      return { ok: true, signal: 'label', reason: `Searching ${label}` };
+    }
+    const nonFood = ruleById(HARD_NEGATIVE, 'nonFoodDept');
+    if (nonFood && nonFood.test(STUB_DOC, label, label)) {
+      return { ok: false, signal: 'label', reason: `Searching ${label}` };
+    }
+  }
+
+  // Weakest signal, and deliberately last: "organic" is a query, "running shoes" is a verdict.
+  if (query && looksNonFoodFromTitle(query)) {
+    return { ok: false, signal: 'query', reason: `"${query}" is not a search for food` };
+  }
+
+  return { ok: true, signal: 'none', reason: 'Nothing in this search says it is not about food' };
+}
+
+// Last resort, used when the department and query are both silent: Amazon's own results say what
+// the search meant. A clear majority of non-food titles is a stronger statement than an ambiguous
+// query, and it catches brand-name searches ("nike air max") that name no category at all.
+const RESULT_SAMPLE_MIN = 5;
+const RESULT_NONFOOD_SHARE = 0.7;
+
+function looksNonFoodFromResults(titles) {
+  const usable = (titles || []).map(t => String(t || '').trim()).filter(t => t.length > 2);
+  if (usable.length < RESULT_SAMPLE_MIN) return false;   // too little to conclude anything
+  const nonFood = usable.filter(t => looksNonFoodFromTitle(t)).length;
+  return nonFood / usable.length >= RESULT_NONFOOD_SHARE;
+}
+
 // Open Food Facts is a food database, but barcodes collide with Open Beauty Facts / Open Products
 // Facts. product_type is the clean signal; categories catch older records that omit it.
 function isOpenFoodFactsFood(product) {
@@ -149,7 +220,9 @@ function isOpenFoodFactsFood(product) {
 
 const _exports = AIRmodule('ingestible', {
   assess, looksNonFoodFromTitle, isOpenFoodFactsFood,
+  assessSearch, looksNonFoodFromResults,
   STRONG_POSITIVE, WEAK_POSITIVE, HARD_NEGATIVE, THRESHOLD,
+  FOOD_ALIASES, NONFOOD_ALIASES, RESULT_SAMPLE_MIN, RESULT_NONFOOD_SHARE,
 });
 if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 
