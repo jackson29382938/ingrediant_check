@@ -673,10 +673,23 @@ function score(product, options = {}) {
   let displayBase = base;
   let shave = rawTotal_ - final;
   if (shave > 0) {
-    for (const g of good.slice().sort((a, b) => b.c - a.c)) {
-      if (shave <= 0) break;
-      const take = Math.min(shave, Math.max(0, g.c - 1));
-      g.c -= take;
+    // Proportionally, not biggest-first. Taking as much as possible from the largest row inverted
+    // the ranking it was meant to preserve: on certified grass-fed beef the American Grassfed
+    // certification (16 points, the strongest evidence available) displayed as +1 while USDA
+    // Organic (12) displayed as +4, telling the reader the weaker certification counted for more.
+    // Scaling every row by the same factor keeps the order of the evidence intact.
+    const rows = good.filter(g => typeof g.c === 'number' && g.c > 0);
+    const room = rows.reduce((a, g) => a + (g.c - 1), 0);   // each row keeps at least 1 point
+    const take = Math.min(shave, Math.max(0, room));
+    if (take > 0) {
+      const cut = rows.map(g => ((g.c - 1) * take) / room);
+      const whole = cut.map(Math.floor);
+      let left = take - whole.reduce((a, b) => a + b, 0);
+      // Largest remainder gets the leftover, so the rows still sum to exactly `take`.
+      rows.map((g, i) => [i, cut[i] - whole[i]])
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([i]) => { if (left > 0) { whole[i]++; left--; } });
+      rows.forEach((g, i) => { g.c -= whole[i]; });
       shave -= take;
     }
     displayBase -= shave;

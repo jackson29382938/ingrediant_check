@@ -3,47 +3,9 @@
 // #nic-diet-type-logos-wrapper, and the nutrition summary is a table with the VALUES row above
 // the LABELS row. Drives the real extract.js / score.js / panel.js against it.
 (function () {
-  const FIXTURES = {
-    oats: { title: "Bob's Red Mill Organic Old Fashioned Rolled Oats, 32oz",
-      crumbs: 'Grocery & Gourmet Food › Breakfast Cereal › Oatmeal',
-      pills: ['USDA Organic', 'Kosher'], serving: '19.0 servings per container | 0.5 cup',
-      nutrition: [['180','0mg','3g','1g','5g'], ['Calories','Sodium','Dietary Fiber','Sugars','Protein']],
-      ingredients: 'Organic Whole Grain Oats',
-      bullets: ['Organic whole grain rolled oats', 'Non-GMO Project Verified'] },
-    flakes: { title: "Kellogg's Frosted Flakes Original Cold Breakfast Cereal 25.2oz",
-      crumbs: 'Grocery & Gourmet Food › Breakfast Foods › Cold Cereals',
-      pills: ['Kosher'], serving: '1.0 servings per container | 1 container (60g)',
-      nutrition: [['220','290mg','1g','21g','3g'], ['Calories','Sodium','Dietary Fiber','Sugars','Protein']],
-      ingredients: 'Milled Corn, Sugar, Malt Flavor, Contains 2% Or Less Of Salt. Vitamins And Minerals: Iron (Ferric Phosphate), Niacinamide, Vitamin B6 (Pyridoxine Hydrochloride), Vitamin B2 (Riboflavin), Vitamin B1 (Thiamin Hydrochloride), Folic Acid, Vitamin D3, Vitamin B12.',
-      bullets: ['8 vitamins and minerals', 'Fat free'] },
-    chips: { title: 'Kettle Brand Sea Salt Potato Chips, 13oz',
-      crumbs: 'Grocery & Gourmet Food › Snack Foods › Potato Chips',
-      pills: ['Gluten Free'], serving: '13.0 servings per container | 1 oz (28g)',
-      nutrition: [['150','110mg','1g','0g','2g'], ['Calories','Sodium','Dietary Fiber','Sugars','Protein']],
-      ingredients: 'Potatoes, Safflower Oil, Sea Salt',
-      bullets: ['No artificial colors or preservatives'] },
-    beef: { title: 'Force of Nature Grass Fed Grass Finished Ground Beef, 14oz',
-      crumbs: 'Grocery & Gourmet Food › Meat & Seafood › Beef',
-      pills: ['American Grassfed Association Certified', 'USDA Organic'],
-      serving: '4.0 servings per container | 4 oz (112g)',
-      nutrition: [['200','75mg','0g','0g','19g'], ['Calories','Sodium','Dietary Fiber','Sugars','Protein']],
-      ingredients: '100% Grass-Fed Grass-Finished Beef',
-      bullets: ['Regeneratively raised', 'No hormones added'] },
-    shampoo: { title: 'Head & Shoulders Classic Clean Anti-Dandruff Shampoo, 32.1oz',
-      crumbs: 'Beauty & Personal Care › Hair Care › Shampoo', pills: [], serving: '',
-      nutrition: null,
-      ingredients: 'Water, Sodium Laureth Sulfate, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Zinc Pyrithione, Fragrance',
-      bullets: ['For external use only'] },
-    spanish: { title: 'Refresco de Naranja Import 1.5L',
-      crumbs: 'Grocery & Gourmet Food › Beverages › Soda',
-      pills: [], serving: '6.0 porciones por envase | 250ml', nutrition: null,
-      ingredients: 'Agua carbonatada, azucar, acidulante, conservador, saborizante idantico al natural, colorante',
-      bullets: ['Producto importado'] },
-    none: { title: 'Store Brand Trail Mix, 26oz',
-      crumbs: 'Grocery & Gourmet Food › Snack Foods › Trail Mix',
-      pills: [], serving: '', nutrition: null,
-      ingredients: 'See label for ingredients.', bullets: ['Great for hiking'] },
-  };
+  // Fixture data lives in harness-fixtures.json so tests/harness.test.js asserts against exactly
+  // what this page renders. Loaded async; paint() runs once it arrives.
+  let FIXTURES = {};
 
   const nic = document.getElementById('nic');
   const HOST_ID = 'air-score-panel';
@@ -88,10 +50,19 @@
       verdict.textContent = 'gate: NOT FOOD — ' + data.ingestible.reason;
       return;
     }
+    // Pasted text is scored as-is: the user typed it, so it is the best evidence there is.
+    const rescore = text => {
+      const r = AIR.engine.score({
+        name: data.title, labels: data.labels, certifications: data.certifications,
+        nutrition: data.nutrition, ingredients_text: text,
+      }, {});
+      AIR.panel.mount(host, AIR.panel.render(r, { title: data.title, confidence: 1, via: 'manual-paste' }),
+        done => done(false));
+      verdict.textContent = 'rescored from pasted text: ' + r.score + ' ' + r.verdict;
+    };
+
     if (!data.ok) {
-      AIR.panel.mount(host, AIR.panel.renderFailure(data), null,
-        text => { const r = AIR.engine.score({ ...data, ingredients_text: text }, {});
-          AIR.panel.mount(host, AIR.panel.render(r, { title: data.title, confidence: 1, via: 'manual-paste' })); });
+      AIR.panel.mount(host, AIR.panel.renderFailure(data), null, rescore);
       verdict.textContent = 'extract failed: ' + data.reason;
       return;
     }
@@ -100,7 +71,8 @@
       nutrition: data.nutrition, ingredients_text: data.text,
     }, {});
     if (typeof result.coverage === 'number' && data.text && result.parsed > 0 && result.coverage < 0.34) {
-      AIR.panel.mount(host, AIR.panel.renderFailure({ ...data, lowCoverage: true }), null, () => {});
+      // main.js wires the same rescore here, so the harness must too.
+      AIR.panel.mount(host, AIR.panel.renderFailure({ ...data, lowCoverage: true }), null, rescore);
       verdict.textContent = 'declined: only ' + Math.round(result.coverage * 100) + '% of the list recognised';
       return;
     }
@@ -118,5 +90,8 @@
     document.querySelectorAll('.bar button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
     paint(b.dataset.fx);
   });
-  paint('oats');
+  fetch('/tests/harness-fixtures.json')
+    .then(r => r.json())
+    .then(data => { FIXTURES = data; paint('oats'); })
+    .catch(e => { document.getElementById('verdict').textContent = 'could not load fixtures: ' + e.message; });
 })();
