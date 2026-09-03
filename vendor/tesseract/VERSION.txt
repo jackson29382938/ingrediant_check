@@ -4,3 +4,13 @@ eng.traineddata: tessdata 4.0.0_fast
 
 Vendored, not fetched at runtime: MV3 forbids remote code, and OCR must stay
 on the user's machine. Update by copying from the npm packages of the same names.
+
+FILE CHOICE MATTERS. The worker importScripts()s tesseract-core-simd-lstm.wasm.js
+by name -- the build with the wasm embedded. Vendoring the split
+tesseract-core-simd-lstm.js + .wasm pair is smaller but fails at runtime with a
+NetworkError, which no unit test catches. tests/harness-ocr.html exercises the real
+vendored files in a browser; run it after any update here.
+
+SIMD only. Chrome has supported wasm SIMD since v91 (2021). On a build without it
+the worker would ask for the non-SIMD variant, not find it, and OCR would fail --
+degrading to the existing "couldn't read the ingredients" card rather than breaking.

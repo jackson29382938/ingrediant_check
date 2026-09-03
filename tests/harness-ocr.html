@@ -1,0 +1,47 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>OCR harness</title>
+<style>body{font:13px/1.5 -apple-system,system-ui,sans-serif;margin:0;padding:16px;background:#f7f8f8}
+ pre{background:#fff;border:1px solid #d5d9d9;border-radius:8px;padding:12px;white-space:pre-wrap;max-width:900px}
+ h1{font-size:15px;margin:0 0 10px} b{color:#0f7b3f}</style></head><body>
+<h1>Vendored OCR — loading the real files the extension ships</h1>
+<pre id="out">starting…</pre>
+<script src="/src/engine/db/_module.js"></script>
+<script src="/src/engine/db/ocr-text.js"></script>
+<script src="/vendor/tesseract/tesseract.min.js"></script>
+<script>
+// Exercises exactly what src/offscreen/ocr.js does, with chrome.runtime.getURL replaced by a
+// plain path. If the vendored file set or the path config is wrong, it fails here rather than on
+// a user's machine seconds into a scan.
+const out = document.getElementById('out');
+const log = m => { out.textContent += '\n' + m; };
+const CORE = '/vendor/tesseract/';
+(async () => {
+  try {
+    out.textContent = 'Tesseract global: ' + (typeof Tesseract);
+    const t0 = Date.now();
+    const worker = await Tesseract.createWorker('eng', 1, {
+      workerPath: '/vendor/tesseract/worker.min.js',
+      corePath: CORE,
+      langPath: CORE,
+      gzip: true,
+      workerBlobURL: false,
+      logger: m => { if (m.status === 'recognizing text' && m.progress === 1) log('  recognised'); },
+    });
+    log('worker ready in ' + ((Date.now()-t0)/1000).toFixed(1) + 's');
+    const url = 'https://m.media-amazon.com/images/I/514iQ-HJVEL._SL1600_.jpg';
+    const res = await fetch(url, { credentials: 'omit' });
+    log('image fetch: HTTP ' + res.status + ' (CORS ok)');
+    const blob = await res.blob();
+    const t1 = Date.now();
+    const { data } = await worker.recognize(blob);
+    log('OCR in ' + ((Date.now()-t1)/1000).toFixed(1) + 's, confidence ' + Math.round(data.confidence));
+    await worker.terminate();
+    const block = AIR.db.ocrText.ingredientsFromOcr(data.text);
+    log('\n--- extracted ingredients ---\n' + (block || '(none)'));
+    window.__ocrResult = { ok: !!block, block, confidence: data.confidence };
+    log('\nRESULT: ' + (block ? 'PASS' : 'FAIL'));
+  } catch (e) {
+    log('\nERROR: ' + (e && e.message || e));
+    window.__ocrResult = { ok: false, error: String(e && e.message || e) };
+  }
+})();
+</script></body></html>

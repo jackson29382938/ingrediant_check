@@ -96,8 +96,11 @@ console.log('\nthe vendored OCR engine is complete');
 check('every file tesseract needs is present', () => {
   // Vendored rather than fetched: MV3 forbids remote code and OCR must stay on this machine.
   // A missing piece here fails only at runtime, on a user's machine, seconds into a scan.
-  for (const f of ['tesseract.min.js', 'worker.min.js', 'tesseract-core-simd-lstm.js',
-                   'tesseract-core-simd-lstm.wasm', 'eng.traineddata.gz', 'VERSION.txt']) {
+  // tesseract-core-simd-lstm.wasm.js, not the .js + .wasm pair: the worker importScripts()s the
+  // combined file by name, and vendoring the split version failed at runtime with a NetworkError
+  // that no unit test would have caught. Verified in a browser via tests/harness-ocr.html.
+  for (const f of ['tesseract.min.js', 'worker.min.js', 'tesseract-core-simd-lstm.wasm.js',
+                   'eng.traineddata.gz', 'VERSION.txt']) {
     const full = path.join(root, 'vendor/tesseract', f);
     assert.ok(fs.existsSync(full), `vendor/tesseract/${f} is missing`);
     assert.ok(fs.statSync(full).size > 0, `vendor/tesseract/${f} is empty`);
