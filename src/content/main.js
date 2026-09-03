@@ -8,6 +8,7 @@
   const HOST_ID = 'air-score-panel';
   const BADGE_ATTR = 'data-air-badge';
   const state = { enabled: true, badges: true, hoverScore: false, autoScoreSearch: false, foodOnly: true,
+    ocrLabels: false, sendDiagnostics: false,
     prefs: { weights: {}, allergens: [], diets: [], avoidList: [] }, lastKey: null, requestId: 0,
     failedExtracts: 0 };
 
@@ -135,6 +136,7 @@
               via: 'open-food-facts',
             }));
             cache(key, { score: result.score, verdict: result.verdict, nova: result.nova });
+            sendDiagnostic(data, result, 'open-food-facts', fallback.ingredients_text);
           });
         });
         return;
@@ -160,6 +162,7 @@
       title: data.title, confidence: data.confidence, via: data.via,
     }), reporter(data, result));
     cache(key, { score: result.score, verdict: result.verdict, nova: result.nova });
+    sendDiagnostic(data, result, data.via);
 
     // Whole foods get a second pass against the shared provenance database. The panel renders
     // immediately from the page alone and upgrades in place if a record exists, rather than making
@@ -221,9 +224,49 @@
     };
   }
 
+  // Last resort before giving up: read the label photo. Amazon publishes no ingredient text for a
+  // large share of grocery items, and for some it publishes the product NAME in the ingredients
+  // field instead (see tests/blurb.test.js). The photo is then the only place the real list exists.
+  // Opt-in, because it costs seconds of CPU.
+  function tryOcr(host, data, key) {
+    const urls = (AIR.db.ocrText && AIR.db.ocrText.imageCandidates(document)) || [];
+    if (!urls.length) { showFailure(host, { ...data, ocrAttempted: true }, key); return; }
+    const requestId = ++state.requestId;
+    host.dataset.airState = 'loading';
+    AIR.panel.mount(host, AIR.panel.renderLoading({ ...data, ocr: true }));
+    const giveUp = extra => {
+      host.dataset.airState = '';
+      showFailure(host, { ...data, ocrAttempted: true, ...extra }, key);
+    };
+    try {
+      chrome.runtime.sendMessage({ type: 'ocrLabels', urls }, res => {
+        void chrome.runtime.lastError;
+        if (requestId !== state.requestId || state.lastKey !== key || !host.isConnected) return;
+        const best = res && res.ok && AIR.db.ocrText.bestBlock(res.results,
+          t => AIR.extract.looksLikeIngredients(t, data.title));
+        if (!best) { giveUp({}); return; }
+        // Ingredients only. On a real label OCR read the ingredient block cleanly but turned the
+        // nutrition table into "SOAIUM rnc 125MQ" and "Total Carb 189"; scoring those numbers
+        // would manufacture exactly the impossible values score.js guards against.
+        const result = AIR.engine.score({
+          name: data.title, labels: data.labels, certifications: data.certifications,
+          ingredients_text: best.text,
+        }, state.prefs);
+        if (unreadable(result)) { giveUp({ lowCoverage: true }); return; }
+        host.dataset.airState = 'scored';
+        AIR.panel.mount(host, AIR.panel.render(result, {
+          title: data.title, confidence: 0.7, via: 'label-ocr',
+        }), reporter(data, result));
+        cache(key, { score: result.score, verdict: result.verdict, nova: result.nova });
+        sendDiagnostic(data, result, 'label-ocr', best.text);
+      });
+    } catch (e) { giveUp({}); }
+  }
+
   function showFailure(host, data, key) {
     if (state.lastKey !== key || !host.isConnected) return;
     if (host.dataset.airState === 'fail') return;
+    if (state.ocrLabels && !data.ocrAttempted) { tryOcr(host, data, key); return; }
     host.dataset.airState = 'fail';
     AIR.panel.mount(host, AIR.panel.renderFailure(data), null, text => {
       const result = AIR.engine.score({
@@ -235,6 +278,7 @@
         title: data.title, confidence: 1, via: 'manual-paste',
       }), reporter(data, result));
       cache(key, { score: result.score, verdict: result.verdict, nova: result.nova });
+      sendDiagnostic(data, result, 'manual-paste', text);
     });
   }
 
@@ -518,6 +562,7 @@
       if (unreadable(result)) { paintBadge(tile, 'unreadable'); return; }
       paintBadge(tile, result);
       cache(asin, { score: result.score, verdict: result.verdict, nova: result.nova });
+      sendDiagnostic(data, result, 'search-tile');
     } catch (e) {
       const b = tile.querySelector('.air-badge');
       if (b && b.textContent === '…') b.remove();
@@ -532,6 +577,23 @@
   const MIN_COVERAGE = 0.34;
   const unreadable = result =>
     typeof result.coverage === 'number' && result.parsed > 0 && result.coverage < MIN_COVERAGE;
+
+  // One diagnostic row per score, so accuracy can be measured against the evidence rather than
+  // guessed at. Fire-and-forget: a diagnostics failure must never affect what the user sees.
+  function sendDiagnostic(data, result, source, text) {
+    if (!state.sendDiagnostics || !AIR.db.diagnostics) return;
+    try {
+      const record = AIR.db.diagnostics.buildRecord(data, result, {
+        version: ENGINE_VERSION,
+        store: location.hostname,
+        source,
+        text: text || data.text,
+        weights: state.prefs.weights,
+        defaultWeights: AIR.db.categories && AIR.db.categories.DEFAULT_WEIGHTS,
+      });
+      chrome.runtime.sendMessage({ type: 'diagnostic', record }, () => void chrome.runtime.lastError);
+    } catch (e) { /* never let telemetry break scoring */ }
+  }
 
   function cache(key, value) {
     if (!key) return;
@@ -625,12 +687,14 @@
     clearBadges();
   }
 
-  chrome.storage.local.get(['enabled', 'badges', 'hoverScore', 'autoScoreSearch', 'foodOnly', 'weights', 'allergens', 'diets', 'avoidList'], o => {
+  chrome.storage.local.get(['enabled', 'badges', 'hoverScore', 'autoScoreSearch', 'foodOnly', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList'], o => {
     state.enabled = o.enabled !== false;
     state.badges = o.badges !== false;
     state.hoverScore = o.hoverScore === true;             // opt-in: makes requests
     state.autoScoreSearch = o.autoScoreSearch === true;   // opt-in: makes requests
     state.foodOnly = o.foodOnly !== false;                // on unless deliberately turned off
+    state.ocrLabels = o.ocrLabels === true;               // opt-in: costs seconds of CPU
+    state.sendDiagnostics = o.sendDiagnostics === true;   // opt-in: leaves the machine
     readPrefs(o);
     if (state.enabled) { schedule(); armHoverPass(); armAutoScorePass(); }
   });
@@ -689,6 +753,11 @@
         document.querySelectorAll('[data-air-auto]').forEach(t => t.removeAttribute('data-air-auto'));
         armAutoScorePass();
       }
+    }
+    if (changes.sendDiagnostics) state.sendDiagnostics = changes.sendDiagnostics.newValue === true;
+    if (changes.ocrLabels) {
+      state.ocrLabels = changes.ocrLabels.newValue === true;
+      if (state.enabled && isProductPage()) { removePanel(); schedule(); }
     }
     if (changes.useOpenFoodFacts && state.enabled && isProductPage()) {
       removePanel();

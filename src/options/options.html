@@ -162,6 +162,31 @@
   </section>
 
   <section>
+    <h2>Accuracy diagnostics</h2>
+    <p class="note" style="margin: -6px 0 12px">
+      Sends one row per scored product to the same endpoint as the shared database, on its own
+      sheet. Each row carries the ingredient text that was read, where it came from, which rules
+      fired, and the score that resulted — enough to judge whether a score was right, rather than
+      only noticing when one looks wrong. Batched, and only sent while a contribution URL is set.
+    </p>
+    <p class="note" style="margin: -6px 0 12px; color:#a4161a">
+      <strong>This records which products you looked at.</strong> No name, no account, no session
+      id, nothing from any other page — but with “Rate every search result” on, a results page
+      produces a row per tile, and that is a meaningful trace of your browsing. It goes only to the
+      endpoint you configure, which is your own. Off unless you turn it on.
+    </p>
+    <label class="chip" style="margin-bottom:10px">
+      <input type="checkbox" id="sendDiagnostics">
+      <span>Send scoring diagnostics to my endpoint</span>
+    </label>
+    <div class="row">
+      <button class="act" id="flushDiagnostics">Send queued rows now</button>
+      <span class="status" id="diagStatus"></span>
+    </div>
+    <p class="note">The Apps Script that receives these is in <code>docs/apps-script.gs</code>.</p>
+  </section>
+
+  <section>
     <h2>What leaves your computer</h2>
     <p class="note" style="margin: -6px 0 12px">
       Scoring itself is entirely local: the rules, your weights and every score are computed in
@@ -181,8 +206,15 @@
       <li><strong>Share what this page disclosed</strong> — posts product identifiers and
         certification text to the endpoint you configure. Never anything about you or your
         browsing. "Looks wrong?" reports use the same endpoint.</li>
+      <li><strong>Accuracy diagnostics</strong> — posts one row per scored product to that same
+        endpoint. This one does record which products were scored; see the section above.</li>
     </ul>
-    <p class="note">Turning all four off leaves an extension that makes no network requests at all.</p>
+    <p class="note">
+      <strong>Read label photos</strong> makes no network request of its own beyond fetching the
+      product image the page already shows: the OCR engine ships with the extension and runs on
+      your computer.
+    </p>
+    <p class="note">Turning these off leaves an extension that makes no network requests at all.</p>
   </section>
 
   <section>

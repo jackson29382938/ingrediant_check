@@ -9,7 +9,7 @@ const CATS = AIR.db.categories;
 const ALLERGENS = AIR.db.allergens;
 
 const state = { weights: {}, allergens: [], diets: [], avoidList: [], foodOnly: true };
-const DB_KEYS = ['sheetUrl', 'producersUrl', 'contributeUrl', 'shareContributions'];
+const DB_KEYS = ['sheetUrl', 'producersUrl', 'contributeUrl', 'shareContributions', 'sendDiagnostics'];
 const SHEET_ORIGINS = ['https://docs.google.com/*'];
 const SCRIPT_ORIGINS = ['https://script.google.com/*', 'https://script.googleusercontent.com/*'];
 let saveTimer = null;
@@ -268,6 +268,43 @@ function wireDatabase() {
       });
     }
   });
+
+  const diag = document.getElementById('sendDiagnostics');
+  const diagStatus = document.getElementById('diagStatus');
+  const paintDiag = () => {
+    if (!diagStatus) return;
+    chrome.runtime.sendMessage({ type: 'diagnosticsStatus' }, res => {
+      if (chrome.runtime.lastError || !res) return;
+      diagStatus.textContent = !res.configured ? 'No contribution URL set'
+        : res.queued ? `${res.queued} row${res.queued === 1 ? '' : 's'} waiting to send`
+        : 'Nothing queued';
+    });
+  };
+  if (diag) {
+    chrome.storage.local.get('sendDiagnostics', o => { diag.checked = o.sendDiagnostics === true; });
+    diag.addEventListener('change', () => {
+      // Shares the contribution endpoint, so it needs the same host grant.
+      if (!diag.checked) { chrome.storage.local.set({ sendDiagnostics: false }, paintDiag); return; }
+      const url = (document.getElementById('contributeUrl') || {}).value;
+      requestOrigins(originsForUrl(url), ok => {
+        if (!ok) { diag.checked = false; flash('Permission needed to send diagnostics'); return; }
+        chrome.storage.local.set({ sendDiagnostics: true }, () => { flash('Saved'); paintDiag(); });
+      });
+    });
+    paintDiag();
+  }
+  const flushBtn = document.getElementById('flushDiagnostics');
+  if (flushBtn) {
+    flushBtn.addEventListener('click', () => {
+      diagStatus.textContent = 'Sending…';
+      chrome.runtime.sendMessage({ type: 'flushDiagnostics' }, res => {
+        if (chrome.runtime.lastError || !res) { diagStatus.textContent = 'Could not reach the endpoint'; return; }
+        diagStatus.textContent = res.ok ? `Sent ${res.sent} rows`
+          : res.reason === 'nothing-to-send' ? 'Nothing queued'
+          : `Could not send — ${res.reason} (${res.queued || 0} still queued)`;
+      });
+    });
+  }
 
   const btn = document.getElementById('refreshSheet');
   if (!btn) return;

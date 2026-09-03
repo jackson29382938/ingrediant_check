@@ -5,7 +5,8 @@
   "description": "__MSG_appDescription__",
   "permissions": [
     "storage",
-    "alarms"
+    "alarms",
+    "offscreen"
   ],
   "host_permissions": [
     "*://*.amazon.com/*",
@@ -84,7 +85,9 @@
         "src/engine/db/labels.js",
         "src/engine/db/allergens.js",
         "src/engine/db/ingestible.js",
+        "src/engine/db/ocr-text.js",
         "src/engine/db/provenance.js",
+        "src/engine/db/diagnostics.js",
         "src/engine/categories.js",
         "src/engine/score.js",
         "src/content/extract.js",
@@ -99,5 +102,39 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
-  "default_locale": "en"
+  "default_locale": "en",
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "vendor/tesseract/*",
+        "src/offscreen/*"
+      ],
+      "matches": [
+        "*://*.amazon.com/*",
+        "*://*.amazon.co.uk/*",
+        "*://*.amazon.ca/*",
+        "*://*.amazon.com.au/*",
+        "*://*.amazon.ie/*",
+        "*://*.amazon.in/*",
+        "*://*.amazon.sg/*",
+        "*://*.amazon.ae/*",
+        "*://*.amazon.sa/*",
+        "*://*.amazon.de/*",
+        "*://*.amazon.fr/*",
+        "*://*.amazon.es/*",
+        "*://*.amazon.it/*",
+        "*://*.amazon.nl/*",
+        "*://*.amazon.se/*",
+        "*://*.amazon.pl/*",
+        "*://*.amazon.com.be/*",
+        "*://*.amazon.com.tr/*",
+        "*://*.amazon.com.mx/*",
+        "*://*.amazon.com.br/*",
+        "*://*.amazon.co.jp/*"
+      ]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  }
 }

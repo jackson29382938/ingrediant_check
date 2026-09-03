@@ -79,7 +79,7 @@ check('store description is within the 132-character limit', () => {
 });
 
 console.log('\nHTML pages point at files that exist, and carry no inline handlers');
-for (const page of ['src/options/options.html', 'src/options/popup.html']) {
+for (const page of ['src/options/options.html', 'src/options/popup.html', 'src/offscreen/ocr.html']) {
   check(page, () => {
     const html = read(page);
     for (const m of html.matchAll(/<script[^>]+src="([^"]+)"/g)) {
@@ -91,6 +91,26 @@ for (const page of ['src/options/options.html', 'src/options/popup.html']) {
     assert.ok(!inline, `${page} has an inline event handler (${inline && inline[0].trim()}) — MV3 blocks it`);
   });
 }
+
+console.log('\nthe vendored OCR engine is complete');
+check('every file tesseract needs is present', () => {
+  // Vendored rather than fetched: MV3 forbids remote code and OCR must stay on this machine.
+  // A missing piece here fails only at runtime, on a user's machine, seconds into a scan.
+  for (const f of ['tesseract.min.js', 'worker.min.js', 'tesseract-core-simd-lstm.js',
+                   'tesseract-core-simd-lstm.wasm', 'eng.traineddata.gz', 'VERSION.txt']) {
+    const full = path.join(root, 'vendor/tesseract', f);
+    assert.ok(fs.existsSync(full), `vendor/tesseract/${f} is missing`);
+    assert.ok(fs.statSync(full).size > 0, `vendor/tesseract/${f} is empty`);
+  }
+});
+
+check('the manifest exposes what the offscreen page loads', () => {
+  const war = (manifest.web_accessible_resources || []).flatMap(r => r.resources || []);
+  assert.ok(war.some(r => r.startsWith('vendor/tesseract')), 'vendor/tesseract is not web-accessible');
+  assert.ok(manifest.permissions.includes('offscreen'), 'the offscreen permission is missing');
+  const csp = (manifest.content_security_policy || {}).extension_pages || '';
+  assert.ok(/wasm-unsafe-eval/.test(csp), 'wasm-unsafe-eval is required to compile the OCR engine');
+});
 
 console.log('\nevery rule points at a category that exists');
 require(path.join(root, 'src/engine/db/_module.js'));

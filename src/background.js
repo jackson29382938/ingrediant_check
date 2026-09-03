@@ -93,7 +93,61 @@ async function lookupBarcode(code, { foodOnly = true } = {}) {
   }
 }
 
+// ---------------------------------------------------------------- label OCR
+//
+// Amazon often publishes no ingredient text, or publishes the product name in its place. The label
+// photo is then the only place the real list exists. OCR runs in an offscreen document: the engine
+// allocates tens of megabytes and spawns a worker, neither of which belongs on the host page's
+// thread, and a worker created from an extension URL inside a content script is subject to
+// Amazon's CSP rather than ours.
+//
+// Entirely local. The engine and language data are vendored, and product images come from
+// m.media-amazon.com, which serves Access-Control-Allow-Origin: * — so no host permission and no
+// third-party request.
+
+const OCR_PATH = 'src/offscreen/ocr.html';
+let offscreenReady = null;
+
+async function ensureOffscreen() {
+  if (!chrome.offscreen) throw new Error('offscreen API unavailable');
+  const existing = await chrome.runtime.getContexts({
+    contextTypes: ['OFFSCREEN_DOCUMENT'],
+    documentUrls: [chrome.runtime.getURL(OCR_PATH)],
+  }).catch(() => []);
+  if (existing && existing.length) return;
+  if (!offscreenReady) {
+    offscreenReady = chrome.offscreen.createDocument({
+      url: OCR_PATH,
+      reasons: ['WORKERS'],
+      justification: 'Reads the ingredient list from a product label photo, on this device.',
+    }).catch(err => {
+      offscreenReady = null;
+      // Two callers can race here; the loser gets "only a single offscreen document" and is fine.
+      if (!/single offscreen/i.test(String(err && err.message))) throw err;
+    });
+  }
+  await offscreenReady;
+}
+
+async function ocrLabels(urls) {
+  const conf = await chrome.storage.local.get('ocrLabels');
+  if (!conf.ocrLabels) return { ok: false, reason: 'not-enabled' };
+  if (!Array.isArray(urls) || !urls.length) return { ok: false, reason: 'no-images' };
+  try {
+    await ensureOffscreen();
+    return await chrome.runtime.sendMessage({ target: 'ocr-offscreen', type: 'ocrImages', urls });
+  } catch (e) {
+    return { ok: false, reason: String(e && e.message || e) };
+  }
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
+  // Replies from the offscreen document travel on this same channel; ignore them here.
+  if (msg && msg.target === 'ocr-offscreen') return false;
+  if (msg && msg.type === 'ocrLabels') {
+    ocrLabels(msg.urls).then(reply);
+    return true;
+  }
   if (msg && msg.type === 'lookupBarcode' && msg.code) {
     chrome.storage.local.get('useOpenFoodFacts', o => {
       if (!o.useOpenFoodFacts) { reply(null); return; }
@@ -112,7 +166,12 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
 // without restarting — with auto-scoring on that is one cache entry per product scrolled past,
 // accumulating indefinitely. An alarm actually fires.
 chrome.alarms.create('air-housekeeping', { periodInMinutes: 720 });
-chrome.alarms.onAlarm.addListener(a => { if (a.name === 'air-housekeeping') sweepCache(); });
+chrome.alarms.onAlarm.addListener(a => {
+  if (a.name !== 'air-housekeeping') return;
+  sweepCache();
+  // A partial batch would otherwise sit until enough new products were scored to fill it.
+  flushDiagnostics().catch(() => {});
+});
 chrome.runtime.onStartup.addListener(() => sweepCache());
 chrome.runtime.onInstalled.addListener(() => sweepCache());
 
@@ -273,7 +332,68 @@ async function contribute(payload) {
   }
 }
 
+// ---------------------------------------------------------------- diagnostics
+//
+// One row per scored product, posted to the same Apps Script endpoint the contribution path uses,
+// tagged kind:"diagnostics" so the script can put it on its own sheet. The point is measuring how
+// often the scores are right: a row carries the ingredient text that was read, where it came from,
+// which rules fired and what came out, so a wrong score can be diagnosed rather than just noticed.
+//
+// Batched. With auto-scoring on, a results page produces ~60 scores, and one POST each would be
+// both slow and rude to the endpoint. Rows accumulate in storage and go out in batches, with a
+// flush on the housekeeping alarm so a partial batch is not stranded. The queue is capped: losing
+// old diagnostic rows is a non-event, filling the user's storage quota is not.
+
+const DIAG_KEY = 'diagQueue';
+const DIAG_BATCH = 12;
+const DIAG_MAX = 300;
+
+async function queueDiagnostic(record) {
+  const conf = await chrome.storage.local.get(['sendDiagnostics', 'contributeUrl', DIAG_KEY]);
+  if (!conf.sendDiagnostics || !conf.contributeUrl) return { ok: false, reason: 'not-enabled' };
+  if (!record || typeof record !== 'object') return { ok: false, reason: 'no-record' };
+  const queue = [...(conf[DIAG_KEY] || []), record].slice(-DIAG_MAX);
+  await chrome.storage.local.set({ [DIAG_KEY]: queue });
+  if (queue.length < DIAG_BATCH) return { ok: true, queued: queue.length };
+  return flushDiagnostics();
+}
+
+async function flushDiagnostics() {
+  const conf = await chrome.storage.local.get(['contributeUrl', DIAG_KEY]);
+  const queue = conf[DIAG_KEY] || [];
+  if (!conf.contributeUrl || !queue.length) return { ok: false, reason: 'nothing-to-send' };
+  try {
+    const res = await fetch(conf.contributeUrl, {
+      method: 'POST', credentials: 'omit',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ kind: 'diagnostics', rows: queue }),
+    });
+    // Only clear on a confirmed write. A failed flush keeps the rows for the next attempt rather
+    // than silently dropping the data the user turned this on to collect.
+    if (res.ok) await chrome.storage.local.set({ [DIAG_KEY]: [] });
+    return { ok: res.ok, sent: res.ok ? queue.length : 0, queued: res.ok ? 0 : queue.length };
+  } catch (e) {
+    return { ok: false, reason: 'network', queued: queue.length };
+  }
+}
+
 function handleSharedDbMessage(msg, reply) {
+  if (msg.type === 'diagnostic') {
+    queueDiagnostic(msg.record).then(reply);
+    return true;
+  }
+  if (msg.type === 'flushDiagnostics') {
+    flushDiagnostics().then(reply);
+    return true;
+  }
+  if (msg.type === 'diagnosticsStatus') {
+    chrome.storage.local.get([DIAG_KEY, 'sendDiagnostics', 'contributeUrl'], o => reply({
+      queued: (o[DIAG_KEY] || []).length,
+      enabled: o.sendDiagnostics === true,
+      configured: !!o.contributeUrl,
+    }));
+    return true;
+  }
   if (msg.type === 'provenanceLookup') {
     Promise.all([loadSheetIndex(), loadProducerIndex()]).then(([index, producers]) => {
       const record = lookupRecord(index, msg.key || {});

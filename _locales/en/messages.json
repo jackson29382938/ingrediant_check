@@ -197,5 +197,23 @@
   },
   "popupTagline": {
     "message": "Ingredient quality, additives and processing — scored on your computer."
+  },
+  "srcOcr": {
+    "message": "Read from the label photo on this page"
+  },
+  "loadingOcrTitle": {
+    "message": "Reading the label photo…"
+  },
+  "loadingOcrBody": {
+    "message": "Amazon didn't publish the ingredients as text, so the label image is being read on your computer. This takes a few seconds and nothing is sent anywhere."
+  },
+  "failOcr": {
+    "message": "The label photo was checked too, and no ingredient list could be read from it. "
+  },
+  "popupOcr": {
+    "message": "Read label photos"
+  },
+  "popupOcrD": {
+    "message": "When a page has no readable ingredients, read them from the product's label photo. Runs on your computer and takes a few seconds per product — nothing is sent anywhere."
   }
 }

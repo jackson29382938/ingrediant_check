@@ -1,0 +1,6 @@
+tesseract.js 5.1.1
+tesseract.js-core 5.1.1
+eng.traineddata: tessdata 4.0.0_fast
+
+Vendored, not fetched at runtime: MV3 forbids remote code, and OCR must stay
+on the user's machine. Update by copying from the npm packages of the same names.

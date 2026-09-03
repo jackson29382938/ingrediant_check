@@ -159,6 +159,7 @@
   // indistinguishable "55% confidence".
   function sourceLabel(meta) {
     if (meta.via === 'manual-paste') return t('srcPasted', 'Ingredients you pasted');
+    if (meta.via === 'label-ocr') return t('srcOcr', 'Read from the label photo on this page');
     if (meta.via === 'open-food-facts') return t('srcBarcode', 'Matched by barcode via Open Food Facts — not from this page');
     if (meta.confidence >= 0.9) return t('srcPage', 'Ingredients read from page');
     return t('srcPageConf', 'Ingredients read from page ($1% confidence)', Math.round((meta.confidence || 0) * 100));
@@ -212,8 +213,12 @@
     <style>${CSS}</style>
     <div class="card" style="--fg:#565959;--bg:#f7f8f8;--ring:#d5d9d9">
       <div class="fail" role="status" aria-live="polite">
-        <b>${esc(t('loadingTitle', 'Checking Open Food Facts…'))}</b>
-        ${esc(t('loadingBody', "Amazon didn't publish readable ingredients, so the optional barcode fallback is looking for this product. No Amazon page or browsing data is sent."))}
+        <b>${meta && meta.ocr
+          ? esc(t('loadingOcrTitle', 'Reading the label photo…'))
+          : esc(t('loadingTitle', 'Checking Open Food Facts…'))}</b>
+        ${meta && meta.ocr
+          ? esc(t('loadingOcrBody', "Amazon didn't publish the ingredients as text, so the label image is being read on your computer. This takes a few seconds and nothing is sent anywhere."))
+          : esc(t('loadingBody', "Amazon didn't publish readable ingredients, so the optional barcode fallback is looking for this product. No Amazon page or browsing data is sent."))}
       </div>
     </div>`;
   }
@@ -250,6 +255,8 @@
         <b>${esc(t('failTitle', "Couldn't read the ingredients on this page."))}</b>
         ${meta && meta.lowCoverage
           ? esc(t('failUnreadable', 'The ingredients are published, but almost none of them match anything this tool knows — usually that means the label is in a language it cannot read yet. Scoring it anyway would produce a confident wrong answer. '))
+          : meta && meta.ocrAttempted
+          ? esc(t('failOcr', 'The label photo was checked too, and no ingredient list could be read from it. '))
           : meta && meta.lookupAttempted
           ? esc(t('failLookup', "The optional barcode lookup didn't return an ingredient list. "))
           : esc(t('failNoText', "Amazon doesn't always publish them as text — sometimes they only exist inside the label photo. "))}

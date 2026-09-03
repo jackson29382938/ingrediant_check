@@ -1,9 +1,9 @@
-const KEYS = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'hoverScore', 'useOpenFoodFacts'];
+const KEYS = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'hoverScore', 'ocrLabels', 'useOpenFoodFacts'];
 // Every plain checkbox. useOpenFoodFacts is handled separately because it also drives an
 // optional-permission request. hoverScore was missing from this list, which left the
 // checkbox inert: it never loaded its stored value and never wrote one.
-const TOGGLE_KEYS = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'hoverScore'];
-const DEFAULTS = { enabled: true, badges: true, foodOnly: true, autoScoreSearch: false, hoverScore: false, useOpenFoodFacts: false };
+const TOGGLE_KEYS = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'hoverScore', 'ocrLabels'];
+const DEFAULTS = { enabled: true, badges: true, foodOnly: true, autoScoreSearch: false, hoverScore: false, ocrLabels: false, useOpenFoodFacts: false };
 const OFF_PERMISSION = { origins: ['https://world.openfoodfacts.org/*'] };
 
 // Swap in the active locale. The English copy stays in the HTML so the popup is readable and
@@ -70,7 +70,7 @@ chrome.storage.local.get(KEYS, options => {
 });
 
 function isOn(key, value) {
-  if (key === 'hoverScore' || key === 'autoScoreSearch' || key === 'useOpenFoodFacts') return value === true;
+  if (key === 'hoverScore' || key === 'autoScoreSearch' || key === 'ocrLabels' || key === 'useOpenFoodFacts') return value === true;
   return value !== false;
 }
 
