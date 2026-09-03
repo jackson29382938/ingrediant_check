@@ -1,0 +1,103 @@
+#!/usr/bin/env node
+// Everything that must be true before loading the extension in Chrome.
+// Run: npm run preflight
+//
+// The test suite proves the logic. This proves the PACKAGE: that every file the manifest names
+// exists, every path a runtime component resolves is real, and nothing references something that
+// was renamed. These are the failures that show up as a blank panel or a silent no-op rather than
+// a stack trace, which is the worst way to find them.
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const read = p => fs.readFileSync(path.join(root, p), 'utf8');
+const exists = p => fs.existsSync(path.join(root, p));
+
+let bad = 0;
+const ok = m => console.log('  \x1b[32mok\x1b[0m   ' + m);
+const fail = m => { bad++; console.log('  \x1b[31mFAIL\x1b[0m ' + m); };
+const check = (label, fn) => { try { const m = fn(); ok(m || label); } catch (e) { fail(label + ' — ' + e.message); } };
+
+const manifest = JSON.parse(read('manifest.json'));
+
+console.log('\nmanifest');
+check('parses and declares MV3', () => {
+  if (manifest.manifest_version !== 3) throw new Error('not manifest_version 3');
+  return `manifest v3, version ${manifest.version}`;
+});
+check('every declared file exists', () => {
+  const files = [
+    ...manifest.content_scripts[0].js,
+    manifest.background.service_worker,
+    manifest.options_page,
+    manifest.action.default_popup,
+    ...Object.values(manifest.icons),
+  ];
+  const missing = files.filter(f => !exists(f));
+  if (missing.length) throw new Error('missing: ' + missing.join(', '));
+  return `${files.length} declared files present`;
+});
+check('permissions and CSP match the features', () => {
+  if (!manifest.permissions.includes('offscreen')) throw new Error('offscreen permission missing (OCR)');
+  const csp = (manifest.content_security_policy || {}).extension_pages || '';
+  if (!/wasm-unsafe-eval/.test(csp)) throw new Error('wasm-unsafe-eval missing (OCR will not compile)');
+  if (!manifest.default_locale) throw new Error('default_locale missing but __MSG_ is used');
+  return `offscreen + wasm-unsafe-eval + locale "${manifest.default_locale}"`;
+});
+check('stores covered', () => `${manifest.content_scripts[0].matches.length} Amazon stores`);
+
+console.log('\nOCR');
+check('vendored engine complete', () => {
+  const need = ['tesseract.min.js', 'worker.min.js', 'tesseract-core-simd-lstm.wasm.js', 'eng.traineddata.gz'];
+  const missing = need.filter(f => !exists('vendor/tesseract/' + f));
+  if (missing.length) throw new Error('missing: ' + missing.join(', '));
+  const mb = need.reduce((a, f) => a + fs.statSync(path.join(root, 'vendor/tesseract', f)).size, 0) / 1048576;
+  return `engine present (${mb.toFixed(1)} MB)`;
+});
+check('the core build the worker asks for, not the split pair', () => {
+  if (exists('vendor/tesseract/tesseract-core-simd-lstm.wasm')
+      && !exists('vendor/tesseract/tesseract-core-simd-lstm.wasm.js')) {
+    throw new Error('split .js/.wasm vendored; the worker importScripts()s the combined .wasm.js');
+  }
+  return 'combined .wasm.js vendored';
+});
+check('offscreen page resolves its scripts', () => {
+  const html = read('src/offscreen/ocr.html');
+  const srcs = [...html.matchAll(/<script src="([^"]+)"/g)].map(m => m[1]);
+  const missing = srcs.filter(s => !fs.existsSync(path.resolve(root, 'src/offscreen', s)));
+  if (missing.length) throw new Error('unresolvable: ' + missing.join(', '));
+  return `${srcs.length} scripts resolve`;
+});
+check('vendor is web-accessible', () => {
+  const war = (manifest.web_accessible_resources || []).flatMap(r => r.resources || []);
+  if (!war.some(r => r.startsWith('vendor/tesseract'))) throw new Error('vendor/tesseract not exposed');
+  if (!war.some(r => r.startsWith('src/offscreen'))) throw new Error('src/offscreen not exposed');
+  return 'vendor + offscreen exposed';
+});
+
+console.log('\ndiagnostics');
+check('extension and Apps Script agree on columns', () => {
+  const cols = JSON.parse(read('docs/apps-script.gs').match(/var DIAGNOSTIC_COLUMNS = (\[[\s\S]*?\]);/)[1]);
+  const src = read('src/engine/db/diagnostics.js');
+  const mine = JSON.parse('[' + src.match(/const COLUMNS = \[([\s\S]*?)\];/)[1].replace(/'/g, '"').replace(/,\s*$/, '') + ']');
+  if (JSON.stringify(cols) !== JSON.stringify(mine)) throw new Error('column drift — values would land under wrong headers');
+  return `${cols.length} columns aligned`;
+});
+
+console.log('\nlocalisation');
+check('every key resolves', () => {
+  const msgs = JSON.parse(read('_locales/en/messages.json'));
+  const used = new Set([
+    ...[...read('manifest.json').matchAll(/__MSG_([A-Za-z0-9_]+)__/g)].map(m => m[1]),
+    ...[...read('src/content/panel.js').matchAll(/\bt\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
+    ...[...read('src/options/popup.html').matchAll(/data-i18n="([A-Za-z0-9_]+)"/g)].map(m => m[1]),
+  ]);
+  const missing = [...used].filter(k => !(k in msgs));
+  if (missing.length) throw new Error('missing: ' + missing.join(', '));
+  return `${used.size} keys resolve against ${Object.keys(msgs).length} messages`;
+});
+
+console.log(bad ? `\n\x1b[31m${bad} problem(s) — do not load yet\x1b[0m\n`
+                : '\n\x1b[32mReady to load unpacked.\x1b[0m\n');
+process.exit(bad ? 1 : 0);
