@@ -8,7 +8,7 @@
   const HOST_ID = 'air-score-panel';
   const BADGE_ATTR = 'data-air-badge';
   const state = { enabled: true, badges: true, hoverScore: false, autoScoreSearch: false, foodOnly: true,
-    ocrLabels: false, sendDiagnostics: false,
+    ocrLabels: false, sendDiagnostics: false, settled: null,
     prefs: { weights: {}, allergens: [], diets: [], avoidList: [] }, lastKey: null, requestId: 0,
     failedExtracts: 0 };
 
@@ -36,6 +36,36 @@
       || document.querySelector('#dp-container');
   }
 
+  // Title-only probe, run before any DOM walk. Returns the verdict when the title alone is enough
+  // to say this is not food, and null when it is not sure.
+  function quickNonFood() {
+    if (!state.foodOnly) return null;
+    const gate = AIR.db.ingestible;
+    if (!gate || typeof gate.assessTitle !== 'function') return null;
+    const el = document.querySelector('#productTitle');
+    const title = el && (el.innerText || '').replace(/\s+/g, ' ').trim();
+    if (!title) return null;
+    const verdict = gate.assessTitle(title);
+    if (verdict.ok || !verdict.negatives.length) return null;
+    return { title, verdict };
+  }
+
+  function showNotFood(data, key) {
+    const anchor = mountPoint();
+    if (!anchor) { state.lastKey = key; return; }
+    let host = document.getElementById(HOST_ID);
+    if (!host) {
+      host = document.createElement('div');
+      host.id = HOST_ID;
+      anchor.parentNode.insertBefore(host, anchor);
+    }
+    state.lastKey = key;
+    host.dataset.airState = 'not-food';
+    const shadow = AIR.panel.mount(host, AIR.panel.renderNotFood(data));
+    wireScoreAnyway(shadow, host, data, key);
+    settle('not-food');
+  }
+
   function scoreCurrentPage() {
     // Cheap identity check BEFORE the expensive DOM walk. extract() costs ~16ms cold on a real
     // Amazon PDP and used to run on every debounce fire, even when the answer was already on
@@ -49,6 +79,22 @@
     // Only a completed score (or an in-flight barcode lookup) is final.
     if (earlyKey === state.lastKey && (existingState === 'scored' || existingState === 'loading')) return;
 
+    // Already decided this one is not food. The verdict cannot change without a navigation, so
+    // this must return BEFORE extract(). It used to return after, which meant a shampoo page
+    // re-walked the whole document on every ad refresh and carousel tick to reach a conclusion it
+    // had already reached.
+    if (earlyKey === state.lastKey && existingState === 'not-food') { settle('not-food'); return; }
+
+    // Cheapest check that exists: the product title alone. One querySelector and a few regexes
+    // against a short string, against extract()'s full-document walk plus a nutrition-table scan.
+    // Only clear negative evidence stops here — an ambiguous title still goes the long way, where
+    // a Nutrition Facts panel can rescue a store-brand food.
+    const quick = quickNonFood();
+    if (quick) {
+      showNotFood({ asin: urlAsin, title: quick.title, ingestible: quick.verdict }, earlyKey);
+      return;
+    }
+
     // A 'fail' card is deliberately not final, because Amazon can inject the ingredients card
     // late. But extract() is a ~16ms DOM walk and the MutationObserver fires on every ad refresh
     // and carousel tick, so an unreadable page re-walked the DOM forever and threw the result
@@ -61,19 +107,8 @@
     // Not food: say so. A missing card looks like a bug; a score looks like we judged it as food.
     if (state.foodOnly && data.ingestible && !data.ingestible.ok) {
       const key = data.asin || earlyKey;
-      if (existingState === 'not-food' && key === state.lastKey) return;
-      const anchor = mountPoint();
-      if (!anchor) { state.lastKey = earlyKey; return; }
-      let host = document.getElementById(HOST_ID);
-      if (!host) {
-        host = document.createElement('div');
-        host.id = HOST_ID;
-        anchor.parentNode.insertBefore(host, anchor);
-      }
-      state.lastKey = key;
-      host.dataset.airState = 'not-food';
-      const shadow = AIR.panel.mount(host, AIR.panel.renderNotFood(data));
-      wireScoreAnyway(shadow, host, data, key);
+      if (existingState === 'not-food' && key === state.lastKey) { settle('not-food'); return; }
+      showNotFood(data, key);
       return;
     }
     const key = data.asin || earlyKey;
@@ -130,6 +165,7 @@
             // the page path does.
             if (unreadable(result)) { showFailure(host, { ...data, lookupAttempted: true, lowCoverage: true }, key); return; }
             host.dataset.airState = 'scored';
+            settle('scored');
             AIR.panel.mount(host, AIR.panel.render(result, {
               title: data.title || fallback.name,
               confidence: 0.55,
@@ -158,6 +194,7 @@
     // extractor already applies to placeholder text. Say so and offer the paste box instead.
     if (unreadable(result)) { showFailure(host, { ...data, lowCoverage: true }, key); return; }
     host.dataset.airState = 'scored';
+    settle('scored');
     AIR.panel.mount(host, AIR.panel.render(result, {
       title: data.title, confidence: data.confidence, via: data.via,
     }), reporter(data, result));
@@ -184,6 +221,7 @@
           nutrition: data.nutrition, ingredients_text: data.text, provenanceRecord: record,
         }, state.prefs);
         host.dataset.airState = 'scored';
+        settle('scored');
         AIR.panel.mount(host, AIR.panel.render(better, {
           title: data.title, confidence: data.confidence, via: data.via,
           provenanceSource: record.source,
@@ -254,6 +292,7 @@
         }, state.prefs);
         if (unreadable(result)) { giveUp({ lowCoverage: true }); return; }
         host.dataset.airState = 'scored';
+        settle('scored');
         AIR.panel.mount(host, AIR.panel.render(result, {
           title: data.title, confidence: 0.7, via: 'label-ocr',
         }), reporter(data, result));
@@ -274,6 +313,7 @@
         nutrition: data.nutrition, ingredients_text: text,
       }, state.prefs);
       host.dataset.airState = 'scored';
+      settle('scored');
       AIR.panel.mount(host, AIR.panel.render(result, {
         title: data.title, confidence: 1, via: 'manual-paste',
       }), reporter(data, result));
@@ -294,6 +334,7 @@
         nutrition: data2.nutrition, ingredients_text: data2.text,
       }, state.prefs);
       host.dataset.airState = 'scored';
+      settle('scored');
       AIR.panel.mount(host, AIR.panel.render(result, {
         title: data2.title, confidence: data2.confidence, via: data2.via,
       }), reporter(data2, result));
@@ -627,17 +668,32 @@
     // true and never guarded anything.
     if (!state.enabled) return;
     try {
-      if (isProductPage()) scoreCurrentPage();
+      if (isProductPage()) { scoreCurrentPage(); settleIfDone(); }
       else if (isListPage()) {
         removePanel();
-        if (!searchAllowed()) { standDown(); return; }
+        if (!searchAllowed()) { standDown(); settle('non-food search'); return; }
         if (state.badges) badgeSearchResults();
         else clearBadges();
-      } else teardown();
+        // List pages keep watching: infinite scroll keeps adding tiles.
+      } else { teardown(); settle('not a product or results page'); }
     } catch (e) {
       // An extension must never take the host page down with it.
       console.debug('[AIR]', e);
     }
+  }
+
+  // Each mount that reaches a final score settles directly, because the asynchronous paths — the
+  // barcode lookup, the OCR pass, a pasted list — can finish on a page that has gone quiet, where
+  // no further mutation would arrive to trigger the check below.
+  //
+  // A product page whose answer cannot change without a navigation stops being watched. Amazon
+  // mutates the DOM continuously — ad refresh, lazy images, carousels — and re-running for a
+  // conclusion already reached was the largest cost this extension imposed on a page. 'loading' is
+  // excluded: a barcode lookup or an OCR pass is still in flight and will mount its own result.
+  function settleIfDone() {
+    const st = document.getElementById(HOST_ID)?.dataset.airState;
+    if (st === 'scored' || st === 'not-food') settle(st);
+    else if (st === 'fail' && state.failedExtracts >= MAX_EXTRACT_RETRIES) settle('unreadable');
   }
 
   // A pure trailing debounce starves under sustained churn: measured on the real extension, any
@@ -655,20 +711,95 @@
     timer = setTimeout(() => { firstRequest = 0; tick(); }, DEBOUNCE_MS);
   };
 
+  // ---------------------------------------------------------------- lifecycle
+  //
+  // The observer is the expensive thing here: subtree:true on documentElement fires on every ad
+  // refresh Amazon does. It runs only while the page still has a question outstanding, and stops
+  // once the answer is settled. The URL poll is what wakes it again.
+
+  let observer = null;
+  let urlTimer = null;
+  let navWired = false;
+  let lastUrl = location.href;
+
+  function startObserving() {
+    if (observer || !state.enabled) return;
+    observer = new MutationObserver(schedule);
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    state.settled = null;
+  }
+
+  function stopObserving() {
+    if (!observer) return;
+    observer.disconnect();
+    observer = null;
+  }
+
+  function settle(why) {
+    if (state.settled === why) return;
+    state.settled = why;
+    stopObserving();
+  }
+
+  function wake() {
+    if (!state.enabled) return;
+    startObserving();
+    schedule();
+  }
+
   // Content scripts run in an isolated world, so reassigning history.pushState here is invisible to
   // Amazon's own scripts — verified: the page world still sees the native function. The patch was
   // inert. popstate does cross worlds, and a cheap URL poll covers pushState/replaceState without
   // injecting anything into the page.
+  const URL_POLL_MS = 500;
+
+  function onNavigated() {
+    lastUrl = location.href;
+    state.lastKey = null;      // a new URL is a new product; don't reuse the last render
+    state.failedExtracts = 0;
+    resetSearchGate();         // ...and a new search, which may be about something else entirely
+    wake();
+  }
+
   function watchNavigation() {
-    addEventListener('popstate', schedule);
-    let lastUrl = location.href;
-    setInterval(() => {
-      if (location.href === lastUrl) return;
-      lastUrl = location.href;
-      state.lastKey = null;      // a new URL is a new product; don't reuse the last render
-      resetSearchGate();         // ...and a new search, which may be about something else entirely
-      schedule();
-    }, 500);
+    if (!navWired) { addEventListener('popstate', onNavigated); navWired = true; }
+    if (urlTimer) return;
+    urlTimer = setInterval(() => {
+      if (location.href !== lastUrl) onNavigated();
+    }, URL_POLL_MS);
+  }
+
+  function stopNavigation() {
+    if (!urlTimer) return;
+    clearInterval(urlTimer);
+    urlTimer = null;
+  }
+
+  // The master switch. Off means off: no observer, no polling, no queued work, nothing left in the
+  // page. It touches no stored setting, so everything configured below it is exactly as it was
+  // when switched back on.
+  function suspend() {
+    stopObserving();
+    stopNavigation();
+    clearTimeout(timer);
+    if (tileObserver) { tileObserver.disconnect(); tileObserver = null; }
+    queue.pending.length = 0;
+    queue.seen.clear();
+    teardown();
+    state.settled = 'suspended';
+  }
+
+  function resume() {
+    state.lastKey = null;
+    state.failedExtracts = 0;
+    state.settled = null;
+    resetSearchGate();
+    lastUrl = location.href;
+    watchNavigation();
+    startObserving();
+    schedule();
+    armHoverPass();
+    armAutoScorePass();
   }
 
   function removePanel() {
@@ -696,7 +827,7 @@
     state.ocrLabels = o.ocrLabels === true;               // opt-in: costs seconds of CPU
     state.sendDiagnostics = o.sendDiagnostics === true;   // opt-in: leaves the machine
     readPrefs(o);
-    if (state.enabled) { schedule(); armHoverPass(); armAutoScorePass(); }
+    if (state.enabled) resume(); else suspend();
   });
 
   function readPrefs(o) {
@@ -718,7 +849,7 @@
           resetListState();
           removePanel();
           state.lastKey = null;
-          if (state.enabled) { schedule(); armAutoScorePass(); }
+          if (state.enabled) { wake(); armAutoScorePass(); }
         };
         // The comment used to claim the cache was discarded. Only the DOM badges were.
         // Search chips read chrome.storage, so old weights came right back.
@@ -728,12 +859,12 @@
     }
     if (changes.enabled) {
       state.enabled = changes.enabled.newValue !== false;
-      if (state.enabled) { state.lastKey = null; schedule(); } else teardown();
+      if (state.enabled) resume(); else suspend();
     }
     if (changes.badges) {
       state.badges = changes.badges.newValue !== false;
       if (!state.badges) clearBadges();
-      else if (state.enabled) schedule();
+      else if (state.enabled) wake();
     }
     if (changes.hoverScore) {
       state.hoverScore = changes.hoverScore.newValue === true;
@@ -757,7 +888,7 @@
     if (changes.sendDiagnostics) state.sendDiagnostics = changes.sendDiagnostics.newValue === true;
     if (changes.ocrLabels) {
       state.ocrLabels = changes.ocrLabels.newValue === true;
-      if (state.enabled && isProductPage()) { removePanel(); schedule(); }
+      if (state.enabled && isProductPage()) { removePanel(); wake(); }
     }
     if (changes.useOpenFoodFacts && state.enabled && isProductPage()) {
       removePanel();
@@ -765,7 +896,8 @@
     }
   });
 
-  new MutationObserver(schedule).observe(document.documentElement, { childList: true, subtree: true });
+  // Nothing starts until the stored settings say so; the boot read above calls resume() or
+  // suspend(). Starting an observer here and tearing it down a tick later was pure waste on a page
+  // where the extension is switched off.
   watchNavigation();
-  schedule();
 })();

@@ -143,10 +143,10 @@
     "message": "Nothing disclosed about how this was produced"
   },
   "popupShowRatings": {
-    "message": "Show ratings"
+    "message": "Ingredient Check is on"
   },
   "popupShowRatingsD": {
-    "message": "Injects the score panel on Amazon product pages."
+    "message": "The master switch. Off stops everything on Amazon pages — no panel, no badges, no page watching. Nothing below is forgotten."
   },
   "popupBadges": {
     "message": "Search result badges"
@@ -215,5 +215,8 @@
   },
   "popupOcrD": {
     "message": "When a page has no readable ingredients, read them from the product's label photo. Runs on your computer and takes a few seconds per product — nothing is sent anywhere."
+  },
+  "popupKept": {
+    "message": "Paused. Everything below is kept and comes back when you switch it on."
   }
 }

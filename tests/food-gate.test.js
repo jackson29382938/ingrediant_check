@@ -109,6 +109,36 @@ check('real kitchen equipment is still skipped', () => {
   assert.ok(ingestible.looksNonFoodFromTitle('Cast Iron Skillet 12 inch'));
 });
 
+console.log('ingestible.assessTitle — the cheap path');
+
+check('a title alone can reject, with a reason worth showing', () => {
+  // This runs BEFORE extract() on a product page, so a shampoo never pays for a full DOM walk.
+  const g = ingestible.assessTitle('Head & Shoulders Classic Clean Anti-Dandruff Shampoo, 32.1 fl oz');
+  assert.ok(!g.ok, JSON.stringify(g));
+  assert.ok(g.negatives.length, 'no negative evidence recorded');
+  assert.ok(/cosmetic|personal-care/i.test(g.reason), `reason was "${g.reason}"`);
+});
+
+check('common non-food titles are caught without any page context', () => {
+  for (const t of ['Nike Air Zoom Pegasus Running Shoes Mens 10.5',
+                   'Instant Pot Duo 7-in-1 Electric Pressure Cooker',
+                   'Tide Liquid Laundry Detergent 92 fl oz',
+                   'Lavender Essential Oil 4oz',
+                   'Purina ONE Dry Dog Food 31.1 lb']) {
+    assert.ok(!ingestible.assessTitle(t).ok, `not rejected: ${t}`);
+  }
+});
+
+check('an ambiguous title is NOT rejected on the title alone', () => {
+  // The whole point of the prefilter is that it only stops on clear negative evidence. A
+  // store-brand food with a weak title must still reach the page, where a Nutrition Facts panel
+  // can save it.
+  for (const t of ['Kirkland Signature', '365 Everyday Value', 'Organic Rolled Oats 42 oz',
+                   'Peter Pan Creamy Peanut Butter']) {
+    assert.ok(!ingestible.looksNonFoodFromTitle(t), `wrongly rejected on title alone: ${t}`);
+  }
+});
+
 console.log('Open Food Facts filter');
 
 check('explicit beauty product_type is rejected', () => {

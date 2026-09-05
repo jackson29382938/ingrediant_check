@@ -16,6 +16,14 @@ const OFF_PERMISSION = { origins: ['https://world.openfoodfacts.org/*'] };
   }
 })();
 
+// Off is a pause. The sub-toggles are disabled so they cannot be changed into a state that is not
+// running, but they keep their values and stay readable, because the whole point of the master
+// switch is that it does not cost you your configuration.
+function paintMaster(on) {
+  document.body.classList.toggle('paused', !on);
+  for (const el of document.querySelectorAll('.sub-toggles input')) el.disabled = !on;
+}
+
 function save(key, value) {
   chrome.storage.local.set({ [key]: value });
 }
@@ -23,9 +31,14 @@ function save(key, value) {
 chrome.storage.local.get(KEYS, options => {
   for (const key of TOGGLE_KEYS) {
     const input = document.getElementById(key);
+    if (!input) continue;
     input.checked = options[key] === undefined ? DEFAULTS[key] : !!options[key];
-    input.addEventListener('change', () => save(key, input.checked));
+    input.addEventListener('change', () => {
+      save(key, input.checked);
+      if (key === 'enabled') paintMaster(input.checked);
+    });
   }
+  paintMaster(options.enabled !== false);
 
   const fallback = document.getElementById('useOpenFoodFacts');
   chrome.permissions.contains(OFF_PERMISSION, hasPermission => {
@@ -78,7 +91,9 @@ chrome.storage.onChanged.addListener(changes => {
   for (const key of TOGGLE_KEYS) {
     if (!changes[key]) continue;
     const input = document.getElementById(key);
-    if (input) input.checked = isOn(key, changes[key].newValue);
+    if (!input) continue;
+    input.checked = isOn(key, changes[key].newValue);
+    if (key === 'enabled') paintMaster(input.checked);
   }
   if (changes.useOpenFoodFacts) {
     const fallback = document.getElementById('useOpenFoodFacts');

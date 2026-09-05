@@ -4,6 +4,15 @@
  .sub{color:#565959;font-size:11px;margin-bottom:14px}
  label{display:flex;align-items:flex-start;gap:9px;padding:9px 0;border-top:1px solid #eaeded;cursor:pointer}
  label:first-of-type{border-top:0}
+ label.master{border-top:0;border-bottom:2px solid #eaeded;padding-bottom:12px;margin-bottom:2px}
+ label.master .t{font-size:13px}
+ /* Off is a pause, not a reset. The rows stay visible and legible so it is obvious the settings
+    are still there, rather than vanishing and looking lost. */
+ body.paused .sub-toggles{opacity:.45}
+ body.paused .sub-toggles label{cursor:default}
+ #kept{display:none;margin:10px 0 0;padding:8px 10px;background:#fdf3e2;border:1px solid #ffd8a8;
+   border-radius:6px;color:#8a4b00;font-size:11px;line-height:1.4}
+ body.paused #kept{display:block}
  input{margin-top:2px}
  .t{font-weight:600}
  .d{color:#565959;font-size:11px;display:block;margin-top:1px}
@@ -16,8 +25,11 @@
 </style></head><body>
  <h1 data-i18n="appName">Ingredient Check</h1>
  <div class="sub" data-i18n="popupTagline">Ingredient quality, additives and processing — scored on your computer.</div>
- <label><input type="checkbox" id="enabled" checked><span><span class="t" data-i18n="popupShowRatings">Show ratings</span>
-   <span class="d" data-i18n="popupShowRatingsD">Injects the score panel on Amazon product pages.</span></span></label>
+ <label class="master"><input type="checkbox" id="enabled" checked><span><span class="t" data-i18n="popupShowRatings">Ingredient Check is on</span>
+   <span class="d" data-i18n="popupShowRatingsD">The master switch. Off stops everything on Amazon pages — no panel,
+   no badges, no page watching. Nothing below is forgotten.</span></span></label>
+ <p id="kept" data-i18n="popupKept">Paused. Everything below is kept and comes back when you switch it on.</p>
+ <div class="sub-toggles">
  <label><input type="checkbox" id="badges" checked><span><span class="t" data-i18n="popupBadges">Search result badges</span>
    <span class="d" data-i18n="popupBadgesD">Score chips on tiles you've already opened.</span></span></label>
  <label><input type="checkbox" id="foodOnly" checked><span><span class="t" data-i18n="popupFoodOnly">Only rate food &amp; supplements</span>
@@ -37,6 +49,7 @@
  <label><input type="checkbox" id="useOpenFoodFacts"><span><span class="t" data-i18n="popupOff">Open Food Facts fallback</span>
    <span class="d" data-i18n="popupOffD">When a page has a barcode but no readable ingredients, look it up. Sends the
    barcode to Open Food Facts and nothing else — no page content, no browsing history.</span></span></label>
+ </div>
  <a href="#" id="openSettings" data-i18n="popupSettingsLink">Scoring weights, allergens &amp; avoid list</a>
  <div class="sub" data-i18n="popupDisclaimer" style="margin-top:12px;font-size:11px">Scores are a guide, not health or allergy
    advice. Always read the label.</div>

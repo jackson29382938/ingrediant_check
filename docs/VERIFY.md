@@ -71,7 +71,27 @@ line reports what happened. Expect a `diagnostics` tab to appear with headers.
 If nothing arrives: the Apps Script deployment must be **Execute as: Me**, **Who has access:
 Anyone**. Anything else returns a redirect to a login page and the POST silently fails.
 
-## 6. Worth a look while you are in there
+## 6. The master switch
+
+The first toggle in the popup is now a real off switch, not just "hide the panel". Off means no
+panel, no badges, no page watching, no queued work — and nothing below it is forgotten.
+
+Turn it off and reload an Amazon product page. Expect **nothing at all**, and the rows below greyed
+out with *"Paused. Everything below is kept…"*. Turn it back on: your toggles, weights, allergens
+and avoid list are exactly as they were.
+
+Measured with `tests/harness-lifecycle.html`, which counts what the content script actually does:
+
+| Page | `extract()` calls | MutationObserver |
+| --- | --- | --- |
+| Non-food product | **0** | connects once, disconnects |
+| Food product | **1** | connects once, disconnects |
+| Master off | **0** | never connects |
+
+Previously the observer stayed connected for the life of the page and re-ran the full extraction on
+every Amazon ad refresh, on non-food pages included.
+
+## 7. Worth a look while you are in there
 
 - A product with a normal ingredient list — panel expands, rows sum to the score
 - A capped product (anything with canola or soybean oil) — a **numbered** `CAP` row, not a bare label

@@ -129,12 +129,19 @@ function assess(doc, opts = {}) {
   };
 }
 
-// Title-only prefilter for search tiles. Only returns true when there is *negative* evidence —
-// an ambiguous title still goes to the product page, where Nutrition Facts can save a store-brand
-// food. A stub document is used so the current search page cannot leak department crumbs.
-function looksNonFoodFromTitle(title) {
+// Title-only assessment. A stub document is used so the surrounding page cannot leak department
+// crumbs into the verdict, which makes this both cheap and portable: one short string in, a full
+// verdict out, no DOM walk. That is what lets a product page reject a shampoo before paying for
+// extract().
+function assessTitle(title) {
   const stub = { querySelector: () => null };
-  const g = assess(stub, { title: title || '', text: title || '' });
+  return assess(stub, { title: title || '', text: title || '' });
+}
+
+// Prefilter. Only returns true when there is *negative* evidence — an ambiguous title still goes
+// to the product page, where Nutrition Facts can save a store-brand food.
+function looksNonFoodFromTitle(title) {
+  const g = assessTitle(title);
   return !g.ok && g.negatives.length > 0;
 }
 
@@ -225,7 +232,7 @@ function isOpenFoodFactsFood(product) {
 }
 
 const _exports = AIRmodule('ingestible', {
-  assess, looksNonFoodFromTitle, isOpenFoodFactsFood,
+  assess, assessTitle, looksNonFoodFromTitle, isOpenFoodFactsFood,
   assessSearch, looksNonFoodFromResults,
   STRONG_POSITIVE, WEAK_POSITIVE, HARD_NEGATIVE, THRESHOLD,
   FOOD_ALIASES, NONFOOD_ALIASES, RESULT_SAMPLE_MIN, RESULT_NONFOOD_SHARE,
