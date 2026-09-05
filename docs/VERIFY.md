@@ -100,6 +100,6 @@ every Amazon ad refresh, on non-food pages included.
 
 ## What is still unproven
 
-The offscreen OCR round-trip and the optional-permission prompts have never executed. Everything
-else in the recent work is covered by the suite, by the browser harness, or by checks against live
-amazon.com.
+The installed extension’s offscreen OCR round-trip now passes on the live Lifeway page; see
+[LIVE-TEST-2026-09-05.md](LIVE-TEST-2026-09-05.md) for evidence and the additional fixes.
+The optional-permission grant and deployed Apps Script round-trip remain unverified.

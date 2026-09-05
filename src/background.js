@@ -126,7 +126,8 @@ async function ensureOffscreen() {
       if (!/single offscreen/i.test(String(err && err.message))) throw err;
     });
   }
-  await offscreenReady;
+  try { await offscreenReady; }
+  finally { offscreenReady = null; }
 }
 
 async function ocrLabels(urls) {
@@ -209,13 +210,17 @@ const SHEET_CACHE_KEY = 'sheetIndex';
 
 // Published-sheet URLs come in several shapes. Normalise whatever the user pasted into a CSV export.
 function toCsvUrl(raw) {
-  const url = String(raw || '').trim();
-  if (!url) return null;
-  if (/output=csv|tqx=out:csv/.test(url)) return url;
-  const id = (url.match(/\/spreadsheets\/d\/(?:e\/)?([A-Za-z0-9_-]{20,})/) || [])[1];
-  if (!id) return null;
-  const gid = (url.match(/[#&?]gid=(\d+)/) || [])[1];
-  return `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv${gid ? `&gid=${gid}` : ''}`;
+  let url;
+  try { url = new URL(String(raw || '').trim()); } catch { return null; }
+  if (url.protocol !== 'https:' || url.hostname !== 'docs.google.com' || url.username || url.password) return null;
+  const match = url.pathname.match(/^\/spreadsheets\/d\/(e\/)?([A-Za-z0-9_-]{20,})(?:\/|$)/);
+  if (!match) return null;
+  const [, published, id] = match;
+  const gid = url.searchParams.get('gid') || new URLSearchParams(url.hash.slice(1)).get('gid');
+  const tab = gid && /^\d+$/.test(gid) ? `&gid=${gid}` : '';
+  return published
+    ? `https://docs.google.com/spreadsheets/d/e/${id}/pub?output=csv${tab}`
+    : `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv${tab}`;
 }
 
 // Minimal RFC-4180 parser. Sheet cells routinely contain commas ("USDA Organic, AGA Certified"),
@@ -246,7 +251,7 @@ function indexRows(rows) {
   const head = rows[0].map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
   const idx = empty();
   for (const r of rows.slice(1)) {
-    const rec = {};
+    const rec = Object.create(null);
     head.forEach((h, i) => { rec[h] = (r[i] || '').trim(); });
     if (!rec.certifications && !rec.feed && !rec.origin) continue;
     rec.source = rec.verified_by ? `shared database (${rec.verified_by})` : 'shared database';
@@ -272,15 +277,15 @@ async function loadSheetIndex(force = false) {
     await chrome.storage.local.set({ [SHEET_CACHE_KEY]: { t: Date.now(), url: csvUrl, index } });
     return index;
   } catch (e) {
-    return cached && cached.index ? cached.index : null;   // stale beats nothing
+    return cached && cached.url === csvUrl && cached.index ? cached.index : null;   // stale beats nothing
   }
 }
 
 function lookupRecord(index, { asin, upc, brand }) {
   if (!index) return null;
-  if (asin && index.byAsin[asin.toUpperCase()]) return index.byAsin[asin.toUpperCase()];
-  if (upc && index.byUpc[String(upc).replace(/\D/g, '')]) return index.byUpc[String(upc).replace(/\D/g, '')];
-  if (brand && index.byBrand[brand.toLowerCase()]) return index.byBrand[brand.toLowerCase()];
+  if (asin && Object.hasOwn(index.byAsin, asin.toUpperCase())) return index.byAsin[asin.toUpperCase()];
+  if (upc && Object.hasOwn(index.byUpc, String(upc).replace(/\D/g, ''))) return index.byUpc[String(upc).replace(/\D/g, '')];
+  if (brand && Object.hasOwn(index.byBrand, brand.toLowerCase())) return index.byBrand[brand.toLowerCase()];
   return null;
 }
 
@@ -301,7 +306,7 @@ async function loadProducerIndex(force = false) {
     const res = await fetch(csvUrl, { credentials: 'omit' });
     if (!res.ok) throw new Error(String(res.status));
     const rows = parseCsv(await res.text());
-    const head = rows[0].map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
+    const head = (rows[0] || []).map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
     const index = Object.create(null);
     for (const r of rows.slice(1)) {
       const rec = Object.create(null);
@@ -312,7 +317,7 @@ async function loadProducerIndex(force = false) {
     await chrome.storage.local.set({ [PRODUCERS_CACHE_KEY]: { t: Date.now(), url: csvUrl, index } });
     return index;
   } catch (e) {
-    return cached && cached.index ? cached.index : null;
+    return cached && cached.url === csvUrl && cached.index ? cached.index : null;
   }
 }
 
@@ -348,18 +353,33 @@ const DIAG_KEY = 'diagQueue';
 const DIAG_BATCH = 12;
 const DIAG_MAX = 300;
 
-async function queueDiagnostic(record) {
-  const conf = await chrome.storage.local.get(['sendDiagnostics', 'contributeUrl', DIAG_KEY]);
-  if (!conf.sendDiagnostics || !conf.contributeUrl) return { ok: false, reason: 'not-enabled' };
+// Storage read/modify/write and network flushes must share one queue. Otherwise simultaneous
+// tabs overwrite rows, or a completed POST clears rows appended while it was in flight.
+let diagnosticWork = Promise.resolve();
+function serializeDiagnostics(work) {
+  const result = diagnosticWork.then(work);
+  diagnosticWork = result.catch(() => {});
+  return result;
+}
+function queueDiagnostic(record) {
+  return serializeDiagnostics(() => appendDiagnostic(record));
+}
+function flushDiagnostics() {
+  return serializeDiagnostics(() => sendDiagnostics());
+}
+async function appendDiagnostic(record) {
+  const conf = await chrome.storage.local.get(['enabled', 'sendDiagnostics', 'contributeUrl', DIAG_KEY]);
+  if (conf.enabled === false || !conf.sendDiagnostics || !conf.contributeUrl) return { ok: false, reason: 'not-enabled' };
   if (!record || typeof record !== 'object') return { ok: false, reason: 'no-record' };
   const queue = [...(conf[DIAG_KEY] || []), record].slice(-DIAG_MAX);
   await chrome.storage.local.set({ [DIAG_KEY]: queue });
   if (queue.length < DIAG_BATCH) return { ok: true, queued: queue.length };
-  return flushDiagnostics();
+  return sendDiagnostics();
 }
 
-async function flushDiagnostics() {
-  const conf = await chrome.storage.local.get(['contributeUrl', DIAG_KEY]);
+async function sendDiagnostics() {
+  const conf = await chrome.storage.local.get(['enabled', 'sendDiagnostics', 'contributeUrl', DIAG_KEY]);
+  if (conf.enabled === false || !conf.sendDiagnostics) return { ok: false, reason: 'not-enabled' };
   const queue = conf[DIAG_KEY] || [];
   if (!conf.contributeUrl || !queue.length) return { ok: false, reason: 'nothing-to-send' };
   try {
@@ -367,11 +387,14 @@ async function flushDiagnostics() {
       method: 'POST', credentials: 'omit',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ kind: 'diagnostics', rows: queue }),
+      signal: AbortSignal.timeout(15000),
     });
     // Only clear on a confirmed write. A failed flush keeps the rows for the next attempt rather
     // than silently dropping the data the user turned this on to collect.
-    if (res.ok) await chrome.storage.local.set({ [DIAG_KEY]: [] });
-    return { ok: res.ok, sent: res.ok ? queue.length : 0, queued: res.ok ? 0 : queue.length };
+    const receipt = res.ok ? await res.json() : null;
+    const confirmed = !!(receipt && receipt.ok === true && receipt.wrote === queue.length);
+    if (confirmed) await chrome.storage.local.set({ [DIAG_KEY]: [] });
+    return { ok: confirmed, sent: confirmed ? queue.length : 0, queued: confirmed ? 0 : queue.length };
   } catch (e) {
     return { ok: false, reason: 'network', queued: queue.length };
   }
@@ -398,7 +421,7 @@ function handleSharedDbMessage(msg, reply) {
     Promise.all([loadSheetIndex(), loadProducerIndex()]).then(([index, producers]) => {
       const record = lookupRecord(index, msg.key || {});
       const brand = (msg.key && msg.key.brand || '').toLowerCase();
-      const producer = producers && brand ? producers[brand] : null;
+      const producer = producers && brand && Object.hasOwn(producers, brand) ? producers[brand] : null;
       reply(record || producer ? { ...(producer || {}), ...(record || {}),
         producerRegistry: producer || null } : null);
     });

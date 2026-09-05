@@ -10,7 +10,7 @@
   const state = { enabled: true, badges: true, hoverScore: false, autoScoreSearch: false, foodOnly: true,
     ocrLabels: false, sendDiagnostics: false, settled: null,
     prefs: { weights: {}, allergens: [], diets: [], avoidList: [] }, lastKey: null, requestId: 0,
-    failedExtracts: 0 };
+    failedExtracts: 0, manual: null };
 
   // Cached scores are stamped with the extension version. Rules change between releases, and a
   // 30-day TTL meant badges kept painting numbers from the previous engine for a month after an
@@ -78,6 +78,22 @@
     // tick just because a failure card is already mounted left "Organic Rolled Oats." unread.
     // Only a completed score (or an in-flight barcode lookup) is final.
     if (earlyKey === state.lastKey && (existingState === 'scored' || existingState === 'loading')) return;
+
+    // Keep a user-supplied label for this product when weights or warnings change.
+    // It is page-local and cleared on navigation, never shared with another product.
+    if (state.manual && state.manual.key === earlyKey) {
+      const anchor = mountPoint();
+      if (!anchor) return;
+      let host = existing;
+      if (!host) {
+        host = document.createElement('div');
+        host.id = HOST_ID;
+        anchor.parentNode.insertBefore(host, anchor);
+      }
+      state.lastKey = earlyKey;
+      renderManual(host, state.manual.data, earlyKey, state.manual.text);
+      return;
+    }
 
     // Already decided this one is not food. The verdict cannot change without a navigation, so
     // this must return BEFORE extract(). It used to return after, which meant a shampoo page
@@ -308,18 +324,23 @@
     if (state.ocrLabels && !data.ocrAttempted) { tryOcr(host, data, key); return; }
     host.dataset.airState = 'fail';
     AIR.panel.mount(host, AIR.panel.renderFailure(data), null, text => {
-      const result = AIR.engine.score({
-        name: data.title, labels: data.labels, certifications: data.certifications,
-        nutrition: data.nutrition, ingredients_text: text,
-      }, state.prefs);
-      host.dataset.airState = 'scored';
-      settle('scored');
-      AIR.panel.mount(host, AIR.panel.render(result, {
-        title: data.title, confidence: 1, via: 'manual-paste',
-      }), reporter(data, result));
-      cache(key, { score: result.score, verdict: result.verdict, nova: result.nova });
-      sendDiagnostic(data, result, 'manual-paste', text);
+      state.manual = { key, data, text };
+      renderManual(host, data, key, text);
     });
+  }
+
+  function renderManual(host, data, key, text) {
+    const result = AIR.engine.score({
+      name: data.title, labels: data.labels, certifications: data.certifications,
+      nutrition: data.nutrition, ingredients_text: text,
+    }, state.prefs);
+    host.dataset.airState = 'scored';
+    settle('scored');
+    AIR.panel.mount(host, AIR.panel.render(result, {
+      title: data.title, confidence: 1, via: 'manual-paste',
+    }), reporter(data, result));
+    cache(key, { score: result.score, verdict: result.verdict, nova: result.nova });
+    sendDiagnostic(data, result, 'manual-paste', text);
   }
 
   // One-page override of the food-only gate. Does not flip the setting — only this product.
@@ -394,10 +415,7 @@
   // armed tile unmarked so re-entering a food search re-arms cleanly.
   function standDown() {
     clearBadges();
-    queue.pending.length = 0;
-    queue.seen.clear();
-    if (tileObserver) { tileObserver.disconnect(); tileObserver = null; }
-    document.querySelectorAll('[data-air-auto]').forEach(t => t.removeAttribute('data-air-auto'));
+    cancelTileWork();
   }
 
   // ---------------------------------------------------------------- search result badges
@@ -412,8 +430,9 @@
       if (state.foodOnly && AIR.db.ingestible && AIR.db.ingestible.looksNonFoodFromTitle(tileTitle(tile))) {
         return;
       }
+      const epoch = queue.epoch;
       chrome.storage.local.get(`s:${asin}`, obj => {
-        if (!state.enabled || !state.badges || !tile.isConnected) return;
+        if (epoch !== queue.epoch || !state.enabled || !state.badges || !tile.isConnected) return;
         const hit = obj[`s:${asin}`];
         if (!usableCache(hit)) return;
         paintBadge(tile, hit);
@@ -488,7 +507,18 @@
   const MAX_CONCURRENT = 3;
   const REQUEST_GAP_MS = 250;
 
-  const queue = { pending: [], active: 0, seen: new Set(), lastStart: 0 };
+  const queue = { pending: [], active: 0, seen: new Set(), lastStart: 0, epoch: 0, controllers: new Set() };
+
+  function cancelTileWork() {
+    queue.epoch++;
+    queue.pending.length = 0;
+    queue.seen.clear();
+    queue.lastStart = 0;
+    for (const controller of queue.controllers) controller.abort();
+    queue.controllers.clear();
+    if (tileObserver) { tileObserver.disconnect(); tileObserver = null; }
+    document.querySelectorAll('[data-air-auto]').forEach(t => t.removeAttribute('data-air-auto'));
+  }
 
   function tileTitle(tile) {
     const el = tile.querySelector('h2 a, h2, [data-cy="title-recipe"]');
@@ -496,6 +526,8 @@
   }
 
   function enqueue(tile, asin, { front = false } = {}) {
+    if (!state.enabled || !state.badges || !searchAllowed()) return;
+    if (front ? !state.hoverScore : !state.autoScoreSearch) return;
     if (queue.seen.has(asin)) return;
     // Skip the Amazon fetch when the tile title is already a cosmetic, shoe, detergent, etc.
     // Ambiguous titles still fetch — store-brand oats should not die on a weak title.
@@ -504,7 +536,7 @@
       return;
     }
     queue.seen.add(asin);
-    const job = { tile, asin };
+    const job = { tile, asin, epoch: queue.epoch, url: location.href };
     if (front) queue.pending.unshift(job); else queue.pending.push(job);
     pump();
   }
@@ -516,7 +548,7 @@
       queue.active++;
       const wait = Math.max(0, queue.lastStart + REQUEST_GAP_MS - Date.now());
       queue.lastStart = Date.now() + wait;
-      setTimeout(() => scoreTile(job.tile, job.asin).finally(() => { queue.active--; pump(); }), wait);
+      setTimeout(() => scoreTile(job.tile, job.asin, job.epoch, job.url).finally(() => { queue.active--; pump(); }), wait);
     }
   }
 
@@ -555,7 +587,9 @@
         const asin = tile.getAttribute('data-asin');
         if (!asin || tile.querySelector('.air-badge')) continue;
         // Cached scores paint instantly and cost no request.
+        const epoch = queue.epoch;
         chrome.storage.local.get(`s:${asin}`, obj => {
+          if (epoch !== queue.epoch || !state.enabled || !state.badges || !state.autoScoreSearch || !tile.isConnected) return;
           const hit = obj[`s:${asin}`];
           if (usableCache(hit)) { paintBadge(tile, hit); queue.seen.add(asin); return; }
           if (state.autoScoreSearch) enqueue(tile, asin);
@@ -577,17 +611,22 @@
     });
   }
 
-  async function scoreTile(tile, asin) {
-    if (!tile.isConnected) return;
+  async function scoreTile(tile, asin, epoch, url) {
+    const current = () => epoch === queue.epoch && url === location.href && state.enabled
+      && state.badges && tile.isConnected && searchAllowed();
+    if (!current()) return;
+    const controller = new AbortController();
+    queue.controllers.add(controller);
     paintBadge(tile, 'pending');
     try {
-      const res = await fetch(`/dp/${asin}`, { credentials: 'same-origin' });
+      const res = await fetch(`/dp/${asin}`, { credentials: 'same-origin', signal: controller.signal });
       if (!res.ok) throw new Error(String(res.status));
       const html = await res.text();
+      if (!current()) return;
       const doc = new DOMParser().parseFromString(html, 'text/html');
       // The ASIN must be passed explicitly: this document is not the page we are standing on.
       const data = AIR.extract.extract(doc, { asin, foodOnly: state.foodOnly });
-      if (!tile.isConnected) return;
+      if (!current()) return;
       // A non-food tile gets no badge at all — not even "?" — because there is nothing to say.
       if (state.foodOnly && data.ingestible && !data.ingestible.ok) {
         const b = tile.querySelector('.air-badge');
@@ -605,9 +644,12 @@
       cache(asin, { score: result.score, verdict: result.verdict, nova: result.nova });
       sendDiagnostic(data, result, 'search-tile');
     } catch (e) {
+      if (!current()) return;
       const b = tile.querySelector('.air-badge');
       if (b && b.textContent === '…') b.remove();
       queue.seen.delete(asin);   // a failed fetch may be worth retrying on the next pass
+    } finally {
+      queue.controllers.delete(controller);
     }
   }
 
@@ -656,9 +698,7 @@
   }
 
   function resetListState() {
-    queue.seen.clear();
-    queue.pending.length = 0;
-    document.querySelectorAll('[data-air-auto]').forEach(t => t.removeAttribute('data-air-auto'));
+    cancelTileWork();
     clearBadges();
   }
 
@@ -755,6 +795,8 @@
 
   function onNavigated() {
     lastUrl = location.href;
+    state.manual = null;
+    resetListState();
     state.lastKey = null;      // a new URL is a new product; don't reuse the last render
     state.failedExtracts = 0;
     resetSearchGate();         // ...and a new search, which may be about something else entirely
@@ -782,9 +824,7 @@
     stopObserving();
     stopNavigation();
     clearTimeout(timer);
-    if (tileObserver) { tileObserver.disconnect(); tileObserver = null; }
-    queue.pending.length = 0;
-    queue.seen.clear();
+    cancelTileWork();
     teardown();
     state.settled = 'suspended';
   }
@@ -863,12 +903,13 @@
     }
     if (changes.badges) {
       state.badges = changes.badges.newValue !== false;
-      if (!state.badges) clearBadges();
+      if (!state.badges) resetListState();
       else if (state.enabled) wake();
     }
     if (changes.hoverScore) {
       state.hoverScore = changes.hoverScore.newValue === true;
-      if (state.enabled && state.badges && state.hoverScore) armHoverPass();
+      resetListState();
+      if (state.enabled && state.badges) wake();
     }
     if (changes.foodOnly) {
       state.foodOnly = changes.foodOnly.newValue !== false;
@@ -880,10 +921,8 @@
     }
     if (changes.autoScoreSearch) {
       state.autoScoreSearch = changes.autoScoreSearch.newValue === true;
-      if (state.enabled && state.badges && state.autoScoreSearch) {
-        document.querySelectorAll('[data-air-auto]').forEach(t => t.removeAttribute('data-air-auto'));
-        armAutoScorePass();
-      }
+      resetListState();
+      if (state.enabled && state.badges) wake();
     }
     if (changes.sendDiagnostics) state.sendDiagnostics = changes.sendDiagnostics.newValue === true;
     if (changes.ocrLabels) {

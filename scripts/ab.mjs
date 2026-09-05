@@ -45,12 +45,13 @@ function sessionAlive() {
   }
 }
 
+// Let agent-browser allocate its debugging port. Overriding it prevents Chrome from writing
+// the DevToolsActivePort file the launcher waits for, causing repeated launch timeouts.
 const launchArgs = [
   '--session', session,
   '--headed',
   '--extension', root,
   '--profile', profile,
-  '--args', '--remote-debugging-port=9333',
 ];
 if (chrome) launchArgs.push('--executable-path', chrome);
 

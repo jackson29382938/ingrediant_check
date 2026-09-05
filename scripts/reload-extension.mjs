@@ -59,13 +59,47 @@ async function listTargets(port) {
   return res.json();
 }
 
-async function reloadUnpackedExtension(port) {
+async function reloadSleepingExtension(browserUrl, port) {
+  // Chrome removes idle workers from /json/list. The extension manager can reload an unpacked
+  // extension even then; use its exact directory to avoid touching another installed extension.
+  const { targetId } = await cdpCall(browserUrl, 'Target.createTarget', {
+    url: 'chrome://extensions/', background: true,
+  });
+  try {
+    const deadline = Date.now() + 5000;
+    while (Date.now() < deadline) {
+      const page = (await listTargets(port)).find(t => t.id === targetId);
+      if (page?.webSocketDebuggerUrl) {
+        const result = await cdpCall(page.webSocketDebuggerUrl, 'Runtime.evaluate', {
+          returnByValue: true,
+          expression: `(() => {
+            const list = document.querySelector('extensions-manager')?.shadowRoot
+              ?.querySelector('extensions-item-list')?.shadowRoot;
+            const item = [...(list?.querySelectorAll('extensions-item') || [])]
+              .find(e => e.data?.path === ${JSON.stringify(root)});
+            const button = item?.shadowRoot?.querySelector('#dev-reload-button');
+            if (!button) return false;
+            button.click();
+            return true;
+          })()`,
+        });
+        if (result.result?.value === true) return true;
+      }
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    return false;
+  } finally {
+    await cdpCall(browserUrl, 'Target.closeTarget', { targetId }).catch(() => {});
+  }
+}
+
+async function reloadUnpackedExtension(port, browserUrl) {
   const targets = await listTargets(port);
   const sw = targets.find((t) =>
     (t.type === 'service_worker' || t.type === 'background_page')
     && String(t.url || '').startsWith('chrome-extension://')
   );
-  if (!sw?.webSocketDebuggerUrl) return false;
+  if (!sw?.webSocketDebuggerUrl) return reloadSleepingExtension(browserUrl, port);
   try {
     await cdpCall(sw.webSocketDebuggerUrl, 'Runtime.enable');
   } catch { /* some targets already have Runtime */ }
@@ -89,7 +123,7 @@ const port = cdpPortFromUrl(cdpUrl);
 let reloaded = false;
 if (port) {
   try {
-    reloaded = await reloadUnpackedExtension(port);
+    reloaded = await reloadUnpackedExtension(port, cdpUrl);
   } catch (err) {
     console.error(`ingredient-check: extension reload failed (${err.message})`);
   }
