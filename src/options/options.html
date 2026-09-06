@@ -4,17 +4,33 @@
 <meta charset="utf-8">
 <title>Ingredient Check — Settings</title>
 <style>
-  :root { color-scheme: light; }
+  :root { color-scheme: light dark; }
   * { box-sizing: border-box; }
-  body { margin: 0; padding: 32px 24px 80px; color: #0f1111; background: #f7f8f8;
-         font: 14px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; padding: 24px 24px 80px; color: #0f1111; background: #f7f8f8;
+         font: 14px/1.55 "Amazon Ember", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   .wrap { max-width: 860px; margin: 0 auto; }
   h1 { font-size: 22px; margin: 0 0 4px; }
-  .lede { color: #565959; margin: 0 0 26px; max-width: 62ch; }
+  .lede { color: #565959; margin: 0 0 18px; max-width: 62ch; }
+  .jump { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 8px;
+          padding: 8px 0 12px; margin: 0 0 16px; background: #f7f8f8; }
+  .jump a { color: #007185; text-decoration: none; font-size: 12px; font-weight: 600;
+            padding: 4px 10px; border-radius: 999px; background: #fff; border: 1px solid #d5d9d9; }
+  .jump a:hover { background: #eef0f0; }
   section { background: #fff; border: 1px solid #d5d9d9; border-radius: 10px;
-            padding: 18px 20px; margin-bottom: 18px; }
+            padding: 18px 20px; margin-bottom: 18px; scroll-margin-top: 56px; }
   h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .7px; color: #565959;
        margin: 0 0 14px; font-weight: 700; }
+  h2.cat-group { font-size: 13px; text-transform: none; letter-spacing: 0; color: #0f1111;
+                 margin: 22px 0 8px; padding-top: 14px; border-top: 2px solid #eaeded; }
+  h2.cat-group:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+  .cat-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 12px; }
+  .cat-tools input[type=search] { flex: 1 1 220px; min-width: 180px; padding: 8px 10px;
+    border: 1px solid #d5d9d9; border-radius: 8px; font: inherit; font-size: 13px; }
+  .hint-chip { border: 1px dashed #d5d9d9; background: #fff; border-radius: 999px;
+               padding: 5px 11px; font-size: 12px; cursor: pointer; color: #0f1111; }
+  .hint-chip:hover { background: #eef0f0; }
+  .hint-chip[hidden] { display: none; }
 
   .presets { display: flex; flex-wrap: wrap; gap: 8px; }
   .preset { border: 1px solid #d5d9d9; background: #f7f8f8; border-radius: 999px;
@@ -25,7 +41,8 @@
 
   .cat { display: grid; grid-template-columns: 1fr 210px 52px; gap: 14px; align-items: center;
          padding: 12px 0; border-top: 1px solid #eaeded; }
-  .cat:first-of-type { border-top: 0; }
+  .cat:first-of-type, .cat[hidden] + .cat { border-top: 0; }
+  .cat[hidden], h2.cat-group[hidden] { display: none; }
   .cat .name { font-weight: 600; }
   .cat .help { color: #565959; font-size: 12px; margin-top: 2px; max-width: 52ch; }
   .cat .off { color: #767676; font-style: italic; }
@@ -48,8 +65,29 @@
   button:focus-visible, input:focus-visible, textarea:focus-visible, .preset:focus-visible,
   .chip:focus-within { outline: 3px solid #007185; outline-offset: 2px; }
   .status { color: #0f7b3f; font-size: 12px; font-weight: 600; }
+  .status.error { color: #a4161a; }
+  input.invalid { border-color: #a4161a !important; box-shadow: 0 0 0 2px rgba(164,22,26,.15); }
   .note { color: #565959; font-size: 12px; margin-top: 8px; }
   input[type=file] { display: none; }
+  @media (max-width: 640px) {
+    body { padding: 16px 14px 72px; }
+    .cat { grid-template-columns: 1fr 52px; }
+    .cat input[type=range] { grid-column: 1 / -1; }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  @media (prefers-color-scheme: dark) {
+    body, .jump { background: #1b1c1c; color: #f3f3f3; }
+    .lede, .note, .preset-note, .cat .help, h2 { color: #aeaeae; }
+    section, .chip, .jump a, .hint-chip, .cat-tools input[type=search] { background: #232525; border-color: #3a3c3c; color: #f3f3f3; }
+    .jump a:hover, .preset:hover, button.act:hover, .hint-chip:hover { background: #2d2f2f; }
+    .preset, button.act { background: #2d2f2f; border-color: #3a3c3c; color: #f3f3f3; }
+    textarea, input[type=url] { background: #1b1c1c; border-color: #3a3c3c; color: #f3f3f3; }
+    h2.cat-group { color: #f3f3f3; border-top-color: #3a3c3c; }
+    .cat { border-top-color: #3a3c3c; }
+    .val { color: #f3f3f3; }
+    .status { color: #6fdf9a; }
+    button.danger { color: #ff8a8a; }
+  }
 </style>
 </head>
 <body>
@@ -57,8 +95,17 @@
   <h1>Ingredient Check</h1>
   <p class="lede">Everything below runs on your computer. No account, no AI, no data leaves this
     machine except the two optional lookups you switch on yourself.</p>
+  <nav class="jump" aria-label="Settings sections">
+    <a href="#sec-rate">Rate</a>
+    <a href="#sec-presets">Presets</a>
+    <a href="#sec-weights">Weights</a>
+    <a href="#sec-warnings">Warnings</a>
+    <a href="#sec-avoid">Avoid</a>
+    <a href="#sec-database">Database</a>
+    <a href="#sec-file">File</a>
+  </nav>
 
-  <section>
+  <section id="sec-rate">
     <h2>What to rate</h2>
     <p class="note" style="margin: -6px 0 12px">
       These settings are the same ones in the toolbar popup. Changing them here updates scores on
@@ -75,23 +122,32 @@
     </p>
   </section>
 
-  <section>
+  <section id="sec-presets">
     <h2>Starting point</h2>
     <div class="presets" id="presets"></div>
     <div class="preset-note" id="presetNote"></div>
   </section>
 
-  <section>
+  <section id="sec-weights">
     <h2>What counts, and how much</h2>
     <p class="note" style="margin: -6px 0 12px">
       1.0 is the default weight. 0 switches a category off entirely. 2.0 makes it matter twice as
       much. Categories set to 0 by default are ones people reasonably disagree about — turn them on
-      if you want them.
+      if you want them. Press <kbd>/</kbd> to jump to the filter.
     </p>
+    <div class="cat-tools">
+      <input type="search" id="catFilter" placeholder="Filter categories" aria-label="Filter categories">
+      <div class="chips" id="catModes">
+        <button type="button" class="preset cat-filter" data-filter="all" aria-pressed="true">All</button>
+        <button type="button" class="preset cat-filter" data-filter="custom" aria-pressed="false">Changed</button>
+        <button type="button" class="preset cat-filter" data-filter="off" aria-pressed="false">Off</button>
+      </div>
+    </div>
+    <p class="note" id="catEmpty" hidden>No categories match. <button type="button" class="hint-chip" id="catFilterClear">Clear filter</button></p>
     <div id="categories"></div>
   </section>
 
-  <section>
+  <section id="sec-warnings">
     <h2>Allergen warnings</h2>
     <p class="note" style="margin: -6px 0 12px">
       Flagged on the panel. These never change the score — whether a food contains sesame is a
@@ -106,20 +162,23 @@
     <div class="chips" id="allergens"></div>
   </section>
 
-  <section>
+  <section id="sec-diets">
     <h2>Diet compatibility</h2>
     <div class="chips" id="diets"></div>
   </section>
 
-  <section>
+  <section id="sec-avoid">
     <h2>Your own avoid list</h2>
     <p class="note" style="margin: -6px 0 10px">
       One ingredient or phrase per line. Anything matching gets flagged on the panel.
     </p>
     <textarea id="avoidList" placeholder="carrageenan&#10;red 40&#10;natural flavors"></textarea>
+    <p class="note" id="avoidCount" style="margin: 6px 0 0"></p>
+    <p class="note" style="margin: 8px 0 6px">Add a common one:</p>
+    <div class="chips" id="avoidHints"></div>
   </section>
 
-  <section>
+  <section id="sec-database">
     <h2>Shared provenance database</h2>
     <p class="note" style="margin: -6px 0 12px">
       For single-ingredient foods — ground beef, eggs, milk, salmon — the ingredient list tells you
@@ -136,8 +195,8 @@
     </label>
     <label style="display:block;margin-bottom:12px">
       <span class="t">Contribution URL (write, optional)</span>
-      <span class="d">An Apps Script web app deployed from your own sheet. See sheet/Code.gs in the
-      extension folder for the script and setup steps.</span>
+      <span class="d">An Apps Script web app deployed from your own sheet. See
+      <code>docs/apps-script.gs</code> and <code>docs/DIAGNOSTICS.md</code> for the script and setup.</span>
       <input type="url" id="contributeUrl" placeholder="https://script.google.com/macros/s/.../exec"
              style="width:100%;margin-top:6px;padding:8px 10px;border:1px solid #d5d9d9;border-radius:8px;font:inherit;font-size:13px">
     </label>
@@ -232,7 +291,7 @@
     </ul>
   </section>
 
-  <section>
+  <section id="sec-file">
     <h2>Settings file</h2>
     <div class="row">
       <button class="act" id="export">Export settings</button>
@@ -247,6 +306,7 @@
 <script src="../engine/db/_module.js"></script>
 <script src="../engine/db/allergens.js"></script>
 <script src="../engine/categories.js"></script>
+<script src="../engine/db/prefs.js"></script>
 <script src="settings.js"></script>
 </body>
 </html>

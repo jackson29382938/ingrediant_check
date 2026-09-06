@@ -1,18 +1,19 @@
 // Settings page.
 //
 // Renders one slider per scoring category, straight from the taxonomy in engine/categories.js, so
-// adding a category to the engine adds it here with no UI work. Writes go straight to
-// chrome.storage.local; the content script watches for changes, drops its cache and rescores, since
-// a cached number computed under different weights is simply wrong.
+// adding a category to the engine adds it here with no UI work. Writes go through prefs.sanitize*
+// before chrome.storage.local, so a hand-edited import or a leftover key cannot corrupt scoring.
 
 const CATS = AIR.db.categories;
 const ALLERGENS = AIR.db.allergens;
+const PREFS = AIR.db.prefs;
 
-const state = { weights: {}, allergens: [], diets: [], avoidList: [], foodOnly: true };
+const state = PREFS.sanitizeScoring({});
 const DB_KEYS = ['sheetUrl', 'producersUrl', 'contributeUrl', 'shareContributions', 'sendDiagnostics'];
 const SHEET_ORIGINS = ['https://docs.google.com/*'];
 const SCRIPT_ORIGINS = ['https://script.google.com/*', 'https://script.googleusercontent.com/*'];
 let saveTimer = null;
+let writing = false;
 
 function originsForUrl(url) {
   const u = String(url || '').trim();
@@ -32,28 +33,106 @@ function requestOrigins(origins, done) {
   });
 }
 
-function flash(msg) {
+function flash(msg, kind) {
   const el = document.getElementById('status');
   el.textContent = msg;
+  el.className = 'status' + (kind === 'error' ? ' error' : '');
   clearTimeout(flash.t);
-  flash.t = setTimeout(() => { el.textContent = ''; }, 2200);
+  flash.t = setTimeout(() => { el.textContent = ''; el.className = 'status'; }, 2800);
+}
+
+function persist(values, done) {
+  writing = true;
+  chrome.storage.local.set(values, () => {
+    writing = false;
+    if (chrome.runtime.lastError) {
+      flash('Could not save — ' + chrome.runtime.lastError.message, 'error');
+      if (done) done(false);
+      return;
+    }
+    if (done) done(true);
+  });
+}
+
+function scoringPayload() {
+  return PREFS.sanitizeScoring(state);
 }
 
 function save({ immediate = false } = {}) {
   clearTimeout(saveTimer);
-  const write = () => chrome.storage.local.set({
-    weights: state.weights,
-    allergens: state.allergens,
-    diets: state.diets,
-    avoidList: state.avoidList,
-    foodOnly: state.foodOnly,
-  }, () => flash('Saved'));
+  const write = () => persist(scoringPayload(), ok => { if (ok) flash('Saved'); });
   if (immediate) write(); else saveTimer = setTimeout(write, 250);
+}
+
+function applyScoring(next) {
+  const clean = PREFS.sanitizeScoring(next);
+  state.weights = clean.weights;
+  state.allergens = clean.allergens;
+  state.diets = clean.diets;
+  state.avoidList = clean.avoidList;
+  state.foodOnly = clean.foodOnly;
+}
+
+function markUrl(el, ok) {
+  if (!el) return;
+  el.classList.toggle('invalid', ok === false);
+  el.setAttribute('aria-invalid', ok === false ? 'true' : 'false');
+}
+
+function readUrlField(id, kind) {
+  const el = document.getElementById(id);
+  const raw = ((el && el.value) || '').trim();
+  if (!raw) { markUrl(el, true); return ''; }
+  const ok = kind === 'script' ? !!PREFS.toScriptUrl(raw) : !!PREFS.toSheetUrl(raw);
+  markUrl(el, ok);
+  if (!ok) return null;
+  return kind === 'script' ? PREFS.toScriptUrl(raw) : raw;
 }
 
 // ---------------------------------------------------------------- categories
 function weightOf(id) {
   return id in state.weights ? state.weights[id] : CATS.DEFAULT_WEIGHTS[id];
+}
+
+function syncCatMeta(row, id) {
+  const w = weightOf(id);
+  const def = CATS.DEFAULT_WEIGHTS[id];
+  row.dataset.off = w === 0 ? '1' : '0';
+  row.dataset.custom = Math.abs(w - def) > 0.001 ? '1' : '0';
+}
+
+function applyCatFilter() {
+  const host = document.getElementById('categories');
+  const empty = document.getElementById('catEmpty');
+  if (!host) return;
+  const q = ((document.getElementById('catFilter') || {}).value || '').trim().toLowerCase();
+  const modeBtn = document.querySelector('.cat-filter[aria-pressed="true"]');
+  const mode = (modeBtn && modeBtn.dataset.filter) || 'all';
+  let visible = 0;
+  let custom = 0;
+  let lastGroup = null;
+  for (const el of host.children) {
+    if (el.classList.contains('cat-group')) {
+      lastGroup = el;
+      el.hidden = true;
+      continue;
+    }
+    if (!el.classList.contains('cat')) continue;
+    if (el.dataset.custom === '1') custom++;
+    const matchQ = !q || (el.dataset.search || '').includes(q);
+    const matchMode = mode === 'all'
+      || (mode === 'off' && el.dataset.off === '1')
+      || (mode === 'custom' && el.dataset.custom === '1');
+    const show = matchQ && matchMode;
+    el.hidden = !show;
+    if (show) {
+      visible++;
+      if (lastGroup) lastGroup.hidden = false;
+    }
+  }
+  if (empty) empty.hidden = visible > 0;
+  const customBtn = document.querySelector('.cat-filter[data-filter="custom"]');
+  if (customBtn) customBtn.textContent = custom ? `Changed · ${custom}` : 'Changed';
 }
 
 function renderCategories() {
@@ -67,14 +146,16 @@ function renderCategories() {
     if (c.group !== lastGroup) {
       lastGroup = c.group;
       const h = document.createElement('h2');
+      h.className = 'cat-group';
       h.textContent = c.group;
-      h.style.cssText = 'margin:22px 0 8px;padding-top:14px;border-top:2px solid #eaeded';
-      if (!host.children.length) h.style.cssText = 'margin:0 0 8px';
       host.appendChild(h);
     }
 
     const row = document.createElement('div');
     row.className = 'cat';
+    row.dataset.search = `${c.group} ${c.label} ${c.help} ${c.id}`.toLowerCase();
+    row.dataset.id = c.id;
+    syncCatMeta(row, c.id);
 
     const label = document.createElement('div');
     const name = document.createElement('div');
@@ -103,14 +184,18 @@ function renderCategories() {
     slider.addEventListener('input', () => {
       const v = parseFloat(slider.value);
       state.weights[c.id] = v;
-      paint(v);
+      applyScoring(state);
+      paint(weightOf(c.id));
+      syncCatMeta(row, c.id);
       markPresetDirty();
+      applyCatFilter();
       save();
     });
 
     row.append(label, slider, val);
     host.appendChild(row);
   }
+  applyCatFilter();
 }
 
 // ---------------------------------------------------------------- presets
@@ -133,7 +218,7 @@ function renderPresets() {
 function applyPreset(id) {
   const preset = CATS.PRESETS[id];
   if (!preset) return;
-  state.weights = { ...CATS.DEFAULT_WEIGHTS, ...preset.weights };
+  applyScoring({ ...state, weights: { ...CATS.DEFAULT_WEIGHTS, ...preset.weights } });
   renderCategories();
   markActivePreset(id);
   document.getElementById('presetNote').textContent = preset.note;
@@ -176,18 +261,14 @@ function toggleIn(arr, id, on) {
   const i = arr.indexOf(id);
   if (on && i === -1) arr.push(id);
   if (!on && i !== -1) arr.splice(i, 1);
+  applyScoring(state);
   save();
 }
 
 // ---------------------------------------------------------------- import / export
 function wireFileActions() {
   document.getElementById('export').addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify({
-      _format: 'ingredient-check-settings', _version: 1,
-      weights: state.weights, allergens: state.allergens,
-      diets: state.diets, avoidList: state.avoidList,
-      foodOnly: state.foodOnly,
-    }, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(PREFS.exportPayload(state), null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = 'ingredient-check-settings.json';
@@ -202,26 +283,26 @@ function wireFileActions() {
     const f = file.files && file.files[0];
     if (!f) return;
     try {
-      const parsed = JSON.parse(await f.text());
-      // Validate rather than trust: a hand-edited or wrong file should not silently corrupt scoring.
-      state.weights = CATS.resolveWeights(parsed.weights);
-      state.allergens = Array.isArray(parsed.allergens) ? parsed.allergens : [];
-      state.diets = Array.isArray(parsed.diets) ? parsed.diets : [];
-      state.avoidList = Array.isArray(parsed.avoidList) ? parsed.avoidList : [];
-      state.foodOnly = parsed.foodOnly !== false;
+      const parsed = PREFS.parseImport(await f.text());
+      if (!parsed.ok) {
+        flash(parsed.reason === 'not-json'
+          ? 'That file is not JSON'
+          : 'That file is not an Ingredient Check settings export', 'error');
+        return;
+      }
+      applyScoring(parsed.prefs);
       renderAll();
       save({ immediate: true });
       flash('Imported');
     } catch (e) {
-      flash('That file could not be read');
+      flash('That file could not be read', 'error');
     }
     file.value = '';
   });
 
   document.getElementById('reset').addEventListener('click', () => {
-    state.weights = { ...CATS.DEFAULT_WEIGHTS };
-    state.allergens = []; state.diets = []; state.avoidList = [];
-    state.foodOnly = true;
+    if (!window.confirm('Reset weights, warnings, and the avoid list to defaults? Database URLs are left alone.')) return;
+    applyScoring({});
     renderAll();
     save({ immediate: true });
     flash('Reset to defaults');
@@ -231,152 +312,286 @@ function wireFileActions() {
 // ---------------------------------------------------------------- shared database
 function wireDatabase() {
   chrome.storage.local.get(DB_KEYS, o => {
+    const urls = PREFS.sanitizeUrls(o);
+    const toggles = PREFS.sanitizeToggles(o);
+    const healed = {};
     for (const key of ['sheetUrl', 'producersUrl', 'contributeUrl']) {
       const el = document.getElementById(key);
       if (!el) continue;
-      el.value = o[key] || '';
+      if ((o[key] || '') !== urls[key]) healed[key] = urls[key];
+      el.value = urls[key] || '';
+      markUrl(el, true);
       el.addEventListener('change', () => {
-        const value = el.value.trim();
-        const persist = () => chrome.storage.local.set({ [key]: value }, () => flash('Saved'));
-        if (!value) { persist(); return; }
+        const kind = key === 'contributeUrl' ? 'script' : 'sheet';
+        const value = readUrlField(key, kind);
+        if (value === null) {
+          flash(kind === 'script'
+            ? 'That has to be an Apps Script /exec URL'
+            : 'That has to be a published Google Sheet link', 'error');
+          return;
+        }
+        const persistUrl = () => persist({ [key]: value }, ok => { if (ok) flash('Saved'); });
+        if (!value) { persistUrl(); return; }
         requestOrigins(originsForUrl(value), ok => {
           if (!ok) {
-            flash('Chrome blocked access to that host — the lookup cannot run');
+            flash('Chrome blocked access to that host — the lookup cannot run', 'error');
             return;
           }
-          persist();
+          persistUrl();
         });
       });
     }
+    if (o.shareContributions === true && !toggles.shareContributions) healed.shareContributions = false;
+    if (o.sendDiagnostics === true && !toggles.sendDiagnostics) healed.sendDiagnostics = false;
+    if (Object.keys(healed).length) persist(healed);
+
     const share = document.getElementById('shareContributions');
     if (share) {
-      share.checked = o.shareContributions === true;
+      share.checked = toggles.shareContributions;
       share.addEventListener('change', () => {
         if (!share.checked) {
-          chrome.storage.local.set({ shareContributions: false });
+          persist({ shareContributions: false });
           return;
         }
-        const url = (document.getElementById('contributeUrl') || {}).value;
+        const url = readUrlField('contributeUrl', 'script');
+        if (url === null || !url) {
+          share.checked = false;
+          flash('Set a valid contribution URL first', 'error');
+          return;
+        }
         requestOrigins(originsForUrl(url), ok => {
           if (!ok) {
             share.checked = false;
-            flash('Permission needed to send contributions');
+            flash('Permission needed to send contributions', 'error');
             return;
           }
-          chrome.storage.local.set({ shareContributions: true }, () => flash('Saved'));
+          persist({ shareContributions: true, contributeUrl: url }, saved => { if (saved) flash('Saved'); });
         });
       });
     }
-  });
 
-  const diag = document.getElementById('sendDiagnostics');
-  const diagStatus = document.getElementById('diagStatus');
-  const paintDiag = () => {
-    if (!diagStatus) return;
-    chrome.runtime.sendMessage({ type: 'diagnosticsStatus' }, res => {
-      if (chrome.runtime.lastError || !res) return;
-      diagStatus.textContent = !res.configured ? 'No contribution URL set'
-        : res.queued ? `${res.queued} row${res.queued === 1 ? '' : 's'} waiting to send`
-        : 'Nothing queued';
-    });
-  };
-  if (diag) {
-    chrome.storage.local.get('sendDiagnostics', o => { diag.checked = o.sendDiagnostics === true; });
-    diag.addEventListener('change', () => {
-      // Shares the contribution endpoint, so it needs the same host grant.
-      if (!diag.checked) { chrome.storage.local.set({ sendDiagnostics: false }, paintDiag); return; }
-      const url = (document.getElementById('contributeUrl') || {}).value;
-      requestOrigins(originsForUrl(url), ok => {
-        if (!ok) { diag.checked = false; flash('Permission needed to send diagnostics'); return; }
-        chrome.storage.local.set({ sendDiagnostics: true }, () => { flash('Saved'); paintDiag(); });
+    const diag = document.getElementById('sendDiagnostics');
+    const diagStatus = document.getElementById('diagStatus');
+    const paintDiag = () => {
+      if (!diagStatus) return;
+      chrome.runtime.sendMessage({ type: 'diagnosticsStatus' }, res => {
+        if (chrome.runtime.lastError || !res) return;
+        diagStatus.textContent = !res.configured ? 'No contribution URL set'
+          : res.queued ? `${res.queued} row${res.queued === 1 ? '' : 's'} waiting to send`
+          : 'Nothing queued';
       });
-    });
-    paintDiag();
-  }
-  const flushBtn = document.getElementById('flushDiagnostics');
-  if (flushBtn) {
-    flushBtn.addEventListener('click', () => {
-      diagStatus.textContent = 'Sending…';
-      chrome.runtime.sendMessage({ type: 'flushDiagnostics' }, res => {
-        if (chrome.runtime.lastError || !res) { diagStatus.textContent = 'Could not reach the endpoint'; return; }
-        diagStatus.textContent = res.ok ? `Sent ${res.sent} rows`
-          : res.reason === 'nothing-to-send' ? 'Nothing queued'
-          : `Could not send — ${res.reason} (${res.queued || 0} still queued)`;
+    };
+    if (diag) {
+      diag.checked = toggles.sendDiagnostics;
+      diag.addEventListener('change', () => {
+        if (!diag.checked) { persist({ sendDiagnostics: false }, paintDiag); return; }
+        const url = readUrlField('contributeUrl', 'script');
+        if (url === null || !url) {
+          diag.checked = false;
+          flash('Set a valid contribution URL first', 'error');
+          return;
+        }
+        requestOrigins(originsForUrl(url), ok => {
+          if (!ok) { diag.checked = false; flash('Permission needed to send diagnostics', 'error'); return; }
+          persist({ sendDiagnostics: true, contributeUrl: url }, saved => {
+            if (saved) flash('Saved');
+            paintDiag();
+          });
+        });
       });
-    });
-  }
+      paintDiag();
+    }
+    const flushBtn = document.getElementById('flushDiagnostics');
+    if (flushBtn) {
+      flushBtn.addEventListener('click', () => {
+        diagStatus.textContent = 'Sending…';
+        chrome.runtime.sendMessage({ type: 'flushDiagnostics' }, res => {
+          if (chrome.runtime.lastError || !res) { diagStatus.textContent = 'Could not reach the endpoint'; return; }
+          diagStatus.textContent = res.ok ? `Sent ${res.sent} rows`
+            : res.reason === 'nothing-to-send' ? 'Nothing queued'
+            : `Could not send — ${res.reason} (${res.queued || 0} still queued)`;
+        });
+      });
+    }
 
-  const btn = document.getElementById('refreshSheet');
-  if (!btn) return;
-  btn.addEventListener('click', () => {
-    const status = document.getElementById('sheetStatus');
-    const urls = ['sheetUrl', 'producersUrl']
-      .map(id => (document.getElementById(id) || {}).value)
-      .filter(Boolean)
-      .map(v => String(v).trim());
-    requestOrigins([...new Set(urls.flatMap(originsForUrl))], ok => {
-      if (!ok) { status.textContent = 'Permission needed to read the sheet'; return; }
-      status.textContent = 'Fetching…';
-      chrome.runtime.sendMessage({ type: 'refreshSheet' }, res => {
-        if (chrome.runtime.lastError || !res) { status.textContent = 'Could not reach the sheet'; return; }
-        status.textContent = res.ok
-          ? `Loaded ${res.count} product records and ${res.producers || 0} producers`
-          : 'No usable rows found';
+    const btn = document.getElementById('refreshSheet');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const status = document.getElementById('sheetStatus');
+      const urls = ['sheetUrl', 'producersUrl']
+        .map(id => readUrlField(id, 'sheet'))
+        .filter(v => v);
+      if (['sheetUrl', 'producersUrl'].some(id => readUrlField(id, 'sheet') === null)) {
+        status.textContent = 'Fix the highlighted URL first';
+        return;
+      }
+      requestOrigins([...new Set(urls.flatMap(originsForUrl))], ok => {
+        if (!ok) { status.textContent = 'Permission needed to read the sheet'; return; }
+        status.textContent = 'Fetching…';
+        chrome.runtime.sendMessage({ type: 'refreshSheet' }, res => {
+          if (chrome.runtime.lastError || !res) { status.textContent = 'Could not reach the sheet'; return; }
+          status.textContent = res.ok
+            ? `Loaded ${res.count} product records and ${res.producers || 0} producers`
+            : 'No usable rows found';
+        });
       });
     });
   });
 }
 
 // ---------------------------------------------------------------- boot
+const AVOID_HINTS = [
+  'carrageenan', 'red 40', 'yellow 5', 'yellow 6', 'blue 1',
+  'titanium dioxide', 'BHT', 'BHA', 'TBHQ',
+  'natural flavors', 'artificial flavors', 'sucralose',
+];
+
+function paintAvoidCount() {
+  const el = document.getElementById('avoidCount');
+  if (!el) return;
+  const max = PREFS.AVOID_MAX_LINES || 80;
+  const n = state.avoidList.length;
+  el.textContent = n ? `${n} / ${max} lines` : `Up to ${max} lines.`;
+}
+
+function paintAvoidHints() {
+  paintAvoidCount();
+  const host = document.getElementById('avoidHints');
+  if (!host) return;
+  const have = new Set(state.avoidList.map(x => x.toLowerCase()));
+  host.textContent = '';
+  for (const term of AVOID_HINTS) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'hint-chip';
+    b.textContent = term;
+    if (have.has(term.toLowerCase())) { b.hidden = true; continue; }
+    b.addEventListener('click', () => {
+      state.avoidList = PREFS.sanitizeAvoidList([...state.avoidList, term]);
+      const ta = document.getElementById('avoidList');
+      if (ta) ta.value = state.avoidList.join('\n');
+      paintAvoidHints();
+      save({ immediate: true });
+    });
+    host.appendChild(b);
+  }
+}
+
+function wireCatTools() {
+  const filter = document.getElementById('catFilter');
+  if (filter && !filter.dataset.wired) {
+    filter.dataset.wired = '1';
+    filter.addEventListener('input', applyCatFilter);
+    filter.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && filter.value) {
+        filter.value = '';
+        applyCatFilter();
+        e.preventDefault();
+      }
+    });
+  }
+  const clearFilter = document.getElementById('catFilterClear');
+  if (clearFilter && !clearFilter.dataset.wired) {
+    clearFilter.dataset.wired = '1';
+    clearFilter.addEventListener('click', () => {
+      const box = document.getElementById('catFilter');
+      if (box) box.value = '';
+      document.querySelectorAll('.cat-filter').forEach(b => {
+        b.setAttribute('aria-pressed', String(b.dataset.filter === 'all'));
+      });
+      applyCatFilter();
+      if (box) box.focus();
+    });
+  }
+  document.querySelectorAll('.cat-filter').forEach(btn => {
+    if (btn.dataset.wired) return;
+    btn.dataset.wired = '1';
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.cat-filter').forEach(b => b.setAttribute('aria-pressed', 'false'));
+      btn.setAttribute('aria-pressed', 'true');
+      applyCatFilter();
+    });
+  });
+  if (!document.documentElement.dataset.slashFilter) {
+    document.documentElement.dataset.slashFilter = '1';
+    document.addEventListener('keydown', e => {
+      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable) return;
+      const box = document.getElementById('catFilter');
+      if (!box) return;
+      e.preventDefault();
+      box.focus();
+    });
+  }
+}
+
 function renderAll() {
   renderCategories();
   renderChips('allergens', ALLERGENS.ALLERGENS, state.allergens, (id, on) => toggleIn(state.allergens, id, on));
   renderChips('diets', ALLERGENS.DIETS, state.diets, (id, on) => toggleIn(state.diets, id, on));
-  document.getElementById('avoidList').value = state.avoidList.join('\n');
+  const avoid = document.getElementById('avoidList');
+  if (document.activeElement !== avoid) avoid.value = state.avoidList.join('\n');
+  paintAvoidHints();
   const fo = document.getElementById('foodOnly');
   if (fo) fo.checked = state.foodOnly;
   markPresetDirty();
 }
 
 chrome.storage.local.get(['weights', 'allergens', 'diets', 'avoidList', 'foodOnly'], o => {
-  state.weights = CATS.resolveWeights(o.weights);
-  state.allergens = Array.isArray(o.allergens) ? o.allergens : [];
-  state.diets = Array.isArray(o.diets) ? o.diets : [];
-  state.avoidList = Array.isArray(o.avoidList) ? o.avoidList : [];
-  state.foodOnly = o.foodOnly !== false;
+  applyScoring(o);
+  if (!PREFS.scoringEqual(o, state)) persist(scoringPayload());
   renderPresets();
   renderAll();
+  wireCatTools();
   wireFileActions();
   wireDatabase();
 
   document.getElementById('avoidList').addEventListener('input', e => {
-    state.avoidList = e.target.value.split('\n').map(s => s.trim()).filter(Boolean);
+    state.avoidList = PREFS.sanitizeAvoidList(e.target.value);
+    paintAvoidHints();
     save();
+  });
+  document.getElementById('avoidList').addEventListener('blur', e => {
+    state.avoidList = PREFS.sanitizeAvoidList(e.target.value);
+    e.target.value = state.avoidList.join('\n');
+    paintAvoidHints();
+    save({ immediate: true });
   });
 
   const fo = document.getElementById('foodOnly');
   if (fo) {
     fo.addEventListener('change', () => {
       state.foodOnly = fo.checked;
+      applyScoring(state);
       save({ immediate: true });
     });
   }
 });
 
+window.addEventListener('pagehide', () => {
+  clearTimeout(saveTimer);
+  persist(scoringPayload());
+});
+
 // Stay in sync if the popup flips the same keys while this page is open.
 chrome.storage.onChanged.addListener(changes => {
+  if (writing) return;
   if (changes.foodOnly) {
     state.foodOnly = changes.foodOnly.newValue !== false;
     const fo = document.getElementById('foodOnly');
     if (fo) fo.checked = state.foodOnly;
   }
   if (changes.weights || changes.allergens || changes.diets || changes.avoidList) {
-    chrome.storage.local.get(['weights', 'allergens', 'diets', 'avoidList'], o => {
-      if (changes.weights) state.weights = CATS.resolveWeights(o.weights);
-      if (changes.allergens) state.allergens = Array.isArray(o.allergens) ? o.allergens : [];
-      if (changes.diets) state.diets = Array.isArray(o.diets) ? o.diets : [];
-      if (changes.avoidList) state.avoidList = Array.isArray(o.avoidList) ? o.avoidList : [];
+    chrome.storage.local.get(['weights', 'allergens', 'diets', 'avoidList', 'foodOnly'], o => {
+      applyScoring(o);
       renderAll();
     });
+  }
+  for (const key of ['sheetUrl', 'producersUrl', 'contributeUrl']) {
+    if (!changes[key]) continue;
+    const el = document.getElementById(key);
+    if (!el || document.activeElement === el) continue;
+    el.value = changes[key].newValue || '';
+    markUrl(el, true);
   }
 });

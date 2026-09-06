@@ -202,10 +202,54 @@ check('short and long single-ingredient phrases are accepted', () => {
 
 check('headings and logistics copy are still rejected', () => {
   assert.ok(!extract.looksLikeIngredients('Ingredients'));
+  assert.ok(!extract.looksLikeIngredients('Ingredientes'));
+  assert.ok(!extract.looksLikeIngredients('Zutaten'));
   assert.ok(!extract.looksLikeIngredients('About this item'));
   assert.ok(!extract.looksLikeIngredients('See label for ingredients.'));
   assert.ok(!extract.looksLikeIngredients('Product of USA, Keep refrigerated, Best by date on package'));
 });
+
+check('EU ingredient headings are recognised as headings', () => {
+  assert.ok(extract.INGREDIENT_HEADING.test('Zutaten'));
+  assert.ok(extract.INGREDIENT_HEADING.test('Ingredientes:'));
+  assert.ok(extract.INGREDIENT_HEADING.test('Ingrédients'));
+  assert.ok(extract.INGREDIENT_HEADING.test('Ingredienti'));
+  assert.ok(extract.INGREDIENT_HEADING.test('原材料'));
+  assert.ok(!extract.INGREDIENT_HEADING.test('See ingredients below'));
+});
+
+check('line-sweep heading matches localised labels', () => {
+  assert.ok(extract.LINE_BLOCK.test('Zutaten\nWasser, Zucker, Salz, Sonnenblumenöl\nNährwert'));
+  assert.ok(extract.LINE_BLOCK.test('Ingredientes\nagua, azucar, sal, aceite vegetal\nInformación nutricional'));
+  assert.ok(extract.LINE_BLOCK.test('Ingrediënten\nwater, suiker, zout\nVoedingswaarde'));
+  assert.ok(extract.LINE_BLOCK.test('Składniki\nwoda, cukier, sól\nWartość odżywcza'));
+});
+
+check('inline Ingredients: lists extract from detail bullets', () => {
+  const doc = {
+    title: 'Sea salt',
+    querySelector(sel) {
+      if (sel === '#productTitle') return { innerText: 'Sea salt' };
+      if (sel === '#detailBullets_feature_div') {
+        return { innerText: 'Ingredients: sea salt, anticaking agent\nDirections: use freely' };
+      }
+      if (sel === '#wayfinding-breadcrumbs_feature_div') return { innerText: 'Grocery & Gourmet Food' };
+      if (sel === '#nutritionalInfoAndIngredients_feature_div') {
+        return { innerText: 'Nutrition Facts Serving size 1g Calories 0' };
+      }
+      return null;
+    },
+    querySelectorAll(sel) {
+      if (sel === '.content, .a-section') return [];
+      return [];
+    },
+  };
+  const out = extract.extract(doc, { foodOnly: true });
+  assert.ok(out.ok, JSON.stringify(out));
+  assert.ok(/sea salt/i.test(out.text), out.text);
+  assert.ok(/line-inline|line-sweep/i.test(out.via), out.via);
+});
+
 
 check('short whole-food text extracts from the nutrition card', () => {
   const doc = stubDoc('Organic Valley Whole Milk', {
@@ -223,6 +267,25 @@ check('manual paste accepts a real list and rejects a stub', () => {
   assert.ok(panel.pasteLooksValid('organic rolled oats, salt'));
   assert.ok(!panel.pasteLooksValid('hi'));
   assert.ok(!panel.pasteLooksValid('See label for ingredients.'));
+});
+
+check('scored panel offers a copy action and coverage warning', () => {
+  const html = panel.render({
+    score: 42, verdict: 'Poor', nova: 4, base: 60, good: [], bad: [], flags: [],
+    parsed: 8, coverage: 0.45, ruleCount: 1,
+  }, { title: 'Test drink' });
+  assert.ok(/Copy score/.test(html));
+  assert.ok(/data-copy="/.test(html));
+  assert.ok(/partial reading/.test(html));
+});
+
+check('not-food card uses the settings explanation', () => {
+  const html = panel.renderNotFood({
+    title: 'Shampoo',
+    ingestible: { ok: false, reason: 'cosmetic' },
+  });
+  assert.ok(/Only rate food/.test(html));
+  assert.ok(/does not look like food/.test(html));
 });
 
 console.log('settings prefs reach the scorer');

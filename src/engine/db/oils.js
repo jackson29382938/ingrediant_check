@@ -53,9 +53,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // Cold-pressed / unrefined qualifiers soften an otherwise-capped oil.
   const UNREFINED = /\b(cold[- ]pressed|expeller[- ]pressed|unrefined|virgin|first press)\b/i;
 
-  // TRADITIONAL and UNREFINED were defined here from the start and exported by neither this line
-  // nor anything else, so the softening the header comment promises never happened. UNREFINED is
-  // now consumed by the cap assembly in score.js.
+  // TRADITIONAL fats earn their bonus via labels.BONUSES ("Minimally refined cooking fat"), not
+  // from this list. Kept here as the authoritative set of fats that are not industrial seed oils,
+  // so future scoring work has one place to look. UNREFINED softens HARD caps in score.js.
   const _exports = AIRmodule('oils', { HARD, TRANS, TRADITIONAL, UNREFINED });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 

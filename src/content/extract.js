@@ -1,7 +1,7 @@
 // Ingredient extraction from an Amazon product page.
 //
 // Four tiers, first hit wins, each carrying a confidence. Every DOM path here was verified against
-// live amazon.com in Phase 0 — see PHASE0-FINDINGS.md. The traps that shaped this file:
+// live amazon.com. The traps that shaped this file:
 //
 //   * The "Ingredients" heading sits in a COLLAPSED expander. Its content is a SIBLING
 //     (.a-expander-content), not an ancestor. Reading the parent returns the literal word
@@ -14,7 +14,10 @@
 (function (root) {
   root.AIR = root.AIR || {};
 
-  const NEXT_SECTION = /^(directions|legal disclaimer|safety information|allergen information|warnings?|storage|nutrition facts|product description)\b/i;
+  const NEXT_SECTION = /^(directions|legal disclaimer|safety information|allergen information|warnings?|storage|nutrition facts|product description|informaci[oó]n nutricional|n[äa]hrwert|valeurs nutritionnelles|valori nutrizionali)\b/i;
+  // US pages print "Ingredients". EU/LatAm pages print the local heading, and a US-only match
+  // used to walk past a perfectly readable list on amazon.de / .es / .fr / .it.
+  const INGREDIENT_HEADING = /^\s*(?:ingredients?|ingredientes|ingredi[eë]nten|ingr[eé]dients?|zutaten|ingredienti|sk[łl]adniki|原材料)\s*:?\s*$/i;
   const MIN_LEN = 4;
   // Rejecting rather than truncating is deliberate: the tail of a list is exactly where the
   // additives live, so a truncated list would score clean for the wrong reason. But 3000 was tight
@@ -69,7 +72,7 @@
     const t = norm(text);
     if (t.length < MIN_LEN || t.length > MAX_LEN) return false;
     if (PLACEHOLDER.test(t)) return false;
-    if (/^(ingredients|nutrition facts|directions|legal disclaimer)\s*:?\s*$/i.test(t)) return false;
+    if (/^(ingredients?|ingredientes|ingredi[eë]nten|ingr[eé]dients?|zutaten|ingredienti|sk[łl]adniki|原材料|nutrition facts|directions|legal disclaimer)\s*:?\s*$/i.test(t)) return false;
     if (/\b(we believe|our story|customer|review|shipping|guarantee|click here)\b/i.test(t)) return false;
 
     const parts = t.split(/[,;]/).map(p => p.trim()).filter(Boolean);
@@ -122,7 +125,7 @@
   // The fix that Phase 0 forced: content is a sibling of the heading's header, inside the
   // shared .a-expander-container.
   function fromExpander(scope, title) {
-    const heads = leafNodesMatching(scope, /^\s*ingredients\s*:?\s*$/i);
+    const heads = leafNodesMatching(scope, INGREDIENT_HEADING);
     for (const h of heads) {
       const container = h.closest('.a-expander-container');
       if (!container) continue;
@@ -140,7 +143,7 @@
     const sections = scope.querySelectorAll('.content, .a-section');
     for (const sec of sections) {
       const head = sec.querySelector('h1,h2,h3,h4,h5,h6,.a-text-bold,b,strong');
-      if (!head || !/^\s*ingredients\s*:?\s*$/i.test(head.textContent || '')) continue;
+      if (!head || !INGREDIENT_HEADING.test(head.textContent || '')) continue;
       // Join every block in the section, in document order. Taking only the longest node dropped
       // the tail of any list Amazon split across two <p> elements — and the tail is exactly where
       // the additives live, so a product could read 100/100 while its second paragraph held
@@ -148,7 +151,7 @@
       const blocks = [...sec.querySelectorAll('p, span, div')]
         .filter(el => !el.querySelector('p, span, div'))          // leaf blocks only, no double-count
         .map(p => clean(p.innerText))
-        .filter(t => t && !/^\s*ingredients\s*:?\s*$/i.test(t) && !NEXT_SECTION.test(t));
+        .filter(t => t && !INGREDIENT_HEADING.test(t) && !NEXT_SECTION.test(t));
       const seenBlocks = new Set();
       const text = norm(blocks.filter(b => !seenBlocks.has(b) && seenBlocks.add(b)).join(' '));
       if (looksLikeIngredients(text, title)) return { text };
@@ -172,22 +175,30 @@
   // Stop at a known next-section heading or end of text — NOT at the first blank line. Consecutive
   // <p> elements render as a blank line in innerText, so the old blank-line terminator cut lists in
   // half whenever Amazon split them across paragraphs.
-  const LINE_BLOCK = /(?:^|\n)[ \t]*Ingredients[ \t]*:?[ \t]*\n+([\s\S]{4,2000}?)(?=\n[ \t]*(?:Directions|Legal Disclaimer|Safety Information|Allergen Information|Warnings?|Storage|Nutrition Facts|Product Description|About this item)\b|$)/i;
+  const LINE_BLOCK = /(?:^|\n)[ \t]*(?:Ingredients?|Ingredientes|Ingrediënten|Ingrédients|Zutaten|Ingredienti|Składniki|原材料)[ \t]*:?[ \t]*\n+([\s\S]{4,6000}?)(?=\n[ \t]*(?:Directions|Legal Disclaimer|Safety Information|Allergen Information|Warnings?|Storage|Nutrition Facts|Product Description|About this item|Información nutricional|Nährwert|Valeurs nutritionnelles|Valori nutrizionali|Voedingswaarde|Wartość odżywcza|栄養成分)(?:\b|$)|$)/i;
+  // Same-line form used on a lot of detail-bullet pages: "Ingredients: water, sugar, salt".
+  const LINE_INLINE = /(?:^|\n)[ \t]*(?:Ingredients?|Ingredientes|Ingrediënten|Ingrédients|Zutaten|Ingredienti|Składniki|原材料)\s*:\s*([^\n]{8,6000})/i;
 
   function tier3(doc, title) {
     const regions = ['#important-information', '#productDetails_feature_div', '#detailBullets_feature_div', '#aplus'];
     for (const sel of regions) {
       const el = doc.querySelector(sel);
       if (!el) continue;
-      const m = (el.innerText || '').match(LINE_BLOCK);
-      if (!m) continue;
-      // Keep every line up to the first next-section heading, rather than filtering headings out
-      // and silently splicing unrelated text together.
-      const lines = m[1].split('\n');
-      const stop = lines.findIndex(l => NEXT_SECTION.test(l.trim()));
-      const body = (stop === -1 ? lines : lines.slice(0, stop)).join(' ');
-      if (looksLikeIngredients(body, title)) {
-        return { text: norm(body), via: `line-sweep:${sel}`, confidence: 0.6 };
+      const text = el.innerText || '';
+      const m = text.match(LINE_BLOCK);
+      if (m) {
+        // Keep every line up to the first next-section heading, rather than filtering headings out
+        // and silently splicing unrelated text together.
+        const lines = m[1].split('\n');
+        const stop = lines.findIndex(l => NEXT_SECTION.test(l.trim()));
+        const body = (stop === -1 ? lines : lines.slice(0, stop)).join(' ');
+        if (looksLikeIngredients(body, title)) {
+          return { text: norm(body), via: `line-sweep:${sel}`, confidence: 0.6 };
+        }
+      }
+      const inline = text.match(LINE_INLINE);
+      if (inline && looksLikeIngredients(inline[1], title)) {
+        return { text: norm(inline[1]), via: `line-inline:${sel}`, confidence: 0.55 };
       }
     }
     return null;
@@ -198,14 +209,14 @@
   // protein) — all of which default to off. Returns null rather than zeros when the page publishes
   // no panel, so "no data" is never mistaken for "zero grams".
   const NUTRIENTS = [
-    ['sodium',       /\bsodium\b[^0-9]{0,20}([\d.]+)\s*mg/i],
-    ['saturatedFat', /\bsaturated fat\b[^0-9]{0,20}([\d.]+)\s*g/i],
+    ['sodium',       /\b(?:sodium|natrium|sodio)\b[^0-9]{0,20}([\d.]+)\s*mg/i],
+    ['saturatedFat', /\b(?:saturated fat|ges[äa]ttigte fetts[äa]uren|acides gras satur[eé]s|grasas saturadas|grassi saturi)\b[^0-9]{0,20}([\d.]+)\s*g/i],
     ['transFat',     /\btrans fat\b[^0-9]{0,20}([\d.]+)\s*g/i],
-    ['sugar',        /\b(?:total sugars?|sugars?)\b[^0-9]{0,20}([\d.]+)\s*g/i],
+    ['sugar',        /\b(?:total sugars?|sugars?|zucker|az[uú]cares?|sucres?|zuccheri)\b[^0-9]{0,20}([\d.]+)\s*g/i],
     ['addedSugar',   /\badded sugars?\b[^0-9]{0,20}([\d.]+)\s*g/i],
-    ['fibre',        /\bdietary fibre?r?\b[^0-9]{0,20}([\d.]+)\s*g/i],
-    ['protein',      /\bprotein\b[^0-9]{0,20}([\d.]+)\s*g/i],
-    ['calories',     /\bcalories\b[^0-9]{0,20}([\d.]+)/i],
+    ['fibre',        /\b(?:dietary fibre?r?|ballaststoffe|fibra(?:s)?(?: alimentaria| alimentar)?|fibres? alimentaires?)\b[^0-9]{0,20}([\d.]+)\s*g/i],
+    ['protein',      /\b(?:protein|eiweiss|prot[eé]ines?|prote[ií]nas?)\b[^0-9]{0,20}([\d.]+)\s*g|eiwei[sß][^0-9a-z]{0,20}([\d.]+)\s*g/i],
+    ['calories',     /\b(?:calories|energie|energ[ií]a|énergie)\b[^0-9]{0,20}([\d.]+)/i],
   ];
 
   // Amazon's grocery card renders its nutrition summary as a table with the VALUES row above the
@@ -274,11 +285,13 @@
       const el = doc.querySelector(sel);
       if (!el) continue;
       const text = clean(el.innerText);
-      if (!/\bcalories\b|\bnutrition facts\b|\bserving size\b/i.test(text)) continue;
+      if (!/\bcalories\b|\bnutrition facts\b|\bserving size\b|\bn[äa]hrwert|\benergie\b|\bvaleurs nutritionnelles\b|\binformaci[oó]n nutricional\b|\bvalori nutrizionali\b|\bvoedingswaarde\b/i.test(text)) continue;
       const out = {};
       for (const [key, re] of NUTRIENTS) {
         const m = text.match(re);
-        if (m) { const v = parseFloat(m[1]); if (isFinite(v)) out[key] = v; }
+        if (!m) continue;
+        const v = parseFloat(m[1] != null && m[1] !== '' ? m[1] : m[2]);
+        if (isFinite(v)) out[key] = v;
       }
       // Stop at the next panel field. An unbounded 40-character window ran straight past the end
       // of the size declaration and into the rows below it, so "Serving size 1 slice Calories 80
@@ -383,6 +396,6 @@
     return { ok: false, ...identity, reason: identity.upc ? 'no-dom-match-barcode-available' : 'no-dom-match' };
   }
 
-  root.AIR.extract = { extract, looksLikeIngredients, echoesTitle, LINE_BLOCK, productIdentity, nutritionFacts, nutritionSummaryTable };
+  root.AIR.extract = { extract, looksLikeIngredients, echoesTitle, LINE_BLOCK, LINE_INLINE, INGREDIENT_HEADING, productIdentity, nutritionFacts, nutritionSummaryTable };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.AIR.extract;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

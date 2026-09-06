@@ -8,7 +8,7 @@
   const HOST_ID = 'air-score-panel';
   const BADGE_ATTR = 'data-air-badge';
   const state = { enabled: true, badges: true, hoverScore: false, autoScoreSearch: false, foodOnly: true,
-    ocrLabels: false, sendDiagnostics: false, settled: null,
+    ocrLabels: false, sendDiagnostics: false, settled: null, lastBadgeScore: undefined,
     prefs: { weights: {}, allergens: [], diets: [], avoidList: [] }, lastKey: null, requestId: 0,
     failedExtracts: 0, manual: null };
 
@@ -61,6 +61,7 @@
     }
     state.lastKey = key;
     host.dataset.airState = 'not-food';
+    publishActionBadge(null);
     const shadow = AIR.panel.mount(host, AIR.panel.renderNotFood(data));
     wireScoreAnyway(shadow, host, data, key);
     settle('not-food');
@@ -187,7 +188,8 @@
               confidence: 0.55,
               via: 'open-food-facts',
             }));
-            cache(key, { score: result.score, verdict: result.verdict, nova: result.nova });
+            cacheScore(key, result, data.title || fallback.name);
+            publishActionBadge(result);
             sendDiagnostic(data, result, 'open-food-facts', fallback.ingredients_text);
           });
         });
@@ -214,7 +216,8 @@
     AIR.panel.mount(host, AIR.panel.render(result, {
       title: data.title, confidence: data.confidence, via: data.via,
     }), reporter(data, result));
-    cache(key, { score: result.score, verdict: result.verdict, nova: result.nova });
+    cacheScore(key, result, data.title);
+    publishActionBadge(result);
     sendDiagnostic(data, result, data.via);
 
     // Whole foods get a second pass against the shared provenance database. The panel renders
@@ -242,7 +245,8 @@
           title: data.title, confidence: data.confidence, via: data.via,
           provenanceSource: record.source,
         }));
-        cache(key, { score: better.score, verdict: better.verdict, nova: better.nova });
+        cacheScore(key, better, data.title);
+        publishActionBadge(better);
       });
     } catch (e) { /* messaging unavailable in some frames */ }
   }
@@ -312,7 +316,8 @@
         AIR.panel.mount(host, AIR.panel.render(result, {
           title: data.title, confidence: 0.7, via: 'label-ocr',
         }), reporter(data, result));
-        cache(key, { score: result.score, verdict: result.verdict, nova: result.nova });
+        cacheScore(key, result, data.title);
+        publishActionBadge(result);
         sendDiagnostic(data, result, 'label-ocr', best.text);
       });
     } catch (e) { giveUp({}); }
@@ -323,6 +328,7 @@
     if (host.dataset.airState === 'fail') return;
     if (state.ocrLabels && !data.ocrAttempted) { tryOcr(host, data, key); return; }
     host.dataset.airState = 'fail';
+    publishActionBadge(null);
     AIR.panel.mount(host, AIR.panel.renderFailure(data), null, text => {
       state.manual = { key, data, text };
       renderManual(host, data, key, text);
@@ -339,7 +345,8 @@
     AIR.panel.mount(host, AIR.panel.render(result, {
       title: data.title, confidence: 1, via: 'manual-paste',
     }), reporter(data, result));
-    cache(key, { score: result.score, verdict: result.verdict, nova: result.nova });
+    cacheScore(key, result, data.title);
+    publishActionBadge(result);
     sendDiagnostic(data, result, 'manual-paste', text);
   }
 
@@ -359,7 +366,8 @@
       AIR.panel.mount(host, AIR.panel.render(result, {
         title: data2.title, confidence: data2.confidence, via: data2.via,
       }), reporter(data2, result));
-      cache(key, { score: result.score, verdict: result.verdict, nova: result.nova });
+      cacheScore(key, result, data2.title);
+      publishActionBadge(result);
     });
   }
 
@@ -456,11 +464,23 @@
     });
   }
 
-  const BADGE_CSS = `display:inline-grid;place-items:center;min-width:26px;height:26px;
-    padding:0 6px;margin-right:8px;border-radius:999px;font:700 12px/1 sans-serif;
-    vertical-align:middle;`;
+  let badgeStyleReady = false;
+  function ensureBadgeStyle() {
+    if (badgeStyleReady || document.getElementById('air-badge-style')) {
+      badgeStyleReady = true;
+      return;
+    }
+    const s = document.createElement('style');
+    s.id = 'air-badge-style';
+    s.textContent = `.air-badge{display:inline-grid;place-items:center;min-width:26px;height:26px;`
+      + `padding:0 6px;margin-right:8px;border-radius:999px;font:700 12px/1 sans-serif;`
+      + `vertical-align:middle;box-sizing:border-box}`;
+    (document.head || document.documentElement).appendChild(s);
+    badgeStyleReady = true;
+  }
 
   function paintBadge(tile, hit) {
+    ensureBadgeStyle();
     const titleEl = tile.querySelector('h2, [data-cy="title-recipe"]');
     if (!titleEl) return null;
     let b = tile.querySelector('.air-badge');
@@ -469,26 +489,29 @@
       b.className = 'air-badge';
       titleEl.insertBefore(b, titleEl.firstChild);
     }
+    const sig = hit === 'pending' ? 'p' : hit === 'unreadable' ? '?' : `${hit.score}:${hit.verdict}`;
+    if (typeof b.getAttribute === 'function' && b.getAttribute('data-air') === sig) return b;
+    if (typeof b.setAttribute === 'function') b.setAttribute('data-air', sig);
     if (hit === 'pending') {
       b.textContent = '…';
       b.title = 'Reading ingredients…';
       b.setAttribute('aria-label', 'Reading ingredients');
       b.setAttribute('role', 'status');
-      b.style.cssText = BADGE_CSS + 'color:#565959;background:#f0f2f2;border:2px solid #d5d9d9;';
+      b.style.cssText = 'color:#565959;background:#f0f2f2;border:2px solid #d5d9d9;';
       return b;
     }
     if (hit === 'unreadable') {
       b.textContent = '?';
       b.title = "Amazon doesn't publish readable ingredients for this one";
       b.setAttribute('aria-label', "Amazon doesn't publish readable ingredients for this one");
-      b.style.cssText = BADGE_CSS + 'color:#767676;background:#f7f8f8;border:2px dashed #d5d9d9;';
+      b.style.cssText = 'color:#767676;background:#f7f8f8;border:2px dashed #d5d9d9;';
       return b;
     }
     const c = AIR.panel.BAND_COLOR(hit.score);
     b.textContent = hit.score;
     b.title = `Ingredient Check: ${hit.score}/100 — ${hit.verdict}`;
     b.setAttribute('aria-label', b.title);
-    b.style.cssText = BADGE_CSS + `color:${c.fg};background:${c.bg};border:2px solid ${c.ring};`;
+    b.style.cssText = `color:${c.fg};background:${c.bg};border:2px solid ${c.ring};`;
     return b;
   }
 
@@ -641,7 +664,7 @@
       // Same rule as the product page: a badge is a claim, and we do not make one we cannot read.
       if (unreadable(result)) { paintBadge(tile, 'unreadable'); return; }
       paintBadge(tile, result);
-      cache(asin, { score: result.score, verdict: result.verdict, nova: result.nova });
+      cacheScore(asin, result, data.title);
       sendDiagnostic(data, result, 'search-tile');
     } catch (e) {
       if (!current()) return;
@@ -678,6 +701,30 @@
     } catch (e) { /* never let telemetry break scoring */ }
   }
 
+  function publishActionBadge(result) {
+    const score = result && typeof result.score === 'number' ? result.score : null;
+    if (score === state.lastBadgeScore) return;
+    state.lastBadgeScore = score;
+    try {
+      chrome.runtime.sendMessage(
+        score != null
+          ? { type: 'pageScore', score, verdict: result.verdict }
+          : { type: 'pageScore' },
+        () => void chrome.runtime.lastError
+      );
+    } catch (e) { /* messaging unavailable in some frames */ }
+  }
+
+  function cacheScore(key, result, name) {
+    if (!key || !result) return;
+    cache(key, {
+      score: result.score,
+      verdict: result.verdict,
+      nova: result.nova,
+      name: String(name || '').replace(/\s+/g, ' ').trim().slice(0, 120),
+    });
+  }
+
   function cache(key, value) {
     if (!key) return;
     try {
@@ -711,11 +758,23 @@
       if (isProductPage()) { scoreCurrentPage(); settleIfDone(); }
       else if (isListPage()) {
         removePanel();
+        if (state.lastBadgeScore != null) {
+          state.lastBadgeScore = undefined;
+          publishActionBadge(null);
+        }
         if (!searchAllowed()) { standDown(); settle('non-food search'); return; }
-        if (state.badges) badgeSearchResults();
-        else clearBadges();
+        // No badges means nothing to do on a results page — stop watching until the setting returns.
+        if (!state.badges) { standDown(); settle('badges off'); return; }
+        badgeSearchResults();
         // List pages keep watching: infinite scroll keeps adding tiles.
-      } else { teardown(); settle('not a product or results page'); }
+      } else {
+        teardown();
+        if (state.lastBadgeScore != null) {
+          state.lastBadgeScore = undefined;
+          publishActionBadge(null);
+        }
+        settle('not a product or results page');
+      }
     } catch (e) {
       // An extension must never take the host page down with it.
       console.debug('[AIR]', e);
@@ -796,6 +855,8 @@
   function onNavigated() {
     lastUrl = location.href;
     state.manual = null;
+    state.lastBadgeScore = undefined;
+    publishActionBadge(null);
     resetListState();
     state.lastKey = null;      // a new URL is a new product; don't reuse the last render
     state.failedExtracts = 0;
@@ -826,6 +887,8 @@
     clearTimeout(timer);
     cancelTileWork();
     teardown();
+    state.lastBadgeScore = undefined;
+    publishActionBadge(null);
     state.settled = 'suspended';
   }
 
@@ -859,23 +922,38 @@
   }
 
   chrome.storage.local.get(['enabled', 'badges', 'hoverScore', 'autoScoreSearch', 'foodOnly', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList'], o => {
-    state.enabled = o.enabled !== false;
-    state.badges = o.badges !== false;
-    state.hoverScore = o.hoverScore === true;             // opt-in: makes requests
-    state.autoScoreSearch = o.autoScoreSearch === true;   // opt-in: makes requests
-    state.foodOnly = o.foodOnly !== false;                // on unless deliberately turned off
-    state.ocrLabels = o.ocrLabels === true;               // opt-in: costs seconds of CPU
-    state.sendDiagnostics = o.sendDiagnostics === true;   // opt-in: leaves the machine
+    const toggles = (AIR.db.prefs && AIR.db.prefs.sanitizeToggles(o)) || {
+      enabled: o.enabled !== false,
+      badges: o.badges !== false,
+      hoverScore: o.hoverScore === true,
+      autoScoreSearch: o.autoScoreSearch === true,
+      foodOnly: o.foodOnly !== false,
+      ocrLabels: o.ocrLabels === true,
+      sendDiagnostics: o.sendDiagnostics === true,
+    };
+    state.enabled = toggles.enabled;
+    state.badges = toggles.badges;
+    state.hoverScore = toggles.hoverScore;
+    state.autoScoreSearch = toggles.autoScoreSearch;
+    state.foodOnly = toggles.foodOnly;
+    state.ocrLabels = toggles.ocrLabels;
+    state.sendDiagnostics = toggles.sendDiagnostics;
     readPrefs(o);
     if (state.enabled) resume(); else suspend();
   });
 
   function readPrefs(o) {
-    state.prefs = {
+    const clean = (AIR.db.prefs && AIR.db.prefs.sanitizeScoring(o)) || {
       weights: o.weights || {},
       allergens: Array.isArray(o.allergens) ? o.allergens : [],
       diets: Array.isArray(o.diets) ? o.diets : [],
       avoidList: Array.isArray(o.avoidList) ? o.avoidList : [],
+    };
+    state.prefs = {
+      weights: clean.weights,
+      allergens: clean.allergens,
+      diets: clean.diets,
+      avoidList: clean.avoidList,
     };
   }
 

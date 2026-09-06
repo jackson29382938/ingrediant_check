@@ -55,6 +55,7 @@
 <script src="../src/engine/db/ingestible.js"></script>
 <script src="../src/engine/db/provenance.js"></script>
 <script src="../src/engine/categories.js"></script>
+<script src="../src/engine/db/prefs.js"></script>
 <script src="../src/engine/score.js"></script>
 <script src="../src/content/extract.js"></script>
 <script src="../src/content/panel.js"></script>
@@ -188,6 +189,29 @@ function runSuite() {
   pass('olive oil phrase is readable', AIR.extract.looksLikeIngredients('Organic extra virgin olive oil'));
   pass('chicken pot pie is not kitchen equipment', !AIR.db.ingestible.looksNonFoodFromTitle("Marie Callender's Chicken Pot Pie"));
   pass('peter pan peanut butter is not kitchen equipment', !AIR.db.ingestible.looksNonFoodFromTitle('Peter Pan Creamy Peanut Butter'));
+
+  const dirty = AIR.db.prefs.sanitizeScoring({
+    weights: { sugar: 9, notACategory: 1 },
+    allergens: ['sesame', 'unicorn'],
+    diets: ['vegan', 'carnivore'],
+    avoidList: ['  Red 40  ', 'x'],
+    foodOnly: 'yes',
+  });
+  pass('corrupt weights are clamped', dirty.weights.sugar === 2 && !('notACategory' in dirty.weights));
+  pass('unknown allergen and diet ids are dropped', dirty.allergens.join() === 'sesame' && dirty.diets.join() === 'vegan');
+  pass('avoid list is trimmed and short tokens dropped', dirty.avoidList.join() === 'Red 40');
+  pass('random JSON is not an import', AIR.db.prefs.parseImport('{"foo":1}').ok === false);
+  pass('non-Google contribution URLs are rejected', AIR.db.prefs.toScriptUrl('https://example.test/exec') === null);
+  pass('Apps Script exec URLs are accepted', !!AIR.db.prefs.toScriptUrl('https://script.google.com/macros/s/AKfycbyabcdefghijklmnopqrstuvwxyz012345/exec'));
+
+  const scoredHtml = AIR.panel.render({
+    score: 40, verdict: 'Poor', nova: 4, base: 60, good: [], bad: [], flags: [],
+    parsed: 6, coverage: 0.4, ruleCount: 1,
+  }, { title: 'Test drink' });
+  pass('scored panel includes copy control', /Copy score/.test(scoredHtml));
+  pass('low coverage shows a partial-reading note', /partial reading/.test(scoredHtml));
+  pass('EU ingredient headings are recognised', AIR.extract.INGREDIENT_HEADING.test('Zutaten'));
+  pass('inline Ingredients: form is recognised', AIR.extract.LINE_INLINE.test('Ingredients: milk, salt'));
 
   log.textContent = lines.join('\n');
   log.className = lines.some(l => l.startsWith('FAIL')) ? 'fail' : 'ok';

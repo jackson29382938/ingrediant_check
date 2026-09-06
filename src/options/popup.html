@@ -1,30 +1,53 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><title>Ingredient Check</title><style>
- body{font:13px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;width:270px;margin:0;padding:16px;color:#0f1111}
+ :root { color-scheme: light dark; }
+ body{font:13px/1.45 "Amazon Ember",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+   width:280px;margin:0;padding:14px 14px 12px;color:#0f1111;background:#fff}
  h1{font-size:14px;margin:0 0 2px}
- .sub{color:#565959;font-size:11px;margin-bottom:14px}
- label{display:flex;align-items:flex-start;gap:9px;padding:9px 0;border-top:1px solid #eaeded;cursor:pointer}
+ .sub{color:#565959;font-size:11px;margin-bottom:12px}
+ .page-score{display:block;margin:0 0 12px;padding:9px 10px;
+   border:1px solid var(--ring,#d5d9d9);border-radius:8px;background:var(--bg,#f7f8f8)}
+ .ps-num{flex:0 0 auto;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;
+   font:700 14px/1 "Amazon Ember",sans-serif;font-variant-numeric:tabular-nums;color:var(--fg,#0f1111);
+   background:#fff;border:2px solid var(--ring,#d5d9d9)}
+ .ps-verdict{font-weight:700;font-size:12px;color:var(--fg,#0f1111)}
+ .ps-sub,.ps-empty{color:#565959;font-size:11px;line-height:1.35;
+   overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+ .ps-kicker{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+   color:#565959;margin:0 0 6px}
+ label{display:flex;align-items:flex-start;gap:9px;padding:8px 0;border-top:1px solid #eaeded;cursor:pointer}
  label:first-of-type{border-top:0}
- label.master{border-top:0;border-bottom:2px solid #eaeded;padding-bottom:12px;margin-bottom:2px}
+ label.master{border-top:0;border-bottom:2px solid #eaeded;padding-bottom:10px;margin-bottom:2px}
  label.master .t{font-size:13px}
- /* Off is a pause, not a reset. The rows stay visible and legible so it is obvious the settings
-    are still there, rather than vanishing and looking lost. */
  body.paused .sub-toggles{opacity:.45}
  body.paused .sub-toggles label{cursor:default}
- #kept{display:none;margin:10px 0 0;padding:8px 10px;background:#fdf3e2;border:1px solid #ffd8a8;
+ #kept{display:none;margin:8px 0 0;padding:8px 10px;background:#fdf3e2;border:1px solid #ffd8a8;
    border-radius:6px;color:#8a4b00;font-size:11px;line-height:1.4}
  body.paused #kept{display:block}
  input{margin-top:2px}
  .t{font-weight:600}
- .d{color:#565959;font-size:11px;display:block;margin-top:1px}
- #openSettings,#clear{display:block;margin-top:14px;padding:0;border:0;background:none;font:inherit;font-size:11px;
-   color:#007185;text-decoration:none;cursor:pointer}
- #clear{margin-top:8px}
- #openSettings:hover,#clear:hover{text-decoration:underline}
- input:focus-visible,#openSettings:focus-visible,#clear:focus-visible{
+ .d{color:#565959;font-size:11px;display:none;margin-top:1px}
+ label.master .d,body.show-why .d{display:block}
+ #toggleWhy,#openSettings,#clear{display:block;margin-top:10px;padding:0;border:0;background:none;
+   font:inherit;font-size:11px;color:#007185;text-decoration:none;cursor:pointer;text-align:left}
+ #clear{margin-top:6px}
+ #toggleWhy:hover,#openSettings:hover,#clear:hover{text-decoration:underline}
+ #clear:disabled{color:#767676;cursor:default;text-decoration:none}
+ input:focus-visible,#toggleWhy:focus-visible,#openSettings:focus-visible,#clear:focus-visible{
    outline:3px solid #007185;outline-offset:2px}
+ @media (prefers-color-scheme: dark) {
+   body{color:#f3f3f3;background:#1b1c1c}
+   .sub,.d,.ps-sub,.ps-empty,.ps-kicker{color:#aeaeae}
+   label,.page-score{border-color:#3a3c3c}
+   label.master{border-bottom-color:#3a3c3c}
+   .page-score{background:#232525}
+   .ps-num{background:#1b1c1c}
+   #kept{background:#3d2e14;border-color:#8a6a2a;color:#f3d19c}
+   #clear:disabled{color:#8a8a8a}
+ }
 </style></head><body>
  <h1 data-i18n="appName">Ingredient Check</h1>
  <div class="sub" data-i18n="popupTagline">Ingredient quality, additives and processing — scored on your computer.</div>
+ <div id="pageScore" class="page-score" hidden></div>
  <label class="master"><input type="checkbox" id="enabled" checked><span><span class="t" data-i18n="popupShowRatings">Ingredient Check is on</span>
    <span class="d" data-i18n="popupShowRatingsD">The master switch. Off stops everything on Amazon pages — no panel,
    no badges, no page watching. Nothing below is forgotten.</span></span></label>
@@ -50,9 +73,14 @@
    <span class="d" data-i18n="popupOffD">When a page has a barcode but no readable ingredients, look it up. Sends the
    barcode to Open Food Facts and nothing else — no page content, no browsing history.</span></span></label>
  </div>
+ <button type="button" id="toggleWhy" data-i18n="popupShowWhy">Why these matter</button>
  <a href="#" id="openSettings" data-i18n="popupSettingsLink">Scoring weights, allergens &amp; avoid list</a>
- <div class="sub" data-i18n="popupDisclaimer" style="margin-top:12px;font-size:11px">Scores are a guide, not health or allergy
+ <div class="sub" data-i18n="popupDisclaimer" style="margin-top:10px;font-size:11px">Scores are a guide, not health or allergy
    advice. Always read the label.</div>
  <button type="button" id="clear" data-i18n="popupClear">Clear cached scores</button>
+ <p id="status" class="d" role="status" aria-live="polite" style="margin-top:8px;min-height:1.3em;display:block"></p>
+ <p id="version" class="sub" style="margin:10px 0 0;font-size:10px;opacity:.7"></p>
+ <script src="../engine/db/_module.js"></script>
+ <script src="../engine/db/prefs.js"></script>
  <script src="popup.js"></script>
 </body></html>

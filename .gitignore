@@ -1,3 +1,12 @@
 node_modules/
 .chrome-profile/
 .DS_Store
+
+# Build / secrets
+dist/
+build/
+.env
+.env.*
+*.pem
+credentials
+credentials.json

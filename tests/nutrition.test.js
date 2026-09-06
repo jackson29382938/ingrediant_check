@@ -76,6 +76,19 @@ check('the same cereal scores alike at 28g and 55g declared servings', () => {
   assert.strictEqual(at(28), at(55), `28g -> ${at(28)}, 55g -> ${at(55)}`);
 });
 
+check('a German nutrition panel is readable', () => {
+  const out = extract.nutritionFacts({
+    querySelector: s => (s.includes('nic-nutrition')
+      ? { innerText: 'Nährwertangaben / 100g Energie 180 Natrium 150mg Zucker 12g Eiweiß 4g Ballaststoffe 3g' }
+      : null),
+  });
+  assert.ok(out, 'expected a nutrition object');
+  assert.strictEqual(out.sodium, 150);
+  assert.strictEqual(out.sugar, 12);
+  assert.strictEqual(out.protein, 4);
+  assert.strictEqual(out.fibre, 3);
+});
+
 console.log('\nmissing data is not zero');
 check('no panel means no nutrition rows at all', () => {
   const r = engine.score({ name: 'x', ingredients_text: 'Organic rolled oats' },

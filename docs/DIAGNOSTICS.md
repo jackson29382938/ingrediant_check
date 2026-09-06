@@ -68,3 +68,8 @@ beyond that the oldest are dropped, because losing diagnostic rows is a non-even
 storage quota is not. A failed POST keeps the rows for the next attempt.
 
 **Send queued rows now** in settings flushes immediately and reports what happened.
+
+Each queued row carries a `rowId`, and each POST carries a `batchId`. The Apps Script in
+`docs/apps-script.gs` remembers recent ids so a lost acknowledgement cannot duplicate the
+batch. Redeploy the web app after updating the script. `rowId` is transport-only and is not
+written to the sheet.

@@ -33,12 +33,50 @@ var CONTRIBUTION_COLUMNS = [
 function doPost(e) {
   try {
     var body = JSON.parse(e.postData.contents);
-    if (body.kind === 'diagnostics') return writeRows('diagnostics', DIAGNOSTIC_COLUMNS, body.rows || []);
+    if (body.kind === 'diagnostics') return writeDiagnostics(body.rows || [], body.batchId);
     if (body.kind === 'report')      return writeRows('reports', CONTRIBUTION_COLUMNS, [stamp(body)]);
     return writeRows('contributions', CONTRIBUTION_COLUMNS, [stamp(body)]);
   } catch (err) {
     return json({ ok: false, error: String(err) });
   }
+}
+
+// A lost HTTP response after a successful write used to make the extension retry and duplicate
+// every row. batchId and rowId are transport-only; they are not written to the sheet.
+function writeDiagnostics(rows, batchId) {
+  if (!rows.length) return json({ ok: true, wrote: 0, inserted: 0 });
+  var seen = loadSeen();
+  if (batchId && seen.batches.indexOf(String(batchId)) !== -1) {
+    return json({ ok: true, wrote: rows.length, inserted: 0, duplicate: true });
+  }
+  var fresh = [];
+  for (var i = 0; i < rows.length; i++) {
+    var id = rows[i] && rows[i].rowId ? String(rows[i].rowId) : '';
+    if (id && seen.rows.indexOf(id) !== -1) continue;
+    fresh.push(rows[i]);
+    if (id) seen.rows.push(id);
+  }
+  if (fresh.length) writeRows('diagnostics', DIAGNOSTIC_COLUMNS, fresh);
+  if (batchId) {
+    seen.batches.push(String(batchId));
+    if (seen.batches.length > 80) seen.batches = seen.batches.slice(-80);
+  }
+  if (seen.rows.length > 400) seen.rows = seen.rows.slice(-400);
+  saveSeen(seen);
+  return json({ ok: true, wrote: rows.length, inserted: fresh.length, duplicate: fresh.length === 0 });
+}
+
+function loadSeen() {
+  try {
+    var parsed = JSON.parse(PropertiesService.getScriptProperties().getProperty('diagSeen') || '{}');
+    return { batches: parsed.batches || [], rows: parsed.rows || [] };
+  } catch (err) {
+    return { batches: [], rows: [] };
+  }
+}
+
+function saveSeen(seen) {
+  PropertiesService.getScriptProperties().setProperty('diagSeen', JSON.stringify(seen));
 }
 
 // The extension never reads from this endpoint. Answering GET keeps a browser visit from looking

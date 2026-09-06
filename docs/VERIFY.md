@@ -17,7 +17,7 @@ command-line flag; loading by hand works in your normal Chrome.
 
 1. `chrome://extensions` → enable **Developer mode** (top right)
 2. **Load unpacked** → select this folder
-3. Expect: *Ingredient Check 0.9.0*, no errors under the card
+3. Expect: *Ingredient Check 1.0.0*, no errors under the card
 
 If a red **Errors** button appears, open it — a manifest problem shows here and nowhere else.
 
@@ -43,6 +43,10 @@ Extension popup (click the icon):
 | **Read label photos** | *"Reading the label photo…"* for a few seconds, then **~28 Poor**, footer reads *"Read from the label photo on this page"* |
 | **Rate every search result** | Score chips appear on tiles as you scroll a grocery search |
 
+After a product scores, the toolbar icon shows the number as a badge, and reopening the popup
+shows a "This page" card with the same score (needs the `activeTab` permission, granted when you
+click the icon).
+
 Both routes landing near 28 is the point: two independent readings of the same label agreeing,
 against Amazon's 86.
 
@@ -58,7 +62,8 @@ test page. If nothing happens after ~15 seconds:
 Search `running shoes` on Amazon, then `organic oats`.
 
 Expect **nothing at all** on the first — no chips, no hover, no observer — and normal behaviour on
-the second. Non-food departments and queries stand the extension down entirely.
+the second. Non-food departments and queries stand the extension down entirely. The popup's
+"This page" card stays empty on search pages and shows a score once a product page has been scored.
 
 ## 5. Diagnostics to your sheet
 
@@ -97,9 +102,29 @@ every Amazon ad refresh, on non-food pages included.
 - A capped product (anything with canola or soybean oil) — a **numbered** `CAP` row, not a bare label
 - A shampoo — *"Not scored — this does not look like food"* with **Score anyway**
 - Settings → move a slider — scores on screen change and the cache clears
+- Settings → import a random JSON file — it is refused; a stamped export re-imports
+- Settings → paste a non-Google URL in a database field — the field stays invalid and is not saved
+
+## Browser harnesses (no Amazon login)
+
+```bash
+npm run harness
+```
+
+- Panel: http://127.0.0.1:8731/
+- OCR: http://127.0.0.1:8731/tests/harness-ocr.html
+- Lifecycle: http://127.0.0.1:8731/tests/harness-lifecycle.html
+- Food-only + settings: http://127.0.0.1:8731/tests/verify-food-settings.html
 
 ## What is still unproven
 
 The installed extension’s offscreen OCR round-trip now passes on the live Lifeway page; see
 [LIVE-TEST-2026-09-05.md](LIVE-TEST-2026-09-05.md) for evidence and the additional fixes.
-The optional-permission grant and deployed Apps Script round-trip remain unverified.
+
+Open Food Facts and the Apps Script sheet still need a grant / deploy on *your* Chrome profile
+before they can be claimed as verified. Client-side, invalid contribution URLs are rejected,
+queued diagnostic rows carry a `rowId`, and each flush sends a `batchId`. Redeploy
+[apps-script.gs](apps-script.gs) so a lost ACK cannot double-write the sheet.
+
+Amazon layouts outside the `.com` live checks and the harness snapshot are not fully proven.
+The nutritional model is specified and tested, not scientifically validated.

@@ -40,7 +40,8 @@
   * { box-sizing: border-box; margin: 0; padding: 0;
       font-family: "Amazon Ember", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   .card { border: 1px solid #d5d9d9; border-radius: 10px; overflow: hidden;
-          background: #fff; margin: 14px 0; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+          background: #fff; margin: 14px 0; box-shadow: 0 1px 3px rgba(0,0,0,.06);
+          min-height: 72px; }
   .head { display: flex; align-items: center; gap: 14px; padding: 14px 16px; cursor: pointer;
           user-select: none; border: 0; width: 100%; text-align: left; background: var(--bg); }
   .head:hover { filter: brightness(.985); }
@@ -101,6 +102,19 @@
   button.go:disabled { background: #f0f2f2; border-color: #d5d9d9; color: #767676; cursor: not-allowed; }
   .hint { margin-top: 6px; font-size: 12px; color: #a4161a; min-height: 1.2em; }
   .hint:empty { display: none; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; padding: 2px 16px 8px; }
+  .card.open .actions { display: none; }
+  .flags + .actions, .actions + .flags { padding-top: 0; }
+  button.copy { background: none; border: 0; padding: 0; font: inherit; font-size: 11px;
+                color: #007185; cursor: pointer; text-decoration: underline; }
+  button.copy:hover { color: #c7511f; }
+  button.copy:focus-visible { outline: 3px solid #007185; outline-offset: 2px; }
+  @keyframes air-pulse { 0%, 100% { opacity: 1 } 50% { opacity: .55 } }
+  .loading b { animation: air-pulse 1.2s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) {
+    .loading b { animation: none; }
+    .chev { transition: none; }
+  }
   `;
 
   // Allergen, diet and avoid-list warnings. Deliberately outside the collapsed body: if you asked to
@@ -132,9 +146,9 @@
     for (const h of p.hollow) rows.push(`<div class="cert h"><span class="tick">✕</span>
       <span><b>${esc(h.label)} means nothing here</b><br><span class="m">${esc(h.why)}</span></span></div>`);
     if (!rows.length) {
-      rows.push(`<div class="cert h"><span class="tick">?</span><span><b>Nothing disclosed about
-        how this was produced</b><br><span class="m">No certification, feed, or origin claim on the
-        page. Commodity ${esc(p.kind)} with a silent label is conventionally raised by default.</span></span></div>`);
+      rows.push(`<div class="cert h"><span class="tick">?</span><span><b>${esc(t('notFoodNothing',
+        'Nothing disclosed about how this was produced'))}</b><br><span class="m">${esc(t('producedSilent',
+        'No certification, feed, or origin claim on the page. Commodity $1 with a silent label is conventionally raised by default.', p.kind))}</span></span></div>`);
     }
     const src = meta && meta.provenanceSource ? ` · ${esc(meta.provenanceSource)}` : '';
     return `<div class="prov"><h5>${esc(t('headProduced', 'How this was produced'))}${src}</h5>${rows.join('')}</div>`;
@@ -176,18 +190,28 @@
     // A zero-point note about milk or fruit sugar is useful on a clean food, but reads like a health
     // halo on candy or chips. Hide that cosmetic note when refined added sugar is also present.
     const neutral = result.good.filter(h => h.c === 0 && !(refinedSugarPresent && /Natural sugar/i.test(h.why)));
+    const copyLine = [result.score, result.verdict, NOVA_TEXT[result.nova], meta.title || '']
+      .filter(Boolean).join(' · ');
 
     return `
     <style>${CSS}</style>
     <div class="card" style="--fg:${c.fg};--bg:${c.bg};--ring:${c.ring}">
       <button class="head" part="head" type="button" aria-expanded="false" aria-controls="air-panel-details">
-        <span class="score">${result.score}</span>
+        <span class="score" title="${esc(result.verdict)} · ${esc(NOVA_TEXT[result.nova])}">${result.score}</span>
         <span class="meta">
           <span class="verdict">${esc(result.verdict.toUpperCase())}</span>
           <span class="sub">${esc(NOVA_TEXT[result.nova])} · ${esc(meta.title || '')}</span>
         </span>
         <span class="chev">▾</span>
       </button>
+      <div class="actions">
+        <button class="copy" type="button" data-copy="${esc(copyLine)}">${esc(t('copyScore', 'Copy score'))}</button>
+      </div>
+      ${typeof result.coverage === 'number' && result.coverage < 0.7
+        ? `<p class="disclaim" style="padding:4px 16px 0">${esc(t('coverageWarn',
+          'Only $1% of this list was recognised — treat the score as a partial reading.',
+          Math.round(result.coverage * 100)))}</p>`
+        : ''}
       ${flagsHTML(result.flags)}
       ${provenanceHTML(result.provenance, meta)}
       <div class="body" id="air-panel-details">
@@ -200,7 +224,8 @@
             result.ruleCount ? ' · ' + esc(t('footRules', '$1 rules', result.ruleCount)) : ''}${
             typeof result.coverage === 'number' && result.coverage < 1
               ? ' · ' + esc(t('footCoverage', '$1% of the list recognised', Math.round(result.coverage * 100))) : ''}</span>
-          <span>${esc(sourceLabel(meta))} · <button class="report" type="button">${esc(t('reportLink', 'Looks wrong?'))}</button></span>
+          <span><button class="copy" type="button" data-copy="${esc(copyLine)}">${esc(t('copyScore', 'Copy score'))}</button>
+            · ${esc(sourceLabel(meta))} · <button class="report" type="button">${esc(t('reportLink', 'Looks wrong?'))}</button></span>
         </div>
         <p class="disclaim">${esc(t('disclaimer',
           'A guide to what is on the label, not health advice. Ingredient text can be incomplete or out of date — check the package before you rely on this.'))}</p>
@@ -212,7 +237,7 @@
     return `
     <style>${CSS}</style>
     <div class="card" style="--fg:#565959;--bg:#f7f8f8;--ring:#d5d9d9">
-      <div class="fail" role="status" aria-live="polite">
+      <div class="fail loading" role="status" aria-live="polite">
         <b>${meta && meta.ocr
           ? esc(t('loadingOcrTitle', 'Reading the label photo…'))
           : esc(t('loadingTitle', 'Checking Open Food Facts…'))}</b>
@@ -239,9 +264,8 @@
         <div class="paste">
           <button class="go anyway" type="button">${esc(t('notFoodButton', 'Score anyway'))}</button>
         </div>
-        <p style="margin-top:10px;font-size:12px;color:#565959">
-          This is on because “Only rate food &amp; supplements” is enabled in settings.
-        </p>
+        <p style="margin-top:10px;font-size:12px;color:#565959">${esc(t('notFoodWhy',
+          'This is on because “Only rate food & supplements” is enabled in settings.'))}</p>
       </div>
     </div>`;
   }
@@ -310,6 +334,32 @@
         onPaste(text);
       });
     }
+    try { ta.focus({ preventScroll: true }); } catch (e) { /* focus can fail in tests */ }
+    try { ta.select(); } catch (e) { /* ignore */ }
+  }
+
+  function copyToClipboard(text) {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      return navigator.clipboard.writeText(text);
+    }
+    return Promise.reject(new Error('no clipboard'));
+  }
+
+  function wireCopy(shadow) {
+    shadow.querySelectorAll('button.copy').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const text = btn.getAttribute('data-copy') || '';
+        const original = btn.textContent;
+        copyToClipboard(text).then(() => {
+          btn.textContent = t('copied', 'Copied');
+          setTimeout(() => { btn.textContent = original; }, 1400);
+        }).catch(() => {
+          btn.textContent = t('copyFailed', 'Could not copy');
+          setTimeout(() => { btn.textContent = original; }, 1400);
+        });
+      });
+    });
   }
 
   function mount(host, html, onReport, onPaste) {
@@ -334,6 +384,15 @@
       const open = card.classList.toggle('open');
       head.setAttribute('aria-expanded', String(open));
     });
+    if (head && card) {
+      shadow.addEventListener('keydown', e => {
+        if (e.key !== 'Escape' || !card.classList.contains('open')) return;
+        card.classList.remove('open');
+        head.setAttribute('aria-expanded', 'false');
+        head.focus();
+      });
+    }
+    wireCopy(shadow);
     wirePasteField(shadow, onPaste);
     return shadow;
   }

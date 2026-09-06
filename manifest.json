@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "0.9.0",
+  "version": "1.0.0",
   "description": "__MSG_appDescription__",
   "permissions": [
     "storage",
     "alarms",
-    "offscreen"
+    "offscreen",
+    "activeTab"
   ],
   "host_permissions": [
     "*://*.amazon.com/*",
@@ -89,6 +90,7 @@
         "src/engine/db/provenance.js",
         "src/engine/db/diagnostics.js",
         "src/engine/categories.js",
+        "src/engine/db/prefs.js",
         "src/engine/score.js",
         "src/content/extract.js",
         "src/content/panel.js",

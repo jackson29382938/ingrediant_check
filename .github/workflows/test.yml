@@ -15,3 +15,4 @@ jobs:
       # No install step: the extension has no dependencies and no build, which is why the
       # sanity suite checks the wiring the manifest would otherwise be the only record of.
       - run: npm test
+      - run: npm run preflight

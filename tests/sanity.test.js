@@ -179,6 +179,14 @@ check('every data-i18n key in the popup exists', () => {
   assert.strictEqual(missing.length, 0, `missing from messages.json: ${missing.join(', ')}`);
 });
 
+check('every msg() key in popup.js exists', () => {
+  const raw = read('src/options/popup.js');
+  const used = [...raw.matchAll(/\bmsg\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]);
+  assert.ok(used.length > 3, `only found ${used.length} msg() calls; the scan is broken`);
+  const missing = [...new Set(used)].filter(k => !keys.has(k));
+  assert.strictEqual(missing.length, 0, `missing from messages.json: ${missing.join(', ')}`);
+});
+
 check('the localised description still fits the store limit', () => {
   const d = messages.appDescription && messages.appDescription.message;
   assert.ok(d, 'appDescription is missing');

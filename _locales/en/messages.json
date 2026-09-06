@@ -218,5 +218,53 @@
   },
   "popupKept": {
     "message": "Paused. Everything below is kept and comes back when you switch it on."
+  },
+  "copyScore": {
+    "message": "Copy score"
+  },
+  "copied": {
+    "message": "Copied"
+  },
+  "copyFailed": {
+    "message": "Could not copy"
+  },
+  "coverageWarn": {
+    "message": "Only $PCT$% of this list was recognised — treat the score as a partial reading.",
+    "placeholders": {
+      "pct": {
+        "content": "$1"
+      }
+    }
+  },
+  "producedSilent": {
+    "message": "No certification, feed, or origin claim on the page. Commodity $KIND$ with a silent label is conventionally raised by default.",
+    "placeholders": {
+      "kind": {
+        "content": "$1"
+      }
+    }
+  },
+  "popupShowWhy": {
+    "message": "Why these matter"
+  },
+  "popupHideWhy": {
+    "message": "Hide explanations"
+  },
+  "popupThisPage": {
+    "message": "This page"
+  },
+  "popupNoScore": {
+    "message": "Not scored yet. Wait for the panel on this page, then reopen."
+  },
+  "popupSearchPage": {
+    "message": "Search page — scores show as badges on tiles you have already opened."
+  },
+  "popupClearN": {
+    "message": "Clear $N$ cached scores",
+    "placeholders": {
+      "n": {
+        "content": "$1"
+      }
+    }
   }
 }

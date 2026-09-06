@@ -86,6 +86,17 @@ check('text with no INGREDIENTS heading yields nothing', () => {
 check('a heading with nothing usable after it yields nothing', () => {
   assert.strictEqual(ocr.ingredientsFromOcr('INGREDIENTS: MILK'), null);   // under the 8-char floor
 });
+check('a long additive list keeps its tail', () => {
+  const items = Array.from({ length: 90 }, (_, i) => `ingredient number ${i} concentrate`);
+  const text = 'INGREDIENTS: ' + items.join(', ') + '. ALLERGENS: CONTAINS: MILK';
+  const got = ocr.ingredientsFromOcr(text);
+  assert.ok(got && got.length > 2000, `truncated to ${got && got.length}`);
+  assert.ok(/ingredient number 89/.test(got), 'tail of the list was dropped');
+});
+check('Spanish INGREDIENTES headings are recognised', () => {
+  const got = ocr.ingredientsFromOcr('INGREDIENTES: agua, azucar, sal, aceite vegetal. ALLERGENS: CONTAINS: none');
+  assert.ok(got && /agua/.test(got), `missing Spanish list: ${got}`);
+});
 
 console.log('\nchoosing between images');
 check('the image carrying a real list wins', () => {

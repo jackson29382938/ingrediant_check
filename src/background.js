@@ -8,7 +8,7 @@
 // network at all, which is why they are opt-in rather than default.
 
 if (typeof importScripts === 'function') {
-  importScripts('engine/db/_module.js', 'engine/db/ingestible.js');
+  importScripts('engine/db/_module.js', 'engine/db/ingestible.js', 'engine/db/prefs.js');
 }
 
 const OFF_ENDPOINT = 'https://world.openfoodfacts.org/api/v2/product/';
@@ -142,9 +142,27 @@ async function ocrLabels(urls) {
   }
 }
 
+function badgeColor(score) {
+  return score >= 75 ? '#1a9850' : score >= 50 ? '#f0a02a' : '#d73027';
+}
+
+function paintActionBadge(tabId, score) {
+  if (!chrome.action || typeof tabId !== 'number') return;
+  if (typeof score !== 'number' || !isFinite(score)) {
+    chrome.action.setBadgeText({ tabId, text: '' });
+    return;
+  }
+  chrome.action.setBadgeText({ tabId, text: String(Math.round(score)) });
+  chrome.action.setBadgeBackgroundColor({ tabId, color: badgeColor(score) });
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   // Replies from the offscreen document travel on this same channel; ignore them here.
   if (msg && msg.target === 'ocr-offscreen') return false;
+  if (msg && msg.type === 'pageScore') {
+    paintActionBadge(sender && sender.tab && sender.tab.id, msg.score);
+    return false;
+  }
   if (msg && msg.type === 'ocrLabels') {
     ocrLabels(msg.urls).then(reply);
     return true;
@@ -210,6 +228,7 @@ const SHEET_CACHE_KEY = 'sheetIndex';
 
 // Published-sheet URLs come in several shapes. Normalise whatever the user pasted into a CSV export.
 function toCsvUrl(raw) {
+  if (self.AIR && self.AIR.db && self.AIR.db.prefs) return self.AIR.db.prefs.toSheetUrl(raw);
   let url;
   try { url = new URL(String(raw || '').trim()); } catch { return null; }
   if (url.protocol !== 'https:' || url.hostname !== 'docs.google.com' || url.username || url.password) return null;
@@ -367,11 +386,27 @@ function queueDiagnostic(record) {
 function flushDiagnostics() {
   return serializeDiagnostics(() => sendDiagnostics());
 }
+function ensureRowId(record) {
+  if (record && typeof record.rowId === 'string' && record.rowId) return record;
+  const rowId = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+  return { ...record, rowId };
+}
+
+function batchIdFor(queue) {
+  const ids = (queue || []).map(r => (r && r.rowId) || '').join('|');
+  let h = 2166136261;
+  for (let i = 0; i < ids.length; i++) {
+    h ^= ids.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return 'b' + (h >>> 0).toString(16) + '-' + (queue || []).length;
+}
+
 async function appendDiagnostic(record) {
   const conf = await chrome.storage.local.get(['enabled', 'sendDiagnostics', 'contributeUrl', DIAG_KEY]);
   if (conf.enabled === false || !conf.sendDiagnostics || !conf.contributeUrl) return { ok: false, reason: 'not-enabled' };
   if (!record || typeof record !== 'object') return { ok: false, reason: 'no-record' };
-  const queue = [...(conf[DIAG_KEY] || []), record].slice(-DIAG_MAX);
+  const queue = [...(conf[DIAG_KEY] || []), ensureRowId(record)].slice(-DIAG_MAX);
   await chrome.storage.local.set({ [DIAG_KEY]: queue });
   if (queue.length < DIAG_BATCH) return { ok: true, queued: queue.length };
   return sendDiagnostics();
@@ -386,13 +421,14 @@ async function sendDiagnostics() {
     const res = await fetch(conf.contributeUrl, {
       method: 'POST', credentials: 'omit',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ kind: 'diagnostics', rows: queue }),
+      body: JSON.stringify({ kind: 'diagnostics', batchId: batchIdFor(queue), rows: queue }),
       signal: AbortSignal.timeout(15000),
     });
     // Only clear on a confirmed write. A failed flush keeps the rows for the next attempt rather
-    // than silently dropping the data the user turned this on to collect.
+    // than silently dropping the data the user turned this on to collect. The receiver may answer
+    // wrote=N for a replay it already stored (duplicate:true); that still counts as confirmed.
     const receipt = res.ok ? await res.json() : null;
-    const confirmed = !!(receipt && receipt.ok === true && receipt.wrote === queue.length);
+    const confirmed = !!(receipt && receipt.ok === true && Number(receipt.wrote) === queue.length);
     if (confirmed) await chrome.storage.local.set({ [DIAG_KEY]: [] });
     return { ok: confirmed, sent: confirmed ? queue.length : 0, queued: confirmed ? 0 : queue.length };
   } catch (e) {
@@ -459,5 +495,5 @@ function handleSharedDbMessage(msg, reply) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { toCsvUrl, parseCsv, indexRows, lookupRecord, sweepCache, isOpenFoodFactsFood };
+  module.exports = { toCsvUrl, parseCsv, indexRows, lookupRecord, sweepCache, isOpenFoodFactsFood, batchIdFor };
 }
