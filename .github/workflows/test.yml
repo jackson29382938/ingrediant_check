@@ -12,7 +12,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      # No install step: the extension has no dependencies and no build, which is why the
-      # sanity suite checks the wiring the manifest would otherwise be the only record of.
+      # No install step: the extension and automated checks have no package dependencies.
       - run: npm test
       - run: npm run preflight

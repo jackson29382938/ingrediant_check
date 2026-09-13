@@ -12,11 +12,17 @@ const PORT = Number(process.env.HARNESS_PORT || 8731);
 const TYPES = { '.js': 'text/javascript', '.html': 'text/html', '.json': 'application/json', '.png': 'image/png' };
 
 http.createServer((req, res) => {
-  let p = decodeURIComponent(req.url.split('?')[0]);
+  let p;
+  try {
+    p = decodeURIComponent(new URL(req.url || '/', 'http://127.0.0.1').pathname);
+  } catch {
+    res.writeHead(400); return res.end('bad request');
+  }
   if (p === '/') p = '/tests/harness.html';
   if (p === '/fixtures.js') p = '/tests/harness-fixtures.js';
-  const file = path.join(root, p);
-  if (!file.startsWith(root) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
+  const file = path.resolve(root, p.replace(/^[/\\]+/, ''));
+  const insideRoot = file === root || file.startsWith(root + path.sep);
+  if (!insideRoot || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
     res.writeHead(404); return res.end('not found');
   }
   res.writeHead(200, { 'content-type': TYPES[path.extname(file)] || 'text/plain', 'cache-control': 'no-store' });

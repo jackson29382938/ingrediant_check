@@ -15,9 +15,17 @@ You do not need a build step.
 Optional local session (Chrome for Testing, extension preloaded):
 
 ```bash
+npm run browser:setup        # once per machine
 npm test && npm run preflight
 npm run chrome
 ```
+
+Node 20 or newer is supported. The extension and its automated checks remain build-free and
+dependency-free. `browser:setup` installs the pinned optional browser tooling globally so native
+package extraction does not fail inside cloud-synced workspaces such as Google Drive.
+Set `INGREDIENT_CHECK_CHROME` to a Chrome for Testing executable when you manage the browser
+yourself. The launcher otherwise discovers installs made by `npm run browser:setup` on Windows,
+macOS, and Linux.
 
 After editing `src/`, `manifest.json`, or `icons/`, run `npm run chrome:reload`.
 
