@@ -33,15 +33,22 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   const TITLE_BONUS_CAP = 8;   // ceiling on claims found only in the marketing title
 
   // Whole, single-ingredient foods. Used for NOVA 1 detection, never penalised.
+  // The animal lines match on the noun but must not match what is DERIVED from it: "chicken
+  // flavor", "beef stock" and "milk chocolate" all read as NOVA 1 whole foods (96 Excellent for a
+  // lone "Milk chocolate" entry) until the lookaheads below were added, and "peanut butter" was
+  // dairy.
+  const DERIVED = '(?!\\s+(?:flavou?r(?:ing|ed)?|stock|broth|bouillon|base|fat|extract|powder|solids|substitute|replacer|protein|seasoning|chocolate|sauce|oil)s?\\b)';
+  const NOT_DAIRY = '(?<!(?:peanut|almond|cashew|sunflower|seed|nut|cocoa|cacao|shea|apple|soy|soya|coconut|oat|rice|hemp|pea|macadamia|pistachio|walnut|hazelnut|pecan|sesame) )';
   const WHOLE = [
-    /^[\w' -]{0,28}\b(beef|bison|lamb|mutton|goat|venison|elk|pork|chicken|turkey|duck)\b/i,
-    /^[\w' -]{0,24}\b(salmon|tuna|sardines?|anchov(y|ies)|mackerel|cod|halibut|trout|herring|shrimp|oysters?|mussels?)\b/i,
+    new RegExp('^[\\w\' -]{0,28}\\b(beef|bison|lamb|mutton|goat|venison|elk|pork|chicken|turkey|duck)\\b' + DERIVED, 'i'),
+    new RegExp('^[\\w\' -]{0,24}\\b(salmon|tuna|sardines?|anchov(y|ies)|mackerel|cod|halibut|trout|herring|shrimp|oysters?|mussels?)\\b' + DERIVED, 'i'),
     /^(organic |pasture[- ]?raised )*(eggs?|egg yolks?|egg whites?)$/i,
-    /^[\w' -]{0,24}\b(milk|cream|butter|ghee|yogh?urt|kefir|cheese|cheddar|mozzarella|parmesan)\b/i,
+    new RegExp('^[\\w\' -]{0,24}' + NOT_DAIRY + '\\b(milk|cream|butter|ghee|yogh?urt|kefir|cheese|cheddar|mozzarella|parmesan)\\b' + DERIVED + '(?!\\s+of\\s+tartar)', 'i'),
     /^(beef |chicken |pork )?(liver|heart|kidney|bone marrow|tripe|sweetbreads)\b/i,
     /^(organic )?(water|sea salt|salt)$/i,
     /^(organic |raw )*(honey|maple syrup)$/i,
-    /^(organic )?(almonds?|walnuts?|pecans?|macadamias?|pistachios?|cashews?|hazelnuts?)$/i,
+    /^(organic |raw |dry[- ]roasted |roasted |unsalted |salted |whole |shelled )*(almonds?|walnuts?|pecans?|macadamias?|pistachios?|cashews?|hazelnuts?|peanuts?|pine nuts?|brazil nuts?|(?:pumpkin|sunflower|chia|flax|hemp|sesame) ?seeds?|flaxseed)$/i,
+    /^(organic |dried |cooked )*(lentils?|chickpeas?|(?:black|kidney|pinto|navy|cannellini|garbanzo|white|red) beans?|split peas|edamame)$/i,
     /^(organic )?(apples?|bananas?|berries|blueberries|strawberries|oranges?|dates?|figs?|raisins?)$/i,
     /^(organic )?(spinach|kale|broccoli|carrots?|onions?|garlic|tomatoes?|potatoes?|sweet potatoes?)$/i,
     /^(organic )?(rice|quinoa|oats|buckwheat)$/i,

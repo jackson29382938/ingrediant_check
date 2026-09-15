@@ -101,7 +101,7 @@ function isDenialEntry(entry) {
 }
 
 // "Butter" is a cooking fat; "peanut butter" and "cocoa butter" are not.
-const NOT_REAL_BUTTER = /(peanut|almond|cashew|sunflower|seed|nut|cocoa|shea|apple|soy|coconut)\s+butter|\bbutter\s+(flavou?r|powder|solids|substitute)\b|\bartificial\s+butter\b/gi;
+const NOT_REAL_BUTTER = /(peanut|almond|cashew|sunflower|seed|nut|cocoa|shea|apple|soy|coconut)\s+butter|\bbutter\s+(flavou?r(?:ed|ing)?|powder|solids|substitute)\b|\bartificial\s+butter\b/gi;
 
 // Fermentation-derived acids come from culturing, not from an added industrial acid.
 const FERMENT_ACID = /\b(cultured|encapsulated|fermented)\b[^,]{0,25}(lactic|citric) acid/i;
@@ -127,9 +127,16 @@ const PENALTIES = [
   ...tag(add.FLAVOURS, 'hard', 'flavour').map(r => (GLUTAMATE.test(r.why) ? { ...r, cat: 'glutamate' } : r)),
   ...tag(add.TEXTURE, byPts(12), 'texture'),
   ...tag(add.PRESERVATIVES, 'hard', 'preservative'),
+  // An unnamed function word is charged but does not vote on the processing class: "color added"
+  // on a fillet of salmon may be paprika extract, and it must not turn the fish into NOVA 3.
+  ...tag(add.UNNAMED, 'none', 'processingAid'),
   ...tag(add.PROCESSING, byPts(12), 'processing', 'processingAid'),
   ...tag(add.FORTIFICATION, byPts(7), 'fortification'),
-  ...tag(add.GRAINS, byPts(12), 'grain'),
+  // Only stripped-and-re-dosed flour marks ultra-processing. Plain wheat flour sat exactly on the
+  // 12-point threshold, so a four-ingredient loaf of whole-wheat bread was NOVA 4 with a base of 60
+  // while a bag of sugar was NOVA 2 with a base of 90. The gluten penalty itself is unchanged —
+  // that is a weight the user owns — but bread is processed, not ultra-processed.
+  ...tag(add.GRAINS, r => (/enriched|bleached|refined|white/i.test(r.why) ? 'hard' : 'soft'), 'grain'),
   ...tag(labels.DAIRY_PENALTY, 'soft', 'dairy', 'dairyProcessing'),
   ...tag(sugars.REFINED, 'soft', 'sugar'),   // sugar is penalised, but sugar alone is not ultra-processing
   ...tag(sugars.TRADITIONAL, 'none', 'sugar'),
@@ -246,18 +253,34 @@ const COMMON_PANEL = new RegExp('\\b(?:' + [
   'agua|eau|wasser|sal|sel|salz|az[uú]car|sucre|zucker|leche|lait|milch|harina|farine|mehl',
   'aceite|huile|[öo]l|jarabe|sirop|jugo|jus|saft|ma[ií]z|ma[ïi]s|trigo|bl[ée]|arroz|riz|reis',
   'soja|girasol|tournesol|colza|vegetal|v[ée]g[ée]tale|almid[óo]n|amidon|levadura|levure',
+  // Italian staples, and German compounds: "Vollmilchpulver" and "Kakaobutter" contain the words
+  // above but no word boundary, so they read as unrecognised and a correctly scored German list
+  // still carried a "50% recognised" warning.
+  'acqua|sale|latte|farina|olio|succo|riso|mais|soia|lievito|amido|burro|panna|formaggio|uova|miele|nocciole|mandorle',
+  '\\w*(?:milch|zucker|butter|mehl|pulver|st[äa]rke|sirup|saft|salz|wasser|sahne|k[äa]se|joghurt|schokolade|kakao|mandeln|n[üu]sse|haselnuss|erdnuss)\\w*',
+  'emulgator(?:en)?|emulsionante|[ée]mulsifiant|emulsionanti|conservante|conservateur|konservierungsstoff|colorante|colorant|farbstoff|s[äa]uerungsmittel|acidulant|acidificante|correcteur',
 ].join('|') + ')\\b', 'i');
+
+// Marketing qualifiers in front of an ingredient carry no scoring information, but most sugar and
+// sweetener rules are anchored at the start of the entry — so "organic agave nectar" matched nothing
+// while "agave nectar" cost 16 points, and the organic bonus was paid on top. Measured: oats with
+// agave 63, oats with organic agave 95. Every anchored rule now sees the entry as written AND with
+// the qualifiers stripped; the displayed ingredient stays as written.
+const QUALIFIERS = /^(?:(?:organic|raw|pure|natural|real|certified|fair[- ]trade|non[- ]?gmo|unsulph?ured|light|dark|golden|blue|100%|grade a|kosher)\s+)+/i;
+const bare = ing => ing.replace(QUALIFIERS, '');
+const hits1 = (re, ing) => re.test(ing) || (QUALIFIERS.test(ing) && re.test(bare(ing)));
+const hitsAny = (rules, ing, pick = r => r) => rules.some(r => hits1(pick(r), ing));
 
 function recognitionCoverage(list) {
   if (!list.length) return 0;
   let seen = 0;
   for (const ing of list) {
     const known =
-      labels.WHOLE.some(w => w.test(ing))
-      || labels.CULINARY.test(ing)
+      hitsAny(labels.WHOLE, ing)
+      || hits1(labels.CULINARY, ing)
       || COMMON_PANEL.test(ing)
-      || sugars.FREE.some(f => f.test(ing))
-      || PENALTIES.some(r => r.m.test(ing))
+      || hitsAny(sugars.FREE, ing)
+      || hitsAny(PENALTIES, ing, r => r.m)
       || CAPS.some(c => c.m.test(ing))
       || labels.BONUSES.some(b => b.m.test(ing));
     if (known) seen++;
@@ -266,17 +289,19 @@ function recognitionCoverage(list) {
 }
 
 // ---------------------------------------------------------------- parsing
-const tidy = s => s.replace(/^[\s*•\-–]+/, '').replace(/\s+/g, ' ').trim().toLowerCase();
+const tidy = s => s.replace(/^[\s*•\-–:]+/, '').replace(/\s+/g, ' ').trim().toLowerCase();
 const usable = s => s.length > 1 && s.length < 80;
 
 // Split on commas at the TOP level only, leaving parenthesised sub-lists attached to their parent.
+// A full stop ends an entry only when it ends a sentence: "2.5%" and "vitamin b12." must not split.
 function splitTopLevel(text) {
   const parts = [];
   let depth = 0, buf = '';
-  for (const ch of text) {
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
     if (ch === '(') { depth++; buf += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); buf += ch; }
-    else if (depth === 0 && (ch === ',' || ch === ';' || ch === '.')) { parts.push(buf); buf = ''; }
+    else if (depth === 0 && (ch === ',' || ch === ';' || (ch === '.' && !/\d/.test(text[i + 1] || '')))) { parts.push(buf); buf = ''; }
     else buf += ch;
   }
   if (buf.trim()) parts.push(buf);
@@ -299,7 +324,7 @@ function expandEntry(part) {
 
 // [{ ing, pos }] where pos is the TOP-LEVEL position, shared by an ingredient's own sub-list.
 function parseEntries(text) {
-  const flat = text.replace(/\b(contains \d+% or less of|less than \d+% of|\d+% or less of|and\/or)\b/gi, ',');
+  const flat = text.replace(/\b((?:contains )?(?:less than \d+(?:\.\d+)?% of|\d+(?:\.\d+)?% or less of)|and\/or)\b/gi, ',');
   const out = [];
   splitTopLevel(flat).forEach((part, pos) => {
     for (const ing of expandEntry(part)) out.push({ ing, pos });
@@ -317,21 +342,23 @@ const weight = i => (i === 0 ? 1.5 : i <= 2 ? 1.25 : i <= 6 ? 1.0 : 0.5);
 
 // ---------------------------------------------------------------- NOVA
 function novaClass(list, text, hardHits, softHits) {
+  const whole = i => hitsAny(labels.WHOLE, i);
+  const culinary = i => hits1(labels.CULINARY, i);
   if (hardHits > 0) return 4;
   if (softHits >= 3) return 4;
   if (list.length === 1) {
-    if (labels.CULINARY.test(list[0])) return 2;
-    if (labels.WHOLE.some(w => w.test(list[0]))) return 1;
+    if (culinary(list[0])) return 2;
+    if (whole(list[0])) return 1;
     return 2;
   }
-  if (list.length <= 3 && list.every(i => labels.CULINARY.test(i))) return 2;
+  if (list.length <= 3 && list.every(culinary)) return 2;
   if (softHits >= 1) return 3;
   if (labels.PROCESSED_SIGNAL.test(text)) return 3;
-  if (list.length <= 5 && list.every(i => labels.WHOLE.some(w => w.test(i)))) return 1;
+  if (list.length <= 5 && list.every(whole)) return 1;
   // A short list whose FIRST ingredient is a recognised whole food is overwhelmingly that food —
   // "Atlantic Salmon, Color Added" is salmon with a note, not a manufactured product. Class 2
   // rather than 1, because the trailing ingredients are still doing something.
-  if (list.length <= 3 && labels.WHOLE.some(w => w.test(list[0]))) return 2;
+  if (list.length <= 3 && whole(list[0])) return 2;
   // Unrecognised is NOT the same as minimally processed. Falling back to NOVA 1 here gave soy
   // sauce a base of 96 simply because "soybeans" and "alcohol" are not in the whole-food list.
   // Anything we cannot positively identify as whole or culinary is treated as processed.
@@ -408,7 +435,7 @@ function score(product, options = {}) {
   entries.forEach(({ ing, pos }) => {
     const w = weight(pos);
 
-    const isFreeSugar = sugars.FREE.some(f => f.test(ing));
+    const isFreeSugar = hitsAny(sugars.FREE, ing);
     if (isFreeSugar && !seen.has('freesugar')) {
       seen.add('freesugar');
       // Fruit and dairy sugar is exempt by default. Turning the 'naturally occurring sugars'
@@ -434,7 +461,7 @@ function score(product, options = {}) {
       if (/citric acid|lactic acid/i.test(r.why) && FERMENT_ACID.test(ing)) continue;
       if (r.exemptIf && r.exemptIf.test(ing)) continue;
       if (r.exemptIfText && r.exemptIfText.test(txt)) continue;
-      if (!r.m.test(ing)) continue;
+      if (!hits1(r.m, ing)) continue;
       seen.add(r.why);
       // Processing describes the label, independent of the user's penalty preferences.
       if (!(r.gluten && tradPrep) && !(isFreeSugar && r.group === 'sugar')) {
@@ -508,13 +535,10 @@ function score(product, options = {}) {
   }
   pts += bonus;
 
-  const simple = Math.round(4 * w_('simplicity'));
-  if (list.length <= 1 && simple > 0) { pts += simple; good.push({ c: +simple, why: 'Single-ingredient whole food' }); }
-
   // hard caps
   let cap = 100, capWhy = null;
-  for (const c of CAPS) {
-    if (!c.m.test(txt)) continue;
+  const capsHit = CAPS.filter(c => c.m.test(txt));
+  for (const c of capsHit) {
     let ceiling = c.cap;
     if (c.unless) {
       // Checked per entry, not against the whole text: a product listing both "sunflower oil" and
@@ -529,7 +553,18 @@ function score(product, options = {}) {
     const eff = Math.max(SCORE_FLOOR, Math.round(100 - (100 - ceiling) * w_(c.cat)));
     if (eff >= 100) continue;                            // category switched off by the user
     if (eff < cap) { cap = eff; capWhy = c.why; }
-    if (!bad.some(h => h.why === c.why)) bad.push({ c: 'CAP', why: `${c.why} — caps score at ${eff}` });
+    // The row text carries a suffix, so an exact comparison never matched and two rules with the
+    // same reason produced two rows.
+    if (!bad.some(h => h.why.startsWith(c.why))) bad.push({ c: 'CAP', why: `${c.why} — caps score at ${eff}` });
+  }
+
+  // The bonus is for a whole food that is its own list, not for any lone ingredient: plain sugar
+  // and a bottle of sunflower oil used to collect it too, next to their own penalty or cap.
+  const simple = Math.round(4 * w_('simplicity'));
+  const lone = list.length === 1 && (hitsAny(labels.WHOLE, list[0]) || hits1(labels.CULINARY, list[0]));
+  if (lone && simple > 0 && !hits.length && !capsHit.length) {
+    pts += simple;
+    good.push({ c: +simple, why: 'Single-ingredient whole food' });
   }
 
   // Nutrition-panel categories, when the page supplied numbers and the user enabled them.

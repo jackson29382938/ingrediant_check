@@ -725,7 +725,9 @@
       schema: CACHE.SCHEMA, v: ENGINE_VERSION, t: Date.now(),
       store: location.hostname, asin, prefs: CACHE.fingerprint(cachePrefs()),
       score: result.score, verdict: result.verdict, nova: result.nova,
-      source: source || 'page', ingredients: String(ingredients || '').slice(0, 12000),
+      // The ingredient text is deliberately not stored: nothing read it, and at up to 12 KB per
+      // entry a few thousand cached tiles would have run into the 10 MB storage quota.
+      source: source || 'page',
       provenanceSource: provenanceSource || '',
       name: String(name || '').replace(/\s+/g, ' ').trim().slice(0, 120),
     };
@@ -930,7 +932,7 @@
     clearBadges();
   }
 
-  chrome.storage.local.get(['enabled', 'badges', 'hoverScore', 'autoScoreSearch', 'foodOnly', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList', 'useOpenFoodFacts', 'sheetUrl', 'producersUrl', 'sheetIndex', 'producerIndex'], o => {
+  chrome.storage.local.get(['enabled', 'badges', 'hoverScore', 'autoScoreSearch', 'foodOnly', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList', 'useOpenFoodFacts', 'sheetUrl', 'producersUrl', 'sheetIndexRev', 'producerIndexRev'], o => {
     state.cacheOptions = { ...o };
     const toggles = (AIR.db.prefs && AIR.db.prefs.sanitizeToggles(o)) || {
       enabled: o.enabled !== false,
@@ -969,7 +971,7 @@
 
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area && area !== 'local') return;
-    for (const key of ['weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sheetUrl', 'producersUrl', 'sheetIndex', 'producerIndex']) {
+    for (const key of ['weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sheetUrl', 'producersUrl', 'sheetIndexRev', 'producerIndexRev']) {
       if (changes[key]) state.cacheOptions[key] = changes[key].newValue;
     }
     // Changing a weight changes every score on screen, so the panel and badges are rebuilt and the
@@ -1020,7 +1022,7 @@
       resetListState();
       if (state.enabled) { removePanel(); wake(); }
     }
-    if (changes.useOpenFoodFacts || changes.sheetUrl || changes.producersUrl || changes.sheetIndex || changes.producerIndex) {
+    if (changes.useOpenFoodFacts || changes.sheetUrl || changes.producersUrl || changes.sheetIndexRev || changes.producerIndexRev) {
       resetListState();
       removePanel();
       if (state.enabled) wake();

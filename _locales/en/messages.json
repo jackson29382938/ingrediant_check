@@ -266,5 +266,40 @@
         "content": "$1"
       }
     }
+  },
+  "hollowMeansNothing": {
+    "message": "$LABEL$ means nothing here",
+    "placeholders": {
+      "label": {
+        "content": "$1"
+      }
+    }
+  },
+  "popupCouldNotSave": {
+    "message": "Could not save."
+  },
+  "popupOffDenied": {
+    "message": "Chrome did not grant Open Food Facts access."
+  },
+  "popupOffNotKept": {
+    "message": "Chrome did not keep the Open Food Facts permission."
+  },
+  "popupCouldNotClear": {
+    "message": "Could not clear cached scores."
+  },
+  "srcShortPasted": {
+    "message": "Pasted label (this tab)"
+  },
+  "srcShortOverride": {
+    "message": "Food filter overridden (this tab)"
+  },
+  "srcShortOcr": {
+    "message": "Label photo"
+  },
+  "srcShortBarcode": {
+    "message": "Open Food Facts"
+  },
+  "srcShortPage": {
+    "message": "Product page"
   }
 }

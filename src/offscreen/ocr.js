@@ -44,11 +44,26 @@ async function ocrOne(url, signal) {
   return { url, text: data.text || '', confidence: data.confidence || 0 };
 }
 
+// Nothing closed this page once it existed, so after the first label the engine's memory stayed
+// resident until the browser restarted. Two idle minutes after the last job the worker is torn down
+// and the service worker is asked to close the document; the next request recreates both.
+const IDLE_MS = 2 * 60 * 1000;
+let idleTimer = null;
+function scheduleIdle() {
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => {
+    if (jobs.size) return;
+    resetWorker();
+    try { chrome.runtime.sendMessage({ type: 'ocrIdle' }).catch(() => {}); } catch (e) { /* no receiver */ }
+  }, IDLE_MS);
+}
+
 // One job owns the worker at a time. Each deadline includes time spent waiting in the queue.
 let ocrWork = Promise.resolve();
 let activeJob = null;
 const jobs = new Set();
 function ocrImages(urls, { limit = 5, timeoutMs = 45000 } = {}) {
+  clearTimeout(idleTimer);
   const controller = new AbortController();
   const job = { controller };
   jobs.add(job);
@@ -86,6 +101,7 @@ function ocrImages(urls, { limit = 5, timeoutMs = 45000 } = {}) {
   return Promise.race([queued, cancelled]).finally(() => {
     clearTimeout(deadline);
     jobs.delete(job);
+    if (!jobs.size) scheduleIdle();
   });
 }
 

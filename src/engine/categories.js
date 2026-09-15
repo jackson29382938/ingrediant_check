@@ -84,7 +84,7 @@ const CATEGORIES = [
   // ---------------------------------------------------------------- grains & proteins
   { id: 'grain', group: 'Grains & proteins', kind: 'penalty', def: 1,
     label: 'Refined grains & gluten',
-    help: 'Enriched and white flour, wheat, barley, rye. Traditionally prepared grains — sourdough, sprouted, soaked — are exempt.' },
+    help: 'Enriched and white flour, and all wheat, barley and rye — whole grain included, because this dial is about gluten as much as refinement. Traditionally prepared grains (sourdough, sprouted, soaked) count half. Lower this if you do not want gluten grains counted against a score.' },
   { id: 'isolate', group: 'Grains & proteins', kind: 'penalty', def: 1,
     label: 'Isolated & industrial proteins',
     help: 'Soy protein isolate, pea protein, textured vegetable protein, hydrolysed protein, caseinate.' },

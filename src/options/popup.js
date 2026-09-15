@@ -26,7 +26,7 @@ function persist(values, done) {
   chrome.storage.local.set(values, () => {
     writing = false;
     if (chrome.runtime.lastError) {
-      say('Could not save.');
+      say(msg('popupCouldNotSave', 'Could not save.'));
       if (done) done(false);
       return;
     }
@@ -94,7 +94,7 @@ chrome.storage.local.get(KEYS, options => {
             fallback.checked = false;
             fallback.disabled = false;
             persist({ useOpenFoodFacts: false });
-            say('Chrome did not grant Open Food Facts access.');
+            say(msg('popupOffDenied', 'Chrome did not grant Open Food Facts access.'));
             return;
           }
           // Some automated/headless Chromium builds report a successful request without actually
@@ -103,7 +103,7 @@ chrome.storage.local.get(KEYS, options => {
             fallback.checked = !!confirmed;
             fallback.disabled = false;
             persist({ useOpenFoodFacts: fallback.checked });
-            if (!confirmed) say('Chrome did not keep the Open Food Facts permission.');
+            if (!confirmed) say(msg('popupOffNotKept', 'Chrome did not keep the Open Food Facts permission.'));
           });
         });
         return;
@@ -131,20 +131,11 @@ function msg(key, fallback, sub) {
   return out || fallback;
 }
 
-const NOVA_SHORT = {
-  1: 'Whole / minimally processed',
-  2: 'Culinary ingredient',
-  3: 'Processed',
-  4: 'Ultra-processed',
-};
-
-function bandColor(score) {
-  return score >= 90 ? { fg: '#0f7b3f', bg: '#e8f5ec', ring: '#1a9850' }
-    : score >= 75 ? { fg: '#4a7c1f', bg: '#eef6e4', ring: '#66bd63' }
-    : score >= 50 ? { fg: '#9a6206', bg: '#fdf3e2', ring: '#f0a02a' }
-    : score >= 25 ? { fg: '#a8480f', bg: '#fdeee5', ring: '#f46d43' }
-    : { fg: '#a4161a', bg: '#fdecec', ring: '#d73027' };
-}
+// One palette and one set of NOVA labels, owned by the panel. The copies that used to live here
+// had already drifted from it once.
+const PANEL = (typeof AIR !== 'undefined' && AIR.panel) || null;
+const NOVA_SHORT = PANEL ? PANEL.NOVA_TEXT : { 1: 'Whole / minimally processed', 2: 'Culinary ingredient', 3: 'Processed', 4: 'Ultra-processed' };
+const bandColor = PANEL ? PANEL.BAND_COLOR : () => ({ fg: '#0f1111', bg: '#f7f8f8', ring: '#d5d9d9' });
 
 function asinFromUrl(url) {
   try { return (new URL(url).pathname.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/) || [])[1] || ''; }
@@ -179,7 +170,7 @@ function paintPageScore() {
     }
     const store = new URL(url).hostname;
     const key = CACHE.key(store, asin);
-    chrome.storage.local.get([key, 'weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sheetUrl', 'producersUrl', 'sheetIndex', 'producerIndex'], async obj => {
+    chrome.storage.local.get([key, 'weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sheetUrl', 'producersUrl', 'sheetIndexRev', 'producerIndexRev'], async obj => {
       let live = null;
       try { live = await chrome.tabs.sendMessage(tab.id, { type: 'currentPageScore' }); } catch { /* tab has no active content script */ }
       const context = { store, asin, version, prefs: obj };
@@ -212,10 +203,10 @@ function paintPageScore() {
       verdict.textContent = hit.verdict || '';
       const sub = document.createElement('div');
       sub.className = 'ps-sub';
-      const source = hit.source === 'manual-paste' ? 'Pasted label (this tab)'
-        : hit.source === 'food-override' ? 'Food filter overridden (this tab)'
-        : hit.source === 'label-ocr' ? 'Label photo'
-        : hit.source === 'open-food-facts' ? 'Open Food Facts' : 'Product page';
+      const source = hit.source === 'manual-paste' ? msg('srcShortPasted', 'Pasted label (this tab)')
+        : hit.source === 'food-override' ? msg('srcShortOverride', 'Food filter overridden (this tab)')
+        : hit.source === 'label-ocr' ? msg('srcShortOcr', 'Label photo')
+        : hit.source === 'open-food-facts' ? msg('srcShortBarcode', 'Open Food Facts') : msg('srcShortPage', 'Product page');
       sub.textContent = [NOVA_SHORT[hit.nova], hit.name, source, hit.provenanceSource].filter(Boolean).join(' · ');
       meta.append(verdict, sub);
       row.append(num, meta);
@@ -262,7 +253,7 @@ chrome.storage.onChanged.addListener(changes => {
     if (fallback && !fallback.disabled) fallback.checked = isOn('useOpenFoodFacts', changes.useOpenFoodFacts.newValue);
   }
   if (changes.popupShowWhy) paintWhy(changes.popupShowWhy.newValue === true);
-  if (Object.keys(changes).some(k => /^(s|off):/.test(k) || ['weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sheetUrl', 'producersUrl', 'sheetIndex', 'producerIndex'].includes(k))) {
+  if (Object.keys(changes).some(k => /^(s|off):/.test(k) || ['weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sheetUrl', 'producersUrl', 'sheetIndexRev', 'producerIndexRev'].includes(k))) {
     paintCacheCount();
     paintPageScore();
   }
@@ -290,7 +281,7 @@ document.getElementById('clear').addEventListener('click', async event => {
     event.target.disabled = true;
     paintPageScore();
   } catch (e) {
-    say('Could not clear cached scores.');
+    say(msg('popupCouldNotClear', 'Could not clear cached scores.'));
   }
 });
 

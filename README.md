@@ -25,7 +25,9 @@ dependency-free. `browser:setup` installs the pinned optional browser tooling gl
 package extraction does not fail inside cloud-synced workspaces such as Google Drive.
 Set `INGREDIENT_CHECK_CHROME` to a Chrome for Testing executable when you manage the browser
 yourself. The launcher otherwise discovers installs made by `npm run browser:setup` on Windows,
-macOS, and Linux.
+macOS, and Linux. The browser profile it creates lives in your user cache directory
+(`INGREDIENT_CHECK_PROFILE` overrides it), never inside this folder, because the profile holds
+cookies and logins and this folder may be cloud-synced.
 
 After editing `src/`, `manifest.json`, or `icons/`, run `npm run chrome:reload`.
 
@@ -35,7 +37,7 @@ On an Amazon product page it reads the ingredient list (page text, optional on-d
 
 The toolbar popup is the master switch plus network opt-ins. On an Amazon product tab it also shows the cached score for that ASIN. Explanations are collapsed until you open **Why these matter**. **Scoring weights, allergens & avoid list** opens the full settings page (searchable categories, dark mode, avoid-list suggestions, section jump). Imports, sliders, and storage values are sanitized before they are trusted: unknown ids are dropped, weights stay in the 0–2 slider range, and only Google Sheet / Apps Script URLs are kept.
 
-Ingredient headings are recognised in English and several EU languages (Zutaten, Ingredientes, Ingrédients, Ingredienti, Ingrediënten, Składniki), including same-line `Ingredients:` detail-bullet forms.
+Ingredient headings are recognised in English and several EU languages (Zutaten, Ingredientes, Ingrédients, Ingredienti, Ingrediënten, Składniki), including same-line `Ingredients:` detail-bullet forms. The scoring rules themselves read English, and the most common additives, sweeteners, oils and unnamed function words (“conservante”, “aroma”, “colorante”) in Spanish, French, German and Italian; a list the rulebase mostly cannot read is declined rather than scored. Chrome 116 or newer is required.
 
 ## Tests
 

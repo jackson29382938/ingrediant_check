@@ -53,6 +53,21 @@
     + '|net\\s*wt\\b'
     + ')', 'i');
 
+  // A published list is often followed by a sentence that is not ingredients — "Made in a facility
+  // that also processes tree nuts.", "Product of Canada.", "Packed in the USA." Splitting on commas
+  // alone glued that sentence to the last ingredient, and one logistics part in a two-part list is
+  // 50%, over the rejection threshold, so "Peanuts, Salt. Made in a facility…" was refused and the
+  // user got a paste box for a list Amazon had published. Logistics sentences are dropped; allergen
+  // declarations ("Contains: milk", "May contain…") stay, because they parse as entries and the
+  // allergen detector reads them. The first sentence is never dropped on its own.
+  const SENTENCE_BREAK = /(?<=[.!?])\s+(?=[A-Z(*])/;
+  function stripBoilerplate(text) {
+    const sentences = norm(text).split(SENTENCE_BREAK);
+    if (sentences.length < 2) return norm(text);
+    const kept = sentences.filter(s => !NON_INGREDIENT.test(s));
+    return (kept.length ? kept : sentences).join(' ');
+  }
+
   // How much of the candidate is just the product name repeated back.
   function echoesTitle(text, title) {
     if (!title) return 0;
@@ -69,7 +84,7 @@
   // because a genuine single-ingredient food legitimately repeats its own title — "Organic Whole
   // Grain Rolled Oats" is both the name and the entire ingredient list, and must still be read.
   function looksLikeIngredients(text, title) {
-    const t = norm(text);
+    const t = stripBoilerplate(text);
     if (t.length < MIN_LEN || t.length > MAX_LEN) return false;
     if (PLACEHOLDER.test(t)) return false;
     if (/^(ingredients?|ingredientes|ingredi[eë]nten|ingr[eé]dients?|zutaten|ingredienti|sk[łl]adniki|原材料|nutrition facts|directions|legal disclaimer)\s*:?\s*$/i.test(t)) return false;
@@ -108,7 +123,7 @@
   function tier1(doc, title) {
     const direct = doc.querySelector('#nic-ingredients-content');
     if (direct && looksLikeIngredients(direct.innerText, title)) {
-      return { text: clean(direct.innerText), via: 'nic-ingredients-content', confidence: 0.98 };
+      return { text: stripBoilerplate(direct.innerText), via: 'nic-ingredients-content', confidence: 0.98 };
     }
     // Scope anchors, used when the exact id is absent but the card is present.
     const scopes = ['#nutritionalInfoAndIngredients_feature_div', '.nicDesktop', '[class*="nicSection"]'];
@@ -131,7 +146,7 @@
       if (!container) continue;
       const content = container.querySelector('.a-expander-content');
       if (content && looksLikeIngredients(content.innerText, title)) {
-        return { text: clean(content.innerText) };
+        return { text: stripBoilerplate(content.innerText) };
       }
     }
     return null;
@@ -154,7 +169,7 @@
         .filter(t => t && !INGREDIENT_HEADING.test(t) && !NEXT_SECTION.test(t));
       const seenBlocks = new Set();
       const text = norm(blocks.filter(b => !seenBlocks.has(b) && seenBlocks.add(b)).join(' '));
-      if (looksLikeIngredients(text, title)) return { text };
+      if (looksLikeIngredients(text, title)) return { text: stripBoilerplate(text) };
     }
     return null;
   }
@@ -193,12 +208,12 @@
         const stop = lines.findIndex(l => NEXT_SECTION.test(l.trim()));
         const body = (stop === -1 ? lines : lines.slice(0, stop)).join(' ');
         if (looksLikeIngredients(body, title)) {
-          return { text: norm(body), via: `line-sweep:${sel}`, confidence: 0.6 };
+          return { text: stripBoilerplate(body), via: `line-sweep:${sel}`, confidence: 0.6 };
         }
       }
       const inline = text.match(LINE_INLINE);
       if (inline && looksLikeIngredients(inline[1], title)) {
-        return { text: norm(inline[1]), via: `line-inline:${sel}`, confidence: 0.55 };
+        return { text: stripBoilerplate(inline[1]), via: `line-inline:${sel}`, confidence: 0.55 };
       }
     }
     return null;
@@ -208,15 +223,22 @@
   // Only used by categories the user has switched on (sodium, saturated fat, total sugar, fibre,
   // protein) — all of which default to off. Returns null rather than zeros when the page publishes
   // no panel, so "no data" is never mistaken for "zero grams".
+  // `NUM` accepts a decimal comma as well as a point: every EU store prints "12,5 g", and a
+  // point-only pattern silently read nothing there, so the nutrition categories were inert on
+  // fifteen of the twenty-one stores. Values go through toNumber(), never parseFloat() directly.
+  const NUM = '(\\d+(?:[.,]\\d+)?)';
+  const toNumber = v => parseFloat(String(v == null ? '' : v).replace(',', '.'));
   const NUTRIENTS = [
-    ['sodium',       /\b(?:sodium|natrium|sodio)\b[^0-9]{0,20}([\d.]+)\s*mg/i],
-    ['saturatedFat', /\b(?:saturated fat|ges[äa]ttigte fetts[äa]uren|acides gras satur[eé]s|grasas saturadas|grassi saturi)\b[^0-9]{0,20}([\d.]+)\s*g/i],
-    ['transFat',     /\btrans fat\b[^0-9]{0,20}([\d.]+)\s*g/i],
-    ['sugar',        /\b(?:total sugars?|sugars?|zucker|az[uú]cares?|sucres?|zuccheri)\b[^0-9]{0,20}([\d.]+)\s*g/i],
-    ['addedSugar',   /\badded sugars?\b[^0-9]{0,20}([\d.]+)\s*g/i],
-    ['fibre',        /\b(?:dietary fibre?r?|ballaststoffe|fibra(?:s)?(?: alimentaria| alimentar)?|fibres? alimentaires?)\b[^0-9]{0,20}([\d.]+)\s*g/i],
-    ['protein',      /\b(?:protein|eiweiss|prot[eé]ines?|prote[ií]nas?)\b[^0-9]{0,20}([\d.]+)\s*g|eiwei[sß][^0-9a-z]{0,20}([\d.]+)\s*g/i],
-    ['calories',     /\b(?:calories|energie|energ[ií]a|énergie)\b[^0-9]{0,20}([\d.]+)/i],
+    ['sodium',       new RegExp('\\b(?:sodium|natrium|sodio)\\b[^0-9]{0,20}' + NUM + '\\s*mg', 'i')],
+    ['saturatedFat', new RegExp('\\b(?:saturated fat|ges[äa]ttigte fetts[äa]uren|acides gras satur[eé]s|grasas saturadas|grassi saturi)\\b[^0-9]{0,20}' + NUM + '\\s*g', 'i')],
+    ['transFat',     new RegExp('\\btrans fat\\b[^0-9]{0,20}' + NUM + '\\s*g', 'i')],
+    ['sugar',        new RegExp('\\b(?:total sugars?|sugars?|zucker|az[uú]cares?|sucres?|zuccheri)\\b[^0-9]{0,20}' + NUM + '\\s*g', 'i')],
+    // "Includes 10g Added Sugars" puts the number first; the label-first form must not run past the
+    // end of the line, or it reads the next row's protein grams as added sugar.
+    ['addedSugar',   new RegExp('\\badded sugars?\\b[^0-9\\n]{0,20}' + NUM + '\\s*g|\\bincludes\\s+' + NUM + '\\s*g\\s+added sugars?', 'i')],
+    ['fibre',        new RegExp('\\b(?:dietary fib(?:er|re)|fib(?:er|re)|ballaststoffe|fibra(?:s)?(?: alimentaria| alimentar)?|fibres? alimentaires?)\\b[^0-9]{0,20}' + NUM + '\\s*g', 'i')],
+    ['protein',      new RegExp('\\b(?:protein|eiweiss|prot[eé]ines?|prote[ií]nas?)\\b[^0-9]{0,20}' + NUM + '\\s*g|eiwei[sß][^0-9a-z]{0,20}' + NUM + '\\s*g', 'i')],
+    ['calories',     new RegExp('\\b(?:calories|energie|energ[ií]a|énergie)\\b[^0-9]{0,20}' + NUM, 'i')],
   ];
 
   // Amazon's grocery card renders its nutrition summary as a table with the VALUES row above the
@@ -232,7 +254,7 @@
     [/^(total )?fat$/i, 'fat'], [/^saturated( fat)?$/i, 'saturatedFat'],
     [/^trans( fat)?$/i, 'transFat'], [/^(total )?carb(ohydrate)?s?$/i, 'carbs'],
   ];
-  const VALUE_CELL = /^([\d.]+)\s*(mg|mcg|g|kcal)?$/i;
+  const VALUE_CELL = /^(\d+(?:[.,]\d+)?)\s*(mg|mcg|g|kcal)?$/i;
 
   function nutritionSummaryTable(doc) {
     let tables = [];
@@ -250,7 +272,7 @@
           const hit = SUMMARY_LABELS.find(([re]) => re.test(label));
           if (!hit) return;
           const m = values[col].match(VALUE_CELL);
-          const n = m && parseFloat(m[1]);
+          const n = m && toNumber(m[1]);
           if (isFinite(n)) out[hit[1]] = n;
         });
         if (Object.keys(out).length >= 2) return out;
@@ -273,9 +295,9 @@
       const serving = servingFromCard(doc);
       if (serving) {
         fromTable.servingSize = serving;
-        const measure = serving.match(/\(?\s*([\d.]+)\s*(?:g|grams?)\b/i)
-          || serving.match(/\(?\s*([\d.]+)\s*(?:ml|milliliters?|millilitres?)\b/i);
-        if (measure) { const v = parseFloat(measure[1]); if (isFinite(v) && v > 0) fromTable.servingGrams = v; }
+        const measure = serving.match(/\(?\s*(\d+(?:[.,]\d+)?)\s*(?:g|grams?)\b/i)
+          || serving.match(/\(?\s*(\d+(?:[.,]\d+)?)\s*(?:ml|milliliters?|millilitres?)\b/i);
+        if (measure) { const v = toNumber(measure[1]); if (isFinite(v) && v > 0) fromTable.servingGrams = v; }
       }
       return fromTable;
     }
@@ -290,7 +312,7 @@
       for (const [key, re] of NUTRIENTS) {
         const m = text.match(re);
         if (!m) continue;
-        const v = parseFloat(m[1] != null && m[1] !== '' ? m[1] : m[2]);
+        const v = toNumber(m.slice(1).find(g => g != null && g !== ''));
         if (isFinite(v)) out[key] = v;
       }
       // Stop at the next panel field. An unbounded 40-character window ran straight past the end
@@ -305,15 +327,15 @@
         // Serving size is the most gameable number on a label: declare 28g where a competitor
         // declares 55g and every per-serving figure looks better on identical food. Pull the grams
         // out so the engine can compare per 100g instead.
-        const grams = out.servingSize.match(/\(?\s*([\d.]+)\s*g\b/i)
-          || out.servingSize.match(/([\d.]+)\s*(?:grams?)\b/i);
+        const grams = out.servingSize.match(/\(?\s*(\d+(?:[.,]\d+)?)\s*g\b/i)
+          || out.servingSize.match(/(\d+(?:[.,]\d+)?)\s*(?:grams?)\b/i);
         // Drinks declare millilitres, and matching only grams meant no beverage was ever
         // normalised — so the gaming this exists to defeat still worked on exactly the category
         // where serving sizes vary most (240ml vs 355ml vs 500ml for the same drink). Water-based
         // beverages are close enough to 1 g/ml for a per-100 comparison.
-        const millilitres = out.servingSize.match(/\(?\s*([\d.]+)\s*(?:ml|milliliters?|millilitres?)\b/i);
+        const millilitres = out.servingSize.match(/\(?\s*(\d+(?:[.,]\d+)?)\s*(?:ml|milliliters?|millilitres?)\b/i);
         const measure = grams || millilitres;
-        if (measure) { const v = parseFloat(measure[1]); if (isFinite(v) && v > 0) out.servingGrams = v; }
+        if (measure) { const v = toNumber(measure[1]); if (isFinite(v) && v > 0) out.servingGrams = v; }
       }
       if (Object.keys(out).length >= 2) return out;
     }
@@ -396,6 +418,6 @@
     return { ok: false, ...identity, reason: identity.upc ? 'no-dom-match-barcode-available' : 'no-dom-match' };
   }
 
-  root.AIR.extract = { extract, looksLikeIngredients, echoesTitle, LINE_BLOCK, LINE_INLINE, INGREDIENT_HEADING, productIdentity, nutritionFacts, nutritionSummaryTable };
+  root.AIR.extract = { extract, looksLikeIngredients, stripBoilerplate, echoesTitle, LINE_BLOCK, LINE_INLINE, INGREDIENT_HEADING, productIdentity, nutritionFacts, nutritionSummaryTable };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.AIR.extract;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

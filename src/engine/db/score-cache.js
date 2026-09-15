@@ -17,7 +17,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
       ocrLabels: raw.ocrLabels === true,
       useOpenFoodFacts: raw.useOpenFoodFacts === true,
       sheetUrl: raw.sheetUrl || '', producersUrl: raw.producersUrl || '',
-      sheetRevision: raw.sheetIndex?.t || 0, producerRevision: raw.producerIndex?.t || 0,
+      // Content hashes written by the worker, so an unchanged sheet does not retire every score.
+      sheetRevision: raw.sheetIndexRev || '', producerRevision: raw.producerIndexRev || '',
     });
   }
   function valid(hit, { store, asin, version, prefs, allowManual = false }, now = Date.now()) {
@@ -26,7 +27,6 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
       && Number.isFinite(hit.score) && hit.score >= 0 && hit.score <= 100
       && Number.isFinite(hit.t) && hit.t <= now && now - hit.t < TTL_MS
       && typeof hit.source === 'string' && !!hit.source
-      && typeof hit.ingredients === 'string' && !!hit.ingredients
       && (allowManual || !['manual-paste', 'food-override'].includes(hit.source));
   }
   const api = AIRmodule('scoreCache', { key, fingerprint, valid, SCHEMA, TTL_MS });

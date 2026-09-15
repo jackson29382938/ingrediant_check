@@ -91,7 +91,8 @@ const EXPECTED = {
   chips:   { card: 'scored', max: 40, capped: true },
   beef:    { card: 'scored', min: 80, certs: /Grassfed/, provenance: true },
   shampoo: { card: 'not-food' },
-  spanish: { card: 'declined' },
+  unreadable: { card: 'declined' },
+  spanish: { card: 'scored' },   // read since 2026-09-14: unnamed additives are charged in Spanish too
   none:    { card: 'failure' },
 };
 

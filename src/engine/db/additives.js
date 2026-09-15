@@ -61,7 +61,15 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // Mirror of the natural-flavour catch-all. Without it "artificial butter flavor" and
   // "artificial vanilla flavor" slipped past every flavour rule entirely.
   { m: /\bartificial [a-z]+ flavou?rs?\b/i,             pts: 18, why: 'Artificial flavour compound' },
-    { m: /\bflavou?ring\b/i,                              pts: 12, why: 'Unspecified flavouring' },
+    // Bare "flavor" / "flavors" is the same undisclosed blend without the adjective.
+    { m: /\bflavou?ring\b|^flavou?rs?$|\bsaborizantes?\b|\baromatizantes?\b|\bsabor (?:natural|artificial|id[ée]ntico al natural)\b/i, pts: 12, why: 'Unspecified flavouring' },
+    // The same undisclosed blend on Spanish, French, German and Italian panels. Without these a
+    // Spanish list scored higher than its English twin for saying "aroma" instead of "flavor".
+    // Same `why` as the English rules on purpose: a bilingual label lists "natural flavour /
+    // arôme naturel" and must be charged once, and `seen` de-duplicates by reason.
+    { m: /\b(?:aromas?|ar[ôo]mes?|aromen|aromi)\s+(?:artificial(?:es)?|artificiels?|k[üu]nstlich\w*|artificial[ei])\b|\bk[üu]nstliche[sn]?\s+aroma\b/i, pts: 18, why: 'Artificial flavour' },
+    { m: /\b(?:aromas?|ar[ôo]mes?|aromen|aromi)\s+(?:natural(?:es)?|naturels?|naturali)\b|\bnat[üu]rliche[sn]?\s+aroma\b/i, pts: 15, why: '"Natural flavors" — an undisclosed proprietary blend, not a food' },
+    { m: /\b(?:aromas?|ar[ôo]mes?|aromen|aromi)\b(?!\s+(?:natural|naturel|artificial|artificiel|k[üu]nstlich))/i, pts: 12, why: 'Unspecified flavouring' },
     { m: /\bmonosodium glutamate\b|\bmsg\b|\be621\b|\bglutamato monos[óo]dico\b|\bglutamate monosodique\b/i, pts: 16, why: 'MSG' },
     { m: /\b(autolyzed )?yeast extract\b/i,               pts: 14, why: 'Yeast extract — MSG under another name' },
     { m: /\bdisodium (inosinate|guanylate|ribonucleotides)\b|\be63[13]\b/i, pts: 12, why: 'Ribonucleotide flavour enhancer' },
@@ -88,10 +96,10 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\blocust bean gum\b|\be410\b/i,              pts: 7,  why: 'Locust bean gum' },
     { m: /\btara gum\b/i,                              pts: 8,  why: 'Tara gum' },
     { m: /\bacacia gum\b|\bgum acacia\b|\bgum arabic\b/i,   pts: 5,  why: 'Gum arabic' },
-    { m: /\bsoy lecithin\b/i,                          pts: 9,  why: 'Soy lecithin — hexane-extracted emulsifier' },
-    { m: /\bsunflower lecithin\b/i,                    pts: 4,  why: 'Sunflower lecithin' },
-    { m: /\bmodified (food |corn |potato |tapioca |wheat )?starch\b/i, pts: 14, why: 'Modified starch — chemically altered' },
-    { m: /\bmaltodextrin\b/i,                          pts: 18, why: 'Maltodextrin — raises blood sugar faster than table sugar' },
+    { m: /\bsoy lecithin\b|\blecitina de soja\b|\bl[ée]cithine de soja\b|\bsojalecithin\b|\blecitina di soia\b/i, pts: 9,  why: 'Soy lecithin — hexane-extracted emulsifier' },
+    { m: /\bsunflower lecithin\b|\blecitina de girasol\b|\bl[ée]cithine de tournesol\b|\bsonnenblumenlecithin\b|\blecitina di girasole\b/i, pts: 4,  why: 'Sunflower lecithin' },
+    { m: /\bmodified (food |corn |potato |tapioca |wheat )?starch\b|\balmid[óo]n modificado\b|\bamidon modifi[ée]\b|\bmodifizierte st[äa]rke\b|\bamido modificato\b/i, pts: 14, why: 'Modified starch — chemically altered' },
+    { m: /\bmaltod[eé]xtrin[ae]?\b|\bmaltodestrina\b/i,  pts: 18, why: 'Maltodextrin — raises blood sugar faster than table sugar' },
     { m: /\bcarboxymethyl\b/i,                         pts: 11, why: 'Carboxymethyl derivative' },
     { m: /\bpropylene glycol\b/i,                      pts: 14, why: 'Propylene glycol' },
     { m: /\bglycerin(e)?\b|\bglycerol\b/i,             pts: 6,  why: 'Glycerin humectant' },
@@ -99,9 +107,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
 
   // ---------------------------------------------------------------- preservatives
   const PRESERVATIVES = [
-    { m: /\bsodium (nitrite|nitrate)\b|\be25[01]\b/i,   pts: 16, why: 'Synthetic nitrite — forms nitrosamines when heated' },
-    { m: /\bsodium benzoate\b|\be211\b/i,               pts: 13, why: 'Sodium benzoate' },
-    { m: /\bpotassium sorbate\b|\be202\b/i,             pts: 11, why: 'Potassium sorbate' },
+    { m: /\bsodium (nitrite|nitrate)\b|\be25[01]\b|\bnitrito de sodio\b|\bnitrite de sodium\b|\bnatriumnitrit\b|\bnitrito di sodio\b/i, pts: 16, why: 'Synthetic nitrite — forms nitrosamines when heated' },
+    { m: /\bsodium benzoate\b|\be211\b|\bbenzoato de sodio\b|\bbenzoate de sodium\b|\bnatriumbenzoat\b|\bbenzoato di sodio\b/i, pts: 13, why: 'Sodium benzoate' },
+    { m: /\bpotassium sorbate\b|\be202\b|\bsorbato de potasio\b|\bsorbate de potassium\b|\bkaliumsorbat\b|\bsorbato di potassio\b/i, pts: 11, why: 'Potassium sorbate' },
     { m: /\bsorbic acid\b/i,                            pts: 10, why: 'Sorbic acid' },
     { m: /\bcalcium propionate\b|\be282\b/i,            pts: 12, why: 'Calcium propionate' },
     { m: /\bsodium (propionate|diacetate)\b/i,          pts: 11, why: 'Sodium propionate' },
@@ -144,6 +152,21 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     pts: 14, why: 'Celery powder — nitrite by another name, which is what "uncured" means here' },
     ];
 
+  // ---------------------------------------------------------------- unnamed function classes
+  // Some labels list the job an additive does and never the additive: "preservative", "color
+  // added", "conservador", "colorante", "saborizante". That is an undisclosed additive by
+  // definition, and it was free in every language — a Mexican soda scored Mediocre on nothing but
+  // its sugar. Anchored to the whole entry, so "conservante: sorbato de potasio" is charged once,
+  // for the sorbate, by its own rule.
+  const UNNAMED = [
+    { m: /^(?:preservatives?|conservad?or(?:es)?|conservantes?|conservateurs?|konservierungsstoffe?|conservanti|preservatives? added)$/i, pts: 10, why: 'Unnamed preservative' },
+    { m: /^(?:colou?rs?(?: added)?|artificial colou?r added|colorantes?|colorants?|farbstoffe?|coloranti|color natural|colorante natural)$/i, pts: 8, why: 'Unnamed colour' },
+    { m: /^(?:emulsifiers?|emulsionantes?|[ée]mulsifiants?|emulgator(?:en)?|emulsionanti)$/i, pts: 8, why: 'Unnamed emulsifier' },
+    { m: /^(?:stabili[sz]ers?|estabilizantes?|stabilisants?|stabilisator(?:en)?|stabilizzanti|thickeners?|espesantes?|[ée]paississants?|verdickungsmittel|addensanti)$/i, pts: 6, why: 'Unnamed stabiliser or thickener' },
+    { m: /^(?:acidity regulators?|acidulants?|acidulantes?|acidifiants?|s[äa]uerungsmittel|s[äa]ureregulator(?:en)?|acidificanti|correttore di acidit[àa]|regulador de acidez)$/i, pts: 4, why: 'Unnamed acidity regulator' },
+    { m: /^(?:antioxidants?|antioxidantes?|antioxydants?|antioxidationsmittel|antiossidanti)$/i, pts: 4, why: 'Unnamed antioxidant' },
+  ];
+
   // ---------------------------------------------------------------- synthetic fortification
   const FORTIFICATION = [
     { m: /\bthiamin(e)? mononitrate\b/i,        pts: 8,  why: 'Synthetic thiamine' },
@@ -167,7 +190,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   const GRAINS = [
     { m: /\benriched (wheat |bleached |unbleached )?flour\b/i, pts: 15, why: 'Enriched flour — stripped, then synthetically re-dosed' },
     { m: /\b(bleached|refined|white) flour\b/i,     pts: 14, why: 'Refined white flour' },
-    { m: /\bwheat flour\b/i,                        pts: 12, why: 'Wheat flour' },
+    { m: /\bwheat flour\b|\bharina de trigo\b|\bfarine de bl[ée]\b|\bweizenmehl\b|\bfarina di (?:grano|frumento)\b/i, pts: 12, why: 'Wheat flour' },
     { m: /\bwheat\b/i,                              pts: 9,  why: 'Wheat', gluten: true },
     { m: /\bbarley\b/i,                             pts: 8,  why: 'Barley', gluten: true },
     { m: /\brye\b/i,                                pts: 8,  why: 'Rye', gluten: true },
@@ -190,7 +213,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   const TRADITIONAL_PREP = /\b(sourdough|sprouted|soaked|long[- ]?fermented|naturally leavened|einkorn|emmer|khorasan|kamut|heritage (wheat|grain))\b/i;
 
   const _exports = AIRmodule('additives', {
-    CAPS, ISOLATES, FLAVOURS, TEXTURE, PRESERVATIVES, PROCESSING, FORTIFICATION, GRAINS, TRADITIONAL_PREP,
+    CAPS, ISOLATES, FLAVOURS, TEXTURE, PRESERVATIVES, PROCESSING, FORTIFICATION, GRAINS, UNNAMED, TRADITIONAL_PREP,
   });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 

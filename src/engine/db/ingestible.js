@@ -71,8 +71,11 @@ const HARD_NEGATIVE = [
     test: (doc, text, title) => /\b(shoes?|sneakers?|boots?|sandals?|shirt|t-shirt|pants|jeans|jacket|hoodie|socks?|hat|cap|dress|skirt|shorts|underwear|bra|watch|handbag|backpack|wallet)\b/i.test(title) },
   { id: 'merchandise', pts: 12, why: 'General merchandise rather than something you eat',
     test: (doc, text, title) => /\b(laptops?|desktops?|monitors?|keyboards?|headphones?|earbuds?|speakers?|chargers?|cables?|adapters?|batteries|battery|tablets? (computer|pc)|smartphones?|iphones?|ipads?|cameras?|printers?|routers?|televisions?|\btvs?\b|consoles?|controllers?|video games?|puzzles?|board games?|lego|dolls?|action figures?|mattress(es)?|pillows?|blankets?|towels?|curtains?|rugs?|lamps?|desks?|chairs?|sofas?|couch(es)?|bookshel(f|ves)|vacuums?|paperback|hardcover|dvds?|blu[- ]?rays?|tires?|brake pads?|drills?|hammers?|screwdrivers?|wrench(es)?|paint(brush(es)?)?|notebooks?|binders?|staplers?|printer paper|light bulbs?|extension cords?)\b/i.test(title) },
+  // "Case of 24", "Variety Case" and "with Scoop" are how groceries are sold; a bare "case" is a
+  // phone case and a bare "scoop" is a utensil. The unguarded words made a case of sparkling water
+  // not-food on its own page and stood a whole sparkling-water search down.
   { id: 'supplementEquipment', pts: 8, why: 'Accessory rather than a consumable',
-    test: (doc, text, title) => /\b(shaker bottle|pill organi[sz]er|scoop|dispenser|funnel|case|holder)\b/i.test(title) },
+    test: (doc, text, title) => /\b(shaker bottle|pill organi[sz]er|dispenser|funnel|holder)\b|(?<!variety\s)\bcases?\b(?!\s+(?:of\s+)?\d)|(?<!with\s|includes\s|free\s|\+\s)\bscoops?\b(?!\s+included)/i.test(title) },
 ];
 
 // Some words appear in both worlds and must not be treated as food evidence on their own:

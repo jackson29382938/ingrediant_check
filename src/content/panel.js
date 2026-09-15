@@ -144,7 +144,7 @@
     for (const c of p.claims) rows.push(`<div class="cert c"><span class="tick">~</span>
       <span><b>${esc(c.label)}</b><br><span class="m">${esc(c.means)}</span></span></div>`);
     for (const h of p.hollow) rows.push(`<div class="cert h"><span class="tick">✕</span>
-      <span><b>${esc(h.label)} means nothing here</b><br><span class="m">${esc(h.why)}</span></span></div>`);
+      <span><b>${esc(t('hollowMeansNothing', '$1 means nothing here', h.label))}</b><br><span class="m">${esc(h.why)}</span></span></div>`);
     if (!rows.length) {
       rows.push(`<div class="cert h"><span class="tick">?</span><span><b>${esc(t('notFoodNothing',
         'Nothing disclosed about how this was produced'))}</b><br><span class="m">${esc(t('producedSilent',
@@ -397,6 +397,6 @@
     return shadow;
   }
 
-  root.AIR.panel = { render, renderLoading, renderFailure, renderNotFood, mount, BAND_COLOR, pasteLooksValid, t };
+  root.AIR.panel = { render, renderLoading, renderFailure, renderNotFood, mount, BAND_COLOR, NOVA_TEXT, pasteLooksValid, t };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.AIR.panel;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

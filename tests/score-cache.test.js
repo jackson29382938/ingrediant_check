@@ -24,13 +24,13 @@ test('NOVA stays constant across preferences for every corpus label', () => {
 const now = 1800000000000;
 const context = { store: 'www.amazon.com', asin: 'B000000001', version: '1.0.1', prefs: {} };
 const entry = { schema: cache.SCHEMA, t: now, v: context.version, store: context.store,
-  asin: context.asin, prefs: cache.fingerprint({}), source: 'page', ingredients: 'Oats', score: 90 };
+  asin: context.asin, prefs: cache.fingerprint({}), source: 'page', score: 90 };
 test('cache rejects expired, mismatched, incomplete, and manual records', () => {
   assert.equal(cache.valid(entry, context, now), true);
   for (const patch of [{ t: now - cache.TTL_MS }, { t: now + 1 }, { schema: 1 },
     { v: '1.0.0' }, { store: 'www.amazon.co.uk' }, { asin: 'B000000002' },
     { prefs: cache.fingerprint({ weights: { sugar: 2 } }) }, { source: '' },
-    { ingredients: '' }, { score: NaN }, { source: 'manual-paste' }, { source: 'food-override' }]) {
+    { score: NaN }, { source: 'manual-paste' }, { source: 'food-override' }]) {
     assert.equal(cache.valid({ ...entry, ...patch }, context, now), false, JSON.stringify(patch));
   }
   assert.equal(cache.valid({ ...entry, source: 'manual-paste' }, { ...context, allowManual: true }, now), true);
@@ -40,7 +40,7 @@ test('fingerprints track effective weights, fallbacks, food gate and provenance 
   assert.equal(cache.fingerprint({}), cache.fingerprint({ weights: cats.DEFAULT_WEIGHTS }));
   for (const prefs of [{ weights: { sugar: 2 } }, { foodOnly: false }, { ocrLabels: true },
     { useOpenFoodFacts: true }, { sheetUrl: 'sheet' }, { producersUrl: 'producer' },
-    { sheetIndex: { t: 10 } }, { producerIndex: { t: 10 } }]) {
+    { sheetIndexRev: 'a1b2-120' }, { producerIndexRev: 'c3d4-80' }]) {
     assert.notEqual(cache.fingerprint(prefs), cache.fingerprint({}));
   }
 });

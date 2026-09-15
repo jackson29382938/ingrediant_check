@@ -9,9 +9,16 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
 
 (function () {
 
+// "Peanut butter", "cocoa butter", "coconut milk" and "cream of tartar" are not dairy. score.js has
+// known this since NOT_REAL_BUTTER was written; the flags did not, so a vegan was told peanut butter
+// is not vegan and a milk allergy was warned about cocoa butter. One dairy pattern, shared by the
+// allergen, the vegan check and the dairy-free check, so the three cannot drift apart again.
+const NOT_DAIRY_BEFORE = '(?<!\\b(?:peanut|almond|cashew|sunflower|seed|nut|cocoa|cacao|shea|apple|soy|soya|coconut|oat|rice|hemp|pea|macadamia|pistachio|walnut|hazelnut|pecan|sesame|pumpkin|flax|tiger ?nut|body|mango|kokum)\\s)';
+const DAIRY = NOT_DAIRY_BEFORE + '\\b(?:milk|butter|cream)\\b(?!\\s*(?:of\\s+tartar|flavou?r))'
+  + '|\\b(?:dairy|cheese|yogh?urt|whey|casein(?:ate)?|lactose|ghee|kefir|custard|buttermilk|lactalbumin|lactoglobulin|paneer|quark)\\b';
+
 const ALLERGENS = [
-  { id: 'milk', label: 'Milk',
-    m: /\b(milk|dairy|butter(?!\s*flavou?r)|cream|cheese|yogh?urt|whey|casein(ate)?|lactose|ghee|kefir|custard|buttermilk)\b/i },
+  { id: 'milk', label: 'Milk', m: new RegExp(DAIRY, 'i') },
   { id: 'egg', label: 'Egg',
     m: /\b(egg|eggs|egg white|egg yolk|albumen|ovalbumin|mayonnaise|meringue)\b/i },
   { id: 'peanut', label: 'Peanut',
@@ -30,24 +37,25 @@ const ALLERGENS = [
     m: /\b(sesame|tahini|benne|gingelly)\w*/i },
   { id: 'sulfite', label: 'Sulfites',
     m: /\b(sulfite|sulphite|sodium bisulfite|potassium metabisulfite|sulfur dioxide)\w*/i },
+  // "Corned beef" is beef; popcorn is corn.
   { id: 'corn', label: 'Corn',
-    m: /\b(corn|maize|masa|hominy|dextrose|maltodextrin|corn syrup|cornstarch)\w*/i },
+    m: /\b(corn(?!ed\b)|popcorn|maize|masa|hominy|dextrose|maltodextrin|cornstarch)\w*/i },
   { id: 'nightshade', label: 'Nightshades',
     m: /\b(tomato|potato|eggplant|aubergine|bell pepper|paprika|cayenne|chili|chilli|pimento)\w*/i },
 ];
 
 // Diet compatibility. `conflict` matching means the product is NOT compatible.
+// Almond, coconut and other nut flours are keto staples; "eggplant" is not an egg.
 const DIETS = [
   { id: 'vegan', label: 'Vegan',
-    conflict: /\b(beef|pork|chicken|turkey|lamb|fish|gelatin|honey|milk|dairy|cheese|butter(?!\s*flavou?r)|cream|whey|casein|egg|lard|tallow|anchov|shellfish|carmine|shellac)\w*/i },
+    conflict: new RegExp('\\b(?:beef|pork|chicken|turkey|lamb|fish|gelatin|honey|egg(?!plant)|lard|tallow|anchov|shellfish|carmine|shellac)\\w*|' + DAIRY, 'i') },
   { id: 'vegetarian', label: 'Vegetarian',
     conflict: /\b(beef|pork|chicken|turkey|lamb|bacon|fish|gelatin|lard|tallow|anchov|shellfish|rennet|carmine)\w*/i },
   { id: 'glutenFree', label: 'Gluten-free',
     conflict: /\b(wheat|gluten|barley|rye|malt|semolina|durum|spelt|farro|triticale|seitan|couscous|bulgur)\w*/i },
-  { id: 'dairyFree', label: 'Dairy-free',
-    conflict: /\b(milk|dairy|butter(?!\s*flavou?r)|cream|cheese|yogh?urt|whey|casein(ate)?|lactose|ghee)\b/i },
+  { id: 'dairyFree', label: 'Dairy-free', conflict: new RegExp(DAIRY, 'i') },
   { id: 'keto', label: 'Keto-friendly',
-    conflict: /\b(sugar|flour|rice|potato|corn syrup|maltodextrin|dextrose|honey|molasses|oats|wheat)\w*/i },
+    conflict: /\b(sugar|(?<!\b(?:almond|coconut|flax|flaxseed|hazelnut|walnut|pecan|sunflower|lupin|psyllium|sesame|peanut)\s)flour|(?<!\bcauliflower\s)rice|potato|corn syrup|maltodextrin|dextrose|honey|molasses|oats|wheat)\w*/i },
   { id: 'porkFree', label: 'Pork-free',
     conflict: /\b(pork|bacon|ham|lard|gelatin|prosciutto|pancetta|chorizo)\w*/i },
 ];

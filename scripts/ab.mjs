@@ -72,8 +72,18 @@ function missingCli(err) {
 
 // Google Chrome removed --load-extension. Chrome for Testing still accepts it.
 const chrome = process.env.INGREDIENT_CHECK_CHROME || findChromeForTesting();
-const profile = process.env.INGREDIENT_CHECK_PROFILE
-  || path.join(root, '.chrome-profile');
+// Outside the repository on purpose: the profile holds cookies, logins and history, and this
+// checkout lives in a cloud-synced folder. A stray `.chrome-profile/` from earlier builds is still
+// git-ignored; delete it when convenient.
+function defaultProfileDir() {
+  const base = process.platform === 'win32'
+    ? (process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local'))
+    : process.platform === 'darwin'
+      ? path.join(os.homedir(), 'Library', 'Caches')
+      : (process.env.XDG_CACHE_HOME || path.join(os.homedir(), '.cache'));
+  return path.join(base, 'ingredient-check', 'chrome-profile');
+}
+const profile = process.env.INGREDIENT_CHECK_PROFILE || defaultProfileDir();
 
 function sessionAlive() {
   try {

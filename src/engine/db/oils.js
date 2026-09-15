@@ -13,22 +13,24 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
 
   const HARD = [
     // Solvent-extracted, high-PUFA industrial oils. Any one of these caps the score.
-    { id: 'canola',      m: /\b(canola|rapeseed|colza)\s*(oil|seed oil)?\b/i,     why: 'Canola/rapeseed oil' },
-    { id: 'soybean',     m: /\b(soybean|soya bean|soy)\s+oil\b|\b(aceite|huile)\s+de\s+soja\b/i, why: 'Soybean oil' },
-    { id: 'sunflower',   m: /\bsunflower\s+oil\b|\b(aceite\s+de\s+girasol|huile\s+de\s+tournesol|sonnenblumen[öo]l)\b/i, why: 'Sunflower oil' },
-    { id: 'safflower',   m: /\bsafflower\s+oil\b/i,                               why: 'Safflower oil' },
-    { id: 'corn',        m: /\bcorn\s+oil\b|\b(aceite\s+de\s+ma[ií]z|huile\s+de\s+ma[ïi]s)\b/i, why: 'Corn oil' },
+    { id: 'canola',      m: /\b(canola|rapeseed|colza)\s*(oil|seed oil)?\b|\braps[öo]l\b|\bolio\s+di\s+colza\b/i, why: 'Canola/rapeseed oil' },
+    // "High oleic" and "partially hydrogenated" variants have their own rules below, so the plain
+    // rules step aside for them — one ingredient used to render two or three CAP rows.
+    { id: 'soybean',     m: /(?<!high[- ]oleic )\b(soybean|soya bean|soy)\s+oil\b|\b(aceite|huile)\s+de\s+soja\b|\bolio\s+di\s+soia\b|\bsoja[öo]l\b/i, why: 'Soybean oil' },
+    { id: 'sunflower',   m: /(?<!high[- ]oleic )\bsunflower\s+oil\b|\b(aceite\s+de\s+girasol|huile\s+de\s+tournesol|sonnenblumen[öo]l|olio\s+di\s+girasole)\b/i, why: 'Sunflower oil' },
+    { id: 'safflower',   m: /(?<!high[- ]oleic )\bsafflower\s+oil\b/i,             why: 'Safflower oil' },
+    { id: 'corn',        m: /\bcorn\s+oil\b|\b(aceite\s+de\s+ma[ií]z|huile\s+de\s+ma[ïi]s|olio\s+di\s+mais|mais(?:keim)?[öo]l)\b/i, why: 'Corn oil' },
     { id: 'cottonseed',  m: /\bcottonseed\s+oil\b/i,                              why: 'Cottonseed oil' },
     { id: 'grapeseed',   m: /\bgrape\s?seed\s+oil\b/i,                            why: 'Grapeseed oil' },
     { id: 'ricebran',    m: /\brice\s?bran\s+oil\b/i,                             why: 'Rice bran oil' },
     { id: 'peanutoil',   m: /\bpeanut\s+oil\b/i,                                  why: 'Peanut oil' },
     { id: 'sesameind',   m: /\brefined\s+sesame\s+oil\b/i,                         why: 'Refined sesame oil' },
-    { id: 'vegetable',   m: /\bvegetable\s+oil\b|\b(aceite\s+vegetal|huile\s+v[ée]g[ée]tale|pflanzen[öo]l)\b/i, why: 'Unspecified "vegetable oil"' },
+    { id: 'vegetable',   m: /\bvegetable\s+oil\b|\b(aceite\s+vegetal|huile\s+v[ée]g[ée]tale|pflanzen[öo]l|olio\s+vegetale|pflanzliche[sn]?\s+[öo]l)\b/i, why: 'Unspecified "vegetable oil"' },
     { id: 'blend',       m: /\b(oil\s+blend|blend\s+of\s+\w+\s+oils?)\b/i,        why: 'Unspecified oil blend' },
     { id: 'shortening',  m: /\bshortening\b/i,                                    why: 'Vegetable shortening' },
     { id: 'margarine',   m: /\bmargarine\b/i,                                     why: 'Margarine' },
     { id: 'interester',  m: /\binte?re?sterified\b/i,                             why: 'Interesterified fat' },
-    { id: 'hydrogen',    m: /\b(fully )?hydrogenated\b|\b(totalmente\s+)?hidrogenad[oa]\b|\bhydrog[ée]n[ée]e?\b/i, why: 'Hydrogenated oil' },
+    { id: 'hydrogen',    m: /(?<!partially )\b(fully )?hydrogenated\b|(?<!parcialmente )\b(totalmente\s+)?hidrogenad[oa]\b|(?<!partiellement )\bhydrog[ée]n[ée]e?\b|\bgeh[äa]rtet\b|\bidrogenat[oi]\b/i, why: 'Hydrogenated oil' },
     { id: 'monoglyoil',  m: /\bhigh\s+oleic\s+(soybean|sunflower|safflower)\b/i,  why: 'High-oleic industrial seed oil' },
   ];
 

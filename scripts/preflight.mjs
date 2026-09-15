@@ -24,7 +24,12 @@ const manifest = JSON.parse(read('manifest.json'));
 console.log('\nmanifest');
 check('parses and declares MV3', () => {
   if (manifest.manifest_version !== 3) throw new Error('not manifest_version 3');
-  return `manifest v3, version ${manifest.version}`;
+  // The worker uses AbortSignal.any and runtime.getContexts, both Chrome 116+. Without the floor an
+  // older Chrome installs the extension and every network path fails with no visible reason.
+  if (parseInt(manifest.minimum_chrome_version, 10) < 116 || !manifest.minimum_chrome_version) {
+    throw new Error('minimum_chrome_version must be at least 116');
+  }
+  return `manifest v3, version ${manifest.version}, Chrome ${manifest.minimum_chrome_version}+`;
 });
 check('every declared file exists', () => {
   const files = [

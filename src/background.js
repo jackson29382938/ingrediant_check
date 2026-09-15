@@ -155,18 +155,31 @@ async function ensureOffscreen() {
   finally { offscreenReady = null; }
 }
 
+// The offscreen page closes itself after sitting idle (see src/offscreen/ocr.js), which frees the
+// engine's memory. A request can land in the moment between its last job and its exit, in which
+// case the message has no receiver; one retry recreates the page and tries again.
 async function ocrLabels(urls) {
   const conf = await chrome.storage.local.get(['enabled', 'ocrLabels']);
   if (conf.enabled === false || conf.ocrLabels !== true) return { ok: false, reason: 'not-enabled' };
   if (!Array.isArray(urls) || !urls.length) return { ok: false, reason: 'no-images' };
-  try {
-    await ensureOffscreen();
-    const current = await chrome.storage.local.get(['enabled', 'ocrLabels']);
-    if (current.enabled === false || current.ocrLabels !== true) return { ok: false, reason: 'not-enabled' };
-    return await chrome.runtime.sendMessage({ target: 'ocr-offscreen', type: 'ocrImages', urls });
-  } catch (e) {
-    return { ok: false, reason: String(e && e.message || e) };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      await ensureOffscreen();
+      const current = await chrome.storage.local.get(['enabled', 'ocrLabels']);
+      if (current.enabled === false || current.ocrLabels !== true) return { ok: false, reason: 'not-enabled' };
+      return await chrome.runtime.sendMessage({ target: 'ocr-offscreen', type: 'ocrImages', urls });
+    } catch (e) {
+      const message = String(e && e.message || e);
+      if (attempt === 0 && /receiving end|could not establish|message port closed/i.test(message)) continue;
+      return { ok: false, reason: message };
+    }
   }
+  return { ok: false, reason: 'offscreen unavailable' };
+}
+
+async function closeOffscreenIfIdle() {
+  if (!chrome.offscreen || typeof chrome.offscreen.closeDocument !== 'function') return;
+  try { await chrome.offscreen.closeDocument(); } catch (e) { /* already gone */ }
 }
 
 function badgeColor(score) {
@@ -194,6 +207,10 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     ocrLabels(msg.urls).then(reply);
     return true;
   }
+  if (msg && msg.type === 'ocrIdle') {
+    closeOffscreenIfIdle().then(() => reply({ ok: true }));
+    return true;
+  }
   if (msg && msg.type === 'lookupBarcode' && msg.code) {
     chrome.storage.local.get('useOpenFoodFacts', o => {
       if (!o.useOpenFoodFacts) { reply(null); return; }
@@ -211,9 +228,22 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
 // Housekeeping. This used to run only on chrome.runtime.onStartup, and browsers routinely go weeks
 // without restarting — with auto-scoring on that is one cache entry per product scrolled past,
 // accumulating indefinitely. An alarm actually fires.
-chrome.alarms.create('air-housekeeping', { periodInMinutes: 720 });
+// chrome.alarms.create() replaces an alarm of the same name and restarts its clock. This file runs
+// on every worker start, and an MV3 worker restarts constantly, so an unconditional create() pushed
+// the first fire twelve hours into the future every time: for anyone who opened Amazon twice a day
+// the sweep and the diagnostics flush never ran. Create it once, and only if it is not already set.
+const HOUSEKEEPING = 'air-housekeeping';
+function ensureHousekeepingAlarm() {
+  const spec = { delayInMinutes: 30, periodInMinutes: 720 };
+  if (typeof chrome.alarms.get !== 'function') { chrome.alarms.create(HOUSEKEEPING, spec); return; }
+  chrome.alarms.get(HOUSEKEEPING, existing => {
+    void chrome.runtime.lastError;
+    if (!existing) chrome.alarms.create(HOUSEKEEPING, spec);
+  });
+}
+ensureHousekeepingAlarm();
 chrome.alarms.onAlarm.addListener(a => {
-  if (a.name !== 'air-housekeeping') return;
+  if (a.name !== HOUSEKEEPING) return;
   sweepCache();
   // A partial batch would otherwise sit until enough new products were scored to fill it.
   flushDiagnostics().catch(() => {});
@@ -323,7 +353,10 @@ async function loadSheetIndex(force = false) {
       return res.text();
     });
     const index = indexRows(parseCsv(csv));
-    await chrome.storage.local.set({ [SHEET_CACHE_KEY]: { t: Date.now(), url: csvUrl, index } });
+    // The revision is a hash of the CSV, not a timestamp: the score cache fingerprints on it, and a
+    // refresh that changed nothing must not retire every cached score. Content scripts read only the
+    // small revision key, never the index itself.
+    await chrome.storage.local.set({ [SHEET_CACHE_KEY]: { t: Date.now(), url: csvUrl, index }, sheetIndexRev: revisionOf(csv) });
     return index;
   } catch (e) {
     return cached && cached.url === csvUrl && cached.index ? cached.index : null;   // stale beats nothing
@@ -366,7 +399,7 @@ async function loadProducerIndex(force = false) {
       if (!rec.brand || !rec.certifications) continue;
       index[rec.brand.toLowerCase()] = rec;
     }
-    await chrome.storage.local.set({ [PRODUCERS_CACHE_KEY]: { t: Date.now(), url: csvUrl, index } });
+    await chrome.storage.local.set({ [PRODUCERS_CACHE_KEY]: { t: Date.now(), url: csvUrl, index }, producerIndexRev: revisionOf(csv) });
     return index;
   } catch (e) {
     return cached && cached.url === csvUrl && cached.index ? cached.index : null;
@@ -430,14 +463,20 @@ function ensureRowId(record) {
   return { ...record, rowId };
 }
 
-function batchIdFor(queue) {
-  const ids = (queue || []).map(r => (r && r.rowId) || '').join('|');
+// FNV-1a. Not cryptographic; it only has to change when the text changes.
+function fnv(text) {
   let h = 2166136261;
-  for (let i = 0; i < ids.length; i++) {
-    h ^= ids.charCodeAt(i);
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
     h = Math.imul(h, 16777619);
   }
-  return 'b' + (h >>> 0).toString(16) + '-' + (queue || []).length;
+  return (h >>> 0).toString(16);
+}
+function revisionOf(csv) { return fnv(String(csv || '')) + '-' + String(csv || '').length; }
+
+function batchIdFor(queue) {
+  const ids = (queue || []).map(r => (r && r.rowId) || '').join('|');
+  return 'b' + fnv(ids) + '-' + (queue || []).length;
 }
 
 async function appendDiagnostic(record) {
@@ -526,5 +565,5 @@ function handleSharedDbMessage(msg, reply) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { toCsvUrl, parseCsv, indexRows, lookupRecord, sweepCache, isOpenFoodFactsFood, batchIdFor };
+  module.exports = { toCsvUrl, parseCsv, indexRows, lookupRecord, sweepCache, isOpenFoodFactsFood, batchIdFor, revisionOf, ensureHousekeepingAlarm };
 }

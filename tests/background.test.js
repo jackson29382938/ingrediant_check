@@ -4,7 +4,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
-function worker(initial = {}, fetcher) {
+function worker(initial = {}, fetcher, { alarms } = {}) {
   const data = structuredClone(initial);
   const event = { addListener() {} };
   let created = 0;
@@ -18,7 +18,7 @@ function worker(initial = {}, fetcher) {
         sendMessage: async () => ({ ok: true }),
         getContexts: async () => [], onMessage: event, onStartup: event, onInstalled: event },
       offscreen: { createDocument: async () => { created++; } },
-      alarms: { create() {}, onAlarm: event },
+      alarms: alarms || { create() {}, onAlarm: event },
       action: {
         setBadgeText(opts) { badges.push({ kind: 'text', ...opts }); },
         setBadgeBackgroundColor(opts) { badges.push({ kind: 'color', ...opts }); },
@@ -175,4 +175,29 @@ test('pausing aborts an active background response body', async () => {
   await started;
   w.change({ enabled: { newValue: false } });
   assert.equal((await sending).ok, false);
+});
+
+test('the housekeeping alarm is created once and never re-timed on worker restart', () => {
+  const event = { addListener() {} };
+  const created = [];
+  let existing = null;
+  const alarms = { onAlarm: event, get: (name, cb) => cb(existing), create: (name, spec) => { created.push({ name, spec }); existing = { name }; } };
+  worker({}, undefined, { alarms });     // first start: nothing scheduled yet
+  worker({}, undefined, { alarms });     // restart: alarm exists, must be left alone
+  worker({}, undefined, { alarms });
+  assert.equal(created.length, 1);
+  assert.equal(created[0].name, 'air-housekeeping');
+  assert.equal(created[0].spec.periodInMinutes, 720);
+  assert.ok(created[0].spec.delayInMinutes > 0);
+});
+test('sheet revisions follow the CSV content, not the fetch time', async () => {
+  const w = worker({ sheetUrl: 'https://docs.google.com/spreadsheets/d/abcdefghijklmnopqrstuvwxyz0123/edit' },
+    async () => ({ ok: true, text: async () => 'asin,certifications\nB000000001,USDA Organic\n' }));
+  await w.call('loadSheetIndex(true)');
+  const first = w.data.sheetIndexRev;
+  await w.call('loadSheetIndex(true)');
+  assert.ok(first && typeof first === 'string');
+  assert.equal(w.data.sheetIndexRev, first);
+  assert.notEqual(await w.call("revisionOf('a,b')"), await w.call("revisionOf('a,c')"));
+  assert.ok(!('ingredients' in (w.data.sheetIndex || {})));
 });
