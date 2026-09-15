@@ -427,7 +427,6 @@ function score(product, options = {}) {
       if (seen.has(r.why)) continue;
       // Sugar that comes with its whole food is exempt unless the user turns 'naturally occurring
       // sugars' on, at which point it is scored like any other sugar.
-      if (isFreeSugar && r.group === 'sugar' && w_('naturalSugar') === 0) continue;
       // Traditional preparation (sourdough, sprouting, soaking) halves the grain penalty rather
       // than erasing it — zeroing it while also paying a bonus double-counted the same fact and
       // pushed sprouted bread to 95.
@@ -437,14 +436,15 @@ function score(product, options = {}) {
       if (r.exemptIfText && r.exemptIfText.test(txt)) continue;
       if (!r.m.test(ing)) continue;
       seen.add(r.why);
+      // Processing describes the label, independent of the user's penalty preferences.
+      if (!(r.gluten && tradPrep) && !(isFreeSugar && r.group === 'sugar')) {
+        if (r.upf === 'hard') hardHits++;
+        else if (r.upf === 'soft') softHits++;
+      }
+      if (isFreeSugar && r.group === 'sugar' && w_('naturalSugar') === 0) continue;
       const scaled = r.pts * w * w_(r.cat) * tradRelief;
       if (scaled < 0.5) continue;                       // category switched off by the user
       hits.push({ off: Math.round(scaled), why: r.why, ing, group: r.group, cat: r.cat });
-      // A sprouted or sourdough grain is a processing-level 3 signal, not a marker of ultra-
-      // processing. Counting it toward the UPF tally pushed Ezekiel bread to NOVA 4.
-      if (r.gluten && tradPrep) continue;
-      if (r.upf === 'hard') hardHits++;
-      else if (r.upf === 'soft') softHits++;
     }
   });
 

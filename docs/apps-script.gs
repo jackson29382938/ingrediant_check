@@ -31,41 +31,53 @@ var CONTRIBUTION_COLUMNS = [
 ];
 
 function doPost(e) {
+  var lock = LockService.getScriptLock();
+  var acquired = false;
   try {
+    acquired = lock.tryLock(15000);
+    if (!acquired) return json({ ok: false, error: 'busy; retry later' });
     var body = JSON.parse(e.postData.contents);
     if (body.kind === 'diagnostics') return writeDiagnostics(body.rows || [], body.batchId);
-    if (body.kind === 'report')      return writeRows('reports', CONTRIBUTION_COLUMNS, [stamp(body)]);
+    if (body.kind === 'report') return writeRows('reports', CONTRIBUTION_COLUMNS, [stamp(body)]);
     return writeRows('contributions', CONTRIBUTION_COLUMNS, [stamp(body)]);
   } catch (err) {
     return json({ ok: false, error: String(err) });
+  } finally {
+    if (acquired) lock.releaseLock();
   }
 }
 
-// A lost HTTP response after a successful write used to make the extension retry and duplicate
-// every row. batchId and rowId are transport-only; they are not written to the sheet.
+// Store each ID in the SAME range write as its data. A lost response can then be retried without
+// a separate PropertiesService commit, a rolling history window, or its per-value size limit.
+// doPost holds the script lock across both the duplicate check and the append.
 function writeDiagnostics(rows, batchId) {
+  if (!Array.isArray(rows) || rows.length > 300) throw new Error('invalid diagnostic batch');
   if (!rows.length) return json({ ok: true, wrote: 0, inserted: 0 });
-  var seen = loadSeen();
-  if (batchId && seen.batches.indexOf(String(batchId)) !== -1) {
+  var legacy = loadSeen();
+  if (batchId && legacy.batches.indexOf(String(batchId)) !== -1) {
     return json({ ok: true, wrote: rows.length, inserted: 0, duplicate: true });
   }
+  var columns = DIAGNOSTIC_COLUMNS.concat(['rowId']);
+  var sheet = sheetFor('diagnostics', columns);
+  // Upgrade existing 24-column sheets without touching their original data.
+  sheet.getRange(1, columns.length).setValue('rowId');
+  var count = Math.max(0, sheet.getLastRow() - 1);
+  var stored = count ? sheet.getRange(2, columns.length, count, 1).getValues() : [];
+  var seen = new Set(legacy.rows.concat(stored.map(function (r) { return String(r[0]); })));
   var fresh = [];
-  for (var i = 0; i < rows.length; i++) {
-    var id = rows[i] && rows[i].rowId ? String(rows[i].rowId) : '';
-    if (id && seen.rows.indexOf(id) !== -1) continue;
-    fresh.push(rows[i]);
-    if (id) seen.rows.push(id);
-  }
-  if (fresh.length) writeRows('diagnostics', DIAGNOSTIC_COLUMNS, fresh);
-  if (batchId) {
-    seen.batches.push(String(batchId));
-    if (seen.batches.length > 80) seen.batches = seen.batches.slice(-80);
-  }
-  if (seen.rows.length > 400) seen.rows = seen.rows.slice(-400);
-  saveSeen(seen);
+  rows.forEach(function (row, i) {
+    if (!row || typeof row !== 'object') throw new Error('invalid diagnostic row');
+    var id = row.rowId || (batchId ? 'legacy-' + batchId + '-' + i : '');
+    if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(id)) throw new Error('missing or invalid rowId');
+    if (seen.has(id)) return;
+    seen.add(id);
+    fresh.push(Object.assign({}, row, { rowId: id }));
+  });
+  if (fresh.length) writeRows('diagnostics', columns, fresh, sheet);
   return json({ ok: true, wrote: rows.length, inserted: fresh.length, duplicate: fresh.length === 0 });
 }
 
+// Read the old history for migration only. New writes never grow this property.
 function loadSeen() {
   try {
     var parsed = JSON.parse(PropertiesService.getScriptProperties().getProperty('diagSeen') || '{}');
@@ -73,10 +85,6 @@ function loadSeen() {
   } catch (err) {
     return { batches: [], rows: [] };
   }
-}
-
-function saveSeen(seen) {
-  PropertiesService.getScriptProperties().setProperty('diagSeen', JSON.stringify(seen));
 }
 
 // The extension never reads from this endpoint. Answering GET keeps a browser visit from looking
@@ -90,9 +98,9 @@ function stamp(row) {
   return row;
 }
 
-function writeRows(tabName, columns, rows) {
+function writeRows(tabName, columns, rows, existingSheet) {
   if (!rows.length) return json({ ok: true, wrote: 0 });
-  var sheet = sheetFor(tabName, columns);
+  var sheet = existingSheet || sheetFor(tabName, columns);
   var values = rows.map(function (row) {
     return columns.map(function (c) {
       var v = row[c];
@@ -103,6 +111,7 @@ function writeRows(tabName, columns, rows) {
     });
   });
   sheet.getRange(sheet.getLastRow() + 1, 1, values.length, columns.length).setValues(values);
+  SpreadsheetApp.flush();
   return json({ ok: true, wrote: values.length, tab: tabName });
 }
 

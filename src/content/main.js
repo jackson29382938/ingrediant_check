@@ -12,14 +12,17 @@
     prefs: { weights: {}, allergens: [], diets: [], avoidList: [] }, lastKey: null, requestId: 0,
     failedExtracts: 0, manual: null };
 
-  // Cached scores are stamped with the extension version. Rules change between releases, and a
-  // 30-day TTL meant badges kept painting numbers from the previous engine for a month after an
-  // update — including, before this release, the laundered and unreadable ones. Only a WEIGHT
-  // change cleared them. A version mismatch is now simply a cache miss.
   const ENGINE_VERSION = (() => {
     try { return chrome.runtime.getManifest().version; } catch (e) { return '0'; }
   })();
-  const usableCache = hit => !!hit && typeof hit.score === 'number' && hit.v === ENGINE_VERSION;
+  const CACHE = AIR.db.scoreCache;
+  state.cacheOptions = {};
+  state.pageScore = null;
+  const cachePrefs = () => ({ ...state.cacheOptions, weights: state.prefs.weights, foodOnly: state.foodOnly });
+  const cacheKey = asin => CACHE ? CACHE.key(location.hostname, asin) : `s:${location.hostname}:${asin}`;
+  const usableCache = (hit, asin) => !!CACHE && CACHE.valid(hit, {
+    store: location.hostname, asin, version: ENGINE_VERSION, prefs: cachePrefs(),
+  });
 
   // How many times a page that has already failed extraction is re-walked before we stop.
   const MAX_EXTRACT_RETRIES = 8;
@@ -188,7 +191,7 @@
               confidence: 0.55,
               via: 'open-food-facts',
             }));
-            cacheScore(key, result, data.title || fallback.name);
+            cacheScore(key, result, data.title || fallback.name, 'open-food-facts', fallback.ingredients_text);
             publishActionBadge(result);
             sendDiagnostic(data, result, 'open-food-facts', fallback.ingredients_text);
           });
@@ -216,7 +219,7 @@
     AIR.panel.mount(host, AIR.panel.render(result, {
       title: data.title, confidence: data.confidence, via: data.via,
     }), reporter(data, result));
-    cacheScore(key, result, data.title);
+    cacheScore(key, result, data.title, data.via, data.text);
     publishActionBadge(result);
     sendDiagnostic(data, result, data.via);
 
@@ -233,8 +236,8 @@
         key: { asin: data.asin, upc: data.upc, brand: data.brand },
       }, record => {
         const err = chrome.runtime.lastError;   // service worker may be restarting
+        if (requestId !== state.requestId || !host.isConnected || !state.enabled) return;
         if (err || !record) { maybeContribute(data, first); return; }
-        if (requestId !== state.requestId || !host.isConnected) return;
         const better = AIR.engine.score({
           name: data.title, labels: data.labels, certifications: data.certifications,
           nutrition: data.nutrition, ingredients_text: data.text, provenanceRecord: record,
@@ -245,7 +248,7 @@
           title: data.title, confidence: data.confidence, via: data.via,
           provenanceSource: record.source,
         }));
-        cacheScore(key, better, data.title);
+        cacheScore(key, better, data.title, data.via, data.text, record.source || 'shared database');
         publishActionBadge(better);
       });
     } catch (e) { /* messaging unavailable in some frames */ }
@@ -316,7 +319,7 @@
         AIR.panel.mount(host, AIR.panel.render(result, {
           title: data.title, confidence: 0.7, via: 'label-ocr',
         }), reporter(data, result));
-        cacheScore(key, result, data.title);
+        cacheScore(key, result, data.title, 'label-ocr', best.text);
         publishActionBadge(result);
         sendDiagnostic(data, result, 'label-ocr', best.text);
       });
@@ -345,7 +348,7 @@
     AIR.panel.mount(host, AIR.panel.render(result, {
       title: data.title, confidence: 1, via: 'manual-paste',
     }), reporter(data, result));
-    cacheScore(key, result, data.title);
+    cacheScore(key, result, data.title, 'manual-paste', text);
     publishActionBadge(result);
     sendDiagnostic(data, result, 'manual-paste', text);
   }
@@ -366,7 +369,7 @@
       AIR.panel.mount(host, AIR.panel.render(result, {
         title: data2.title, confidence: data2.confidence, via: data2.via,
       }), reporter(data2, result));
-      cacheScore(key, result, data2.title);
+      cacheScore(key, result, data2.title, 'food-override', data2.text);
       publishActionBadge(result);
     });
   }
@@ -439,10 +442,10 @@
         return;
       }
       const epoch = queue.epoch;
-      chrome.storage.local.get(`s:${asin}`, obj => {
+      chrome.storage.local.get(cacheKey(asin), obj => {
         if (epoch !== queue.epoch || !state.enabled || !state.badges || !tile.isConnected) return;
-        const hit = obj[`s:${asin}`];
-        if (!usableCache(hit)) return;
+        const hit = obj[cacheKey(asin)];
+        if (!usableCache(hit, asin)) return;
         paintBadge(tile, hit);
       });
     });
@@ -611,10 +614,10 @@
         if (!asin || tile.querySelector('.air-badge')) continue;
         // Cached scores paint instantly and cost no request.
         const epoch = queue.epoch;
-        chrome.storage.local.get(`s:${asin}`, obj => {
+        chrome.storage.local.get(cacheKey(asin), obj => {
           if (epoch !== queue.epoch || !state.enabled || !state.badges || !state.autoScoreSearch || !tile.isConnected) return;
-          const hit = obj[`s:${asin}`];
-          if (usableCache(hit)) { paintBadge(tile, hit); queue.seen.add(asin); return; }
+          const hit = obj[cacheKey(asin)];
+          if (usableCache(hit, asin)) { paintBadge(tile, hit); queue.seen.add(asin); return; }
           if (state.autoScoreSearch) enqueue(tile, asin);
         });
       }
@@ -664,7 +667,7 @@
       // Same rule as the product page: a badge is a claim, and we do not make one we cannot read.
       if (unreadable(result)) { paintBadge(tile, 'unreadable'); return; }
       paintBadge(tile, result);
-      cacheScore(asin, result, data.title);
+      cacheScore(asin, result, data.title, data.via || 'search-tile', data.text);
       sendDiagnostic(data, result, 'search-tile');
     } catch (e) {
       if (!current()) return;
@@ -703,6 +706,7 @@
 
   function publishActionBadge(result) {
     const score = result && typeof result.score === 'number' ? result.score : null;
+    if (score == null) state.pageScore = null;
     if (score === state.lastBadgeScore) return;
     state.lastBadgeScore = score;
     try {
@@ -715,34 +719,37 @@
     } catch (e) { /* messaging unavailable in some frames */ }
   }
 
-  function cacheScore(key, result, name) {
-    if (!key || !result) return;
-    cache(key, {
-      score: result.score,
-      verdict: result.verdict,
-      nova: result.nova,
+  function cacheScore(asin, result, name, source, ingredients, provenanceSource) {
+    if (!asin || !result || !CACHE) return;
+    const entry = {
+      schema: CACHE.SCHEMA, v: ENGINE_VERSION, t: Date.now(),
+      store: location.hostname, asin, prefs: CACHE.fingerprint(cachePrefs()),
+      score: result.score, verdict: result.verdict, nova: result.nova,
+      source: source || 'page', ingredients: String(ingredients || '').slice(0, 12000),
+      provenanceSource: provenanceSource || '',
       name: String(name || '').replace(/\s+/g, ' ').trim().slice(0, 120),
-    });
+    };
+    if (isProductPage()) state.pageScore = entry;
+    // A paste or explicit non-food override belongs to this tab, never to search results.
+    if (source === 'manual-paste' || source === 'food-override') { cache(asin, null); return; }
+    cache(asin, entry);
   }
 
-  function cache(key, value) {
-    if (!key) return;
+  function cache(asin, value) {
+    if (!asin) return;
     try {
-      if (value) chrome.storage.local.set({ [`s:${key}`]: { ...value, t: Date.now(), v: ENGINE_VERSION } });
-      else chrome.storage.local.remove(`s:${key}`);
-    }
-    catch (e) { /* storage unavailable in some frames */ }
+      const work = value
+        ? chrome.storage.local.set({ [cacheKey(asin)]: value })
+        : chrome.storage.local.remove(cacheKey(asin));
+      work?.catch?.(() => {});
+    } catch (e) { /* storage unavailable in some frames */ }
   }
 
-  function clearScoreCache(done) {
-    try {
-      chrome.storage.local.get(null, all => {
-        const keys = Object.keys(all || {}).filter(k => /^s:/.test(k));
-        if (!keys.length) { if (done) done(); return; }
-        chrome.storage.local.remove(keys, () => { if (done) done(); });
-      });
-    } catch (e) { if (done) done(); }
-  }
+  chrome.runtime.onMessage?.addListener((msg, _sender, reply) => {
+    if (msg?.type !== 'currentPageScore') return false;
+    reply(state.enabled && isProductPage() ? state.pageScore : null);
+    return false;
+  });
 
   function resetListState() {
     cancelTileWork();
@@ -854,6 +861,7 @@
 
   function onNavigated() {
     lastUrl = location.href;
+    removePanel();
     state.manual = null;
     state.lastBadgeScore = undefined;
     publishActionBadge(null);
@@ -906,6 +914,7 @@
   }
 
   function removePanel() {
+    state.pageScore = null;
     document.getElementById(HOST_ID)?.remove();
     state.lastKey = null;
     state.requestId++;
@@ -921,7 +930,8 @@
     clearBadges();
   }
 
-  chrome.storage.local.get(['enabled', 'badges', 'hoverScore', 'autoScoreSearch', 'foodOnly', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList'], o => {
+  chrome.storage.local.get(['enabled', 'badges', 'hoverScore', 'autoScoreSearch', 'foodOnly', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList', 'useOpenFoodFacts', 'sheetUrl', 'producersUrl', 'sheetIndex', 'producerIndex'], o => {
+    state.cacheOptions = { ...o };
     const toggles = (AIR.db.prefs && AIR.db.prefs.sanitizeToggles(o)) || {
       enabled: o.enabled !== false,
       badges: o.badges !== false,
@@ -957,9 +967,13 @@
     };
   }
 
-  chrome.storage.onChanged.addListener(changes => {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area && area !== 'local') return;
+    for (const key of ['weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sheetUrl', 'producersUrl', 'sheetIndex', 'producerIndex']) {
+      if (changes[key]) state.cacheOptions[key] = changes[key].newValue;
+    }
     // Changing a weight changes every score on screen, so the panel and badges are rebuilt and the
-    // cache is discarded — a cached number computed under the old weights is simply wrong now.
+    // cache fingerprint changes — a number computed under the old weights is wrong now.
     if (changes.weights || changes.allergens || changes.diets || changes.avoidList) {
       chrome.storage.local.get(['weights', 'allergens', 'diets', 'avoidList'], o => {
         readPrefs(o);
@@ -969,10 +983,8 @@
           state.lastKey = null;
           if (state.enabled) { wake(); armAutoScorePass(); }
         };
-        // The comment used to claim the cache was discarded. Only the DOM badges were.
-        // Search chips read chrome.storage, so old weights came right back.
-        if (changes.weights) clearScoreCache(rescore);
-        else rescore();
+        // Fingerprints reject old weights even if another tab writes a late cache record.
+        rescore();
       });
     }
     if (changes.enabled) {
@@ -1005,11 +1017,13 @@
     if (changes.sendDiagnostics) state.sendDiagnostics = changes.sendDiagnostics.newValue === true;
     if (changes.ocrLabels) {
       state.ocrLabels = changes.ocrLabels.newValue === true;
-      if (state.enabled && isProductPage()) { removePanel(); wake(); }
+      resetListState();
+      if (state.enabled) { removePanel(); wake(); }
     }
-    if (changes.useOpenFoodFacts && state.enabled && isProductPage()) {
+    if (changes.useOpenFoodFacts || changes.sheetUrl || changes.producersUrl || changes.sheetIndex || changes.producerIndex) {
+      resetListState();
       removePanel();
-      schedule();
+      if (state.enabled) wake();
     }
   });
 

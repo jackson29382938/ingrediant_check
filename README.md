@@ -10,7 +10,7 @@ You do not need a build step.
 
 1. `chrome://extensions` → enable **Developer mode**
 2. **Load unpacked** → select this folder
-3. Expect **Ingredient Check 1.0.0** with no errors on the card
+3. Expect **Ingredient Check 1.0.1** with no errors on the card
 
 Optional local session (Chrome for Testing, extension preloaded):
 

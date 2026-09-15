@@ -15,15 +15,21 @@ let workerPromise = null;
 
 function getWorker() {
   if (!workerPromise) {
-    workerPromise = Tesseract.createWorker('eng', 1, {
+    const creating = Tesseract.createWorker('eng', 1, {
       workerPath: chrome.runtime.getURL('vendor/tesseract/worker.min.js'),
-      corePath: CORE,
-      langPath: CORE,
-      gzip: true,
-      workerBlobURL: false,
-    }).catch(err => { workerPromise = null; throw err; });
+      corePath: CORE, langPath: CORE, gzip: true, workerBlobURL: false,
+    });
+    workerPromise = creating;
+    creating.catch(() => { if (workerPromise === creating) workerPromise = null; });
   }
   return workerPromise;
+}
+
+function resetWorker() {
+  const previous = workerPromise;
+  workerPromise = null;
+  // Do not wait for a stuck worker to acknowledge termination. A late startup is disposed too.
+  previous?.then(worker => worker.terminate()).catch(() => {});
 }
 
 // Images are fetched here rather than passed as blobs, because m.media-amazon.com serves them with
@@ -33,32 +39,63 @@ async function ocrOne(url, signal) {
   if (!res.ok) throw new Error('HTTP ' + res.status);
   const blob = await res.blob();
   const worker = await getWorker();
+  if (signal.aborted) throw new Error('cancelled');
   const { data } = await worker.recognize(blob);
   return { url, text: data.text || '', confidence: data.confidence || 0 };
 }
 
-// Sequential on purpose. Tesseract holds one worker; running images in parallel would queue inside
-// it anyway while multiplying peak memory. Stops at the first image that yields a usable block,
-// because the label shot is usually the second image and scanning the rest is wasted seconds.
-async function ocrImages(urls, { limit = 5, timeoutMs = 45000 } = {}) {
+// One job owns the worker at a time. Each deadline includes time spent waiting in the queue.
+let ocrWork = Promise.resolve();
+let activeJob = null;
+const jobs = new Set();
+function ocrImages(urls, { limit = 5, timeoutMs = 45000 } = {}) {
   const controller = new AbortController();
-  const deadline = setTimeout(() => controller.abort(), timeoutMs);
-  const results = [];
-  try {
-    for (const url of (urls || []).slice(0, limit)) {
-      if (controller.signal.aborted) break;
-      try {
-        const r = await ocrOne(url, controller.signal);
-        results.push(r);
-        if (AIR.db.ocrText.ingredientsFromOcr(r.text)) break;   // found the label; stop paying
-      } catch (e) { /* one unreadable image must not end the pass */ }
-    }
-  } finally { clearTimeout(deadline); }
-  return results;
+  const job = { controller };
+  jobs.add(job);
+  const duration = Math.min(45000, Math.max(1, Number(timeoutMs) || 45000));
+  let deadline;
+  const cancelled = new Promise(resolve => {
+    controller.signal.addEventListener('abort', () => {
+      if (activeJob === job) resetWorker();
+      resolve([]);
+    }, { once: true });
+    deadline = setTimeout(() => controller.abort(), duration);
+  });
+  const run = async () => {
+    if (controller.signal.aborted) return [];
+    activeJob = job;
+    const scan = async () => {
+      const results = [];
+      const count = Math.min(5, Math.max(1, Number(limit) || 5));
+      for (const url of (Array.isArray(urls) ? urls : []).slice(0, count)) {
+        if (controller.signal.aborted) break;
+        try {
+          const r = await ocrOne(url, controller.signal);
+          if (controller.signal.aborted) break;
+          results.push(r);
+          if (AIR.db.ocrText.ingredientsFromOcr(r.text)) break;
+        } catch (e) { /* try the next image unless cancelled */ }
+      }
+      return results;
+    };
+    try { return await Promise.race([scan(), cancelled]); }
+    finally { if (activeJob === job) activeJob = null; }
+  };
+  const queued = ocrWork.then(run);
+  ocrWork = queued.catch(() => {});
+  return Promise.race([queued, cancelled]).finally(() => {
+    clearTimeout(deadline);
+    jobs.delete(job);
+  });
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (!msg || msg.target !== 'ocr-offscreen') return false;
+  if (msg.type === 'cancelOcr') {
+    for (const job of jobs) job.controller.abort();
+    reply({ ok: true });
+    return false;
+  }
   if (msg.type === 'ocrImages') {
     ocrImages(msg.urls, msg.options || {})
       .then(results => reply({ ok: true, results }))

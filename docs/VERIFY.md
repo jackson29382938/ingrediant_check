@@ -17,7 +17,7 @@ command-line flag; loading by hand works in your normal Chrome.
 
 1. `chrome://extensions` → enable **Developer mode** (top right)
 2. **Load unpacked** → select this folder
-3. Expect: *Ingredient Check 1.0.0*, no errors under the card
+3. Expect: *Ingredient Check 1.0.1*, no errors under the card
 
 If a red **Errors** button appears, open it — a manifest problem shows here and nowhere else.
 

@@ -7,23 +7,23 @@ const fs = require('node:fs');
 function setup() {
   const timers = [], badges = [], fetches = [], writes = [], rendered = [];
   let changed, pasted;
-  const host = { dataset: {}, isConnected: true, remove() { this.isConnected = false; } };
+  let host = { dataset: {}, isConnected: true, remove() { this.isConnected = false; } };
   const title = { innerText: 'Organic oats', insertBefore(b) { badges.push(b); } };
   const tile = { isConnected: true, getAttribute: () => 'B000000001',
     querySelector: s => s === '.air-badge' ? badges[0] : title };
   const context = vm.createContext({
     AbortController, URLSearchParams, console,
-    location: { href: 'https://www.amazon.com/dp/B000000001', pathname: '/dp/B000000001', search: '' },
+    location: { hostname: 'www.amazon.com', href: 'https://www.amazon.com/dp/B000000001', pathname: '/dp/B000000001', search: '' },
     setTimeout: f => { timers.push(f); return timers.length; }, clearTimeout() {},
     setInterval: () => 1, clearInterval() {}, addEventListener() {},
     MutationObserver: class { observe() {} disconnect() {} },
     IntersectionObserver: class { observe() {} disconnect() {} },
     DOMParser: class { parseFromString() { return {}; } },
     document: {
-      getElementById: () => host.isConnected ? host : null,
-      querySelector: () => ({ parentNode: { insertBefore() { host.isConnected = true; } } }),
+      getElementById: id => id === 'air-badge-style' ? {} : host.isConnected ? host : null,
+      querySelector: () => ({ parentNode: { insertBefore(next) { host = next; host.isConnected = true; } } }),
       querySelectorAll: s => s === '.air-badge' ? [...badges] : [],
-      createElement: () => ({ style: {}, setAttribute() {}, remove() { badges.splice(badges.indexOf(this), 1); } }),
+      createElement: tag => tag === 'div' ? { dataset: {}, isConnected: false, remove() { this.isConnected = false; } } : ({ style: {}, setAttribute() {}, remove() { badges.splice(badges.indexOf(this), 1); } }),
     },
     fetch: (url, options) => new Promise(resolve => fetches.push({ url, options, resolve })),
     chrome: {
@@ -36,7 +36,7 @@ function setup() {
       onChanged: { addListener: fn => { changed = fn; } } },
     },
     AIR: {
-      db: {},
+      db: { scoreCache: require('../src/engine/db/score-cache.js') },
       extract: { extract: () => ({ ok: true, title: 'Oats', text: 'oats' }) },
       engine: { score: (input, prefs) => ({ score: 90, verdict: 'Excellent', nova: 1, input, prefs }) },
       panel: { BAND_COLOR: () => ({ fg: '', bg: '', ring: '' }),
@@ -46,11 +46,11 @@ function setup() {
   });
   // Expose closures only in this VM; the shipped content script remains an isolated IIFE.
   const source = fs.readFileSync(require.resolve('../src/content/main.js'), 'utf8');
-  vm.runInContext(source.replace(/\}\)\(\);\s*$/, 'globalThis.hooks = {state, queue, scoreTile, enqueue, suspend, resetListState, showFailure, scoreCurrentPage, onNavigated};})();'), context);
+  vm.runInContext(source.replace(/\}\)\(\);\s*$/, 'globalThis.hooks = {state, queue, scoreTile, enqueue, suspend, resetListState, showFailure, scoreCurrentPage, onNavigated, cacheScore, usableCache};})();'), context);
   const h = context.hooks;
   h.state.enabled = true; h.state.badges = true; h.state.foodOnly = false;
   h.state.autoScoreSearch = true;
-  return { h, context, tile, host, timers, fetches, badges, writes, rendered,
+  return { h, context, tile, get host() { return host; }, timers, fetches, badges, writes, rendered,
     change: values => changed(values), paste: text => pasted(text) };
 }
 
@@ -99,4 +99,35 @@ test('manual ingredients survive a preference rescore and clear on navigation', 
   w.context.location.href = 'https://www.amazon.com/dp/B000000002';
   w.h.onNavigated();
   assert.equal(w.h.state.manual, null);
+});
+
+for (const oldState of ['loading', 'fail', 'scored']) {
+  test(`navigation removes the old ${oldState} panel and renders the new product`, () => {
+    const w = setup();
+    w.host.dataset.airState = oldState;
+    const oldHost = w.host;
+    const requestId = w.h.state.requestId;
+    w.context.AIR.extract.extract = () => ({ ok: false, title: 'New product', asin: 'B000000002' });
+    w.context.location.href = 'https://www.amazon.com/dp/B000000002';
+    w.context.location.pathname = '/dp/B000000002';
+    w.h.onNavigated();
+    assert.equal(oldHost.isConnected, false);
+    assert.ok(w.h.state.requestId > requestId);
+    w.h.scoreCurrentPage();
+    assert.notEqual(w.host, oldHost);
+    assert.equal(w.host.dataset.airState, 'fail');
+    w.paste('Milk, sugar');
+    assert.equal(w.rendered.at(-1).input.name, 'New product');
+  });
+}
+test('manual scores are available to this tab but never stored as search scores', () => {
+  const w = setup();
+  w.h.cacheScore('B000000001', { score: 80 }, 'Food', 'manual-paste', 'Peanuts, salt');
+  assert.equal(w.writes.length, 0);
+  assert.equal(w.h.state.pageScore.source, 'manual-paste');
+  w.h.cacheScore('B000000001', { score: 90 }, 'Food', 'page', 'Oats');
+  const entry = Object.values(w.writes[0])[0];
+  assert.equal(w.h.usableCache(entry, 'B000000001'), true);
+  w.h.state.prefs.weights = { sugar: 2 };
+  assert.equal(w.h.usableCache(entry, 'B000000001'), false);
 });

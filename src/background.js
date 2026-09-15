@@ -23,6 +23,30 @@ const VERSION = chrome.runtime.getManifest().version;
 const CLIENT_ID = `IngredientCheck/${VERSION}`;
 const TTL_MS = 1000 * 60 * 60 * 24 * 30;   // a month; ingredient lists rarely change
 
+const networkControllers = new Set();
+async function networkRequest(url, options, read) {
+  const conf = await chrome.storage.local.get('enabled');
+  if (conf.enabled === false) throw new Error('paused');
+  const controller = new AbortController();
+  networkControllers.add(controller);
+  const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]);
+  try {
+    const res = await fetch(url, { ...options, signal });
+    return await read(res);
+  } finally { networkControllers.delete(controller); }
+}
+
+chrome.storage.onChanged?.addListener((changes, area) => {
+  if (area && area !== 'local') return;
+  if (changes.enabled?.newValue === false) {
+    for (const controller of networkControllers) controller.abort();
+  }
+  if (changes.enabled?.newValue === false || changes.ocrLabels?.newValue === false) {
+    // A paused content script can ignore a reply, but only the offscreen host can stop its CPU work.
+    chrome.runtime.sendMessage({ target: 'ocr-offscreen', type: 'cancelOcr' }).catch(() => {});
+  }
+});
+
 const isOpenFoodFactsFood = (self.AIR && self.AIR.db && self.AIR.db.ingestible)
   ? self.AIR.db.ingestible.isOpenFoodFactsFood
   : function isOpenFoodFactsFood(product) {
@@ -38,6 +62,8 @@ const isOpenFoodFactsFood = (self.AIR && self.AIR.db && self.AIR.db.ingestible)
     };
 
 async function lookupBarcode(code, { foodOnly = true } = {}) {
+  const conf = await chrome.storage.local.get(['enabled', 'useOpenFoodFacts']);
+  if (conf.enabled === false || conf.useOpenFoodFacts !== true) return null;
   if (!/^\d{8,14}$/.test(String(code))) return null;
   const key = `off:${code}`;
   const cached = (await chrome.storage.local.get(key))[key];
@@ -58,9 +84,8 @@ async function lookupBarcode(code, { foodOnly = true } = {}) {
       + `?fields=${OFF_FIELDS}`
       + `&app_name=${encodeURIComponent('IngredientCheck')}`
       + `&app_version=${encodeURIComponent(VERSION)}`;
-    const res = await fetch(url, { headers: { 'X-Client-Id': CLIENT_ID } });
-    if (!res.ok) return null;
-    const json = await res.json();
+    const json = await networkRequest(url, { headers: { 'X-Client-Id': CLIENT_ID } },
+      res => res.ok ? res.json() : null);
     const p = json && json.product;
     if (!p || !(p.ingredients_text_en || p.ingredients_text)) return null;
     const data = {
@@ -131,11 +156,13 @@ async function ensureOffscreen() {
 }
 
 async function ocrLabels(urls) {
-  const conf = await chrome.storage.local.get('ocrLabels');
-  if (!conf.ocrLabels) return { ok: false, reason: 'not-enabled' };
+  const conf = await chrome.storage.local.get(['enabled', 'ocrLabels']);
+  if (conf.enabled === false || conf.ocrLabels !== true) return { ok: false, reason: 'not-enabled' };
   if (!Array.isArray(urls) || !urls.length) return { ok: false, reason: 'no-images' };
   try {
     await ensureOffscreen();
+    const current = await chrome.storage.local.get(['enabled', 'ocrLabels']);
+    if (current.enabled === false || current.ocrLabels !== true) return { ok: false, reason: 'not-enabled' };
     return await chrome.runtime.sendMessage({ target: 'ocr-offscreen', type: 'ocrImages', urls });
   } catch (e) {
     return { ok: false, reason: String(e && e.message || e) };
@@ -284,15 +311,18 @@ function indexRows(rows) {
 }
 
 async function loadSheetIndex(force = false) {
-  const conf = await chrome.storage.local.get(['sheetUrl', SHEET_CACHE_KEY]);
+  const conf = await chrome.storage.local.get(['enabled', 'sheetUrl', SHEET_CACHE_KEY]);
+  if (conf.enabled === false) return null;
   const csvUrl = toCsvUrl(conf.sheetUrl);
   if (!csvUrl) return null;
   const cached = conf[SHEET_CACHE_KEY];
   if (!force && cached && cached.url === csvUrl && Date.now() - cached.t < SHEET_TTL_MS) return cached.index;
   try {
-    const res = await fetch(csvUrl, { credentials: 'omit' });
-    if (!res.ok) throw new Error(String(res.status));
-    const index = indexRows(parseCsv(await res.text()));
+    const csv = await networkRequest(csvUrl, { credentials: 'omit' }, res => {
+      if (!res.ok) throw new Error(String(res.status));
+      return res.text();
+    });
+    const index = indexRows(parseCsv(csv));
     await chrome.storage.local.set({ [SHEET_CACHE_KEY]: { t: Date.now(), url: csvUrl, index } });
     return index;
   } catch (e) {
@@ -316,15 +346,18 @@ function lookupRecord(index, { asin, upc, brand }) {
 const PRODUCERS_CACHE_KEY = 'producerIndex';
 
 async function loadProducerIndex(force = false) {
-  const conf = await chrome.storage.local.get(['producersUrl', PRODUCERS_CACHE_KEY]);
+  const conf = await chrome.storage.local.get(['enabled', 'producersUrl', PRODUCERS_CACHE_KEY]);
+  if (conf.enabled === false) return null;
   const csvUrl = toCsvUrl(conf.producersUrl);
   if (!csvUrl) return null;
   const cached = conf[PRODUCERS_CACHE_KEY];
   if (!force && cached && cached.url === csvUrl && Date.now() - cached.t < SHEET_TTL_MS) return cached.index;
   try {
-    const res = await fetch(csvUrl, { credentials: 'omit' });
-    if (!res.ok) throw new Error(String(res.status));
-    const rows = parseCsv(await res.text());
+    const csv = await networkRequest(csvUrl, { credentials: 'omit' }, res => {
+      if (!res.ok) throw new Error(String(res.status));
+      return res.text();
+    });
+    const rows = parseCsv(csv);
     const head = (rows[0] || []).map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
     const index = Object.create(null);
     for (const r of rows.slice(1)) {
@@ -341,16 +374,21 @@ async function loadProducerIndex(force = false) {
 }
 
 async function contribute(payload) {
-  const conf = await chrome.storage.local.get(['contributeUrl', 'shareContributions']);
-  if (!conf.shareContributions || !conf.contributeUrl) return { ok: false, reason: 'not-enabled' };
+  const conf = await chrome.storage.local.get(['enabled', 'contributeUrl', 'shareContributions']);
+  if (conf.enabled === false || conf.shareContributions !== true || !conf.contributeUrl) return { ok: false, reason: 'not-enabled' };
+  return postRecord(conf.contributeUrl, payload);
+}
+
+async function postRecord(url, payload) {
   try {
     // Apps Script web apps answer simple POSTs without a preflight when the body is text/plain.
-    const res = await fetch(conf.contributeUrl, {
+    const receipt = await networkRequest(url, {
       method: 'POST', credentials: 'omit',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload),
-    });
-    return { ok: res.ok };
+    }, res => res.ok ? res.json() : null);
+    const ok = receipt?.ok === true && receipt.wrote === 1;
+    return ok ? { ok: true } : { ok: false, reason: 'write-not-confirmed' };
   } catch (e) {
     return { ok: false, reason: 'network' };
   }
@@ -415,22 +453,22 @@ async function appendDiagnostic(record) {
 async function sendDiagnostics() {
   const conf = await chrome.storage.local.get(['enabled', 'sendDiagnostics', 'contributeUrl', DIAG_KEY]);
   if (conf.enabled === false || !conf.sendDiagnostics) return { ok: false, reason: 'not-enabled' };
-  const queue = conf[DIAG_KEY] || [];
+  const queue = (conf[DIAG_KEY] || []).map(ensureRowId);
   if (!conf.contributeUrl || !queue.length) return { ok: false, reason: 'nothing-to-send' };
+  // Upgrade old queued rows before sending, so their retry IDs survive a worker restart.
+  await chrome.storage.local.set({ [DIAG_KEY]: queue });
   try {
-    const res = await fetch(conf.contributeUrl, {
+    const receipt = await networkRequest(conf.contributeUrl, {
       method: 'POST', credentials: 'omit',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ kind: 'diagnostics', batchId: batchIdFor(queue), rows: queue }),
-      signal: AbortSignal.timeout(15000),
-    });
+    }, res => res.ok ? res.json() : null);
     // Only clear on a confirmed write. A failed flush keeps the rows for the next attempt rather
     // than silently dropping the data the user turned this on to collect. The receiver may answer
     // wrote=N for a replay it already stored (duplicate:true); that still counts as confirmed.
-    const receipt = res.ok ? await res.json() : null;
     const confirmed = !!(receipt && receipt.ok === true && Number(receipt.wrote) === queue.length);
     if (confirmed) await chrome.storage.local.set({ [DIAG_KEY]: [] });
-    return { ok: confirmed, sent: confirmed ? queue.length : 0, queued: confirmed ? 0 : queue.length };
+    return { ok: confirmed, reason: confirmed ? undefined : 'write-not-confirmed', sent: confirmed ? queue.length : 0, queued: confirmed ? 0 : queue.length };
   } catch (e) {
     return { ok: false, reason: 'network', queued: queue.length };
   }
@@ -468,14 +506,7 @@ function handleSharedDbMessage(msg, reply) {
   if (msg.type === 'report') {
     chrome.storage.local.get('contributeUrl', async conf => {
       if (!conf.contributeUrl) { reply({ ok: false, reason: 'no-endpoint' }); return; }
-      try {
-        const res = await fetch(conf.contributeUrl, {
-          method: 'POST', credentials: 'omit',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ ...msg.payload, kind: 'report' }),
-        });
-        reply({ ok: res.ok });
-      } catch (e) { reply({ ok: false, reason: 'network' }); }
+      reply(await postRecord(conf.contributeUrl, { ...msg.payload, kind: 'report' }));
     });
     return true;
   }

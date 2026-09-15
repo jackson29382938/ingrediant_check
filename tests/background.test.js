@@ -9,11 +9,13 @@ function worker(initial = {}, fetcher) {
   const event = { addListener() {} };
   let created = 0;
   const badges = [];
+  let changed;
   const context = vm.createContext({
-    self: {}, console, URL, URLSearchParams, AbortSignal,
+    self: {}, console, URL, URLSearchParams, AbortSignal, AbortController,
     fetch: fetcher || (async () => { throw new Error('offline'); }),
     chrome: {
       runtime: { getManifest: () => ({ version: '1.0.0' }), getURL: p => p,
+        sendMessage: async () => ({ ok: true }),
         getContexts: async () => [], onMessage: event, onStartup: event, onInstalled: event },
       offscreen: { createDocument: async () => { created++; } },
       alarms: { create() {}, onAlarm: event },
@@ -21,7 +23,7 @@ function worker(initial = {}, fetcher) {
         setBadgeText(opts) { badges.push({ kind: 'text', ...opts }); },
         setBadgeBackgroundColor(opts) { badges.push({ kind: 'color', ...opts }); },
       },
-      storage: { local: {
+      storage: { onChanged: { addListener(fn) { changed = fn; } }, local: {
         async get(keys) {
           const result = keys == null ? data : Object.fromEntries(
             (Array.isArray(keys) ? keys : [keys]).map(k => [k, data[k]]));
@@ -33,7 +35,10 @@ function worker(initial = {}, fetcher) {
     },
   });
   vm.runInContext(fs.readFileSync(require.resolve('../src/background.js'), 'utf8'), context);
-  return { data, call: (expression) => vm.runInContext(expression, context), created: () => created, badges };
+  return { data, call: (expression) => vm.runInContext(expression, context), created: () => created, badges, change: values => {
+    for (const [key, value] of Object.entries(values)) data[key] = value.newValue;
+    changed(values, 'local');
+  } };
 }
 const enabled = { sendDiagnostics: true, contributeUrl: 'https://example.test/exec' };
 test('simultaneous diagnostics preserve every row', async () => {
@@ -132,4 +137,42 @@ test('pageScore paints and clears the toolbar badge for a tab', () => {
   assert.ok(w.badges.find(b => b.kind === 'color' && b.tabId === 7));
   w.call('paintActionBadge(7, null)');
   assert.equal(w.badges.filter(b => b.kind === 'text' && b.tabId === 7).at(-1).text, '');
+});
+
+test('master pause blocks every passive background entry point', async () => {
+  let requests = 0;
+  const w = worker({ enabled: false, ocrLabels: true, useOpenFoodFacts: true,
+    shareContributions: true, contributeUrl: enabled.contributeUrl,
+    sheetUrl: 'https://docs.google.com/spreadsheets/d/aaaaaaaaaaaaaaaaaaaaaaaa/edit',
+    producersUrl: 'https://docs.google.com/spreadsheets/d/aaaaaaaaaaaaaaaaaaaaaaaa/edit' },
+  async () => { requests++; throw new Error('unexpected fetch'); });
+  for (const call of ['contribute({})', 'lookupBarcode("12345678")', 'ocrLabels(["image"])',
+    'loadSheetIndex()', 'loadProducerIndex()']) await w.call(call);
+  assert.equal(requests, 0);
+  assert.equal(w.created(), 0);
+});
+test('contributions and reports require a confirmed single-row write', async () => {
+  for (const receipt of [{ ok: false }, { ok: true }, { ok: true, wrote: 0 }, { ok: true, wrote: 1 }]) {
+    const w = worker({ shareContributions: true, contributeUrl: enabled.contributeUrl },
+      async (_url, opts) => {
+        assert.ok(opts.signal);
+        return { ok: true, json: async () => receipt };
+      });
+    const expected = receipt.ok === true && receipt.wrote === 1;
+    assert.equal((await w.call('contribute({})')).ok, expected);
+    assert.equal((await w.call('postRecord("https://example.test", {kind:"report"})')).ok, expected);
+  }
+});
+test('pausing aborts an active background response body', async () => {
+  let ready;
+  const started = new Promise(resolve => { ready = resolve; });
+  const w = worker({ shareContributions: true, contributeUrl: enabled.contributeUrl },
+    async (_url, { signal }) => ({ ok: true, json: () => new Promise((_resolve, reject) => {
+      signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
+      ready();
+    }) }));
+  const sending = w.call('contribute({})');
+  await started;
+  w.change({ enabled: { newValue: false } });
+  assert.equal((await sending).ok, false);
 });

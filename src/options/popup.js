@@ -1,3 +1,4 @@
+const CACHE = AIR.db.scoreCache;
 const PREFS = (typeof AIR !== 'undefined' && AIR.db && AIR.db.prefs) || null;
 const KEYS = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'hoverScore', 'ocrLabels', 'useOpenFoodFacts'];
 // Every plain checkbox. useOpenFoodFacts is handled separately because it also drives an
@@ -176,10 +177,15 @@ function paintPageScore() {
       card.appendChild(p);
       return;
     }
-    chrome.storage.local.get(`s:${asin}`, obj => {
-      const hit = obj[`s:${asin}`];
+    const store = new URL(url).hostname;
+    const key = CACHE.key(store, asin);
+    chrome.storage.local.get([key, 'weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sheetUrl', 'producersUrl', 'sheetIndex', 'producerIndex'], async obj => {
+      let live = null;
+      try { live = await chrome.tabs.sendMessage(tab.id, { type: 'currentPageScore' }); } catch { /* tab has no active content script */ }
+      const context = { store, asin, version, prefs: obj };
+      const hit = CACHE.valid(live, { ...context, allowManual: true }) ? live : obj[key];
       card.textContent = '';
-      if (!hit || typeof hit.score !== 'number' || (version && hit.v !== version)) {
+      if (!CACHE.valid(hit, { ...context, allowManual: hit === live })) {
         card.className = 'page-score empty';
         const p = document.createElement('div');
         p.className = 'ps-empty';
@@ -206,7 +212,11 @@ function paintPageScore() {
       verdict.textContent = hit.verdict || '';
       const sub = document.createElement('div');
       sub.className = 'ps-sub';
-      sub.textContent = [NOVA_SHORT[hit.nova], hit.name].filter(Boolean).join(' · ');
+      const source = hit.source === 'manual-paste' ? 'Pasted label (this tab)'
+        : hit.source === 'food-override' ? 'Food filter overridden (this tab)'
+        : hit.source === 'label-ocr' ? 'Label photo'
+        : hit.source === 'open-food-facts' ? 'Open Food Facts' : 'Product page';
+      sub.textContent = [NOVA_SHORT[hit.nova], hit.name, source, hit.provenanceSource].filter(Boolean).join(' · ');
       meta.append(verdict, sub);
       row.append(num, meta);
       card.append(kicker, row);
@@ -252,7 +262,7 @@ chrome.storage.onChanged.addListener(changes => {
     if (fallback && !fallback.disabled) fallback.checked = isOn('useOpenFoodFacts', changes.useOpenFoodFacts.newValue);
   }
   if (changes.popupShowWhy) paintWhy(changes.popupShowWhy.newValue === true);
-  if (Object.keys(changes).some(k => /^(s|off):/.test(k))) {
+  if (Object.keys(changes).some(k => /^(s|off):/.test(k) || ['weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sheetUrl', 'producersUrl', 'sheetIndex', 'producerIndex'].includes(k))) {
     paintCacheCount();
     paintPageScore();
   }
