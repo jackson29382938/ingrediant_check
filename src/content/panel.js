@@ -281,6 +281,8 @@
         <b>${esc(t('failTitle', "Couldn't read the ingredients on this page."))}</b>
         ${meta && meta.lowCoverage
           ? esc(t('failUnreadable', 'The ingredients are published, but almost none of them match anything this tool knows — usually that means the label is in a language it cannot read yet. Scoring it anyway would produce a confident wrong answer. '))
+          : meta && meta.localeDeclined
+          ? esc(t('failLocale', 'This Amazon store’s labels are in a script the on-device English reader will misread, so photo OCR is not used here yet. Paste the list if you can read it. '))
           : meta && meta.ocrAttempted
           ? esc(t('failOcr', 'The label photo was checked too, and no ingredient list could be read from it. '))
           : meta && meta.lookupAttempted

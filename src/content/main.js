@@ -291,6 +291,10 @@
   // field instead (see tests/blurb.test.js). The photo is then the only place the real list exists.
   // Opt-in, because it costs seconds of CPU.
   function tryOcr(host, data, key) {
+    if (AIR.extract.ocrReadyForHost && !AIR.extract.ocrReadyForHost(location.hostname)) {
+      showFailure(host, { ...data, ocrAttempted: true, localeDeclined: true }, key);
+      return;
+    }
     const urls = (AIR.db.ocrText && AIR.db.ocrText.imageCandidates(document)) || [];
     if (!urls.length) { showFailure(host, { ...data, ocrAttempted: true }, key); return; }
     const requestId = ++state.requestId;
@@ -330,7 +334,14 @@
   function showFailure(host, data, key) {
     if (state.lastKey !== key || !host.isConnected) return;
     if (host.dataset.airState === 'fail') return;
-    if (state.ocrLabels && !data.ocrAttempted) { tryOcr(host, data, key); return; }
+    if (state.ocrLabels && !data.ocrAttempted) {
+      if (AIR.extract.ocrReadyForHost && !AIR.extract.ocrReadyForHost(location.hostname)) {
+        data = { ...data, ocrAttempted: true, localeDeclined: true };
+      } else {
+        tryOcr(host, data, key);
+        return;
+      }
+    }
     host.dataset.airState = 'fail';
     publishActionBadge(null);
     AIR.panel.mount(host, AIR.panel.renderFailure(data), null, text => {
@@ -535,14 +546,66 @@
   const HOVER_DELAY_MS = 600;
   const MAX_CONCURRENT = 3;
   const REQUEST_GAP_MS = 250;
+  // Consecutive tile-fetch failures (403/429/network) before we stop. Deleting from `seen`
+  // and letting the next observer pass retry is how an extension gets its user rate-limited.
+  const TILE_FAIL_LIMIT = 5;
 
-  const queue = { pending: [], active: 0, seen: new Set(), lastStart: 0, epoch: 0, controllers: new Set() };
+  const queue = { pending: [], active: 0, seen: new Set(), lastStart: 0, epoch: 0, controllers: new Set(),
+    failStreak: 0, throttled: false };
+
+  function throttleCopy(key, fallback) {
+    try { return (chrome.i18n && chrome.i18n.getMessage(key)) || fallback; }
+    catch (e) { return fallback; }
+  }
+
+  function showThrottleNotice() {
+    if (document.getElementById('air-throttle-notice')) return;
+    const el = document.createElement('div');
+    el.id = 'air-throttle-notice';
+    el.setAttribute('role', 'status');
+    el.style.cssText = 'margin:12px 0;padding:12px 14px;border:1px solid #f0a02a;border-radius:8px;'
+      + 'background:#fdf3e2;color:#9a6206;font:13px/1.45 "Amazon Ember",sans-serif;';
+    const title = document.createElement('b');
+    title.style.display = 'block';
+    title.textContent = throttleCopy('throttleTitle', 'Amazon throttled scoring');
+    const body = document.createElement('span');
+    body.textContent = throttleCopy('throttleBody',
+      'Too many product-page requests were blocked. Auto-score is paused on this search so we do not keep retrying. Cached badges still show. Open a product, or start a new search, to try again.');
+    el.appendChild(title);
+    el.appendChild(body);
+    const anchor = document.querySelector('#search, .s-main-slot, #dp-container, body');
+    if (anchor && anchor.tagName === 'BODY') anchor.insertBefore(el, anchor.firstChild);
+    else if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(el, anchor);
+    else document.documentElement.appendChild(el);
+  }
+
+  function clearThrottleNotice() {
+    document.getElementById('air-throttle-notice')?.remove();
+  }
+
+  function pauseForThrottle() {
+    if (queue.throttled) return;
+    queue.throttled = true;
+    queue.pending.length = 0;
+    for (const controller of queue.controllers) controller.abort();
+    queue.controllers.clear();
+    if (tileObserver) { tileObserver.disconnect(); tileObserver = null; }
+    showThrottleNotice();
+  }
+
+  function noteTileFailure() {
+    queue.failStreak++;
+    if (queue.failStreak >= TILE_FAIL_LIMIT) pauseForThrottle();
+  }
 
   function cancelTileWork() {
     queue.epoch++;
     queue.pending.length = 0;
     queue.seen.clear();
     queue.lastStart = 0;
+    queue.failStreak = 0;
+    queue.throttled = false;
+    clearThrottleNotice();
     for (const controller of queue.controllers) controller.abort();
     queue.controllers.clear();
     if (tileObserver) { tileObserver.disconnect(); tileObserver = null; }
@@ -555,6 +618,7 @@
   }
 
   function enqueue(tile, asin, { front = false } = {}) {
+    if (queue.throttled) return;
     if (!state.enabled || !state.badges || !searchAllowed()) return;
     if (front ? !state.hoverScore : !state.autoScoreSearch) return;
     if (queue.seen.has(asin)) return;
@@ -571,6 +635,7 @@
   }
 
   function pump() {
+    if (queue.throttled) return;
     while (queue.active < MAX_CONCURRENT && queue.pending.length) {
       const job = queue.pending.shift();
       if (!job.tile.isConnected) continue;
@@ -621,7 +686,7 @@
           if (epoch !== queue.epoch || !state.enabled || !state.badges || !state.autoScoreSearch || !tile.isConnected) return;
           const hit = obj[cacheKey(asin)];
           if (usableCache(hit, asin)) { paintBadge(tile, hit); queue.seen.add(asin); return; }
-          if (state.autoScoreSearch) enqueue(tile, asin);
+          if (state.autoScoreSearch && !queue.throttled) enqueue(tile, asin);
         });
       }
     }, { rootMargin: '150px' });
@@ -629,6 +694,7 @@
   }
 
   function armAutoScorePass() {
+    if (queue.throttled) return;
     if (!state.enabled || !state.badges || !state.autoScoreSearch) return;
     if (!isListPage() || !searchAllowed()) return;
     const obs = autoObserver();
@@ -672,11 +738,15 @@
       paintBadge(tile, result);
       cacheScore(asin, result, data.title, data.via || 'search-tile', data.text);
       sendDiagnostic(data, result, 'search-tile');
+      queue.failStreak = 0;
     } catch (e) {
       if (!current()) return;
+      const aborted = e && (e.name === 'AbortError' || controller.signal.aborted);
+      if (aborted) return;
       const b = tile.querySelector('.air-badge');
       if (b && b.textContent === '…') b.remove();
-      queue.seen.delete(asin);   // a failed fetch may be worth retrying on the next pass
+      // Keep the ASIN in `seen` so a failed fetch is not retried on the next observer pass.
+      noteTileFailure();
     } finally {
       queue.controllers.delete(controller);
     }

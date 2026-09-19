@@ -5,12 +5,20 @@ const vm = require('node:vm');
 const fs = require('node:fs');
 
 function setup() {
-  const timers = [], badges = [], fetches = [], writes = [], rendered = [];
-  let changed, pasted;
+  const timers = [], badges = [], fetches = [], writes = [], rendered = [], messages = [], notices = [];
+  let changed, pasted, failMeta;
   let host = { dataset: {}, isConnected: true, remove() { this.isConnected = false; } };
   const title = { innerText: 'Organic oats', insertBefore(b) { badges.push(b); } };
   const tile = { isConnected: true, getAttribute: () => 'B000000001',
     querySelector: s => s === '.air-badge' ? badges[0] : title };
+  const bodyKids = [];
+  const body = {
+    tagName: 'BODY',
+    firstChild: null,
+    insertBefore(el) { el.isConnected = true; bodyKids.unshift(el); this.firstChild = el; notices.push(el); return el; },
+    appendChild(el) { el.isConnected = true; bodyKids.push(el); notices.push(el); return el; },
+  };
+  const documentElement = { appendChild(el) { el.isConnected = true; notices.push(el); return el; } };
   const context = vm.createContext({
     AbortController, URLSearchParams, console,
     location: { hostname: 'www.amazon.com', href: 'https://www.amazon.com/dp/B000000001', pathname: '/dp/B000000001', search: '' },
@@ -20,14 +28,43 @@ function setup() {
     IntersectionObserver: class { observe() {} disconnect() {} },
     DOMParser: class { parseFromString() { return {}; } },
     document: {
-      getElementById: id => id === 'air-badge-style' ? {} : host.isConnected ? host : null,
-      querySelector: () => ({ parentNode: { insertBefore(next) { host = next; host.isConnected = true; } } }),
+      documentElement,
+      body,
+      getElementById: id => {
+        if (id === 'air-badge-style') return {};
+        if (id === 'air-throttle-notice') return notices.find(n => n.id === 'air-throttle-notice' && n.isConnected) || null;
+        return host.isConnected ? host : null;
+      },
+      querySelector: sel => {
+        if (sel === 'body' || /(^|,)\s*body\s*$/.test(sel)) return body;
+        return { parentNode: { insertBefore(next) { host = next; host.isConnected = true; } } };
+      },
       querySelectorAll: s => s === '.air-badge' ? [...badges] : [],
-      createElement: tag => tag === 'div' ? { dataset: {}, isConnected: false, remove() { this.isConnected = false; } } : ({ style: {}, setAttribute() {}, remove() { badges.splice(badges.indexOf(this), 1); } }),
+      createElement: tag => {
+        if (tag === 'span') {
+          const el = { style: { cssText: '' }, textContent: '', className: '',
+            setAttribute() {}, getAttribute: () => null, appendChild() {},
+            remove() { badges.splice(badges.indexOf(el), 1); } };
+          return el;
+        }
+        if (tag === 'b') {
+          return { style: { cssText: '' }, textContent: '', appendChild() {} };
+        }
+        if (tag === 'div') {
+          return {
+            dataset: {}, isConnected: false, id: '', style: { cssText: '' }, textContent: '',
+            setAttribute(k, v) { if (k === 'id') this.id = v; },
+            appendChild() {},
+            remove() { this.isConnected = false; },
+          };
+        }
+        return { style: {}, setAttribute() {}, remove() { badges.splice(badges.indexOf(this), 1); } };
+      },
     },
     fetch: (url, options) => new Promise(resolve => fetches.push({ url, options, resolve })),
     chrome: {
-      runtime: { getManifest: () => ({ version: '0.9.0' }), sendMessage() {} },
+      runtime: { getManifest: () => ({ version: '0.9.0' }), sendMessage(m) { messages.push(m); } },
+      i18n: { getMessage: () => '' },
       storage: { local: { get(keys, cb) {
         // Defer boot; selected preference reads happen after the script initializes.
         if (Array.isArray(keys) && keys.includes('enabled')) return;
@@ -37,20 +74,25 @@ function setup() {
     },
     AIR: {
       db: { scoreCache: require('../src/engine/db/score-cache.js') },
-      extract: { extract: () => ({ ok: true, title: 'Oats', text: 'oats' }) },
+      extract: {
+        extract: () => ({ ok: true, title: 'Oats', text: 'oats' }),
+        ocrReadyForHost: host => !/(?:^|\.)amazon\.(?:co\.jp|ae|sa)$/i.test(String(host || '').replace(/^www\./, '')),
+      },
       engine: { score: (input, prefs) => ({ score: 90, verdict: 'Excellent', nova: 1, input, prefs }) },
       panel: { BAND_COLOR: () => ({ fg: '', bg: '', ring: '' }),
-        renderFailure: () => 'failure', render: r => { rendered.push(r); return r; },
+        renderFailure: m => { failMeta = m; return 'failure'; },
+        render: r => { rendered.push(r); return r; },
         mount: (h, r, report, paste) => { if (paste) pasted = paste; } },
     },
   });
   // Expose closures only in this VM; the shipped content script remains an isolated IIFE.
   const source = fs.readFileSync(require.resolve('../src/content/main.js'), 'utf8');
-  vm.runInContext(source.replace(/\}\)\(\);\s*$/, 'globalThis.hooks = {state, queue, scoreTile, enqueue, suspend, resetListState, showFailure, scoreCurrentPage, onNavigated, cacheScore, usableCache};})();'), context);
+  vm.runInContext(source.replace(/\}\)\(\);\s*$/, 'globalThis.hooks = {state, queue, scoreTile, enqueue, suspend, resetListState, showFailure, scoreCurrentPage, onNavigated, cacheScore, usableCache, TILE_FAIL_LIMIT, pauseForThrottle};})();'), context);
   const h = context.hooks;
   h.state.enabled = true; h.state.badges = true; h.state.foodOnly = false;
   h.state.autoScoreSearch = true;
   return { h, context, tile, get host() { return host; }, timers, fetches, badges, writes, rendered,
+    messages, notices, get failMeta() { return failMeta; },
     change: values => changed(values), paste: text => pasted(text) };
 }
 
@@ -130,6 +172,66 @@ test('leaving a product page tears the panel down and does not rescore', () => {
   w.h.onNavigated();
   assert.equal(oldHost.isConnected, false);
   assert.equal(w.h.state.settled, 'not a product or results page');
+});
+
+test('tile fetch failures stay in seen and pause auto-score after N 403s', async () => {
+  const w = setup();
+  const limit = w.h.TILE_FAIL_LIMIT;
+  assert.ok(limit >= 3 && limit <= 8, `unexpected TILE_FAIL_LIMIT ${limit}`);
+  const href = w.context.location.href;
+  for (let i = 0; i < limit; i++) {
+    const asin = `B00000000${i}`;
+    const title = { innerText: 'Oats', insertBefore(b) { w.badges.push(b); } };
+    const tile = { isConnected: true, getAttribute: () => asin,
+      querySelector: s => s === '.air-badge' ? w.badges.find(b => b._asin === asin) : title };
+    w.h.queue.seen.add(asin);
+    const request = w.h.scoreTile(tile, asin, w.h.queue.epoch, href);
+    assert.equal(w.fetches.length, i + 1);
+    w.fetches[i].resolve({ ok: false, status: 403, text: async () => '' });
+    await request;
+    assert.equal(w.h.queue.seen.has(asin), true, 'failed ASIN must stay in seen — no retry-storm');
+  }
+  assert.equal(w.h.queue.throttled, true);
+  assert.ok(w.notices.some(n => n.id === 'air-throttle-notice' && n.isConnected));
+  const extra = { isConnected: true, getAttribute: () => 'B000000099',
+    querySelector: () => null };
+  w.h.enqueue(extra, 'B000000099');
+  assert.equal(w.h.queue.pending.length, 0);
+  assert.equal(w.fetches.length, limit);
+});
+
+test('an aborted tile fetch does not count toward the throttle pause', async () => {
+  const w = setup();
+  const request = w.h.scoreTile(w.tile, 'B000000001', w.h.queue.epoch, w.context.location.href);
+  w.change({ enabled: { newValue: false } });
+  w.fetches[0].resolve({ ok: false, status: 403, text: async () => '' });
+  await request;
+  assert.equal(w.h.queue.failStreak, 0);
+  assert.equal(w.h.queue.throttled, false);
+});
+
+test('navigation clears the throttle pause', async () => {
+  const w = setup();
+  w.h.queue.throttled = true;
+  w.h.queue.failStreak = 5;
+  w.h.pauseForThrottle();
+  w.context.location.href = 'https://www.amazon.com/s?k=oats';
+  w.context.location.pathname = '/s';
+  w.context.location.search = '?k=oats';
+  w.h.onNavigated();
+  assert.equal(w.h.queue.throttled, false);
+  assert.equal(w.h.queue.failStreak, 0);
+});
+
+test('JP/AR hosts skip English OCR and surface a locale decline', () => {
+  const w = setup();
+  w.context.location.hostname = 'www.amazon.co.jp';
+  w.h.state.ocrLabels = true;
+  w.h.state.lastKey = 'B000000001';
+  w.h.showFailure(w.host, { title: 'お茶' }, 'B000000001');
+  assert.equal(w.messages.filter(m => m.type === 'ocrLabels').length, 0);
+  assert.equal(w.host.dataset.airState, 'fail');
+  assert.equal(w.failMeta.localeDeclined, true);
 });
 
 test('manual scores are available to this tab but never stored as search scores', () => {

@@ -210,6 +210,15 @@
   "failOcr": {
     "message": "The label photo was checked too, and no ingredient list could be read from it. "
   },
+  "failLocale": {
+    "message": "This Amazon store’s labels are in a script the on-device English reader will misread, so photo OCR is not used here yet. Paste the list if you can read it. "
+  },
+  "throttleTitle": {
+    "message": "Amazon throttled scoring"
+  },
+  "throttleBody": {
+    "message": "Too many product-page requests were blocked. Auto-score is paused on this search so we do not keep retrying. Cached badges still show. Open a product, or start a new search, to try again."
+  },
   "popupOcr": {
     "message": "Read label photos"
   },

@@ -37,7 +37,7 @@ On an Amazon product page it reads the ingredient list (page text, optional on-d
 
 The toolbar popup is the master switch plus network opt-ins. On an Amazon product tab it also shows the cached score for that ASIN. Explanations are collapsed until you open **Why these matter**. **Scoring weights, allergens & avoid list** opens the full settings page (searchable categories, dark mode, avoid-list suggestions, section jump). Imports, sliders, and storage values are sanitized before they are trusted: unknown ids are dropped, weights stay in the 0–2 slider range, and only Google Sheet / Apps Script URLs are kept.
 
-Ingredient headings are recognised in English and several EU languages (Zutaten, Ingredientes, Ingrédients, Ingredienti, Ingrediënten, Składniki), including same-line `Ingredients:` detail-bullet forms. The scoring rules themselves read English, the most common additives, sweeteners, oils and unnamed function words (“conservante”, “aroma”, “colorante”) in Spanish, French, German and Italian, and additives written as E-numbers (“E322”, “E 951”); a list the rulebase mostly cannot read is declined rather than scored. Allergen and diet flags read the same four languages, cover the EU’s celery, mustard and lupin as well as the US list, and never move the score. Chrome 116 or newer is required.
+Ingredient headings are recognised in English and several EU languages (Zutaten, Ingredientes, Ingrédients, Ingredienti, Ingrediënten, Składniki, Ingredienser, İçindekiler), including same-line `Ingredients:` detail-bullet forms. Japanese and Arabic stores decline photo OCR until a local reader exists — English Tesseract misreads those labels. The scoring rules themselves read English, the most common additives, sweeteners, oils and unnamed function words (“conservante”, “aroma”, “colorante”) in Spanish, French, German and Italian, and additives written as E-numbers (“E322”, “E 951”); a list the rulebase mostly cannot read is declined rather than scored. Allergen and diet flags read the same four languages, cover the EU’s celery, mustard and lupin as well as the US list, and never move the score. Chrome 116 or newer is required.
 
 ## Tests
 
@@ -47,7 +47,7 @@ npm run preflight
 npm run harness          # http://127.0.0.1:8731 — panel, OCR, lifecycle
 ```
 
-CI runs `npm test` and `npm run preflight`. Browser harnesses stay manual.
+CI runs `npm test` and `npm run preflight` on Node 20 and 22, plus a Playwright job on the local panel and lifecycle harnesses (`npm run harness:ci`). That job never talks to Amazon.
 
 | Harness | URL |
 |---|---|
@@ -70,4 +70,6 @@ All off by default.
 
 The test suite proves the engine matches its spec. To see whether scores match a careful reading of real labels, turn on diagnostics against a sheet you own, shop a grocery search, and sort by `coverage`, `source`, and `cap`. Promote misses into `tests/corpus.json` before changing rules.
 
-A prioritized improvement plan (security, reliability, tests, DX) is in [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md).
+A prioritized improvement plan (security, reliability, tests, DX) is in [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md). Chrome Web Store privacy copy is [docs/PRIVACY.md](docs/PRIVACY.md). Licensed under [MIT](LICENSE).
+
+The GitHub folder spelling `ingrediant_check` is historical. The product name is **Ingredient Check**.

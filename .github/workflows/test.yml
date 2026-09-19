@@ -18,3 +18,15 @@ jobs:
       # No install step: the extension and automated checks have no package dependencies.
       - run: npm test
       - run: npm run preflight
+
+  harness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # Playwright is CI-only. The extension itself stays dependency-free.
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: npm run harness:ci
