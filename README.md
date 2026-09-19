@@ -69,3 +69,5 @@ All off by default.
 ## Accuracy
 
 The test suite proves the engine matches its spec. To see whether scores match a careful reading of real labels, turn on diagnostics against a sheet you own, shop a grocery search, and sort by `coverage`, `source`, and `cap`. Promote misses into `tests/corpus.json` before changing rules.
+
+A prioritized improvement plan (security, reliability, tests, DX) is in [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md).

@@ -29,6 +29,7 @@
 
   const isProductPage = () => /\/(dp|gp\/product)\/[A-Z0-9]{10}/.test(location.pathname);
   const isListPage = () => /\/(s|b|gp\/browse|stores)\b/.test(location.pathname) || location.search.includes('k=');
+  const isRelevantPage = () => isProductPage() || isListPage();
 
   // ---------------------------------------------------------------- product page
   function mountPoint() {
@@ -853,6 +854,12 @@
 
   function wake() {
     if (!state.enabled) return;
+    if (!isRelevantPage()) {
+      stopObserving();
+      teardown();
+      settle('not a product or results page');
+      return;
+    }
     startObserving();
     schedule();
   }
@@ -873,7 +880,13 @@
     state.lastKey = null;      // a new URL is a new product; don't reuse the last render
     state.failedExtracts = 0;
     resetSearchGate();         // ...and a new search, which may be about something else entirely
-    wake();
+    if (!state.enabled) return;
+    if (isRelevantPage()) wake();
+    else {
+      stopObserving();
+      teardown();
+      settle('not a product or results page');
+    }
   }
 
   function watchNavigation() {
@@ -910,11 +923,18 @@
     state.settled = null;
     resetSearchGate();
     lastUrl = location.href;
+    // Poll only while enabled so a pushState off a product page still tears down. The observer
+    // itself stays off until this is actually a product or results URL.
     watchNavigation();
-    startObserving();
-    schedule();
-    armHoverPass();
-    armAutoScorePass();
+    if (isRelevantPage()) {
+      startObserving();
+      schedule();
+      armHoverPass();
+      armAutoScorePass();
+    } else {
+      teardown();
+      settle('not a product or results page');
+    }
   }
 
   function removePanel() {
@@ -1032,7 +1052,5 @@
   });
 
   // Nothing starts until the stored settings say so; the boot read above calls resume() or
-  // suspend(). Starting an observer here and tearing it down a tick later was pure waste on a page
-  // where the extension is switched off.
-  watchNavigation();
+  // suspend(). Starting a URL poll here ran even on a paused extension until that read returned.
 })();

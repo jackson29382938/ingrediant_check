@@ -8,15 +8,18 @@ function worker(initial = {}, fetcher, { alarms } = {}) {
   const data = structuredClone(initial);
   const event = { addListener() {} };
   let created = 0;
+  let onMessage = null;
   const badges = [];
   let changed;
-  const context = vm.createContext({
-    self: {}, console, URL, URLSearchParams, AbortSignal, AbortController,
+  const sandbox = {
+    console, URL, URLSearchParams, AbortSignal, AbortController,
     fetch: fetcher || (async () => { throw new Error('offline'); }),
     chrome: {
-      runtime: { getManifest: () => ({ version: '1.0.0' }), getURL: p => p,
+      runtime: { id: 'ext', getManifest: () => ({ version: '1.0.0' }), getURL: p => p,
         sendMessage: async () => ({ ok: true }),
-        getContexts: async () => [], onMessage: event, onStartup: event, onInstalled: event },
+        getContexts: async () => [],
+        onMessage: { addListener(fn) { onMessage = fn; } },
+        onStartup: event, onInstalled: event },
       offscreen: { createDocument: async () => { created++; } },
       alarms: alarms || { create() {}, onAlarm: event },
       action: {
@@ -33,9 +36,21 @@ function worker(initial = {}, fetcher, { alarms } = {}) {
         async remove(keys) { for (const k of keys) delete data[k]; },
       } },
     },
-  });
+  };
+  sandbox.self = sandbox;
+  const context = vm.createContext(sandbox);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/_module.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/ocr-text.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(require.resolve('../src/background.js'), 'utf8'), context);
-  return { data, call: (expression) => vm.runInContext(expression, context), created: () => created, badges, change: values => {
+  return {
+    data, call: (expression) => vm.runInContext(expression, context), created: () => created, badges,
+    send(msg, sender) {
+      return new Promise(resolve => {
+        const async = onMessage(msg, sender, resolve);
+        if (async !== true) resolve(undefined);
+      });
+    },
+    change: values => {
     for (const [key, value] of Object.entries(values)) data[key] = value.newValue;
     changed(values, 'local');
   } };
@@ -200,4 +215,30 @@ test('sheet revisions follow the CSV content, not the fetch time', async () => {
   assert.equal(w.data.sheetIndexRev, first);
   assert.notEqual(await w.call("revisionOf('a,b')"), await w.call("revisionOf('a,c')"));
   assert.ok(!('ingredients' in (w.data.sheetIndex || {})));
+});
+
+const amazonTab = { id: 'ext', tab: { id: 3, url: 'https://www.amazon.com/dp/B00LOAW7U6' } };
+const label = 'https://m.media-amazon.com/images/I/514iQ-HJVEL._SL1600_.jpg';
+
+test('OCR fetch URLs must be Amazon product images', () => {
+  const w = worker();
+  assert.deepEqual([...w.call(`allowedOcrUrls(${JSON.stringify([label, 'https://www.amazon.com/dp/B00LOAW7U6', 'https://example.test/x.jpg'])})`)], [label]);
+  assert.deepEqual([...w.call('allowedOcrUrls(["image"])')], []);
+});
+
+test('content-script messages are ignored unless they come from an Amazon tab of this extension', async () => {
+  const w = worker({ ocrLabels: true });
+  assert.equal(w.call('allowMessage({type:"ocrLabels"}, {id:"other", tab:{url:"https://www.amazon.com/dp/B00"}})'), false);
+  assert.equal(w.call('allowMessage({type:"ocrLabels"}, {id:"ext"})'), false);
+  assert.equal(w.call('allowMessage({type:"ocrLabels"}, {id:"ext", tab:{url:"https://example.test/"}})'), false);
+  assert.equal(w.call(`allowMessage({type:"ocrLabels"}, ${JSON.stringify(amazonTab)})`), true);
+  assert.equal(w.call('allowMessage({type:"flushDiagnostics"}, {id:"ext"})'), true);
+  assert.equal(await w.send({ type: 'ocrLabels', urls: [label] }, { id: 'other', tab: amazonTab.tab }), undefined);
+  assert.equal(w.created(), 0);
+  const allowed = await w.send({ type: 'ocrLabels', urls: [label] }, amazonTab);
+  assert.equal(allowed.ok, true);
+  assert.equal(w.created(), 1);
+  const blocked = await w.send({ type: 'ocrLabels', urls: ['https://www.amazon.com/dp/B00LOAW7U6'] }, amazonTab);
+  assert.equal(blocked.ok, false);
+  assert.equal(blocked.reason, 'no-images');
 });

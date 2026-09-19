@@ -13,10 +13,14 @@ function setup(createWorker) {
     fetch: async () => ({ ok: true, blob: async () => ({}) }),
     chrome: { runtime: { getURL: p => p, onMessage: { addListener(fn) { listener = fn; } },
       sendMessage: msg => { sent.push(msg); return Promise.resolve(); } } },
-    Tesseract: { createWorker }, AIR: { db: { ocrText: { ingredientsFromOcr: () => true } } },
+    Tesseract: { createWorker }, AIR: { db: { ocrText: {
+      ingredientsFromOcr: () => true,
+      isAllowedOcrUrl: () => true,
+      allowedOcrUrls: urls => (Array.isArray(urls) ? urls : []).slice(0, 5),
+    } } },
   });
   vm.runInContext(fs.readFileSync(require.resolve('../src/offscreen/ocr.js'), 'utf8'), context);
-  return { run: () => vm.runInContext('ocrImages(["image"])', context),
+  return { run: () => vm.runInContext('ocrImages(["https://m.media-amazon.com/images/I/514iQ-HJVEL._SL1600_.jpg"])', context),
     expire: () => timers.values().next().value(),
     pending: () => timers.size, sent,
     cancel: () => listener({ target: 'ocr-offscreen', type: 'cancelOcr' }, {}, () => {}) };

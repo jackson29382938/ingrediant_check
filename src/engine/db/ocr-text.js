@@ -29,6 +29,34 @@ function hiResUrl(url, px = 1600) {
   return `https://m.media-amazon.com/images/I/${m[1]}._SL${px}_.jpg`;
 }
 
+// The offscreen document fetches from the extension origin, so a message must not be able to
+// point it at an arbitrary Amazon (or other) URL. Only the product-image CDN, only /images/I/.
+function isAllowedOcrUrl(url) {
+  let parsed;
+  try { parsed = new URL(String(url || '')); } catch { return false; }
+  if (parsed.protocol !== 'https:') return false;
+  if (parsed.hostname !== 'm.media-amazon.com') return false;
+  if (parsed.username || parsed.password || parsed.port) return false;
+  if (!parsed.pathname.startsWith('/images/I/')) return false;
+  if (VIDEO_POSTER.test(parsed.href)) return false;
+  return IMAGE_ID.test(parsed.pathname);
+}
+
+function allowedOcrUrls(urls, limit = 5) {
+  const cap = Math.min(5, Math.max(1, Number(limit) || 5));
+  const out = [];
+  const seen = new Set();
+  for (const raw of Array.isArray(urls) ? urls : []) {
+    if (!isAllowedOcrUrl(raw)) continue;
+    const href = String(raw);
+    if (seen.has(href)) continue;
+    seen.add(href);
+    out.push(href);
+    if (out.length >= cap) break;
+  }
+  return out;
+}
+
 // Alt images first: on a real listing the label shot is one of them, and the hero image is the
 // front of the pack. De-duplicated by image id, because Amazon repeats the same id at several
 // sizes across the thumbnail strip, the main viewer and the zoom layer.
@@ -95,6 +123,7 @@ function bestBlock(results, accept) {
 
 const _exports = AIRmodule('ocrText', {
   hiResUrl, imageCandidates, ingredientsFromOcr, bestBlock, tidyOcr, IMAGE_ID,
+  isAllowedOcrUrl, allowedOcrUrls,
 });
 if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 

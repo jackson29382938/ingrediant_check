@@ -6,9 +6,9 @@
     "Verdict bands from score.js BANDS: 90+ Excellent, 75-89 Good, 50-74 Mediocre,",
     "25-49 Poor, 0-24 Avoid.",
     "",
-    "Products marked \"defect\" encode the CORRECT answer for a known open bug and are",
-    "expected to fail until that bug is fixed. corpus.test.js reports them separately",
-    "and does not count them as failures while the defect is listed in OPEN_DEFECTS.",
+    "The defects array is regression cases for bugs that have been fixed. OPEN_DEFECTS",
+    "in corpus.test.js is empty, so every entry here is a hard assertion. A `defect`",
+    "id is a historical name, not an open bug.",
     "",
     "Ingredient text is representative of the real product panel, transcribed by hand.",
     "Sources for the seed set are the products named throughout the engine comments."
@@ -222,17 +222,17 @@
 
   "defects": [
     { "id": "non-gmo-soybean-oil", "defect": "negation-laundering", "band": [3, 30],
-      "note": "DEFECT 1. Must score identically to plain soybean oil (capped at 25). Currently 68 because stripNegations() erases the whole ingredient.",
+      "note": "Regression: Non-GMO must not launder a seed-oil cap. Scores like plain soybean oil.",
       "product": { "name": "Store Brand Mayonnaise",
         "ingredients_text": "Water, Non-GMO Soybean Oil, Sugar, Distilled Vinegar, Salt" } },
 
     { "id": "non-gmo-canola-oil", "defect": "negation-laundering", "band": [3, 30],
-      "note": "DEFECT 1. Same shape, spaced rather than hyphenated form.",
+      "note": "Regression: spaced Non GMO form of the soybean-oil case.",
       "product": { "name": "Store Brand Crackers",
         "ingredients_text": "Enriched flour, Non GMO Canola Oil, Salt, Yeast" } },
 
     { "id": "spanish-junk-panel", "defect": null, "band": [3, 30], "minCoverage": 0.34,
-      "note": "DEFECT 2. Same product as english-junk-panel below; must not score 55 points higher for being in Spanish.",
+      "note": "Regression: same product as english-junk-panel; must not score far higher for being in Spanish.",
       "product": { "name": "Refresco",
         "ingredients_text": "Agua, Jarabe de maiz de alta fructosa, Aceite vegetal parcialmente hidrogenado, Rojo 40, Glutamato monosodico, Benzoato de sodio" } },
 
@@ -246,7 +246,7 @@
       "product": { "name": "Mystery Product", "ingredients_text": "Zzyzxian flargle concentrate" } },
 
     { "id": "cold-pressed-sunflower-oil", "defect": "dead-unrefined-rule", "band": [40, 100],
-      "note": "DEFECT 3. oils.UNREFINED is defined but never exported, so this is capped at 25 identically to the refined version.",
+      "note": "Regression: unrefined/cold-pressed sunflower is softened, not capped at 25 like the refined control.",
       "product": { "name": "Cold Pressed Sunflower Oil", "ingredients_text": "Cold-pressed unrefined sunflower oil" } },
 
     { "id": "refined-sunflower-oil", "defect": null, "band": [3, 30],

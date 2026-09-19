@@ -35,8 +35,10 @@ function resetWorker() {
 // Images are fetched here rather than passed as blobs, because m.media-amazon.com serves them with
 // Access-Control-Allow-Origin: * — verified — so no host permission is needed for any of this.
 async function ocrOne(url, signal) {
-  const res = await fetch(url, { credentials: 'omit', signal });
+  if (!AIR.db.ocrText.isAllowedOcrUrl(url)) throw new Error('blocked-url');
+  const res = await fetch(url, { credentials: 'omit', signal, redirect: 'follow' });
   if (!res.ok) throw new Error('HTTP ' + res.status);
+  if (res.url && !AIR.db.ocrText.isAllowedOcrUrl(res.url)) throw new Error('blocked-url');
   const blob = await res.blob();
   const worker = await getWorker();
   if (signal.aborted) throw new Error('cancelled');
@@ -82,7 +84,8 @@ function ocrImages(urls, { limit = 5, timeoutMs = 45000 } = {}) {
     const scan = async () => {
       const results = [];
       const count = Math.min(5, Math.max(1, Number(limit) || 5));
-      for (const url of (Array.isArray(urls) ? urls : []).slice(0, count)) {
+      const safe = AIR.db.ocrText.allowedOcrUrls(urls, count);
+      for (const url of safe) {
         if (controller.signal.aborted) break;
         try {
           const r = await ocrOne(url, controller.signal);

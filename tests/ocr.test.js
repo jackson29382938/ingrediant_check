@@ -45,6 +45,17 @@ check('a non-Amazon url yields nothing', () => {
   assert.strictEqual(ocr.hiResUrl(''), null);
   assert.strictEqual(ocr.hiResUrl(null), null);
 });
+check('only m.media-amazon.com /images/I/ URLs are fetchable', () => {
+  const ok = 'https://m.media-amazon.com/images/I/514iQ-HJVEL._SL1600_.jpg';
+  assert.strictEqual(ocr.isAllowedOcrUrl(ok), true);
+  assert.strictEqual(ocr.isAllowedOcrUrl('http://m.media-amazon.com/images/I/514iQ-HJVEL._SL1600_.jpg'), false);
+  assert.strictEqual(ocr.isAllowedOcrUrl('https://www.amazon.com/dp/B00LOAW7U6'), false);
+  assert.strictEqual(ocr.isAllowedOcrUrl('https://m.media-amazon.com.evil.test/images/I/514iQ-HJVEL._SL1600_.jpg'), false);
+  assert.strictEqual(ocr.isAllowedOcrUrl('https://evil.test/images/I/514iQ-HJVEL._SL1600_.jpg'), false);
+  assert.strictEqual(ocr.isAllowedOcrUrl('https://user:pass@m.media-amazon.com/images/I/514iQ-HJVEL._SL1600_.jpg'), false);
+  assert.deepStrictEqual(ocr.allowedOcrUrls([ok, 'https://example.test/x.jpg', ok, 'not-a-url']), [ok]);
+  assert.deepStrictEqual(ocr.allowedOcrUrls(['image']), []);
+});
 check('candidates are de-duplicated by image id', () => {
   // Amazon repeats one id at several sizes across the strip, the viewer and the zoom layer.
   const img = src => ({ getAttribute: a => (a === 'src' ? src : null) });
