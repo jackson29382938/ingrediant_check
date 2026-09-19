@@ -132,7 +132,7 @@ function check(which) {
   host.textContent = '';
   if (p.foodOnly && data.ingestible && !data.ingestible.ok) {
     AIR.panel.mount(host, AIR.panel.renderNotFood(data));
-    host.shadowRoot.querySelector('button.anyway')?.addEventListener('click', () => {
+    AIR.panel.shadowOf(host)?.querySelector('button.anyway')?.addEventListener('click', () => {
       const again = AIR.extract.extract(PRODUCTS[which], { foodOnly: false });
       const result = AIR.engine.score({
         name: again.title, ingredients_text: again.text, labels: '',
@@ -171,7 +171,8 @@ function runSuite() {
 
   const blocked = check('shampoo');
   pass('shampoo is not scored when foodOnly is on', blocked.kind === 'not-food', blocked.kind);
-  pass('not-food card explains itself', !!(host.shadowRoot && /does not look like food/i.test(host.shadowRoot.textContent)));
+  const blockedShadow = AIR.panel.shadowOf(host);
+  pass('not-food card explains itself', !!(blockedShadow && /does not look like food/i.test(blockedShadow.textContent)));
 
   foodOnly.checked = false; save();
   const allowed = check('shampoo');
@@ -179,8 +180,9 @@ function runSuite() {
 
   foodOnly.checked = true; save();
   check('shampoo');
-  host.shadowRoot.querySelector('button.anyway')?.click();
-  pass('Score anyway overrides one page', !!(host.shadowRoot && host.shadowRoot.querySelector('.score')));
+  AIR.panel.shadowOf(host)?.querySelector('button.anyway')?.click();
+  const anywayShadow = AIR.panel.shadowOf(host);
+  pass('Score anyway overrides one page', !!(anywayShadow && anywayShadow.querySelector('.score')));
 
   const restored = JSON.parse(localStorage.getItem(KEY));
   pass('settings persist in storage', restored.foodOnly === true);

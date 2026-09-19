@@ -45,11 +45,13 @@ check('every declared file exists', () => {
 });
 check('permissions and CSP match the features', () => {
   if (!manifest.permissions.includes('offscreen')) throw new Error('offscreen permission missing (OCR)');
-  if (!manifest.permissions.includes('activeTab')) throw new Error('activeTab permission missing (popup this-page score)');
+  if (manifest.permissions.includes('activeTab')) {
+    throw new Error('activeTab is unused — host permissions already cover Amazon tabs for the popup card');
+  }
   const csp = (manifest.content_security_policy || {}).extension_pages || '';
   if (!/wasm-unsafe-eval/.test(csp)) throw new Error('wasm-unsafe-eval missing (OCR will not compile)');
   if (!manifest.default_locale) throw new Error('default_locale missing but __MSG_ is used');
-  return `offscreen + activeTab + wasm-unsafe-eval + locale "${manifest.default_locale}"`;
+  return `offscreen + wasm-unsafe-eval + locale "${manifest.default_locale}"`;
 });
 check('stores covered', () => {
   const matches = manifest.content_scripts[0].matches || [];
@@ -62,6 +64,16 @@ check('stores covered', () => {
     throw new Error('product /dp/ or search /s matches missing');
   }
   return `${hosts.size} Amazon stores, ${matches.length} path patterns`;
+});
+check('content scripts split PDP vs search', () => {
+  const js = manifest.content_scripts[0].js || [];
+  for (const need of ['src/content/page.js', 'src/content/product.js', 'src/content/search.js', 'src/content/main.js']) {
+    if (!js.includes(need)) throw new Error(`missing ${need}`);
+  }
+  const order = ['src/content/page.js', 'src/content/product.js', 'src/content/search.js', 'src/content/main.js']
+    .map(f => js.indexOf(f));
+  if (order.some((n, i) => i && n <= order[i - 1])) throw new Error('page → product → search → main order broken');
+  return 'page / product / search / main in order';
 });
 check('content scripts skip account and checkout', () => {
   const globs = manifest.content_scripts[0].exclude_globs || [];
@@ -117,6 +129,9 @@ check('every key resolves', () => {
     ...[...read('manifest.json').matchAll(/__MSG_([A-Za-z0-9_]+)__/g)].map(m => m[1]),
     ...[...read('src/content/panel.js').matchAll(/\bt\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
     ...[...read('src/options/popup.html').matchAll(/data-i18n="([A-Za-z0-9_]+)"/g)].map(m => m[1]),
+    ...[...read('src/options/options.html').matchAll(/data-i18n(?:-placeholder|-aria)?="([A-Za-z0-9_]+)"/g)].map(m => m[1]),
+    ...[...read('src/options/popup.js').matchAll(/\bmsg\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
+    ...[...read('src/options/settings.js').matchAll(/\bmsg\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
   ]);
   const missing = [...used].filter(k => !(k in msgs));
   if (missing.length) throw new Error('missing: ' + missing.join(', '));

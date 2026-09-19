@@ -76,7 +76,8 @@ function run({ href, pathname, search, titles }) {
                    'engine/db/additives.js', 'engine/db/labels.js', 'engine/db/allergens.js',
                    'engine/db/ingestible.js', 'engine/db/provenance.js', 'engine/categories.js',
                    'engine/db/prefs.js',
-                   'engine/score.js', 'content/extract.js', 'content/panel.js']) {
+                   'engine/score.js', 'content/extract.js', 'content/panel.js',
+                   'content/page.js', 'content/product.js', 'content/search.js']) {
     require(src(f));
   }
   // main.js is an IIFE with no exports, so it is evaluated rather than required.

@@ -250,7 +250,8 @@ test('hover and auto-score arm only on results pages', () => {
     for (const f of ['engine/db/_module.js', 'engine/db/oils.js', 'engine/db/sugars.js', 'engine/db/additives.js',
       'engine/db/labels.js', 'engine/db/allergens.js', 'engine/db/ingestible.js', 'engine/db/provenance.js',
       'engine/categories.js', 'engine/db/prefs.js', 'engine/db/revision.js', 'engine/db/score-cache.js',
-      'engine/score.js', 'content/extract.js', 'content/panel.js']) require(src(f));
+      'engine/score.js', 'content/extract.js', 'content/panel.js',
+      'content/page.js', 'content/product.js', 'content/search.js']) require(src(f));
     new Function(fs.readFileSync(src('content/main.js'), 'utf8'))();
     return {
       hover: tiles.filter(t => t.hasAttribute('data-air-hover')).length,

@@ -35,7 +35,7 @@ After editing `src/`, `manifest.json`, or `icons/`, run `npm run chrome:reload`.
 
 On an Amazon product page it reads the ingredient list (page text, optional on-device OCR, optional Open Food Facts barcode, or a paste box) and scores it. Search pages can show score chips. Non-food listings are skipped. The toolbar icon shows the current product’s score.
 
-The toolbar popup is the master switch plus network opt-ins. On an Amazon product tab it also shows the cached score for that ASIN. Explanations are collapsed until you open **Why these matter**. **Scoring weights, allergens & avoid list** opens the full settings page (searchable categories, dark mode, avoid-list suggestions, section jump). Imports, sliders, and storage values are sanitized before they are trusted: unknown ids are dropped, weights stay in the 0–2 slider range, and only Google Sheet / Apps Script URLs are kept.
+The toolbar popup is the master switch plus network opt-ins and shortcuts to the existing weight presets (the same `categories.PRESETS` the settings page uses). On an Amazon product tab it also shows the cached score for that ASIN. Explanations are collapsed until you open **Why these matter**. **Scoring weights, allergens & avoid list** opens the full settings page (searchable categories, dark mode, avoid-list suggestions, section jump). Imports, sliders, and storage values are sanitized before they are trusted: unknown ids are dropped, weights stay in the 0–2 slider range, and only Google Sheet / Apps Script URLs are kept.
 
 Ingredient headings are recognised in English and several EU languages (Zutaten, Ingredientes, Ingrédients, Ingredienti, Ingrediënten, Składniki, Ingredienser, İçindekiler), including same-line `Ingredients:` detail-bullet forms. Japanese and Arabic stores decline photo OCR until a local reader exists — English Tesseract misreads those labels. The scoring rules themselves read English, the most common additives, sweeteners, oils and unnamed function words (“conservante”, “aroma”, “colorante”) in Spanish, French, German and Italian, and additives written as E-numbers (“E322”, “E 951”); a list the rulebase mostly cannot read is declined rather than scored. Allergen and diet flags read the same four languages, cover the EU’s celery, mustard and lupin as well as the US list, and never move the score. Chrome 116 or newer is required.
 
@@ -44,6 +44,7 @@ Ingredient headings are recognised in English and several EU languages (Zutaten,
 ```bash
 npm test
 npm run preflight
+npm run pack             # optional: zip a clean extension package under dist/
 npm run harness          # http://127.0.0.1:8731 — panel, OCR, lifecycle
 ```
 

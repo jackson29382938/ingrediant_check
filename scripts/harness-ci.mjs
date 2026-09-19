@@ -77,7 +77,9 @@ async function run() {
       const oats = await page.evaluate(() => {
         const host = document.getElementById('air-score-panel');
         const verdict = document.getElementById('verdict')?.textContent || '';
-        const score = host?.shadowRoot?.querySelector('.score')?.textContent || '';
+        const shadow = (window.AIR && AIR.panel && AIR.panel.shadowOf && AIR.panel.shadowOf(host))
+          || host?.shadowRoot;
+        const score = shadow?.querySelector('.score')?.textContent || '';
         return { verdict, score, hasPanel: !!host };
       });
       if (!oats.hasPanel) throw new Error('panel harness: oats fixture did not mount a panel');
