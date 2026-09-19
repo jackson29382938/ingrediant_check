@@ -129,6 +129,83 @@ check('the acceptance test can veto a block', () => {
   assert.strictEqual(ocr.bestBlock([{ url: 'a.jpg', text: REAL_OCR }], () => false), null);
 });
 
+// Sanitized Tesseract-style transcripts. Not live captures: they reproduce the three shapes
+// IMPROVEMENTS still called out as unpinned — an EU nutrition-first pack, a dark/glare photo,
+// and a listing whose only readable list is on the back-of-pack image.
+const EU_LABEL = 'NUTRITION INFORMATION Typical values per 100g Energy 2138 kJ / 511 kcal '
+  + 'Fat 26g of which saturates 15g Carbohydrate 61g of which sugars 38g Fibre 3,5g Protein 6,2g '
+  + 'Salt 0,48g Percent Daily Values are based on a 2,000 calorie diet. '
+  + 'INGREDIENTES: harina de TRIGO, azucar, masa de cacao, manteca de cacao, aceites vegetales '
+  + '(palma, karite), emulgente (lecitina de SOJA, E322), aroma, gasificantes (E500, E503), sal. '
+  + 'ALLERGENS: CONTAINS: WHEAT, SOYA. MAY CONTAIN: MILK, NUTS. '
+  + 'DISTRIBUTED BY Example Foods Ltd WWW.EXAMPLE.EU';
+
+const DARK_PHOTO = 'NUTR|T|ON FACTS Servlng Size 2 Tbsp (30g) Calorles 190 Totai Fat 16q '
+  + 'Sat Fat 1.5q Cholest 0mg Sodlum 140mg Totai Carb 8q Sugars 6q Prote1n 6q '
+  + 'INGREDIENTS ROASTED PEANUTS, SUGAR, HYDROGENATED VEGETABLE O|L (COTTONSEED, RAPESEED AND '
+  + 'SOYBEAN), SALT. '
+  + 'NUTRITION FACTS Calories 190 Total Fat 16g. ALLERGENS: CONTAINS: PEANUTS, SOY. '
+  + 'KEEP REFRIGERATED AFTER OPENING BEST BY 12/2027';
+
+const BACK_PACK = 'HONEY ALMOND GRANOLA CLUSTERS NET WT 12 OZ (340g) '
+  + 'INGREDIENTS: WHOLE GRAIN OATS, CANE SUGAR, ALMONDS, HONEY, EXPELLER PRESSED CANOLA OIL, '
+  + 'BROWN RICE SYRUP, SEA SALT, NATURAL FLAVOR, MIXED TOCOPHEROLS (FOR FRESHNESS). '
+  + 'CONTAINS: ALMONDS. DISTRIBUTED BY Example Cereal Co QUESTIONS? 1-800-555-0100';
+
+const FRONT_PACK = 'HONEY ALMOND GRANOLA CLUSTERS NET WT 12 OZ (340g) '
+  + 'NUTRITION FACTS Serving Size 2/3 cup (55g) Calories 250 Total Fat 10g Saturated Fat 1g '
+  + 'Sodium 80mg Total Carbohydrate 36g Dietary Fiber 4g Total Sugars 12g Protein 5g';
+
+function assertBlock(name, text, { start, end, acceptAs }) {
+  check(`${name}: the ingredient block is recovered`, () => {
+    const got = ocr.ingredientsFromOcr(text);
+    assert.ok(got, `${name}: nothing extracted`);
+    assert.ok(start.test(got), `${name}: starts wrong: ${got.slice(0, 50)}`);
+    assert.ok(end.test(got), `${name}: ends wrong: ${got.slice(-50)}`);
+    assert.ok(extract.looksLikeIngredients(got, acceptAs),
+      `${name}: extracted block was not accepted as an ingredient list`);
+  });
+  check(`${name}: ALLERGEN / CONTAINS stay out of the list`, () => {
+    const got = ocr.ingredientsFromOcr(text);
+    assert.ok(got && !/ALLERGEN|CONTAINS\s*:|MAY\s+CONTAIN/i.test(got),
+      `${name}: allergen text leaked in: ${got}`);
+  });
+  check(`${name}: nutrition is left out of the list`, () => {
+    const got = ocr.ingredientsFromOcr(text);
+    assert.ok(got && !/Calories|Calorles|Daily Values|kJ|Serving Size|Sodlum|Sodium/i.test(got),
+      `${name}: nutrition text leaked in: ${got}`);
+  });
+}
+
+console.log('\npinned OCR transcripts (EU, dark photo, ingredients-on-back)');
+assertBlock('EU label', EU_LABEL, {
+  start: /^harina de TRIGO/i, end: /sal$/i, acceptAs: 'Chocolate biscuits',
+});
+assertBlock('dark / hard photo', DARK_PHOTO, {
+  start: /^ROASTED PEANUTS/i, end: /SALT$/i, acceptAs: 'Peanut butter',
+});
+check('dark / hard photo: tidyOcr turns vertical bars into I', () => {
+  const got = ocr.ingredientsFromOcr(DARK_PHOTO);
+  assert.ok(got && /VEGETABLE OIL/i.test(got), `bar-to-I missed: ${got}`);
+  assert.ok(got && !/O\|L/.test(got), `raw bar leaked through: ${got}`);
+});
+assertBlock('ingredients on the back', BACK_PACK, {
+  start: /^WHOLE GRAIN OATS/i, end: /FRESHNESS\)$/i, acceptAs: 'Honey almond granola',
+});
+check('ingredients-on-back: the back image wins over the nutrition-only front', () => {
+  const best = ocr.bestBlock([
+    { url: 'front.jpg', text: FRONT_PACK },
+    { url: 'back.jpg', text: BACK_PACK },
+    { url: 'lifestyle.jpg', text: 'HONEY ALMOND GRANOLA CLUSTERS ENJOY ANYTIME' },
+  ], t => extract.looksLikeIngredients(t, 'Honey almond granola'));
+  assert.ok(best, 'nothing chosen');
+  assert.strictEqual(best.url, 'back.jpg');
+  assert.ok(/^WHOLE GRAIN OATS/i.test(best.text), `wrong block: ${best.text.slice(0, 40)}`);
+});
+check('a nutrition-only front yields no list', () => {
+  assert.strictEqual(ocr.ingredientsFromOcr(FRONT_PACK), null);
+});
+
 console.log('\nend to end: the OCR text scores like the real label');
 check('the Lifeway label scores the same from OCR as from Open Food Facts', () => {
   const got = ocr.ingredientsFromOcr(REAL_OCR);

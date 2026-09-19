@@ -3,7 +3,7 @@
 Read of `main` at `60cc287` (v1.0.2). Claims below are from the code, not from the README.
 Earlier audits (`docs/AUDIT-*.md`) already landed most rulebase and worker fixes; this is what is still worth doing, in order.
 
-**How to use this.** P0 and P1 (except owner-only live steps) are on `main`. P2 DX items that do not need a live owner session are done on this branch. Remaining work is owner-only live verification, one open product question, and a conscious repo-rename decision. Do not start a rewrite — the current shape is the asset.
+**How to use this.** P0–P2 code items are on `main` (this branch adds the last OCR-transcript pins). Remaining work is owner-only live verification, one open product question, and a conscious repo-rename decision. Do not start a rewrite — the current shape is the asset.
 
 ---
 
@@ -111,7 +111,7 @@ A Manifest V3 Chrome extension that rates Amazon grocery products **0–100** fr
 |---|---|---|
 | Amazon grocery card markup changes | `extract.js` tiers 1–3, harness fixtures dated 2026-09-02 | **Done (P1):** sanitized snapshots in `tests/pages/` (US oats PDP, US shampoo PDP, SE havregryn PDP, US grocery search) plus `tests/pages.test.js`. Replace a fixture when a live layout actually breaks extract — do not add jsdom. |
 | 21 hosts, incomplete languages | Heading regexes now include SE `Ingredienser` and TR `İçindekiler` (plus EN/ES/NL/FR/DE/IT/PL/JA `原材料`). Scoring + OCR stay English-first. OCR `BLOCK` is English `INGREDIENT(S\|EN)` only; `eng.traineddata` only. | **Done (P1):** JP (`amazon.co.jp`) and AR (`amazon.ae`, `amazon.sa`) skip English OCR (`ocrReadyForHost`). Unreadable lists still hit the coverage gate. Do not add `jpn`/`ara` traineddata until a heading + rule pack exists. |
-| OCR reads the wrong block | `ocr-text.js` stops at ALLERGEN/CONTAINS; nutrition is correctly excluded | Pin 3 more real OCR transcripts (EU label, dark photo, ingredients on the back) in `tests/ocr.test.js`. (Still open.) |
+| OCR reads the wrong block | `ocr-text.js` stops at ALLERGEN/CONTAINS; nutrition is correctly excluded | **Done:** `tests/ocr.test.js` pins the real Lifeway transcript plus sanitized EU-label, dark/hard-photo, and ingredients-on-back transcripts. Asserts block recovery, ALLERGEN/CONTAINS stop, nutrition excluded, and `bestBlock` picking the back-of-pack image. |
 | Tile fetch 403 / captcha | `scoreTile` | **Done (P1):** after `TILE_FAIL_LIMIT` (5) consecutive non-abort failures, pause the queue, keep ASINs in `seen` (no retry-storm), show `#air-throttle-notice`. Reset on navigation. |
 | Food gate false positives | `ingestible.js` — heavily patched Sept 16 | Any new title miss goes in `food-gate.test.js` *and* a corpus note. Do not loosen the gate globally. |
 | Calibration, not a bug | Sept 14 item 11: plain wheat flour vs a bag of sugar vs NOVA framing | Product decision. If you keep gluten-as-penalty, say so in the refined-grains help string in `categories.js`. |
