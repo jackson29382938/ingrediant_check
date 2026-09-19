@@ -85,10 +85,11 @@ function setup() {
         mount: (h, r, report, paste) => { if (paste) pasted = paste; } },
     },
   });
-  // Expose closures only in this VM; the shipped content script remains an isolated IIFE.
-  const source = fs.readFileSync(require.resolve('../src/content/main.js'), 'utf8');
-  vm.runInContext(source.replace(/\}\)\(\);\s*$/, 'globalThis.hooks = {state, queue, scoreTile, enqueue, suspend, resetListState, showFailure, scoreCurrentPage, onNavigated, cacheScore, usableCache, TILE_FAIL_LIMIT, pauseForThrottle};})();'), context);
-  const h = context.hooks;
+  // Load the split content modules in manifest order. Hooks live on AIR.page — no IIFE rewrite.
+  for (const file of ['page.js', 'product.js', 'search.js', 'main.js']) {
+    vm.runInContext(fs.readFileSync(require.resolve('../src/content/' + file), 'utf8'), context);
+  }
+  const h = context.AIR.page;
   h.state.enabled = true; h.state.badges = true; h.state.foodOnly = false;
   h.state.autoScoreSearch = true;
   return { h, context, tile, get host() { return host; }, timers, fetches, badges, writes, rendered,

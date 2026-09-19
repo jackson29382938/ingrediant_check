@@ -7,8 +7,7 @@
   "permissions": [
     "storage",
     "alarms",
-    "offscreen",
-    "activeTab"
+    "offscreen"
   ],
   "host_permissions": [
     "*://*.amazon.com/*",
@@ -265,6 +264,9 @@
         "src/engine/score.js",
         "src/content/extract.js",
         "src/content/panel.js",
+        "src/content/page.js",
+        "src/content/product.js",
+        "src/content/search.js",
         "src/content/main.js"
       ],
       "exclude_globs": [

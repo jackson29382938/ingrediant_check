@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Ingredient Check — Settings</title>
+<title data-i18n="optTitle">Ingredient Check — Settings</title>
 <style>
   :root { color-scheme: light dark; }
   * { box-sizing: border-box; }
@@ -92,28 +92,28 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>Ingredient Check</h1>
-  <p class="lede">Everything below runs on your computer. No account, no AI, no data leaves this
+  <h1 data-i18n="appName">Ingredient Check</h1>
+  <p class="lede" data-i18n="optLede">Everything below runs on your computer. No account, no AI, no data leaves this
     machine except the two optional lookups you switch on yourself.</p>
-  <nav class="jump" aria-label="Settings sections">
-    <a href="#sec-rate">Rate</a>
-    <a href="#sec-presets">Presets</a>
-    <a href="#sec-weights">Weights</a>
-    <a href="#sec-warnings">Warnings</a>
-    <a href="#sec-avoid">Avoid</a>
-    <a href="#sec-database">Database</a>
-    <a href="#sec-file">File</a>
+  <nav class="jump" data-i18n-aria="optNavAria" aria-label="Settings sections">
+    <a href="#sec-rate" data-i18n="optNavRate">Rate</a>
+    <a href="#sec-presets" data-i18n="optNavPresets">Presets</a>
+    <a href="#sec-weights" data-i18n="optNavWeights">Weights</a>
+    <a href="#sec-warnings" data-i18n="optNavWarnings">Warnings</a>
+    <a href="#sec-avoid" data-i18n="optNavAvoid">Avoid</a>
+    <a href="#sec-database" data-i18n="optNavDatabase">Database</a>
+    <a href="#sec-file" data-i18n="optNavFile">File</a>
   </nav>
 
   <section id="sec-rate">
-    <h2>What to rate</h2>
+    <h2 data-i18n="optRateH">What to rate</h2>
     <p class="note" style="margin: -6px 0 12px">
       These settings are the same ones in the toolbar popup. Changing them here updates scores on
       Amazon immediately.
     </p>
     <label class="chip" style="margin-bottom:8px">
       <input type="checkbox" id="foodOnly" checked>
-      <span>Only rate food and supplements</span>
+      <span data-i18n="optFoodOnly">Only rate food and supplements</span>
     </label>
     <p class="note">
       Skips shoes, toys, cosmetics, medicine and cleaning products. A score on shampoo would imply
@@ -123,32 +123,32 @@
   </section>
 
   <section id="sec-presets">
-    <h2>Starting point</h2>
+    <h2 data-i18n="optPresetsH">Starting point</h2>
     <div class="presets" id="presets"></div>
     <div class="preset-note" id="presetNote"></div>
   </section>
 
   <section id="sec-weights">
-    <h2>What counts, and how much</h2>
+    <h2 data-i18n="optWeightsH">What counts, and how much</h2>
     <p class="note" style="margin: -6px 0 12px">
       1.0 is the default weight. 0 switches a category off entirely. 2.0 makes it matter twice as
       much. Categories set to 0 by default are ones people reasonably disagree about — turn them on
       if you want them. Press <kbd>/</kbd> to jump to the filter.
     </p>
     <div class="cat-tools">
-      <input type="search" id="catFilter" placeholder="Filter categories" aria-label="Filter categories">
+      <input type="search" id="catFilter" data-i18n-placeholder="optFilterPh" data-i18n-aria="optFilterAria" placeholder="Filter categories" aria-label="Filter categories">
       <div class="chips" id="catModes">
-        <button type="button" class="preset cat-filter" data-filter="all" aria-pressed="true">All</button>
-        <button type="button" class="preset cat-filter" data-filter="custom" aria-pressed="false">Changed</button>
-        <button type="button" class="preset cat-filter" data-filter="off" aria-pressed="false">Off</button>
+        <button type="button" class="preset cat-filter" data-filter="all" aria-pressed="true" data-i18n="optFilterAll">All</button>
+        <button type="button" class="preset cat-filter" data-filter="custom" aria-pressed="false" data-i18n="optFilterChanged">Changed</button>
+        <button type="button" class="preset cat-filter" data-filter="off" aria-pressed="false" data-i18n="optFilterOff">Off</button>
       </div>
     </div>
-    <p class="note" id="catEmpty" hidden>No categories match. <button type="button" class="hint-chip" id="catFilterClear">Clear filter</button></p>
+    <p class="note" id="catEmpty" hidden><span data-i18n="optFilterNone">No categories match.</span> <button type="button" class="hint-chip" id="catFilterClear" data-i18n="optFilterClear">Clear filter</button></p>
     <div id="categories"></div>
   </section>
 
   <section id="sec-warnings">
-    <h2>Allergen warnings</h2>
+    <h2 data-i18n="optWarningsH">Allergen warnings</h2>
     <p class="note" style="margin: -6px 0 12px">
       Flagged on the panel. These never change the score — whether a food contains sesame is a
       different question from whether it is a good food.
@@ -163,23 +163,23 @@
   </section>
 
   <section id="sec-diets">
-    <h2>Diet compatibility</h2>
+    <h2 data-i18n="optDietsH">Diet compatibility</h2>
     <div class="chips" id="diets"></div>
   </section>
 
   <section id="sec-avoid">
-    <h2>Your own avoid list</h2>
+    <h2 data-i18n="optAvoidH">Your own avoid list</h2>
     <p class="note" style="margin: -6px 0 10px">
       One ingredient or phrase per line. Anything matching gets flagged on the panel.
     </p>
-    <textarea id="avoidList" placeholder="carrageenan&#10;red 40&#10;natural flavors"></textarea>
+    <textarea id="avoidList" data-i18n-placeholder="optAvoidPh" placeholder="carrageenan&#10;red 40&#10;natural flavors"></textarea>
     <p class="note" id="avoidCount" style="margin: 6px 0 0"></p>
     <p class="note" style="margin: 8px 0 6px">Add a common one:</p>
     <div class="chips" id="avoidHints"></div>
   </section>
 
   <section id="sec-database">
-    <h2>Shared provenance database</h2>
+    <h2 data-i18n="optDatabaseH">Shared provenance database</h2>
     <p class="note" style="margin: -6px 0 12px">
       For single-ingredient foods — ground beef, eggs, milk, salmon — the ingredient list tells you
       almost nothing. Everything that varies is in certifications, and Amazon publishes very little
@@ -187,33 +187,33 @@
       Leave both boxes empty and the extension stays entirely offline.
     </p>
     <label style="display:block;margin-bottom:12px">
-      <span class="t">Database URL (read)</span>
+      <span class="t" data-i18n="optSheetRead">Database URL (read)</span>
       <span class="d">A Google Sheet published to the web. Paste the normal share link or the
       published CSV link — either works.</span>
-      <input type="url" id="sheetUrl" placeholder="https://docs.google.com/spreadsheets/d/..."
+      <input type="url" id="sheetUrl" data-i18n-placeholder="optSheetPh" placeholder="https://docs.google.com/spreadsheets/d/..."
              style="width:100%;margin-top:6px;padding:8px 10px;border:1px solid #d5d9d9;border-radius:8px;font:inherit;font-size:13px">
     </label>
     <label style="display:block;margin-bottom:12px">
-      <span class="t">Contribution URL (write, optional)</span>
+      <span class="t" data-i18n="optSheetWrite">Contribution URL (write, optional)</span>
       <span class="d">An Apps Script web app deployed from your own sheet. See
       <code>docs/apps-script.gs</code> and <code>docs/DIAGNOSTICS.md</code> for the script and setup.</span>
-      <input type="url" id="contributeUrl" placeholder="https://script.google.com/macros/s/.../exec"
+      <input type="url" id="contributeUrl" data-i18n-placeholder="optScriptPh" placeholder="https://script.google.com/macros/s/.../exec"
              style="width:100%;margin-top:6px;padding:8px 10px;border:1px solid #d5d9d9;border-radius:8px;font:inherit;font-size:13px">
     </label>
     <label style="display:block;margin-bottom:12px">
-      <span class="t">Producer registry URL (optional)</span>
+      <span class="t" data-i18n="optProducers">Producer registry URL (optional)</span>
       <span class="d">A second published tab mapping brands to certifications you have confirmed in a
       certifier's own directory. A match here upgrades a label claim to verified, and the panel says
       which directory it came from.</span>
-      <input type="url" id="producersUrl" placeholder="https://docs.google.com/spreadsheets/d/..."
+      <input type="url" id="producersUrl" data-i18n-placeholder="optSheetPh" placeholder="https://docs.google.com/spreadsheets/d/..."
              style="width:100%;margin-top:6px;padding:8px 10px;border:1px solid #d5d9d9;border-radius:8px;font:inherit;font-size:13px">
     </label>
     <label class="chip" style="margin-bottom:10px">
       <input type="checkbox" id="shareContributions">
-      <span>Send certifications I come across back to the sheet</span>
+      <span data-i18n="optShare">Send certifications I come across back to the sheet</span>
     </label>
     <div class="row">
-      <button class="act" id="refreshSheet">Refresh database now</button>
+      <button class="act" id="refreshSheet" data-i18n="optRefresh">Refresh database now</button>
       <span class="status" id="sheetStatus"></span>
     </div>
     <p class="note">Only product identifiers and certification text are ever sent. Never anything
@@ -221,7 +221,7 @@
   </section>
 
   <section>
-    <h2>Accuracy diagnostics</h2>
+    <h2 data-i18n="optDiagnosticsH">Accuracy diagnostics</h2>
     <p class="note" style="margin: -6px 0 12px">
       Sends one row per scored product to the same endpoint as the shared database, on its own
       sheet. Each row carries the ingredient text that was read, where it came from, which rules
@@ -236,17 +236,17 @@
     </p>
     <label class="chip" style="margin-bottom:10px">
       <input type="checkbox" id="sendDiagnostics">
-      <span>Send scoring diagnostics to my endpoint</span>
+      <span data-i18n="optSendDiag">Send scoring diagnostics to my endpoint</span>
     </label>
     <div class="row">
-      <button class="act" id="flushDiagnostics">Send queued rows now</button>
+      <button class="act" id="flushDiagnostics" data-i18n="optFlush">Send queued rows now</button>
       <span class="status" id="diagStatus"></span>
     </div>
     <p class="note">The Apps Script that receives these is in <code>docs/apps-script.gs</code>.</p>
   </section>
 
   <section>
-    <h2>What leaves your computer</h2>
+    <h2 data-i18n="optLeavesH">What leaves your computer</h2>
     <p class="note" style="margin: -6px 0 12px">
       Scoring itself is entirely local: the rules, your weights and every score are computed in
       your browser, and there is no account, no analytics and no telemetry. Four optional features
@@ -277,7 +277,7 @@
   </section>
 
   <section>
-    <h2>What a score is, and is not</h2>
+    <h2 data-i18n="optScoreIsH">What a score is, and is not</h2>
     <p class="note" style="margin: -6px 0 10px">
       A score reads the ingredient list against a rulebase and your weights. It is a guide to
       what is written on the label, not a health assessment, and it is not medical, dietary or
@@ -292,12 +292,12 @@
   </section>
 
   <section id="sec-file">
-    <h2>Settings file</h2>
+    <h2 data-i18n="optFileH">Settings file</h2>
     <div class="row">
-      <button class="act" id="export">Export settings</button>
-      <button class="act" id="importBtn">Import settings</button>
+      <button class="act" id="export" data-i18n="optExport">Export settings</button>
+      <button class="act" id="importBtn" data-i18n="optImport">Import settings</button>
       <input type="file" id="importFile" accept="application/json">
-      <button class="act danger" id="reset">Reset everything to defaults</button>
+      <button class="act danger" id="reset" data-i18n="optReset">Reset everything to defaults</button>
       <span class="status" id="status"></span>
     </div>
     <p class="note">Exports as a plain JSON file you can keep, edit, or move to another computer.</p>

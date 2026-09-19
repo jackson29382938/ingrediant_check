@@ -310,5 +310,167 @@
   },
   "srcShortPage": {
     "message": "Product page"
+  },
+  "popupPresets": {
+    "message": "Weight preset"
+  },
+  "popupPresetCustom": {
+    "message": "Custom weights."
+  },
+  "optTitle": {
+    "message": "Ingredient Check — Settings"
+  },
+  "optLede": {
+    "message": "Everything below runs on your computer. No account, no AI, no data leaves this machine except the two optional lookups you switch on yourself."
+  },
+  "optNavAria": {
+    "message": "Settings sections"
+  },
+  "optNavRate": {
+    "message": "Rate"
+  },
+  "optNavPresets": {
+    "message": "Presets"
+  },
+  "optNavWeights": {
+    "message": "Weights"
+  },
+  "optNavWarnings": {
+    "message": "Warnings"
+  },
+  "optNavAvoid": {
+    "message": "Avoid"
+  },
+  "optNavDatabase": {
+    "message": "Database"
+  },
+  "optNavFile": {
+    "message": "File"
+  },
+  "optRateH": {
+    "message": "What to rate"
+  },
+  "optPresetsH": {
+    "message": "Starting point"
+  },
+  "optWeightsH": {
+    "message": "What counts, and how much"
+  },
+  "optWarningsH": {
+    "message": "Allergen warnings"
+  },
+  "optDietsH": {
+    "message": "Diet compatibility"
+  },
+  "optAvoidH": {
+    "message": "Your own avoid list"
+  },
+  "optDatabaseH": {
+    "message": "Shared provenance database"
+  },
+  "optDiagnosticsH": {
+    "message": "Accuracy diagnostics"
+  },
+  "optLeavesH": {
+    "message": "What leaves your computer"
+  },
+  "optScoreIsH": {
+    "message": "What a score is, and is not"
+  },
+  "optFileH": {
+    "message": "Settings file"
+  },
+  "optFoodOnly": {
+    "message": "Only rate food and supplements"
+  },
+  "optFilterPh": {
+    "message": "Filter categories"
+  },
+  "optFilterAria": {
+    "message": "Filter categories"
+  },
+  "optFilterAll": {
+    "message": "All"
+  },
+  "optFilterChanged": {
+    "message": "Changed"
+  },
+  "optFilterOff": {
+    "message": "Off"
+  },
+  "optFilterNone": {
+    "message": "No categories match."
+  },
+  "optFilterClear": {
+    "message": "Clear filter"
+  },
+  "optAvoidPh": {
+    "message": "carrageenan\nred 40\nnatural flavors"
+  },
+  "optSheetPh": {
+    "message": "https://docs.google.com/spreadsheets/d/..."
+  },
+  "optScriptPh": {
+    "message": "https://script.google.com/macros/s/.../exec"
+  },
+  "optSheetRead": {
+    "message": "Database URL (read)"
+  },
+  "optSheetWrite": {
+    "message": "Contribution URL (write, optional)"
+  },
+  "optProducers": {
+    "message": "Producer registry URL (optional)"
+  },
+  "optShare": {
+    "message": "Send certifications I come across back to the sheet"
+  },
+  "optRefresh": {
+    "message": "Refresh database now"
+  },
+  "optSendDiag": {
+    "message": "Send scoring diagnostics to my endpoint"
+  },
+  "optFlush": {
+    "message": "Send queued rows now"
+  },
+  "optExport": {
+    "message": "Export settings"
+  },
+  "optImport": {
+    "message": "Import settings"
+  },
+  "optReset": {
+    "message": "Reset everything to defaults"
+  },
+  "optCustomWeights": {
+    "message": "Custom weights."
+  },
+  "optSaved": {
+    "message": "Saved"
+  },
+  "optCouldNotSave": {
+    "message": "Could not save"
+  },
+  "optExported": {
+    "message": "Exported"
+  },
+  "optNotJson": {
+    "message": "That file is not JSON"
+  },
+  "optNotExport": {
+    "message": "That file is not an Ingredient Check settings export"
+  },
+  "optImported": {
+    "message": "Imported"
+  },
+  "optImportFailed": {
+    "message": "That file could not be read"
+  },
+  "optResetConfirm": {
+    "message": "Reset weights, warnings, and the avoid list to defaults? Database URLs are left alone."
+  },
+  "optResetDone": {
+    "message": "Reset to defaults"
   }
 }

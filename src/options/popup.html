@@ -27,20 +27,30 @@
  .t{font-weight:600}
  .d{color:#565959;font-size:11px;display:none;margin-top:1px}
  label.master .d,body.show-why .d{display:block}
+ .preset-block{margin-top:10px;padding-top:10px;border-top:1px solid #eaeded}
+ .presets{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 0}
+ .preset{border:1px solid #d5d9d9;background:#f7f8f8;border-radius:999px;padding:5px 10px;
+   font:inherit;font-size:11px;font-weight:600;cursor:pointer;color:inherit}
+ .preset:hover{background:#eef0f0}
+ .preset[aria-pressed="true"]{background:#0f7b3f;border-color:#0f7b3f;color:#fff}
+ .preset-note{color:#565959;font-size:11px;margin:6px 0 0;line-height:1.35}
  #toggleWhy,#openSettings,#clear{display:block;margin-top:10px;padding:0;border:0;background:none;
    font:inherit;font-size:11px;color:#007185;text-decoration:none;cursor:pointer;text-align:left}
  #clear{margin-top:6px}
  #toggleWhy:hover,#openSettings:hover,#clear:hover{text-decoration:underline}
  #clear:disabled{color:#767676;cursor:default;text-decoration:none}
- input:focus-visible,#toggleWhy:focus-visible,#openSettings:focus-visible,#clear:focus-visible{
-   outline:3px solid #007185;outline-offset:2px}
+ input:focus-visible,#toggleWhy:focus-visible,#openSettings:focus-visible,#clear:focus-visible,
+ .preset:focus-visible{outline:3px solid #007185;outline-offset:2px}
  @media (prefers-color-scheme: dark) {
    body{color:#f3f3f3;background:#1b1c1c}
-   .sub,.d,.ps-sub,.ps-empty,.ps-kicker{color:#aeaeae}
-   label,.page-score{border-color:#3a3c3c}
+   .sub,.d,.ps-sub,.ps-empty,.ps-kicker,.preset-note{color:#aeaeae}
+   label,.page-score,.preset-block{border-color:#3a3c3c}
    label.master{border-bottom-color:#3a3c3c}
    .page-score{background:#232525}
    .ps-num{background:#1b1c1c}
+   .preset{background:#2d2f2f;border-color:#3a3c3c;color:#f3f3f3}
+   .preset:hover{background:#3a3c3c}
+   .preset[aria-pressed="true"]{background:#0f7b3f;border-color:#0f7b3f;color:#fff}
    #kept{background:#3d2e14;border-color:#8a6a2a;color:#f3d19c}
    #clear:disabled{color:#8a8a8a}
  }
@@ -72,6 +82,11 @@
  <label><input type="checkbox" id="useOpenFoodFacts"><span><span class="t" data-i18n="popupOff">Open Food Facts fallback</span>
    <span class="d" data-i18n="popupOffD">When a page has a barcode but no readable ingredients, look it up. Sends the
    barcode to Open Food Facts and nothing else — no page content, no browsing history.</span></span></label>
+ </div>
+ <div class="preset-block">
+   <div class="ps-kicker" data-i18n="popupPresets">Weight preset</div>
+   <div class="presets" id="presets"></div>
+   <p class="preset-note" id="presetNote"></p>
  </div>
  <button type="button" id="toggleWhy" data-i18n="popupShowWhy">Why these matter</button>
  <a href="#" id="openSettings" data-i18n="popupSettingsLink">Scoring weights, allergens &amp; avoid list</a>

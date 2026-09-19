@@ -1,7 +1,9 @@
 // The score panel.
 //
-// Rendered into an open shadow root. Amazon's stylesheet is global and aggressive; a shadow root is
-// the only reliable way to guarantee their CSS cannot reach in and ours cannot leak out.
+// Rendered into a closed shadow root. Amazon's stylesheet is global and aggressive; a shadow root
+// is the only reliable way to guarantee their CSS cannot reach in and ours cannot leak out. Closed
+// mode also keeps host.shadowRoot null so page JS cannot walk the card. Tests and the harness use
+// AIR.panel.shadowOf(host) — a second attachShadow on a closed root throws.
 
 (function (root) {
   root.AIR = root.AIR || {};
@@ -367,8 +369,23 @@
     });
   }
 
+  // host.shadowRoot is always null when mode is 'closed'. Keep our own handle.
+  const shadows = new WeakMap();
+
+  function shadowOf(host) {
+    return host ? shadows.get(host) || null : null;
+  }
+
+  function attach(host) {
+    let shadow = shadows.get(host);
+    if (shadow) return shadow;
+    shadow = host.attachShadow({ mode: 'closed' });
+    shadows.set(host, shadow);
+    return shadow;
+  }
+
   function mount(host, html, onReport, onPaste) {
-    const shadow = host.shadowRoot || host.attachShadow({ mode: 'open' });
+    const shadow = attach(host);
     shadow.innerHTML = html;
     const card = shadow.querySelector('.card');
     const report = shadow.querySelector('.report');
@@ -402,6 +419,6 @@
     return shadow;
   }
 
-  root.AIR.panel = { render, renderLoading, renderFailure, renderNotFood, mount, BAND_COLOR, NOVA_TEXT, pasteLooksValid, t };
+  root.AIR.panel = { render, renderLoading, renderFailure, renderNotFood, mount, shadowOf, BAND_COLOR, NOVA_TEXT, pasteLooksValid, t };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.AIR.panel;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

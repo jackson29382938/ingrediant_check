@@ -44,8 +44,9 @@ Extension popup (click the icon):
 | **Rate every search result** | Score chips appear on tiles as you scroll a grocery search |
 
 After a product scores, the toolbar icon shows the number as a badge, and reopening the popup
-shows a "This page" card with the same score (needs the `activeTab` permission, granted when you
-click the icon).
+shows a "This page" card with the same score. Host permissions already cover Amazon tabs; the
+popup does not need `activeTab`. The popup also exposes the existing weight presets (Balanced,
+Conventional, Additive-averse, Whole-food, Sugar-conscious) — same objects as the settings page.
 
 Both routes landing near 28 is the point: two independent readings of the same label agreeing,
 against Amazon's 86.

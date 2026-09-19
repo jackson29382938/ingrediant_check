@@ -61,6 +61,15 @@ check('every engine file is loaded somewhere', () => {
   }
 });
 
+check('content scripts split page / product / search before main', () => {
+  const iPage = declared.indexOf('src/content/page.js');
+  const iProduct = declared.indexOf('src/content/product.js');
+  const iSearch = declared.indexOf('src/content/search.js');
+  const iMain = declared.indexOf('src/content/main.js');
+  assert.ok(iPage >= 0 && iProduct > iPage && iSearch > iProduct && iMain > iSearch,
+    `expected page → product → search → main, got ${[iPage, iProduct, iSearch, iMain]}`);
+});
+
 check('db files load before the engine that consumes them', () => {
   const iEngine = declared.indexOf('src/engine/score.js');
   const iModule = declared.indexOf('src/engine/db/_module.js');
@@ -187,6 +196,39 @@ check('every data-i18n key in the popup exists', () => {
   assert.ok(used.length > 5, `only found ${used.length} data-i18n attributes`);
   const missing = [...new Set(used)].filter(k => !keys.has(k));
   assert.strictEqual(missing.length, 0, `missing from messages.json: ${missing.join(', ')}`);
+});
+
+check('every data-i18n key in the settings page exists', () => {
+  const raw = read('src/options/options.html');
+  const used = [...raw.matchAll(/data-i18n(?:-placeholder|-aria)?="([A-Za-z0-9_]+)"/g)].map(m => m[1]);
+  assert.ok(used.length > 10, `only found ${used.length} settings i18n attributes`);
+  const missing = [...new Set(used)].filter(k => !keys.has(k));
+  assert.strictEqual(missing.length, 0, `missing from messages.json: ${missing.join(', ')}`);
+});
+
+check('every msg() key in settings.js exists', () => {
+  const raw = read('src/options/settings.js');
+  const used = [...raw.matchAll(/\bmsg\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]);
+  assert.ok(used.length > 3, `only found ${used.length} settings msg() calls; the scan is broken`);
+  const missing = [...new Set(used)].filter(k => !keys.has(k));
+  assert.strictEqual(missing.length, 0, `missing from messages.json: ${missing.join(', ')}`);
+});
+
+check('the panel uses a closed shadow root', () => {
+  const raw = read('src/content/panel.js');
+  assert.ok(/attachShadow\(\{\s*mode:\s*'closed'\s*\}\)/.test(raw), 'panel.js must attach a closed shadow');
+  assert.ok(/function shadowOf/.test(raw), 'closed shadow needs shadowOf — host.shadowRoot is null');
+  assert.ok(!/mode:\s*'open'/.test(raw), 'open shadow must not remain');
+});
+
+check('the popup surfaces existing weight presets', () => {
+  const html = read('src/options/popup.html');
+  const js = read('src/options/popup.js');
+  assert.ok(/id="presets"/.test(html), 'popup.html is missing the presets host');
+  assert.ok(/CATS\.PRESETS/.test(js), 'popup.js must apply categories.PRESETS, not a new scoring system');
+  for (const id of Object.keys(categories.PRESETS)) {
+    assert.ok(js.includes('PRESETS'), `popup.js does not read PRESETS (needed for ${id})`);
+  }
 });
 
 check('every msg() key in popup.js exists', () => {

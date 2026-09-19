@@ -1,4 +1,5 @@
 const CACHE = AIR.db.scoreCache;
+const CATS = (typeof AIR !== 'undefined' && AIR.db && AIR.db.categories) || null;
 const PREFS = (typeof AIR !== 'undefined' && AIR.db && AIR.db.prefs) || null;
 const KEYS = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'hoverScore', 'ocrLabels', 'useOpenFoodFacts'];
 // Every plain checkbox. useOpenFoodFacts is handled separately because it also drives an
@@ -56,7 +57,53 @@ function save(key, value) {
   persist({ [key]: value });
 }
 
-chrome.storage.local.get(KEYS, options => {
+function weightOf(weights, id) {
+  const w = weights && typeof weights[id] === 'number' && isFinite(weights[id]) ? weights[id] : null;
+  return w != null ? w : (CATS && CATS.DEFAULT_WEIGHTS[id]);
+}
+
+function matchingPreset(weights) {
+  if (!CATS) return null;
+  const found = Object.entries(CATS.PRESETS).find(([, p]) => {
+    const target = { ...CATS.DEFAULT_WEIGHTS, ...p.weights };
+    return Object.keys(target).every(k => Math.abs(weightOf(weights, k) - target[k]) < 0.001);
+  });
+  return found || null;
+}
+
+function renderPresets(weights) {
+  const host = document.getElementById('presets');
+  if (!host || !CATS) return;
+  if (!host.dataset.ready) {
+    host.textContent = '';
+    for (const [id, preset] of Object.entries(CATS.PRESETS)) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'preset';
+      b.dataset.preset = id;
+      b.textContent = preset.label;
+      b.title = preset.note;
+      b.addEventListener('click', () => applyPreset(id));
+      host.appendChild(b);
+    }
+    host.dataset.ready = '1';
+  }
+  const match = matchingPreset(weights);
+  host.querySelectorAll('.preset').forEach(b =>
+    b.setAttribute('aria-pressed', String(!!(match && b.dataset.preset === match[0]))));
+  const note = document.getElementById('presetNote');
+  if (note) note.textContent = match ? match[1].note : msg('popupPresetCustom', 'Custom weights.');
+}
+
+function applyPreset(id) {
+  const preset = CATS && CATS.PRESETS[id];
+  if (!preset) return;
+  const raw = { ...CATS.DEFAULT_WEIGHTS, ...preset.weights };
+  const weights = PREFS ? PREFS.sanitizeScoring({ weights: raw }).weights : raw;
+  persist({ weights }, ok => { if (ok) renderPresets(weights); });
+}
+
+chrome.storage.local.get([...KEYS, 'weights'], options => {
   const toggles = cleanToggles(options);
   const healed = {};
   for (const key of KEYS) {
@@ -74,6 +121,7 @@ chrome.storage.local.get(KEYS, options => {
     });
   }
   paintMaster(toggles.enabled);
+  renderPresets(options.weights);
 
   const fallback = document.getElementById('useOpenFoodFacts');
   chrome.permissions.contains(OFF_PERMISSION, hasPermission => {
@@ -252,6 +300,7 @@ chrome.storage.onChanged.addListener(changes => {
     const fallback = document.getElementById('useOpenFoodFacts');
     if (fallback && !fallback.disabled) fallback.checked = isOn('useOpenFoodFacts', changes.useOpenFoodFacts.newValue);
   }
+  if (changes.weights) renderPresets(changes.weights.newValue);
   if (changes.popupShowWhy) paintWhy(changes.popupShowWhy.newValue === true);
   if (Object.keys(changes).some(k => /^(s|off):/.test(k) || ['weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sheetUrl', 'producersUrl', 'sheetIndexRev', 'producerIndexRev'].includes(k))) {
     paintCacheCount();

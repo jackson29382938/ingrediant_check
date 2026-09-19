@@ -8,6 +8,29 @@ const CATS = AIR.db.categories;
 const ALLERGENS = AIR.db.allergens;
 const PREFS = AIR.db.prefs;
 
+function msg(key, fallback, sub) {
+  let out = '';
+  try { out = chrome.i18n && chrome.i18n.getMessage(key, sub != null ? [String(sub)] : []) || ''; }
+  catch (e) { /* missing key or not in an extension page */ }
+  return out || fallback;
+}
+
+(function localise() {
+  if (!chrome.i18n || typeof chrome.i18n.getMessage !== 'function') return;
+  for (const el of document.querySelectorAll('[data-i18n]')) {
+    const text = chrome.i18n.getMessage(el.dataset.i18n);
+    if (text) el.textContent = text;
+  }
+  for (const el of document.querySelectorAll('[data-i18n-placeholder]')) {
+    const text = chrome.i18n.getMessage(el.dataset.i18nPlaceholder);
+    if (text) el.setAttribute('placeholder', text);
+  }
+  for (const el of document.querySelectorAll('[data-i18n-aria]')) {
+    const text = chrome.i18n.getMessage(el.dataset.i18nAria);
+    if (text) el.setAttribute('aria-label', text);
+  }
+})();
+
 const state = PREFS.sanitizeScoring({});
 const DB_KEYS = ['sheetUrl', 'producersUrl', 'contributeUrl', 'shareContributions', 'sendDiagnostics'];
 const SHEET_ORIGINS = ['https://docs.google.com/*'];
@@ -46,7 +69,7 @@ function persist(values, done) {
   chrome.storage.local.set(values, () => {
     writing = false;
     if (chrome.runtime.lastError) {
-      flash('Could not save — ' + chrome.runtime.lastError.message, 'error');
+      flash(msg('optCouldNotSave', 'Could not save') + ' — ' + chrome.runtime.lastError.message, 'error');
       if (done) done(false);
       return;
     }
@@ -60,7 +83,7 @@ function scoringPayload() {
 
 function save({ immediate = false } = {}) {
   clearTimeout(saveTimer);
-  const write = () => persist(scoringPayload(), ok => { if (ok) flash('Saved'); });
+  const write = () => persist(scoringPayload(), ok => { if (ok) flash(msg('optSaved', 'Saved')); });
   if (immediate) write(); else saveTimer = setTimeout(write, 250);
 }
 
@@ -132,7 +155,10 @@ function applyCatFilter() {
   }
   if (empty) empty.hidden = visible > 0;
   const customBtn = document.querySelector('.cat-filter[data-filter="custom"]');
-  if (customBtn) customBtn.textContent = custom ? `Changed · ${custom}` : 'Changed';
+  if (customBtn) {
+    const changed = msg('optFilterChanged', 'Changed');
+    customBtn.textContent = custom ? `${changed} · ${custom}` : changed;
+  }
 }
 
 function renderCategories() {
@@ -238,7 +264,7 @@ function markPresetDirty() {
     return Object.keys(target).every(k => Math.abs(weightOf(k) - target[k]) < 0.001);
   });
   markActivePreset(match ? match[0] : null);
-  document.getElementById('presetNote').textContent = match ? match[1].note : 'Custom weights.';
+  document.getElementById('presetNote').textContent = match ? match[1].note : msg('optCustomWeights', 'Custom weights.');
 }
 
 // ---------------------------------------------------------------- flags
@@ -274,7 +300,7 @@ function wireFileActions() {
     a.download = 'ingredient-check-settings.json';
     a.click();
     URL.revokeObjectURL(a.href);
-    flash('Exported');
+    flash(msg('optExported', 'Exported'));
   });
 
   const file = document.getElementById('importFile');
@@ -286,26 +312,26 @@ function wireFileActions() {
       const parsed = PREFS.parseImport(await f.text());
       if (!parsed.ok) {
         flash(parsed.reason === 'not-json'
-          ? 'That file is not JSON'
-          : 'That file is not an Ingredient Check settings export', 'error');
+          ? msg('optNotJson', 'That file is not JSON')
+          : msg('optNotExport', 'That file is not an Ingredient Check settings export'), 'error');
         return;
       }
       applyScoring(parsed.prefs);
       renderAll();
       save({ immediate: true });
-      flash('Imported');
+      flash(msg('optImported', 'Imported'));
     } catch (e) {
-      flash('That file could not be read', 'error');
+      flash(msg('optImportFailed', 'That file could not be read'), 'error');
     }
     file.value = '';
   });
 
   document.getElementById('reset').addEventListener('click', () => {
-    if (!window.confirm('Reset weights, warnings, and the avoid list to defaults? Database URLs are left alone.')) return;
+    if (!window.confirm(msg('optResetConfirm', 'Reset weights, warnings, and the avoid list to defaults? Database URLs are left alone.'))) return;
     applyScoring({});
     renderAll();
     save({ immediate: true });
-    flash('Reset to defaults');
+    flash(msg('optResetDone', 'Reset to defaults'));
   });
 }
 
@@ -330,7 +356,7 @@ function wireDatabase() {
             : 'That has to be a published Google Sheet link', 'error');
           return;
         }
-        const persistUrl = () => persist({ [key]: value }, ok => { if (ok) flash('Saved'); });
+        const persistUrl = () => persist({ [key]: value }, ok => { if (ok) flash(msg('optSaved', 'Saved')); });
         if (!value) { persistUrl(); return; }
         requestOrigins(originsForUrl(value), ok => {
           if (!ok) {
@@ -365,7 +391,7 @@ function wireDatabase() {
             flash('Permission needed to send contributions', 'error');
             return;
           }
-          persist({ shareContributions: true, contributeUrl: url }, saved => { if (saved) flash('Saved'); });
+          persist({ shareContributions: true, contributeUrl: url }, saved => { if (saved) flash(msg('optSaved', 'Saved')); });
         });
       });
     }
@@ -394,7 +420,7 @@ function wireDatabase() {
         requestOrigins(originsForUrl(url), ok => {
           if (!ok) { diag.checked = false; flash('Permission needed to send diagnostics', 'error'); return; }
           persist({ sendDiagnostics: true, contributeUrl: url }, saved => {
-            if (saved) flash('Saved');
+            if (saved) flash(msg('optSaved', 'Saved'));
             paintDiag();
           });
         });
