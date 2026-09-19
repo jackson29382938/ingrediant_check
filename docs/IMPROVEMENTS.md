@@ -3,7 +3,7 @@
 Read of `main` at `60cc287` (v1.0.2). Claims below are from the code, not from the README.
 Earlier audits (`docs/AUDIT-*.md`) already landed most rulebase and worker fixes; this is what is still worth doing, in order.
 
-**How to use this.** Do P0 before a store listing or a wider share. P1 is the next working slice. P2 is product, not hygiene. Do not start a rewrite — the current shape is the asset.
+**How to use this.** P0 security items are done on this branch. P1 is the next working slice. P2 is product, not hygiene. Do not start a rewrite — the current shape is the asset.
 
 ---
 
@@ -51,7 +51,7 @@ A Manifest V3 Chrome extension that rates Amazon grocery products **0–100** fr
 
 - **Script-tag soup.** Sixteen files injected in manifest order via `AIRmodule` / IIFEs. Correct, but a missing line in `manifest.json` is a silent empty panel. `preflight` and `sanity.test.js` already guard this — keep those tests if you ever add a file.
 - **`main.js` is ~1,040 lines** (product page + search gate + tile queue + lifecycle). The next reliability bug will hide here. Split only when you next touch search vs PDP, not as a project.
-- **`background.js` is one worker** with OFF, OCR, CSV sheets, and diagnostics. Message handlers do not check `sender.id` / `sender.tab` (see P0).
+- **`background.js` is one worker** with OFF, OCR, CSV sheets, and diagnostics. Message handlers now require this extension (and an Amazon tab for content-script types).
 - **Duplicate helpers.** `toCsvUrl` still exists in the worker as a fallback copy of `prefs.toSheetUrl`.
 - **Open shadow root** (`panel.js` `attachShadow({ mode: 'open' })`). Amazon's JS can reach in. Closed shadow is a one-line hardening if the page ever starts fighting the panel.
 - **IIFE dual-runtime** (`typeof module !== 'undefined'`) so Node tests can `require` the same files Chrome injects. Keep it; a bundler would be a large rewrite.
@@ -68,23 +68,22 @@ A Manifest V3 Chrome extension that rates Amazon grocery products **0–100** fr
 - Diagnostics / contributions are off by default, URL-allowlisted, `credentials: 'omit'`, no user id. Copy in `docs/DIAGNOSTICS.md` already says auto-score + diagnostics is a browse trace.
 - Popup uses DOM APIs, not `innerHTML`, for the live score card.
 
-### P0 — do these
+### P0 — done (this branch)
 
-1. **Stop exposing OCR internals to Amazon pages.**  
-   `manifest.json` `web_accessible_resources` lists `vendor/tesseract/*` and `src/offscreen/*` for every Amazon origin. The offscreen document is extension-origin and loads those files with `chrome.runtime.getURL`; it should not need WAR. This is a **fingerprinting surface** (a page can probe `chrome-extension://<id>/vendor/tesseract/tesseract.min.js`) and, if a future offscreen page ever reflected query params, an XSS gadget.  
-   Two audits already asked to remove it after a live OCR run. That run exists (`docs/LIVE-TEST-2026-09-05.md`).  
-   **Action:** remove the WAR block (or shrink it to nothing), run OCR on Lifeway `B00LOAW7U6`, then **invert** the preflight check that currently *requires* WAR (`scripts/preflight.mjs` “vendor is web-accessible”). If OCR breaks, the failure mode is “worker importScripts”, and you put back only the one path the worker actually requests — not `src/offscreen/*`.
+1. **OCR internals are not web-accessible.**  
+   `web_accessible_resources` removed. Preflight now fails if WAR exposes `tesseract` or `offscreen`. Offscreen still loads via `chrome.runtime.getURL`. **Manual live OCR retest** is in `docs/VERIFY.md` (Lifeway `B00LOAW7U6`); this environment did not run a signed-in Amazon session.
 
-2. **Allowlist OCR image URLs in the worker.**  
-   `ocrLabels` in `background.js` forwards `msg.urls` unchanged. `ocr.js` `fetch`es them from the extension origin. Content script *intends* only `https://m.media-amazon.com/images/I/…` (`ocr-text.js` `hiResUrl`), but nothing enforces that. A buggy or injected message could point the offscreen document at any URL the extension can reach (Amazon hosts are already granted).  
-   **Action:** reject unless `https://m.media-amazon.com/images/I/` + the existing `IMAGE_ID` pattern. Cap length (already `limit = 5`).
+2. **OCR image URLs are allowlisted.**  
+   `ocr-text.js` `isAllowedOcrUrl` / `allowedOcrUrls`: `https://m.media-amazon.com/images/I/` + `IMAGE_ID` only. Worker and offscreen both filter before `fetch`; a redirect that leaves that host is rejected.
 
-3. **Bind network-touching messages to a real sender.**  
-   `lookupBarcode`, `ocrLabels`, `contribute`, `report`, `diagnostic`, `provenanceLookup` accept any extension context. Fine today (no external connect). Cheap insurance: require `sender.id === chrome.runtime.id` and, for content-script types, `sender.tab` plus an Amazon host. Ignore the rest.
+3. **Runtime messages are bound to a real sender.**  
+   `allowMessage` in `background.js`: `sender.id` must be this extension; content-script types also need an Amazon tab URL.
 
-4. **Do not inject on the whole Amazon origin.**  
-   Content scripts match `*://*.amazon.com/*` (and 20 other stores). That is cart, account, checkout, video, seller central — not just grocery. `main.js` then stands down, but the engine still loads and a 500ms URL poll starts.  
-   **Action:** either narrow `matches` / add `exclude_matches` for `/ap/`, `/gp/css/`, checkout, and similar, or gate `watchNavigation()` until `isProductPage()` / `isListPage()` is true. Same privacy story as the food gate, one layer out.
+4. **Content scripts no longer match the whole Amazon origin.**  
+   `matches` are product/search/browse/store paths on the 21 hosts. `exclude_globs` cover login, cart, checkout, and account. `main.js` only starts the observer on a product or results URL; the URL poll starts only after the master switch is on.
+
+5. **Docs hygiene.**  
+   `VERIFY.md` names 1.0.2. `corpus.json` defect notes are regressions, not open bugs (`OPEN_DEFECTS` is empty).
 
 ### P1
 
@@ -117,7 +116,7 @@ A Manifest V3 Chrome extension that rates Amazon grocery products **0–100** fr
 
 **Open Food Facts / Apps Script** still have no live grant in this tree (`VERIFY.md` “still unproven”). Client-side URL checks and `rowId` / `batchId` are in place. Redeploy `docs/apps-script.gs` on the owner’s sheet before trusting diagnostics.
 
-**Stale comments in `tests/corpus.json` defects:** `OPEN_DEFECTS` in `corpus.test.js` is **empty**, so `non-gmo-soybean-oil` and `cold-pressed-sunflower-oil` are now hard assertions. The JSON `_comment` / `note` fields still describe the old bugs. Clean the notes so the next reader does not think those defects are open.
+**Corpus defect notes** now say these are locked regressions (`OPEN_DEFECTS` is empty). Keep it that way: a `defect` id is a historical name, not an open bug.
 
 ---
 
@@ -131,7 +130,7 @@ A Manifest V3 Chrome extension that rates Amazon grocery products **0–100** fr
 |---|---|---|
 | No saved Amazon HTML | P1 | 3 PDP + 1 search snapshot; run `extract()` + food gate in Node (`jsdom` or the existing harness DOM shim). |
 | Browser harnesses are manual | P1 | One Playwright/Puppeteer job on `harness.html` + `harness-lifecycle.html` in CI (no Amazon login). `npm run harness` already serves them. |
-| Live Amazon / OFF / Apps Script | P1 (manual) | Keep `docs/VERIFY.md` as the checklist; fix the version line (it still says **1.0.1**, manifest is **1.0.2**). |
+| Live Amazon / OFF / Apps Script | P1 (manual) | Keep `docs/VERIFY.md` as the checklist, including the OCR-after-WAR-removal retest. |
 | `package.json` `test` is a 20-file `&&` chain | P2 | `node --test tests/*.test.js` (one file already uses it). Today a mid-chain failure hides later suites. |
 | No lint / format | P2 | Optional `eslint` on `src/` only if it stays dependency-light; not blocking. |
 | OCR wasm path | already covered | `preflight` + `harness-ocr.html`. Do not add a unit test that importScripts the wasm. |
@@ -171,13 +170,13 @@ These are not defects. Pick at most one.
 
 ## Prioritized backlog
 
-### P0 — security / honesty, small diffs
+### P0 — done
 
-1. Remove (or prove-and-minimize) `web_accessible_resources`; flip `preflight` accordingly. Re-run live OCR on `B00LOAW7U6`.
-2. Allowlist OCR fetch URLs in `background.js` / `ocr.js` (`m.media-amazon.com/images/I/` only).
-3. Ignore runtime messages whose `sender` is not this extension (and not an Amazon tab for content types).
-4. Stop paying the content-script tax on non-product Amazon URLs (`exclude_matches` or late `watchNavigation`).
-5. Fix `docs/VERIFY.md` “1.0.1” → `1.0.2`. Rewrite stale `corpus.json` defect notes.
+1. ~~Remove `web_accessible_resources`; flip `preflight`.~~ Manual Lifeway OCR retest still needed (see `VERIFY.md`).
+2. ~~Allowlist OCR fetch URLs.~~
+3. ~~Ignore runtime messages from unexpected senders.~~
+4. ~~Stop injecting on every Amazon URL.~~
+5. ~~`VERIFY.md` version + corpus defect notes.~~
 
 ### P1 — reliability you will feel on real pages
 

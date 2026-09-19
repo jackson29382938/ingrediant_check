@@ -57,6 +57,18 @@ test page. If nothing happens after ~15 seconds:
 - A `NetworkError … importScripts` means a vendored file is wrong — rerun `npm run preflight`
 - *"offscreen API unavailable"* means Chrome is older than 116
 
+### After removing `web_accessible_resources` (P0)
+
+The offscreen page loads Tesseract with `chrome.runtime.getURL` from extension origin. Amazon
+pages can no longer probe `chrome-extension://<id>/vendor/tesseract/*`.
+
+**Manual retest (this environment did not run a live Amazon session):**
+
+1. Load unpacked, enable **Read label photos**
+2. Open `https://www.amazon.com/dp/B00LOAW7U6`
+3. Expect the loading card, then a score near **28–29 Poor**, footer *"Read from the label photo on this page"*
+4. If the panel stays on the paste box: service worker console. A `NetworkError … importScripts` means a worker path still needed WAR — put back **only** that one `vendor/tesseract/` file, never `src/offscreen/*`.
+
 ## 4. The search gate
 
 Search `running shoes` on Amazon, then `organic oats`.

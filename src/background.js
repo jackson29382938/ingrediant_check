@@ -8,7 +8,8 @@
 // network at all, which is why they are opt-in rather than default.
 
 if (typeof importScripts === 'function') {
-  importScripts('engine/db/_module.js', 'engine/db/ingestible.js', 'engine/db/prefs.js');
+  importScripts('engine/db/_module.js', 'engine/db/ingestible.js', 'engine/db/prefs.js',
+    'engine/db/ocr-text.js');
 }
 
 const OFF_ENDPOINT = 'https://world.openfoodfacts.org/api/v2/product/';
@@ -158,16 +159,22 @@ async function ensureOffscreen() {
 // The offscreen page closes itself after sitting idle (see src/offscreen/ocr.js), which frees the
 // engine's memory. A request can land in the moment between its last job and its exit, in which
 // case the message has no receiver; one retry recreates the page and tries again.
+function allowedOcrUrls(urls) {
+  const filter = self.AIR && self.AIR.db && self.AIR.db.ocrText && self.AIR.db.ocrText.allowedOcrUrls;
+  return filter ? filter(urls) : [];
+}
+
 async function ocrLabels(urls) {
   const conf = await chrome.storage.local.get(['enabled', 'ocrLabels']);
   if (conf.enabled === false || conf.ocrLabels !== true) return { ok: false, reason: 'not-enabled' };
-  if (!Array.isArray(urls) || !urls.length) return { ok: false, reason: 'no-images' };
+  const allowed = allowedOcrUrls(urls);
+  if (!allowed.length) return { ok: false, reason: 'no-images' };
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       await ensureOffscreen();
       const current = await chrome.storage.local.get(['enabled', 'ocrLabels']);
       if (current.enabled === false || current.ocrLabels !== true) return { ok: false, reason: 'not-enabled' };
-      return await chrome.runtime.sendMessage({ target: 'ocr-offscreen', type: 'ocrImages', urls });
+      return await chrome.runtime.sendMessage({ target: 'ocr-offscreen', type: 'ocrImages', urls: allowed });
     } catch (e) {
       const message = String(e && e.message || e);
       if (attempt === 0 && /receiving end|could not establish|message port closed/i.test(message)) continue;
@@ -196,9 +203,38 @@ function paintActionBadge(tabId, score) {
   chrome.action.setBadgeBackgroundColor({ tabId, color: badgeColor(score) });
 }
 
+// Content-script types must come from an Amazon tab of this extension. Extension-page types
+// (popup, options, offscreen idle) only need to be from this extension. Other extensions are
+// ignored even though externally_connectable is unset — cheap insurance if that ever changes.
+const PAGE_MESSAGE_TYPES = new Set([
+  'pageScore', 'ocrLabels', 'lookupBarcode', 'provenanceLookup',
+  'contribute', 'report', 'diagnostic',
+]);
+const AMAZON_HOST = /(^|\.)amazon\.(com|co\.uk|ca|com\.au|ie|in|sg|ae|sa|de|fr|es|it|nl|se|pl|com\.be|com\.tr|com\.mx|com\.br|co\.jp)$/i;
+
+function isOwnExtension(sender) {
+  const id = chrome.runtime && chrome.runtime.id;
+  if (!id || !sender) return false;
+  return !sender.id || sender.id === id;
+}
+
+function isAmazonTabSender(sender) {
+  const raw = sender && sender.tab && sender.tab.url;
+  if (!raw) return false;
+  try { return AMAZON_HOST.test(new URL(raw).hostname); }
+  catch { return false; }
+}
+
+function allowMessage(msg, sender) {
+  if (!msg || !isOwnExtension(sender)) return false;
+  if (PAGE_MESSAGE_TYPES.has(msg.type)) return isAmazonTabSender(sender);
+  return true;
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   // Replies from the offscreen document travel on this same channel; ignore them here.
   if (msg && msg.target === 'ocr-offscreen') return false;
+  if (!allowMessage(msg, sender)) return false;
   if (msg && msg.type === 'pageScore') {
     paintActionBadge(sender && sender.tab && sender.tab.id, msg.score);
     return false;
@@ -565,5 +601,5 @@ function handleSharedDbMessage(msg, reply) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { toCsvUrl, parseCsv, indexRows, lookupRecord, sweepCache, isOpenFoodFactsFood, batchIdFor, revisionOf, ensureHousekeepingAlarm };
+  module.exports = { toCsvUrl, parseCsv, indexRows, lookupRecord, sweepCache, isOpenFoodFactsFood, batchIdFor, revisionOf, ensureHousekeepingAlarm, allowMessage, isOwnExtension, isAmazonTabSender, allowedOcrUrls };
 }

@@ -107,12 +107,22 @@ check('every file tesseract needs is present', () => {
   }
 });
 
-check('the manifest exposes what the offscreen page loads', () => {
+check('OCR internals are not web-accessible', () => {
   const war = (manifest.web_accessible_resources || []).flatMap(r => r.resources || []);
-  assert.ok(war.some(r => r.startsWith('vendor/tesseract')), 'vendor/tesseract is not web-accessible');
+  assert.ok(!war.some(r => /tesseract|offscreen/.test(r)),
+    'vendor/tesseract and src/offscreen must not be web-accessible');
   assert.ok(manifest.permissions.includes('offscreen'), 'the offscreen permission is missing');
   const csp = (manifest.content_security_policy || {}).extension_pages || '';
   assert.ok(/wasm-unsafe-eval/.test(csp), 'wasm-unsafe-eval is required to compile the OCR engine');
+});
+
+check('content scripts are limited to product and search paths', () => {
+  const cs = manifest.content_scripts[0];
+  assert.ok(cs.matches.every(m => !m.endsWith('.com/*') && !m.endsWith('.uk/*') && !/\.amazon\.[^/]+\/\*$/.test(m)),
+    'a host-wide /* match would inject on cart and account pages');
+  assert.ok(cs.matches.some(m => m.includes('/dp/')), 'product /dp/ matches missing');
+  assert.ok((cs.exclude_globs || []).some(g => g.includes('/ap/')), 'login /ap/ is not excluded');
+  assert.ok((cs.exclude_globs || []).some(g => g.includes('/gp/cart')), 'cart is not excluded');
 });
 
 console.log('\nevery rule points at a category that exists');

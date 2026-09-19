@@ -120,6 +120,18 @@ for (const oldState of ['loading', 'fail', 'scored']) {
     assert.equal(w.rendered.at(-1).input.name, 'New product');
   });
 }
+test('leaving a product page tears the panel down and does not rescore', () => {
+  const w = setup();
+  w.host.dataset.airState = 'scored';
+  const oldHost = w.host;
+  w.context.location.href = 'https://www.amazon.com/gp/cart/view.html';
+  w.context.location.pathname = '/gp/cart/view.html';
+  w.context.location.search = '';
+  w.h.onNavigated();
+  assert.equal(oldHost.isConnected, false);
+  assert.equal(w.h.state.settled, 'not a product or results page');
+});
+
 test('manual scores are available to this tab but never stored as search scores', () => {
   const w = setup();
   w.h.cacheScore('B000000001', { score: 80 }, 'Food', 'manual-paste', 'Peanuts, salt');

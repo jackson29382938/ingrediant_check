@@ -51,7 +51,25 @@ check('permissions and CSP match the features', () => {
   if (!manifest.default_locale) throw new Error('default_locale missing but __MSG_ is used');
   return `offscreen + activeTab + wasm-unsafe-eval + locale "${manifest.default_locale}"`;
 });
-check('stores covered', () => `${manifest.content_scripts[0].matches.length} Amazon stores`);
+check('stores covered', () => {
+  const matches = manifest.content_scripts[0].matches || [];
+  const hosts = new Set(matches.map(m => (m.match(/^\*:\/\/\*\.([^/]+)/) || [])[1]).filter(Boolean));
+  if (hosts.size < 21) throw new Error(`only ${hosts.size} Amazon hosts in content_scripts.matches`);
+  if (matches.some(m => /\/\*$/.test(m) && !/\/(dp|s|b|stores|gp\/product|gp\/browse)/.test(m))) {
+    throw new Error('a catch-all /* match is back — content scripts must stay on product/search paths');
+  }
+  if (!matches.some(m => m.includes('/dp/')) || !matches.some(m => m.endsWith('/s') || m.includes('/s/'))) {
+    throw new Error('product /dp/ or search /s matches missing');
+  }
+  return `${hosts.size} Amazon stores, ${matches.length} path patterns`;
+});
+check('content scripts skip account and checkout', () => {
+  const globs = manifest.content_scripts[0].exclude_globs || [];
+  for (const need of ['/ap/', '/gp/cart', '/checkout', '/gp/css/']) {
+    if (!globs.some(g => g.includes(need))) throw new Error(`exclude_globs missing ${need}`);
+  }
+  return `${globs.length} exclude_globs`;
+});
 
 console.log('\nOCR');
 check('vendored engine complete', () => {
@@ -75,11 +93,12 @@ check('offscreen page resolves its scripts', () => {
   if (missing.length) throw new Error('unresolvable: ' + missing.join(', '));
   return `${srcs.length} scripts resolve`;
 });
-check('vendor is web-accessible', () => {
+check('OCR assets are not web-accessible', () => {
   const war = (manifest.web_accessible_resources || []).flatMap(r => r.resources || []);
-  if (!war.some(r => r.startsWith('vendor/tesseract'))) throw new Error('vendor/tesseract not exposed');
-  if (!war.some(r => r.startsWith('src/offscreen'))) throw new Error('src/offscreen not exposed');
-  return 'vendor + offscreen exposed';
+  if (war.some(r => /tesseract|offscreen/.test(r))) {
+    throw new Error('web_accessible_resources still exposes OCR internals to Amazon pages');
+  }
+  return 'vendor + offscreen stay extension-origin';
 });
 
 console.log('\ndiagnostics');
