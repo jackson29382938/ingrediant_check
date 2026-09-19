@@ -2,6 +2,7 @@
 if (typeof require !== 'undefined' && typeof module !== 'undefined') {
   require('./_module.js');
   require('../categories.js');
+  require('./revision.js');
 }
 (function () {
   const TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -12,6 +13,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
   function fingerprint(raw = {}) {
     const weights = AIR.db.categories.resolveWeights(raw.weights);
     return JSON.stringify({
+      // A rule edit retires every cached score, whether or not the manifest version moved.
+      rules: (AIR.db.revision && AIR.db.revision.RULES_REVISION) || '',
       weights: Object.keys(weights).sort().map(k => [k, weights[k]]),
       foodOnly: raw.foodOnly !== false,
       ocrLabels: raw.ocrLabels === true,

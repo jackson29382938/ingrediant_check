@@ -41,7 +41,7 @@ check('the scored text is on the row', () => {
 });
 check('the rules that fired are on the row', () => {
   const r = build();
-  assert.ok(/Refined added sugar/i.test(r.penalties), `penalties column: ${r.penalties}`);
+  assert.ok(/Cane sugar|Refined added sugar/i.test(r.penalties), `penalties column: ${r.penalties}`);
   assert.ok(r.score && r.verdict && r.nova, 'the outcome is incomplete');
 });
 check('which path produced the text is recorded', () => {

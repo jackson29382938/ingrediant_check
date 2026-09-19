@@ -457,9 +457,11 @@
   // first badge pass can run while hoverScore is still false; if arming lived inside that loop,
   // every tile would already be marked processed by the time the setting arrived and hover would
   // never work on a page that doesn't happen to mutate afterwards.
+  // Results pages only. A product page carries [data-asin] carousels too, and arming them fetched
+  // a product page on hover only to find no tile heading to paint the badge into.
   function armHoverPass() {
     if (!state.enabled || !state.badges || !state.hoverScore) return;
-    if (isListPage() && !searchAllowed()) return;
+    if (!isListPage() || !searchAllowed()) return;
     document.querySelectorAll('[data-asin]:not([data-air-hover])').forEach(tile => {
       const asin = tile.getAttribute('data-asin');
       if (!asin || !/^[A-Z0-9]{10}$/.test(asin)) return;
@@ -627,7 +629,7 @@
 
   function armAutoScorePass() {
     if (!state.enabled || !state.badges || !state.autoScoreSearch) return;
-    if (isListPage() && !searchAllowed()) return;
+    if (!isListPage() || !searchAllowed()) return;
     const obs = autoObserver();
     document.querySelectorAll('[data-asin]:not([data-air-auto])').forEach(tile => {
       const asin = tile.getAttribute('data-asin');

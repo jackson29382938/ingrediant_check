@@ -56,7 +56,7 @@ const HARD_NEGATIVE = [
     test: (doc, text) => /\b(clothing, shoes & jewelry|shoes & (bags|jewelry)|toys & games|electronics|cell phones & accessories|tools & home improvement|automotive|books|video games|musical instruments|office products|patio, lawn & garden|sports & outdoors|arts, crafts & sewing|industrial & scientific|appliances|luggage|beauty & personal care|beauty and personal care|luxury beauty|premium beauty|fashion|garden & outdoors|home & kitchen)\b/i.test(text)
       || /\b(bekleidung|schuhe & handtaschen|elektronik|spielzeug|b[üu]cher|baumarkt|auto & motorrad|k[üu]che & haushalt|beleuchtung|schmuck|v[êe]tements|chaussures|informatique|livres|bricolage|jardin|jeux et jouets|beaut[ée] et parfum|ropa|zapatos|electr[óo]nica|libros|juguetes|bricolaje|belleza|abbigliamento|scarpe|elettronica|libri|giocattoli|bellezza|kleding|schoenen|elektronica|speelgoed|odzie[żz]|elektronika|zabawki)\b/i.test(text) },
   { id: 'cosmetic', pts: 12, why: 'Cosmetic or topical personal-care product',
-    test: (doc, text, title) => /\b(shampoo|conditioner|body wash|body lotion|face cream|moisturi[sz]er|serum|deodorant|antiperspirant|sunscreen|sunblock|makeup|foundation|mascara|lipstick|lip gloss|nail polish|perfume|cologne|shaving|aftershave|toothpaste|mouthwash|hand soap|hand sanitizer|hair (dye|colou?r|spray|gel|mask)|face mask|exfoliant|cleanser|toner)\b/i.test(title) },
+    test: (doc, text, title) => /\b(shampoo|conditioner|body wash|body lotion|face cream|moisturi[sz]er|serum|deodorant|antiperspirant|sunscreen|sunblock|makeup|foundation|mascara|lipstick|lip gloss|nail polish|perfume|cologne|shaving|aftershave|toothpaste|mouthwash|soaps?|hand sanitizer|hair (dye|colou?r|spray|gel|mask)|face mask|exfoliant|cleanser|toner)\b/i.test(title) },
   { id: 'household', pts: 12, why: 'Cleaning or household chemical product',
     test: (doc, text, title) => /\b(laundry detergent|dish(washer)? (soap|detergent)|all[- ]purpose cleaner|disinfectant|bleach|fabric softener|air freshener|toilet|drain cleaner|degreaser|glass cleaner|floor cleaner|insect(icide)? (spray|killer)|pesticide|motor oil|antifreeze)\b/i.test(title) },
   { id: 'medicine', pts: 12, why: 'Over-the-counter medicine',
@@ -67,20 +67,25 @@ const HARD_NEGATIVE = [
     test: (doc, text, title) => /\b(dog|cat|puppy|kitten|pet|canine|feline|bird|reptile|ferret|hamster) (food|treats?|chews?|kibble|formula|supplement)\b|\bpet supplies\b/i.test(title + ' ' + text) },
   { id: 'equipment', pts: 12, why: 'Equipment or kitchenware rather than something you eat',
     test: (doc, text, title) => /\b(blenders?|cookware|skillets?|frying pans?|sauce pans?|stock pots?|dutch ovens?|instant pots?|pressure cookers?|chef'?s? knives|steak knives|cutting boards?|food storage|storage containers?|bottle openers?|utensils?|travel mugs?|dinner plates?|bowl sets?|thermos|lunch box(es)?|air fryers?|stand mixers?|food processors?|electric (grill|smoker|kettle)s?|gas grills?|pellet (grill|smoker)s?)\b/i.test(title) },
+  // "cap", "hat" and "watch" only count with an apparel word beside them: a bare `cap` made ketchup
+  // "with Flip Cap" not-food, and a bottle cap, a screw cap and a sports cap are all groceries.
   { id: 'apparel', pts: 12, why: 'Apparel or footwear',
-    test: (doc, text, title) => /\b(shoes?|sneakers?|boots?|sandals?|shirt|t-shirt|pants|jeans|jacket|hoodie|socks?|hat|cap|dress|skirt|shorts|underwear|bra|watch|handbag|backpack|wallet)\b/i.test(title) },
+    test: (doc, text, title) => /\b(shoes?|sneakers?|boots?|sandals?|shirt|t-shirt|pants|jeans|jacket|hoodie|socks?|(?:baseball|trucker|snapback|bucket|beanie|knit|sun|dad|men'?s|women'?s|kids'?|unisex)\s+(?:cap|hat)s?|(?:wrist|smart|analog|digital|quartz|apple|sports?)\s?watch(?:es)?|watch\s+(?:band|strap)s?|dress|skirt|shorts|underwear|bra|handbag|backpack|wallet)\b/i.test(title) },
   { id: 'merchandise', pts: 12, why: 'General merchandise rather than something you eat',
     test: (doc, text, title) => /\b(laptops?|desktops?|monitors?|keyboards?|headphones?|earbuds?|speakers?|chargers?|cables?|adapters?|batteries|battery|tablets? (computer|pc)|smartphones?|iphones?|ipads?|cameras?|printers?|routers?|televisions?|\btvs?\b|consoles?|controllers?|video games?|puzzles?|board games?|lego|dolls?|action figures?|mattress(es)?|pillows?|blankets?|towels?|curtains?|rugs?|lamps?|desks?|chairs?|sofas?|couch(es)?|bookshel(f|ves)|vacuums?|paperback|hardcover|dvds?|blu[- ]?rays?|tires?|brake pads?|drills?|hammers?|screwdrivers?|wrench(es)?|paint(brush(es)?)?|notebooks?|binders?|staplers?|printer paper|light bulbs?|extension cords?)\b/i.test(title) },
   // "Case of 24", "Variety Case" and "with Scoop" are how groceries are sold; a bare "case" is a
   // phone case and a bare "scoop" is a utensil. The unguarded words made a case of sparkling water
   // not-food on its own page and stood a whole sparkling-water search down.
+  // "Funnel Cake Mix" is a dessert and "24 Count Case" is how sparkling water is sold.
   { id: 'supplementEquipment', pts: 8, why: 'Accessory rather than a consumable',
-    test: (doc, text, title) => /\b(shaker bottle|pill organi[sz]er|dispenser|funnel|holder)\b|(?<!variety\s)\bcases?\b(?!\s+(?:of\s+)?\d)|(?<!with\s|includes\s|free\s|\+\s)\bscoops?\b(?!\s+included)/i.test(title) },
+    test: (doc, text, title) => /\b(shaker bottle|pill organi[sz]er|dispenser|funnel(?!\s+cakes?)|holder)\b|(?<!variety\s|count\s|ct\s|pack\s|pk\s|cans?\s|bottles?\s|\d\s|\d)\bcases?\b(?!\s+(?:of\s+)?\d)|(?<!with\s|includes\s|free\s|\+\s)\bscoops?\b(?!\s+included)/i.test(title) },
 ];
 
 // Some words appear in both worlds and must not be treated as food evidence on their own:
 // "collagen serum" is skincare, "protein shaker" is a bottle.
-const AMBIGUOUS_PAIRS = /\b(collagen|protein|vitamin|biotin|keratin|caffeine|charcoal|aloe|coconut oil|shea)\b[^.]{0,20}\b(serum|cream|lotion|mask|shampoo|conditioner|soap|scrub|balm|oil for (hair|skin))\b/i;
+// "cream" is topical only when it is not ice cream, cream cheese, sour cream, a coffee creamer or
+// a cream filling — "Protein Ice Cream" is a freezer aisle, not a skincare shelf.
+const AMBIGUOUS_PAIRS = /\b(collagen|protein|vitamin|biotin|keratin|caffeine|charcoal|aloe|coconut oil|shea)\b[^.]{0,20}\b(serum|(?<!ice |sour |whipped |heavy |double |coffee |clotted )cream(?!\s+(?:cheese|soda|liqueur|filling|sauce|puffs?|of\b)|er\b)|lotion|mask|shampoo|conditioner|soap|scrub|balm|oil for (hair|skin))\b/i;
 
 const THRESHOLD = 4;
 

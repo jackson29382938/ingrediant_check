@@ -186,7 +186,9 @@
     const caps = result.bad.filter(isCapRow);
     const minus = result.bad.filter(h => !isCapRow(h));
     const plus = result.good.filter(h => h.c > 0);
-    const refinedSugarPresent = result.bad.some(h => /^(Refined added sugar|Cane sugar|Brown sugar|Beet sugar|Powdered sugar|Invert sugar|Dextrose|Glucose syrup|Isolated fructose|Sucrose|Maltose|Agave|Rice syrup|Tapioca syrup|Barley malt syrup|Caramel|Honey powder)/i.test(h.why));
+    // The engine marks rows from the refined-sugar table; this used to re-list those rule names
+    // here and had already drifted from sugars.js once.
+    const refinedSugarPresent = result.bad.some(h => h.refined === true);
     // A zero-point note about milk or fruit sugar is useful on a clean food, but reads like a health
     // halo on candy or chips. Hide that cosmetic note when refined added sugar is also present.
     const neutral = result.good.filter(h => h.c === 0 && !(refinedSugarPresent && /Natural sugar/i.test(h.why)));
@@ -334,8 +336,9 @@
         onPaste(text);
       });
     }
-    try { ta.focus({ preventScroll: true }); } catch (e) { /* focus can fail in tests */ }
-    try { ta.select(); } catch (e) { /* ignore */ }
+    // The field is deliberately NOT focused on mount. The failure card appears a second or so
+    // after a product page loads, on every product Amazon publishes no ingredient text for, and
+    // pulling focus into it redirected whatever the person was typing into the search box.
   }
 
   function copyToClipboard(text) {

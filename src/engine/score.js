@@ -129,7 +129,9 @@ const PENALTIES = [
   ...tag(add.PRESERVATIVES, 'hard', 'preservative'),
   // An unnamed function word is charged but does not vote on the processing class: "color added"
   // on a fillet of salmon may be paprika extract, and it must not turn the fish into NOVA 3.
-  ...tag(add.UNNAMED, 'none', 'processingAid'),
+  // Tagged `unnamed` so score() can stand the charge down when the additive IS named alongside it:
+  // "Sodium Benzoate (Preservative)" is a disclosure, not a second additive (see namedBeside).
+  ...tag(add.UNNAMED, 'none', 'processingAid').map(r => ({ ...r, unnamed: true })),
   ...tag(add.PROCESSING, byPts(12), 'processing', 'processingAid'),
   ...tag(add.FORTIFICATION, byPts(7), 'fortification'),
   // Only stripped-and-re-dosed flour marks ultra-processing. Plain wheat flour sat exactly on the
@@ -138,7 +140,9 @@ const PENALTIES = [
   // that is a weight the user owns — but bread is processed, not ultra-processed.
   ...tag(add.GRAINS, r => (/enriched|bleached|refined|white/i.test(r.why) ? 'hard' : 'soft'), 'grain'),
   ...tag(labels.DAIRY_PENALTY, 'soft', 'dairy', 'dairyProcessing'),
-  ...tag(sugars.REFINED, 'soft', 'sugar'),   // sugar is penalised, but sugar alone is not ultra-processing
+  // sugar is penalised, but sugar alone is not ultra-processing. `refined` travels onto the panel
+  // row, so the panel can tell added sugar from honey without re-listing rule names.
+  ...tag(sugars.REFINED, 'soft', 'sugar').map(r => ({ ...r, refined: true })),
   ...tag(sugars.TRADITIONAL, 'none', 'sugar'),
   ...tag(sugars.ALCOHOLS, 'hard', 'sweetener', 'sweetener'),
 ];
@@ -259,6 +263,12 @@ const COMMON_PANEL = new RegExp('\\b(?:' + [
   'acqua|sale|latte|farina|olio|succo|riso|mais|soia|lievito|amido|burro|panna|formaggio|uova|miele|nocciole|mandorle',
   '\\w*(?:milch|zucker|butter|mehl|pulver|st[äa]rke|sirup|saft|salz|wasser|sahne|k[äa]se|joghurt|schokolade|kakao|mandeln|n[üu]sse|haselnuss|erdnuss)\\w*',
   'emulgator(?:en)?|emulsionante|[ée]mulsifiant|emulsionanti|conservante|conservateur|konservierungsstoff|colorante|colorant|farbstoff|s[äa]uerungsmittel|acidulant|acidificante|correcteur',
+  // Colours from food, which no rule charges. Without them "Annatto (color)" read as an unnamed
+  // colour next to an unrecognised word, and "beta carotene" lowered coverage on a clean list.
+  'annatto|carotenes?|carotenoids?|beet(?:root)? (?:juice|powder|red)|anthocyanins?|lycopene|curcumin|chlorophyll(?:in)?|carmine|cochineal|riboflavin|lutein|paprika (?:extract|oleoresin)|spirulina extract|caramel',
+  // Benign E-numbers, so an EU list written in codes is still recognised as a list. Every E-number
+  // that a rule charges is recognised through that rule; these are the ones nothing charges.
+  'e[- ]?(?:100|120|14[01]|16[0-3][a-i]?|262|32[5-7]|33[1-3]|40[1-6]|440|50[0-4]|50[89]|524|57[45]|901|903|941|948)',
 ].join('|') + ')\\b', 'i');
 
 // Marketing qualifiers in front of an ingredient carry no scoring information, but most sugar and
@@ -271,20 +281,39 @@ const bare = ing => ing.replace(QUALIFIERS, '');
 const hits1 = (re, ing) => re.test(ing) || (QUALIFIERS.test(ing) && re.test(bare(ing)));
 const hitsAny = (rules, ing, pick = r => r) => rules.some(r => hits1(pick(r), ing));
 
+// The penalty rules one entry trips, in PENALTIES order. The entry as written is tested first; the
+// qualifier-stripped form may then add rules only in groups the written form did not already hit.
+// Without that second condition "natural flavors" hit the natural-flavour rule as written AND the
+// bare-"flavors" rule once "natural" was stripped, and paid for the same blend twice — the
+// qualifier strip exists to catch "organic agave", not to invent a second flavouring.
+function penaltiesFor(ing) {
+  const hit = new Set(PENALTIES.filter(r => r.m.test(ing)));
+  if (!QUALIFIERS.test(ing)) return hit;
+  const groups = new Set([...hit].map(r => r.group));
+  const stripped = bare(ing);
+  for (const r of PENALTIES) {
+    if (!hit.has(r) && !groups.has(r.group) && r.m.test(stripped)) hit.add(r);
+  }
+  return hit;
+}
+
+// Whether the rulebase can read this entry at all — the per-entry half of the coverage measure.
+// `unnamed` function words are excluded on request, because "preservative" is recognised in the
+// sense of being charged, but it does not tell us WHICH preservative is beside it.
+function recognised(ing, { unnamed = true } = {}) {
+  return hitsAny(labels.WHOLE, ing)
+    || hits1(labels.CULINARY, ing)
+    || COMMON_PANEL.test(ing)
+    || hitsAny(sugars.FREE, ing)
+    || PENALTIES.some(r => (unnamed || !r.unnamed) && hits1(r.m, ing))
+    || CAPS.some(c => c.m.test(ing))
+    || labels.BONUSES.some(b => b.m.test(ing));
+}
+
 function recognitionCoverage(list) {
   if (!list.length) return 0;
   let seen = 0;
-  for (const ing of list) {
-    const known =
-      hitsAny(labels.WHOLE, ing)
-      || hits1(labels.CULINARY, ing)
-      || COMMON_PANEL.test(ing)
-      || hitsAny(sugars.FREE, ing)
-      || hitsAny(PENALTIES, ing, r => r.m)
-      || CAPS.some(c => c.m.test(ing))
-      || labels.BONUSES.some(b => b.m.test(ing));
-    if (known) seen++;
-  }
+  for (const ing of list) if (recognised(ing)) seen++;
   return seen / list.length;
 }
 
@@ -432,8 +461,24 @@ function score(product, options = {}) {
   let hardHits = 0, softHits = 0;
   const tradPrep = add.TRADITIONAL_PREP.test(txt);
 
+  // A function word is an undisclosed additive only when nothing beside it names the additive.
+  // US labels write "Sodium Benzoate (Preservative)" and EU labels write "Emulsifier (Soy
+  // Lecithin)"; the parenthetical shares its parent's position, so the pair is found by position.
+  // Charging the word as well as the additive cost a label 7–9 points for saying more, and
+  // "Annatto (Color)" — a natural colour, fully disclosed — was charged as an unnamed one.
+  const namedBeside = new Map();
+  for (const e of entries) {
+    if (namedBeside.get(e.pos)) continue;
+    // The bare function word is not its own disclosure. Several translated words also live in
+    // COMMON_PANEL so they contribute to coverage; without this guard a standalone "conservante"
+    // or "emulgator" was recognised there and incorrectly suppressed its own unnamed charge.
+    const bareFunction = add.UNNAMED.some(r => r.m.test(e.ing));
+    if (!bareFunction && recognised(e.ing, { unnamed: false })) namedBeside.set(e.pos, true);
+  }
+
   entries.forEach(({ ing, pos }) => {
     const w = weight(pos);
+    const tripped = penaltiesFor(ing);
 
     const isFreeSugar = hitsAny(sugars.FREE, ing);
     if (isFreeSugar && !seen.has('freesugar')) {
@@ -451,7 +496,9 @@ function score(product, options = {}) {
     }
 
     for (const r of PENALTIES) {
+      if (!tripped.has(r)) continue;
       if (seen.has(r.why)) continue;
+      if (r.unnamed && namedBeside.get(pos)) continue;   // the additive is named right beside it
       // Sugar that comes with its whole food is exempt unless the user turns 'naturally occurring
       // sugars' on, at which point it is scored like any other sugar.
       // Traditional preparation (sourdough, sprouting, soaking) halves the grain penalty rather
@@ -461,7 +508,6 @@ function score(product, options = {}) {
       if (/citric acid|lactic acid/i.test(r.why) && FERMENT_ACID.test(ing)) continue;
       if (r.exemptIf && r.exemptIf.test(ing)) continue;
       if (r.exemptIfText && r.exemptIfText.test(txt)) continue;
-      if (!hits1(r.m, ing)) continue;
       seen.add(r.why);
       // Processing describes the label, independent of the user's penalty preferences.
       if (!(r.gluten && tradPrep) && !(isFreeSugar && r.group === 'sugar')) {
@@ -471,7 +517,7 @@ function score(product, options = {}) {
       if (isFreeSugar && r.group === 'sugar' && w_('naturalSugar') === 0) continue;
       const scaled = r.pts * w * w_(r.cat) * tradRelief;
       if (scaled < 0.5) continue;                       // category switched off by the user
-      hits.push({ off: Math.round(scaled), why: r.why, ing, group: r.group, cat: r.cat });
+      hits.push({ off: Math.round(scaled), why: r.why, ing, group: r.group, cat: r.cat, refined: !!r.refined });
     }
   });
 
@@ -484,7 +530,7 @@ function score(product, options = {}) {
   // The panel shows a line per problem. Those lines must add up to the score the user is looking
   // at, so the saturation discount is distributed back across them proportionally rather than
   // applied invisibly at the end. Largest remainder gets the rounding slack.
-  const shown = kept.map(h => ({ raw: h.scaled, why: h.why, ing: h.ing }));
+  const shown = kept.map(h => ({ raw: h.scaled, why: h.why, ing: h.ing, cat: h.cat, refined: h.refined }));
   if (listPenalty) shown.push({ raw: listPenalty, why: `Very long ingredient list (${list.length} items)` });
   if (rawTotal > 0 && shown.length) {
     // Largest-remainder allocation. Every row gets at least 1 point when there is room for it,
@@ -503,7 +549,12 @@ function score(product, options = {}) {
     shown.forEach((h, i) => { h.c = -alloc[i]; });
   }
   for (let i = shown.length - 1; i >= 0; i--) if (shown[i].c === 0) shown.splice(i, 1);
-  for (const h of shown) bad.push({ c: h.c, why: h.why, ing: h.ing });
+  for (const h of shown) {
+    const row = { c: h.c, why: h.why, ing: h.ing };
+    if (h.cat) row.cat = h.cat;
+    if (h.refined) row.refined = true;
+    bad.push(row);
+  }
 
   // The processing weight scales how far the NOVA class pulls the starting score down from 100.
   // Weight 0 means processing level is ignored entirely and every product starts at 100.
@@ -515,8 +566,15 @@ function score(product, options = {}) {
   // When the provenance block is active it scores sourcing with far better resolution (verified vs
   // claimed, per certification). Paying the generic label bonus as well double-counts the same fact.
   const PROV_OVERLAP = /grass-fed|pasture|wild-caught|organic|regenerativ|non-gmo/i;
+  // A label claim lifts a product, not an ingredient. When every ingredient on the list is itself
+  // penalised or capped there is nothing for "organic" to be a better version of: a bag of organic
+  // cane sugar scored 81 Good against 73 for plain sugar, and the cane rule was the only row.
+  const capsHit = CAPS.filter(c => c.m.test(txt));
+  const allPenalised = list.length > 0
+    && list.every(i => hits.some(h => h.ing === i && h.cat !== 'naturalSugar') || capsHit.some(c => c.m.test(i)));
   let bonus = 0, titleBonus = 0;
   for (const b of labels.BONUSES) {
+    if (allPenalised) break;
     if (provenanceOwnsSourcing && PROV_OVERLAP.test(b.why)) continue;
     if (bonus >= labels.BONUS_CAP) break;
     const strong = b.m.test(hayStrong);
@@ -537,7 +595,6 @@ function score(product, options = {}) {
 
   // hard caps
   let cap = 100, capWhy = null;
-  const capsHit = CAPS.filter(c => c.m.test(txt));
   for (const c of capsHit) {
     let ceiling = c.cap;
     if (c.unless) {

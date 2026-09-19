@@ -10,7 +10,7 @@ You do not need a build step.
 
 1. `chrome://extensions` → enable **Developer mode**
 2. **Load unpacked** → select this folder
-3. Expect **Ingredient Check 1.0.1** with no errors on the card
+3. Expect **Ingredient Check 1.0.2** with no errors on the card
 
 Optional local session (Chrome for Testing, extension preloaded):
 
@@ -37,7 +37,7 @@ On an Amazon product page it reads the ingredient list (page text, optional on-d
 
 The toolbar popup is the master switch plus network opt-ins. On an Amazon product tab it also shows the cached score for that ASIN. Explanations are collapsed until you open **Why these matter**. **Scoring weights, allergens & avoid list** opens the full settings page (searchable categories, dark mode, avoid-list suggestions, section jump). Imports, sliders, and storage values are sanitized before they are trusted: unknown ids are dropped, weights stay in the 0–2 slider range, and only Google Sheet / Apps Script URLs are kept.
 
-Ingredient headings are recognised in English and several EU languages (Zutaten, Ingredientes, Ingrédients, Ingredienti, Ingrediënten, Składniki), including same-line `Ingredients:` detail-bullet forms. The scoring rules themselves read English, and the most common additives, sweeteners, oils and unnamed function words (“conservante”, “aroma”, “colorante”) in Spanish, French, German and Italian; a list the rulebase mostly cannot read is declined rather than scored. Chrome 116 or newer is required.
+Ingredient headings are recognised in English and several EU languages (Zutaten, Ingredientes, Ingrédients, Ingredienti, Ingrediënten, Składniki), including same-line `Ingredients:` detail-bullet forms. The scoring rules themselves read English, the most common additives, sweeteners, oils and unnamed function words (“conservante”, “aroma”, “colorante”) in Spanish, French, German and Italian, and additives written as E-numbers (“E322”, “E 951”); a list the rulebase mostly cannot read is declined rather than scored. Allergen and diet flags read the same four languages, cover the EU’s celery, mustard and lupin as well as the US list, and never move the score. Chrome 116 or newer is required.
 
 ## Tests
 
@@ -56,7 +56,7 @@ CI runs `npm test` and `npm run preflight`. Browser harnesses stay manual.
 | Lifecycle | http://127.0.0.1:8731/tests/harness-lifecycle.html |
 | Food-only + settings | http://127.0.0.1:8731/tests/verify-food-settings.html |
 
-Live Amazon checks are in [docs/VERIFY.md](docs/VERIFY.md).
+Live Amazon checks are in [docs/VERIFY.md](docs/VERIFY.md). When a rule changes, `tests/rules-revision.test.js` fails until `RULES_REVISION` in `src/engine/db/revision.js` is bumped — that is what retires cached scores.
 
 ## Optional network
 

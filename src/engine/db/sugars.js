@@ -34,10 +34,12 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
 
   // REFINED — full penalty. Position-weighted by the caller.
   const REFINED = [
-    { m: /^(organic )?(cane |raw |turbinado |demerara |muscovado )?sugar$/i, pts: 14, why: 'Refined added sugar' },
+    // "cane" is deliberately absent from this list: the cane rule below owns it, and carrying it
+    // here as well charged "cane sugar" twice (17 + 4) against 17 for "sugar".
+    { m: /^(organic )?(raw |turbinado |demerara |muscovado |granulated |white |caster |icing |confectioners'? )?sugar$/i, pts: 14, why: 'Refined added sugar' },
     // Spanish, French, German and Italian — the stores whose headings the extractor already reads.
     { m: /^(az[uú]car|sucre|zucker|zucchero|rohrzucker|rohrohrzucker)( blanc[oa]| refinad[oa]| de ca[ñn]a| blanc| raffin[ée]| de canne| di canna| bianco| grezzo)?$/i, pts: 14, why: 'Refined added sugar' },
-    { m: /^(evaporated )?cane (juice|sugar|syrup)$/i,   pts: 14, why: 'Cane sugar' },
+    { m: /^(evaporated |raw |organic )*cane (juice|sugar|syrup)$/i, pts: 14, why: 'Cane sugar' },
     { m: /^brown sugar$/i,                              pts: 14, why: 'Brown sugar' },
     { m: /^beet sugar$/i,                               pts: 14, why: 'Beet sugar' },
     { m: /^powdered sugar$/i,                           pts: 14, why: 'Powdered sugar' },
@@ -65,30 +67,30 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
 
   // ARTIFICIAL — treated as more concerning than sugar by default; adjustable in settings.
   const ARTIFICIAL = [
-    { m: /\bsucralos[ae]\b|\bsplenda\b/i,       cap: 22, why: 'Sucralose' },
-    { m: /\baspartam[eo]?\b|\bnutrasweet\b/i,   cap: 22, why: 'Aspartame' },
-    { m: /\bacesulfam[eo]([- ]?k| potassium| pot[áa]sico)?\b|\bace[- ]k\b/i, cap: 22, why: 'Acesulfame potassium' },
-    { m: /\bsaccharin[e]?\b|\bsacarina\b/i,     cap: 22, why: 'Saccharin' },
-    { m: /\bneotame\b/i,                        cap: 22, why: 'Neotame' },
-    { m: /\badvantame\b/i,                      cap: 22, why: 'Advantame' },
-    { m: /\bcyclamate\b/i,                      cap: 22, why: 'Cyclamate' },
+    { m: /\bsucralos[ae]\b|\bsplenda\b|\be[- ]?955\b/i,       cap: 22, why: 'Sucralose' },
+    { m: /\baspartam[eo]?\b|\bnutrasweet\b|\be[- ]?951\b|\be[- ]?962\b/i,   cap: 22, why: 'Aspartame' },
+    { m: /\bacesulfam[eo]([- ]?k| potassium| pot[áa]sico)?\b|\bace[- ]?k\b|\be[- ]?950\b/i, cap: 22, why: 'Acesulfame potassium' },
+    { m: /\bsaccharin[e]?\b|\bsacarina\b|\be[- ]?954\b/i,     cap: 22, why: 'Saccharin' },
+    { m: /\bneotame\b|\be[- ]?961\b/i,                        cap: 22, why: 'Neotame' },
+    { m: /\badvantame\b|\be[- ]?969\b/i,                      cap: 22, why: 'Advantame' },
+    { m: /\bcyclamates?\b|\bcyclamic acid\b|\be[- ]?952\b/i,                      cap: 22, why: 'Cyclamate' },
   ];
 
   // SUGAR ALCOHOLS & NOVEL — penalised, not capped.
   const ALCOHOLS = [
-    { m: /^erythritol$/i,             pts: 12, why: 'Erythritol' },
-    { m: /^xylitol$/i,                pts: 10, why: 'Xylitol' },
-    { m: /^maltitol( syrup)?$/i,      pts: 12, why: 'Maltitol' },
-    { m: /^sorbitol$/i,               pts: 11, why: 'Sorbitol' },
-    { m: /^mannitol$/i,               pts: 11, why: 'Mannitol' },
-    { m: /^isomalt$/i,                pts: 11, why: 'Isomalt' },
-    { m: /^lactitol$/i,               pts: 11, why: 'Lactitol' },
+    { m: /^(?:erythritol|e[- ]?968)$/i,             pts: 12, why: 'Erythritol' },
+    { m: /^(?:xylitol|e[- ]?967)$/i,                pts: 10, why: 'Xylitol' },
+    { m: /^(?:maltitol( syrup)?|e[- ]?965)$/i,      pts: 12, why: 'Maltitol' },
+    { m: /^(?:sorbitol( syrup)?|e[- ]?420)$/i,               pts: 11, why: 'Sorbitol' },
+    { m: /^(?:mannitol|e[- ]?421)$/i,               pts: 11, why: 'Mannitol' },
+    { m: /^(?:isomalt|e[- ]?953)$/i,                pts: 11, why: 'Isomalt' },
+    { m: /^(?:lactitol|e[- ]?966)$/i,               pts: 11, why: 'Lactitol' },
     { m: /^allulose$/i,               pts: 8,  why: 'Allulose' },
-    { m: /^(steviol glycosides?|stevia( leaf extract)?|reb[- ]?[am])$/i, pts: 8, why: 'Stevia extract — refined, not the leaf' },
+    { m: /^(steviol glycosides?|stevia( leaf extract)?|reb[- ]?[am]|e[- ]?960[a-d]?)$/i, pts: 8, why: 'Stevia extract — refined, not the leaf' },
     { m: /^monk fruit( extract| juice concentrate)?$/i, pts: 6, why: 'Monk fruit extract' },
     { m: /^(soluble )?(corn|tapioca|chicory) (fiber|root fiber)$/i, pts: 9, why: 'Isolated fiber syrup' },
     { m: /^inulin$/i,                 pts: 6,  why: 'Isolated inulin' },
-    { m: /^polydextrose$/i,           pts: 12, why: 'Polydextrose' },
+    { m: /^(?:polydextrose|e[- ]?1200)$/i,           pts: 12, why: 'Polydextrose' },
   ];
 
   const _exports = AIRmodule('sugars', { FREE, TRADITIONAL, REFINED, INDUSTRIAL, ARTIFICIAL, ALCOHOLS });

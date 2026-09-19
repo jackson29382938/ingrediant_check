@@ -182,7 +182,42 @@
 
     { "id": "apple-cider-vinegar", "band": [80, 100],
       "product": { "name": "Bragg Organic Apple Cider Vinegar",
-        "ingredients_text": "Organic raw apple cider vinegar" } }
+        "ingredients_text": "Organic raw apple cider vinegar" } },
+
+    { "id": "soda-natural-flavors", "band": [35, 55],
+      "note": "September 16 audit. One flavour row: \"natural flavors\" was charged twice once \"natural\" was stripped as a qualifier.",
+      "product": { "name": "Flavored Sparkling Water", "ingredients_text": "Carbonated water, natural flavor" } },
+
+    { "id": "ranch-dressing-disclosed", "band": [10, 35],
+      "note": "September 16 audit. Function words in parentheses beside a named additive are disclosures, not extra additives.",
+      "product": { "name": "Ranch Dressing",
+        "ingredients_text": "Soybean oil, water, buttermilk, sugar, salt, egg yolk, garlic, natural flavors, xanthan gum (stabilizer), phosphoric acid, sodium benzoate and potassium sorbate (preservatives), calcium disodium EDTA (to protect flavor)" } },
+
+    { "id": "cheddar-annatto-color", "band": [75, 92],
+      "note": "September 16 audit. Annatto is a natural colour and it is named; \"(color)\" beside it is not an unnamed colour.",
+      "product": { "name": "Sharp Cheddar Cheese", "ingredients_text": "Pasteurized milk, cheese cultures, salt, enzymes, annatto (color)" } },
+
+    { "id": "eu-chocolate-e-numbers", "band": [22, 45],
+      "note": "September 16 audit. German label with the emulsifier as E322; must not score above its English twin.",
+      "product": { "name": "Milchschokolade", "ingredients_text": "Zucker, Kakaobutter, Vollmilchpulver, Kakaomasse, Emulgator (E322), Aroma" } },
+
+    { "id": "eu-diet-soda-e-numbers", "band": [3, 30],
+      "note": "September 16 audit. Spanish label, every additive by E-number. E951/E950 must cap exactly as aspartame and acesulfame K do.",
+      "product": { "name": "Cola Zero",
+        "ingredients_text": "Agua carbonatada, colorante (E150d), acidulantes (E338, E330), edulcorantes (E951, E950), aromas naturales, conservador (E211)" } },
+
+    { "id": "gummies-eu-azo-colours", "band": [3, 25],
+      "note": "September 16 audit. E104, E122 and E124 carry a mandatory EU warning and were absent from the rulebase.",
+      "product": { "name": "Fruit Gummies", "ingredients_text": "Glucose syrup, sugar, gelatine, dextrose, citric acid, flavourings, colours (E104, E122, E124)" } },
+
+    { "id": "organic-cane-sugar-bag", "band": [50, 74],
+      "note": "September 16 audit. A bag of sugar is sugar: organic earns nothing when every ingredient is itself penalised.",
+      "product": { "name": "Organic Cane Sugar", "ingredients_text": "Organic cane sugar" } },
+
+    { "id": "sandwich-bread-mono-diglycerides", "band": [10, 35],
+      "note": "September 16 audit. \"mono- and diglycerides\" (hyphen, space, and, space) is the usual US spelling and never matched the rule.",
+      "product": { "name": "Sandwich Bread",
+        "ingredients_text": "Enriched wheat flour, water, sugar, yeast, soybean oil, salt, mono- and diglycerides, calcium propionate (preservative)" } }
   ],
 
   "defects": [
