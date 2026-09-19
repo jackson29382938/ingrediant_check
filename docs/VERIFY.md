@@ -123,6 +123,8 @@ every Amazon ad refresh, on non-food pages included.
 npm run harness
 ```
 
+CI also runs `npm run harness:ci` (Playwright, Chromium, local pages only).
+
 - Panel: http://127.0.0.1:8731/
 - OCR: http://127.0.0.1:8731/tests/harness-ocr.html
 - Lifecycle: http://127.0.0.1:8731/tests/harness-lifecycle.html

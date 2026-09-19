@@ -10,8 +10,9 @@
     "chrome:reload": "node scripts/reload-extension.mjs",
     "ab": "node scripts/ab.mjs",
     "browser:setup": "node scripts/setup-browser.mjs",
-    "test": "node tests/sanity.test.js && node tests/food-gate.test.js && node tests/search-gate.test.js && node tests/search-gate-integration.test.js && node tests/negation.test.js && node tests/blurb.test.js && node tests/ocr.test.js && node tests/diagnostics.test.js && node tests/nutrition.test.js && node tests/harness.test.js && node tests/corpus.test.js && node tests/arithmetic.test.js && node tests/background.test.js && node tests/content-lifecycle.test.js && node tests/prefs.test.js && node tests/score-cache.test.js && node tests/offscreen.test.js && node tests/receiver.test.js && node tests/audit-2026-09-14.test.js && node tests/rules-revision.test.js && node --test tests/audit-2026-09-16.test.js",
+    "test": "node tests/sanity.test.js && node tests/food-gate.test.js && node tests/search-gate.test.js && node tests/search-gate-integration.test.js && node tests/negation.test.js && node tests/blurb.test.js && node tests/ocr.test.js && node tests/diagnostics.test.js && node tests/nutrition.test.js && node tests/harness.test.js && node tests/pages.test.js && node tests/locale.test.js && node tests/corpus.test.js && node tests/arithmetic.test.js && node tests/background.test.js && node tests/content-lifecycle.test.js && node tests/prefs.test.js && node tests/score-cache.test.js && node tests/offscreen.test.js && node tests/receiver.test.js && node tests/audit-2026-09-14.test.js && node tests/rules-revision.test.js && node --test tests/audit-2026-09-16.test.js",
     "harness": "node scripts/harness-server.mjs",
+    "harness:ci": "node scripts/harness-ci.mjs",
     "preflight": "node scripts/preflight.mjs"
   }
 }

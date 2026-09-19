@@ -3,7 +3,7 @@
 Read of `main` at `60cc287` (v1.0.2). Claims below are from the code, not from the README.
 Earlier audits (`docs/AUDIT-*.md`) already landed most rulebase and worker fixes; this is what is still worth doing, in order.
 
-**How to use this.** P0 security items are done on this branch. P1 is the next working slice. P2 is product, not hygiene. Do not start a rewrite — the current shape is the asset.
+**How to use this.** P0 security items are on `main`. P1 reliability items that do not need a live owner session are done on this branch. Remaining P1 is owner-only live verification plus one open product question. P2 is product, not hygiene. Do not start a rewrite — the current shape is the asset.
 
 ---
 
@@ -85,12 +85,11 @@ A Manifest V3 Chrome extension that rates Amazon grocery products **0–100** fr
 5. **Docs hygiene.**  
    `VERIFY.md` names 1.0.2. `corpus.json` defect notes are regressions, not open bugs (`OPEN_DEFECTS` is empty).
 
-### P1
+### P1 — done on this branch (except owner-only live steps)
 
-- **`activeTab` is barely used.** Popup talks to the current tab; host permissions already cover Amazon. Keep it if you want the “this page” card on a tab the user just clicked without waiting for a content-script inject; otherwise drop it to shorten the install prompt.
-- **Auto-score / hover fetch** (`fetch('/dp/' + asin, { credentials: 'same-origin' })`) uses the signed-in session. Copy in the popup is honest. Before a store listing, add a one-screen privacy note: what leaves the machine (nothing by default; barcode only if opted in; diagnostics only to *your* sheet; Amazon sees hover/auto-score as ordinary product views).
-- **Closed shadow** for the panel, unless a test harness needs `open`.
-- **No LICENSE file** in the repo. Add one before publishing.
+- **`activeTab` is barely used.** Popup talks to the current tab; host permissions already cover Amazon. Keep it if you want the “this page” card on a tab the user just clicked without waiting for a content-script inject; otherwise drop it to shorten the install prompt. (Still open — not blocking.)
+- **Privacy note + LICENSE.** [docs/PRIVACY.md](PRIVACY.md) is the one-page CWS note: default install sends nothing; auto-score / hover is an Amazon product view; diagnostics are a browse trace to *your* sheet. Root `LICENSE` is MIT (README did not imply otherwise).
+- **Closed shadow** for the panel, unless a test harness needs `open`. (Still P2.)
 
 ### Not a bug
 
@@ -107,14 +106,22 @@ A Manifest V3 Chrome extension that rates Amazon grocery products **0–100** fr
 
 | Risk | Where | What to do |
 |---|---|---|
-| Amazon grocery card markup changes | `extract.js` tiers 1–3, harness fixtures dated 2026-09-02 | Save 2–3 live HTML snapshots per store (US + one EU) under `tests/pages/` and assert `extract()` still finds the list. Highest-leverage reliability test you do not have. |
-| 21 hosts, incomplete languages | Heading regexes cover EN/ES/NL/FR/DE/IT/PL/JA (`原材料`). Scoring + OCR are English-first + E-numbers + ES/FR/DE/IT function words. Missing headings: Swedish `Ingredienser`, Turkish `İçindekiler`, Arabic, Portuguese-only forms, Hindi. OCR `BLOCK` is English `INGREDIENT(S\|EN)` only; `eng.traineddata` only. | For SE/TR/AE/SA/IN/JP: **decline** unreadable lists (already the coverage gate). Add headings before adding rules. Do not score JP/AR labels with English OCR. |
-| OCR reads the wrong block | `ocr-text.js` stops at ALLERGEN/CONTAINS; nutrition is correctly excluded | Pin 3 more real OCR transcripts (EU label, dark photo, ingredients on the back) in `tests/ocr.test.js`. |
-| Tile fetch 403 / captcha | `scoreTile` swallows errors, drops the pending chip, allows retry | Surface a single “Amazon throttled scoring” state after N failures; stop the queue. Do not retry-storm. |
+| Amazon grocery card markup changes | `extract.js` tiers 1–3, harness fixtures dated 2026-09-02 | **Done (P1):** sanitized snapshots in `tests/pages/` (US oats PDP, US shampoo PDP, SE havregryn PDP, US grocery search) plus `tests/pages.test.js`. Replace a fixture when a live layout actually breaks extract — do not add jsdom. |
+| 21 hosts, incomplete languages | Heading regexes now include SE `Ingredienser` and TR `İçindekiler` (plus EN/ES/NL/FR/DE/IT/PL/JA `原材料`). Scoring + OCR stay English-first. OCR `BLOCK` is English `INGREDIENT(S\|EN)` only; `eng.traineddata` only. | **Done (P1):** JP (`amazon.co.jp`) and AR (`amazon.ae`, `amazon.sa`) skip English OCR (`ocrReadyForHost`). Unreadable lists still hit the coverage gate. Do not add `jpn`/`ara` traineddata until a heading + rule pack exists. |
+| OCR reads the wrong block | `ocr-text.js` stops at ALLERGEN/CONTAINS; nutrition is correctly excluded | Pin 3 more real OCR transcripts (EU label, dark photo, ingredients on the back) in `tests/ocr.test.js`. (Still open.) |
+| Tile fetch 403 / captcha | `scoreTile` | **Done (P1):** after `TILE_FAIL_LIMIT` (5) consecutive non-abort failures, pause the queue, keep ASINs in `seen` (no retry-storm), show `#air-throttle-notice`. Reset on navigation. |
 | Food gate false positives | `ingestible.js` — heavily patched Sept 16 | Any new title miss goes in `food-gate.test.js` *and* a corpus note. Do not loosen the gate globally. |
 | Calibration, not a bug | Sept 14 item 11: plain wheat flour vs a bag of sugar vs NOVA framing | Product decision. If you keep gluten-as-penalty, say so in the refined-grains help string in `categories.js`. |
 
-**Open Food Facts / Apps Script** still have no live grant in this tree (`VERIFY.md` “still unproven”). Client-side URL checks and `rowId` / `batchId` are in place. Redeploy `docs/apps-script.gs` on the owner’s sheet before trusting diagnostics.
+**Open Food Facts / Apps Script** — owner-only live grant. Do not block other work on this. Client-side URL checks and `rowId` / `batchId` are in place.
+
+Owner checklist (not done in this environment):
+
+1. Chrome popup → enable **Open Food Facts fallback** and accept the host grant.
+2. Open a product with a barcode and no readable DOM list (Lifeway `B00LOAW7U6` is the fixture) and confirm a score arrives via OFF.
+3. Deploy / redeploy `docs/apps-script.gs` on the owner’s sheet (**Execute as: Me**, **Anyone**).
+4. Paste the `/exec` URL in settings, enable diagnostics, score a handful of products or **Send queued rows now**.
+5. Confirm the `diagnostics` tab has headers and one row per score, with no duplicate `batchId` replay.
 
 **Corpus defect notes** now say these are locked regressions (`OPEN_DEFECTS` is empty). Keep it that way: a `defect` id is a historical name, not an open bug.
 
@@ -128,9 +135,9 @@ A Manifest V3 Chrome extension that rates Amazon grocery products **0–100** fr
 
 | Gap | Priority | Concrete add |
 |---|---|---|
-| No saved Amazon HTML | P1 | 3 PDP + 1 search snapshot; run `extract()` + food gate in Node (`jsdom` or the existing harness DOM shim). |
-| Browser harnesses are manual | P1 | One Playwright/Puppeteer job on `harness.html` + `harness-lifecycle.html` in CI (no Amazon login). `npm run harness` already serves them. |
-| Live Amazon / OFF / Apps Script | P1 (manual) | Keep `docs/VERIFY.md` as the checklist, including the OCR-after-WAR-removal retest. |
+| No saved Amazon HTML | **done** | `tests/pages/*.html` + `tests/pages.test.js` (custom DOM loader, no jsdom). |
+| Browser harnesses are manual | **done** | `.github/workflows/test.yml` `harness` job: CI-only Playwright, `npm run harness:ci`, no Amazon. |
+| Live Amazon / OFF / Apps Script | P1 (manual, owner) | Keep `docs/VERIFY.md` as the checklist, including the OCR-after-WAR-removal retest. Checklist above. |
 | `package.json` `test` is a 20-file `&&` chain | P2 | `node --test tests/*.test.js` (one file already uses it). Today a mid-chain failure hides later suites. |
 | No lint / format | P2 | Optional `eslint` on `src/` only if it stays dependency-light; not blocking. |
 | OCR wasm path | already covered | `preflight` + `harness-ocr.html`. Do not add a unit test that importScripts the wasm. |
@@ -145,13 +152,13 @@ Do **not** put live Amazon in CI ( captcha, ToS, flakes ).
 |---|---|---|
 | Build | None, by design | Keep. |
 | Packaging | Unpacked folder | Before Chrome Web Store: zip without `.chrome-profile/`, `.git`, `tests/`, `docs/AUDIT-*` if you want a small package; keep `vendor/tesseract`. Add a `npm run pack` that files `preflight` then zips. |
-| CI | `.github/workflows/test.yml` | Sufficient. Add harness job when Playwright exists. |
+| CI | `.github/workflows/test.yml` | Node 20/22 `test` + `preflight`. Separate `harness` job installs Playwright for the two local harness pages only. |
 | Chrome profile | Defaulted off-repo; `.chrome-profile/` still gitignored | Owner should `rm -rf .chrome-profile` if a Drive-synced copy still has cookies (Sept 16 leftover). |
 | Docs | README is good; audits are resolution logs | Point README “Accuracy” at this file. Fix `VERIFY.md` version. |
 | Locales | `_locales/en` only; settings page is hardcoded English | P2. Popup/panel already go through `chrome.i18n`. |
 | **Naming** | GitHub repo `ingrediant_check`; npm/package `ingredient-check`; UI **Ingredient Check**; internal prefix `AIR` / `#air-score-panel` | Do not rename the GitHub repo unless you are ready to update every clone URL. For a store listing, keep **Ingredient Check**. A README one-liner (“repo folder spelling is historical”) is enough. Do not mass-rename `AIR` — it is in DOM ids, storage-adjacent comments, and tests. |
 
-No `LICENSE` file — add one if this is meant to be public beyond the current GitHub visibility.
+`LICENSE` is MIT. Store-listing privacy copy is [docs/PRIVACY.md](PRIVACY.md).
 
 ---
 
@@ -180,13 +187,13 @@ These are not defects. Pick at most one.
 
 ### P1 — reliability you will feel on real pages
 
-6. Check in 3–4 Amazon HTML snapshots; assert extract + food gate.
-7. CI the existing browser harnesses (panel + lifecycle), still without Amazon.
-8. Owner: live OFF grant + Apps Script round-trip; redeploy receiver for `batchId` / `rowId`.
-9. After N tile-fetch failures, pause auto-score and say so.
-10. Headings for `amazon.se` / `.com.tr` (and decide JP/AR: heading-only vs decline). Do not turn on English OCR there.
-11. One-page privacy summary for a store listing; add `LICENSE`.
-12. Decide wheat-flour vs sugar / NOVA copy in `categories.js` (Sept 14 calibration item).
+6. ~~Check in 3–4 Amazon HTML snapshots; assert extract + food gate.~~ `tests/pages/` + `tests/pages.test.js`.
+7. ~~CI the existing browser harnesses (panel + lifecycle), still without Amazon.~~ `npm run harness:ci` / workflow `harness` job.
+8. Owner: live OFF grant + Apps Script round-trip; redeploy receiver for `batchId` / `rowId`. **Not done here** — checklist in §4.
+9. ~~After N tile-fetch failures, pause auto-score and say so.~~ `TILE_FAIL_LIMIT` (5); `#air-throttle-notice`; no `seen.delete` on failure.
+10. ~~Headings for `amazon.se` / `.com.tr`; JP/AR decline-until-ready (no English OCR).~~ `Ingredienser` / `İçindekiler`; `ocrReadyForHost`.
+11. ~~One-page privacy summary for a store listing; add `LICENSE`.~~ [PRIVACY.md](PRIVACY.md), MIT `LICENSE`.
+12. **Open product question:** wheat-flour vs a bag of sugar vs NOVA framing (Sept 14 calibration item 11). Do not change scoring rules until that is decided. If gluten-as-penalty stays, say so in the refined-grains help string in `categories.js`.
 
 ### P2 — later
 

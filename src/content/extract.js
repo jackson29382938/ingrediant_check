@@ -14,10 +14,12 @@
 (function (root) {
   root.AIR = root.AIR || {};
 
-  const NEXT_SECTION = /^(directions|legal disclaimer|safety information|allergen information|warnings?|storage|nutrition facts|product description|informaci[oó]n nutricional|n[äa]hrwert|valeurs nutritionnelles|valori nutrizionali)\b/i;
+  const NEXT_SECTION = /^(directions|legal disclaimer|safety information|allergen information|warnings?|storage|nutrition facts|product description|informaci[oó]n nutricional|n[äa]hrwert|valeurs nutritionnelles|valori nutrizionali|n[äa]ringsv[äa]rde|besin de[gğ]erleri)\b/i;
   // US pages print "Ingredients". EU/LatAm pages print the local heading, and a US-only match
   // used to walk past a perfectly readable list on amazon.de / .es / .fr / .it.
-  const INGREDIENT_HEADING = /^\s*(?:ingredients?|ingredientes|ingredi[eë]nten|ingr[eé]dients?|zutaten|ingredienti|sk[łl]adniki|原材料)\s*:?\s*$/i;
+  // Swedish Ingredienser / Turkish İçindekiler were missing; JP 原材料 is already here.
+  // JP/AR stores still decline scoring via coverage + skipped English OCR (see ocrReadyForHost).
+  const INGREDIENT_HEADING = /^\s*(?:ingredients?|ingredientes|ingredi[eë]nten|ingr[eé]dients?|zutaten|ingredienti|sk[łl]adniki|ingredienser|[iİ][çc]indekiler|原材料)\s*:?\s*$/i;
   const MIN_LEN = 4;
   // Rejecting rather than truncating is deliberate: the tail of a list is exactly where the
   // additives live, so a truncated list would score clean for the wrong reason. But 3000 was tight
@@ -87,7 +89,7 @@
     const t = stripBoilerplate(text);
     if (t.length < MIN_LEN || t.length > MAX_LEN) return false;
     if (PLACEHOLDER.test(t)) return false;
-    if (/^(ingredients?|ingredientes|ingredi[eë]nten|ingr[eé]dients?|zutaten|ingredienti|sk[łl]adniki|原材料|nutrition facts|directions|legal disclaimer)\s*:?\s*$/i.test(t)) return false;
+    if (/^(ingredients?|ingredientes|ingredi[eë]nten|ingr[eé]dients?|zutaten|ingredienti|sk[łl]adniki|ingredienser|[iİ][çc]indekiler|原材料|nutrition facts|directions|legal disclaimer)\s*:?\s*$/i.test(t)) return false;
     if (/\b(we believe|our story|customer|review|shipping|guarantee|click here)\b/i.test(t)) return false;
 
     const parts = t.split(/[,;]/).map(p => p.trim()).filter(Boolean);
@@ -190,9 +192,9 @@
   // Stop at a known next-section heading or end of text — NOT at the first blank line. Consecutive
   // <p> elements render as a blank line in innerText, so the old blank-line terminator cut lists in
   // half whenever Amazon split them across paragraphs.
-  const LINE_BLOCK = /(?:^|\n)[ \t]*(?:Ingredients?|Ingredientes|Ingrediënten|Ingrédients|Zutaten|Ingredienti|Składniki|原材料)[ \t]*:?[ \t]*\n+([\s\S]{4,6000}?)(?=\n[ \t]*(?:Directions|Legal Disclaimer|Safety Information|Allergen Information|Warnings?|Storage|Nutrition Facts|Product Description|About this item|Información nutricional|Nährwert|Valeurs nutritionnelles|Valori nutrizionali|Voedingswaarde|Wartość odżywcza|栄養成分)(?:\b|$)|$)/i;
+  const LINE_BLOCK = /(?:^|\n)[ \t]*(?:Ingredients?|Ingredientes|Ingrediënten|Ingrédients|Zutaten|Ingredienti|Składniki|Ingredienser|[İI]çindekiler|Icindekiler|原材料)[ \t]*:?[ \t]*\n+([\s\S]{4,6000}?)(?=\n[ \t]*(?:Directions|Legal Disclaimer|Safety Information|Allergen Information|Warnings?|Storage|Nutrition Facts|Product Description|About this item|Información nutricional|Nährwert|Valeurs nutritionnelles|Valori nutrizionali|Voedingswaarde|Wartość odżywcza|Näringsvärde|Besin değerleri|栄養成分)(?:\b|$)|$)/i;
   // Same-line form used on a lot of detail-bullet pages: "Ingredients: water, sugar, salt".
-  const LINE_INLINE = /(?:^|\n)[ \t]*(?:Ingredients?|Ingredientes|Ingrediënten|Ingrédients|Zutaten|Ingredienti|Składniki|原材料)\s*:\s*([^\n]{8,6000})/i;
+  const LINE_INLINE = /(?:^|\n)[ \t]*(?:Ingredients?|Ingredientes|Ingrediënten|Ingrédients|Zutaten|Ingredienti|Składniki|Ingredienser|[İI]çindekiler|Icindekiler|原材料)\s*:\s*([^\n]{8,6000})/i;
 
   function tier3(doc, title) {
     const regions = ['#important-information', '#productDetails_feature_div', '#detailBullets_feature_div', '#aplus'];
@@ -391,6 +393,29 @@
     return out;
   }
 
+  // ---- store locale ------------------------------------------------------------------------
+  // Headings can be added per store. Scoring + OCR stay English-first. Japanese and Arabic
+  // stores are decline-until-ready: English Tesseract will invent a confident wrong list.
+  const OCR_NOT_READY = /(?:^|\.)amazon\.(?:co\.jp|ae|sa)$/i;
+  function hostOf(hostname) {
+    return String(hostname || '').replace(/^www\./i, '').toLowerCase();
+  }
+  function ocrReadyForHost(hostname) {
+    return !OCR_NOT_READY.test(hostOf(hostname));
+  }
+  function localeStatus(hostname) {
+    const host = hostOf(hostname);
+    if (/(?:^|\.)amazon\.co\.jp$/.test(host)) {
+      return { host, locale: 'ja', ocrReady: false, reason: 'jp-ocr-not-ready' };
+    }
+    if (/(?:^|\.)amazon\.(?:ae|sa)$/.test(host)) {
+      return { host, locale: 'ar', ocrReady: false, reason: 'ar-ocr-not-ready' };
+    }
+    if (/(?:^|\.)amazon\.se$/.test(host)) return { host, locale: 'sv', ocrReady: true };
+    if (/(?:^|\.)amazon\.com\.tr$/.test(host)) return { host, locale: 'tr', ocrReady: true };
+    return { host, locale: 'en', ocrReady: true };
+  }
+
   // ---- public ------------------------------------------------------------------------------
   // Second argument is an ASIN string (search-tile fetches) or `{ asin, foodOnly }`.
   // `foodOnly` defaults on: the settings toggle is what turns the gate off, not extract itself.
@@ -418,6 +443,6 @@
     return { ok: false, ...identity, reason: identity.upc ? 'no-dom-match-barcode-available' : 'no-dom-match' };
   }
 
-  root.AIR.extract = { extract, looksLikeIngredients, stripBoilerplate, echoesTitle, LINE_BLOCK, LINE_INLINE, INGREDIENT_HEADING, productIdentity, nutritionFacts, nutritionSummaryTable };
+  root.AIR.extract = { extract, looksLikeIngredients, stripBoilerplate, echoesTitle, LINE_BLOCK, LINE_INLINE, INGREDIENT_HEADING, productIdentity, nutritionFacts, nutritionSummaryTable, ocrReadyForHost, localeStatus };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.AIR.extract;
 })(typeof globalThis !== 'undefined' ? globalThis : self);
