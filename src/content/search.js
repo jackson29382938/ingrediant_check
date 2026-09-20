@@ -127,14 +127,19 @@
     }
     if (hit === 'unreadable') {
       b.textContent = '?';
-      b.title = "Amazon doesn't publish readable ingredients for this one";
-      b.setAttribute('aria-label', "Amazon doesn't publish readable ingredients for this one");
+      b.title = throttleCopy('badgeNoIngredients', "Amazon doesn't publish readable ingredients for this one");
+      b.setAttribute('aria-label', b.title);
       b.style.cssText = 'color:#767676;background:#f7f8f8;border:2px dashed #d5d9d9;';
       return b;
     }
     const c = root.AIR.panel.BAND_COLOR(hit.score);
     b.textContent = hit.score;
-    b.title = `Ingredient Check: ${hit.score}/100 — ${hit.verdict}`;
+    const verdictKey = ({
+      Excellent: 'verdictExcellent', Good: 'verdictGood', Mediocre: 'verdictMediocre',
+      Poor: 'verdictPoor', Avoid: 'verdictAvoid',
+    })[hit.verdict];
+    const verdict = verdictKey ? throttleCopy(verdictKey, hit.verdict) : hit.verdict;
+    b.title = `Ingredient Check: ${hit.score}/100 — ${verdict}`;
     b.setAttribute('aria-label', b.title);
     b.style.cssText = `color:${c.fg};background:${c.bg};border:2px solid ${c.ring};`;
     return b;

@@ -171,7 +171,7 @@ These are not defects. Pick at most one.
 
 - **Search chips without fetching Amazon:** barcode/title → OFF only when the user already granted it; otherwise keep “cached after open” as the default (current honest model).
 - **Compare two ASINs** in the popup — **done.** `#compareBlock` lists valid `s:` cache entries via `CACHE.listScores`; no network.
-- **Per-store language pack** (headings + top 20 additives) for DE/FR/ES/IT first; JA/AR as decline-only until then.
+- **Per-store language pack** — **done (DE/FR/ES/IT synonyms).** Existing English keys; JA/AR still decline-only for OCR.
 - **Weight presets on the popup** — **done (P2).** Popup chips apply `categories.PRESETS` (balanced / conventional / additive / wholeFood / strictSugar). No new scoring system.
 - **Other retailers:** do not start. Extraction is Amazon-specific; a second host is a second `extract.js`.
 - **Health claims:** keep the disclaimer. Allergen chips are “found in this text”, not a safety check — do not bury that.
@@ -196,7 +196,7 @@ These are not defects. Pick at most one.
 9. ~~After N tile-fetch failures, pause auto-score and say so.~~ `TILE_FAIL_LIMIT` (5); `#air-throttle-notice`; no `seen.delete` on failure.
 10. ~~Headings for `amazon.se` / `.com.tr`; JP/AR decline-until-ready (no English OCR).~~ `Ingredienser` / `İçindekiler`; `ocrReadyForHost`.
 11. ~~One-page privacy summary for a store listing; add `LICENSE`.~~ [PRIVACY.md](PRIVACY.md), MIT `LICENSE`.
-12. **Open product question:** wheat-flour vs a bag of sugar vs NOVA framing (Sept 14 calibration item 11). Do not change scoring rules until that is decided. If gluten-as-penalty stays, say so in the refined-grains help string in `categories.js`.
+12. ~~Wheat/gluten default stays 1.0.~~ Grain help now says whole wheat is penalized as gluten; user can lower the dial. NOVA mapping unchanged.
 
 ### P2 — later / done on this branch
 
@@ -208,6 +208,7 @@ These are not defects. Pick at most one.
 18. ~~Compare two cached ASINs in the popup.~~ `CACHE.listScores` + `#compareBlock`.
 19. ~~Store-listing checklist.~~ [store-listing/README.md](store-listing/README.md) (no version bump; screenshots owner-captured).
 20. ~~OCR wasm smoke in `harness:ci`.~~ Default `harness-ocr.html` starts the vendored worker; `?live=1` keeps the Amazon image path.
+21. ~~DE/FR/ES/IT synonym pack.~~ Maps onto existing English keys; `RULES_REVISION` `2026-09-20`; `tests/synonyms.test.js`.
 
 ---
 

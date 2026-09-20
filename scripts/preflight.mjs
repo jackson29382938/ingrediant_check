@@ -132,6 +132,8 @@ check('every key resolves', () => {
     ...[...read('src/options/options.html').matchAll(/data-i18n(?:-placeholder|-aria)?="([A-Za-z0-9_]+)"/g)].map(m => m[1]),
     ...[...read('src/options/popup.js').matchAll(/\bmsg\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
     ...[...read('src/options/settings.js').matchAll(/\bmsg\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
+    ...[...read('src/content/search.js').matchAll(/throttleCopy\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
+    ...[...read('src/content/search.js').matchAll(/'((?:verdict|throttle|badge)[A-Za-z]+)'/g)].map(m => m[1]),
   ]);
   const missing = [...used].filter(k => !(k in msgs));
   if (missing.length) throw new Error('missing: ' + missing.join(', '));

@@ -36,8 +36,8 @@ Do not invent security chores. Keep `preflight` and `sanity.test.js` as the guar
 |---|---|---|---|
 | 1 | **Live optional-network proof** | [VERIFY.md](VERIFY.md) §3–5, [DIAGNOSTICS.md](DIAGNOSTICS.md), [apps-script.gs](apps-script.gs) | Owner-only. Enable OFF on Lifeway `B00LOAW7U6` (~28 Poor). Redeploy Apps Script (**Execute as: Me**, **Anyone**). Paste `/exec`, flush diagnostics, confirm one row per score and no `batchId` replay. |
 | 2 | **Post-WAR OCR on a real Amazon tab** | [VERIFY.md](VERIFY.md) “After removing WAR”, `src/offscreen/ocr.js`, `vendor/tesseract/` | [LIVE-TEST-2026-09-05.md](LIVE-TEST-2026-09-05.md) predates WAR removal. Node + `harness-ocr.html` do not prove the live offscreen path. Re-run Lifeway with **Read label photos** on unpacked `main`. |
-| 3 | **Non-English lists still score “easy”** | `src/engine/db/additives.js`, `src/engine/score.js`, [AUDIT-2026-09-14.md](AUDIT-2026-09-14.md) item 12 | Headings and E-numbers work; most penalties are English. A Spanish twin of a chocolate list can clear coverage and miss `aroma` / `lecitina de soja`, so the score is flattered. Either add ~20 high-frequency synonyms per DE/FR/ES/IT **or** refuse more aggressively on those hosts. **This is a rule change** — bump `RULES_REVISION` and extend `tests/corpus.json`. Do not do it silently. |
-| 4 | **Wheat / gluten / NOVA product story** | `src/engine/categories.js` (`grain` help), `src/engine/score.js` ~137–141, `src/engine/db/additives.js` GRAINS, `tests/audit-2026-09-14.test.js` | **Not missing code.** Help text already says whole wheat is penalized as gluten; NOVA treats plain flour as processed (3) and enriched as ultra (4). What is open is whether default weight `1.0` on `grain` is the product you want to sell. Decide; if you change behavior, bump `RULES_REVISION`. |
+| 3 | **Non-English lists still score “easy”** | **done (synonym pack)** | ~20 high-frequency DE/FR/ES/IT aliases map onto existing English keys (flavour, lecithin, grains, acids, oils, sugars, isolates). `RULES_REVISION` `2026-09-20`. Pinned in `tests/synonyms.test.js` + corpus. |
+| 4 | **Wheat / gluten / NOVA product story** | **done (copy only)** | Default grain weight stays **1.0**. Help text now says whole wheat is penalized as gluten by default; user can lower the grain dial. NOVA mapping unchanged. |
 | 5 | **Amazon layout drift** | `src/content/extract.js`, `tests/pages/` (dated 2026-09-02) | Snapshots pin US oats/shampoo, SE havregryn, US grocery search. Do **not** add jsdom or refresh fixtures for sport. When a live grocery card breaks, drop a sanitized HTML next to those files and assert extract + food gate. |
 
 ### P2 — later, useful, not blocking
@@ -48,7 +48,7 @@ Do not invent security chores. Keep `preflight` and `sanity.test.js` as the guar
 | 7 | **Chrome Web Store package** | **done (checklist)** | [store-listing/README.md](store-listing/README.md). Screenshots still owner-captured; version bump only at submit. |
 | 8 | **OCR wasm in CI** | **done** | `harness-ocr.html` default is a no-Amazon worker smoke; `?live=1` keeps the old Amazon image path. `npm run harness:ci` waits on `__ocrSmoke.ok`. |
 | 9 | **Worker hygiene** | **done (`toCsvUrl`)** | Worker delegates to `prefs.toSheetUrl`. Tests load `prefs.js`. Message-type inventory still optional. |
-| 10 | **i18n leftovers** | `src/engine/categories.js`, `src/options/options.html` notes, `src/content/search.js` (`throttleCopy`) | Chrome is localized; category help, verdict words, and long settings notes are still English. Add `search.js` keys to the `preflight` harvest. Do not add `_locales/de` until category strings move. |
+| 10 | **i18n leftovers** | **done (en chrome)** | Throttle + verdict keys harvested from `search.js`; settings notes + `catHelp_grain`; panel verdict labels. Category help still English in `categories.js` except grain. No `_locales/de`. |
 | 11 | **Optional eslint** | `package.json` | Only if it stays a devDependency and CI stays install-light for the main job. Not blocking. |
 | 12 | **Dead evidence links** | **done** | LIVE-TEST / VERIFY no longer point at missing `evidence/2026-09-05/*.png`. |
 | 13 | **`flushDiagnostics` sender** | `src/background.js` `allowMessage` | Any extension page can flush the queue (data goes to *your* endpoint). Optional: restrict to `options.html`. |
@@ -64,8 +64,8 @@ These cannot be closed by another code PR:
 1. **Live OFF grant** on Lifeway `B00LOAW7U6` (VERIFY §3).
 2. **Live OCR after WAR removal** on the same page (VERIFY “After removing WAR”).
 3. **Apps Script deploy + diagnostics round-trip** (`batchId` / `rowId`; VERIFY §5).
-4. **Wheat / gluten default:** keep gluten-as-penalty at weight 1.0 (current, already documented in `categories.js`), or lower the default / retune NOVA and bump `RULES_REVISION`.
-5. **Non-English strategy:** synonym pack (rule change) vs decline more lists on DE/FR/ES/IT.
+4. **Wheat / gluten default:** kept at weight 1.0. Copy now says so explicitly. Retune NOVA/grain weights only if you want a different product.
+5. **Non-English strategy:** synonym pack shipped (DE/FR/ES/IT → existing English keys). Further languages or a refuse-on-low-coverage policy for JA/AR are still a product call.
 6. **GitHub repo rename** `ingrediant_check` → something spelled *ingredient*. Conscious clone-URL break. Product name stays **Ingredient Check**. Leave it.
 7. **Chrome Web Store submit** (screenshots, privacy URL, version bump). Code can prepare the zip; only you can list it.
 8. **`.chrome-profile/` leftover** on any Drive-synced clone — delete locally if it still has cookies (gitignored; default profile is already off-repo).
@@ -77,12 +77,12 @@ These cannot be closed by another code PR:
 Ordered for user-visible accuracy first, then store, then hygiene. Skip 1–2 until you have a Chrome session if you want; they are owner steps, not code.
 
 1. **Run the VERIFY checklist** (OFF + post-WAR OCR + Apps Script). Until that is green, do not claim those features in a store listing.
-2. **Decide the grain story** in one sentence (“we penalize gluten grains by default; turn the dial down if you disagree” is already the code). Only then touch rules.
-3. **DE/FR/ES/IT top-20 additive synonyms** (or a stricter non-English coverage refuse) — the largest remaining *accuracy* gap for 15 of 21 hosts. Requires `RULES_REVISION` + corpus pins. Not a rewrite.
+2. ~~**Decide the grain story**~~ — default stays 1.0 (gluten grains, including whole wheat). Copy in `categories.js` / `catHelp_grain` says so; NOVA mapping unchanged.
+3. ~~**DE/FR/ES/IT top-20 additive synonyms**~~ — existing English keys; `RULES_REVISION` `2026-09-20`; `tests/synonyms.test.js`.
 4. ~~**Compare two cached ASINs**~~ in the popup (`CACHE.listScores`).
 5. ~~**Store-listing folder + `harness-ocr` in CI**~~ — [store-listing/README.md](store-listing/README.md); wasm smoke in `harness:ci`.
 
-`toCsvUrl` now delegates to `prefs.toSheetUrl`. Leftover i18n is still a drive-by.
+`toCsvUrl` delegates to `prefs.toSheetUrl`. Throttle/verdict i18n and `catHelp_grain` are wired. Leftover long settings notes with nested markup are still English.
 
 ---
 

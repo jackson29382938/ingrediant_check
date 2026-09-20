@@ -27,6 +27,15 @@
     return subs.reduce((acc, v, i) => acc.split('$' + (i + 1)).join(String(v)), out);
   }
 
+  function verdictText(v) {
+    if (v === 'Excellent') return t('verdictExcellent', 'Excellent');
+    if (v === 'Good') return t('verdictGood', 'Good');
+    if (v === 'Mediocre') return t('verdictMediocre', 'Mediocre');
+    if (v === 'Poor') return t('verdictPoor', 'Poor');
+    if (v === 'Avoid') return t('verdictAvoid', 'Avoid');
+    return v;
+  }
+
   const NOVA_TEXT = {
     get 1() { return t('novaWhole', 'Whole / minimally processed'); },
     get 2() { return t('novaCulinary', 'Culinary ingredient'); },
@@ -194,16 +203,16 @@
     // A zero-point note about milk or fruit sugar is useful on a clean food, but reads like a health
     // halo on candy or chips. Hide that cosmetic note when refined added sugar is also present.
     const neutral = result.good.filter(h => h.c === 0 && !(refinedSugarPresent && /Natural sugar/i.test(h.why)));
-    const copyLine = [result.score, result.verdict, NOVA_TEXT[result.nova], meta.title || '']
+    const copyLine = [result.score, verdictText(result.verdict), NOVA_TEXT[result.nova], meta.title || '']
       .filter(Boolean).join(' · ');
 
     return `
     <style>${CSS}</style>
     <div class="card" style="--fg:${c.fg};--bg:${c.bg};--ring:${c.ring}">
       <button class="head" part="head" type="button" aria-expanded="false" aria-controls="air-panel-details">
-        <span class="score" title="${esc(result.verdict)} · ${esc(NOVA_TEXT[result.nova])}">${result.score}</span>
+        <span class="score" title="${esc(verdictText(result.verdict))} · ${esc(NOVA_TEXT[result.nova])}">${result.score}</span>
         <span class="meta">
-          <span class="verdict">${esc(result.verdict.toUpperCase())}</span>
+          <span class="verdict">${esc(verdictText(result.verdict).toUpperCase())}</span>
           <span class="sub">${esc(NOVA_TEXT[result.nova])} · ${esc(meta.title || '')}</span>
         </span>
         <span class="chev">▾</span>

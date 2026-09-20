@@ -126,8 +126,9 @@ test('the same chocolate scores the same in five languages', () => {
   };
   for (const [lang, text] of Object.entries(twins)) {
     const r = score(text);
-    assert.ok(Math.abs(r.score - en) <= 4, `${lang}: ${r.score} vs en ${en}`);
+    assert.equal(r.score, en, `${lang}: ${r.score} vs en ${en}`);
     assert.ok(r.coverage >= 0.6, `${lang}: coverage ${r.coverage}`);
+    assert.ok(reasons(r).some(w => /flavour|flavor|lecithin|sugar/i.test(w)), `${lang} reasons ${reasons(r)}`);
   }
   // A bilingual label is charged once for its flavouring.
   assert.equal(reasons(score('Natural flavour / arôme naturel, water')).filter(w => /flavo/i.test(w)).length, 1);

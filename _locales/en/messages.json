@@ -484,5 +484,47 @@
   },
   "optResetDone": {
     "message": "Reset to defaults"
+  },
+  "verdictExcellent": {
+    "message": "Excellent"
+  },
+  "verdictGood": {
+    "message": "Good"
+  },
+  "verdictMediocre": {
+    "message": "Mediocre"
+  },
+  "verdictPoor": {
+    "message": "Poor"
+  },
+  "verdictAvoid": {
+    "message": "Avoid"
+  },
+  "badgeNoIngredients": {
+    "message": "Amazon doesn't publish readable ingredients for this one"
+  },
+  "catHelp_grain": {
+    "message": "Default 1.0: gluten grains are a penalty, including whole wheat. Enriched and white flour cost more; wheat, barley and rye still count when they are whole grain, because this dial is gluten as much as refinement. Traditionally prepared grains (sourdough, sprouted, soaked) count half. Lower this weight if you do not want gluten grains counted against a score. NOVA still treats plain flour as processed (3) and enriched as ultra (4) — that mapping is not this dial."
+  },
+  "optNoteRateSame": {
+    "message": "These settings are the same ones in the toolbar popup. Changing them here updates scores on Amazon immediately."
+  },
+  "optNoteFoodOnly": {
+    "message": "Skips shoes, toys, cosmetics, medicine and cleaning products. A score on shampoo would imply it was judged as something you could eat. When this is on, a non-food page shows why it was skipped instead of a silent blank."
+  },
+  "optNoteWeights": {
+    "message": "1.0 is the default weight. 0 switches a category off entirely. 2.0 makes it matter twice as much. Categories set to 0 by default are ones people reasonably disagree about — turn them on if you want them. Press / to jump to the filter."
+  },
+  "optNoteAllergen": {
+    "message": "Flagged on the panel. These never change the score — whether a food contains sesame is a different question from whether it is a good food."
+  },
+  "optNoteAvoid": {
+    "message": "One ingredient or phrase per line. Anything matching gets flagged on the panel."
+  },
+  "optNoteAvoidHint": {
+    "message": "Add a common one:"
+  },
+  "optNoteExport": {
+    "message": "Exports as a plain JSON file you can keep, edit, or move to another computer."
   }
 }
