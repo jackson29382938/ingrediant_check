@@ -47,7 +47,7 @@
   function scoreCurrentPage() {
     const { state, HOST_ID, MAX_EXTRACT_RETRIES, unreadable, cacheScore, cache,
       publishActionBadge, sendDiagnostic } = P();
-    const urlAsin = (location.pathname.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/) || [])[1];
+    const urlAsin = (location.pathname.match(/\/(?:dp|gp\/product|gp\/aw\/d)\/([A-Z0-9]{10})/) || [])[1];
     const earlyKey = urlAsin || location.pathname;
     const existing = document.getElementById(HOST_ID);
     const existingState = existing && existing.dataset.airState;
@@ -173,6 +173,9 @@
 
   function enrichProvenance(host, data, key, first, requestId) {
     const { state, cacheScore, publishActionBadge } = P();
+    // No shared-database URLs configured → skip the round-trip (storage reads + empty lookups).
+    const conf = state.cacheOptions || {};
+    if (!conf.sheetUrl && !conf.producersUrl) { maybeContribute(data, first); return; }
     try {
       chrome.runtime.sendMessage({
         type: 'provenanceLookup',
@@ -284,11 +287,18 @@
   }
 
   function renderManual(host, data, key, text) {
-    const { state, cacheScore, publishActionBadge, sendDiagnostic } = P();
+    const { state, unreadable, cacheScore, publishActionBadge, sendDiagnostic } = P();
     const result = root.AIR.engine.score({
       name: data.title, labels: data.labels, certifications: data.certifications,
       nutrition: data.nutrition, ingredients_text: text,
     }, state.prefs);
+    // Paste must not launder unrecognised text into a confident Excellent — same coverage floor
+    // as DOM / OCR / OFF. Re-open the failure card so the user can try again.
+    if (unreadable(result)) {
+      state.manual = null;
+      showFailure(host, { ...data, lowCoverage: true, ocrAttempted: true }, key);
+      return;
+    }
     host.dataset.airState = 'scored';
     P().settle('scored');
     root.AIR.panel.mount(host, root.AIR.panel.render(result, {
@@ -300,7 +310,7 @@
   }
 
   function wireScoreAnyway(shadow, host, data, key) {
-    const { state, cacheScore, publishActionBadge } = P();
+    const { state, unreadable, cacheScore, publishActionBadge } = P();
     const btn = shadow && shadow.querySelector('button.anyway');
     if (!btn) return;
     btn.addEventListener('click', () => {
@@ -310,6 +320,10 @@
         name: data2.title, labels: data2.labels, certifications: data2.certifications,
         nutrition: data2.nutrition, ingredients_text: data2.text,
       }, state.prefs);
+      if (unreadable(result)) {
+        showFailure(host, { ...data2, lowCoverage: true, ocrAttempted: true }, key);
+        return;
+      }
       host.dataset.airState = 'scored';
       P().settle('scored');
       root.AIR.panel.mount(host, root.AIR.panel.render(result, {

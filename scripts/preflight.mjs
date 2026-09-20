@@ -9,6 +9,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { buildContentMatches, AMAZON_HOSTS } from './content-matches.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = p => fs.readFileSync(path.join(root, p), 'utf8');
@@ -55,15 +56,28 @@ check('permissions and CSP match the features', () => {
 });
 check('stores covered', () => {
   const matches = manifest.content_scripts[0].matches || [];
-  const hosts = new Set(matches.map(m => (m.match(/^\*:\/\/\*\.([^/]+)/) || [])[1]).filter(Boolean));
-  if (hosts.size < 21) throw new Error(`only ${hosts.size} Amazon hosts in content_scripts.matches`);
-  if (matches.some(m => /\/\*$/.test(m) && !/\/(dp|s|b|stores|gp\/product|gp\/browse)/.test(m))) {
+  const expected = buildContentMatches();
+  if (matches.length !== expected.length || matches.some((m, i) => m !== expected[i])) {
+    throw new Error('content_scripts.matches drifted from scripts/content-matches.mjs — regenerate or edit the source list');
+  }
+  const hosts = new Set(AMAZON_HOSTS);
+  if (hosts.size < 21) throw new Error(`only ${hosts.size} Amazon hosts`);
+  if (matches.some(m => /\/\*$/.test(m) && !/\/(dp|s|b|stores|gp\/product|gp\/browse|gp\/aw\/d)/.test(m))) {
     throw new Error('a catch-all /* match is back — content scripts must stay on product/search paths');
+  }
+  if (!matches.some(m => m.includes('/*/dp/')) || !matches.some(m => m.includes('/*/gp/product/'))) {
+    throw new Error('slug product matches (/*/dp/*, /*/gp/product/*) missing');
+  }
+  if (!matches.some(m => m.startsWith('*://amazon.'))) {
+    throw new Error('apex amazon.* matches missing');
+  }
+  if (!matches.some(m => m.includes('/gp/aw/d/'))) {
+    throw new Error('mobile /gp/aw/d/ matches missing');
   }
   if (!matches.some(m => m.includes('/dp/')) || !matches.some(m => m.endsWith('/s') || m.includes('/s/'))) {
     throw new Error('product /dp/ or search /s matches missing');
   }
-  return `${hosts.size} Amazon stores, ${matches.length} path patterns`;
+  return `${hosts.size} Amazon stores, ${matches.length} path patterns (incl. slug + apex + mobile)`;
 });
 check('content scripts split PDP vs search', () => {
   const js = manifest.content_scripts[0].js || [];

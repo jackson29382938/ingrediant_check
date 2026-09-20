@@ -108,6 +108,12 @@ check('Spanish INGREDIENTES headings are recognised', () => {
   const got = ocr.ingredientsFromOcr('INGREDIENTES: agua, azucar, sal, aceite vegetal. ALLERGENS: CONTAINS: none');
   assert.ok(got && /agua/.test(got), `missing Spanish list: ${got}`);
 });
+check('German Zutaten and French Ingrédients headings are recognised', () => {
+  const de = ocr.ingredientsFromOcr('Zutaten: Wasser, Zucker, Salz, Sonnenblumenöl. ALLERGENS: CONTAINS: none');
+  assert.ok(de && /Wasser/.test(de), `missing German list: ${de}`);
+  const fr = ocr.ingredientsFromOcr('Ingrédients: eau, sucre, sel, huile de tournesol. ALLERGENS: CONTAINS: none');
+  assert.ok(fr && /eau/.test(fr), `missing French list: ${fr}`);
+});
 
 console.log('\nchoosing between images');
 check('the image carrying a real list wins', () => {

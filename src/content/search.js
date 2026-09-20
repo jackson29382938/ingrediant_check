@@ -303,8 +303,11 @@
     queue.controllers.add(controller);
     paintBadge(tile, 'pending');
     try {
-      const res = await fetch(`/dp/${asin}`, { credentials: 'same-origin', signal: controller.signal });
-      if (!res.ok) throw new Error(String(res.status));
+      const signal = (typeof AbortSignal !== 'undefined' && AbortSignal.any)
+        ? AbortSignal.any([controller.signal, AbortSignal.timeout(15000)])
+        : controller.signal;
+      const res = await fetch(`/dp/${asin}`, { credentials: 'same-origin', signal });
+      if (!res.ok) throw Object.assign(new Error(String(res.status)), { httpStatus: res.status });
       const html = await res.text();
       if (!current()) return;
       const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -327,11 +330,13 @@
       queue.failStreak = 0;
     } catch (e) {
       if (!current()) return;
-      const aborted = e && (e.name === 'AbortError' || controller.signal.aborted);
+      const aborted = e && (e.name === 'AbortError' || e.name === 'TimeoutError' || controller.signal.aborted);
       if (aborted) return;
       const b = tile.querySelector('.air-badge');
       if (b && b.textContent === '…') b.remove();
-      noteTileFailure();
+      // Only Amazon HTTP blocks count toward the throttle pause — offline / DNS is not a 403.
+      const status = e && e.httpStatus;
+      if (typeof status === 'number' && status >= 400) noteTileFailure();
     } finally {
       queue.controllers.delete(controller);
     }

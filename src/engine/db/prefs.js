@@ -26,9 +26,6 @@ const TOGGLE_DEFAULTS = {
   sendDiagnostics: false,
 };
 
-const OPT_IN_TOGGLES = new Set(['autoScoreSearch', 'hoverScore', 'ocrLabels', 'useOpenFoodFacts',
-  'shareContributions', 'sendDiagnostics']);
-
 function db(name) {
   return (typeof AIR !== 'undefined' && AIR.db && AIR.db[name]) || null;
 }
@@ -135,10 +132,6 @@ function sanitizeUrls(raw) {
   };
 }
 
-function sanitizeAll(raw) {
-  return { ...sanitizeToggles(raw), ...sanitizeScoring(raw), ...sanitizeUrls(raw) };
-}
-
 function looksLikeSettings(obj) {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
   if (obj._format === SETTINGS_FORMAT) return true;
@@ -174,9 +167,9 @@ function scoringEqual(a, b) {
 }
 
 const _exports = AIRmodule('prefs', {
-  SETTINGS_FORMAT, SETTINGS_VERSION, TOGGLE_DEFAULTS, OPT_IN_TOGGLES,
+  SETTINGS_FORMAT, SETTINGS_VERSION, TOGGLE_DEFAULTS,
   AVOID_MAX_LINES, AVOID_MAX_LEN,
-  sanitizeToggles, sanitizeScoring, sanitizeAvoidList, sanitizeUrls, sanitizeAll,
+  sanitizeToggles, sanitizeScoring, sanitizeAvoidList, sanitizeUrls,
   toSheetUrl, toScriptUrl, parseImport, exportPayload, looksLikeSettings, scoringEqual,
 });
 if (typeof module !== 'undefined' && module.exports) module.exports = _exports;

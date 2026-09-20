@@ -438,9 +438,14 @@ async function contribute(payload) {
 }
 
 async function postRecord(url, payload) {
+  // Re-validate at fetch time — storage can hold a hand-edited value that bypassed settings.
+  const safe = self.AIR && self.AIR.db && self.AIR.db.prefs
+    ? self.AIR.db.prefs.toScriptUrl(url)
+    : null;
+  if (!safe) return { ok: false, reason: 'bad-url' };
   try {
     // Apps Script web apps answer simple POSTs without a preflight when the body is text/plain.
-    const receipt = await networkRequest(url, {
+    const receipt = await networkRequest(safe, {
       method: 'POST', credentials: 'omit',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload),
@@ -519,10 +524,14 @@ async function sendDiagnostics() {
   if (conf.enabled === false || !conf.sendDiagnostics) return { ok: false, reason: 'not-enabled' };
   const queue = (conf[DIAG_KEY] || []).map(ensureRowId);
   if (!conf.contributeUrl || !queue.length) return { ok: false, reason: 'nothing-to-send' };
+  const safe = self.AIR && self.AIR.db && self.AIR.db.prefs
+    ? self.AIR.db.prefs.toScriptUrl(conf.contributeUrl)
+    : null;
+  if (!safe) return { ok: false, reason: 'bad-url' };
   // Upgrade old queued rows before sending, so their retry IDs survive a worker restart.
   await chrome.storage.local.set({ [DIAG_KEY]: queue });
   try {
-    const receipt = await networkRequest(conf.contributeUrl, {
+    const receipt = await networkRequest(safe, {
       method: 'POST', credentials: 'omit',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ kind: 'diagnostics', batchId: batchIdFor(queue), rows: queue }),

@@ -307,12 +307,13 @@ function fillCompareSelect(select, listed, chosen) {
 }
 
 function paintCompare() {
+  const block = document.getElementById('compareBlock');
   const empty = document.getElementById('compareEmpty');
   const pick = document.getElementById('comparePick');
   const grid = document.getElementById('compareGrid');
   const selA = document.getElementById('compareA');
   const selB = document.getElementById('compareB');
-  if (!empty || !pick || !grid || !selA || !selB) return;
+  if (!block || !empty || !pick || !grid || !selA || !selB) return;
   let version = '';
   try { version = chrome.runtime.getManifest().version; } catch (e) { /* ignore */ }
   chrome.storage.local.get(null, all => {
@@ -323,11 +324,13 @@ function paintCompare() {
     };
     const listed = CACHE.listScores(all, { version, prefs });
     if (listed.length < 2) {
+      block.hidden = true;
       empty.hidden = false;
       pick.hidden = true;
       grid.textContent = '';
       return;
     }
+    block.hidden = false;
     empty.hidden = true;
     pick.hidden = false;
     let pickA = all.compareA;

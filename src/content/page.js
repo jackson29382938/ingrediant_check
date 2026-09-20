@@ -27,7 +27,7 @@
 
   const MAX_EXTRACT_RETRIES = 8;
 
-  const isProductPage = () => /\/(dp|gp\/product)\/[A-Z0-9]{10}/.test(location.pathname);
+  const isProductPage = () => /\/(dp|gp\/product|gp\/aw\/d)\/[A-Z0-9]{10}/.test(location.pathname);
   const isListPage = () => /\/(s|b|gp\/browse|stores)\b/.test(location.pathname) || location.search.includes('k=');
   const isRelevantPage = () => isProductPage() || isListPage();
 

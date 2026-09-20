@@ -80,9 +80,10 @@ function imageCandidates(doc, limit = 8) {
   return out;
 }
 
-// The block a US label prints under "INGREDIENTS". Stops at whatever section follows, because the
-// allergen and distributor lines are not ingredients and would poison the parse.
-const BLOCK = /INGREDIENT(?:E?S|EN)?\s*[:.\-]?\s*([\s\S]{8,6000}?)(?=\s*(?:ALLERGEN|CONTAINS\s*:|MAY\s+CONTAIN|DISTRIBUTED|MANUFACTURED|PRODUCED\s+(?:BY|FOR)|PACKED\s+(?:BY|FOR)|KEEP\s+(?:REFRIGERATED|FROZEN)|REFRIGERATE|NUTRITION|BEST\s+(?:BY|BEFORE)|QUESTIONS|WWW\.|HTTP|$))/i;
+// The block a label prints under Ingredients / Zutaten / Ingredientes / …. Same heading set as
+// extract.js. Longer locale forms come before English `ingredients?` so INGREDIENTES is not
+// truncated to INGREDIENTE + leftover "S:".
+const BLOCK = /(?:ingredientes|ingredi[eë]nten|ingr[eé]dients?|zutaten|ingredienti|sk[łl]adniki|ingredienser|[iİ][çc]indekiler|原材料|ingredients?)\s*[:.\-]?\s*([\s\S]{8,6000}?)(?=\s*(?:ALLERGEN|CONTAINS\s*:|MAY\s+CONTAIN|DISTRIBUTED|MANUFACTURED|PRODUCED\s+(?:BY|FOR)|PACKED\s+(?:BY|FOR)|KEEP\s+(?:REFRIGERATED|FROZEN)|REFRIGERATE|NUTRITION|N[ÄA]HRWERT|VALEURS\s+NUTRITIONNELLES|BEST\s+(?:BY|BEFORE)|QUESTIONS|WWW\.|HTTP|$))/i;
 
 // OCR noise that is safe to remove: it never carries meaning, and leaving it in only lowers the
 // recognition coverage the engine measures. Nothing here rewrites a WORD into another word —

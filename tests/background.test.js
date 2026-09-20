@@ -56,7 +56,10 @@ function worker(initial = {}, fetcher, { alarms } = {}) {
     changed(values, 'local');
   } };
 }
-const enabled = { sendDiagnostics: true, contributeUrl: 'https://example.test/exec' };
+const enabled = {
+  sendDiagnostics: true,
+  contributeUrl: 'https://script.google.com/macros/s/abcdefghijklmnopqrstuvwxyz1234567890/exec',
+};
 test('simultaneous diagnostics preserve every row', async () => {
   const w = worker(enabled);
   await Promise.all(Array.from({ length: 10 }, (_, id) => w.call(`queueDiagnostic({id:${id}})`)));
@@ -176,8 +179,13 @@ test('contributions and reports require a confirmed single-row write', async () 
       });
     const expected = receipt.ok === true && receipt.wrote === 1;
     assert.equal((await w.call('contribute({})')).ok, expected);
-    assert.equal((await w.call('postRecord("https://example.test", {kind:"report"})')).ok, expected);
+    assert.equal((await w.call(`postRecord(${JSON.stringify(enabled.contributeUrl)}, {kind:"report"})`)).ok, expected);
   }
+});
+test('postRecord rejects non-Apps-Script endpoints even if storage held them', async () => {
+  const w = worker({}, async () => { throw new Error('unexpected fetch'); });
+  assert.equal((await w.call('postRecord("https://example.test/exec", {kind:"report"})')).ok, false);
+  assert.equal((await w.call('postRecord("https://example.test/exec", {kind:"report"})')).reason, 'bad-url');
 });
 test('pausing aborts an active background response body', async () => {
   let ready;
