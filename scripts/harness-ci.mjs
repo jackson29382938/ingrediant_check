@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-// Drive tests/harness.html + tests/harness-lifecycle.html + tests/harness-ocr.html (smoke) in Chromium.
+// Drive tests/harness.html + lifecycle + OCR smoke + popup compare in Chromium.
 // No Amazon network, no login. Used by CI (`npm run harness:ci`).
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = Number(process.env.HARNESS_PORT || 8731);
@@ -39,7 +41,6 @@ function startServer() {
 }
 
 function loadPlaywright() {
-  const require = createRequire(import.meta.url);
   const candidates = [
     'playwright',
     'playwright-core',
@@ -126,6 +127,91 @@ async function run() {
       if (!smoke.workerReady) throw new Error('ocr harness: workerReady is false');
       console.log('  ok  ocr smoke → vendored Tesseract worker started (no Amazon)');
     });
+
+    const cache = require(path.join(root, 'src/engine/db/score-cache.js'));
+    const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
+    const version = manifest.version;
+    const fp = cache.fingerprint({});
+    const now = Date.now();
+    const store = 'www.amazon.com';
+    const oatsKey = cache.key(store, 'B08KQM8K62');
+    const barKey = cache.key(store, 'B00LOAW7U6');
+    const milkKey = cache.key(store, 'B000000003');
+    const seed = {
+      enabled: true, badges: true, foodOnly: true,
+      [oatsKey]: {
+        schema: cache.SCHEMA, t: now - 1000, v: version, store, asin: 'B08KQM8K62',
+        prefs: fp, source: 'page', score: 96, name: 'Organic Rolled Oats', verdict: 'Excellent', nova: 1,
+      },
+      [barKey]: {
+        schema: cache.SCHEMA, t: now, v: version, store, asin: 'B00LOAW7U6',
+        prefs: fp, source: 'page', score: 28, name: 'Kefir', verdict: 'Poor', nova: 4,
+      },
+      [milkKey]: {
+        schema: cache.SCHEMA, t: now - 2000, v: version, store, asin: 'B000000003',
+        prefs: fp, source: 'page', score: 74, name: 'Whole Milk', verdict: 'Good', nova: 1,
+      },
+    };
+    const comparePage = await browser.newPage();
+    try {
+      await comparePage.addInitScript(({ version: v, seed: data }) => {
+        window.chrome = {
+          runtime: { lastError: null, getManifest: () => ({ version: v }), openOptionsPage() {} },
+          i18n: { getMessage: () => '' },
+          tabs: { query: (q, cb) => cb([]) },
+          permissions: {
+            contains: (p, cb) => cb(false),
+            request: (p, cb) => cb(false),
+            remove: (p, cb) => cb(true),
+          },
+          storage: {
+            onChanged: { addListener() {} },
+            local: {
+              get(keys, cb) {
+                const result = keys == null ? { ...data }
+                  : Object.fromEntries((Array.isArray(keys) ? keys : [keys]).map(k => [k, data[k]]));
+                if (typeof cb === 'function') cb(result);
+                return Promise.resolve(result);
+              },
+              set(values, cb) {
+                Object.assign(data, values);
+                if (typeof cb === 'function') cb();
+                return Promise.resolve();
+              },
+              remove(keys, cb) {
+                for (const k of (Array.isArray(keys) ? keys : [keys])) delete data[k];
+                if (typeof cb === 'function') cb();
+                return Promise.resolve();
+              },
+            },
+          },
+        };
+      }, { version, seed });
+      await comparePage.goto(`${base}/src/options/popup.html`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await comparePage.waitForFunction(() => {
+        const pick = document.getElementById('comparePick');
+        const grid = document.getElementById('compareGrid');
+        return pick && !pick.hidden && grid && grid.querySelectorAll('.compare-card').length === 2;
+      }, { timeout: 8000 });
+      const cmp = await comparePage.evaluate(() => {
+        const nums = [...document.querySelectorAll('.compare-card .ps-num')].map(el => el.textContent);
+        const empty = document.getElementById('compareEmpty');
+        return { nums, emptyHidden: !!(empty && empty.hidden), options: document.getElementById('compareA').options.length };
+      });
+      if (cmp.options < 2) throw new Error(`compare: expected 2+ options, got ${cmp.options}`);
+      if (!cmp.emptyHidden) throw new Error('compare: empty copy still visible with two cache hits');
+      if (!cmp.nums.includes('96') || !cmp.nums.includes('28')) {
+        throw new Error(`compare: cards ${JSON.stringify(cmp.nums)}, expected 96 and 28`);
+      }
+      await comparePage.selectOption('#compareB', milkKey);
+      await comparePage.waitForFunction(() => {
+        const nums = [...document.querySelectorAll('.compare-card .ps-num')].map(el => el.textContent);
+        return nums.includes('74');
+      }, { timeout: 5000 });
+      console.log('  ok  popup compare →', cmp.nums.join(' vs '), `(${cmp.options} cached, B→74)`);
+    } finally {
+      await comparePage.close();
+    }
   } finally {
     await browser.close();
     await new Promise(r => server.close(r));

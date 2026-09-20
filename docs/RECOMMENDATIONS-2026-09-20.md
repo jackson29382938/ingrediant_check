@@ -44,7 +44,7 @@ Do not invent security chores. Keep `preflight` and `sanity.test.js` as the guar
 
 | # | Item | Where | What to do |
 |---|---|---|---|
-| 6 | **Compare two cached ASINs** | **done** | Popup `#compareBlock` + `CACHE.listScores` (`s:` entries only). No network. |
+| 6 | **Compare two cached ASINs** | **done** | Popup `#compareBlock` + `CACHE.listScores` (`s:` entries only). No network. Seeded in `harness:ci`. |
 | 7 | **Chrome Web Store package** | **done (checklist)** | [store-listing/README.md](store-listing/README.md). Screenshots still owner-captured; version bump only at submit. |
 | 8 | **OCR wasm in CI** | **done** | `harness-ocr.html` default is a no-Amazon worker smoke; `?live=1` keeps the old Amazon image path. `npm run harness:ci` waits on `__ocrSmoke.ok`. |
 | 9 | **Worker hygiene** | **done (`toCsvUrl`)** | Worker delegates to `prefs.toSheetUrl`. Tests load `prefs.js`. Message-type inventory still optional. |

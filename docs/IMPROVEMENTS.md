@@ -191,7 +191,7 @@ These are not defects. Pick at most one.
 ### P1 — reliability you will feel on real pages
 
 6. ~~Check in 3–4 Amazon HTML snapshots; assert extract + food gate.~~ `tests/pages/` + `tests/pages.test.js`.
-7. ~~CI the existing browser harnesses (panel + lifecycle), still without Amazon.~~ `npm run harness:ci` / workflow `harness` job. **Also:** `harness-ocr.html` default is a no-Amazon wasm/`importScripts` smoke (`__ocrSmoke`).
+7. ~~CI the existing browser harnesses (panel + lifecycle), still without Amazon.~~ `npm run harness:ci` / workflow `harness` job. **Also:** OCR wasm smoke (`__ocrSmoke`) and popup compare (seeded `s:` entries).
 8. Owner: live OFF grant + Apps Script round-trip; redeploy receiver for `batchId` / `rowId`. **Not done here** — checklist in §4.
 9. ~~After N tile-fetch failures, pause auto-score and say so.~~ `TILE_FAIL_LIMIT` (5); `#air-throttle-notice`; no `seen.delete` on failure.
 10. ~~Headings for `amazon.se` / `.com.tr`; JP/AR decline-until-ready (no English OCR).~~ `Ingredienser` / `İçindekiler`; `ocrReadyForHost`.
