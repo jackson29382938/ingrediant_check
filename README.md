@@ -71,7 +71,8 @@ All off by default.
 
 The test suite proves the engine matches its spec. To see whether scores match a careful reading of real labels, turn on diagnostics against a sheet you own, shop a grocery search, and sort by `coverage`, `source`, and `cap`. Promote misses into `tests/corpus.json` before changing rules.
 
-Remaining open work (owner-only live checks, product questions) is tracked in the same
-[docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md) plan. Chrome Web Store privacy copy is [docs/PRIVACY.md](docs/PRIVACY.md). Licensed under [MIT](LICENSE).
+Remaining open work is in [docs/RECOMMENDATIONS-2026-09-20.md](docs/RECOMMENDATIONS-2026-09-20.md)
+(the post-P0–P2 look). The historical plan is [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md).
+Chrome Web Store privacy copy is [docs/PRIVACY.md](docs/PRIVACY.md). Licensed under [MIT](LICENSE).
 
 The GitHub folder spelling `ingrediant_check` is historical. The product name is **Ingredient Check**.

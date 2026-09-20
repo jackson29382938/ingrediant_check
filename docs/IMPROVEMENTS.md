@@ -3,7 +3,7 @@
 Read of `main` at `60cc287` (v1.0.2). Claims below are from the code, not from the README.
 Earlier audits (`docs/AUDIT-*.md`) already landed most rulebase and worker fixes; this is what is still worth doing, in order.
 
-**How to use this.** P0–P2 code items are on `main` (this branch adds the last OCR-transcript pins). Remaining work is owner-only live verification, one open product question, and a conscious repo-rename decision. Do not start a rewrite — the current shape is the asset.
+**How to use this.** P0–P2 code items and the OCR-transcript pins are on `main` (`fddcaf7`). This file is the *historical* plan. For what to do next, see [RECOMMENDATIONS-2026-09-20.md](RECOMMENDATIONS-2026-09-20.md). Do not start a rewrite — the current shape is the asset.
 
 ---
 
