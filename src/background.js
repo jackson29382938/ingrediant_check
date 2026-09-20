@@ -9,7 +9,7 @@
 
 if (typeof importScripts === 'function') {
   importScripts('engine/db/_module.js', 'engine/db/ingestible.js', 'engine/db/prefs.js',
-    'engine/db/ocr-text.js');
+    'engine/db/ocr-text.js', 'worker/messages.js', 'worker/sheet-store.js');
 }
 
 const OFF_ENDPOINT = 'https://world.openfoodfacts.org/api/v2/product/';
@@ -193,8 +193,18 @@ function badgeColor(score) {
   return score >= 75 ? '#1a9850' : score >= 50 ? '#f0a02a' : '#d73027';
 }
 
-function paintActionBadge(tabId, score) {
+function paintActionBadge(tabId, score, status) {
   if (!chrome.action || typeof tabId !== 'number') return;
+  if (status === 'fail') {
+    chrome.action.setBadgeText({ tabId, text: '?' });
+    chrome.action.setBadgeBackgroundColor({ tabId, color: '#767676' });
+    return;
+  }
+  if (status === 'not-food') {
+    chrome.action.setBadgeText({ tabId, text: '–' });
+    chrome.action.setBadgeBackgroundColor({ tabId, color: '#565959' });
+    return;
+  }
   if (typeof score !== 'number' || !isFinite(score)) {
     chrome.action.setBadgeText({ tabId, text: '' });
     return;
@@ -203,67 +213,14 @@ function paintActionBadge(tabId, score) {
   chrome.action.setBadgeBackgroundColor({ tabId, color: badgeColor(score) });
 }
 
-// Content-script types must come from an Amazon tab of this extension. Settings/popup types must
-// come from those pages. Offscreen idle is only from the OCR document. Unknown types are denied —
-// a new message is closed until it is registered here.
-const PAGE_MESSAGE_TYPES = new Set([
-  'pageScore', 'ocrLabels', 'lookupBarcode', 'provenanceLookup',
-  'contribute', 'report', 'diagnostic',
-]);
-const SETTINGS_MESSAGE_TYPES = new Set([
-  'flushDiagnostics', 'diagnosticsStatus', 'refreshSheet',
-]);
-const OFFSCREEN_MESSAGE_TYPES = new Set(['ocrIdle']);
-const AMAZON_HOST = /(^|\.)amazon\.(com|co\.uk|ca|com\.au|ie|in|sg|ae|sa|de|fr|es|it|nl|se|pl|com\.be|com\.tr|com\.mx|com\.br|co\.jp)$/i;
-
-function isOwnExtension(sender) {
-  const id = chrome.runtime && chrome.runtime.id;
-  if (!id || !sender) return false;
-  return !sender.id || sender.id === id;
-}
-
-function isAmazonTabSender(sender) {
-  const raw = sender && sender.tab && sender.tab.url;
-  if (!raw) return false;
-  try { return AMAZON_HOST.test(new URL(raw).hostname); }
-  catch { return false; }
-}
-
-function extensionPagePath(sender) {
-  const raw = sender && sender.url;
-  if (!raw) return '';
-  try {
-    const u = new URL(raw);
-    const id = chrome.runtime && chrome.runtime.id;
-    if (!id || u.protocol !== 'chrome-extension:' || u.hostname !== id) return '';
-    return u.pathname || '';
-  } catch { return ''; }
-}
-
-function isSettingsSender(sender) {
-  const path = extensionPagePath(sender);
-  return /\/(options|popup)\.html$/i.test(path);
-}
-
-function isOffscreenSender(sender) {
-  return /\/offscreen\/ocr\.html$/i.test(extensionPagePath(sender));
-}
-
-function allowMessage(msg, sender) {
-  if (!msg || !isOwnExtension(sender)) return false;
-  if (PAGE_MESSAGE_TYPES.has(msg.type)) return isAmazonTabSender(sender);
-  if (SETTINGS_MESSAGE_TYPES.has(msg.type)) return isSettingsSender(sender);
-  if (OFFSCREEN_MESSAGE_TYPES.has(msg.type)) return isOffscreenSender(sender);
-  if (msg.type === 'ping') return true;
-  return false;
-}
+// Message allowlist lives in worker/messages.js (importScripts above / test harness preload).
 
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   // Replies from the offscreen document travel on this same channel; ignore them here.
   if (msg && msg.target === 'ocr-offscreen') return false;
   if (!allowMessage(msg, sender)) return false;
   if (msg && msg.type === 'pageScore') {
-    paintActionBadge(sender && sender.tab && sender.tab.id, msg.score);
+    paintActionBadge(sender && sender.tab && sender.tab.id, msg.score, msg.status);
     return false;
   }
   if (msg && msg.type === 'ocrLabels') {
@@ -396,11 +353,11 @@ function indexRows(rows) {
 }
 
 async function loadSheetIndex(force = false) {
-  const conf = await chrome.storage.local.get(['enabled', 'sheetUrl', SHEET_CACHE_KEY]);
+  const conf = await chrome.storage.local.get(['enabled', 'sheetUrl']);
   if (conf.enabled === false) return null;
   const csvUrl = toCsvUrl(conf.sheetUrl);
   if (!csvUrl) return null;
-  const cached = conf[SHEET_CACHE_KEY];
+  const cached = await getSheetIndex(SHEET_CACHE_KEY);
   if (!force && cached && cached.url === csvUrl && Date.now() - cached.t < SHEET_TTL_MS) return cached.index;
   try {
     const csv = await networkRequest(csvUrl, { credentials: 'omit' }, res => {
@@ -418,7 +375,8 @@ async function loadSheetIndex(force = false) {
     // The revision is a hash of the CSV, not a timestamp: the score cache fingerprints on it, and a
     // refresh that changed nothing must not retire every cached score. Content scripts read only the
     // small revision key, never the index itself.
-    await chrome.storage.local.set({ [SHEET_CACHE_KEY]: { t: Date.now(), url: csvUrl, index }, sheetIndexRev: revisionOf(csv) });
+    await putSheetIndex(SHEET_CACHE_KEY, { t: Date.now(), url: csvUrl, index });
+    await chrome.storage.local.set({ sheetIndexRev: revisionOf(csv) });
     return index;
   } catch (e) {
     return cached && cached.url === csvUrl && cached.index ? cached.index : null;   // stale beats nothing
@@ -441,11 +399,11 @@ function lookupRecord(index, { asin, upc, brand }) {
 const PRODUCERS_CACHE_KEY = 'producerIndex';
 
 async function loadProducerIndex(force = false) {
-  const conf = await chrome.storage.local.get(['enabled', 'producersUrl', PRODUCERS_CACHE_KEY]);
+  const conf = await chrome.storage.local.get(['enabled', 'producersUrl']);
   if (conf.enabled === false) return null;
   const csvUrl = toCsvUrl(conf.producersUrl);
   if (!csvUrl) return null;
-  const cached = conf[PRODUCERS_CACHE_KEY];
+  const cached = await getSheetIndex(PRODUCERS_CACHE_KEY);
   if (!force && cached && cached.url === csvUrl && Date.now() - cached.t < SHEET_TTL_MS) return cached.index;
   try {
     const csv = await networkRequest(csvUrl, { credentials: 'omit' }, res => {
@@ -467,7 +425,8 @@ async function loadProducerIndex(force = false) {
       if (!rec.brand || !rec.certifications) continue;
       index[rec.brand.toLowerCase()] = rec;
     }
-    await chrome.storage.local.set({ [PRODUCERS_CACHE_KEY]: { t: Date.now(), url: csvUrl, index }, producerIndexRev: revisionOf(csv) });
+    await putSheetIndex(PRODUCERS_CACHE_KEY, { t: Date.now(), url: csvUrl, index });
+    await chrome.storage.local.set({ producerIndexRev: revisionOf(csv) });
     return index;
   } catch (e) {
     return cached && cached.url === csvUrl && cached.index ? cached.index : null;

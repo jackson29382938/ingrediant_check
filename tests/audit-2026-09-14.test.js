@@ -1,4 +1,4 @@
-// Regressions for docs/AUDIT-2026-09-14.md. Every case here reproduced against the code as it stood
+// Regressions for docs/history/AUDIT-2026-09-14.md. Every case here reproduced against the code as it stood
 // that morning; each is pinned so the fix cannot quietly rot. Run: node tests/audit-2026-09-14.test.js
 'use strict';
 const { test } = require('node:test');

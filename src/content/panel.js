@@ -53,6 +53,7 @@
   .card { border: 1px solid #d5d9d9; border-radius: 10px; overflow: hidden;
           background: #fff; margin: 14px 0; box-shadow: 0 1px 3px rgba(0,0,0,.06);
           min-height: 72px; }
+  .card[role="status"], .fail[role="status"] { }
   .head { display: flex; align-items: center; gap: 14px; padding: 14px 16px; cursor: pointer;
           user-select: none; border: 0; width: 100%; text-align: left; background: var(--bg); }
   .head:hover { filter: brightness(.985); }
@@ -226,7 +227,7 @@
 
     return `
     <style>${CSS}</style>
-    <div class="card" style="--fg:${c.fg};--bg:${c.bg};--ring:${c.ring}">
+    <div class="card" style="--fg:${c.fg};--bg:${c.bg};--ring:${c.ring}" role="status" aria-live="polite">
       <button class="head" part="head" type="button" aria-expanded="false" aria-controls="air-panel-details">
         <span class="score" title="${esc(verdictText(result.verdict))} · ${esc(NOVA_TEXT[result.nova])}">${result.score}</span>
         <span class="meta">
@@ -296,7 +297,7 @@
     return `
     <style>${CSS}</style>
     <div class="card" style="--fg:#565959;--bg:#f7f8f8;--ring:#d5d9d9">
-      <div class="fail" role="status">
+      <div class="fail" role="status" aria-live="polite">
         <b>${esc(t('notFoodTitle', 'Not scored — this does not look like food.'))}</b>
         ${esc(reason)}. ${esc(t('notFoodBody', 'A score here would treat it as something you eat.'))}
         ${title ? `<div class="sub" style="white-space:normal;margin-top:6px">${esc(title)}</div>` : ''}
@@ -314,7 +315,7 @@
     return `
     <style>${CSS}</style>
     <div class="card" style="--fg:#565959;--bg:#f7f8f8;--ring:#d5d9d9">
-      <div class="fail" role="status">
+      <div class="fail" role="status" aria-live="polite">
         <b>${esc(t('failTitle', "Couldn't read the ingredients on this page."))}</b>
         ${meta && meta.lowCoverage
           ? esc(t('failUnreadable', 'The ingredients are published, but almost none of them match anything this tool knows — usually that means the label is in a language it cannot read yet. Scoring it anyway would produce a confident wrong answer. '))

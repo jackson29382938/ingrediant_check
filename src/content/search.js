@@ -9,6 +9,8 @@
   const MAX_CONCURRENT = 3;
   const REQUEST_GAP_MS = 250;
   const TILE_FAIL_LIMIT = 5;
+  // Hard cap on auto-score fan-out per search page epoch (hover still prioritised).
+  const MAX_AUTO_PER_PAGE = 40;
 
   const searchGate = { url: null, decision: null };
   const queue = { pending: [], active: 0, seen: new Set(), lastStart: 0, epoch: 0, controllers: new Set(),
@@ -227,6 +229,7 @@
     if (!state.enabled || !state.badges || !searchAllowed()) return;
     if (front ? !state.hoverScore : !state.autoScoreSearch) return;
     if (queue.seen.has(asin)) return;
+    if (!front && queue.seen.size >= MAX_AUTO_PER_PAGE) return;
     if (state.foodOnly && root.AIR.db.ingestible && root.AIR.db.ingestible.looksNonFoodFromTitle(tileTitle(tile))) {
       queue.seen.add(asin);
       return;

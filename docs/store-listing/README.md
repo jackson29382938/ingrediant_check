@@ -13,11 +13,11 @@ Host permissions cover many Amazon storefronts. Scoring quality does **not**.
 | Stores | Expectation |
 |---|---|
 | **US / UK / CA / AU** (English labels) | Best fit — full rulebase + OCR when needed |
-| **DE / FR / ES / IT** | Ingredient headings extract; common additives / oils / flavours usually score via synonym pack + E-numbers |
-| **NL / SE / PL / TR / BR / MX / BE / IE / IN / SG / …** | Headings often extract; scoring is thinner — lists may decline as unreadable or under-score |
+| **DE / FR / ES / IT / PT / NL** | Ingredient headings extract; common additives / oils / flavours usually score via synonym pack + E-numbers |
+| **SE / PL / TR / BR / MX / BE / IE / IN / SG / …** | Headings often extract; scoring is thinner outside the synonym pack — lists may decline as unreadable or under-score |
 | **JP / AE / SA** | Photo OCR declined (English Tesseract misreads those scripts); paste still works |
 
-Do **not** claim “works equally on all Amazon grocery stores.” Prefer: *Best on English US/UK/CA/AU labels; DE/FR/ES/IT mostly work; other stores may extract text but scores can be incomplete.*
+Do **not** claim “works equally on all Amazon grocery stores.” Prefer: *Best on English US/UK/CA/AU labels; DE/FR/ES/IT/PT/NL mostly work; other stores may extract text but scores can be incomplete.*
 
 ## Assets Chrome asks for
 

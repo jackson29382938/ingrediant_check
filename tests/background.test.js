@@ -42,6 +42,8 @@ function worker(initial = {}, fetcher, { alarms } = {}) {
   vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/_module.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/prefs.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/ocr-text.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/worker/messages.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/worker/sheet-store.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(require.resolve('../src/background.js'), 'utf8'), context);
   return {
     data, call: (expression) => vm.runInContext(expression, context), created: () => created, badges,

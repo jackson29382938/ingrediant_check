@@ -145,7 +145,21 @@
   }
 
   function watchNavigation() {
-    if (!navWired) { addEventListener('popstate', onNavigated); navWired = true; }
+    if (!navWired) {
+      addEventListener('popstate', onNavigated);
+      // Prefer the Navigation API when present; keep the poll as a fallback for Amazon soft nav.
+      try {
+        if (typeof navigation !== 'undefined' && navigation
+            && typeof navigation.addEventListener === 'function') {
+          navigation.addEventListener('navigate', () => {
+            queueMicrotask(() => {
+              if (location.href !== lastUrl) onNavigated();
+            });
+          });
+        }
+      } catch (e) { /* Navigation API unavailable */ }
+      navWired = true;
+    }
     if (urlTimer) return;
     urlTimer = setInterval(() => {
       if (location.href !== lastUrl) onNavigated();

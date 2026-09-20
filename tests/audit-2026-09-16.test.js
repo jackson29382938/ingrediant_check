@@ -1,4 +1,4 @@
-// Regression pins for the September 16, 2026 audit (docs/AUDIT-2026-09-16.md).
+// Regression pins for the September 16, 2026 audit (docs/history/AUDIT-2026-09-16.md).
 // Run: node --test tests/audit-2026-09-16.test.js
 //
 // Two of these are regressions the September 14 fix introduced and the corpus could not see,

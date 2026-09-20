@@ -64,7 +64,7 @@ check('every engine file is loaded somewhere', () => {
 check('every chrome.runtime.sendMessage type in src is registered in the worker allowlist', () => {
   // Inverted allowlist: unknown types are denied. A new sendMessage({type}) without a registry
   // entry would silently fail in production; catch that in CI.
-  const worker = read('src/background.js');
+  const worker = read('src/worker/messages.js') + '\n' + read('src/background.js');
   const known = new Set();
   for (const block of worker.matchAll(/(?:PAGE|SETTINGS|OFFSCREEN)_MESSAGE_TYPES\s*=\s*new Set\(\[([\s\S]*?)\]\)/g)) {
     for (const m of block[1].matchAll(/'([A-Za-z0-9_]+)'/g)) known.add(m[1]);

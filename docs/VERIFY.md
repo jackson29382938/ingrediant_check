@@ -134,7 +134,7 @@ CI also runs `npm run harness:ci` (Playwright, Chromium, local pages only).
 ## What is still unproven
 
 The installed extension’s offscreen OCR round-trip was reported green on 2026-09-05 (before WAR
-removal); see [LIVE-TEST-2026-09-05.md](LIVE-TEST-2026-09-05.md). Those PNG evidence files were
+removal); see [history/LIVE-TEST-2026-09-05.md](history/LIVE-TEST-2026-09-05.md). Those PNG evidence files were
 never checked in — treat the notes as a log, not a screenshot gallery. Re-run the post-WAR OCR
 steps above before claiming live OCR.
 

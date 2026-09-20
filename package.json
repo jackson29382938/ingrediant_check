@@ -14,6 +14,7 @@
     "pack": "node scripts/pack.mjs",
     "harness": "node scripts/harness-server.mjs",
     "harness:ci": "node scripts/harness-ci.mjs",
-    "preflight": "node scripts/preflight.mjs"
+    "preflight": "node scripts/preflight.mjs",
+    "lint": "npx --yes eslint@9 ."
   }
 }

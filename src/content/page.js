@@ -73,14 +73,18 @@
 
   function publishActionBadge(result) {
     const score = result && typeof result.score === 'number' ? result.score : null;
-    if (score == null) state.pageScore = null;
-    if (score === state.lastBadgeScore) return;
-    state.lastBadgeScore = score;
+    const status = result && result.status;
+    if (score == null && !status) state.pageScore = null;
+    const badgeKey = status || score;
+    if (badgeKey === state.lastBadgeScore) return;
+    state.lastBadgeScore = badgeKey;
     try {
       chrome.runtime.sendMessage(
         score != null
           ? { type: 'pageScore', score, verdict: result.verdict }
-          : { type: 'pageScore' },
+          : status
+            ? { type: 'pageScore', status }
+            : { type: 'pageScore' },
         () => void chrome.runtime.lastError
       );
     } catch (e) { /* messaging unavailable in some frames */ }

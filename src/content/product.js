@@ -38,7 +38,7 @@
     }
     state.lastKey = key;
     host.dataset.airState = 'not-food';
-    publishActionBadge(null);
+    publishActionBadge({ status: 'not-food' });
     const shadow = root.AIR.panel.mount(host, root.AIR.panel.renderNotFood(data));
     wireScoreAnyway(shadow, host, data, key);
     P().settle('not-food');
@@ -158,6 +158,7 @@
           if (requestId !== state.requestId || state.lastKey !== key || !host.isConnected) return;
           if (fallback && fallback.rejected === 'not-food') {
             host.dataset.airState = 'not-food';
+            P().publishActionBadge({ status: 'not-food' });
             const shadow = root.AIR.panel.mount(host, root.AIR.panel.renderNotFood({
               ...data,
               ingestible: { ok: false, reason: fallback.reason || 'Open Food Facts lists this as a non-food product' },
@@ -313,7 +314,7 @@
       }
     }
     host.dataset.airState = 'fail';
-    publishActionBadge(null);
+    publishActionBadge({ status: 'fail' });
     root.AIR.panel.mount(host, root.AIR.panel.renderFailure(data), null, text => {
       state.manual = { key, data, text };
       renderManual(host, data, key, text);

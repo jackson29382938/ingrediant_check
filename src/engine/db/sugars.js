@@ -23,7 +23,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
 
   // TRADITIONAL — small penalty. Real food, but concentrated.
   const TRADITIONAL = [
-    { m: /^(organic |raw |unfiltered |wildflower |manuka |clover )*(honey|miel|honig|miele)$/i, pts: 3,  why: 'Honey — concentrated sweetener, light touch' },
+    { m: /^(organic |raw |unfiltered |wildflower |manuka |clover )*(honey|miel|honig|miele|mel|honing)$/i, pts: 3,  why: 'Honey — concentrated sweetener, light touch' },
     { m: /^(pure |organic )?maple (syrup|sugar)$/i,         pts: 4,  why: 'Maple syrup — concentrated sweetener' },
     { m: /^(blackstrap )?molasses$/i,                       pts: 4,  why: 'Molasses' },
     { m: /^coconut (sugar|nectar|sap)$/i,                   pts: 5,  why: 'Coconut sugar' },
@@ -38,15 +38,15 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     // here as well charged "cane sugar" twice (17 + 4) against 17 for "sugar".
     { m: /^(organic )?(raw |turbinado |demerara |muscovado |granulated |white |caster |icing |confectioners'? )?sugar$/i, pts: 14, why: 'Refined added sugar' },
     // Spanish, French, German and Italian — the stores whose headings the extractor already reads.
-    { m: /^(az[uú]car|sucre|zucker|zucchero|rohrzucker|rohrohrzucker)( blanc[oa]| refinad[oa]| de ca[ñn]a| blanc| raffin[ée]| de canne| di canna| bianco| grezzo)?$/i, pts: 14, why: 'Refined added sugar' },
+    { m: /^(az[uú]car|a[cç][uú]car|sucre|zucker|zucchero|suiker|rohrzucker|rohrohrzucker)( blanc[oa]| refinad[oa]| de ca[ñn]a| blanc| raffin[ée]| de canne| di canna| bianco| grezzo| wit)?$/i, pts: 14, why: 'Refined added sugar' },
     { m: /^(evaporated |raw |organic )*cane (juice|sugar|syrup)$/i, pts: 14, why: 'Cane sugar' },
-    { m: /^(brown sugar|az[uú]car moren[oa]|sucre (brun|roux)|brauner zucker|zucchero bruno)$/i, pts: 14, why: 'Brown sugar' },
+    { m: /^(brown sugar|az[uú]car moren[oa]|a[cç][uú]car mascav[oa]do|sucre (brun|roux)|brauner zucker|zucchero bruno|basterdsuiker)$/i, pts: 14, why: 'Brown sugar' },
     { m: /^beet sugar$/i,                               pts: 14, why: 'Beet sugar' },
     { m: /^powdered sugar$/i,                           pts: 14, why: 'Powdered sugar' },
-    { m: /^(invert sugar( syrup)?|az[uú]car invertid[oa]|sucre inverti|invertzucker|zucchero invertito)$/i, pts: 15, why: 'Invert sugar' },
-    { m: /^(dextrose|dextrosa|destrosio|traubenzucker)$/i, pts: 14, why: 'Dextrose' },
-    { m: /^glucose( syrup| solids)?$|^(jarabe de glucosa|sirop de glucose|glukosesirup|sciroppo di glucosio)$/i, pts: 14, why: 'Glucose syrup' },
-    { m: /^(fructose|fructosa|fruktose|fruttosio)$/i, pts: 16, why: 'Isolated fructose' },
+    { m: /^(invert sugar( syrup)?|az[uú]car invertid[oa]|a[cç][uú]car invertid[oa]|sucre inverti|invertzucker|zucchero invertito|invertsuiker)$/i, pts: 15, why: 'Invert sugar' },
+    { m: /^(dextrose|dextrosa|destrosio|traubenzucker|dextrose)$/i, pts: 14, why: 'Dextrose' },
+    { m: /^glucose( syrup| solids)?$|^(jarabe de glucosa|sirop de glucose|glukosesirup|sciroppo di glucosio|xarope de glucose|glucosestroop)$/i, pts: 14, why: 'Glucose syrup' },
+    { m: /^(fructose|fructosa|fruktose|fruttosio|frutose|fructose)$/i, pts: 16, why: 'Isolated fructose' },
     { m: /^sucrose$/i,                                  pts: 14, why: 'Sucrose' },
     { m: /^maltose$/i,                                  pts: 14, why: 'Maltose' },
     { m: /^agave( nectar| syrup)?$/i,                   pts: 16, why: 'Agave — among the highest-fructose sweeteners' },
