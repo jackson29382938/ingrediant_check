@@ -19,7 +19,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { pts:  8, cat: 'dairyProcessing', why: 'Raw / unpasteurised dairy', m: /\braw (milk|cream|cheese|dairy|butter)\b|\bunpasteurized\b/i },
     { pts:  7, cat: 'animalWelfare', why: 'Regeneratively farmed',       m: /\bregenerativ(e|ely)\b/i },
     { pts:  6, cat: 'fermented', why: 'Fermented / live cultures',       m: /\b(cultured|fermented|live active cultures|probiotic|kefir|kimchi|sauerkraut)\b/i },
-    { pts:  6, cat: 'unrefined', why: 'Minimally refined cooking fat', m: /(?<!peanut |almond |cashew |sunflower |seed |nut |cocoa |shea |apple |soy )\b(butter|ghee|tallow|lard|suet|duck fat|coconut oil|olive oil|avocado oil)\b/i },
+    { pts:  6, cat: 'unrefined', why: 'Minimally refined cooking fat', m: /(?<!peanut |almond |cashew |sunflower |seed |nut |cocoa |shea |apple |soy )\b(butter|ghee|tallow|lard|suet|duck fat|coconut oil|olive oil|avocado oil)\b|\b(aceite de (?:oliva|coco)|huile d['’]olive|huile de coco|oliven[öo]l|kokos[öo]l|olio d['’]oliva|olio di cocco|mantequilla|beurre(?!\s+de\s+cacao)|(?<!cacao )burro(?!\s+di\s+cacao))\b/i },
     { pts:  5, cat: 'dairyProcessing', why: 'A2 dairy',                  m: /\ba2\b/i },
     { pts:  5, cat: 'traditionalPrep', why: 'Sourdough / sprouted grain', m: /\b(sourdough|sprouted|naturally leavened|einkorn|soaked)\b/i },
     { pts:  5, cat: 'nonGmo', why: 'Non-GMO verified',                   m: /\bnon[- ]?gmo\b/i },
@@ -57,7 +57,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   ];
 
   // Culinary ingredients — NOVA 2. Real foods, but extracted/concentrated.
-  const CULINARY = /^(extra virgin |virgin |cold[- ]pressed |organic |raw )*(olive oil|avocado oil|coconut oil|butter|ghee|tallow|lard|honey|maple syrup|sea salt|salt|vinegar|apple cider vinegar|cream|sugar)$/i;
+  const CULINARY = /^(extra virgin |virgin |cold[- ]pressed |organic |raw )*(olive oil|avocado oil|coconut oil|butter|ghee|tallow|lard|honey|maple syrup|sea salt|salt|vinegar|apple cider vinegar|cream|sugar|aceite de oliva|huile d['’]olive|oliven[öo]l|olio d['’]oliva|aceite de coco|huile de coco|kokos[öo]l|olio di cocco|miel|honig|miele)$/i;
 
   // Signals of NOVA 3 processing — real food, meaningfully transformed.
   const PROCESSED_SIGNAL = /\b(cultured|fermented|smoked|cured|canned|pasteurized|celery (juice )?powder|cheese cultures|rennet|yeast|sourdough|brined|pickled|roasted|dried)\b/i;

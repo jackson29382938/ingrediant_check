@@ -189,7 +189,7 @@ function renderCategories() {
     name.textContent = c.label;
     const help = document.createElement('div');
     help.className = 'help';
-    help.textContent = c.help;
+    help.textContent = msg(`catHelp_${c.id}`, c.help);
     label.append(name, help);
 
     const slider = document.createElement('input');

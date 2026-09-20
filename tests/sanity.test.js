@@ -239,6 +239,24 @@ check('every msg() key in popup.js exists', () => {
   assert.strictEqual(missing.length, 0, `missing from messages.json: ${missing.join(', ')}`);
 });
 
+check('search.js throttle and verdict keys exist', () => {
+  const raw = read('src/content/search.js');
+  const used = [
+    ...[...raw.matchAll(/throttleCopy\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
+    ...[...raw.matchAll(/'((?:verdict|throttle|badge)[A-Za-z]+)'/g)].map(m => m[1]),
+  ];
+  assert.ok(used.includes('throttleTitle'), 'search.js lost throttleTitle');
+  const missing = [...new Set(used)].filter(k => !keys.has(k));
+  assert.strictEqual(missing.length, 0, `missing from messages.json: ${missing.join(', ')}`);
+});
+
+check('catHelp_* keys match a scoring category', () => {
+  const ids = new Set(categories.CATEGORIES.map(c => c.id));
+  const extra = Object.keys(messages).filter(k => k.startsWith('catHelp_') && !ids.has(k.slice(8)));
+  assert.deepEqual(extra, []);
+  assert.ok(keys.has('catHelp_grain'), 'grain help must be in messages.json');
+});
+
 check('the localised description still fits the store limit', () => {
   const d = messages.appDescription && messages.appDescription.message;
   assert.ok(d, 'appDescription is missing');

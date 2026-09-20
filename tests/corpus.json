@@ -217,7 +217,22 @@
     { "id": "sandwich-bread-mono-diglycerides", "band": [10, 35],
       "note": "September 16 audit. \"mono- and diglycerides\" (hyphen, space, and, space) is the usual US spelling and never matched the rule.",
       "product": { "name": "Sandwich Bread",
-        "ingredients_text": "Enriched wheat flour, water, sugar, yeast, soybean oil, salt, mono- and diglycerides, calcium propionate (preservative)" } }
+        "ingredients_text": "Enriched wheat flour, water, sugar, yeast, soybean oil, salt, mono- and diglycerides, calcium propionate (preservative)" } },
+
+    { "id": "es-named-chocolate", "band": [22, 45],
+      "note": "DE/FR/ES/IT synonym pack. Spanish named additives (aroma, lecitina de soja, azúcar) must not score above the English twin.",
+      "product": { "name": "Chocolate con leche",
+        "ingredients_text": "Azúcar, manteca de cacao, leche entera en polvo, emulsionante (lecitina de soja), aroma" } },
+
+    { "id": "es-wheat-bread", "band": [10, 45],
+      "note": "Synonym pack. Harina de trigo and aceite de soja must fire the same grain and oil keys as English.",
+      "product": { "name": "Pan de molde",
+        "ingredients_text": "Harina de trigo, agua, levadura, sal, azúcar, aceite de soja, propionato de calcio" } },
+
+    { "id": "de-citric-vanillin", "band": [20, 55],
+      "note": "Synonym pack. Citronensäure and Vanillin must not be free on a German list.",
+      "product": { "name": "Fruchtgummi",
+        "ingredients_text": "Zucker, Glukosesirup, Gelatine, Citronensäure, Aroma, Vanillin" } }
   ],
 
   "defects": [

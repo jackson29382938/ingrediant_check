@@ -84,7 +84,7 @@ const CATEGORIES = [
   // ---------------------------------------------------------------- grains & proteins
   { id: 'grain', group: 'Grains & proteins', kind: 'penalty', def: 1,
     label: 'Refined grains & gluten',
-    help: 'Enriched and white flour, and all wheat, barley and rye — whole grain included, because this dial is about gluten as much as refinement. Traditionally prepared grains (sourdough, sprouted, soaked) count half. Lower this if you do not want gluten grains counted against a score.' },
+    help: 'Default 1.0: gluten grains are a penalty, including whole wheat. Enriched and white flour cost more; wheat, barley and rye still count when they are whole grain, because this dial is gluten as much as refinement. Traditionally prepared grains (sourdough, sprouted, soaked) count half. Lower this weight if you do not want gluten grains counted against a score. NOVA still treats plain flour as processed (3) and enriched as ultra (4) — that mapping is not this dial.' },
   { id: 'isolate', group: 'Grains & proteins', kind: 'penalty', def: 1,
     label: 'Isolated & industrial proteins',
     help: 'Soy protein isolate, pea protein, textured vegetable protein, hydrolysed protein, caseinate.' },
