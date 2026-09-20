@@ -225,46 +225,199 @@ function renderCategories() {
 }
 
 // ---------------------------------------------------------------- presets
+let presetCategory = 'everyday';
+
+function presetList() {
+  if (CATS.listPresets) return CATS.listPresets();
+  return Object.entries(CATS.PRESETS);
+}
+
+function presetCategories() {
+  return CATS.PRESET_CATEGORIES || [
+    { id: 'everyday', label: 'Everyday', blurb: '' },
+  ];
+}
+
+function findMatchingPreset() {
+  if (CATS.matchPreset) return CATS.matchPreset(state.weights);
+  return Object.entries(CATS.PRESETS).find(([, p]) => {
+    const target = { ...CATS.DEFAULT_WEIGHTS, ...p.weights };
+    return Object.keys(target).every(k => Math.abs(weightOf(k) - target[k]) < 0.001);
+  }) || null;
+}
+
+function renderPresetCategories() {
+  const host = document.getElementById('presetCats');
+  if (!host) return;
+  host.textContent = '';
+  for (const cat of presetCategories()) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'preset-cat';
+    b.id = `preset-cat-${cat.id}`;
+    b.dataset.category = cat.id;
+    b.setAttribute('role', 'tab');
+    b.setAttribute('aria-selected', String(cat.id === presetCategory));
+    b.textContent = cat.label;
+    b.addEventListener('click', () => {
+      presetCategory = cat.id;
+      const grid = document.getElementById('presets');
+      if (grid) grid.dataset.userTab = '1';
+      renderPresetCategories();
+      renderPresets();
+    });
+    host.appendChild(b);
+  }
+  const blurb = document.getElementById('presetCatBlurb');
+  const active = presetCategories().find(c => c.id === presetCategory);
+  if (blurb) blurb.textContent = (active && active.blurb) || '';
+}
+
 function renderPresets() {
   const host = document.getElementById('presets');
+  if (!host) return;
   host.textContent = '';
-  for (const [id, preset] of Object.entries(CATS.PRESETS)) {
+  const match = findMatchingPreset();
+  const matchId = match ? match[0] : null;
+  if (matchId && CATS.PRESETS[matchId] && CATS.PRESETS[matchId].category && !host.dataset.userTab) {
+    presetCategory = CATS.PRESETS[matchId].category;
+  }
+
+  const entries = presetList().filter(([, p]) => (p.category || 'everyday') === presetCategory);
+  for (const [id, preset] of entries) {
     const b = document.createElement('button');
-    b.className = 'preset';
     b.type = 'button';
+    b.className = 'preset-card';
     b.dataset.preset = id;
-    b.textContent = preset.label;
-    b.setAttribute('aria-pressed', 'false');
+    b.setAttribute('aria-pressed', String(id === matchId));
+    b.setAttribute('aria-describedby', 'presetNote');
+
+    const top = document.createElement('div');
+    top.className = 'preset-card-top';
+    const glyph = document.createElement('span');
+    glyph.className = 'preset-glyph';
+    glyph.textContent = preset.glyph || preset.label.slice(0, 3);
+    glyph.setAttribute('aria-hidden', 'true');
+    const title = document.createElement('span');
+    title.className = 'preset-card-title';
+    title.textContent = preset.label;
+    top.append(glyph, title);
+
+    const note = document.createElement('p');
+    note.className = 'preset-card-note';
+    note.textContent = preset.note;
+
+    b.append(top, note);
     b.addEventListener('click', () => applyPreset(id));
-    b.addEventListener('mouseenter', () => { document.getElementById('presetNote').textContent = preset.note; });
+    b.addEventListener('focus', () => showPresetDetail(id));
+    b.addEventListener('mouseenter', () => showPresetDetail(id));
     host.appendChild(b);
+  }
+
+  // Sync category tab highlight if auto-follow moved the category.
+  document.querySelectorAll('.preset-cat').forEach(tab => {
+    tab.setAttribute('aria-selected', String(tab.dataset.category === presetCategory));
+  });
+  const blurb = document.getElementById('presetCatBlurb');
+  const active = presetCategories().find(c => c.id === presetCategory);
+  if (blurb) blurb.textContent = (active && active.blurb) || '';
+
+  paintPresetActive(match);
+  if (matchId && CATS.PRESETS[matchId] && CATS.PRESETS[matchId].category === presetCategory) {
+    showPresetDetail(matchId);
+  } else if (entries[0]) {
+    showPresetDetail(entries[0][0], { previewOnly: !matchId });
+  } else {
+    showPresetDetail(null);
+  }
+}
+
+function showPresetDetail(id, { previewOnly = false } = {}) {
+  const detail = document.getElementById('presetDetail');
+  const title = document.getElementById('presetDetailTitle');
+  const note = document.getElementById('presetNote');
+  const versus = document.getElementById('presetVersus');
+  const preset = id && CATS.PRESETS[id];
+  if (!detail || !note) return;
+  if (!preset) {
+    detail.hidden = true;
+    note.textContent = '';
+    if (versus) versus.textContent = '';
+    if (title) title.textContent = '';
+    return;
+  }
+  detail.hidden = false;
+  if (title) {
+    title.textContent = previewOnly
+      ? preset.label
+      : msg('optPresetOptimized', 'Optimized for') + ' · ' + preset.label;
+  }
+  note.textContent = preset.note;
+  if (versus) {
+    versus.innerHTML = '';
+    if (preset.versus) {
+      const strong = document.createElement('strong');
+      strong.textContent = msg('optPresetVersus', 'How it differs');
+      versus.append(strong, document.createTextNode(' — ' + preset.versus));
+    }
+  }
+}
+
+function paintPresetActive(match) {
+  const name = document.getElementById('presetActiveName');
+  if (!name) return;
+  if (match) {
+    name.textContent = match[1].label;
+    name.classList.remove('is-custom');
+  } else {
+    name.textContent = msg('optPresetCustomLabel', 'Custom');
+    name.classList.add('is-custom');
   }
 }
 
 function applyPreset(id) {
   const preset = CATS.PRESETS[id];
   if (!preset) return;
-  applyScoring({ ...state, weights: { ...CATS.DEFAULT_WEIGHTS, ...preset.weights } });
+  const weights = CATS.presetWeightMap
+    ? CATS.presetWeightMap(id)
+    : { ...CATS.DEFAULT_WEIGHTS, ...preset.weights };
+  applyScoring({ ...state, weights });
+  if (preset.category) presetCategory = preset.category;
+  const host = document.getElementById('presets');
+  if (host) delete host.dataset.userTab;
   renderCategories();
-  markActivePreset(id);
-  document.getElementById('presetNote').textContent = preset.note;
+  renderPresetCategories();
+  renderPresets();
+  showPresetDetail(id);
   save({ immediate: true });
 }
 
 function markActivePreset(id) {
-  document.querySelectorAll('.preset').forEach(b =>
+  document.querySelectorAll('.preset-card').forEach(b =>
     b.setAttribute('aria-pressed', String(b.dataset.preset === id)));
 }
 
 function markPresetDirty() {
   // Once a slider moves, the weights are the user's, not a preset's. Say so rather than leaving a
   // preset highlighted that no longer describes what is set.
-  const match = Object.entries(CATS.PRESETS).find(([, p]) => {
-    const target = { ...CATS.DEFAULT_WEIGHTS, ...p.weights };
-    return Object.keys(target).every(k => Math.abs(weightOf(k) - target[k]) < 0.001);
-  });
+  const match = findMatchingPreset();
   markActivePreset(match ? match[0] : null);
-  document.getElementById('presetNote').textContent = match ? match[1].note : msg('optCustomWeights', 'Custom weights.');
+  paintPresetActive(match);
+  const note = document.getElementById('presetNote');
+  const versus = document.getElementById('presetVersus');
+  const title = document.getElementById('presetDetailTitle');
+  const detail = document.getElementById('presetDetail');
+  if (match) {
+    showPresetDetail(match[0]);
+  } else {
+    if (detail) detail.hidden = false;
+    if (title) title.textContent = msg('optPresetCustomLabel', 'Custom');
+    if (note) {
+      note.textContent = msg('optCustomWeights',
+        'Custom weights — dials no longer match a preset. Pick a card to reset, or keep fine-tuning.');
+    }
+    if (versus) versus.textContent = '';
+  }
 }
 
 // ---------------------------------------------------------------- flags
@@ -553,6 +706,8 @@ function wireCatTools() {
 
 function renderAll() {
   renderCategories();
+  renderPresetCategories();
+  renderPresets();
   renderChips('allergens', ALLERGENS.ALLERGENS, state.allergens, (id, on) => toggleIn(state.allergens, id, on));
   renderChips('diets', ALLERGENS.DIETS, state.diets, (id, on) => toggleIn(state.diets, id, on));
   const avoid = document.getElementById('avoidList');
@@ -566,7 +721,8 @@ function renderAll() {
 chrome.storage.local.get(['weights', 'allergens', 'diets', 'avoidList', 'foodOnly'], o => {
   applyScoring(o);
   if (!PREFS.scoringEqual(o, state)) persist(scoringPayload());
-  renderPresets();
+  const match = findMatchingPreset();
+  if (match && match[1].category) presetCategory = match[1].category;
   renderAll();
   wireCatTools();
   wireFileActions();
