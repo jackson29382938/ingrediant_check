@@ -44,13 +44,13 @@ Do not invent security chores. Keep `preflight` and `sanity.test.js` as the guar
 
 | # | Item | Where | What to do |
 |---|---|---|---|
-| 6 | **Compare two cached ASINs** | `src/options/popup.js`, `src/engine/db/score-cache.js` | Popup already paints one tab. Side-by-side of two `s:` cache entries — no new network, no new scoring. |
-| 7 | **Chrome Web Store package** | `manifest.json` (still 1.0.2), `docs/PRIVACY.md`, `npm run pack` | Zip and icons are ready. Missing: 1280×800 (or 640×400) screenshots, promo tile, hosted privacy URL, listing copy beyond `appDescription`. Add `docs/store-listing/` with a checklist; bump version only when you submit. |
-| 8 | **OCR wasm in CI** | `tests/harness-ocr.html`, `scripts/harness-ci.mjs` | Panel + lifecycle are CI’d. The wasm/`importScripts` path is still manual. One Playwright step on `harness-ocr.html` (engine starts, fixture transcript) would have caught a wrong `.wasm.js` vendor. |
-| 9 | **Worker hygiene** | `src/background.js` (`toCsvUrl` ~323), `src/engine/db/prefs.js` | Fallback copy of `prefs.toSheetUrl` exists for Node. Drop the inline body once tests always load prefs. Optional: inventory every `type:` from content/popup/settings vs `allowMessage` / handlers in `sanity.test.js`. |
+| 6 | **Compare two cached ASINs** | **done** | Popup `#compareBlock` + `CACHE.listScores` (`s:` entries only). No network. Seeded in `harness:ci`. |
+| 7 | **Chrome Web Store package** | **done (checklist)** | [store-listing/README.md](store-listing/README.md). Screenshots still owner-captured; version bump only at submit. |
+| 8 | **OCR wasm in CI** | **done** | `harness-ocr.html` default is a no-Amazon worker smoke; `?live=1` keeps the old Amazon image path. `npm run harness:ci` waits on `__ocrSmoke.ok`. |
+| 9 | **Worker hygiene** | **done (`toCsvUrl`)** | Worker delegates to `prefs.toSheetUrl`. Tests load `prefs.js`. Message-type inventory still optional. |
 | 10 | **i18n leftovers** | `src/engine/categories.js`, `src/options/options.html` notes, `src/content/search.js` (`throttleCopy`) | Chrome is localized; category help, verdict words, and long settings notes are still English. Add `search.js` keys to the `preflight` harvest. Do not add `_locales/de` until category strings move. |
 | 11 | **Optional eslint** | `package.json` | Only if it stays a devDependency and CI stays install-light for the main job. Not blocking. |
-| 12 | **Dead evidence links** | [LIVE-TEST-2026-09-05.md](LIVE-TEST-2026-09-05.md) | Points at `evidence/2026-09-05/*.png` that are not in the tree. Restore redacted shots or drop the links so VERIFY does not send owners in a circle. |
+| 12 | **Dead evidence links** | **done** | LIVE-TEST / VERIFY no longer point at missing `evidence/2026-09-05/*.png`. |
 | 13 | **`flushDiagnostics` sender** | `src/background.js` `allowMessage` | Any extension page can flush the queue (data goes to *your* endpoint). Optional: restrict to `options.html`. |
 
 **Still do not start:** other retailers (second `extract.js`), a bundler, mass-renaming `AIR`, loosening the food gate globally, putting live Amazon in CI.
@@ -79,10 +79,10 @@ Ordered for user-visible accuracy first, then store, then hygiene. Skip 1–2 un
 1. **Run the VERIFY checklist** (OFF + post-WAR OCR + Apps Script). Until that is green, do not claim those features in a store listing.
 2. **Decide the grain story** in one sentence (“we penalize gluten grains by default; turn the dial down if you disagree” is already the code). Only then touch rules.
 3. **DE/FR/ES/IT top-20 additive synonyms** (or a stricter non-English coverage refuse) — the largest remaining *accuracy* gap for 15 of 21 hosts. Requires `RULES_REVISION` + corpus pins. Not a rewrite.
-4. **Compare two cached ASINs** in the popup — small, uses `score-cache`, no network.
-5. **Store-listing folder + `harness-ocr` in CI** — screenshots/checklist for CWS, and a wasm smoke so a vendor typo fails GitHub instead of a user’s first OCR.
+4. ~~**Compare two cached ASINs**~~ in the popup (`CACHE.listScores`).
+5. ~~**Store-listing folder + `harness-ocr` in CI**~~ — [store-listing/README.md](store-listing/README.md); wasm smoke in `harness:ci`.
 
-After that, worker `toCsvUrl` cleanup and leftover i18n are fine as drive-by PRs.
+`toCsvUrl` now delegates to `prefs.toSheetUrl`. Leftover i18n is still a drive-by.
 
 ---
 

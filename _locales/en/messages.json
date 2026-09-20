@@ -311,6 +311,18 @@
   "srcShortPage": {
     "message": "Product page"
   },
+  "popupCompare": {
+    "message": "Compare cached scores"
+  },
+  "popupCompareEmpty": {
+    "message": "Score two products on Amazon, then pick them here. Uses the cache only — no extra requests."
+  },
+  "popupCompareA": {
+    "message": "A"
+  },
+  "popupCompareB": {
+    "message": "B"
+  },
   "popupPresets": {
     "message": "Weight preset"
   },

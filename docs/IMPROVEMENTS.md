@@ -55,7 +55,7 @@ A Manifest V3 Chrome extension that rates Amazon grocery products **0–100** fr
 - **Script-tag soup.** Sixteen files injected in manifest order via `AIRmodule` / IIFEs. Correct, but a missing line in `manifest.json` is a silent empty panel. `preflight` and `sanity.test.js` already guard this — keep those tests if you ever add a file.
 - **`main.js` was ~1,040 lines.** **Done (P2):** split into `page.js` (shared state), `product.js` (PDP), `search.js` (tiles / throttle), thin `main.js` (observer / navigation). No bundler; tests read `AIR.page`.
 - **`background.js` is one worker** with OFF, OCR, CSV sheets, and diagnostics. Message handlers now require this extension (and an Amazon tab for content-script types).
-- **Duplicate helpers.** `toCsvUrl` still exists in the worker as a fallback copy of `prefs.toSheetUrl`.
+- **Duplicate helpers.** **Done:** worker `toCsvUrl` delegates to `prefs.toSheetUrl` (tests load `prefs.js` in the worker VM).
 - **Closed shadow root** (`panel.js` `attachShadow({ mode: 'closed' })`). Host page JS cannot read `host.shadowRoot`. Tests and the harness use `AIR.panel.shadowOf(host)` because a second `attachShadow` on a closed root throws.
 - **IIFE dual-runtime** (`typeof module !== 'undefined'`) so Node tests can `require` the same files Chrome injects. Keep it; a bundler would be a large rewrite.
 
@@ -170,7 +170,7 @@ Do **not** put live Amazon in CI ( captcha, ToS, flakes ).
 These are not defects. Pick at most one.
 
 - **Search chips without fetching Amazon:** barcode/title → OFF only when the user already granted it; otherwise keep “cached after open” as the default (current honest model).
-- **Compare two ASINs** in the popup (both already in the score cache). Small, uses existing `score-cache`.
+- **Compare two ASINs** in the popup — **done.** `#compareBlock` lists valid `s:` cache entries via `CACHE.listScores`; no network.
 - **Per-store language pack** (headings + top 20 additives) for DE/FR/ES/IT first; JA/AR as decline-only until then.
 - **Weight presets on the popup** — **done (P2).** Popup chips apply `categories.PRESETS` (balanced / conventional / additive / wholeFood / strictSugar). No new scoring system.
 - **Other retailers:** do not start. Extraction is Amazon-specific; a second host is a second `extract.js`.
@@ -191,7 +191,7 @@ These are not defects. Pick at most one.
 ### P1 — reliability you will feel on real pages
 
 6. ~~Check in 3–4 Amazon HTML snapshots; assert extract + food gate.~~ `tests/pages/` + `tests/pages.test.js`.
-7. ~~CI the existing browser harnesses (panel + lifecycle), still without Amazon.~~ `npm run harness:ci` / workflow `harness` job.
+7. ~~CI the existing browser harnesses (panel + lifecycle), still without Amazon.~~ `npm run harness:ci` / workflow `harness` job. **Also:** OCR wasm smoke (`__ocrSmoke`) and popup compare (seeded `s:` entries).
 8. Owner: live OFF grant + Apps Script round-trip; redeploy receiver for `batchId` / `rowId`. **Not done here** — checklist in §4.
 9. ~~After N tile-fetch failures, pause auto-score and say so.~~ `TILE_FAIL_LIMIT` (5); `#air-throttle-notice`; no `seen.delete` on failure.
 10. ~~Headings for `amazon.se` / `.com.tr`; JP/AR decline-until-ready (no English OCR).~~ `Ingredienser` / `İçindekiler`; `ocrReadyForHost`.
@@ -205,6 +205,9 @@ These are not defects. Pick at most one.
 15. ~~Settings i18n; closed shadow; drop unused `activeTab`.~~ Settings/popup chrome wired to `_locales`; panel `mode: 'closed'` + `shadowOf`; `activeTab` removed (preflight fails if it returns).
 16. ~~Popup shortcuts to existing weight presets.~~ Same `PRESETS` objects as settings; no new weights.
 17. Repo rename `ingrediant` → `ingredient` only as a conscious GitHub move. **Still open — do not rename.** The product name stays **Ingredient Check**; the GitHub folder spelling is historical (README one-liner already says so).
+18. ~~Compare two cached ASINs in the popup.~~ `CACHE.listScores` + `#compareBlock`.
+19. ~~Store-listing checklist.~~ [store-listing/README.md](store-listing/README.md) (no version bump; screenshots owner-captured).
+20. ~~OCR wasm smoke in `harness:ci`.~~ Default `harness-ocr.html` starts the vendored worker; `?live=1` keeps the Amazon image path.
 
 ---
 

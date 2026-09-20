@@ -40,6 +40,7 @@ function worker(initial = {}, fetcher, { alarms } = {}) {
   sandbox.self = sandbox;
   const context = vm.createContext(sandbox);
   vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/_module.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/prefs.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/ocr-text.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(require.resolve('../src/background.js'), 'utf8'), context);
   return {

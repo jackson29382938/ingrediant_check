@@ -34,6 +34,15 @@
  .preset:hover{background:#eef0f0}
  .preset[aria-pressed="true"]{background:#0f7b3f;border-color:#0f7b3f;color:#fff}
  .preset-note{color:#565959;font-size:11px;margin:6px 0 0;line-height:1.35}
+ .compare-block{margin:0 0 12px;padding-top:2px}
+ .compare-empty{color:#565959;font-size:11px;margin:0 0 8px;line-height:1.35}
+ .compare-pick{display:flex;flex-direction:column;gap:3px;padding:6px 0;border-top:1px solid #eaeded;cursor:default}
+ .compare-pick span{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#565959}
+ .compare-pick select{width:100%;font:inherit;font-size:12px;padding:5px 6px;border:1px solid #d5d9d9;border-radius:6px;background:#fff;color:inherit}
+ .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+ .compare-card{padding:8px;border:1px solid var(--ring,#d5d9d9);border-radius:8px;background:var(--bg,#f7f8f8)}
+ .compare-card .ps-num{width:32px;height:32px;font-size:13px;margin-bottom:6px}
+ .compare-card .ps-sub{-webkit-line-clamp:3}
  #toggleWhy,#openSettings,#clear{display:block;margin-top:10px;padding:0;border:0;background:none;
    font:inherit;font-size:11px;color:#007185;text-decoration:none;cursor:pointer;text-align:left}
  #clear{margin-top:6px}
@@ -51,6 +60,10 @@
    .preset{background:#2d2f2f;border-color:#3a3c3c;color:#f3f3f3}
    .preset:hover{background:#3a3c3c}
    .preset[aria-pressed="true"]{background:#0f7b3f;border-color:#0f7b3f;color:#fff}
+   .compare-pick,.compare-card{border-color:#3a3c3c}
+   .compare-pick select{background:#1b1c1c;border-color:#3a3c3c;color:#f3f3f3}
+   .compare-card{background:#232525}
+   .compare-empty{color:#aeaeae}
    #kept{background:#3d2e14;border-color:#8a6a2a;color:#f3d19c}
    #clear:disabled{color:#8a8a8a}
  }
@@ -58,6 +71,17 @@
  <h1 data-i18n="appName">Ingredient Check</h1>
  <div class="sub" data-i18n="popupTagline">Ingredient quality, additives and processing — scored on your computer.</div>
  <div id="pageScore" class="page-score" hidden></div>
+ <div class="compare-block" id="compareBlock">
+   <div class="ps-kicker" data-i18n="popupCompare">Compare cached scores</div>
+   <p class="compare-empty" id="compareEmpty" data-i18n="popupCompareEmpty">Score two products on Amazon, then pick them here. Uses the cache only — no extra requests.</p>
+   <div id="comparePick" hidden>
+     <label class="compare-pick"><span data-i18n="popupCompareA">A</span>
+       <select id="compareA" aria-label="First cached score"></select></label>
+     <label class="compare-pick"><span data-i18n="popupCompareB">B</span>
+       <select id="compareB" aria-label="Second cached score"></select></label>
+     <div class="compare-grid" id="compareGrid"></div>
+   </div>
+ </div>
  <label class="master"><input type="checkbox" id="enabled" checked><span><span class="t" data-i18n="popupShowRatings">Ingredient Check is on</span>
    <span class="d" data-i18n="popupShowRatingsD">The master switch. Off stops everything on Amazon pages — no panel,
    no badges, no page watching. Nothing below is forgotten.</span></span></label>

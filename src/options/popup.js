@@ -267,6 +267,97 @@ function cacheKeys(all) {
   return Object.keys(all || {}).filter(key => /^(s|off):/.test(key));
 }
 
+function compareLabel(hit) {
+  const name = (hit.name || hit.asin || '').replace(/\s+/g, ' ').trim();
+  return [hit.score, hit.verdict, name].filter(Boolean).join(' · ');
+}
+
+function paintCompareCard(hit) {
+  const card = document.createElement('div');
+  card.className = 'compare-card';
+  if (!hit) return card;
+  const c = bandColor(hit.score);
+  card.style.setProperty('--fg', c.fg);
+  card.style.setProperty('--bg', c.bg);
+  card.style.setProperty('--ring', c.ring);
+  const num = document.createElement('div');
+  num.className = 'ps-num';
+  num.textContent = String(hit.score);
+  const verdict = document.createElement('div');
+  verdict.className = 'ps-verdict';
+  verdict.textContent = hit.verdict || '';
+  const sub = document.createElement('div');
+  sub.className = 'ps-sub';
+  sub.textContent = [NOVA_SHORT[hit.nova], hit.name, hit.asin].filter(Boolean).join(' · ');
+  card.append(num, verdict, sub);
+  return card;
+}
+
+function fillCompareSelect(select, listed, chosen) {
+  const keep = listed.some(h => h.key === chosen) ? chosen : (listed[0] && listed[0].key);
+  select.textContent = '';
+  for (const hit of listed) {
+    const opt = document.createElement('option');
+    opt.value = hit.key;
+    opt.textContent = compareLabel(hit);
+    select.appendChild(opt);
+  }
+  if (keep) select.value = keep;
+  return select.value;
+}
+
+function paintCompare() {
+  const empty = document.getElementById('compareEmpty');
+  const pick = document.getElementById('comparePick');
+  const grid = document.getElementById('compareGrid');
+  const selA = document.getElementById('compareA');
+  const selB = document.getElementById('compareB');
+  if (!empty || !pick || !grid || !selA || !selB) return;
+  let version = '';
+  try { version = chrome.runtime.getManifest().version; } catch (e) { /* ignore */ }
+  chrome.storage.local.get(null, all => {
+    const prefs = {
+      weights: all.weights, foodOnly: all.foodOnly, ocrLabels: all.ocrLabels,
+      useOpenFoodFacts: all.useOpenFoodFacts, sheetUrl: all.sheetUrl, producersUrl: all.producersUrl,
+      sheetIndexRev: all.sheetIndexRev, producerIndexRev: all.producerIndexRev,
+    };
+    const listed = CACHE.listScores(all, { version, prefs });
+    if (listed.length < 2) {
+      empty.hidden = false;
+      pick.hidden = true;
+      grid.textContent = '';
+      return;
+    }
+    empty.hidden = true;
+    pick.hidden = false;
+    let pickA = all.compareA;
+    let pickB = all.compareB;
+    if (pickA === pickB) pickB = listed.find(h => h.key !== pickA)?.key;
+    if (!listed.some(h => h.key === pickA)) pickA = listed[0].key;
+    if (!listed.some(h => h.key === pickB) || pickB === pickA) {
+      pickB = listed.find(h => h.key !== pickA)?.key;
+    }
+    const aKey = fillCompareSelect(selA, listed, pickA);
+    const bKey = fillCompareSelect(selB, listed, pickB);
+    const hitA = listed.find(h => h.key === aKey);
+    const hitB = listed.find(h => h.key === bKey);
+    grid.textContent = '';
+    grid.append(paintCompareCard(hitA), paintCompareCard(hitB));
+    if (aKey !== all.compareA || bKey !== all.compareB) persist({ compareA: aKey, compareB: bKey });
+  });
+}
+
+function wireCompare() {
+  for (const id of ['compareA', 'compareB']) {
+    const el = document.getElementById(id);
+    if (!el || el.dataset.wired) continue;
+    el.dataset.wired = '1';
+    el.addEventListener('change', () => {
+      persist({ [id]: el.value }, () => paintCompare());
+    });
+  }
+}
+
 function paintCacheCount() {
   const btn = document.getElementById('clear');
   if (!btn) return;
@@ -302,9 +393,10 @@ chrome.storage.onChanged.addListener(changes => {
   }
   if (changes.weights) renderPresets(changes.weights.newValue);
   if (changes.popupShowWhy) paintWhy(changes.popupShowWhy.newValue === true);
-  if (Object.keys(changes).some(k => /^(s|off):/.test(k) || ['weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sheetUrl', 'producersUrl', 'sheetIndexRev', 'producerIndexRev'].includes(k))) {
+  if (Object.keys(changes).some(k => /^(s|off):/.test(k) || ['weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sheetUrl', 'producersUrl', 'sheetIndexRev', 'producerIndexRev', 'compareA', 'compareB'].includes(k))) {
     paintCacheCount();
     paintPageScore();
+    paintCompare();
   }
 });
 
@@ -329,6 +421,7 @@ document.getElementById('clear').addEventListener('click', async event => {
     event.target.textContent = cleared || `Cleared ${keys.length} cached scores`;
     event.target.disabled = true;
     paintPageScore();
+    paintCompare();
   } catch (e) {
     say(msg('popupCouldNotClear', 'Could not clear cached scores.'));
   }
@@ -337,6 +430,8 @@ document.getElementById('clear').addEventListener('click', async event => {
 chrome.storage.local.get('popupShowWhy', o => paintWhy(o.popupShowWhy === true));
 paintPageScore();
 paintCacheCount();
+wireCompare();
+paintCompare();
 
 (function paintVersion() {
   const el = document.getElementById('version');
