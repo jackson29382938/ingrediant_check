@@ -14,9 +14,13 @@
 const out = document.getElementById('out');
 const log = m => { out.textContent += '\n' + m; };
 const CORE = '/vendor/tesseract/';
+const live = new URLSearchParams(location.search).get('live') === '1';
 (async () => {
   try {
     out.textContent = 'Tesseract global: ' + (typeof Tesseract);
+    if (typeof Tesseract !== 'function' && typeof Tesseract !== 'object') {
+      throw new Error('Tesseract global missing — tesseract.min.js did not load');
+    }
     const t0 = Date.now();
     const worker = await Tesseract.createWorker('eng', 1, {
       workerPath: '/vendor/tesseract/worker.min.js',
@@ -27,6 +31,13 @@ const CORE = '/vendor/tesseract/';
       logger: m => { if (m.status === 'recognizing text' && m.progress === 1) log('  recognised'); },
     });
     log('worker ready in ' + ((Date.now()-t0)/1000).toFixed(1) + 's');
+    window.__ocrSmoke = { ok: true, tesseract: typeof Tesseract, workerReady: true, live };
+    if (!live) {
+      await worker.terminate();
+      log('SMOKE PASS — vendored worker started, no Amazon fetch');
+      window.__ocrResult = { ok: true, smoke: true };
+      return;
+    }
     const url = 'https://m.media-amazon.com/images/I/514iQ-HJVEL._SL1600_.jpg';
     const res = await fetch(url, { credentials: 'omit' });
     log('image fetch: HTTP ' + res.status + ' (CORS ok)');
@@ -41,6 +52,7 @@ const CORE = '/vendor/tesseract/';
     log('\nRESULT: ' + (block ? 'PASS' : 'FAIL'));
   } catch (e) {
     log('\nERROR: ' + (e && e.message || e));
+    window.__ocrSmoke = { ok: false, error: String(e && e.message || e) };
     window.__ocrResult = { ok: false, error: String(e && e.message || e) };
   }
 })();

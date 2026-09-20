@@ -32,6 +32,26 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
       && typeof hit.source === 'string' && !!hit.source
       && (allowManual || !['manual-paste', 'food-override'].includes(hit.source));
   }
-  const api = AIRmodule('scoreCache', { key, fingerprint, valid, SCHEMA, TTL_MS });
+  function parseKey(raw) {
+    const m = String(raw || '').match(/^s:([^:]+):([A-Z0-9]{10})$/i);
+    return m ? { store: m[1], asin: m[2].toUpperCase() } : null;
+  }
+  function listScores(all, { version, prefs } = {}, now = Date.now()) {
+    const out = [];
+    for (const [cacheKey, hit] of Object.entries(all || {})) {
+      const parsed = parseKey(cacheKey);
+      if (!parsed || !hit) continue;
+      if (!valid(hit, { store: parsed.store, asin: parsed.asin, version, prefs }, now)) continue;
+      out.push({
+        key: cacheKey, store: hit.store, asin: hit.asin,
+        name: hit.name || '', score: hit.score, verdict: hit.verdict || '',
+        nova: hit.nova, source: hit.source, t: hit.t,
+        provenanceSource: hit.provenanceSource || '',
+      });
+    }
+    out.sort((a, b) => (b.t || 0) - (a.t || 0));
+    return out;
+  }
+  const api = AIRmodule('scoreCache', { key, fingerprint, valid, parseKey, listScores, SCHEMA, TTL_MS });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();

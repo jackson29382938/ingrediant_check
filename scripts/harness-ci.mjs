@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Drive tests/harness.html + tests/harness-lifecycle.html in Chromium.
+// Drive tests/harness.html + tests/harness-lifecycle.html + tests/harness-ocr.html (smoke) in Chromium.
 // No Amazon network, no login. Used by CI (`npm run harness:ci`).
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
@@ -9,7 +9,10 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = Number(process.env.HARNESS_PORT || 8731);
-const TYPES = { '.js': 'text/javascript', '.html': 'text/html', '.json': 'application/json', '.png': 'image/png' };
+const TYPES = {
+  '.js': 'text/javascript', '.html': 'text/html', '.json': 'application/json',
+  '.png': 'image/png', '.gz': 'application/gzip', '.wasm': 'application/wasm',
+};
 
 function startServer() {
   return new Promise((resolve, reject) => {
@@ -114,6 +117,14 @@ async function run() {
       if (life.panelState !== 'not-food') throw new Error(`lifecycle nonfood: expected not-food, got ${life.panelState}`);
       if (life.extractCalls !== 0) throw new Error(`lifecycle nonfood: extractCalls ${life.extractCalls}, expected 0`);
       console.log('  ok  lifecycle shampoo → not-food, extractCalls 0');
+    });
+
+    await withPage(browser, `${base}/tests/harness-ocr.html`, async page => {
+      await page.waitForFunction(() => window.__ocrSmoke && (window.__ocrSmoke.ok || window.__ocrSmoke.error), { timeout: 90000 });
+      const smoke = await page.evaluate(() => window.__ocrSmoke);
+      if (!smoke || !smoke.ok) throw new Error(`ocr harness: worker did not start (${smoke && smoke.error})`);
+      if (!smoke.workerReady) throw new Error('ocr harness: workerReady is false');
+      console.log('  ok  ocr smoke → vendored Tesseract worker started (no Amazon)');
     });
   } finally {
     await browser.close();

@@ -319,20 +319,9 @@ async function sweepCache() {
 const SHEET_TTL_MS = 1000 * 60 * 60 * 6;
 const SHEET_CACHE_KEY = 'sheetIndex';
 
-// Published-sheet URLs come in several shapes. Normalise whatever the user pasted into a CSV export.
+// Published-sheet URLs: one implementation, in prefs.toSheetUrl. Tests load prefs.js first.
 function toCsvUrl(raw) {
-  if (self.AIR && self.AIR.db && self.AIR.db.prefs) return self.AIR.db.prefs.toSheetUrl(raw);
-  let url;
-  try { url = new URL(String(raw || '').trim()); } catch { return null; }
-  if (url.protocol !== 'https:' || url.hostname !== 'docs.google.com' || url.username || url.password) return null;
-  const match = url.pathname.match(/^\/spreadsheets\/d\/(e\/)?([A-Za-z0-9_-]{20,})(?:\/|$)/);
-  if (!match) return null;
-  const [, published, id] = match;
-  const gid = url.searchParams.get('gid') || new URLSearchParams(url.hash.slice(1)).get('gid');
-  const tab = gid && /^\d+$/.test(gid) ? `&gid=${gid}` : '';
-  return published
-    ? `https://docs.google.com/spreadsheets/d/e/${id}/pub?output=csv${tab}`
-    : `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv${tab}`;
+  return self.AIR.db.prefs.toSheetUrl(raw);
 }
 
 // Minimal RFC-4180 parser. Sheet cells routinely contain commas ("USDA Organic, AGA Certified"),

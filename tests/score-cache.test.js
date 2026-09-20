@@ -36,6 +36,25 @@ test('cache rejects expired, mismatched, incomplete, and manual records', () => 
   assert.equal(cache.valid({ ...entry, source: 'manual-paste' }, { ...context, allowManual: true }, now), true);
   assert.notEqual(cache.key(context.store, context.asin), cache.key('www.amazon.co.uk', context.asin));
 });
+test('listScores returns valid s: entries newest first and skips off: / stale', () => {
+  const prefs = {};
+  const a = { ...entry, asin: 'B000000001', t: now - 1000, name: 'Oats', verdict: 'Excellent', nova: 1 };
+  const b = { ...entry, asin: 'B000000002', store: 'www.amazon.com', t: now - 100, name: 'Milk', verdict: 'Good', nova: 1 };
+  const stale = { ...entry, asin: 'B000000003', t: now - cache.TTL_MS };
+  const all = {
+    [cache.key('www.amazon.com', 'B000000001')]: a,
+    [cache.key('www.amazon.com', 'B000000002')]: { ...b, asin: 'B000000002' },
+    [cache.key('www.amazon.com', 'B000000003')]: stale,
+    'off:12345678': { score: 10, schema: cache.SCHEMA, v: context.version, store: 'www.amazon.com', asin: 'B000000099', prefs: cache.fingerprint({}), source: 'page', t: now },
+    's:www.amazon.com:B000000004': { ...entry, store: 'www.amazon.co.uk', asin: 'B000000004', t: now },
+  };
+  const listed = cache.listScores(all, { version: context.version, prefs }, now);
+  assert.equal(listed.length, 2);
+  assert.equal(listed[0].asin, 'B000000002');
+  assert.equal(listed[1].asin, 'B000000001');
+  assert.equal(cache.parseKey('s:www.amazon.com:B000000001').asin, 'B000000001');
+  assert.equal(cache.parseKey('off:1'), null);
+});
 test('fingerprints track effective weights, fallbacks, food gate and provenance revisions', () => {
   assert.equal(cache.fingerprint({}), cache.fingerprint({ weights: cats.DEFAULT_WEIGHTS }));
   for (const prefs of [{ weights: { sugar: 2 } }, { foodOnly: false }, { ocrLabels: true },
