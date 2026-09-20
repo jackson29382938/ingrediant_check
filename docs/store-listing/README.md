@@ -6,6 +6,19 @@ Privacy copy to paste / host: [../PRIVACY.md](../PRIVACY.md). Store description 
 
 This folder holds the *checklist*, not screenshots. Capture shots from your own Chrome (or the local harness) when you submit. Do not invent promo images.
 
+## Language honesty (do not over-claim)
+
+Host permissions cover many Amazon storefronts. Scoring quality does **not**.
+
+| Stores | Expectation |
+|---|---|
+| **US / UK / CA / AU** (English labels) | Best fit — full rulebase + OCR when needed |
+| **DE / FR / ES / IT** | Ingredient headings extract; common additives / oils / flavours usually score via synonym pack + E-numbers |
+| **NL / SE / PL / TR / BR / MX / BE / IE / IN / SG / …** | Headings often extract; scoring is thinner — lists may decline as unreadable or under-score |
+| **JP / AE / SA** | Photo OCR declined (English Tesseract misreads those scripts); paste still works |
+
+Do **not** claim “works equally on all Amazon grocery stores.” Prefer: *Best on English US/UK/CA/AU labels; DE/FR/ES/IT mostly work; other stores may extract text but scores can be incomplete.*
+
 ## Assets Chrome asks for
 
 | Asset | Size | Notes |
@@ -28,7 +41,7 @@ Suggested screenshot set (capture live, or from `npm run harness` + popup):
 - **Name:** Ingredient Check  
 - **Summary:** `appDescription` (keep ≤132 characters in every locale).  
 - **Category:** Shopping (or Productivity).  
-- **Language:** English.  
+- **Language:** English (primary). Mention EU synonym support in the long description, not as universal coverage.  
 - **Privacy:** host [PRIVACY.md](../PRIVACY.md) (GitHub blob/raw or Pages) and paste that URL in the CWS privacy field.  
 - **Single purpose:** local ingredient scoring on Amazon grocery pages.  
 - **Permissions justification:** `storage` (weights + cache), `alarms` (housekeeping), `offscreen` (on-device OCR), Amazon host permissions (read product/search pages; optional tile fetch uses the user’s session). Optional hosts: Open Food Facts (barcode only), Google Sheets / Apps Script (owner-configured).

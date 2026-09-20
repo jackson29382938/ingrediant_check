@@ -15,6 +15,7 @@
     failStreak: 0, throttled: false };
   let tileObserver = null;
   let badgeStyleReady = false;
+  const hoverAborts = new Set();
 
   function searchContext() {
     const params = new URLSearchParams(location.search);
@@ -60,6 +61,7 @@
   function badgeSearchResults() {
     const { state, BADGE_ATTR, cacheKey, usableCache } = P();
     const tiles = document.querySelectorAll('[data-asin]:not([' + BADGE_ATTR + '])');
+    const pending = [];
     tiles.forEach(tile => {
       const asin = tile.getAttribute('data-asin');
       if (!asin || asin.length !== 10) return;
@@ -67,14 +69,20 @@
       if (state.foodOnly && root.AIR.db.ingestible && root.AIR.db.ingestible.looksNonFoodFromTitle(tileTitle(tile))) {
         return;
       }
-      const epoch = queue.epoch;
-      chrome.storage.local.get(cacheKey(asin), obj => {
-        if (epoch !== queue.epoch || !state.enabled || !state.badges || !tile.isConnected) return;
-        const hit = obj[cacheKey(asin)];
-        if (!usableCache(hit, asin)) return;
-        paintBadge(tile, hit);
-      });
+      pending.push({ tile, asin, key: cacheKey(asin) });
     });
+    if (pending.length) {
+      const epoch = queue.epoch;
+      chrome.storage.local.get(pending.map(p => p.key), obj => {
+        if (epoch !== queue.epoch || !state.enabled || !state.badges) return;
+        for (const { tile, asin, key } of pending) {
+          if (!tile.isConnected) continue;
+          const hit = obj[key];
+          if (!usableCache(hit, asin)) continue;
+          paintBadge(tile, hit);
+        }
+      });
+    }
     armHoverPass();
     armAutoScorePass();
   }
@@ -97,7 +105,8 @@
     }
     const s = document.createElement('style');
     s.id = 'air-badge-style';
-    s.textContent = `.air-badge{display:inline-grid;place-items:center;min-width:26px;height:26px;`
+    s.textContent = `.air-badge{display:inline-flex;align-items:center;justify-content:center;`
+      + `flex-shrink:0;align-self:center;min-width:26px;height:26px;`
       + `padding:0 6px;margin-right:8px;border-radius:999px;font:700 12px/1 sans-serif;`
       + `vertical-align:middle;box-sizing:border-box}`;
     (document.head || document.documentElement).appendChild(s);
@@ -201,7 +210,10 @@
     for (const controller of queue.controllers) controller.abort();
     queue.controllers.clear();
     if (tileObserver) { tileObserver.disconnect(); tileObserver = null; }
+    for (const ac of hoverAborts) ac.abort();
+    hoverAborts.clear();
     document.querySelectorAll('[data-air-auto]').forEach(t => t.removeAttribute('data-air-auto'));
+    document.querySelectorAll('[data-air-hover]').forEach(t => t.removeAttribute('data-air-hover'));
   }
 
   function tileTitle(tile) {
@@ -242,6 +254,12 @@
     if (tile.hasAttribute('data-air-hover')) return;
     tile.setAttribute('data-air-hover', '1');
     let timer = null;
+    const ac = new AbortController();
+    hoverAborts.add(ac);
+    ac.signal.addEventListener('abort', () => {
+      clearTimeout(timer);
+      hoverAborts.delete(ac);
+    });
     const start = () => {
       if (!state.enabled || !state.badges || !state.hoverScore) return;
       if (!searchAllowed()) return;
@@ -250,10 +268,11 @@
       timer = setTimeout(() => enqueue(tile, asin, { front: true }), HOVER_DELAY_MS);
     };
     const cancel = () => clearTimeout(timer);
-    tile.addEventListener('mouseenter', start);
-    tile.addEventListener('mouseleave', cancel);
-    tile.addEventListener('focusin', start);
-    tile.addEventListener('focusout', cancel);
+    const opts = { signal: ac.signal };
+    tile.addEventListener('mouseenter', start, opts);
+    tile.addEventListener('mouseleave', cancel, opts);
+    tile.addEventListener('focusin', start, opts);
+    tile.addEventListener('focusout', cancel, opts);
   }
 
   function autoObserver() {
@@ -346,6 +365,9 @@
     const { BADGE_ATTR } = P();
     document.querySelectorAll('.air-badge').forEach(b => b.remove());
     document.querySelectorAll(`[${BADGE_ATTR}]`).forEach(tile => tile.removeAttribute(BADGE_ATTR));
+    for (const ac of hoverAborts) ac.abort();
+    hoverAborts.clear();
+    document.querySelectorAll('[data-air-hover]').forEach(t => t.removeAttribute('data-air-hover'));
   }
 
   const search = {

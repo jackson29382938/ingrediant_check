@@ -56,6 +56,27 @@ function requestOrigins(origins, done) {
   });
 }
 
+function revokeUnusedGoogleOrigins(done) {
+  if (!chrome.permissions || typeof chrome.permissions.remove !== 'function') {
+    if (done) done(true);
+    return;
+  }
+  chrome.storage.local.get(['sheetUrl', 'producersUrl', 'contributeUrl'], o => {
+    const urls = PREFS.sanitizeUrls(o);
+    const stillNeed = new Set([
+      ...originsForUrl(urls.sheetUrl),
+      ...originsForUrl(urls.producersUrl),
+      ...originsForUrl(urls.contributeUrl),
+    ]);
+    const drop = [...SHEET_ORIGINS, ...SCRIPT_ORIGINS].filter(origin => !stillNeed.has(origin));
+    if (!drop.length) { if (done) done(true); return; }
+    chrome.permissions.remove({ origins: drop }, () => {
+      void chrome.runtime.lastError;
+      if (done) done(true);
+    });
+  });
+}
+
 function flash(msg, kind) {
   const el = document.getElementById('status');
   el.textContent = msg;
@@ -356,7 +377,11 @@ function wireDatabase() {
             : 'That has to be a published Google Sheet link', 'error');
           return;
         }
-        const persistUrl = () => persist({ [key]: value }, ok => { if (ok) flash(msg('optSaved', 'Saved')); });
+        const persistUrl = () => persist({ [key]: value }, ok => {
+          if (!ok) return;
+          if (!value) revokeUnusedGoogleOrigins();
+          flash(msg('optSaved', 'Saved'));
+        });
         if (!value) { persistUrl(); return; }
         requestOrigins(originsForUrl(value), ok => {
           if (!ok) {

@@ -235,6 +235,21 @@ test('JP/AR hosts skip English OCR and surface a locale decline', () => {
   assert.equal(w.failMeta.localeDeclined, true);
 });
 
+test('manual paste declines low-coverage text instead of scoring it', () => {
+  const w = setup();
+  w.context.AIR.engine.score = () => ({
+    score: 88, verdict: 'Excellent', nova: 4, parsed: 6, coverage: 0.1, bad: [], good: [],
+  });
+  w.host.dataset.airState = '';
+  w.h.state.lastKey = 'B000000001';
+  w.context.AIR.product.renderManual(w.host, { title: 'Polish snack', asin: 'B000000001' }, 'B000000001',
+    'składniki: cukier, mąka, olej');
+  assert.equal(w.host.dataset.airState, 'fail');
+  assert.equal(w.failMeta.lowCoverage, true);
+  assert.equal(w.rendered.length, 0);
+  assert.equal(w.writes.length, 0);
+});
+
 test('manual scores are available to this tab but never stored as search scores', () => {
   const w = setup();
   w.h.cacheScore('B000000001', { score: 80 }, 'Food', 'manual-paste', 'Peanuts, salt');

@@ -203,13 +203,17 @@ function paintActionBadge(tabId, score) {
   chrome.action.setBadgeBackgroundColor({ tabId, color: badgeColor(score) });
 }
 
-// Content-script types must come from an Amazon tab of this extension. Extension-page types
-// (popup, options, offscreen idle) only need to be from this extension. Other extensions are
-// ignored even though externally_connectable is unset — cheap insurance if that ever changes.
+// Content-script types must come from an Amazon tab of this extension. Settings/popup types must
+// come from those pages. Offscreen idle is only from the OCR document. Unknown types are denied —
+// a new message is closed until it is registered here.
 const PAGE_MESSAGE_TYPES = new Set([
   'pageScore', 'ocrLabels', 'lookupBarcode', 'provenanceLookup',
   'contribute', 'report', 'diagnostic',
 ]);
+const SETTINGS_MESSAGE_TYPES = new Set([
+  'flushDiagnostics', 'diagnosticsStatus', 'refreshSheet',
+]);
+const OFFSCREEN_MESSAGE_TYPES = new Set(['ocrIdle']);
 const AMAZON_HOST = /(^|\.)amazon\.(com|co\.uk|ca|com\.au|ie|in|sg|ae|sa|de|fr|es|it|nl|se|pl|com\.be|com\.tr|com\.mx|com\.br|co\.jp)$/i;
 
 function isOwnExtension(sender) {
@@ -225,10 +229,33 @@ function isAmazonTabSender(sender) {
   catch { return false; }
 }
 
+function extensionPagePath(sender) {
+  const raw = sender && sender.url;
+  if (!raw) return '';
+  try {
+    const u = new URL(raw);
+    const id = chrome.runtime && chrome.runtime.id;
+    if (!id || u.protocol !== 'chrome-extension:' || u.hostname !== id) return '';
+    return u.pathname || '';
+  } catch { return ''; }
+}
+
+function isSettingsSender(sender) {
+  const path = extensionPagePath(sender);
+  return /\/(options|popup)\.html$/i.test(path);
+}
+
+function isOffscreenSender(sender) {
+  return /\/offscreen\/ocr\.html$/i.test(extensionPagePath(sender));
+}
+
 function allowMessage(msg, sender) {
   if (!msg || !isOwnExtension(sender)) return false;
   if (PAGE_MESSAGE_TYPES.has(msg.type)) return isAmazonTabSender(sender);
-  return true;
+  if (SETTINGS_MESSAGE_TYPES.has(msg.type)) return isSettingsSender(sender);
+  if (OFFSCREEN_MESSAGE_TYPES.has(msg.type)) return isOffscreenSender(sender);
+  if (msg.type === 'ping') return true;
+  return false;
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
@@ -318,6 +345,9 @@ async function sweepCache() {
 
 const SHEET_TTL_MS = 1000 * 60 * 60 * 6;
 const SHEET_CACHE_KEY = 'sheetIndex';
+// Bound sheet/producer caches so a huge published CSV cannot eat chrome.storage quota.
+const MAX_SHEET_BYTES = 2 * 1024 * 1024;
+const MAX_SHEET_ROWS = 8000;
 
 // Published-sheet URLs: one implementation, in prefs.toSheetUrl. Tests load prefs.js first.
 function toCsvUrl(raw) {
@@ -377,7 +407,14 @@ async function loadSheetIndex(force = false) {
       if (!res.ok) throw new Error(String(res.status));
       return res.text();
     });
-    const index = indexRows(parseCsv(csv));
+    if (typeof csv !== 'string' || csv.length > MAX_SHEET_BYTES) {
+      return cached && cached.url === csvUrl && cached.index ? cached.index : null;
+    }
+    const rows = parseCsv(csv);
+    if (rows.length > MAX_SHEET_ROWS) {
+      return cached && cached.url === csvUrl && cached.index ? cached.index : null;
+    }
+    const index = indexRows(rows);
     // The revision is a hash of the CSV, not a timestamp: the score cache fingerprints on it, and a
     // refresh that changed nothing must not retire every cached score. Content scripts read only the
     // small revision key, never the index itself.
@@ -415,7 +452,13 @@ async function loadProducerIndex(force = false) {
       if (!res.ok) throw new Error(String(res.status));
       return res.text();
     });
+    if (typeof csv !== 'string' || csv.length > MAX_SHEET_BYTES) {
+      return cached && cached.url === csvUrl && cached.index ? cached.index : null;
+    }
     const rows = parseCsv(csv);
+    if (rows.length > MAX_SHEET_ROWS) {
+      return cached && cached.url === csvUrl && cached.index ? cached.index : null;
+    }
     const head = (rows[0] || []).map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
     const index = Object.create(null);
     for (const r of rows.slice(1)) {
@@ -599,5 +642,5 @@ function handleSharedDbMessage(msg, reply) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { toCsvUrl, parseCsv, indexRows, lookupRecord, sweepCache, isOpenFoodFactsFood, batchIdFor, revisionOf, ensureHousekeepingAlarm, allowMessage, isOwnExtension, isAmazonTabSender, allowedOcrUrls };
+  module.exports = { toCsvUrl, parseCsv, indexRows, lookupRecord, sweepCache, isOpenFoodFactsFood, batchIdFor, revisionOf, ensureHousekeepingAlarm, allowMessage, isOwnExtension, isAmazonTabSender, isSettingsSender, isOffscreenSender, allowedOcrUrls, MAX_SHEET_BYTES, MAX_SHEET_ROWS };
 }

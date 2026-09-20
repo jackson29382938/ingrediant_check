@@ -11,7 +11,7 @@
   const state = { enabled: true, badges: true, hoverScore: false, autoScoreSearch: false, foodOnly: true,
     ocrLabels: false, sendDiagnostics: false, settled: null, lastBadgeScore: undefined,
     prefs: { weights: {}, allergens: [], diets: [], avoidList: [] }, lastKey: null, requestId: 0,
-    failedExtracts: 0, manual: null };
+    failedExtracts: 0, manual: null, lastTextSig: null, lastFailSig: null };
 
   const ENGINE_VERSION = (() => {
     try { return chrome.runtime.getManifest().version; } catch (e) { return '0'; }
@@ -20,7 +20,10 @@
   state.cacheOptions = {};
   state.pageScore = null;
   const cachePrefs = () => ({ ...state.cacheOptions, weights: state.prefs.weights, foodOnly: state.foodOnly });
-  const cacheKey = asin => CACHE ? CACHE.key(location.hostname, asin) : `s:${location.hostname}:${asin}`;
+  const storeHost = () => (CACHE && CACHE.normalizeStore)
+    ? CACHE.normalizeStore(location.hostname)
+    : String(location.hostname || '').toLowerCase().replace(/^www\./, '');
+  const cacheKey = asin => CACHE ? CACHE.key(location.hostname, asin) : `s:${storeHost()}:${asin}`;
   const usableCache = (hit, asin) => !!CACHE && CACHE.valid(hit, {
     store: location.hostname, asin, version: ENGINE_VERSION, prefs: cachePrefs(),
   });
@@ -28,8 +31,24 @@
   const MAX_EXTRACT_RETRIES = 8;
 
   const isProductPage = () => /\/(dp|gp\/product|gp\/aw\/d)\/[A-Z0-9]{10}/.test(location.pathname);
-  const isListPage = () => /\/(s|b|gp\/browse|stores)\b/.test(location.pathname) || location.search.includes('k=');
+  // Do not treat a PDP with a stray k= param as a search page.
+  const isListPage = () => !isProductPage() && (
+    /\/(s|b|gp\/browse|stores)\b/.test(location.pathname) || /[?&]k=/.test(location.search)
+  );
   const isRelevantPage = () => isProductPage() || isListPage();
+
+  // Cheap fingerprint of published ingredient text so a settled score can detect late NIC hydration
+  // without re-running the full extract on every Amazon ad mutation.
+  function ingredientSig(doc = document) {
+    try {
+      const el = doc.querySelector(
+        '#nic-ingredients-content, #important-information, #productFactsDesktop_feature_div, '
+        + '[data-a-expander-name="ingredient_text"], .a-expander-content'
+      );
+      const t = el && (el.innerText || '').replace(/\s+/g, ' ').trim();
+      return t ? t.slice(0, 320) : '';
+    } catch (e) { return ''; }
+  }
 
   // Below this share of the ingredient list matching anything the rulebase knows, the score is not
   // evidence about the product — it is evidence that the rules are in the wrong language.
@@ -71,7 +90,7 @@
     if (!asin || !result || !CACHE) return;
     const entry = {
       schema: CACHE.SCHEMA, v: ENGINE_VERSION, t: Date.now(),
-      store: location.hostname, asin, prefs: CACHE.fingerprint(cachePrefs()),
+      store: storeHost(), asin, prefs: CACHE.fingerprint(cachePrefs(), source || 'page'),
       score: result.score, verdict: result.verdict, nova: result.nova,
       source: source || 'page',
       provenanceSource: provenanceSource || '',
@@ -94,7 +113,7 @@
 
   const page = {
     HOST_ID, BADGE_ATTR, state, ENGINE_VERSION, CACHE,
-    cachePrefs, cacheKey, usableCache,
+    cachePrefs, cacheKey, usableCache, storeHost, ingredientSig,
     MAX_EXTRACT_RETRIES, isProductPage, isListPage, isRelevantPage,
     MIN_COVERAGE, unreadable,
     sendDiagnostic, publishActionBadge, cacheScore, cache,

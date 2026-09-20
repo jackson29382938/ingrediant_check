@@ -126,6 +126,24 @@
     .loading b { animation: none; }
     .chev { transition: none; }
   }
+  @media (prefers-color-scheme: dark) {
+    .card { background: #1b1c1c; border-color: #3a3c3c; box-shadow: none; }
+    .head { background: var(--bg); }
+    .head:hover { filter: brightness(1.06); }
+    .body { border-top-color: #3a3c3c; }
+    .sub, .chev, .ing, .m, h4, .prov h5, .foot, .disclaim { color: #aeaeae; }
+    .why { color: #f3f3f3; }
+    .fail { color: #f3f3f3; }
+    .foot { border-top-color: #3a3c3c; }
+    .score { background: #1b1c1c; }
+    textarea { background: #232525; border-color: #3a3c3c; color: #f3f3f3; }
+    button.go:disabled { background: #2d2f2f; border-color: #3a3c3c; color: #8a8a8a; }
+    .flag { background: #3d2e14; color: #f3d19c; border-color: #8a6a2a; }
+    .flag.avoid { background: #3a1c1c; color: #f5b5b5; border-color: #8a3a3a; }
+    .report, button.copy { color: #4db6c8; }
+    .report:hover, button.copy:hover { color: #e8a07a; }
+    .hint { color: #f5b5b5; }
+  }
   `;
 
   // Allergen, diet and avoid-list warnings. Deliberately outside the collapsed body: if you asked to
@@ -247,16 +265,24 @@
   }
 
   function renderLoading(meta) {
+    const ocr = !!(meta && meta.ocr);
+    const slow = !!(meta && meta.slow);
+    const title = ocr
+      ? (slow
+        ? t('loadingOcrSlowTitle', 'Still reading the label…')
+        : t('loadingOcrTitle', 'Reading the label photo…'))
+      : t('loadingTitle', 'Checking Open Food Facts…');
+    const body = ocr
+      ? (slow
+        ? t('loadingOcrSlowBody', 'Large photos take longer. This stays on your computer — nothing is sent anywhere.')
+        : t('loadingOcrBody', "Amazon didn't publish the ingredients as text, so the label image is being read on your computer. This takes a few seconds and nothing is sent anywhere."))
+      : t('loadingBody', "Amazon didn't publish readable ingredients, so the optional barcode fallback is looking for this product. No Amazon page or browsing data is sent.");
     return `
     <style>${CSS}</style>
     <div class="card" style="--fg:#565959;--bg:#f7f8f8;--ring:#d5d9d9">
       <div class="fail loading" role="status" aria-live="polite">
-        <b>${meta && meta.ocr
-          ? esc(t('loadingOcrTitle', 'Reading the label photo…'))
-          : esc(t('loadingTitle', 'Checking Open Food Facts…'))}</b>
-        ${meta && meta.ocr
-          ? esc(t('loadingOcrBody', "Amazon didn't publish the ingredients as text, so the label image is being read on your computer. This takes a few seconds and nothing is sent anywhere."))
-          : esc(t('loadingBody', "Amazon didn't publish readable ingredients, so the optional barcode fallback is looking for this product. No Amazon page or browsing data is sent."))}
+        <b>${esc(title)}</b>
+        ${esc(body)}
       </div>
     </div>`;
   }

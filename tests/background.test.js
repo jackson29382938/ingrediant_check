@@ -227,6 +227,9 @@ test('sheet revisions follow the CSV content, not the fetch time', async () => {
 });
 
 const amazonTab = { id: 'ext', tab: { id: 3, url: 'https://www.amazon.com/dp/B00LOAW7U6' } };
+const settingsSender = { id: 'ext', url: 'chrome-extension://ext/src/options/options.html' };
+const popupSender = { id: 'ext', url: 'chrome-extension://ext/src/options/popup.html' };
+const offscreenSender = { id: 'ext', url: 'chrome-extension://ext/src/offscreen/ocr.html' };
 const label = 'https://m.media-amazon.com/images/I/514iQ-HJVEL._SL1600_.jpg';
 
 test('OCR fetch URLs must be Amazon product images', () => {
@@ -235,13 +238,20 @@ test('OCR fetch URLs must be Amazon product images', () => {
   assert.deepEqual([...w.call('allowedOcrUrls(["image"])')], []);
 });
 
-test('content-script messages are ignored unless they come from an Amazon tab of this extension', async () => {
+test('message allowlist is inverted: page / settings / offscreen / deny-unknown', async () => {
   const w = worker({ ocrLabels: true });
   assert.equal(w.call('allowMessage({type:"ocrLabels"}, {id:"other", tab:{url:"https://www.amazon.com/dp/B00"}})'), false);
   assert.equal(w.call('allowMessage({type:"ocrLabels"}, {id:"ext"})'), false);
   assert.equal(w.call('allowMessage({type:"ocrLabels"}, {id:"ext", tab:{url:"https://example.test/"}})'), false);
   assert.equal(w.call(`allowMessage({type:"ocrLabels"}, ${JSON.stringify(amazonTab)})`), true);
-  assert.equal(w.call('allowMessage({type:"flushDiagnostics"}, {id:"ext"})'), true);
+  assert.equal(w.call('allowMessage({type:"flushDiagnostics"}, {id:"ext"})'), false);
+  assert.equal(w.call(`allowMessage({type:"flushDiagnostics"}, ${JSON.stringify(settingsSender)})`), true);
+  assert.equal(w.call(`allowMessage({type:"diagnosticsStatus"}, ${JSON.stringify(popupSender)})`), true);
+  assert.equal(w.call(`allowMessage({type:"refreshSheet"}, ${JSON.stringify(amazonTab)})`), false);
+  assert.equal(w.call(`allowMessage({type:"ocrIdle"}, ${JSON.stringify(offscreenSender)})`), true);
+  assert.equal(w.call(`allowMessage({type:"ocrIdle"}, ${JSON.stringify(settingsSender)})`), false);
+  assert.equal(w.call('allowMessage({type:"futureType"}, {id:"ext"})'), false);
+  assert.equal(w.call('allowMessage({type:"ping"}, {id:"ext"})'), true);
   assert.equal(await w.send({ type: 'ocrLabels', urls: [label] }, { id: 'other', tab: amazonTab.tab }), undefined);
   assert.equal(w.created(), 0);
   const allowed = await w.send({ type: 'ocrLabels', urls: [label] }, amazonTab);
@@ -250,4 +260,21 @@ test('content-script messages are ignored unless they come from an Amazon tab of
   const blocked = await w.send({ type: 'ocrLabels', urls: ['https://www.amazon.com/dp/B00LOAW7U6'] }, amazonTab);
   assert.equal(blocked.ok, false);
   assert.equal(blocked.reason, 'no-images');
+});
+
+test('oversized sheet CSV is refused and leaves a prior index alone', async () => {
+  const url = 'https://docs.google.com/spreadsheets/d/abcdefghijklmnopqrstuvwxyz0123/edit';
+  const prior = { byAsin: Object.create(null), byUpc: Object.create(null), byBrand: Object.create(null), count: 1 };
+  prior.byAsin.B000000001 = { asin: 'B000000001', certifications: 'USDA Organic', source: 'shared database' };
+  const maxBytes = 2 * 1024 * 1024;
+  const w = worker({ sheetUrl: url }, async () => ({
+    ok: true, text: async () => 'x'.repeat(maxBytes + 1),
+  }));
+  const csvUrl = w.call('toCsvUrl(' + JSON.stringify(url) + ')');
+  w.data.sheetIndex = { url: csvUrl, t: Date.now(), index: prior };
+  const index = await w.call('loadSheetIndex(true)');
+  assert.equal(index.count, 1);
+  assert.equal(index.byAsin.B000000001.asin, 'B000000001');
+  assert.equal(w.data.sheetIndex.index, prior); // storage write skipped
+  assert.equal(w.call('MAX_SHEET_BYTES'), maxBytes);
 });
