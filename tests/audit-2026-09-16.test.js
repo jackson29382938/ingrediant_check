@@ -215,7 +215,7 @@ test('penalty rows carry their category and the refined-sugar mark', () => {
 });
 
 test('the paste box does not take focus when the failure card mounts', () => {
-  const wiring = fs.readFileSync(src('content/panel.js'), 'utf8').match(/function wirePasteField[\s\S]*?\n  }\n/)[0];
+  const wiring = fs.readFileSync(src('content/panel.js'), 'utf8').match(/function wirePasteField[\s\S]*?\n {2}}\n/)[0];
   assert.ok(!/\.focus\(/.test(wiring), 'wirePasteField focuses the textarea');
   assert.ok(!/\.select\(\)/.test(wiring), 'wirePasteField selects the textarea');
 });

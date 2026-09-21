@@ -30,4 +30,40 @@ export default [
     files: ['scripts/**/*.mjs', 'eslint.config.mjs'],
     languageOptions: { sourceType: 'module' },
   },
+  {
+    // background.js pulls these in with importScripts; they are not imports.
+    files: ['src/background.js'],
+    languageOptions: {
+      globals: {
+        importScripts: 'readonly',
+        allowMessage: 'readonly',
+        isOwnExtension: 'readonly',
+        isAmazonTabSender: 'readonly',
+        isSettingsSender: 'readonly',
+        isOffscreenSender: 'readonly',
+        getSheetIndex: 'readonly',
+        putSheetIndex: 'readonly',
+      },
+    },
+  },
+  {
+    // settings-database.js is a second classic script on the options page.
+    files: ['src/options/settings-database.js'],
+    languageOptions: {
+      globals: {
+        PREFS: 'readonly',
+        DB_KEYS: 'readonly',
+        markUrl: 'readonly',
+        readUrlField: 'readonly',
+        flash: 'readonly',
+        persist: 'readonly',
+        msg: 'readonly',
+        startSettingsPage: 'readonly',
+      },
+    },
+  },
+  {
+    files: ['src/options/settings.js'],
+    languageOptions: { globals: { wireDatabase: 'readonly' } },
+  },
 ];
