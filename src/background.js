@@ -9,7 +9,7 @@
 
 if (typeof importScripts === 'function') {
   importScripts('engine/db/_module.js', 'engine/db/ingestible.js', 'engine/db/prefs.js',
-    'engine/db/ocr-text.js');
+    'engine/db/ocr-text.js', 'worker/messages.js', 'worker/sheet-store.js');
 }
 
 const OFF_ENDPOINT = 'https://world.openfoodfacts.org/api/v2/product/';
@@ -48,19 +48,8 @@ chrome.storage.onChanged?.addListener((changes, area) => {
   }
 });
 
-const isOpenFoodFactsFood = (self.AIR && self.AIR.db && self.AIR.db.ingestible)
-  ? self.AIR.db.ingestible.isOpenFoodFactsFood
-  : function isOpenFoodFactsFood(product) {
-      if (!product) return false;
-      const type = String(product.product_type || '').toLowerCase();
-      if (type && type !== 'food') return false;
-      const hay = [
-        ...(product.categories_tags || []),
-        product.pnns_groups_1 || '',
-        product.categories || '',
-      ].join(' ').toLowerCase();
-      return !/\b(en:beauty|en:cosmetics?|en:shampoos?|en:hair-care|en:skin-care|en:detergents?|en:household|en:pet-foods?|beauty|cosmetic)\b/.test(hay);
-    };
+// The test VM preloads ingestible.js; Chrome loads it via importScripts above. One implementation.
+const isOpenFoodFactsFood = self.AIR.db.ingestible.isOpenFoodFactsFood;
 
 async function lookupBarcode(code, { foodOnly = true } = {}) {
   const conf = await chrome.storage.local.get(['enabled', 'useOpenFoodFacts']);
@@ -193,8 +182,18 @@ function badgeColor(score) {
   return score >= 75 ? '#1a9850' : score >= 50 ? '#f0a02a' : '#d73027';
 }
 
-function paintActionBadge(tabId, score) {
+function paintActionBadge(tabId, score, status) {
   if (!chrome.action || typeof tabId !== 'number') return;
+  if (status === 'fail') {
+    chrome.action.setBadgeText({ tabId, text: '?' });
+    chrome.action.setBadgeBackgroundColor({ tabId, color: '#767676' });
+    return;
+  }
+  if (status === 'not-food') {
+    chrome.action.setBadgeText({ tabId, text: '–' });
+    chrome.action.setBadgeBackgroundColor({ tabId, color: '#565959' });
+    return;
+  }
   if (typeof score !== 'number' || !isFinite(score)) {
     chrome.action.setBadgeText({ tabId, text: '' });
     return;
@@ -203,40 +202,14 @@ function paintActionBadge(tabId, score) {
   chrome.action.setBadgeBackgroundColor({ tabId, color: badgeColor(score) });
 }
 
-// Content-script types must come from an Amazon tab of this extension. Extension-page types
-// (popup, options, offscreen idle) only need to be from this extension. Other extensions are
-// ignored even though externally_connectable is unset — cheap insurance if that ever changes.
-const PAGE_MESSAGE_TYPES = new Set([
-  'pageScore', 'ocrLabels', 'lookupBarcode', 'provenanceLookup',
-  'contribute', 'report', 'diagnostic',
-]);
-const AMAZON_HOST = /(^|\.)amazon\.(com|co\.uk|ca|com\.au|ie|in|sg|ae|sa|de|fr|es|it|nl|se|pl|com\.be|com\.tr|com\.mx|com\.br|co\.jp)$/i;
-
-function isOwnExtension(sender) {
-  const id = chrome.runtime && chrome.runtime.id;
-  if (!id || !sender) return false;
-  return !sender.id || sender.id === id;
-}
-
-function isAmazonTabSender(sender) {
-  const raw = sender && sender.tab && sender.tab.url;
-  if (!raw) return false;
-  try { return AMAZON_HOST.test(new URL(raw).hostname); }
-  catch { return false; }
-}
-
-function allowMessage(msg, sender) {
-  if (!msg || !isOwnExtension(sender)) return false;
-  if (PAGE_MESSAGE_TYPES.has(msg.type)) return isAmazonTabSender(sender);
-  return true;
-}
+// Message allowlist lives in worker/messages.js (importScripts above / test harness preload).
 
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   // Replies from the offscreen document travel on this same channel; ignore them here.
   if (msg && msg.target === 'ocr-offscreen') return false;
   if (!allowMessage(msg, sender)) return false;
   if (msg && msg.type === 'pageScore') {
-    paintActionBadge(sender && sender.tab && sender.tab.id, msg.score);
+    paintActionBadge(sender && sender.tab && sender.tab.id, msg.score, msg.status);
     return false;
   }
   if (msg && msg.type === 'ocrLabels') {
@@ -248,10 +221,8 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     return true;
   }
   if (msg && msg.type === 'lookupBarcode' && msg.code) {
-    chrome.storage.local.get('useOpenFoodFacts', o => {
-      if (!o.useOpenFoodFacts) { reply(null); return; }
-      lookupBarcode(msg.code, { foodOnly: msg.foodOnly !== false }).then(reply);
-    });
+    // lookupBarcode re-reads useOpenFoodFacts (and the pause switch) itself.
+    lookupBarcode(msg.code, { foodOnly: msg.foodOnly !== false }).then(reply);
     return true;   // async reply
   }
   if (msg && msg.type === 'ping') { reply({ ok: true }); return false; }
@@ -318,6 +289,9 @@ async function sweepCache() {
 
 const SHEET_TTL_MS = 1000 * 60 * 60 * 6;
 const SHEET_CACHE_KEY = 'sheetIndex';
+// Bound sheet/producer caches so a huge published CSV cannot eat chrome.storage quota.
+const MAX_SHEET_BYTES = 2 * 1024 * 1024;
+const MAX_SHEET_ROWS = 8000;
 
 // Published-sheet URLs: one implementation, in prefs.toSheetUrl. Tests load prefs.js first.
 function toCsvUrl(raw) {
@@ -366,22 +340,30 @@ function indexRows(rows) {
 }
 
 async function loadSheetIndex(force = false) {
-  const conf = await chrome.storage.local.get(['enabled', 'sheetUrl', SHEET_CACHE_KEY]);
+  const conf = await chrome.storage.local.get(['enabled', 'sheetUrl']);
   if (conf.enabled === false) return null;
   const csvUrl = toCsvUrl(conf.sheetUrl);
   if (!csvUrl) return null;
-  const cached = conf[SHEET_CACHE_KEY];
+  const cached = await getSheetIndex(SHEET_CACHE_KEY);
   if (!force && cached && cached.url === csvUrl && Date.now() - cached.t < SHEET_TTL_MS) return cached.index;
   try {
     const csv = await networkRequest(csvUrl, { credentials: 'omit' }, res => {
       if (!res.ok) throw new Error(String(res.status));
       return res.text();
     });
-    const index = indexRows(parseCsv(csv));
+    if (typeof csv !== 'string' || csv.length > MAX_SHEET_BYTES) {
+      return cached && cached.url === csvUrl && cached.index ? cached.index : null;
+    }
+    const rows = parseCsv(csv);
+    if (rows.length > MAX_SHEET_ROWS) {
+      return cached && cached.url === csvUrl && cached.index ? cached.index : null;
+    }
+    const index = indexRows(rows);
     // The revision is a hash of the CSV, not a timestamp: the score cache fingerprints on it, and a
     // refresh that changed nothing must not retire every cached score. Content scripts read only the
     // small revision key, never the index itself.
-    await chrome.storage.local.set({ [SHEET_CACHE_KEY]: { t: Date.now(), url: csvUrl, index }, sheetIndexRev: revisionOf(csv) });
+    await putSheetIndex(SHEET_CACHE_KEY, { t: Date.now(), url: csvUrl, index });
+    await chrome.storage.local.set({ sheetIndexRev: revisionOf(csv) });
     return index;
   } catch (e) {
     return cached && cached.url === csvUrl && cached.index ? cached.index : null;   // stale beats nothing
@@ -404,18 +386,24 @@ function lookupRecord(index, { asin, upc, brand }) {
 const PRODUCERS_CACHE_KEY = 'producerIndex';
 
 async function loadProducerIndex(force = false) {
-  const conf = await chrome.storage.local.get(['enabled', 'producersUrl', PRODUCERS_CACHE_KEY]);
+  const conf = await chrome.storage.local.get(['enabled', 'producersUrl']);
   if (conf.enabled === false) return null;
   const csvUrl = toCsvUrl(conf.producersUrl);
   if (!csvUrl) return null;
-  const cached = conf[PRODUCERS_CACHE_KEY];
+  const cached = await getSheetIndex(PRODUCERS_CACHE_KEY);
   if (!force && cached && cached.url === csvUrl && Date.now() - cached.t < SHEET_TTL_MS) return cached.index;
   try {
     const csv = await networkRequest(csvUrl, { credentials: 'omit' }, res => {
       if (!res.ok) throw new Error(String(res.status));
       return res.text();
     });
+    if (typeof csv !== 'string' || csv.length > MAX_SHEET_BYTES) {
+      return cached && cached.url === csvUrl && cached.index ? cached.index : null;
+    }
     const rows = parseCsv(csv);
+    if (rows.length > MAX_SHEET_ROWS) {
+      return cached && cached.url === csvUrl && cached.index ? cached.index : null;
+    }
     const head = (rows[0] || []).map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
     const index = Object.create(null);
     for (const r of rows.slice(1)) {
@@ -424,7 +412,8 @@ async function loadProducerIndex(force = false) {
       if (!rec.brand || !rec.certifications) continue;
       index[rec.brand.toLowerCase()] = rec;
     }
-    await chrome.storage.local.set({ [PRODUCERS_CACHE_KEY]: { t: Date.now(), url: csvUrl, index }, producerIndexRev: revisionOf(csv) });
+    await putSheetIndex(PRODUCERS_CACHE_KEY, { t: Date.now(), url: csvUrl, index });
+    await chrome.storage.local.set({ producerIndexRev: revisionOf(csv) });
     return index;
   } catch (e) {
     return cached && cached.url === csvUrl && cached.index ? cached.index : null;
@@ -438,9 +427,14 @@ async function contribute(payload) {
 }
 
 async function postRecord(url, payload) {
+  // Re-validate at fetch time — storage can hold a hand-edited value that bypassed settings.
+  const safe = self.AIR && self.AIR.db && self.AIR.db.prefs
+    ? self.AIR.db.prefs.toScriptUrl(url)
+    : null;
+  if (!safe) return { ok: false, reason: 'bad-url' };
   try {
     // Apps Script web apps answer simple POSTs without a preflight when the body is text/plain.
-    const receipt = await networkRequest(url, {
+    const receipt = await networkRequest(safe, {
       method: 'POST', credentials: 'omit',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload),
@@ -519,10 +513,14 @@ async function sendDiagnostics() {
   if (conf.enabled === false || !conf.sendDiagnostics) return { ok: false, reason: 'not-enabled' };
   const queue = (conf[DIAG_KEY] || []).map(ensureRowId);
   if (!conf.contributeUrl || !queue.length) return { ok: false, reason: 'nothing-to-send' };
+  const safe = self.AIR && self.AIR.db && self.AIR.db.prefs
+    ? self.AIR.db.prefs.toScriptUrl(conf.contributeUrl)
+    : null;
+  if (!safe) return { ok: false, reason: 'bad-url' };
   // Upgrade old queued rows before sending, so their retry IDs survive a worker restart.
   await chrome.storage.local.set({ [DIAG_KEY]: queue });
   try {
-    const receipt = await networkRequest(conf.contributeUrl, {
+    const receipt = await networkRequest(safe, {
       method: 'POST', credentials: 'omit',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ kind: 'diagnostics', batchId: batchIdFor(queue), rows: queue }),
@@ -590,5 +588,5 @@ function handleSharedDbMessage(msg, reply) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { toCsvUrl, parseCsv, indexRows, lookupRecord, sweepCache, isOpenFoodFactsFood, batchIdFor, revisionOf, ensureHousekeepingAlarm, allowMessage, isOwnExtension, isAmazonTabSender, allowedOcrUrls };
+  module.exports = { toCsvUrl, parseCsv, indexRows, lookupRecord, sweepCache, isOpenFoodFactsFood, batchIdFor, revisionOf, ensureHousekeepingAlarm, allowMessage, isOwnExtension, isAmazonTabSender, isSettingsSender, isOffscreenSender, allowedOcrUrls, MAX_SHEET_BYTES, MAX_SHEET_ROWS };
 }

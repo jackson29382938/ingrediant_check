@@ -28,7 +28,7 @@
   // coverage gate in score.js now catching the scraped-the-wrong-block case that this guarded.
   const MAX_LEN = 6000;
 
-  const clean = t => (t || '').replace(/ /g, ' ').replace(/[ \t]+/g, ' ').trim();
+  const clean = t => (t || '').replace(/\u00a0/g, ' ').replace(/[ \t]+/g, ' ').trim();
   const norm = t => clean(t).replace(/\s+/g, ' ');
 
   // Text that is not an ingredient list must be REJECTED, not scored. The engine's default for
@@ -259,7 +259,7 @@
   const VALUE_CELL = /^(\d+(?:[.,]\d+)?)\s*(mg|mcg|g|kcal)?$/i;
 
   function nutritionSummaryTable(doc) {
-    let tables = [];
+    let tables;
     try { tables = [...doc.querySelectorAll('#nutritionalInfoAndIngredients_feature_div table, .nicDesktop table')]; }
     catch (e) { return null; }
     for (const table of tables) {
@@ -286,7 +286,7 @@
   // "19.0 servings per container | 0.5 cup" — Amazon's own serving line, which sits outside the
   // Nutrition Facts prose the regex path reads.
   function servingFromCard(doc) {
-    let el = null;
+    let el;
     try { el = doc.querySelector('#nic-nutrition-summary-serving'); } catch (e) { return null; }
     return el ? norm(el.innerText) : null;
   }

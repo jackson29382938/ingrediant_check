@@ -23,43 +23,56 @@ test('NOVA stays constant across preferences for every corpus label', () => {
 
 const now = 1800000000000;
 const context = { store: 'www.amazon.com', asin: 'B000000001', version: '1.0.1', prefs: {} };
-const entry = { schema: cache.SCHEMA, t: now, v: context.version, store: context.store,
+const entry = { schema: cache.SCHEMA, t: now, v: context.version, store: 'amazon.com',
   asin: context.asin, prefs: cache.fingerprint({}), source: 'page', score: 90 };
 test('cache rejects expired, mismatched, incomplete, and manual records', () => {
+  assert.equal(cache.SCHEMA, 3);
   assert.equal(cache.valid(entry, context, now), true);
-  for (const patch of [{ t: now - cache.TTL_MS }, { t: now + 1 }, { schema: 1 },
-    { v: '1.0.0' }, { store: 'www.amazon.co.uk' }, { asin: 'B000000002' },
+  assert.equal(cache.valid(entry, { ...context, store: 'amazon.com' }, now), true);
+  for (const patch of [{ t: now - cache.TTL_MS }, { t: now + 1 }, { schema: 1 }, { schema: 2 },
+    { v: '1.0.0' }, { store: 'amazon.co.uk' }, { asin: 'B000000002' },
     { prefs: cache.fingerprint({ weights: { sugar: 2 } }) }, { source: '' },
     { score: NaN }, { source: 'manual-paste' }, { source: 'food-override' }]) {
     assert.equal(cache.valid({ ...entry, ...patch }, context, now), false, JSON.stringify(patch));
   }
   assert.equal(cache.valid({ ...entry, source: 'manual-paste' }, { ...context, allowManual: true }, now), true);
+  assert.equal(cache.key('www.amazon.com', context.asin), cache.key('amazon.com', context.asin));
   assert.notEqual(cache.key(context.store, context.asin), cache.key('www.amazon.co.uk', context.asin));
 });
 test('listScores returns valid s: entries newest first and skips off: / stale', () => {
   const prefs = {};
   const a = { ...entry, asin: 'B000000001', t: now - 1000, name: 'Oats', verdict: 'Excellent', nova: 1 };
-  const b = { ...entry, asin: 'B000000002', store: 'www.amazon.com', t: now - 100, name: 'Milk', verdict: 'Good', nova: 1 };
+  const b = { ...entry, asin: 'B000000002', store: 'amazon.com', t: now - 100, name: 'Milk', verdict: 'Good', nova: 1 };
   const stale = { ...entry, asin: 'B000000003', t: now - cache.TTL_MS };
   const all = {
     [cache.key('www.amazon.com', 'B000000001')]: a,
-    [cache.key('www.amazon.com', 'B000000002')]: { ...b, asin: 'B000000002' },
+    [cache.key('amazon.com', 'B000000002')]: { ...b, asin: 'B000000002' },
     [cache.key('www.amazon.com', 'B000000003')]: stale,
-    'off:12345678': { score: 10, schema: cache.SCHEMA, v: context.version, store: 'www.amazon.com', asin: 'B000000099', prefs: cache.fingerprint({}), source: 'page', t: now },
-    's:www.amazon.com:B000000004': { ...entry, store: 'www.amazon.co.uk', asin: 'B000000004', t: now },
+    'off:12345678': { score: 10, schema: cache.SCHEMA, v: context.version, store: 'amazon.com', asin: 'B000000099', prefs: cache.fingerprint({}), source: 'page', t: now },
+    's:amazon.com:B000000004': { ...entry, store: 'amazon.co.uk', asin: 'B000000004', t: now },
   };
   const listed = cache.listScores(all, { version: context.version, prefs }, now);
   assert.equal(listed.length, 2);
   assert.equal(listed[0].asin, 'B000000002');
   assert.equal(listed[1].asin, 'B000000001');
-  assert.equal(cache.parseKey('s:www.amazon.com:B000000001').asin, 'B000000001');
+  assert.equal(cache.parseKey(cache.key('www.amazon.com', 'B000000001')).asin, 'B000000001');
   assert.equal(cache.parseKey('off:1'), null);
 });
-test('fingerprints track effective weights, fallbacks, food gate and provenance revisions', () => {
+test('fingerprints track weights, food gate, sheets; OCR/OFF only for those sources', () => {
   assert.equal(cache.fingerprint({}), cache.fingerprint({ weights: cats.DEFAULT_WEIGHTS }));
-  for (const prefs of [{ weights: { sugar: 2 } }, { foodOnly: false }, { ocrLabels: true },
-    { useOpenFoodFacts: true }, { sheetUrl: 'sheet' }, { producersUrl: 'producer' },
+  for (const prefs of [{ weights: { sugar: 2 } }, { foodOnly: false },
+    { sheetUrl: 'sheet' }, { producersUrl: 'producer' },
     { sheetIndexRev: 'a1b2-120' }, { producerIndexRev: 'c3d4-80' }]) {
-    assert.notEqual(cache.fingerprint(prefs), cache.fingerprint({}));
+    assert.notEqual(cache.fingerprint(prefs), cache.fingerprint({}), JSON.stringify(prefs));
   }
+  // Toggling OCR / OFF must not retire DOM-extracted chips.
+  assert.equal(cache.fingerprint({ ocrLabels: true }), cache.fingerprint({}));
+  assert.equal(cache.fingerprint({ useOpenFoodFacts: true }), cache.fingerprint({}));
+  assert.notEqual(
+    cache.fingerprint({ ocrLabels: true }, 'label-ocr'),
+    cache.fingerprint({}, 'label-ocr'));
+  assert.notEqual(
+    cache.fingerprint({ useOpenFoodFacts: true }, 'open-food-facts'),
+    cache.fingerprint({}, 'open-food-facts'));
+  assert.equal(cache.fingerprint({ ocrLabels: true }, 'page'), cache.fingerprint({}, 'page'));
 });

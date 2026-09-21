@@ -207,6 +207,12 @@
   "loadingOcrBody": {
     "message": "Amazon didn't publish the ingredients as text, so the label image is being read on your computer. This takes a few seconds and nothing is sent anywhere."
   },
+  "loadingOcrSlowTitle": {
+    "message": "Still reading the label…"
+  },
+  "loadingOcrSlowBody": {
+    "message": "Large photos take longer. This stays on your computer — nothing is sent anywhere."
+  },
   "failOcr": {
     "message": "The label photo was checked too, and no ingredient list could be read from it. "
   },
@@ -324,10 +330,28 @@
     "message": "B"
   },
   "popupPresets": {
-    "message": "Weight preset"
+    "message": "Goal-based scoring"
   },
   "popupPresetCustom": {
-    "message": "Custom weights."
+    "message": "Custom weights — open Settings to fine-tune every dial."
+  },
+  "optPresetActive": {
+    "message": "Active"
+  },
+  "optPresetCustomLabel": {
+    "message": "Custom"
+  },
+  "optPresetOptimized": {
+    "message": "Optimized for"
+  },
+  "optPresetVersus": {
+    "message": "How it differs"
+  },
+  "optPresetCatsAria": {
+    "message": "Preset categories"
+  },
+  "optNotePresets": {
+    "message": "Pick a goal to load a full set of scoring weights. You can still move any slider afterwards — the active label becomes Custom until the dials match a preset again. This app scores ingredient quality, not calorie targets; training and body-goal presets remap protein, sugar, grain and processing dials to match the aim."
   },
   "optTitle": {
     "message": "Ingredient Check — Settings"
@@ -363,7 +387,10 @@
     "message": "What to rate"
   },
   "optPresetsH": {
-    "message": "Starting point"
+    "message": "Goal-based scoring"
+  },
+  "optCustomWeights": {
+    "message": "Custom weights — dials no longer match a preset. Pick a card to reset, or keep fine-tuning."
   },
   "optWeightsH": {
     "message": "What counts, and how much"
@@ -454,9 +481,6 @@
   },
   "optReset": {
     "message": "Reset everything to defaults"
-  },
-  "optCustomWeights": {
-    "message": "Custom weights."
   },
   "optSaved": {
     "message": "Saved"

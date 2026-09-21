@@ -38,20 +38,50 @@
     }
     state.lastKey = key;
     host.dataset.airState = 'not-food';
-    publishActionBadge(null);
+    publishActionBadge({ status: 'not-food' });
     const shadow = root.AIR.panel.mount(host, root.AIR.panel.renderNotFood(data));
     wireScoreAnyway(shadow, host, data, key);
     P().settle('not-food');
   }
 
+  function presentResult(host, data, key, result, meta) {
+    const { state, unreadable, cacheScore, publishActionBadge, sendDiagnostic, ingredientSig } = P();
+    if (unreadable(result) && meta && meta.checkCoverage !== false) {
+      showFailure(host, { ...data, lowCoverage: true, ocrAttempted: !!meta.ocrAttempted }, key);
+      return false;
+    }
+    host.dataset.airState = 'scored';
+    state.lastTextSig = (meta && meta.textSig != null) ? meta.textSig : (ingredientSig() || data.text || '');
+    state.failedExtracts = 0;
+    // Do not settle('scored') — keep watching for late ingredient hydration.
+    root.AIR.panel.mount(host, root.AIR.panel.render(result, {
+      title: meta.title || data.title,
+      confidence: meta.confidence,
+      via: meta.via,
+      provenanceSource: meta.provenanceSource,
+    }), meta.report === false ? null : reporter(data, result));
+    cacheScore(key, result, meta.cacheName || data.title, meta.via, meta.provenanceSource);
+    publishActionBadge(result);
+    if (meta.sendDiag !== false) {
+      sendDiagnostic(data, result, meta.via, meta.text || data.text);
+    }
+    return true;
+  }
+
   function scoreCurrentPage() {
-    const { state, HOST_ID, MAX_EXTRACT_RETRIES, unreadable, cacheScore, cache,
-      publishActionBadge, sendDiagnostic } = P();
-    const urlAsin = (location.pathname.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/) || [])[1];
+    const { state, HOST_ID, MAX_EXTRACT_RETRIES, cache, ingredientSig } = P();
+    const urlAsin = (location.pathname.match(/\/(?:dp|gp\/product|gp\/aw\/d)\/([A-Z0-9]{10})/) || [])[1];
     const earlyKey = urlAsin || location.pathname;
     const existing = document.getElementById(HOST_ID);
     const existingState = existing && existing.dataset.airState;
-    if (earlyKey === state.lastKey && (existingState === 'scored' || existingState === 'loading')) return;
+    const sig = ingredientSig();
+
+    // Scored + unchanged ingredient text → idle. Changed text → rescore.
+    if (earlyKey === state.lastKey && existingState === 'scored') {
+      if (sig && sig === state.lastTextSig) return;
+      if (!sig && state.lastTextSig) return;
+    }
+    // Loading: fall through so a now-readable DOM list can cancel OFF/OCR.
 
     if (state.manual && state.manual.key === earlyKey) {
       const anchor = mountPoint();
@@ -75,11 +105,20 @@
       return;
     }
 
-    if (earlyKey !== state.lastKey) state.failedExtracts = 0;
-    if (existingState === 'fail' && state.failedExtracts >= MAX_EXTRACT_RETRIES) return;
+    if (earlyKey !== state.lastKey) {
+      state.failedExtracts = 0;
+      state.lastFailSig = null;
+    }
+    if (existingState === 'fail' && state.failedExtracts >= MAX_EXTRACT_RETRIES) {
+      if (sig && sig === state.lastFailSig) return;
+      state.failedExtracts = 0;
+    }
 
     const data = root.AIR.extract.extract(document, { asin: urlAsin, foodOnly: state.foodOnly });
-    if (!data.ok) state.failedExtracts++;
+    if (!data.ok) {
+      state.failedExtracts++;
+      state.lastFailSig = sig;
+    }
     if (state.foodOnly && data.ingestible && !data.ingestible.ok) {
       const key = data.asin || earlyKey;
       if (existingState === 'not-food' && key === state.lastKey) { P().settle('not-food'); return; }
@@ -87,7 +126,8 @@
       return;
     }
     const key = data.asin || earlyKey;
-    if (key === state.lastKey && existingState === 'scored') return;
+    if (key === state.lastKey && existingState === 'scored' && data.ok
+        && data.text && data.text.slice(0, 320) === state.lastTextSig) return;
 
     const anchor = mountPoint();
     if (!anchor) return;
@@ -101,50 +141,47 @@
     state.lastKey = key;
 
     if (!data.ok) {
-      if (host.dataset.airState === 'fail' || host.dataset.airState === 'loading') return;
+      if (host.dataset.airState === 'fail') return;
+      if (host.dataset.airState === 'loading' && !data.upc) return;
       cache(key, null);
       if (data.upc) {
+        const conf = state.cacheOptions || {};
+        if (conf.useOpenFoodFacts !== true) {
+          showFailure(host, data, key);
+          return;
+        }
         const requestId = ++state.requestId;
-        chrome.storage.local.get('useOpenFoodFacts', options => {
+        host.dataset.airState = 'loading';
+        root.AIR.panel.mount(host, root.AIR.panel.renderLoading(data));
+        chrome.runtime.sendMessage({ type: 'lookupBarcode', code: data.upc, foodOnly: state.foodOnly }, fallback => {
+          const messageError = chrome.runtime.lastError;
           if (requestId !== state.requestId || state.lastKey !== key || !host.isConnected) return;
-          if (!options.useOpenFoodFacts) {
-            showFailure(host, data, key);
+          if (fallback && fallback.rejected === 'not-food') {
+            host.dataset.airState = 'not-food';
+            P().publishActionBadge({ status: 'not-food' });
+            const shadow = root.AIR.panel.mount(host, root.AIR.panel.renderNotFood({
+              ...data,
+              ingestible: { ok: false, reason: fallback.reason || 'Open Food Facts lists this as a non-food product' },
+            }));
+            wireScoreAnyway(shadow, host, data, key);
             return;
           }
-          host.dataset.airState = 'loading';
-          root.AIR.panel.mount(host, root.AIR.panel.renderLoading(data));
-          chrome.runtime.sendMessage({ type: 'lookupBarcode', code: data.upc, foodOnly: state.foodOnly }, fallback => {
-            const messageError = chrome.runtime.lastError;
-            if (requestId !== state.requestId || state.lastKey !== key || !host.isConnected) return;
-            if (fallback && fallback.rejected === 'not-food') {
-              host.dataset.airState = 'not-food';
-              const shadow = root.AIR.panel.mount(host, root.AIR.panel.renderNotFood({
-                ...data,
-                ingestible: { ok: false, reason: fallback.reason || 'Open Food Facts lists this as a non-food product' },
-              }));
-              wireScoreAnyway(shadow, host, data, key);
-              return;
-            }
-            if (messageError || !fallback || !fallback.ingredients_text) {
-              showFailure(host, { ...data, lookupAttempted: true }, key);
-              return;
-            }
-            const result = root.AIR.engine.score({
-              name: fallback.name || data.title,
-              labels: `${data.labels || ''} ${fallback.labels || ''}`,
-              ingredients_text: fallback.ingredients_text,
-            }, state.prefs);
-            if (unreadable(result)) { showFailure(host, { ...data, lookupAttempted: true, lowCoverage: true }, key); return; }
-            host.dataset.airState = 'scored';
-            P().settle('scored');
-            root.AIR.panel.mount(host, root.AIR.panel.render(result, {
-              title: data.title || fallback.name,
-              confidence: 0.55,
-              via: 'open-food-facts',
-            }));
-            cacheScore(key, result, data.title || fallback.name, 'open-food-facts', fallback.ingredients_text);
-            publishActionBadge(result);
-            sendDiagnostic(data, result, 'open-food-facts', fallback.ingredients_text);
+          if (messageError || !fallback || !fallback.ingredients_text) {
+            showFailure(host, { ...data, lookupAttempted: true }, key);
+            return;
+          }
+          const result = root.AIR.engine.score({
+            name: fallback.name || data.title,
+            labels: `${data.labels || ''} ${fallback.labels || ''}`,
+            ingredients_text: fallback.ingredients_text,
+          }, state.prefs);
+          presentResult(host, data, key, result, {
+            title: data.title || fallback.name,
+            confidence: 0.55,
+            via: 'open-food-facts',
+            text: fallback.ingredients_text,
+            cacheName: data.title || fallback.name,
+            textSig: fallback.ingredients_text.slice(0, 320),
           });
         });
         return;
@@ -153,26 +190,26 @@
       return;
     }
 
+    // DOM list available while OFF/OCR loading — cancel the in-flight path.
+    if (existingState === 'loading') state.requestId++;
+
     const requestId = ++state.requestId;
     const result = root.AIR.engine.score({
       name: data.title, labels: data.labels, certifications: data.certifications,
       nutrition: data.nutrition, ingredients_text: data.text,
     }, state.prefs);
-    if (unreadable(result)) { showFailure(host, { ...data, lowCoverage: true }, key); return; }
-    host.dataset.airState = 'scored';
-    P().settle('scored');
-    root.AIR.panel.mount(host, root.AIR.panel.render(result, {
+    if (!presentResult(host, data, key, result, {
       title: data.title, confidence: data.confidence, via: data.via,
-    }), reporter(data, result));
-    cacheScore(key, result, data.title, data.via, data.text);
-    publishActionBadge(result);
-    sendDiagnostic(data, result, data.via);
+      text: data.text, textSig: (data.text || '').slice(0, 320),
+    })) return;
 
     if (result.provenance) enrichProvenance(host, data, key, result, requestId);
   }
 
   function enrichProvenance(host, data, key, first, requestId) {
-    const { state, cacheScore, publishActionBadge } = P();
+    const { state } = P();
+    const conf = state.cacheOptions || {};
+    if (!conf.sheetUrl && !conf.producersUrl) { maybeContribute(data, first); return; }
     try {
       chrome.runtime.sendMessage({
         type: 'provenanceLookup',
@@ -185,14 +222,12 @@
           name: data.title, labels: data.labels, certifications: data.certifications,
           nutrition: data.nutrition, ingredients_text: data.text, provenanceRecord: record,
         }, state.prefs);
-        host.dataset.airState = 'scored';
-        P().settle('scored');
-        root.AIR.panel.mount(host, root.AIR.panel.render(better, {
+        presentResult(host, data, key, better, {
           title: data.title, confidence: data.confidence, via: data.via,
-          provenanceSource: record.source,
-        }));
-        cacheScore(key, better, data.title, data.via, data.text, record.source || 'shared database');
-        publishActionBadge(better);
+          provenanceSource: record.source || 'shared database',
+          text: data.text, textSig: (data.text || '').slice(0, 320),
+          sendDiag: false, report: false, checkCoverage: false,
+        });
       });
     } catch (e) { /* messaging unavailable in some frames */ }
   }
@@ -225,7 +260,7 @@
   }
 
   function tryOcr(host, data, key) {
-    const { state, unreadable, cacheScore, publishActionBadge, sendDiagnostic } = P();
+    const { state } = P();
     if (root.AIR.extract.ocrReadyForHost && !root.AIR.extract.ocrReadyForHost(location.hostname)) {
       showFailure(host, { ...data, ocrAttempted: true, localeDeclined: true }, key);
       return;
@@ -235,12 +270,18 @@
     const requestId = ++state.requestId;
     host.dataset.airState = 'loading';
     root.AIR.panel.mount(host, root.AIR.panel.renderLoading({ ...data, ocr: true }));
+    const started = Date.now();
     const giveUp = extra => {
       host.dataset.airState = '';
       showFailure(host, { ...data, ocrAttempted: true, ...extra }, key);
     };
+    const stillReading = setTimeout(() => {
+      if (requestId !== state.requestId || !host.isConnected || host.dataset.airState !== 'loading') return;
+      root.AIR.panel.mount(host, root.AIR.panel.renderLoading({ ...data, ocr: true, slow: true }));
+    }, 8000);
     try {
       chrome.runtime.sendMessage({ type: 'ocrLabels', urls }, res => {
+        clearTimeout(stillReading);
         void chrome.runtime.lastError;
         if (requestId !== state.requestId || state.lastKey !== key || !host.isConnected) return;
         const best = res && res.ok && root.AIR.db.ocrText.bestBlock(res.results,
@@ -250,17 +291,14 @@
           name: data.title, labels: data.labels, certifications: data.certifications,
           ingredients_text: best.text,
         }, state.prefs);
-        if (unreadable(result)) { giveUp({ lowCoverage: true }); return; }
-        host.dataset.airState = 'scored';
-        P().settle('scored');
-        root.AIR.panel.mount(host, root.AIR.panel.render(result, {
+        presentResult(host, data, key, result, {
           title: data.title, confidence: 0.7, via: 'label-ocr',
-        }), reporter(data, result));
-        cacheScore(key, result, data.title, 'label-ocr', best.text);
-        publishActionBadge(result);
-        sendDiagnostic(data, result, 'label-ocr', best.text);
+          text: best.text, textSig: best.text.slice(0, 320),
+          ocrAttempted: true,
+        });
+        void started;
       });
-    } catch (e) { giveUp({}); }
+    } catch (e) { clearTimeout(stillReading); giveUp({}); }
   }
 
   function showFailure(host, data, key) {
@@ -276,7 +314,7 @@
       }
     }
     host.dataset.airState = 'fail';
-    publishActionBadge(null);
+    publishActionBadge({ status: 'fail' });
     root.AIR.panel.mount(host, root.AIR.panel.renderFailure(data), null, text => {
       state.manual = { key, data, text };
       renderManual(host, data, key, text);
@@ -284,43 +322,39 @@
   }
 
   function renderManual(host, data, key, text) {
-    const { state, cacheScore, publishActionBadge, sendDiagnostic } = P();
+    const { state } = P();
     const result = root.AIR.engine.score({
       name: data.title, labels: data.labels, certifications: data.certifications,
       nutrition: data.nutrition, ingredients_text: text,
     }, state.prefs);
-    host.dataset.airState = 'scored';
-    P().settle('scored');
-    root.AIR.panel.mount(host, root.AIR.panel.render(result, {
+    if (!presentResult(host, data, key, result, {
       title: data.title, confidence: 1, via: 'manual-paste',
-    }), reporter(data, result));
-    cacheScore(key, result, data.title, 'manual-paste', text);
-    publishActionBadge(result);
-    sendDiagnostic(data, result, 'manual-paste', text);
+      text, textSig: text.slice(0, 320), ocrAttempted: true,
+    })) {
+      state.manual = null;
+    }
   }
 
   function wireScoreAnyway(shadow, host, data, key) {
-    const { state, cacheScore, publishActionBadge } = P();
     const btn = shadow && shadow.querySelector('button.anyway');
     if (!btn) return;
     btn.addEventListener('click', () => {
+      const { state } = P();
       const data2 = root.AIR.extract.extract(document, { asin: data.asin, foodOnly: false });
       if (!data2.ok) { showFailure(host, data2, key); return; }
       const result = root.AIR.engine.score({
         name: data2.title, labels: data2.labels, certifications: data2.certifications,
         nutrition: data2.nutrition, ingredients_text: data2.text,
       }, state.prefs);
-      host.dataset.airState = 'scored';
-      P().settle('scored');
-      root.AIR.panel.mount(host, root.AIR.panel.render(result, {
-        title: data2.title, confidence: data2.confidence, via: data2.via,
-      }), reporter(data2, result));
-      cacheScore(key, result, data2.title, 'food-override', data2.text);
-      publishActionBadge(result);
+      presentResult(host, data2, key, result, {
+        title: data2.title, confidence: data2.confidence, via: 'food-override',
+        text: data2.text, textSig: (data2.text || '').slice(0, 320),
+        cacheName: data2.title,
+      });
     });
   }
 
-  const product = { mountPoint, scoreCurrentPage, showFailure, showNotFood, tryOcr, renderManual };
+  const product = { mountPoint, scoreCurrentPage, showFailure, showNotFood, tryOcr, renderManual, presentResult };
   root.AIR.product = product;
   if (typeof module !== 'undefined' && module.exports) module.exports = product;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

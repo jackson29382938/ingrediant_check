@@ -61,6 +61,30 @@ check('every engine file is loaded somewhere', () => {
   }
 });
 
+check('every chrome.runtime.sendMessage type in src is registered in the worker allowlist', () => {
+  // Inverted allowlist: unknown types are denied. A new sendMessage({type}) without a registry
+  // entry would silently fail in production; catch that in CI.
+  const worker = read('src/worker/messages.js') + '\n' + read('src/background.js');
+  const known = new Set();
+  for (const block of worker.matchAll(/(?:PAGE|SETTINGS|OFFSCREEN)_MESSAGE_TYPES\s*=\s*new Set\(\[([\s\S]*?)\]\)/g)) {
+    for (const m of block[1].matchAll(/'([A-Za-z0-9_]+)'/g)) known.add(m[1]);
+  }
+  known.add('ping'); // explicit default-allow for health checks
+  assert.ok(known.has('ocrLabels') && known.has('flushDiagnostics') && known.has('ocrIdle'),
+    `allowlist parse failed: ${[...known].join(',')}`);
+  const used = new Set();
+  for (const f of srcFiles) {
+    const raw = fs.readFileSync(f, 'utf8');
+    for (const m of raw.matchAll(/sendMessage\(\s*\{[^}]*\btype:\s*'([A-Za-z0-9_]+)'/g)) {
+      // Offscreen target messages are not worker allowlist types.
+      if (m[0].includes("target: 'ocr-offscreen'") || m[0].includes('target:"ocr-offscreen"')) continue;
+      used.add(m[1]);
+    }
+  }
+  const missing = [...used].filter(t => !known.has(t));
+  assert.strictEqual(missing.length, 0, `unregistered message types: ${missing.join(', ')}`);
+});
+
 check('content scripts split page / product / search before main', () => {
   const iPage = declared.indexOf('src/content/page.js');
   const iProduct = declared.indexOf('src/content/product.js');
@@ -130,6 +154,9 @@ check('content scripts are limited to product and search paths', () => {
   assert.ok(cs.matches.every(m => !m.endsWith('.com/*') && !m.endsWith('.uk/*') && !/\.amazon\.[^/]+\/\*$/.test(m)),
     'a host-wide /* match would inject on cart and account pages');
   assert.ok(cs.matches.some(m => m.includes('/dp/')), 'product /dp/ matches missing');
+  assert.ok(cs.matches.some(m => m.includes('/*/dp/')), 'slug /*/dp/ matches missing — cold loads of /Title/dp/ASIN would not inject');
+  assert.ok(cs.matches.some(m => m.startsWith('*://amazon.')), 'apex amazon.* matches missing');
+  assert.ok(cs.matches.some(m => m.includes('/gp/aw/d/')), 'mobile /gp/aw/d/ matches missing');
   assert.ok((cs.exclude_globs || []).some(g => g.includes('/ap/')), 'login /ap/ is not excluded');
   assert.ok((cs.exclude_globs || []).some(g => g.includes('/gp/cart')), 'cart is not excluded');
 });

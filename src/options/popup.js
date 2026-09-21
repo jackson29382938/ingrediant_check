@@ -1,21 +1,15 @@
 const CACHE = AIR.db.scoreCache;
-const CATS = (typeof AIR !== 'undefined' && AIR.db && AIR.db.categories) || null;
-const PREFS = (typeof AIR !== 'undefined' && AIR.db && AIR.db.prefs) || null;
+const CATS = AIR.db.categories;
+const PREFS = AIR.db.prefs;
 const KEYS = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'hoverScore', 'ocrLabels', 'useOpenFoodFacts'];
 // Every plain checkbox. useOpenFoodFacts is handled separately because it also drives an
 // optional-permission request. hoverScore was missing from this list, which left the
 // checkbox inert: it never loaded its stored value and never wrote one.
 const TOGGLE_KEYS = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'hoverScore', 'ocrLabels'];
-const DEFAULTS = PREFS ? PREFS.TOGGLE_DEFAULTS : {
-  enabled: true, badges: true, foodOnly: true, autoScoreSearch: false,
-  hoverScore: false, ocrLabels: false, useOpenFoodFacts: false,
-};
 const OFF_PERMISSION = { origins: ['https://world.openfoodfacts.org/*'] };
 let writing = false;
 
-function cleanToggles(raw) {
-  return PREFS ? PREFS.sanitizeToggles(raw) : { ...DEFAULTS, ...raw };
-}
+const cleanToggles = raw => PREFS.sanitizeToggles(raw);
 
 function say(msg) {
   const el = document.getElementById('status');
@@ -59,11 +53,11 @@ function save(key, value) {
 
 function weightOf(weights, id) {
   const w = weights && typeof weights[id] === 'number' && isFinite(weights[id]) ? weights[id] : null;
-  return w != null ? w : (CATS && CATS.DEFAULT_WEIGHTS[id]);
+  return w != null ? w : CATS.DEFAULT_WEIGHTS[id];
 }
 
 function matchingPreset(weights) {
-  if (!CATS) return null;
+  if (CATS.matchPreset) return CATS.matchPreset(weights);
   const found = Object.entries(CATS.PRESETS).find(([, p]) => {
     const target = { ...CATS.DEFAULT_WEIGHTS, ...p.weights };
     return Object.keys(target).every(k => Math.abs(weightOf(weights, k) - target[k]) < 0.001);
@@ -71,35 +65,103 @@ function matchingPreset(weights) {
   return found || null;
 }
 
+let popupPresetCategory = 'everyday';
+
+function paintPopupActive(match) {
+  const name = document.getElementById('presetActiveName');
+  if (!name) return;
+  if (match) {
+    name.textContent = match[1].label;
+    name.classList.remove('is-custom');
+  } else {
+    name.textContent = msg('optPresetCustomLabel', 'Custom');
+    name.classList.add('is-custom');
+  }
+}
+
+function renderPresetCategories(weights) {
+  const host = document.getElementById('presetCats');
+  if (!host) return;
+  const cats = CATS.PRESET_CATEGORIES || [{ id: 'everyday', label: 'Everyday' }];
+  host.textContent = '';
+  for (const cat of cats) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'preset-cat';
+    b.dataset.category = cat.id;
+    b.setAttribute('role', 'tab');
+    b.setAttribute('aria-selected', String(cat.id === popupPresetCategory));
+    b.textContent = cat.label;
+    b.addEventListener('click', () => {
+      popupPresetCategory = cat.id;
+      const grid = document.getElementById('presets');
+      if (grid) grid.dataset.userTab = '1';
+      renderPresets(weights);
+    });
+    host.appendChild(b);
+  }
+}
+
 function renderPresets(weights) {
   const host = document.getElementById('presets');
-  if (!host || !CATS) return;
-  if (!host.dataset.ready) {
-    host.textContent = '';
-    for (const [id, preset] of Object.entries(CATS.PRESETS)) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'preset';
-      b.dataset.preset = id;
-      b.textContent = preset.label;
-      b.title = preset.note;
-      b.addEventListener('click', () => applyPreset(id));
-      host.appendChild(b);
-    }
-    host.dataset.ready = '1';
-  }
+  if (!host) return;
   const match = matchingPreset(weights);
-  host.querySelectorAll('.preset').forEach(b =>
-    b.setAttribute('aria-pressed', String(!!(match && b.dataset.preset === match[0]))));
+  if (match && match[1].category && !host.dataset.userTab) {
+    popupPresetCategory = match[1].category;
+  }
+  renderPresetCategories(weights);
+
+  host.textContent = '';
+  const entries = Object.entries(CATS.PRESETS)
+    .filter(([, p]) => (p.category || 'everyday') === popupPresetCategory);
+  for (const [id, preset] of entries) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'preset';
+    b.dataset.preset = id;
+    b.setAttribute('aria-pressed', String(!!(match && match[0] === id)));
+    b.title = preset.note;
+    const glyph = document.createElement('span');
+    glyph.className = 'preset-glyph';
+    glyph.textContent = preset.glyph || preset.label.slice(0, 3);
+    glyph.setAttribute('aria-hidden', 'true');
+    const copy = document.createElement('span');
+    copy.className = 'preset-copy';
+    const title = document.createElement('span');
+    title.className = 'preset-title';
+    title.textContent = preset.label;
+    const snip = document.createElement('span');
+    snip.className = 'preset-snip';
+    snip.textContent = preset.note;
+    copy.append(title, snip);
+    b.append(glyph, copy);
+    b.addEventListener('click', () => applyPreset(id));
+    host.appendChild(b);
+  }
+
+  document.querySelectorAll('.preset-cat').forEach(tab => {
+    tab.setAttribute('aria-selected', String(tab.dataset.category === popupPresetCategory));
+  });
+
+  paintPopupActive(match);
   const note = document.getElementById('presetNote');
-  if (note) note.textContent = match ? match[1].note : msg('popupPresetCustom', 'Custom weights.');
+  if (note) {
+    note.textContent = match
+      ? match[1].note
+      : msg('popupPresetCustom', 'Custom weights — open Settings to fine-tune every dial.');
+  }
 }
 
 function applyPreset(id) {
-  const preset = CATS && CATS.PRESETS[id];
+  const preset = CATS.PRESETS[id];
   if (!preset) return;
-  const raw = { ...CATS.DEFAULT_WEIGHTS, ...preset.weights };
-  const weights = PREFS ? PREFS.sanitizeScoring({ weights: raw }).weights : raw;
+  const raw = CATS.presetWeightMap
+    ? CATS.presetWeightMap(id)
+    : { ...CATS.DEFAULT_WEIGHTS, ...preset.weights };
+  const weights = PREFS.sanitizeScoring({ weights: raw }).weights;
+  if (preset.category) popupPresetCategory = preset.category;
+  const host = document.getElementById('presets');
+  if (host) delete host.dataset.userTab;
   persist({ weights }, ok => { if (ok) renderPresets(weights); });
 }
 
@@ -181,9 +243,7 @@ function msg(key, fallback, sub) {
 
 // One palette and one set of NOVA labels, owned by the panel. The copies that used to live here
 // had already drifted from it once.
-const PANEL = (typeof AIR !== 'undefined' && AIR.panel) || null;
-const NOVA_SHORT = PANEL ? PANEL.NOVA_TEXT : { 1: 'Whole / minimally processed', 2: 'Culinary ingredient', 3: 'Processed', 4: 'Ultra-processed' };
-const bandColor = PANEL ? PANEL.BAND_COLOR : () => ({ fg: '#0f1111', bg: '#f7f8f8', ring: '#d5d9d9' });
+const { NOVA_TEXT: NOVA_SHORT, BAND_COLOR: bandColor } = AIR.panel;
 
 function asinFromUrl(url) {
   try { return (new URL(url).pathname.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/) || [])[1] || ''; }
@@ -307,12 +367,13 @@ function fillCompareSelect(select, listed, chosen) {
 }
 
 function paintCompare() {
+  const block = document.getElementById('compareBlock');
   const empty = document.getElementById('compareEmpty');
   const pick = document.getElementById('comparePick');
   const grid = document.getElementById('compareGrid');
   const selA = document.getElementById('compareA');
   const selB = document.getElementById('compareB');
-  if (!empty || !pick || !grid || !selA || !selB) return;
+  if (!block || !empty || !pick || !grid || !selA || !selB) return;
   let version = '';
   try { version = chrome.runtime.getManifest().version; } catch (e) { /* ignore */ }
   chrome.storage.local.get(null, all => {
@@ -323,11 +384,13 @@ function paintCompare() {
     };
     const listed = CACHE.listScores(all, { version, prefs });
     if (listed.length < 2) {
+      block.hidden = true;
       empty.hidden = false;
       pick.hidden = true;
       grid.textContent = '';
       return;
     }
+    block.hidden = false;
     empty.hidden = true;
     pick.hidden = false;
     let pickA = all.compareA;

@@ -43,17 +43,17 @@ console.log('displayed rows sum to the score — default weights');
 // clamps to SCORE_FLOOR before `shave` is computed. Both leave the panel showing rows that sum
 // to one number beside a badge showing another. Worst observed: safflower-oil chips render
 // "+3, no penalties" next to a red 25.
-const open = OPEN_DEFECTS.has('display-arithmetic');
+const displayOpen = OPEN_DEFECTS.has('display-arithmetic');
 let imbalanced = 0;
 for (const entry of ALL) {
   try { assertBalances(entry, {}, entry.id); console.log('  ok  ' + entry.id); }
   catch (e) {
-    if (open) { imbalanced++; known++; console.log('  known-fail  ' + e.message + '  [display-arithmetic]'); }
+    if (displayOpen) { imbalanced++; known++; console.log('  known-fail  ' + e.message + '  [display-arithmetic]'); }
     else { failed++; console.error('  FAIL ' + e.message); }
   }
 }
-if (open && imbalanced) console.log(`  -> ${imbalanced}/${ALL.length} do not balance at default weights`);
-if (open && !imbalanced) console.log('  FIXED? display-arithmetic passes at default weights — check the weighted profiles, then remove it from OPEN_DEFECTS.');
+if (displayOpen && imbalanced) console.log(`  -> ${imbalanced}/${ALL.length} do not balance at default weights`);
+if (displayOpen && !imbalanced) console.log('  FIXED? display-arithmetic passes at default weights — check the weighted profiles, then remove it from OPEN_DEFECTS.');
 
 console.log('\n…and under non-default weights');
 // The redistribution logic is weight-sensitive: weights change penalties, bonuses, caps and the
@@ -67,9 +67,9 @@ for (const [label, weights] of PROFILES) {
   let bad = 0;
   for (const entry of ALL) {
     try { assertBalances(entry, { weights }, entry.id); }
-    catch (e) { bad++; if (bad === 1 && !open) console.error('       first: ' + e.message); }
+    catch (e) { bad++; if (bad === 1 && !displayOpen) console.error('       first: ' + e.message); }
   }
-  if (bad && open) { known++; console.log(`  known-fail  ${label}: ${bad}/${ALL.length} products do not balance  [display-arithmetic]`); }
+  if (bad && displayOpen) { known++; console.log(`  known-fail  ${label}: ${bad}/${ALL.length} products do not balance  [display-arithmetic]`); }
   else if (bad) { failed++; console.error(`  FAIL ${label}: ${bad}/${ALL.length} products do not balance`); }
   else console.log(`  ok  ${label} (${ALL.length} products)`);
 }

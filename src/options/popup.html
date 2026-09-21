@@ -28,11 +28,28 @@
  .d{color:#565959;font-size:11px;display:none;margin-top:1px}
  label.master .d,body.show-why .d{display:block}
  .preset-block{margin-top:10px;padding-top:10px;border-top:1px solid #eaeded}
- .presets{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 0}
- .preset{border:1px solid #d5d9d9;background:#f7f8f8;border-radius:999px;padding:5px 10px;
+ .preset-active{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;margin:0 0 8px}
+ .preset-active-kicker{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#565959}
+ .preset-active-name{font-weight:700;font-size:12px}
+ .preset-active-name.is-custom{color:#565959;font-weight:600}
+ .preset-cats{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 6px}
+ .preset-cat{border:1px solid #d5d9d9;background:#fff;border-radius:6px;padding:3px 8px;
+   font:inherit;font-size:10px;font-weight:600;cursor:pointer;color:inherit}
+ .preset-cat:hover{background:#eef0f0}
+ .preset-cat[aria-selected="true"]{background:#0f1111;border-color:#0f1111;color:#fff}
+ .presets{display:flex;flex-direction:column;gap:4px;margin:4px 0 0;max-height:148px;overflow:auto}
+ .preset{display:flex;align-items:flex-start;gap:8px;width:100%;text-align:left;
+   border:1px solid #d5d9d9;background:#f7f8f8;border-radius:8px;padding:7px 8px;
    font:inherit;font-size:11px;font-weight:600;cursor:pointer;color:inherit}
  .preset:hover{background:#eef0f0}
- .preset[aria-pressed="true"]{background:#0f7b3f;border-color:#0f7b3f;color:#fff}
+ .preset[aria-pressed="true"]{background:#f0faf4;border-color:#0f7b3f;box-shadow:inset 0 0 0 1px #0f7b3f}
+ .preset-glyph{flex:0 0 auto;width:28px;height:28px;border-radius:7px;display:grid;place-items:center;
+   font:700 9px/1 sans-serif;background:#fff;border:1px solid #d5d9d9;color:#0f1111}
+ .preset[aria-pressed="true"] .preset-glyph{background:#0f7b3f;border-color:#0f7b3f;color:#fff}
+ .preset-copy{min-width:0}
+ .preset-title{display:block;font-weight:700;font-size:11px;line-height:1.25}
+ .preset-snip{color:#565959;font-size:10px;font-weight:400;line-height:1.3;margin-top:2px;
+   overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
  .preset-note{color:#565959;font-size:11px;margin:6px 0 0;line-height:1.35}
  .compare-block{margin:0 0 12px;padding-top:2px}
  .compare-empty{color:#565959;font-size:11px;margin:0 0 8px;line-height:1.35}
@@ -49,17 +66,20 @@
  #toggleWhy:hover,#openSettings:hover,#clear:hover{text-decoration:underline}
  #clear:disabled{color:#767676;cursor:default;text-decoration:none}
  input:focus-visible,#toggleWhy:focus-visible,#openSettings:focus-visible,#clear:focus-visible,
- .preset:focus-visible{outline:3px solid #007185;outline-offset:2px}
+ .preset:focus-visible,.preset-cat:focus-visible{outline:3px solid #007185;outline-offset:2px}
  @media (prefers-color-scheme: dark) {
    body{color:#f3f3f3;background:#1b1c1c}
-   .sub,.d,.ps-sub,.ps-empty,.ps-kicker,.preset-note{color:#aeaeae}
+   .sub,.d,.ps-sub,.ps-empty,.ps-kicker,.preset-note,.preset-snip,.preset-active-kicker{color:#aeaeae}
    label,.page-score,.preset-block{border-color:#3a3c3c}
    label.master{border-bottom-color:#3a3c3c}
    .page-score{background:#232525}
    .ps-num{background:#1b1c1c}
-   .preset{background:#2d2f2f;border-color:#3a3c3c;color:#f3f3f3}
-   .preset:hover{background:#3a3c3c}
-   .preset[aria-pressed="true"]{background:#0f7b3f;border-color:#0f7b3f;color:#fff}
+   .preset,.preset-cat{background:#2d2f2f;border-color:#3a3c3c;color:#f3f3f3}
+   .preset:hover,.preset-cat:hover{background:#3a3c3c}
+   .preset[aria-pressed="true"]{background:#1e2a22;border-color:#0f7b3f}
+   .preset-cat[aria-selected="true"]{background:#f3f3f3;border-color:#f3f3f3;color:#0f1111}
+   .preset-glyph{background:#1b1c1c;border-color:#3a3c3c;color:#f3f3f3}
+   .preset-active-name.is-custom{color:#aeaeae}
    .compare-pick,.compare-card{border-color:#3a3c3c}
    .compare-pick select{background:#1b1c1c;border-color:#3a3c3c;color:#f3f3f3}
    .compare-card{background:#232525}
@@ -71,7 +91,7 @@
  <h1 data-i18n="appName">Ingredient Check</h1>
  <div class="sub" data-i18n="popupTagline">Ingredient quality, additives and processing — scored on your computer.</div>
  <div id="pageScore" class="page-score" hidden></div>
- <div class="compare-block" id="compareBlock">
+ <div class="compare-block" id="compareBlock" hidden>
    <div class="ps-kicker" data-i18n="popupCompare">Compare cached scores</div>
    <p class="compare-empty" id="compareEmpty" data-i18n="popupCompareEmpty">Score two products on Amazon, then pick them here. Uses the cache only — no extra requests.</p>
    <div id="comparePick" hidden>
@@ -108,8 +128,13 @@
    barcode to Open Food Facts and nothing else — no page content, no browsing history.</span></span></label>
  </div>
  <div class="preset-block">
-   <div class="ps-kicker" data-i18n="popupPresets">Weight preset</div>
-   <div class="presets" id="presets"></div>
+   <div class="ps-kicker" data-i18n="popupPresets">Goal-based scoring</div>
+   <div class="preset-active" aria-live="polite">
+     <span class="preset-active-kicker" data-i18n="optPresetActive">Active</span>
+     <span class="preset-active-name" id="presetActiveName">Balanced</span>
+   </div>
+   <div class="preset-cats" id="presetCats" role="tablist" aria-label="Preset categories"></div>
+   <div class="presets" id="presets" role="tabpanel"></div>
    <p class="preset-note" id="presetNote"></p>
  </div>
  <button type="button" id="toggleWhy" data-i18n="popupShowWhy">Why these matter</button>

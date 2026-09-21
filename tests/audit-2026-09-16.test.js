@@ -1,4 +1,4 @@
-// Regression pins for the September 16, 2026 audit (docs/AUDIT-2026-09-16.md).
+// Regression pins for the September 16, 2026 audit (docs/history/AUDIT-2026-09-16.md).
 // Run: node --test tests/audit-2026-09-16.test.js
 //
 // Two of these are regressions the September 14 fix introduced and the corpus could not see,
@@ -215,7 +215,7 @@ test('penalty rows carry their category and the refined-sugar mark', () => {
 });
 
 test('the paste box does not take focus when the failure card mounts', () => {
-  const wiring = fs.readFileSync(src('content/panel.js'), 'utf8').match(/function wirePasteField[\s\S]*?\n  }\n/)[0];
+  const wiring = fs.readFileSync(src('content/panel.js'), 'utf8').match(/function wirePasteField[\s\S]*?\n {2}}\n/)[0];
   assert.ok(!/\.focus\(/.test(wiring), 'wirePasteField focuses the textarea');
   assert.ok(!/\.select\(\)/.test(wiring), 'wirePasteField selects the textarea');
 });

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Zip a store-ready extension package. Runs preflight first.
-// Includes the files Chrome loads plus LICENSE / README / privacy copy.
-// Excludes tests, audits, the Chrome profile, and git metadata.
+// Includes only what Chrome loads plus LICENSE, a short README, and privacy copy.
+// Excludes tests, audits, harness pages, the Chrome profile, and git metadata.
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';

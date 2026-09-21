@@ -9,12 +9,15 @@
   const MAX_CONCURRENT = 3;
   const REQUEST_GAP_MS = 250;
   const TILE_FAIL_LIMIT = 5;
+  // Hard cap on auto-score fan-out per search page epoch (hover still prioritised).
+  const MAX_AUTO_PER_PAGE = 40;
 
   const searchGate = { url: null, decision: null };
   const queue = { pending: [], active: 0, seen: new Set(), lastStart: 0, epoch: 0, controllers: new Set(),
     failStreak: 0, throttled: false };
   let tileObserver = null;
   let badgeStyleReady = false;
+  const hoverAborts = new Set();
 
   function searchContext() {
     const params = new URLSearchParams(location.search);
@@ -60,6 +63,7 @@
   function badgeSearchResults() {
     const { state, BADGE_ATTR, cacheKey, usableCache } = P();
     const tiles = document.querySelectorAll('[data-asin]:not([' + BADGE_ATTR + '])');
+    const pending = [];
     tiles.forEach(tile => {
       const asin = tile.getAttribute('data-asin');
       if (!asin || asin.length !== 10) return;
@@ -67,14 +71,20 @@
       if (state.foodOnly && root.AIR.db.ingestible && root.AIR.db.ingestible.looksNonFoodFromTitle(tileTitle(tile))) {
         return;
       }
-      const epoch = queue.epoch;
-      chrome.storage.local.get(cacheKey(asin), obj => {
-        if (epoch !== queue.epoch || !state.enabled || !state.badges || !tile.isConnected) return;
-        const hit = obj[cacheKey(asin)];
-        if (!usableCache(hit, asin)) return;
-        paintBadge(tile, hit);
-      });
+      pending.push({ tile, asin, key: cacheKey(asin) });
     });
+    if (pending.length) {
+      const epoch = queue.epoch;
+      chrome.storage.local.get(pending.map(p => p.key), obj => {
+        if (epoch !== queue.epoch || !state.enabled || !state.badges) return;
+        for (const { tile, asin, key } of pending) {
+          if (!tile.isConnected) continue;
+          const hit = obj[key];
+          if (!usableCache(hit, asin)) continue;
+          paintBadge(tile, hit);
+        }
+      });
+    }
     armHoverPass();
     armAutoScorePass();
   }
@@ -97,7 +107,8 @@
     }
     const s = document.createElement('style');
     s.id = 'air-badge-style';
-    s.textContent = `.air-badge{display:inline-grid;place-items:center;min-width:26px;height:26px;`
+    s.textContent = `.air-badge{display:inline-flex;align-items:center;justify-content:center;`
+      + `flex-shrink:0;align-self:center;min-width:26px;height:26px;`
       + `padding:0 6px;margin-right:8px;border-radius:999px;font:700 12px/1 sans-serif;`
       + `vertical-align:middle;box-sizing:border-box}`;
     (document.head || document.documentElement).appendChild(s);
@@ -201,7 +212,10 @@
     for (const controller of queue.controllers) controller.abort();
     queue.controllers.clear();
     if (tileObserver) { tileObserver.disconnect(); tileObserver = null; }
+    for (const ac of hoverAborts) ac.abort();
+    hoverAborts.clear();
     document.querySelectorAll('[data-air-auto]').forEach(t => t.removeAttribute('data-air-auto'));
+    document.querySelectorAll('[data-air-hover]').forEach(t => t.removeAttribute('data-air-hover'));
   }
 
   function tileTitle(tile) {
@@ -215,6 +229,7 @@
     if (!state.enabled || !state.badges || !searchAllowed()) return;
     if (front ? !state.hoverScore : !state.autoScoreSearch) return;
     if (queue.seen.has(asin)) return;
+    if (!front && queue.seen.size >= MAX_AUTO_PER_PAGE) return;
     if (state.foodOnly && root.AIR.db.ingestible && root.AIR.db.ingestible.looksNonFoodFromTitle(tileTitle(tile))) {
       queue.seen.add(asin);
       return;
@@ -242,6 +257,12 @@
     if (tile.hasAttribute('data-air-hover')) return;
     tile.setAttribute('data-air-hover', '1');
     let timer = null;
+    const ac = new AbortController();
+    hoverAborts.add(ac);
+    ac.signal.addEventListener('abort', () => {
+      clearTimeout(timer);
+      hoverAborts.delete(ac);
+    });
     const start = () => {
       if (!state.enabled || !state.badges || !state.hoverScore) return;
       if (!searchAllowed()) return;
@@ -250,10 +271,11 @@
       timer = setTimeout(() => enqueue(tile, asin, { front: true }), HOVER_DELAY_MS);
     };
     const cancel = () => clearTimeout(timer);
-    tile.addEventListener('mouseenter', start);
-    tile.addEventListener('mouseleave', cancel);
-    tile.addEventListener('focusin', start);
-    tile.addEventListener('focusout', cancel);
+    const opts = { signal: ac.signal };
+    tile.addEventListener('mouseenter', start, opts);
+    tile.addEventListener('mouseleave', cancel, opts);
+    tile.addEventListener('focusin', start, opts);
+    tile.addEventListener('focusout', cancel, opts);
   }
 
   function autoObserver() {
@@ -303,8 +325,11 @@
     queue.controllers.add(controller);
     paintBadge(tile, 'pending');
     try {
-      const res = await fetch(`/dp/${asin}`, { credentials: 'same-origin', signal: controller.signal });
-      if (!res.ok) throw new Error(String(res.status));
+      const signal = (typeof AbortSignal !== 'undefined' && AbortSignal.any)
+        ? AbortSignal.any([controller.signal, AbortSignal.timeout(15000)])
+        : controller.signal;
+      const res = await fetch(`/dp/${asin}`, { credentials: 'same-origin', signal });
+      if (!res.ok) throw Object.assign(new Error(String(res.status)), { httpStatus: res.status });
       const html = await res.text();
       if (!current()) return;
       const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -322,16 +347,18 @@
       }, state.prefs);
       if (unreadable(result)) { paintBadge(tile, 'unreadable'); return; }
       paintBadge(tile, result);
-      cacheScore(asin, result, data.title, data.via || 'search-tile', data.text);
+      cacheScore(asin, result, data.title, data.via || 'search-tile');
       sendDiagnostic(data, result, 'search-tile');
       queue.failStreak = 0;
     } catch (e) {
       if (!current()) return;
-      const aborted = e && (e.name === 'AbortError' || controller.signal.aborted);
+      const aborted = e && (e.name === 'AbortError' || e.name === 'TimeoutError' || controller.signal.aborted);
       if (aborted) return;
       const b = tile.querySelector('.air-badge');
       if (b && b.textContent === '…') b.remove();
-      noteTileFailure();
+      // Only Amazon HTTP blocks count toward the throttle pause — offline / DNS is not a 403.
+      const status = e && e.httpStatus;
+      if (typeof status === 'number' && status >= 400) noteTileFailure();
     } finally {
       queue.controllers.delete(controller);
     }
@@ -341,6 +368,9 @@
     const { BADGE_ATTR } = P();
     document.querySelectorAll('.air-badge').forEach(b => b.remove());
     document.querySelectorAll(`[${BADGE_ATTR}]`).forEach(tile => tile.removeAttribute(BADGE_ATTR));
+    for (const ac of hoverAborts) ac.abort();
+    hoverAborts.clear();
+    document.querySelectorAll('[data-air-hover]').forEach(t => t.removeAttribute('data-air-hover'));
   }
 
   const search = {

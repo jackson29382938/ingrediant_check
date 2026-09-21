@@ -1,0 +1,536 @@
+{
+  "appName": {
+    "message": "Zutaten-Check",
+    "description": "Extension name, shown in the browser and the store."
+  },
+  "appDescription": {
+    "message": "Bewertet Amazon-Lebensmittel 0–100 nach Zutaten, Zusatzstoffen und Verarbeitung. Lokal auf Ihrem Computer.",
+    "description": "Store description. Must stay under 132 characters in every locale."
+  },
+  "novaWhole": {
+    "message": "Whole / minimally processed"
+  },
+  "novaCulinary": {
+    "message": "Culinary ingredient"
+  },
+  "novaProcessed": {
+    "message": "Processed"
+  },
+  "novaUltra": {
+    "message": "Ultra-processed"
+  },
+  "headDisqualifying": {
+    "message": "Disqualifying",
+    "description": "Panel section: ingredients that cap the score."
+  },
+  "headGood": {
+    "message": "What's good"
+  },
+  "headHurt": {
+    "message": "What hurt"
+  },
+  "headNeutral": {
+    "message": "Not counted against it"
+  },
+  "headProduced": {
+    "message": "How this was produced"
+  },
+  "footRules": {
+    "message": "$COUNT$ rules",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "footCoverage": {
+    "message": "$PCT$% of the list recognised",
+    "placeholders": {
+      "pct": {
+        "content": "$1"
+      }
+    }
+  },
+  "footBase": {
+    "message": "base $N$",
+    "placeholders": {
+      "n": {
+        "content": "$1"
+      }
+    }
+  },
+  "reportLink": {
+    "message": "Sieht falsch aus?"
+  },
+  "reportSending": {
+    "message": "Sending…"
+  },
+  "reportThanks": {
+    "message": "Thanks — logged"
+  },
+  "reportNoUrl": {
+    "message": "Set a contribution URL in settings"
+  },
+  "srcPasted": {
+    "message": "Ingredients you pasted"
+  },
+  "srcBarcode": {
+    "message": "Matched by barcode via Open Food Facts — not from this page"
+  },
+  "srcPage": {
+    "message": "Ingredients read from page"
+  },
+  "srcPageConf": {
+    "message": "Ingredients read from page ($PCT$% confidence)",
+    "placeholders": {
+      "pct": {
+        "content": "$1"
+      }
+    }
+  },
+  "disclaimer": {
+    "message": "Ein Leitfaden zu dem, was auf dem Etikett steht — keine Gesundheitsberatung. Zutaten können unvollständig oder veraltet sein — prüfen Sie die Verpackung."
+  },
+  "allergenCaveat": {
+    "message": "Found in the ingredient text on this page. Absence of a warning is not a safety check — never rely on this for an allergy."
+  },
+  "failTitle": {
+    "message": "Zutaten auf dieser Seite konnten nicht gelesen werden."
+  },
+  "failUnreadable": {
+    "message": "The ingredients are published, but almost none of them match anything this tool knows — usually that means the label is in a language it cannot read yet. Scoring it anyway would produce a confident wrong answer. "
+  },
+  "failLookup": {
+    "message": "The optional barcode lookup didn't return an ingredient list. "
+  },
+  "failNoText": {
+    "message": "Amazon doesn't always publish them as text — sometimes they only exist inside the label photo. "
+  },
+  "failPastePrompt": {
+    "message": "Paste them here and I'll score it."
+  },
+  "pastePlaceholder": {
+    "message": "Paste the ingredient list…"
+  },
+  "pasteLabel": {
+    "message": "Ingredient list"
+  },
+  "pasteInvalid": {
+    "message": "That doesn't look like an ingredient list yet."
+  },
+  "scoreButton": {
+    "message": "Bewerten"
+  },
+  "loadingTitle": {
+    "message": "Open Food Facts wird geprüft…"
+  },
+  "loadingBody": {
+    "message": "Amazon didn't publish readable ingredients, so the optional barcode fallback is looking for this product. No Amazon page or browsing data is sent."
+  },
+  "notFoodTitle": {
+    "message": "Nicht bewertet — sieht nicht nach Lebensmittel aus."
+  },
+  "notFoodBody": {
+    "message": "A score here would treat it as something you eat."
+  },
+  "notFoodButton": {
+    "message": "Trotzdem bewerten"
+  },
+  "notFoodWhy": {
+    "message": "This is on because “Only rate food & supplements” is enabled in settings."
+  },
+  "notFoodNothing": {
+    "message": "Nothing disclosed about how this was produced"
+  },
+  "popupShowRatings": {
+    "message": "Zutaten-Check ist an"
+  },
+  "popupShowRatingsD": {
+    "message": "Der Hauptschalter. Aus stoppt alles auf Amazon-Seiten — kein Panel, keine Badges, kein Beobachten. Nichts darunter wird vergessen."
+  },
+  "popupBadges": {
+    "message": "Search result badges"
+  },
+  "popupBadgesD": {
+    "message": "Score chips on tiles you've already opened."
+  },
+  "popupFoodOnly": {
+    "message": "Only rate food & supplements"
+  },
+  "popupAutoScore": {
+    "message": "Rate every search result"
+  },
+  "popupHover": {
+    "message": "Score on hover"
+  },
+  "popupOff": {
+    "message": "Open Food Facts fallback"
+  },
+  "popupSettingsLink": {
+    "message": "Scoring weights, allergens & avoid list"
+  },
+  "popupClear": {
+    "message": "Zwischengespeicherte Bewertungen löschen"
+  },
+  "popupCleared": {
+    "message": "$1 Zwischenspeicher gelöscht",
+    "placeholders": {
+      "n": {
+        "content": "$1"
+      }
+    }
+  },
+  "popupDisclaimer": {
+    "message": "Scores are a guide, not health or allergy advice. Always read the label."
+  },
+  "popupFoodOnlyD": {
+    "message": "Skip shoes, toys, cosmetics and cleaning products, and say why instead of scoring them. Shampoo has an ingredient list too, and a score on one implies it was judged as something you could eat."
+  },
+  "popupAutoScoreD": {
+    "message": "Scores tiles automatically as you scroll a results page. Requests each product page from Amazon once, a few at a time, using your normal signed-in session — so Amazon sees them much as it would if you had opened the products yourself."
+  },
+  "popupHoverD": {
+    "message": "Hover or tab to a search result for half a second and it requests that product page from Amazon to score it. Only the tile you point at."
+  },
+  "popupOffD": {
+    "message": "When a page has a barcode but no readable ingredients, look it up. Sends the barcode to Open Food Facts and nothing else — no page content, no browsing history."
+  },
+  "popupTagline": {
+    "message": "Zutatenqualität, Zusatzstoffe und Verarbeitung — lokal bewertet."
+  },
+  "srcOcr": {
+    "message": "Read from the label photo on this page"
+  },
+  "loadingOcrTitle": {
+    "message": "Etikettenfoto wird gelesen…"
+  },
+  "loadingOcrBody": {
+    "message": "Amazon didn't publish the ingredients as text, so the label image is being read on your computer. This takes a few seconds and nothing is sent anywhere."
+  },
+  "loadingOcrSlowTitle": {
+    "message": "Etikett wird noch gelesen…"
+  },
+  "loadingOcrSlowBody": {
+    "message": "Large photos take longer. This stays on your computer — nothing is sent anywhere."
+  },
+  "failOcr": {
+    "message": "The label photo was checked too, and no ingredient list could be read from it. "
+  },
+  "failLocale": {
+    "message": "This Amazon store’s labels are in a script the on-device English reader will misread, so photo OCR is not used here yet. Paste the list if you can read it. "
+  },
+  "throttleTitle": {
+    "message": "Amazon throttled scoring"
+  },
+  "throttleBody": {
+    "message": "Too many product-page requests were blocked. Auto-score is paused on this search so we do not keep retrying. Cached badges still show. Open a product, or start a new search, to try again."
+  },
+  "popupOcr": {
+    "message": "Read label photos"
+  },
+  "popupOcrD": {
+    "message": "When a page has no readable ingredients, read them from the product's label photo. Runs on your computer and takes a few seconds per product — nothing is sent anywhere."
+  },
+  "popupKept": {
+    "message": "Paused. Everything below is kept and comes back when you switch it on."
+  },
+  "copyScore": {
+    "message": "Bewertung kopieren"
+  },
+  "copied": {
+    "message": "Copied"
+  },
+  "copyFailed": {
+    "message": "Could not copy"
+  },
+  "coverageWarn": {
+    "message": "Only $PCT$% of this list was recognised — treat the score as a partial reading.",
+    "placeholders": {
+      "pct": {
+        "content": "$1"
+      }
+    }
+  },
+  "producedSilent": {
+    "message": "No certification, feed, or origin claim on the page. Commodity $KIND$ with a silent label is conventionally raised by default.",
+    "placeholders": {
+      "kind": {
+        "content": "$1"
+      }
+    }
+  },
+  "popupShowWhy": {
+    "message": "Why these matter"
+  },
+  "popupHideWhy": {
+    "message": "Hide explanations"
+  },
+  "popupThisPage": {
+    "message": "This page"
+  },
+  "popupNoScore": {
+    "message": "Not scored yet. Wait for the panel on this page, then reopen."
+  },
+  "popupSearchPage": {
+    "message": "Search page — scores show as badges on tiles you have already opened."
+  },
+  "popupClearN": {
+    "message": "Clear $N$ cached scores",
+    "placeholders": {
+      "n": {
+        "content": "$1"
+      }
+    }
+  },
+  "hollowMeansNothing": {
+    "message": "$LABEL$ means nothing here",
+    "placeholders": {
+      "label": {
+        "content": "$1"
+      }
+    }
+  },
+  "popupCouldNotSave": {
+    "message": "Could not save."
+  },
+  "popupOffDenied": {
+    "message": "Chrome did not grant Open Food Facts access."
+  },
+  "popupOffNotKept": {
+    "message": "Chrome did not keep the Open Food Facts permission."
+  },
+  "popupCouldNotClear": {
+    "message": "Could not clear cached scores."
+  },
+  "srcShortPasted": {
+    "message": "Pasted label (this tab)"
+  },
+  "srcShortOverride": {
+    "message": "Food filter overridden (this tab)"
+  },
+  "srcShortOcr": {
+    "message": "Label photo"
+  },
+  "srcShortBarcode": {
+    "message": "Open Food Facts"
+  },
+  "srcShortPage": {
+    "message": "Product page"
+  },
+  "popupCompare": {
+    "message": "Zwischengespeicherte Bewertungen vergleichen"
+  },
+  "popupCompareEmpty": {
+    "message": "Bewerten Sie zwei Produkte auf Amazon, dann wählen Sie sie hier. Nur Cache — keine Extra-Anfragen."
+  },
+  "popupCompareA": {
+    "message": "A"
+  },
+  "popupCompareB": {
+    "message": "B"
+  },
+  "popupPresets": {
+    "message": "Gewichts-Voreinstellung"
+  },
+  "popupPresetCustom": {
+    "message": "Benutzerdefinierte Gewichte."
+  },
+  "optTitle": {
+    "message": "Ingredient Check — Settings"
+  },
+  "optLede": {
+    "message": "Everything below runs on your computer. No account, no AI, no data leaves this machine except the two optional lookups you switch on yourself."
+  },
+  "optNavAria": {
+    "message": "Settings sections"
+  },
+  "optNavRate": {
+    "message": "Rate"
+  },
+  "optNavPresets": {
+    "message": "Voreinstellungen"
+  },
+  "optNavWeights": {
+    "message": "Weights"
+  },
+  "optNavWarnings": {
+    "message": "Warnings"
+  },
+  "optNavAvoid": {
+    "message": "Avoid"
+  },
+  "optNavDatabase": {
+    "message": "Database"
+  },
+  "optNavFile": {
+    "message": "File"
+  },
+  "optRateH": {
+    "message": "What to rate"
+  },
+  "optPresetsH": {
+    "message": "Ausgangspunkt"
+  },
+  "optWeightsH": {
+    "message": "What counts, and how much"
+  },
+  "optWarningsH": {
+    "message": "Allergen warnings"
+  },
+  "optDietsH": {
+    "message": "Diet compatibility"
+  },
+  "optAvoidH": {
+    "message": "Your own avoid list"
+  },
+  "optDatabaseH": {
+    "message": "Shared provenance database"
+  },
+  "optDiagnosticsH": {
+    "message": "Accuracy diagnostics"
+  },
+  "optLeavesH": {
+    "message": "What leaves your computer"
+  },
+  "optScoreIsH": {
+    "message": "What a score is, and is not"
+  },
+  "optFileH": {
+    "message": "Settings file"
+  },
+  "optFoodOnly": {
+    "message": "Only rate food and supplements"
+  },
+  "optFilterPh": {
+    "message": "Filter categories"
+  },
+  "optFilterAria": {
+    "message": "Filter categories"
+  },
+  "optFilterAll": {
+    "message": "All"
+  },
+  "optFilterChanged": {
+    "message": "Changed"
+  },
+  "optFilterOff": {
+    "message": "Off"
+  },
+  "optFilterNone": {
+    "message": "No categories match."
+  },
+  "optFilterClear": {
+    "message": "Clear filter"
+  },
+  "optAvoidPh": {
+    "message": "carrageenan\nred 40\nnatural flavors"
+  },
+  "optSheetPh": {
+    "message": "https://docs.google.com/spreadsheets/d/..."
+  },
+  "optScriptPh": {
+    "message": "https://script.google.com/macros/s/.../exec"
+  },
+  "optSheetRead": {
+    "message": "Database URL (read)"
+  },
+  "optSheetWrite": {
+    "message": "Contribution URL (write, optional)"
+  },
+  "optProducers": {
+    "message": "Producer registry URL (optional)"
+  },
+  "optShare": {
+    "message": "Send certifications I come across back to the sheet"
+  },
+  "optRefresh": {
+    "message": "Refresh database now"
+  },
+  "optSendDiag": {
+    "message": "Send scoring diagnostics to my endpoint"
+  },
+  "optFlush": {
+    "message": "Send queued rows now"
+  },
+  "optExport": {
+    "message": "Einstellungen exportieren"
+  },
+  "optImport": {
+    "message": "Einstellungen importieren"
+  },
+  "optReset": {
+    "message": "Alles auf Standard zurücksetzen"
+  },
+  "optCustomWeights": {
+    "message": "Custom weights."
+  },
+  "optSaved": {
+    "message": "Gespeichert"
+  },
+  "optCouldNotSave": {
+    "message": "Could not save"
+  },
+  "optExported": {
+    "message": "Exported"
+  },
+  "optNotJson": {
+    "message": "That file is not JSON"
+  },
+  "optNotExport": {
+    "message": "That file is not an Ingredient Check settings export"
+  },
+  "optImported": {
+    "message": "Imported"
+  },
+  "optImportFailed": {
+    "message": "That file could not be read"
+  },
+  "optResetConfirm": {
+    "message": "Gewichte, Warnungen und Vermeidungsliste zurücksetzen? Datenbank-URLs bleiben."
+  },
+  "optResetDone": {
+    "message": "Auf Standard zurückgesetzt"
+  },
+  "verdictExcellent": {
+    "message": "Ausgezeichnet"
+  },
+  "verdictGood": {
+    "message": "Gut"
+  },
+  "verdictMediocre": {
+    "message": "Mittelmäßig"
+  },
+  "verdictPoor": {
+    "message": "Schlecht"
+  },
+  "verdictAvoid": {
+    "message": "Meiden"
+  },
+  "badgeNoIngredients": {
+    "message": "Amazon doesn't publish readable ingredients for this one"
+  },
+  "catHelp_grain": {
+    "message": "Default 1.0: gluten grains are a penalty, including whole wheat. Enriched and white flour cost more; wheat, barley and rye still count when they are whole grain, because this dial is gluten as much as refinement. Traditionally prepared grains (sourdough, sprouted, soaked) count half. Lower this weight if you do not want gluten grains counted against a score. NOVA still treats plain flour as processed (3) and enriched as ultra (4) — that mapping is not this dial."
+  },
+  "optNoteRateSame": {
+    "message": "These settings are the same ones in the toolbar popup. Changing them here updates scores on Amazon immediately."
+  },
+  "optNoteFoodOnly": {
+    "message": "Skips shoes, toys, cosmetics, medicine and cleaning products. A score on shampoo would imply it was judged as something you could eat. When this is on, a non-food page shows why it was skipped instead of a silent blank."
+  },
+  "optNoteWeights": {
+    "message": "1.0 is the default weight. 0 switches a category off entirely. 2.0 makes it matter twice as much. Categories set to 0 by default are ones people reasonably disagree about — turn them on if you want them. Press / to jump to the filter."
+  },
+  "optNoteAllergen": {
+    "message": "Flagged on the panel. These never change the score — whether a food contains sesame is a different question from whether it is a good food."
+  },
+  "optNoteAvoid": {
+    "message": "One ingredient or phrase per line. Anything matching gets flagged on the panel."
+  },
+  "optNoteAvoidHint": {
+    "message": "Add a common one:"
+  },
+  "optNoteExport": {
+    "message": "Exports as a plain JSON file you can keep, edit, or move to another computer."
+  }
+}

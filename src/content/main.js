@@ -25,36 +25,11 @@
     clearBadges();
   }
 
-  function tick() {
-    if (!state.enabled) return;
-    try {
-      if (isProductPage()) { scoreCurrentPage(); settleIfDone(); }
-      else if (isListPage()) {
-        removePanel();
-        if (state.lastBadgeScore != null) {
-          state.lastBadgeScore = undefined;
-          publishActionBadge(null);
-        }
-        if (!searchAllowed()) { standDown(); settle('non-food search'); return; }
-        if (!state.badges) { standDown(); settle('badges off'); return; }
-        badgeSearchResults();
-      } else {
-        teardown();
-        if (state.lastBadgeScore != null) {
-          state.lastBadgeScore = undefined;
-          publishActionBadge(null);
-        }
-        settle('not a product or results page');
-      }
-    } catch (e) {
-      console.debug('[AIR]', e);
-    }
-  }
-
   function settleIfDone() {
     const st = document.getElementById(HOST_ID)?.dataset.airState;
-    if (st === 'scored' || st === 'not-food') settle(st);
-    else if (st === 'fail' && state.failedExtracts >= MAX_EXTRACT_RETRIES) settle('unreadable');
+    // not-food is stable. scored stays observed so late NIC hydration can replace a wrong first
+    // blurb. fail never settles permanently — Amazon often publishes the list after expanders load.
+    if (st === 'not-food') settle(st);
   }
 
   const DEBOUNCE_MS = 400;
@@ -69,14 +44,26 @@
   };
 
   let observer = null;
+  let observerRoot = null;
   let urlTimer = null;
   let navWired = false;
   let lastUrl = location.href;
 
-  function startObserving() {
-    if (observer || !state.enabled) return;
+  function observeRoot(narrow) {
+    if (!narrow) return document.documentElement;
+    return document.querySelector(
+      '#search, .s-main-slot, [data-component-type="s-search-results"], #dp, #dp-container, #ppd'
+    ) || document.documentElement;
+  }
+
+  function startObserving(narrow = false) {
+    if (!state.enabled) return;
+    const root = observeRoot(narrow);
+    if (observer && observerRoot === root) return;
+    stopObserving();
     observer = new MutationObserver(schedule);
-    observer.observe(document.documentElement, { childList: true, subtree: true });
+    observer.observe(root, { childList: true, subtree: true });
+    observerRoot = root;
     state.settled = null;
   }
 
@@ -84,6 +71,7 @@
     if (!observer) return;
     observer.disconnect();
     observer = null;
+    observerRoot = null;
   }
 
   function settle(why) {
@@ -92,6 +80,34 @@
     stopObserving();
   }
   page.settle = settle;
+
+  function tick() {
+    if (!state.enabled) return;
+    try {
+      if (isProductPage()) { scoreCurrentPage(); settleIfDone(); }
+      else if (isListPage()) {
+        removePanel();
+        if (state.lastBadgeScore != null) {
+          state.lastBadgeScore = undefined;
+          publishActionBadge(null);
+        }
+        if (!searchAllowed()) { standDown(); settle('non-food search'); return; }
+        if (!state.badges) { standDown(); settle('badges off'); return; }
+        badgeSearchResults();
+        // After the first badge pass, watch only the results slot — not the whole document.
+        startObserving(true);
+      } else {
+        teardown();
+        if (state.lastBadgeScore != null) {
+          state.lastBadgeScore = undefined;
+          publishActionBadge(null);
+        }
+        settle('not a product or results page');
+      }
+    } catch (e) {
+      console.debug('[AIR]', e);
+    }
+  }
 
   function wake() {
     if (!state.enabled) return;
@@ -112,6 +128,8 @@
     removePanel();
     state.manual = null;
     state.lastBadgeScore = undefined;
+    state.lastTextSig = null;
+    state.lastFailSig = null;
     publishActionBadge(null);
     resetListState();
     state.lastKey = null;
@@ -127,7 +145,21 @@
   }
 
   function watchNavigation() {
-    if (!navWired) { addEventListener('popstate', onNavigated); navWired = true; }
+    if (!navWired) {
+      addEventListener('popstate', onNavigated);
+      // Prefer the Navigation API when present; keep the poll as a fallback for Amazon soft nav.
+      try {
+        if (typeof navigation !== 'undefined' && navigation
+            && typeof navigation.addEventListener === 'function') {
+          navigation.addEventListener('navigate', () => {
+            queueMicrotask(() => {
+              if (location.href !== lastUrl) onNavigated();
+            });
+          });
+        }
+      } catch (e) { /* Navigation API unavailable */ }
+      navWired = true;
+    }
     if (urlTimer) return;
     urlTimer = setInterval(() => {
       if (location.href !== lastUrl) onNavigated();
@@ -183,15 +215,7 @@
 
   chrome.storage.local.get(['enabled', 'badges', 'hoverScore', 'autoScoreSearch', 'foodOnly', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList', 'useOpenFoodFacts', 'sheetUrl', 'producersUrl', 'sheetIndexRev', 'producerIndexRev'], o => {
     state.cacheOptions = { ...o };
-    const toggles = (AIR.db.prefs && AIR.db.prefs.sanitizeToggles(o)) || {
-      enabled: o.enabled !== false,
-      badges: o.badges !== false,
-      hoverScore: o.hoverScore === true,
-      autoScoreSearch: o.autoScoreSearch === true,
-      foodOnly: o.foodOnly !== false,
-      ocrLabels: o.ocrLabels === true,
-      sendDiagnostics: o.sendDiagnostics === true,
-    };
+    const toggles = AIR.db.prefs.sanitizeToggles(o);
     state.enabled = toggles.enabled;
     state.badges = toggles.badges;
     state.hoverScore = toggles.hoverScore;
@@ -204,12 +228,7 @@
   });
 
   function readPrefs(o) {
-    const clean = (AIR.db.prefs && AIR.db.prefs.sanitizeScoring(o)) || {
-      weights: o.weights || {},
-      allergens: Array.isArray(o.allergens) ? o.allergens : [],
-      diets: Array.isArray(o.diets) ? o.diets : [],
-      avoidList: Array.isArray(o.avoidList) ? o.avoidList : [],
-    };
+    const clean = AIR.db.prefs.sanitizeScoring(o);
     state.prefs = {
       weights: clean.weights,
       allergens: clean.allergens,
