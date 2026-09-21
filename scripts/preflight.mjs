@@ -9,7 +9,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildContentMatches, AMAZON_HOSTS } from './content-matches.mjs';
+import { buildContentMatches, AMAZON_HOSTS, contentScriptWouldRun } from './content-matches.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = p => fs.readFileSync(path.join(root, p), 'utf8');
@@ -77,7 +77,24 @@ check('stores covered', () => {
   if (!matches.some(m => m.includes('/dp/')) || !matches.some(m => m.endsWith('/s') || m.includes('/s/'))) {
     throw new Error('product /dp/ or search /s matches missing');
   }
-  return `${hosts.size} Amazon stores, ${matches.length} path patterns (incl. slug + apex + mobile)`;
+  if (!matches.some(m => m.endsWith('/s?*'))) {
+    throw new Error('search /s?* matches missing — /s does not match /s?k=');
+  }
+  const searchUrls = [
+    'https://www.amazon.com/s?k=organic+oats',
+    'https://www.amazon.com/s?k=organic+oats&i=grocery',
+    'https://amazon.com/s?k=peanut+butter',
+    'https://www.amazon.co.uk/s?k=porridge+oats',
+    'https://www.amazon.com/-/en/s?k=oat+milk',
+  ];
+  const missed = searchUrls.filter(url => !contentScriptWouldRun(url, matches));
+  if (missed.length) throw new Error('content script would not inject on ' + missed.join(', '));
+  const quiet = [
+    'https://www.amazon.com/gp/cart/view.html',
+    'https://www.amazon.com/ap/signin',
+  ].filter(url => contentScriptWouldRun(url, matches));
+  if (quiet.length) throw new Error('content script would inject on ' + quiet.join(', '));
+  return `${hosts.size} Amazon stores, ${matches.length} path patterns (incl. /s?k= search)`;
 });
 check('content scripts split PDP vs search', () => {
   const js = manifest.content_scripts[0].js || [];
