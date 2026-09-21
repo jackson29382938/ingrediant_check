@@ -16,15 +16,13 @@
   const ENGINE_VERSION = (() => {
     try { return chrome.runtime.getManifest().version; } catch (e) { return '0'; }
   })();
-  const CACHE = root.AIR.db && root.AIR.db.scoreCache;
+  const CACHE = root.AIR.db.scoreCache;
   state.cacheOptions = {};
   state.pageScore = null;
   const cachePrefs = () => ({ ...state.cacheOptions, weights: state.prefs.weights, foodOnly: state.foodOnly });
-  const storeHost = () => (CACHE && CACHE.normalizeStore)
-    ? CACHE.normalizeStore(location.hostname)
-    : String(location.hostname || '').toLowerCase().replace(/^www\./, '');
-  const cacheKey = asin => CACHE ? CACHE.key(location.hostname, asin) : `s:${storeHost()}:${asin}`;
-  const usableCache = (hit, asin) => !!CACHE && CACHE.valid(hit, {
+  const storeHost = () => CACHE.normalizeStore(location.hostname);
+  const cacheKey = asin => CACHE.key(location.hostname, asin);
+  const usableCache = (hit, asin) => CACHE.valid(hit, {
     store: location.hostname, asin, version: ENGINE_VERSION, prefs: cachePrefs(),
   });
 
@@ -90,8 +88,8 @@
     } catch (e) { /* messaging unavailable in some frames */ }
   }
 
-  function cacheScore(asin, result, name, source, ingredients, provenanceSource) {
-    if (!asin || !result || !CACHE) return;
+  function cacheScore(asin, result, name, source, provenanceSource) {
+    if (!asin || !result) return;
     const entry = {
       schema: CACHE.SCHEMA, v: ENGINE_VERSION, t: Date.now(),
       store: storeHost(), asin, prefs: CACHE.fingerprint(cachePrefs(), source || 'page'),

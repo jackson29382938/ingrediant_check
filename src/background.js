@@ -48,19 +48,8 @@ chrome.storage.onChanged?.addListener((changes, area) => {
   }
 });
 
-const isOpenFoodFactsFood = (self.AIR && self.AIR.db && self.AIR.db.ingestible)
-  ? self.AIR.db.ingestible.isOpenFoodFactsFood
-  : function isOpenFoodFactsFood(product) {
-      if (!product) return false;
-      const type = String(product.product_type || '').toLowerCase();
-      if (type && type !== 'food') return false;
-      const hay = [
-        ...(product.categories_tags || []),
-        product.pnns_groups_1 || '',
-        product.categories || '',
-      ].join(' ').toLowerCase();
-      return !/\b(en:beauty|en:cosmetics?|en:shampoos?|en:hair-care|en:skin-care|en:detergents?|en:household|en:pet-foods?|beauty|cosmetic)\b/.test(hay);
-    };
+// The test VM preloads ingestible.js; Chrome loads it via importScripts above. One implementation.
+const isOpenFoodFactsFood = self.AIR.db.ingestible.isOpenFoodFactsFood;
 
 async function lookupBarcode(code, { foodOnly = true } = {}) {
   const conf = await chrome.storage.local.get(['enabled', 'useOpenFoodFacts']);
@@ -232,10 +221,8 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     return true;
   }
   if (msg && msg.type === 'lookupBarcode' && msg.code) {
-    chrome.storage.local.get('useOpenFoodFacts', o => {
-      if (!o.useOpenFoodFacts) { reply(null); return; }
-      lookupBarcode(msg.code, { foodOnly: msg.foodOnly !== false }).then(reply);
-    });
+    // lookupBarcode re-reads useOpenFoodFacts (and the pause switch) itself.
+    lookupBarcode(msg.code, { foodOnly: msg.foodOnly !== false }).then(reply);
     return true;   // async reply
   }
   if (msg && msg.type === 'ping') { reply({ ok: true }); return false; }

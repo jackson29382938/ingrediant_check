@@ -347,7 +347,7 @@
       }, state.prefs);
       if (unreadable(result)) { paintBadge(tile, 'unreadable'); return; }
       paintBadge(tile, result);
-      cacheScore(asin, result, data.title, data.via || 'search-tile', data.text);
+      cacheScore(asin, result, data.title, data.via || 'search-tile');
       sendDiagnostic(data, result, 'search-tile');
       queue.failStreak = 0;
     } catch (e) {

@@ -60,7 +60,7 @@
       via: meta.via,
       provenanceSource: meta.provenanceSource,
     }), meta.report === false ? null : reporter(data, result));
-    cacheScore(key, result, meta.cacheName || data.title, meta.via, meta.text || data.text, meta.provenanceSource);
+    cacheScore(key, result, meta.cacheName || data.title, meta.via, meta.provenanceSource);
     publishActionBadge(result);
     if (meta.sendDiag !== false) {
       sendDiagnostic(data, result, meta.via, meta.text || data.text);

@@ -73,7 +73,10 @@ function setup() {
       onChanged: { addListener: fn => { changed = fn; } } },
     },
     AIR: {
-      db: { scoreCache: require('../src/engine/db/score-cache.js') },
+      db: {
+        scoreCache: require('../src/engine/db/score-cache.js'),
+        prefs: require('../src/engine/db/prefs.js'),
+      },
       extract: {
         extract: () => ({ ok: true, title: 'Oats', text: 'oats' }),
         ocrReadyForHost: host => !/(?:^|\.)amazon\.(?:co\.jp|ae|sa)$/i.test(String(host || '').replace(/^www\./, '')),
@@ -252,10 +255,10 @@ test('manual paste declines low-coverage text instead of scoring it', () => {
 
 test('manual scores are available to this tab but never stored as search scores', () => {
   const w = setup();
-  w.h.cacheScore('B000000001', { score: 80 }, 'Food', 'manual-paste', 'Peanuts, salt');
+  w.h.cacheScore('B000000001', { score: 80 }, 'Food', 'manual-paste');
   assert.equal(w.writes.length, 0);
   assert.equal(w.h.state.pageScore.source, 'manual-paste');
-  w.h.cacheScore('B000000001', { score: 90 }, 'Food', 'page', 'Oats');
+  w.h.cacheScore('B000000001', { score: 90 }, 'Food', 'page');
   const entry = Object.values(w.writes[0])[0];
   assert.equal(w.h.usableCache(entry, 'B000000001'), true);
   w.h.state.prefs.weights = { sugar: 2 };

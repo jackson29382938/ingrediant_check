@@ -215,15 +215,7 @@
 
   chrome.storage.local.get(['enabled', 'badges', 'hoverScore', 'autoScoreSearch', 'foodOnly', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList', 'useOpenFoodFacts', 'sheetUrl', 'producersUrl', 'sheetIndexRev', 'producerIndexRev'], o => {
     state.cacheOptions = { ...o };
-    const toggles = (AIR.db.prefs && AIR.db.prefs.sanitizeToggles(o)) || {
-      enabled: o.enabled !== false,
-      badges: o.badges !== false,
-      hoverScore: o.hoverScore === true,
-      autoScoreSearch: o.autoScoreSearch === true,
-      foodOnly: o.foodOnly !== false,
-      ocrLabels: o.ocrLabels === true,
-      sendDiagnostics: o.sendDiagnostics === true,
-    };
+    const toggles = AIR.db.prefs.sanitizeToggles(o);
     state.enabled = toggles.enabled;
     state.badges = toggles.badges;
     state.hoverScore = toggles.hoverScore;
@@ -236,12 +228,7 @@
   });
 
   function readPrefs(o) {
-    const clean = (AIR.db.prefs && AIR.db.prefs.sanitizeScoring(o)) || {
-      weights: o.weights || {},
-      allergens: Array.isArray(o.allergens) ? o.allergens : [],
-      diets: Array.isArray(o.diets) ? o.diets : [],
-      avoidList: Array.isArray(o.avoidList) ? o.avoidList : [],
-    };
+    const clean = AIR.db.prefs.sanitizeScoring(o);
     state.prefs = {
       weights: clean.weights,
       allergens: clean.allergens,

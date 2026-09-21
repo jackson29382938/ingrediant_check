@@ -154,31 +154,201 @@ const CATEGORIES = [
     help: 'Flags any ingredient you have added to your own avoid list. Does not change the score.' },
 ];
 
-// Named starting points. Each is a set of weight overrides against the defaults.
+// Named starting points. Each preset is a set of weight overrides against DEFAULT_WEIGHTS.
+// This app scores ingredient quality (not calorie targets), so “bulking”, “cutting”, and
+// training presets remap the existing dials — protein/fibre bonuses, sugar/grain penalties,
+// isolate tolerance, processing — to match the goal. Add presets here; Settings and the popup
+// read PRESET_CATEGORIES + PRESETS and need no UI rewrite for new entries.
+
+const PRESET_CATEGORIES = [
+  { id: 'everyday', label: 'Everyday',
+    blurb: 'General philosophies for how strictly to judge ingredients.' },
+  { id: 'goals', label: 'Body goals',
+    blurb: 'Composition aims — building, cutting, or holding steady.' },
+  { id: 'training', label: 'Training',
+    blurb: 'Tuned for how hard you train and what fuel that implies.' },
+  { id: 'style', label: 'Diet style',
+    blurb: 'Macro and ingredient-style leanings (protein, carbs, sugar).' },
+];
+
 const PRESETS = {
-  balanced: { label: 'Balanced (default)', weights: {},
-    note: 'Weighs processing level and additives heavily, ignores fat and total sugar, and rewards sourcing claims.' },
+  // ----- Everyday -----------------------------------------------------------
+  balanced: {
+    label: 'Balanced', category: 'everyday', glyph: 'Bal',
+    note: 'Default starting point: processing and additives matter most; fat and total sugar stay off unless you turn them on. Rewards sourcing and short lists.',
+    versus: 'The neutral baseline. Prefer this when you have no stronger goal than “less ultra-processed”.',
+    weights: {},
+  },
 
-  conventional: { label: 'Conventional nutrition',
-    note: 'Follows mainstream dietary guidance: counts saturated fat, sodium and total sugar, rewards fibre, and treats fortification as neutral.',
-    weights: { saturatedFat: 1, sodium: 1, totalSugar: 1, naturalSugar: 0.5, fibre: 1, protein: 0.5,
-               fortification: 0, refinedOil: 0.3, dairyProcessing: 0.3, animalWelfare: 0.5 } },
+  conventional: {
+    label: 'Conventional nutrition', category: 'everyday', glyph: 'CNV',
+    note: 'Mainstream guidance: counts saturated fat, sodium and total sugar, rewards fibre (and a little protein), and softens refined-oil / dairy-processing penalties.',
+    versus: 'Unlike Balanced, nutrition-panel numbers move the score. Unlike Weight loss, it is not aggressively anti-sugar.',
+    weights: {
+      saturatedFat: 1, sodium: 1, totalSugar: 1, naturalSugar: 0.5, fibre: 1, protein: 0.5,
+      fortification: 0, refinedOil: 0.3, dairyProcessing: 0.3, animalWelfare: 0.5,
+    },
+  },
 
-  additive: { label: 'Additive-averse',
-    note: 'Cares mainly about what was added to the food, not about macronutrients or sourcing.',
-    weights: { colour: 1.5, artificialSweetener: 1.5, preservative: 1.5, flavour: 1.5, glutamate: 1.5,
-               texture: 1.3, processingAid: 1.3, strongPreservative: 1.5,
-               organic: 0.5, animalWelfare: 0.3, nonGmo: 0.5 } },
+  additive: {
+    label: 'Additive-averse', category: 'everyday', glyph: 'Add',
+    note: 'Emphasises colours, sweeteners, preservatives, flavours and texture agents. Softens organic / welfare / non-GMO bonuses so the score is about what was added, not how it was farmed.',
+    versus: 'Stricter on additives than Whole-food; does not push protein, fibre, or sugar dials.',
+    weights: {
+      colour: 1.5, artificialSweetener: 1.5, preservative: 1.5, flavour: 1.5, glutamate: 1.5,
+      texture: 1.3, processingAid: 1.3, strongPreservative: 1.5,
+      organic: 0.5, animalWelfare: 0.3, nonGmo: 0.5,
+    },
+  },
 
-  wholeFood: { label: 'Whole-food focused',
-    note: 'Rewards short ingredient lists and minimal processing above everything else.',
-    weights: { processing: 1.5, simplicity: 2, isolate: 1.5, texture: 1.3, flavour: 1.3,
-               fortification: 1.2, grain: 1.2 } },
+  wholeFood: {
+    label: 'Whole-food focused', category: 'everyday', glyph: 'Whl',
+    note: 'Rewards short ingredient lists and low processing above everything else. Isolates, gums and fortification cost more.',
+    versus: 'About list length and industrial steps — not macros. Strength / High protein are softer on isolates.',
+    weights: {
+      processing: 1.5, simplicity: 2, isolate: 1.5, texture: 1.3, flavour: 1.3,
+      fortification: 1.2, grain: 1.2,
+    },
+  },
 
-  strictSugar: { label: 'Sugar-conscious',
-    note: 'Counts sugar from every source, including fruit and dairy, and penalises sweeteners of all kinds.',
-    weights: { sugar: 1.5, totalSugar: 1.5, naturalSugar: 1, sweetener: 1.5, artificialSweetener: 1.5,
-               industrialSyrup: 1.5 } },
+  // ----- Body goals ---------------------------------------------------------
+  muscleGain: {
+    label: 'Muscle gain / bulking', category: 'goals', glyph: 'MG',
+    note: 'Rewards protein strongly and eases the isolate penalty so fortified protein foods and powders are not auto-punished. Keeps sugar and processing honest without a cut-phase clamp.',
+    versus: 'Softer on isolates than Strength training; less sugar-focused than Weight loss. High protein is the same idea with an even stronger protein dial.',
+    weights: {
+      protein: 1.6, fibre: 0.7, isolate: 0.35, fortification: 0.5,
+      sugar: 1.0, totalSugar: 0.6, processing: 1.0, refinedOil: 0.85,
+      simplicity: 0.8,
+    },
+  },
+
+  weightLoss: {
+    label: 'Weight loss / cutting', category: 'goals', glyph: 'WL',
+    note: 'Tightens added sugar, total sugar and processing; rewards fibre and protein for satiety; keeps HFCS and refined oils costly.',
+    versus: 'Stricter on sugar than Muscle gain. Sedentary is similar but also turns sodium and saturated fat up for desk-day defaults.',
+    weights: {
+      sugar: 1.5, totalSugar: 1.3, naturalSugar: 0.4, sweetener: 1.2, artificialSweetener: 1.3,
+      industrialSyrup: 1.5, processing: 1.35, fibre: 1.5, protein: 1.25,
+      sodium: 0.8, refinedOil: 1.2, simplicity: 1.2,
+    },
+  },
+
+  maintenance: {
+    label: 'Maintenance', category: 'goals', glyph: 'Mnt',
+    note: 'Near Balanced, with mild protein and fibre bonuses and a light sodium signal — steady eating without a bulk or cut bias.',
+    versus: 'Gentler macro nudges than Conventional nutrition; no saturated-fat penalty.',
+    weights: {
+      protein: 0.9, fibre: 0.9, sodium: 0.45, totalSugar: 0.4, sugar: 1.1,
+    },
+  },
+
+  recovery: {
+    label: 'Recovery / rest day', category: 'goals', glyph: 'Rcv',
+    note: 'Favours fermented foods, simpler lists and unrefined fats; keeps sugar in check without athlete-level carb leniency.',
+    versus: 'More anti-inflammatory / restorative than High-activity; not a low-carb preset.',
+    weights: {
+      fermented: 1.6, traditionalPrep: 1.3, unrefined: 1.3, simplicity: 1.35,
+      processing: 1.2, sugar: 1.2, refinedOil: 1.25, protein: 1.0, fibre: 1.1,
+      texture: 1.2,
+    },
+  },
+
+  // ----- Training -----------------------------------------------------------
+  strength: {
+    label: 'Strength training', category: 'training', glyph: 'Str',
+    note: 'Solid protein bonus with a moderated isolate penalty — useful when training food includes powders — while sugar and processing stay near default.',
+    versus: 'Isolate tolerance sits between Whole-food (harsh) and High protein / Muscle gain (lenient). Less carb-friendly than Endurance.',
+    weights: {
+      protein: 1.45, isolate: 0.55, fibre: 0.75, fortification: 0.6,
+      sugar: 1.05, totalSugar: 0.5, processing: 1.05,
+    },
+  },
+
+  endurance: {
+    label: 'Running / endurance', category: 'training', glyph: 'End',
+    note: 'Higher carbohydrate availability: softens refined-grain and added-sugar penalties, keeps HFCS capped, and still rewards fibre and adequate protein for frequent training.',
+    versus: 'More carb-lenient than Strength or Balanced. High-carb / performance goes further; Low-carb is the opposite.',
+    weights: {
+      sugar: 0.55, grain: 0.45, totalSugar: 0.35, naturalSugar: 0,
+      industrialSyrup: 1.1, protein: 0.9, fibre: 1.1, sodium: 0.25,
+      processing: 0.95, isolate: 0.7,
+    },
+  },
+
+  athlete: {
+    label: 'High-activity / athlete', category: 'training', glyph: 'Ath',
+    note: 'Combines a strong protein signal with moderate carb leniency and a very light sodium penalty — fuel and repair without ignoring ultra-processing.',
+    versus: 'Between Endurance (more carbs) and Strength (more protein focus). Sedentary is the inverse lifestyle lean.',
+    weights: {
+      protein: 1.35, fibre: 1.05, sugar: 0.7, grain: 0.55, totalSugar: 0.45,
+      sodium: 0.2, industrialSyrup: 1.15, processing: 1.0, isolate: 0.5,
+      fortification: 0.55,
+    },
+  },
+
+  sedentary: {
+    label: 'Sedentary / low-activity', category: 'training', glyph: 'Sed',
+    note: 'Stricter on sugar, processing and refined oils; rewards fibre; counts sodium and a little saturated fat — desk-day defaults when energy demand is low.',
+    versus: 'Closest training cousin to Weight loss, but less protein-driven and more sodium / sat-fat aware.',
+    weights: {
+      sugar: 1.55, totalSugar: 1.35, processing: 1.35, fibre: 1.25,
+      sodium: 1.0, saturatedFat: 0.85, protein: 0.85, refinedOil: 1.25,
+      industrialSyrup: 1.5, simplicity: 1.15,
+    },
+  },
+
+  generalFitness: {
+    label: 'General fitness', category: 'training', glyph: 'Fit',
+    note: 'Balanced scoring with light protein and fibre bonuses — everyday active people who are not in a named training block.',
+    versus: 'A small step from Balanced toward Maintenance; not as macro-specific as Strength or Endurance.',
+    weights: {
+      protein: 0.85, fibre: 0.85, sugar: 1.1, totalSugar: 0.35, processing: 1.05,
+    },
+  },
+
+  // ----- Diet style ---------------------------------------------------------
+  highProtein: {
+    label: 'High protein', category: 'style', glyph: 'Pro',
+    note: 'Maximises the protein bonus and nearly stands down the isolate penalty so protein-forward products are not scored as industrial junk by default.',
+    versus: 'Stronger protein dial than Muscle gain or Strength; does not specially loosen carbs like Endurance.',
+    weights: {
+      protein: 2.0, isolate: 0.25, fibre: 0.6, fortification: 0.45,
+      sugar: 1.0, totalSugar: 0.5, processing: 1.0, simplicity: 0.7,
+    },
+  },
+
+  lowCarb: {
+    label: 'Low-carb', category: 'style', glyph: 'LC',
+    note: 'Heavy on sugars and refined grains (including whole gluten grains on that dial); rewards protein and fibre; eases refined-oil ceilings common in low-carb cooking; softens novel-sweetener sting.',
+    versus: 'Opposite of High-carb / Endurance. Sugar-conscious also hits sugar hard but still punishes all sweeteners and does not raise grain as far.',
+    weights: {
+      sugar: 1.8, totalSugar: 1.55, naturalSugar: 1.15, grain: 1.55,
+      industrialSyrup: 1.8, sweetener: 0.65, artificialSweetener: 0.75,
+      protein: 1.25, fibre: 1.1, refinedOil: 0.45, processing: 1.1,
+    },
+  },
+
+  highCarb: {
+    label: 'High-carb / performance', category: 'style', glyph: 'HC',
+    note: 'Makes room for grain- and sugar-containing fuel while still capping HFCS and watching ultra-processing. Protein and fibre stay modestly rewarded.',
+    versus: 'More permissive on carbs than Endurance; not a free pass on additives or seed-oil ceilings.',
+    weights: {
+      sugar: 0.35, grain: 0.25, totalSugar: 0.25, naturalSugar: 0,
+      industrialSyrup: 1.25, protein: 0.85, fibre: 0.9, processing: 0.9,
+      isolate: 0.75,
+    },
+  },
+
+  strictSugar: {
+    label: 'Sugar-conscious', category: 'style', glyph: 'Sug',
+    note: 'Counts sugar from every source, including fruit and dairy, and penalises sweeteners of all kinds — including the “natural” ones.',
+    versus: 'Unlike Low-carb, grain is unchanged and novel sweeteners stay costly. Unlike Weight loss, fibre/protein are not the focus.',
+    weights: {
+      sugar: 1.5, totalSugar: 1.5, naturalSugar: 1, sweetener: 1.5, artificialSweetener: 1.5,
+      industrialSyrup: 1.5,
+    },
+  },
 };
 
 const DEFAULT_WEIGHTS = Object.fromEntries(CATEGORIES.map(c => [c.id, c.def]));
@@ -196,7 +366,39 @@ function resolveWeights(stored) {
   return w;
 }
 
-const _exports = AIRmodule('categories', { CATEGORIES, PRESETS, DEFAULT_WEIGHTS, resolveWeights });
+function presetWeightMap(presetOrId) {
+  const preset = typeof presetOrId === 'string' ? PRESETS[presetOrId] : presetOrId;
+  if (!preset || typeof preset !== 'object') return { ...DEFAULT_WEIGHTS };
+  return resolveWeights({ ...DEFAULT_WEIGHTS, ...(preset.weights || {}) });
+}
+
+function weightsMatchPreset(weights, presetOrId, epsilon = 0.001) {
+  const target = presetWeightMap(presetOrId);
+  const current = resolveWeights(weights);
+  return Object.keys(target).every(k => Math.abs((current[k] ?? 0) - target[k]) < epsilon);
+}
+
+function matchPreset(weights) {
+  for (const [id, preset] of Object.entries(PRESETS)) {
+    if (weightsMatchPreset(weights, preset)) return [id, preset];
+  }
+  return null;
+}
+
+function presetsInCategory(categoryId) {
+  return Object.entries(PRESETS)
+    .filter(([, p]) => p.category === categoryId)
+    .map(([id, p]) => [id, p]);
+}
+
+function listPresets() {
+  return Object.entries(PRESETS).map(([id, p]) => [id, p]);
+}
+
+const _exports = AIRmodule('categories', {
+  CATEGORIES, PRESETS, PRESET_CATEGORIES, DEFAULT_WEIGHTS, resolveWeights,
+  presetWeightMap, weightsMatchPreset, matchPreset, presetsInCategory, listPresets,
+});
 if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 
 })();
