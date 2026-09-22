@@ -4,11 +4,14 @@
 // has a UPC but no readable ingredient text. Search-result badges use scores already cached by the
 // content script; this worker never fetches Amazon pages.
 //
-// Everything else in this extension is local and offline. These are the only paths that touch the
-// network at all, which is why they are opt-in rather than default.
+// Everything else in this extension is local. These are the only paths that touch the network.
+// Open Food Facts, contributions, and diagnostics stay off until toggled. The shared sheet URL
+// defaults to the Ingredient Check spreadsheet; Chrome still blocks that read until the host is
+// allowed, and clearing the URL keeps lookups on the device.
 
 if (typeof importScripts === 'function') {
-  importScripts('engine/db/_module.js', 'engine/db/ingestible.js', 'engine/db/prefs.js',
+  importScripts('engine/db/_module.js', 'engine/db/allergens.js', 'engine/categories.js',
+    'engine/db/ingestible.js', 'engine/db/prefs.js',
     'engine/db/ocr-text.js', 'worker/messages.js', 'worker/sheet-store.js');
 }
 
@@ -46,6 +49,7 @@ chrome.storage.onChanged?.addListener((changes, area) => {
     // A paused content script can ignore a reply, but only the offscreen host can stop its CPU work.
     chrome.runtime.sendMessage({ target: 'ocr-offscreen', type: 'cancelOcr' }).catch(() => {});
   }
+  noteSettingsStorageChange(changes);
 });
 
 // The test VM preloads ingestible.js; Chrome loads it via importScripts above. One implementation.
@@ -255,8 +259,18 @@ chrome.alarms.onAlarm.addListener(a => {
   // A partial batch would otherwise sit until enough new products were scored to fill it.
   flushDiagnostics().catch(() => {});
 });
+function ensureDefaultSheetUrl() {
+  chrome.storage.local.get('sheetUrl', stored => {
+    if (!stored || stored.sheetUrl == null) {
+      chrome.storage.local.set({ sheetUrl: self.AIR.db.prefs.DEFAULT_SHEET_URL });
+    }
+  });
+}
 chrome.runtime.onStartup.addListener(() => sweepCache());
-chrome.runtime.onInstalled.addListener(() => sweepCache());
+chrome.runtime.onInstalled.addListener(() => {
+  sweepCache();
+  ensureDefaultSheetUrl();
+});
 
 async function sweepCache() {
   const all = await chrome.storage.local.get(null);
@@ -284,8 +298,9 @@ async function sweepCache() {
 // instead of being re-derived by every person who looks at it.
 //
 // Read path is a published Google Sheet exported as CSV — no API key, no OAuth, no account. Write
-// path is an Apps Script web app the user deploys themselves, so the sheet stays theirs. Both are
-// off until a URL is configured; with no URL the extension is exactly as local as before.
+// path is an Apps Script web app deployed from that sheet. The database URL defaults to the shared
+// Ingredient Check spreadsheet; an empty string is the offline opt-out. The contribution URL stays
+// empty until that web app exists — this file never invents an /exec address.
 
 const SHEET_TTL_MS = 1000 * 60 * 60 * 6;
 const SHEET_CACHE_KEY = 'sheetIndex';
@@ -293,28 +308,15 @@ const SHEET_CACHE_KEY = 'sheetIndex';
 const MAX_SHEET_BYTES = 2 * 1024 * 1024;
 const MAX_SHEET_ROWS = 8000;
 
-// Published-sheet URLs: one implementation, in prefs.toSheetUrl. Tests load prefs.js first.
+// Published-sheet URLs and CSV parsing: one implementation, in prefs. Tests load prefs.js first.
 function toCsvUrl(raw) {
   return self.AIR.db.prefs.toSheetUrl(raw);
 }
-
-// Minimal RFC-4180 parser. Sheet cells routinely contain commas ("USDA Organic, AGA Certified"),
-// so splitting on commas would silently shred the certification column.
 function parseCsv(text) {
-  const rows = [];
-  let row = [], field = '', quoted = false;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (quoted) {
-      if (ch === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else quoted = false; }
-      else field += ch;
-    } else if (ch === '"') quoted = true;
-    else if (ch === ',') { row.push(field); field = ''; }
-    else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
-    else if (ch !== '\r') field += ch;
-  }
-  if (field.length || row.length) { row.push(field); rows.push(row); }
-  return rows.filter(r => r.some(c => c.trim()));
+  return self.AIR.db.prefs.parseCsv(text);
+}
+function activeSheetUrl(conf) {
+  return self.AIR.db.prefs.resolveSheetUrl(conf || {});
 }
 
 function indexRows(rows) {
@@ -342,7 +344,7 @@ function indexRows(rows) {
 async function loadSheetIndex(force = false) {
   const conf = await chrome.storage.local.get(['enabled', 'sheetUrl']);
   if (conf.enabled === false) return null;
-  const csvUrl = toCsvUrl(conf.sheetUrl);
+  const csvUrl = toCsvUrl(activeSheetUrl(conf));
   if (!csvUrl) return null;
   const cached = await getSheetIndex(SHEET_CACHE_KEY);
   if (!force && cached && cached.url === csvUrl && Date.now() - cached.t < SHEET_TTL_MS) return cached.index;
@@ -440,7 +442,7 @@ async function postRecord(url, payload) {
       body: JSON.stringify(payload),
     }, res => res.ok ? res.json() : null);
     const ok = receipt?.ok === true && receipt.wrote === 1;
-    return ok ? { ok: true } : { ok: false, reason: 'write-not-confirmed' };
+    return ok ? { ok: true, tab: receipt.tab } : { ok: false, reason: 'write-not-confirmed' };
   } catch (e) {
     return { ok: false, reason: 'network' };
   }
@@ -536,6 +538,83 @@ async function sendDiagnostics() {
   }
 }
 
+// Scoring settings sync. The body is exportPayload only. Auto-save follows the syncSettings toggle;
+// Save / Load in options call these directly. A load writes the sanitized scoring keys back.
+const SETTINGS_SYNC_KEYS = ['weights', 'allergens', 'diets', 'avoidList', 'foodOnly'];
+let settingsSyncTimer = null;
+let suppressSettingsSync = 0;
+
+function noteSettingsStorageChange(changes) {
+  if (suppressSettingsSync || !changes) return;
+  if (!SETTINGS_SYNC_KEYS.some(key => changes[key])) return;
+  clearTimeout(settingsSyncTimer);
+  settingsSyncTimer = setTimeout(() => {
+    settingsSyncTimer = null;
+    if (suppressSettingsSync) return;
+    saveSettingsToEndpoint({ onlyIfEnabled: true }).catch(() => {});
+  }, 1200);
+}
+
+async function saveSettingsToEndpoint({ onlyIfEnabled = false } = {}) {
+  const conf = await chrome.storage.local.get([
+    'enabled', 'contributeUrl', 'syncSettings',
+    'weights', 'allergens', 'diets', 'avoidList', 'foodOnly',
+  ]);
+  if (conf.enabled === false) return { ok: false, reason: 'not-enabled' };
+  if (onlyIfEnabled && conf.syncSettings !== true) return { ok: false, reason: 'not-enabled' };
+  if (!conf.contributeUrl) return { ok: false, reason: 'no-endpoint' };
+  const result = await postRecord(conf.contributeUrl, self.AIR.db.prefs.settingsSaveBody(conf));
+  // An older web app appends unknown kinds onto contributions and still says wrote: 1.
+  if (result.ok && result.tab !== 'settings') return { ok: false, reason: 'write-not-confirmed' };
+  return result;
+}
+
+async function commitLoadedSettings(prefs) {
+  suppressSettingsSync++;
+  try {
+    await chrome.storage.local.set(prefs);
+  } finally {
+    setTimeout(() => { suppressSettingsSync = Math.max(0, suppressSettingsSync - 1); }, 1600);
+  }
+  return { ok: true, prefs };
+}
+
+async function loadSettingsFromSheet() {
+  const conf = await chrome.storage.local.get(['enabled', 'sheetUrl', 'contributeUrl']);
+  if (conf.enabled === false) return { ok: false, reason: 'not-enabled' };
+  const prefsApi = self.AIR.db.prefs;
+  let lastReason = 'no-settings';
+  const csvUrl = prefsApi.toSettingsSheetUrl(conf);
+  if (csvUrl) {
+    try {
+      const csv = await networkRequest(csvUrl, { credentials: 'omit' }, res => {
+        if (res.status === 401 || res.status === 403) throw new Error('sheet-private');
+        if (!res.ok) throw new Error(String(res.status));
+        return res.text();
+      });
+      if (typeof csv !== 'string' || csv.length > 500000) throw new Error('too-large');
+      const parsed = prefsApi.parseSettingsExport(csv);
+      if (parsed.ok) return commitLoadedSettings(parsed.prefs);
+      lastReason = parsed.reason || 'no-settings';
+    } catch (e) {
+      lastReason = e && e.message === 'sheet-private' ? 'sheet-private' : 'network';
+    }
+  }
+  const script = prefsApi.toScriptUrl(conf.contributeUrl || '');
+  if (!script) return { ok: false, reason: lastReason };
+  try {
+    const body = await networkRequest(`${script}?kind=settings`, { credentials: 'omit' }, res => {
+      if (!res.ok) throw new Error(String(res.status));
+      return res.json();
+    });
+    const parsed = prefsApi.parseSettingsExport(body);
+    if (!parsed.ok) return { ok: false, reason: parsed.reason || 'no-settings' };
+    return commitLoadedSettings(parsed.prefs);
+  } catch (e) {
+    return { ok: false, reason: 'network' };
+  }
+}
+
 function handleSharedDbMessage(msg, reply) {
   if (msg.type === 'diagnostic') {
     queueDiagnostic(msg.record).then(reply);
@@ -582,6 +661,14 @@ function handleSharedDbMessage(msg, reply) {
   }
   if (msg.type === 'contribute') {
     contribute(msg.payload).then(reply);
+    return true;
+  }
+  if (msg.type === 'saveSettings') {
+    saveSettingsToEndpoint().then(reply);
+    return true;
+  }
+  if (msg.type === 'loadSettings') {
+    loadSettingsFromSheet().then(reply);
     return true;
   }
   return false;

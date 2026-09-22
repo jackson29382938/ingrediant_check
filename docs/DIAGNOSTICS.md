@@ -69,6 +69,11 @@ storage quota is not. A failed POST keeps the rows for the next attempt.
 
 **Send queued rows now** in settings flushes immediately and reports what happened.
 
+The same web app also accepts `kind: "settings"` and answers `GET ?kind=settings` for the scoring
+export. That payload lives on the `settings` tab, not in `diagnostics`. Redeploy after updating
+[`apps-script.gs`](apps-script.gs). Setup for the shared sheet and the settings buttons is
+[SETTINGS-SYNC.md](SETTINGS-SYNC.md).
+
 Each queued row carries a `rowId`, and each POST carries a `batchId`. The Apps Script in
 `docs/apps-script.gs` remembers recent ids so a lost acknowledgement cannot duplicate the
 batch. Redeploy the web app after updating the script. `rowId` is transport-only and is not

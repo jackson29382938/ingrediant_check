@@ -32,7 +32,7 @@ function msg(key, fallback, sub) {
 })();
 
 const state = PREFS.sanitizeScoring({});
-const DB_KEYS = ['sheetUrl', 'producersUrl', 'contributeUrl', 'shareContributions', 'sendDiagnostics'];
+const DB_KEYS = ['sheetUrl', 'producersUrl', 'contributeUrl', 'shareContributions', 'sendDiagnostics', 'syncSettings'];
 let saveTimer = null;
 let writing = false;
 

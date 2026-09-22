@@ -248,8 +248,9 @@
     <p class="note" style="margin: -6px 0 12px">
       For single-ingredient foods — ground beef, eggs, milk, salmon — the ingredient list tells you
       almost nothing. Everything that varies is in certifications, and Amazon publishes very little
-      of it. A shared sheet lets that be recorded once per product instead of re-derived by everyone.
-      Leave both boxes empty and the extension stays entirely offline.
+      of it.       A shared sheet lets that be recorded once per product instead of re-derived by everyone.
+      New installs start with the Ingredient Check sheet filled in. Clear the database URL to keep
+      lookups on this computer. The contribution URL stays empty until you deploy the Apps Script.
     </p>
     <label style="display:block;margin-bottom:12px">
       <span class="t" data-i18n="optSheetRead">Database URL (read)</span>
@@ -260,8 +261,9 @@
     </label>
     <label style="display:block;margin-bottom:12px">
       <span class="t" data-i18n="optSheetWrite">Contribution URL (write, optional)</span>
-      <span class="d">An Apps Script web app deployed from your own sheet. See
-      <code>docs/apps-script.gs</code> and <code>docs/DIAGNOSTICS.md</code> for the script and setup.</span>
+      <span class="d">An Apps Script web app deployed from the sheet above. Leave this empty until
+      you deploy <code>docs/apps-script.gs</code> (see <code>docs/SETTINGS-SYNC.md</code>). Writes
+      for contributions, diagnostics, and scoring settings all use this URL.</span>
       <input type="url" id="contributeUrl" data-i18n-placeholder="optScriptPh" placeholder="https://script.google.com/macros/s/.../exec"
              style="width:100%;margin-top:6px;padding:8px 10px;border:1px solid #d5d9d9;border-radius:8px;font:inherit;font-size:13px">
     </label>
@@ -283,6 +285,22 @@
     </div>
     <p class="note">Only product identifiers and certification text are ever sent. Never anything
       about you or what you browse, and never without this box ticked.</p>
+    <p class="note" style="margin: 16px 0 10px">
+      <strong>Scoring settings on this sheet.</strong>
+      Save and load use the same JSON as Export settings: weights, warnings, diets, the avoid list,
+      and the food-only switch. The write needs the contribution URL above. Load reads the
+      <code>settings</code> tab, then the web app if that tab is not public.
+      See <code>docs/SETTINGS-SYNC.md</code>.
+    </p>
+    <label class="chip" style="margin-bottom:10px">
+      <input type="checkbox" id="syncSettings">
+      <span data-i18n="optSyncSettings">Keep scoring settings updated on the sheet</span>
+    </label>
+    <div class="row">
+      <button class="act" id="saveSettingsSheet" data-i18n="optSaveSettings">Save settings to sheet</button>
+      <button class="act" id="loadSettingsSheet" data-i18n="optLoadSettings">Load settings from sheet</button>
+      <span class="status" id="settingsSyncStatus"></span>
+    </div>
   </section>
 
   <section>
@@ -314,8 +332,9 @@
     <h2 data-i18n="optLeavesH">What leaves your computer</h2>
     <p class="note" style="margin: -6px 0 12px">
       Scoring itself is entirely local: the rules, your weights and every score are computed in
-      your browser, and there is no account, no analytics and no telemetry. Four optional features
-      do make network requests. All four are off until you turn them on.
+      your browser, and there is no account, no analytics and no telemetry. Optional features
+      make network requests only after you allow the host or tick the box. The shared sheet link
+      is filled in already; Chrome still asks before any read.
     </p>
     <ul class="note" style="margin: 0 0 4px 18px; padding: 0">
       <li><strong>Rate every search result</strong> and <strong>Score on hover</strong> — request
@@ -325,8 +344,12 @@
       <li><strong>Open Food Facts fallback</strong> — sends a barcode to
         world.openfoodfacts.org when a page has one but no readable ingredients. The barcode and
         nothing else.</li>
-      <li><strong>Shared provenance database</strong> — reads the Google Sheet whose URL you enter
-        below. Nothing is sent to it unless you also tick the sharing box.</li>
+      <li><strong>Shared provenance database</strong> — reads the Google Sheet in the database URL
+        (filled in for a new install). Nothing is sent to it unless you also tick the sharing box.
+        Clear the URL to skip the read.</li>
+      <li><strong>Scoring settings on the sheet</strong> — posts the same JSON as Export settings
+        to the contribution URL when you click Save or turn on the update toggle. Not which
+        products you opened.</li>
       <li><strong>Share what this page disclosed</strong> — posts product identifiers and
         certification text to the endpoint you configure. Never anything about you or your
         browsing. "Looks wrong?" reports use the same endpoint.</li>
@@ -338,7 +361,7 @@
       product image the page already shows: the OCR engine ships with the extension and runs on
       your computer.
     </p>
-    <p class="note">Turning these off leaves an extension that makes no network requests at all.</p>
+    <p class="note">Clear the database URL and leave the other boxes off, and the extension makes no network requests at all.</p>
   </section>
 
   <section>

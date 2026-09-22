@@ -14,6 +14,13 @@ const SETTINGS_VERSION = 1;
 const AVOID_MAX_LINES = 80;
 const AVOID_MAX_LEN = 80;
 
+// Shared sheet owned by the extension author. New installs and a missing sheetUrl use this.
+// contributeUrl stays empty until someone deploys docs/apps-script.gs and pastes the /exec URL.
+const DEFAULT_SHEET_ID = '1UwIIewq0rsLdIFu57d4W1ifkmv_leQnc76dbDGO6C1Y';
+const DEFAULT_SHEET_URL = `https://docs.google.com/spreadsheets/d/${DEFAULT_SHEET_ID}/edit`;
+const SETTINGS_TAB = 'settings';
+const SETTINGS_SAVE_KIND = 'settings';
+
 const TOGGLE_DEFAULTS = {
   enabled: true,
   badges: true,
@@ -123,13 +130,101 @@ function sanitizeUrl(raw, kind) {
   return toSheetUrl(text) ? text : '';
 }
 
+// A missing sheetUrl is the shared default. An explicit empty string is the offline opt-out.
+function resolveSheetUrl(storedOrUrl) {
+  if (typeof storedOrUrl === 'string') return sanitizeUrl(storedOrUrl, 'sheet');
+  const src = storedOrUrl && typeof storedOrUrl === 'object' ? storedOrUrl : {};
+  if (!Object.prototype.hasOwnProperty.call(src, 'sheetUrl') || src.sheetUrl == null) return DEFAULT_SHEET_URL;
+  return sanitizeUrl(src.sheetUrl, 'sheet');
+}
+
 function sanitizeUrls(raw) {
   const src = raw && typeof raw === 'object' ? raw : {};
   return {
-    sheetUrl: sanitizeUrl(src.sheetUrl, 'sheet'),
+    sheetUrl: resolveSheetUrl(src),
     producersUrl: sanitizeUrl(src.producersUrl, 'sheet'),
     contributeUrl: sanitizeUrl(src.contributeUrl, 'script'),
   };
+}
+
+// gviz/pub CSV for the named settings tab. Provenance reads stay on toSheetUrl (first tab or gid).
+function toSettingsSheetUrl(raw) {
+  const sheetUrl = raw == null ? DEFAULT_SHEET_URL
+    : (typeof raw === 'object' ? resolveSheetUrl(raw) : raw);
+  const base = toSheetUrl(sheetUrl);
+  if (!base) return null;
+  const url = new URL(base);
+  url.searchParams.delete('gid');
+  url.searchParams.set('sheet', SETTINGS_TAB);
+  return url.toString();
+}
+
+// Minimal RFC-4180 parser. Sheet cells routinely contain commas, so a split would shred them.
+function parseCsv(text) {
+  const rows = [];
+  let row = [], field = '', quoted = false;
+  const src = String(text || '').replace(/^\uFEFF/, '');
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (quoted) {
+      if (ch === '"') { if (src[i + 1] === '"') { field += '"'; i++; } else quoted = false; }
+      else field += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === ',') { row.push(field); field = ''; }
+    else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+    else if (ch !== '\r') field += ch;
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  return rows.filter(r => r.some(c => c.trim()));
+}
+
+function settingsPayloadCell(rows) {
+  if (!Array.isArray(rows) || rows.length < 2) return '';
+  const head = rows[0].map(h => String(h || '').trim().toLowerCase());
+  const keyCol = head.indexOf('key');
+  const valueCol = head.indexOf('value');
+  if (keyCol < 0 || valueCol < 0) return '';
+  let found = '';
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][keyCol] || '').trim() !== 'payload') continue;
+    let cell = String(rows[i][valueCol] || '').trim();
+    if (cell.startsWith("'")) cell = cell.slice(1);
+    if (cell) found = cell;
+  }
+  return found;
+}
+
+function parseSettingsRows(rows) {
+  const raw = settingsPayloadCell(rows);
+  if (!raw) return { ok: false, reason: 'no-settings' };
+  return parseImport(raw);
+}
+
+// Accept a settings-tab CSV, an Apps Script GET body, or an export object. Always sanitize.
+function parseSettingsExport(input) {
+  if (typeof input === 'string') {
+    const trimmed = input.replace(/^\uFEFF/, '').trim();
+    if (!trimmed) return { ok: false, reason: 'no-settings' };
+    if (trimmed[0] === '<' || /accounts\.google\.com|ServiceLogin/i.test(trimmed.slice(0, 800))) {
+      return { ok: false, reason: 'sheet-private' };
+    }
+    if (trimmed[0] === '{' || trimmed[0] === '[') return parseImport(trimmed);
+    return parseSettingsRows(parseCsv(trimmed));
+  }
+  if (input && typeof input === 'object' && !Array.isArray(input)) {
+    if (input.payload && typeof input.payload === 'object' && !Array.isArray(input.payload)) {
+      return parseImport(JSON.stringify(input.payload));
+    }
+    if (looksLikeSettings(input)) return parseImport(JSON.stringify(input));
+  }
+  return { ok: false, reason: 'no-settings' };
+}
+
+// The only settings body the extension posts. Built from exportPayload, never raw storage.
+function settingsSaveBody(prefs, now) {
+  const payload = exportPayload(prefs);
+  const clock = now instanceof Date ? now : new Date();
+  return { kind: SETTINGS_SAVE_KIND, ts: clock.toISOString(), payload };
 }
 
 function looksLikeSettings(obj) {
@@ -169,8 +264,11 @@ function scoringEqual(a, b) {
 const _exports = AIRmodule('prefs', {
   SETTINGS_FORMAT, SETTINGS_VERSION, TOGGLE_DEFAULTS,
   AVOID_MAX_LINES, AVOID_MAX_LEN,
-  sanitizeToggles, sanitizeScoring, sanitizeAvoidList, sanitizeUrls,
-  toSheetUrl, toScriptUrl, parseImport, exportPayload, looksLikeSettings, scoringEqual,
+  DEFAULT_SHEET_ID, DEFAULT_SHEET_URL, SETTINGS_TAB, SETTINGS_SAVE_KIND,
+  sanitizeToggles, sanitizeScoring, sanitizeAvoidList, sanitizeUrls, resolveSheetUrl,
+  toSheetUrl, toScriptUrl, toSettingsSheetUrl, parseCsv,
+  parseSettingsRows, parseSettingsExport, settingsSaveBody,
+  parseImport, exportPayload, looksLikeSettings, scoringEqual,
 });
 if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 

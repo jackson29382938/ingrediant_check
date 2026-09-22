@@ -153,6 +153,9 @@ function wireDatabase() {
       });
     }
 
+    wireSettingsSync();
+    paintSheetAccessHint();
+
     const btn = document.getElementById('refreshSheet');
     if (!btn) return;
     btn.addEventListener('click', () => {
@@ -176,6 +179,108 @@ function wireDatabase() {
       });
     });
   });
+}
+
+function paintSyncStatus(text, kind) {
+  const status = document.getElementById('settingsSyncStatus');
+  if (!status) return;
+  status.textContent = text || '';
+  status.className = 'status' + (kind === 'error' ? ' error' : '');
+}
+
+function paintSheetAccessHint() {
+  const status = document.getElementById('sheetStatus');
+  const el = document.getElementById('sheetUrl');
+  if (!status || !el || status.textContent) return;
+  const url = (el.value || '').trim();
+  if (!url || !chrome.permissions || typeof chrome.permissions.contains !== 'function') return;
+  const origins = originsForUrl(url);
+  if (!origins.length) return;
+  chrome.permissions.contains({ origins }, granted => {
+    if (chrome.runtime.lastError || granted || status.textContent) return;
+    status.textContent = 'Click Refresh to allow Chrome to read this sheet';
+  });
+}
+
+function wireSettingsSync() {
+  const saveBtn = document.getElementById('saveSettingsSheet');
+  const loadBtn = document.getElementById('loadSettingsSheet');
+  const toggle = document.getElementById('syncSettings');
+  if (toggle) {
+    chrome.storage.local.get('syncSettings', o => { toggle.checked = o.syncSettings === true; });
+    toggle.addEventListener('change', () => {
+      if (!toggle.checked) {
+        persist({ syncSettings: false });
+        return;
+      }
+      const url = readUrlField('contributeUrl', 'script');
+      if (url === null || !url) {
+        toggle.checked = false;
+        flash('Deploy the Apps Script and paste its /exec URL first', 'error');
+        return;
+      }
+      requestOrigins(originsForUrl(url), ok => {
+        if (!ok) {
+          toggle.checked = false;
+          flash('Permission needed to save settings', 'error');
+          return;
+        }
+        persist({ ...scoringPayload(), syncSettings: true, contributeUrl: url }, saved => {
+          if (!saved) return;
+          flash(msg('optSaved', 'Saved'));
+          chrome.runtime.sendMessage({ type: 'saveSettings' }, () => { void chrome.runtime.lastError; });
+        });
+      });
+    });
+  }
+  if (saveBtn) {
+    saveBtn.addEventListener('click', () => {
+      const url = readUrlField('contributeUrl', 'script');
+      if (url === null || !url) {
+        paintSyncStatus('Deploy the Apps Script and paste its /exec URL first', 'error');
+        return;
+      }
+      requestOrigins(originsForUrl(url), ok => {
+        if (!ok) { paintSyncStatus('Permission needed to save settings', 'error'); return; }
+        persist(scoringPayload(), saved => {
+          if (!saved) return;
+          paintSyncStatus('Saving…');
+          chrome.runtime.sendMessage({ type: 'saveSettings' }, res => {
+            if (chrome.runtime.lastError || !res) { paintSyncStatus('Could not reach the endpoint', 'error'); return; }
+            paintSyncStatus(res.ok ? 'Settings saved to the sheet' : `Could not save — ${res.reason || 'error'}`, res.ok ? '' : 'error');
+          });
+        });
+      });
+    });
+  }
+  if (loadBtn) {
+    loadBtn.addEventListener('click', () => {
+      const sheet = readUrlField('sheetUrl', 'sheet');
+      const script = readUrlField('contributeUrl', 'script');
+      if (sheet === null || script === null) { paintSyncStatus('Fix the highlighted URL first', 'error'); return; }
+      if (!sheet && !script) { paintSyncStatus('Set a database URL or the Apps Script URL first', 'error'); return; }
+      const origins = [...new Set([
+        ...(sheet ? originsForUrl(sheet) : []),
+        ...(script ? originsForUrl(script) : []),
+      ])];
+      requestOrigins(origins, ok => {
+        if (!ok) { paintSyncStatus('Permission needed to read settings', 'error'); return; }
+        paintSyncStatus('Loading…');
+        chrome.runtime.sendMessage({ type: 'loadSettings' }, res => {
+          if (chrome.runtime.lastError || !res) { paintSyncStatus('Could not read settings', 'error'); return; }
+          if (!res.ok) {
+            paintSyncStatus(res.reason === 'no-settings'
+              ? 'No settings stored on the sheet yet'
+              : res.reason === 'sheet-private'
+                ? 'Share the sheet as anyone with the link, or paste the Apps Script URL'
+                : `Could not load — ${res.reason || 'error'}`, 'error');
+            return;
+          }
+          paintSyncStatus('Loaded settings from the sheet');
+        });
+      });
+    });
+  }
 }
 
 if (typeof startSettingsPage === 'function') startSettingsPage();

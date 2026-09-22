@@ -57,6 +57,7 @@ export default [
         readUrlField: 'readonly',
         flash: 'readonly',
         persist: 'readonly',
+        scoringPayload: 'readonly',
         msg: 'readonly',
         startSettingsPage: 'readonly',
       },

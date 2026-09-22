@@ -12,7 +12,10 @@ It does not read your Amazon password, payment details, cart, orders, or account
 
 ## What leaves your computer
 
-**Default: nothing.** Scoring, the food gate, badges from cache, and the paste box are local.
+**Default: scoring stays on the computer.** The shared Google Sheet link is filled in for a new
+install, but Chrome blocks that read until you allow `docs.google.com`. Clearing the database URL
+skips it. Nothing is written to the sheet until you paste an Apps Script URL and turn a send
+option on.
 
 | You turn on | What is sent | Who sees it |
 |---|---|---|
@@ -20,6 +23,7 @@ It does not read your Amazon password, payment details, cart, orders, or account
 | **Read label photos** | Fetch of the product image on `m.media-amazon.com` | The image is read **on your computer** (Tesseract). The pixels are not uploaded to us. |
 | **Open Food Facts fallback** | The **barcode only** | Open Food Facts, after Chrome grants the host. |
 | **Accuracy diagnostics** | One row per scored product (ASIN, store, ingredient text, score, source) | **Only the Google Sheet / Apps Script URL you paste.** That is a browse trace of products you scored — and with auto-score on, of tiles that scrolled into view. Off by default. |
+| **Save / load scoring settings** | The settings export: weights, allergen and diet flags, avoid list, food-only switch | The Apps Script URL you paste, which upserts the `settings` tab. Load reads that tab (or `GET ?kind=settings`). Not which products you opened. Off until you use the button or the update toggle. |
 
 There is no Ingredient Check account, no analytics SDK, and no third-party ad or crash reporter.
 
@@ -29,4 +33,4 @@ There is no Ingredient Check account, no analytics SDK, and no third-party ad or
 
 ## Single purpose
 
-Help you read Amazon grocery ingredient lists. Optional network hosts are Amazon (required for the page), Open Food Facts (barcode lookup you grant), and Google (your sheet, if you configure one).
+Help you read Amazon grocery ingredient lists. Optional network hosts are Amazon (required for the page), Open Food Facts (barcode lookup you grant), and Google (the shared sheet, after you allow it, and an Apps Script URL if you paste one).
