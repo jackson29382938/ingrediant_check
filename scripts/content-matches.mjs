@@ -7,7 +7,8 @@ export const AMAZON_HOSTS = [
   'amazon.com.tr', 'amazon.com.mx', 'amazon.com.br', 'amazon.co.jp',
 ];
 
-// Path shapes Chrome matches from the left. Slug PDPs need /*/dp/*; apex hosts need
+// Path shapes Chrome matches from the left. The path includes the query string,
+// so '/s' alone never matches '/s?k=…' — the '?*' forms cover real search URLs. Slug PDPs need /*/dp/*; apex hosts need
 // a second origin without the *. subdomain wildcard.
 export const PATH_PATTERNS = [
   '/dp/*',
@@ -17,11 +18,14 @@ export const PATH_PATTERNS = [
   '/gp/aw/d/*',
   '/*/gp/aw/d/*',
   '/s',
+  '/s?*',
   '/s/*',
   '/b',
+  '/b?*',
   '/b/*',
   '/gp/browse*',
   '/stores',
+  '/stores?*',
   '/stores/*',
 ];
 

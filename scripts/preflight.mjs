@@ -77,6 +77,10 @@ check('stores covered', () => {
   if (!matches.some(m => m.includes('/dp/')) || !matches.some(m => m.endsWith('/s') || m.includes('/s/'))) {
     throw new Error('product /dp/ or search /s matches missing');
   }
+  // Chrome matches the query string too: '/s' alone never injects on '/s?k=…' search pages.
+  if (!matches.some(m => m.endsWith('/s?*'))) {
+    throw new Error('search /s?* matches missing — /s alone does not match /s?k=… URLs');
+  }
   return `${hosts.size} Amazon stores, ${matches.length} path patterns (incl. slug + apex + mobile)`;
 });
 check('content scripts split PDP vs search', () => {

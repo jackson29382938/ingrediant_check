@@ -116,5 +116,20 @@ check('İçindekiler is recognised as an ingredient heading', () => {
   assert.match(data.text, /yulaf/i);
 });
 
+console.log('\n"See nutrition panel" placeholder (live Lay\'s, B0005Z6FYA)');
+check('placeholder is rejected and the feature-bullet list is read instead', () => {
+  const doc = createDocument(`<!doctype html><html><body>
+    <h1 id="productTitle">Lay's Classic Potato Chips, 8 oz</h1>
+    <div id="wayfinding-breadcrumbs_feature_div">Grocery › Snacks › Chips</div>
+    <div id="feature-bullets"><ul><li>Made with just three ingredients: potatoes, vegetable oil, and salt.</li> <li>Gluten Free Snack: no gluten, 0.5g fat.</li></ul></div>
+    <div id="nic-ingredients-content"><span>See nutrition panel</span></div>
+  </body></html>`);
+  assert.strictEqual(extract.looksLikeIngredients('See nutrition panel'), false);
+  const data = extract.extract(doc, { asin: 'B0005Z6FYA', foodOnly: true });
+  assert.strictEqual(data.via, 'feature-bullets', JSON.stringify({ ok: data.ok, reason: data.reason, via: data.via }));
+  assert.match(data.text, /potatoes/);
+  assert.doesNotMatch(data.text, /gluten/i);
+});
+
 if (failed) { console.error('\n' + failed + ' failed'); process.exit(1); }
 console.log('\nall passed');

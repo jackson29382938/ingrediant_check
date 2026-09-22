@@ -35,7 +35,7 @@
   // unrecognised text is a high score (nothing matches, so nothing is penalised), which meant
   // "See label for ingredients." rendered as 94/100 Excellent and "Product of USA, Keep
   // refrigerated, Best by date on package" as 96/100 NOVA 1. Both were confidently wrong.
-  const PLACEHOLDER = /\b(see (the )?(label|package|packaging|product)|refer to (the )?(label|package)|listed on (the )?(label|package)|information (is )?unavailable|not available|varies by|may vary|check (the )?(label|package)|photo|image)\b/i;
+  const PLACEHOLDER = /\b(see (the )?(label|package|packaging|product)|refer to (the )?(label|package)|listed on (the )?(label|package)|information (is )?unavailable|not available|varies by|may vary|check (the )?(label|package)|see (the )?(nutrition|ingredients?) (panel|facts|label|information)|see (the )?(back|side|bottom) of|photo|image)\b/i;
   const NON_INGREDIENT = /\b(product of|distributed by|manufactured (by|for)|keep (refrigerated|frozen|cool)|best (by|before)|use by|sell by|store in|net wt|serving size|calories|made in|packed (in|by)|questions\??|call \d|www\.|http)/i;
 
   // Amazon's ingredients field is sometimes populated with the product NAME plus its pack specs.
@@ -217,6 +217,14 @@
       if (inline && looksLikeIngredients(inline[1], title)) {
         return { text: stripBoilerplate(inline[1]), via: `line-inline:${sel}`, confidence: 0.55 };
       }
+    }
+    // Some listings publish only a placeholder ("See nutrition panel") and name the ingredients in a
+    // feature bullet instead: "…made with just three ingredients: potatoes, oil, and salt."
+    // ponytail: English "ingredients:" only; add locale headings if other stores need it.
+    const bullets = doc.querySelector('#feature-bullets');
+    const b = ((bullets && bullets.innerText) || '').match(/\bingredients?\s*:\s*([^\n]{8,600}?)(?:\.(?!\d)|\n|$)/i);
+    if (b && looksLikeIngredients(b[1], title)) {
+      return { text: stripBoilerplate(b[1]), via: 'feature-bullets', confidence: 0.5 };
     }
     return null;
   }
