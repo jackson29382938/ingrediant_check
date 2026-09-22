@@ -9,6 +9,7 @@ var PAGE_MESSAGE_TYPES = new Set([
 ]);
 var SETTINGS_MESSAGE_TYPES = new Set([
   'flushDiagnostics', 'diagnosticsStatus', 'refreshSheet',
+  'saveSettings', 'loadSettings',
 ]);
 var OFFSCREEN_MESSAGE_TYPES = new Set(['ocrIdle']);
 var AMAZON_HOST = /(^|\.)amazon\.(com|co\.uk|ca|com\.au|ie|in|sg|ae|sa|de|fr|es|it|nl|se|pl|com\.be|com\.tr|com\.mx|com\.br|co\.jp)$/i;

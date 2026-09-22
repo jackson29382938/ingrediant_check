@@ -65,7 +65,7 @@ All off by default.
 
 - **Open Food Facts fallback** — barcode only, after Chrome grants the host
 - **Read label photos** — local Tesseract; fetches the product image already on the page
-- **Shared provenance / diagnostics** — your Google Sheet via [docs/apps-script.gs](docs/apps-script.gs). See [docs/DIAGNOSTICS.md](docs/DIAGNOSTICS.md). Redeploy the script to pick up diagnostic dedup (`batchId` / `rowId`) so a lost ACK cannot double-write rows.
+- **Shared provenance / diagnostics / settings** — the Ingredient Check Google Sheet is the default database URL ([docs/SETTINGS-SYNC.md](docs/SETTINGS-SYNC.md)). Reads are CSV/gviz. Writes need an Apps Script `/exec` URL you deploy from [docs/apps-script.gs](docs/apps-script.gs); that field starts empty. Diagnostics: [docs/DIAGNOSTICS.md](docs/DIAGNOSTICS.md). Redeploy the script so a lost ACK cannot double-write rows and so `kind: "settings"` is accepted.
 
 ## Accuracy
 

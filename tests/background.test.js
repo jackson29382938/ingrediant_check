@@ -12,7 +12,7 @@ function worker(initial = {}, fetcher, { alarms } = {}) {
   const badges = [];
   let changed;
   const sandbox = {
-    console, URL, URLSearchParams, AbortSignal, AbortController,
+    console, URL, URLSearchParams, AbortSignal, AbortController, setTimeout, clearTimeout,
     fetch: fetcher || (async () => { throw new Error('offline'); }),
     chrome: {
       runtime: { id: 'ext', getManifest: () => ({ version: '1.0.0' }), getURL: p => p,
@@ -40,6 +40,8 @@ function worker(initial = {}, fetcher, { alarms } = {}) {
   sandbox.self = sandbox;
   const context = vm.createContext(sandbox);
   vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/_module.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/allergens.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/engine/categories.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/ingestible.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/prefs.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/ocr-text.js'), 'utf8'), context);
@@ -251,6 +253,8 @@ test('message allowlist is inverted: page / settings / offscreen / deny-unknown'
   assert.equal(w.call(`allowMessage({type:"flushDiagnostics"}, ${JSON.stringify(settingsSender)})`), true);
   assert.equal(w.call(`allowMessage({type:"diagnosticsStatus"}, ${JSON.stringify(popupSender)})`), true);
   assert.equal(w.call(`allowMessage({type:"refreshSheet"}, ${JSON.stringify(amazonTab)})`), false);
+  assert.equal(w.call(`allowMessage({type:"saveSettings"}, ${JSON.stringify(settingsSender)})`), true);
+  assert.equal(w.call(`allowMessage({type:"loadSettings"}, ${JSON.stringify(amazonTab)})`), false);
   assert.equal(w.call(`allowMessage({type:"ocrIdle"}, ${JSON.stringify(offscreenSender)})`), true);
   assert.equal(w.call(`allowMessage({type:"ocrIdle"}, ${JSON.stringify(settingsSender)})`), false);
   assert.equal(w.call('allowMessage({type:"futureType"}, {id:"ext"})'), false);
@@ -263,6 +267,110 @@ test('message allowlist is inverted: page / settings / offscreen / deny-unknown'
   const blocked = await w.send({ type: 'ocrLabels', urls: ['https://www.amazon.com/dp/B00LOAW7U6'] }, amazonTab);
   assert.equal(blocked.ok, false);
   assert.equal(blocked.reason, 'no-images');
+});
+
+test('missing sheet URL reads the default shared sheet', async () => {
+  let fetched = '';
+  const w = worker({}, async (url) => {
+    fetched = url;
+    return { ok: true, text: async () => 'asin,certifications\n' };
+  });
+  await w.call('loadSheetIndex(true)');
+  const parsed = new URL(fetched);
+  assert.equal(parsed.hostname, 'docs.google.com');
+  assert.match(parsed.pathname, /1UwIIewq0rsLdIFu57d4W1ifkmv_leQnc76dbDGO6C1Y/);
+  assert.equal(parsed.searchParams.get('tqx'), 'out:csv');
+  assert.equal(parsed.searchParams.get('sheet'), null);
+});
+test('an empty sheet URL does not fetch the shared sheet', async () => {
+  let requests = 0;
+  const w = worker({ sheetUrl: '' }, async () => { requests++; });
+  assert.equal(await w.call('loadSheetIndex(true)'), null);
+  assert.equal(requests, 0);
+});
+test('settings save posts the sanitized export and drops raw storage', async () => {
+  let body;
+  let url;
+  const w = worker({
+    contributeUrl: enabled.contributeUrl,
+    weights: { sugar: 1.4, notACategory: 9 },
+    allergens: ['milk', 'nope'],
+    email: 'person@example.com',
+    sheetUrl: 'https://evil.example/x',
+  }, async (fetched, opts) => {
+    url = fetched;
+    body = JSON.parse(opts.body);
+    return { ok: true, json: async () => ({ ok: true, wrote: 1, tab: 'settings' }) };
+  });
+  const res = await w.call('saveSettingsToEndpoint()');
+  assert.equal(res.ok, true);
+  assert.equal(url, enabled.contributeUrl);
+  assert.deepEqual(Object.keys(body).sort(), ['kind', 'payload', 'ts']);
+  assert.equal(body.kind, 'settings');
+  assert.equal(body.payload._format, 'ingredient-check-settings');
+  assert.equal(body.payload.weights.sugar, 1.4);
+  assert.equal(body.payload.weights.notACategory, undefined);
+  assert.deepEqual(body.payload.allergens, ['milk']);
+  assert.equal(body.payload.email, undefined);
+  assert.equal(body.payload.contributeUrl, undefined);
+  assert.equal(body.payload.sheetUrl, undefined);
+});
+test('a settings save is not confirmed when an old script files it as a contribution', async () => {
+  const w = worker({ contributeUrl: enabled.contributeUrl, weights: { sugar: 1 } }, async () => ({
+    ok: true, json: async () => ({ ok: true, wrote: 1, tab: 'contributions' }),
+  }));
+  assert.equal((await w.call('saveSettingsToEndpoint()')).ok, false);
+});
+test('settings save does nothing without an Apps Script URL or the auto-sync toggle', async () => {
+  let requests = 0;
+  const idle = worker({
+    sheetUrl: 'https://docs.google.com/spreadsheets/d/1UwIIewq0rsLdIFu57d4W1ifkmv_leQnc76dbDGO6C1Y/edit',
+  }, async () => { requests++; });
+  assert.equal((await idle.call('saveSettingsToEndpoint()')).reason, 'no-endpoint');
+  const held = worker({ contributeUrl: enabled.contributeUrl }, async () => { requests++; });
+  assert.equal((await held.call('saveSettingsToEndpoint({ onlyIfEnabled: true })')).reason, 'not-enabled');
+  assert.equal(requests, 0);
+});
+test('settings load reads the settings tab and sanitizes the payload', async () => {
+  const payload = {
+    _format: 'ingredient-check-settings', _version: 1,
+    weights: { sugar: 0.5 }, allergens: ['soy', 'bogus'], diets: [], avoidList: [], foodOnly: false,
+    email: 'person@example.com', contributeUrl: 'https://evil.example',
+  };
+  const csv = 'key,value,ts\npayload,"' + JSON.stringify(payload).replace(/"/g, '""') + '",2026-09-22T00:00:00.000Z\n';
+  let fetched = '';
+  const w = worker({
+    sheetUrl: 'https://docs.google.com/spreadsheets/d/1UwIIewq0rsLdIFu57d4W1ifkmv_leQnc76dbDGO6C1Y/edit',
+    contributeUrl: enabled.contributeUrl,
+  }, async (url) => {
+    fetched = url;
+    return { ok: true, text: async () => csv };
+  });
+  const res = await w.call('loadSettingsFromSheet()');
+  assert.equal(res.ok, true);
+  const parsed = new URL(fetched);
+  assert.equal(parsed.searchParams.get('sheet'), 'settings');
+  assert.match(parsed.pathname, /1UwIIewq0rsLdIFu57d4W1ifkmv_leQnc76dbDGO6C1Y/);
+  assert.equal(w.data.weights.sugar, 0.5);
+  assert.deepEqual(w.data.allergens, ['soy']);
+  assert.equal(w.data.foodOnly, false);
+  assert.equal(w.data.email, undefined);
+  assert.equal(w.data.contributeUrl, enabled.contributeUrl);
+});
+test('settings load uses Apps Script GET when the sheet URL is cleared', async () => {
+  const payload = {
+    _format: 'ingredient-check-settings', _version: 1,
+    weights: { sugar: 0.2 }, allergens: [], diets: [], avoidList: ['carrageenan'], foodOnly: true,
+  };
+  const calls = [];
+  const w = worker({ sheetUrl: '', contributeUrl: enabled.contributeUrl }, async (url) => {
+    calls.push(url);
+    return { ok: true, json: async () => ({ ok: true, kind: 'settings', payload }) };
+  });
+  const res = await w.call('loadSettingsFromSheet()');
+  assert.equal(res.ok, true);
+  assert.deepEqual(calls, [`${enabled.contributeUrl}?kind=settings`]);
+  assert.deepEqual(w.data.avoidList, ['carrageenan']);
 });
 
 test('oversized sheet CSV is refused and leaves a prior index alone', async () => {

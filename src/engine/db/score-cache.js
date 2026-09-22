@@ -3,6 +3,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
   require('./_module.js');
   require('../categories.js');
   require('./revision.js');
+  require('./prefs.js');
 }
 (function () {
   const TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -17,13 +18,19 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
     return `s:${normalizeStore(store)}:${asin}`;
   }
 
+  function sheetFinger(raw) {
+    const prefs = AIR.db && AIR.db.prefs;
+    if (prefs && typeof prefs.resolveSheetUrl === 'function') return prefs.resolveSheetUrl(raw || {});
+    return (raw && raw.sheetUrl) || '';
+  }
+
   function fingerprint(raw = {}, source) {
     const weights = AIR.db.categories.resolveWeights(raw.weights);
     const out = {
       rules: (AIR.db.revision && AIR.db.revision.RULES_REVISION) || '',
       weights: Object.keys(weights).sort().map(k => [k, weights[k]]),
       foodOnly: raw.foodOnly !== false,
-      sheetUrl: raw.sheetUrl || '', producersUrl: raw.producersUrl || '',
+      sheetUrl: sheetFinger(raw), producersUrl: raw.producersUrl || '',
       sheetRevision: raw.sheetIndexRev || '', producerRevision: raw.producerIndexRev || '',
     };
     // Toggling OCR / OFF must not retire DOM-extracted chips. Only entries produced by those

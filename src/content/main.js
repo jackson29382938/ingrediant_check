@@ -214,7 +214,8 @@
   }
 
   chrome.storage.local.get(['enabled', 'badges', 'hoverScore', 'autoScoreSearch', 'foodOnly', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList', 'useOpenFoodFacts', 'sheetUrl', 'producersUrl', 'sheetIndexRev', 'producerIndexRev'], o => {
-    state.cacheOptions = { ...o };
+    const urls = AIR.db.prefs.sanitizeUrls(o);
+    state.cacheOptions = { ...o, sheetUrl: urls.sheetUrl, producersUrl: urls.producersUrl };
     const toggles = AIR.db.prefs.sanitizeToggles(o);
     state.enabled = toggles.enabled;
     state.badges = toggles.badges;
@@ -241,6 +242,9 @@
     if (area && area !== 'local') return;
     for (const key of ['weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sheetUrl', 'producersUrl', 'sheetIndexRev', 'producerIndexRev']) {
       if (changes[key]) state.cacheOptions[key] = changes[key].newValue;
+    }
+    if (changes.sheetUrl && state.cacheOptions.sheetUrl == null) {
+      state.cacheOptions.sheetUrl = AIR.db.prefs.DEFAULT_SHEET_URL;
     }
     if (changes.weights || changes.allergens || changes.diets || changes.avoidList) {
       chrome.storage.local.get(['weights', 'allergens', 'diets', 'avoidList'], o => {

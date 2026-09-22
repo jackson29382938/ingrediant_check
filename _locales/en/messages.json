@@ -467,6 +467,15 @@
   "optRefresh": {
     "message": "Refresh database now"
   },
+  "optSaveSettings": {
+    "message": "Save settings to sheet"
+  },
+  "optLoadSettings": {
+    "message": "Load settings from sheet"
+  },
+  "optSyncSettings": {
+    "message": "Keep scoring settings updated on the sheet"
+  },
   "optSendDiag": {
     "message": "Send scoring diagnostics to my endpoint"
   },
