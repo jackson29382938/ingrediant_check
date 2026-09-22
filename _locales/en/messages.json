@@ -462,7 +462,7 @@
     "message": "Producer registry URL (optional)"
   },
   "optShare": {
-    "message": "Send certifications I come across back to the sheet"
+    "message": "Send certifications and scores I come across back to the sheet"
   },
   "optRefresh": {
     "message": "Refresh database now"

@@ -12,7 +12,7 @@
 if (typeof importScripts === 'function') {
   importScripts('engine/db/_module.js', 'engine/db/allergens.js', 'engine/categories.js',
     'engine/db/ingestible.js', 'engine/db/prefs.js',
-    'engine/db/ocr-text.js', 'worker/messages.js', 'worker/sheet-store.js');
+    'engine/db/ocr-text.js', 'engine/db/ratings-cache.js', 'worker/messages.js', 'worker/sheet-store.js');
 }
 
 const OFF_ENDPOINT = 'https://world.openfoodfacts.org/api/v2/product/';
@@ -258,6 +258,7 @@ chrome.alarms.onAlarm.addListener(a => {
   sweepCache();
   // A partial batch would otherwise sit until enough new products were scored to fill it.
   flushDiagnostics().catch(() => {});
+  flushRatings().catch(() => {});
 });
 function ensureDefaultSheetUrl() {
   chrome.storage.local.get('sheetUrl', stored => {
@@ -538,6 +539,112 @@ async function sendDiagnostics() {
   }
 }
 
+// ---------------------------------------------------------------- shared ratings cache
+//
+// docs/CACHE.md. Reads fetch the whole ratings_cache tab (never one ASIN at a time, so the sheet
+// host does not see what is browsed) and share the provenance TTL and size bounds. Writes are a
+// queue of upserts and pull counts, flushed together after a quiet spell, when the batch fills, or
+// on the housekeeping alarm, so a results page does not POST once per tile.
+
+const RATINGS_INDEX_KEY = 'ratingsIndex';
+const RATINGS_KEY = 'ratingsQueue';
+const RATINGS_BATCH = 25;
+const RATINGS_QUIET_MS = 15000;
+let ratingsWork = Promise.resolve();
+let ratingsTimer = null;
+// After a failed send, only the quiet timer and the alarm retry; otherwise every tile would POST.
+let ratingsBackoff = false;
+function serializeRatings(work) {
+  const result = ratingsWork.then(work);
+  ratingsWork = result.catch(() => {});
+  return result;
+}
+
+async function loadRatingsIndex() {
+  const conf = await chrome.storage.local.get(['enabled', 'sheetUrl']);
+  if (conf.enabled === false) return null;
+  const csvUrl = self.AIR.db.prefs.toTabSheetUrl(activeSheetUrl(conf), self.AIR.db.ratingsCache.TAB);
+  if (!csvUrl) return null;
+  const cached = await getSheetIndex(RATINGS_INDEX_KEY);
+  const fallback = cached && cached.url === csvUrl ? cached.index : null;
+  if (fallback && Date.now() - cached.t < SHEET_TTL_MS) return fallback;
+  try {
+    const csv = await networkRequest(csvUrl, { credentials: 'omit' }, res => {
+      if (!res.ok) throw new Error(String(res.status));
+      return res.text();
+    });
+    if (typeof csv !== 'string' || csv.length > MAX_SHEET_BYTES) return fallback;
+    const rows = parseCsv(csv);
+    if (rows.length > MAX_SHEET_ROWS) return fallback;
+    // gviz answers a missing tab with the first tab; its header has no scanned_at, so it indexes empty.
+    const index = self.AIR.db.ratingsCache.indexRows(rows);
+    await putSheetIndex(RATINGS_INDEX_KEY, { t: Date.now(), url: csvUrl, index });
+    return index;
+  } catch (e) {
+    return fallback;
+  }
+}
+
+async function ratingsLookup(store, asins) {
+  const R = self.AIR.db.ratingsCache;
+  const index = await loadRatingsIndex();
+  const rows = {};
+  if (!index || !Array.isArray(asins)) return { rows };
+  for (const asin of asins.slice(0, 100)) {
+    const k = `${store}:${asin}`;
+    const fresh = (Object.hasOwn(index, k) ? index[k] : []).filter(row => !R.stale(row));
+    if (fresh.length) rows[asin] = fresh;
+  }
+  return { rows };
+}
+
+function ratingsWritable(conf) {
+  return conf.enabled !== false && conf.shareContributions === true && !!conf.contributeUrl;
+}
+
+function queueRatings(msg) {
+  return serializeRatings(async () => {
+    const conf = await chrome.storage.local.get(['enabled', 'shareContributions', 'contributeUrl', RATINGS_KEY]);
+    if (!ratingsWritable(conf)) return { ok: false, reason: 'not-enabled' };
+    const queue = self.AIR.db.ratingsCache.mergeQueue(conf[RATINGS_KEY], msg);
+    await chrome.storage.local.set({ [RATINGS_KEY]: queue });
+    const queued = self.AIR.db.ratingsCache.queueSize(queue);
+    clearTimeout(ratingsTimer);
+    if (queued >= RATINGS_BATCH && !ratingsBackoff) return sendRatings();
+    ratingsTimer = setTimeout(() => { flushRatings().catch(() => {}); }, RATINGS_QUIET_MS);
+    return { ok: true, queued };
+  });
+}
+
+function flushRatings() {
+  return serializeRatings(() => sendRatings());
+}
+
+async function sendRatings() {
+  const conf = await chrome.storage.local.get(['enabled', 'shareContributions', 'contributeUrl', RATINGS_KEY]);
+  if (!ratingsWritable(conf)) return { ok: false, reason: 'not-enabled' };
+  const queue = { upserts: {}, pulls: {}, ...conf[RATINGS_KEY] };
+  // The receiver takes at most 300 items per POST; the queue can hold 300 of each.
+  const upserts = Object.keys(queue.upserts).slice(0, 150);
+  const pulls = Object.keys(queue.pulls).slice(0, 150);
+  if (!upserts.length && !pulls.length) return { ok: false, reason: 'nothing-to-send' };
+  const result = await postRecord(conf.contributeUrl, {
+    kind: 'ratings',
+    upserts: upserts.map(k => queue.upserts[k]),
+    pulls: pulls.map(key => ({ key, scanned_at: queue.pulls[key].scanned_at, n: queue.pulls[key].n })),
+  });
+  // An older web app appends unknown kinds onto contributions and still says wrote: 1.
+  const confirmed = result.ok && result.tab === self.AIR.db.ratingsCache.TAB;
+  ratingsBackoff = !confirmed;
+  if (!confirmed) return { ok: false, reason: result.reason || 'write-not-confirmed', queued: self.AIR.db.ratingsCache.queueSize(queue) };
+  upserts.forEach(k => delete queue.upserts[k]);
+  pulls.forEach(k => delete queue.pulls[k]);
+  const left = self.AIR.db.ratingsCache.queueSize(queue);
+  if (left) await chrome.storage.local.set({ [RATINGS_KEY]: queue });
+  else await chrome.storage.local.remove([RATINGS_KEY]);
+  return { ok: true, sent: upserts.length + pulls.length, queued: left };
+}
+
 // Scoring settings sync. The body is exportPayload only. Auto-save follows the syncSettings toggle;
 // Save / Load in options call these directly. A load writes the sanitized scoring keys back.
 const SETTINGS_SYNC_KEYS = ['weights', 'allergens', 'diets', 'avoidList', 'foodOnly'];
@@ -661,6 +768,14 @@ function handleSharedDbMessage(msg, reply) {
   }
   if (msg.type === 'contribute') {
     contribute(msg.payload).then(reply);
+    return true;
+  }
+  if (msg.type === 'ratingsLookup') {
+    ratingsLookup(String(msg.store || ''), msg.asins).then(reply, () => reply({ rows: {} }));
+    return true;
+  }
+  if (msg.type === 'ratingsQueue') {
+    queueRatings(msg).then(reply, () => reply({ ok: false }));
     return true;
   }
   if (msg.type === 'saveSettings') {

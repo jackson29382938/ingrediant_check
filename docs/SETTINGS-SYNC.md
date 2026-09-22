@@ -26,10 +26,12 @@ in the extension invents an `/exec` address. Paste one only after the deploy bel
 | `diagnostics` | Apps Script, on the first diagnostic batch | One row per scored product. See [DIAGNOSTICS.md](DIAGNOSTICS.md). |
 | `reports` | Apps Script, on the first "Looks wrong?" | The same columns as a contribution. |
 | `contributions` | Apps Script, on the first shared certification | Product identifiers and certification text. |
+| `ratings_cache` | Apps Script, on the first shared score | One row per product and scoring setup: `key`, `store`, `asin`, `score`, `verdict`, `prefs`, `source`, `nova`, `name`, `scanned_at`, `pulls`. See [CACHE.md](CACHE.md). |
 
 Provenance reads use `gviz/tq?tqx=out:csv` on the database URL (first tab, or the gid you pasted).
-Settings reads use the same spreadsheet with `&sheet=settings`. They do not share a tab, so a
-settings row is never indexed as a product.
+Settings reads use the same spreadsheet with `&sheet=settings`, and shared ratings use
+`&sheet=ratings_cache`. They do not share a tab, so a settings or ratings row is never indexed as a
+product.
 
 ## What is saved
 

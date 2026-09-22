@@ -78,3 +78,28 @@ test('legacy dedup history is respected during migration', () => {
   assert.equal(r.post(batch(0)).inserted, 0);
   assert.equal(r.post(batch(12)).inserted, 11);
 });
+const rating = over => ({ store: 'amazon.com', asin: 'B00TESTOAT', score: 80, verdict: 'Good', prefs: 'p1a2b3c',
+  source: 'search-tile', nova: 1, name: 'Oats', scanned_at: '2026-09-20T00:00:00.000Z', ...over });
+test('ratings: older scans never overwrite newer rows; newer scans replace and reset pulls', () => {
+  const r = receiver();
+  assert.equal(r.post({ kind: 'ratings', upserts: [rating(), rating({ source: 'manual-paste', asin: 'B00TESTOA2' })] }).upserted, 1);
+  const tab = r.tabs.get('ratings_cache');
+  assert.deepEqual(tab.data[0], ['key', 'store', 'asin', 'score', 'verdict', 'prefs', 'source', 'nova', 'name', 'scanned_at', 'pulls']);
+  assert.equal(tab.data[1][0], "'amazon.com:B00TESTOAT:p1a2b3c");
+  assert.equal(r.post({ kind: 'ratings', upserts: [rating({ score: 10, scanned_at: '2026-09-19T00:00:00Z' })] }).upserted, 0);
+  assert.equal(r.post({ kind: 'ratings', pulls: [{ key: 'amazon.com:B00TESTOAT:p1a2b3c', scanned_at: '2026-09-20T00:00:00Z', n: 3 }] }).pulled, 1);
+  assert.equal(tab.data[1][10], 3);
+  assert.equal(r.post({ kind: 'ratings', upserts: [rating({ score: 60, scanned_at: '2026-09-21T00:00:00Z' })] }).upserted, 1);
+  assert.equal(tab.data.length, 2);
+  assert.equal(tab.data[1][3], 60);
+  assert.equal(tab.data[1][10], 0);
+});
+test('ratings: a pull counts only against the scan the reader saw', () => {
+  const r = receiver();
+  r.post({ kind: 'ratings', upserts: [rating()] });
+  const res = r.post({ kind: 'ratings', pulls: [{ key: 'amazon.com:B00TESTOAT:p1a2b3c', scanned_at: '2026-09-01T00:00:00Z' }] });
+  assert.equal(res.pulled, 0);
+  assert.equal(res.tab, 'ratings_cache');
+  assert.equal(r.tabs.get('ratings_cache').data[1][10], 0);
+  assert.equal(r.post({ kind: 'ratings', upserts: Array(301).fill(rating()) }).ok, false);
+});

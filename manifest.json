@@ -744,6 +744,7 @@
         "src/engine/db/prefs.js",
         "src/engine/db/revision.js",
         "src/engine/db/score-cache.js",
+        "src/engine/db/ratings-cache.js",
         "src/engine/score.js",
         "src/content/extract.js",
         "src/content/panel.js",

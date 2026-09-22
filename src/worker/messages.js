@@ -5,7 +5,7 @@
 
 var PAGE_MESSAGE_TYPES = new Set([
   'pageScore', 'ocrLabels', 'lookupBarcode', 'provenanceLookup',
-  'contribute', 'report', 'diagnostic',
+  'contribute', 'report', 'diagnostic', 'ratingsLookup', 'ratingsQueue',
 ]);
 var SETTINGS_MESSAGE_TYPES = new Set([
   'flushDiagnostics', 'diagnosticsStatus', 'refreshSheet',

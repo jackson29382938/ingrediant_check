@@ -45,6 +45,7 @@ function worker(initial = {}, fetcher, { alarms } = {}) {
   vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/ingestible.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/prefs.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/ocr-text.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/ratings-cache.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(require.resolve('../src/worker/messages.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(require.resolve('../src/worker/sheet-store.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(require.resolve('../src/background.js'), 'utf8'), context);
@@ -388,4 +389,29 @@ test('oversized sheet CSV is refused and leaves a prior index alone', async () =
   assert.equal(index.byAsin.B000000001.asin, 'B000000001');
   assert.equal(w.data.sheetIndex.index, prior); // storage write skipped
   assert.equal(w.call('MAX_SHEET_BYTES'), maxBytes);
+});
+
+test('ratings writes are batched: no POST per tile, one POST when the batch fills', async () => {
+  const posts = [];
+  const w = worker({ shareContributions: true, contributeUrl: enabled.contributeUrl }, async (url, init) => {
+    posts.push(JSON.parse(init.body));
+    return { ok: true, json: async () => ({ ok: true, wrote: 1, tab: 'ratings_cache' }) };
+  });
+  const entry = i => ({ schema: 3, v: '1.0.0', t: Date.now() - 1000, store: 'amazon.com',
+    asin: `B00TEST${String(i).padStart(3, '0')}`, prefs: 'fp', score: 70, verdict: 'Good', source: 'search-tile' });
+  for (let i = 0; i < 24; i++) await w.send({ type: 'ratingsQueue', upserts: [entry(i)] }, amazonTab);
+  assert.equal(posts.length, 0);
+  assert.equal((await w.send({ type: 'ratingsQueue', upserts: [entry(24)] }, amazonTab)).sent, 25);
+  assert.equal(posts.length, 1);
+  assert.equal(posts[0].kind, 'ratings');
+  assert.equal(posts[0].upserts.length, 25);
+  assert.equal(w.data.ratingsQueue, undefined);
+  const down = worker({ shareContributions: true, contributeUrl: enabled.contributeUrl }, async () => {
+    posts.push('down');
+    return { ok: false };
+  });
+  for (let i = 0; i < 30; i++) await down.send({ type: 'ratingsQueue', upserts: [entry(i)] }, amazonTab);
+  assert.equal(posts.filter(p => p === 'down').length, 1, 'a failed send must not retry on every tile');
+  const off = worker({ contributeUrl: enabled.contributeUrl });
+  assert.equal((await off.send({ type: 'ratingsQueue', upserts: [entry(1)] }, amazonTab)).reason, 'not-enabled');
 });

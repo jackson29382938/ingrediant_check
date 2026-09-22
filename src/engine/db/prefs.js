@@ -147,15 +147,19 @@ function sanitizeUrls(raw) {
   };
 }
 
-// gviz/pub CSV for the named settings tab. Provenance reads stay on toSheetUrl (first tab or gid).
+// gviz/pub CSV for a named tab. Provenance reads stay on toSheetUrl (first tab or gid).
 function toSettingsSheetUrl(raw) {
+  return toTabSheetUrl(raw, SETTINGS_TAB);
+}
+
+function toTabSheetUrl(raw, tab) {
   const sheetUrl = raw == null ? DEFAULT_SHEET_URL
     : (typeof raw === 'object' ? resolveSheetUrl(raw) : raw);
   const base = toSheetUrl(sheetUrl);
   if (!base) return null;
   const url = new URL(base);
   url.searchParams.delete('gid');
-  url.searchParams.set('sheet', SETTINGS_TAB);
+  url.searchParams.set('sheet', tab);
   return url.toString();
 }
 
@@ -266,7 +270,7 @@ const _exports = AIRmodule('prefs', {
   AVOID_MAX_LINES, AVOID_MAX_LEN,
   DEFAULT_SHEET_ID, DEFAULT_SHEET_URL, SETTINGS_TAB, SETTINGS_SAVE_KIND,
   sanitizeToggles, sanitizeScoring, sanitizeAvoidList, sanitizeUrls, resolveSheetUrl,
-  toSheetUrl, toScriptUrl, toSettingsSheetUrl, parseCsv,
+  toSheetUrl, toScriptUrl, toSettingsSheetUrl, toTabSheetUrl, parseCsv,
   parseSettingsRows, parseSettingsExport, settingsSaveBody,
   parseImport, exportPayload, looksLikeSettings, scoringEqual,
 });

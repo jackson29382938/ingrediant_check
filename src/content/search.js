@@ -60,6 +60,41 @@
     cancelTileWork();
   }
 
+  // Local miss -> shared ratings_cache. A row counts only if it was scored by this engine version
+  // with these settings; the fingerprint depends on the row's source, so match per row.
+  // done(hits) gets { asin: entry } for rows painted from the shared cache.
+  function sharedLookup(asins, done) {
+    const { state, cachePrefs, usableCache, storeHost, ENGINE_VERSION, CACHE } = P();
+    const R = root.AIR.db.ratingsCache;
+    if (!R || !asins.length) { done({}); return; }
+    const epoch = queue.epoch;
+    try {
+      chrome.runtime.sendMessage({ type: 'ratingsLookup', store: storeHost(), asins }, reply => {
+        void chrome.runtime.lastError;
+        const hits = {};
+        if (epoch !== queue.epoch || !state.enabled || !state.badges) { done(hits); return; }
+        const picked = [];
+        for (const asin of asins) {
+          let best = null;
+          for (const row of (reply && reply.rows && reply.rows[asin]) || []) {
+            const fp = CACHE.fingerprint(cachePrefs(), row.source);
+            if (row.prefs !== R.prefsHash(ENGINE_VERSION, fp)) continue;
+            const entry = R.toEntry(row, fp, { schema: CACHE.SCHEMA, version: ENGINE_VERSION });
+            if (usableCache(entry, asin) && (!best || best.entry.t < entry.t)) best = { row, entry };
+          }
+          if (!best) continue;
+          hits[asin] = best.entry;
+          // Both the badge pass and the auto-score observer look up a miss; count one pull per view.
+          if (!queue.seen.has(asin)) picked.push({ key: best.row.key, scanned_at: best.row.scanned_at });
+        }
+        if (picked.length) {
+          chrome.runtime.sendMessage({ type: 'ratingsQueue', pulls: picked }, () => void chrome.runtime.lastError);
+        }
+        done(hits);
+      });
+    } catch (e) { done({}); }
+  }
+
   function badgeSearchResults() {
     const { state, BADGE_ATTR, cacheKey, usableCache } = P();
     const tiles = document.querySelectorAll('[data-asin]:not([' + BADGE_ATTR + '])');
@@ -77,12 +112,21 @@
       const epoch = queue.epoch;
       chrome.storage.local.get(pending.map(p => p.key), obj => {
         if (epoch !== queue.epoch || !state.enabled || !state.badges) return;
+        const misses = [];
         for (const { tile, asin, key } of pending) {
           if (!tile.isConnected) continue;
           const hit = obj[key];
-          if (!usableCache(hit, asin)) continue;
+          if (!usableCache(hit, asin)) { misses.push({ tile, asin }); continue; }
           paintBadge(tile, hit);
         }
+        sharedLookup(misses.map(m => m.asin), hits => {
+          for (const { tile, asin } of misses) {
+            if (hits[asin] && tile.isConnected && !tile.querySelector('.air-badge')) {
+              paintBadge(tile, hits[asin]);
+              queue.seen.add(asin);
+            }
+          }
+        });
       });
     }
     armHoverPass();
@@ -295,7 +339,11 @@
           if (epoch !== queue.epoch || !state.enabled || !state.badges || !state.autoScoreSearch || !tile.isConnected) return;
           const hit = obj[cacheKey(asin)];
           if (usableCache(hit, asin)) { paintBadge(tile, hit); queue.seen.add(asin); return; }
-          if (state.autoScoreSearch && !queue.throttled) enqueue(tile, asin);
+          sharedLookup([asin], hits => {
+            if (!tile.isConnected || tile.querySelector('.air-badge')) return;
+            if (hits[asin]) { paintBadge(tile, hits[asin]); queue.seen.add(asin); return; }
+            if (epoch === queue.epoch && state.autoScoreSearch && !queue.throttled) enqueue(tile, asin);
+          });
         });
       }
     }, { rootMargin: '150px' });

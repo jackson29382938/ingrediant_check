@@ -101,6 +101,10 @@
     if (isProductPage()) state.pageScore = entry;
     if (source === 'manual-paste' || source === 'food-override') { cache(asin, null); return; }
     cache(asin, entry);
+    // Shared ratings_cache. The worker drops it unless sharing is on; see docs/CACHE.md.
+    try {
+      chrome.runtime.sendMessage({ type: 'ratingsQueue', upserts: [entry] }, () => void chrome.runtime.lastError);
+    } catch (e) { /* context invalidated */ }
   }
 
   function cache(asin, value) {
