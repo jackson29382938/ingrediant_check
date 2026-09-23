@@ -45,7 +45,10 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     const store = str(raw.store).toLowerCase().replace(/^www\./, '');
     const asin = str(raw.asin).toUpperCase();
     const prefs = str(raw.prefs);
-    const source = str(raw.source);
+    // extract.js tags page reads with the selector it used ("scope:#nutritionalInfo…",
+    // "heading-scan:#important-information"). The row keeps only the tier: the selector fails the
+    // column check below, and the fingerprint only distinguishes label-ocr and open-food-facts.
+    const source = str(raw.source).split(':')[0];
     const verdict = str(raw.verdict);
     const score = Math.round(Number(raw.score));
     const nova = raw.nova === '' || raw.nova == null ? '' : Number(raw.nova);

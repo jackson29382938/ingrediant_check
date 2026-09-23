@@ -31,6 +31,8 @@ test('sanitize keeps only the shared columns and rejects private or malformed ro
   assert.equal(r.key, `amazon.com:B00TESTOAT:${r.prefs}`);
   assert.equal(r.scanned_at, new Date(NOW - DAY).toISOString());
   assert.equal(R.fromEntry(entry({ source: 'manual-paste' }), NOW), null);
+  assert.equal(R.fromEntry(entry({ source: 'scope:#nutritionalInfoAndIngredients_feature_div' }), NOW).source, 'scope');
+  assert.equal(R.fromEntry(entry({ source: 'heading-scan:#important-information' }), NOW).source, 'heading-scan');
   assert.equal(R.fromEntry(entry({ asin: 'nope' }), NOW), null);
   assert.equal(R.fromEntry(entry({ score: 101 }), NOW), null);
   assert.equal(R.fromEntry(entry({ t: NOW + DAY }), NOW), null);

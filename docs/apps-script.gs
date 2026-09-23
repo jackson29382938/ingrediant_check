@@ -148,6 +148,9 @@ function upsertSettings(body) {
 // One row per store:asin:prefs. An upsert replaces a row only when its scan is newer, and resets
 // pulls. A pull counts only against the scan the reader actually saw (scanned_at must match).
 // ponytail: rewrites the whole tab per batch; fine to the extension's 8000-row read cap.
+// ponytail: reads and rewrites the whole tab under the script lock on every batch — O(rows) per
+// POST. Fine to the 8000 rows the extension will read; past that, prune stale rows or switch to
+// per-row writes (TextFinder on the key column + setValues on the one row).
 function writeRatings(body) {
   var upserts = Array.isArray(body.upserts) ? body.upserts : [];
   var pulls = Array.isArray(body.pulls) ? body.pulls : [];
