@@ -357,7 +357,7 @@
     "message": "Ingredient Check — Settings"
   },
   "optLede": {
-    "message": "Everything below runs on your computer. No account, no AI, no data leaves this machine except the two optional lookups you switch on yourself."
+    "message": "Scoring runs on your computer. The shared database and the settings backup can be switched off below."
   },
   "optNavAria": {
     "message": "Settings sections"
@@ -405,7 +405,7 @@
     "message": "Your own avoid list"
   },
   "optDatabaseH": {
-    "message": "Shared provenance database"
+    "message": "Shared online database"
   },
   "optDiagnosticsH": {
     "message": "Accuracy diagnostics"
@@ -446,38 +446,14 @@
   "optAvoidPh": {
     "message": "carrageenan\nred 40\nnatural flavors"
   },
-  "optSheetPh": {
-    "message": "https://docs.google.com/spreadsheets/d/..."
-  },
-  "optScriptPh": {
-    "message": "https://script.google.com/macros/s/.../exec"
-  },
-  "optSheetRead": {
-    "message": "Database URL (read)"
-  },
-  "optSheetWrite": {
-    "message": "Contribution URL (write, optional)"
-  },
-  "optProducers": {
-    "message": "Producer registry URL (optional)"
-  },
   "optShare": {
-    "message": "Send certifications I come across back to the sheet"
+    "message": "Send certifications I come across to the shared database"
   },
   "optRefresh": {
     "message": "Refresh database now"
   },
-  "optSaveSettings": {
-    "message": "Save settings to sheet"
-  },
-  "optLoadSettings": {
-    "message": "Load settings from sheet"
-  },
-  "optSyncSettings": {
-    "message": "Keep scoring settings updated on the sheet"
-  },
   "optSendDiag": {
-    "message": "Send scoring diagnostics to my endpoint"
+    "message": "Send scoring diagnostics to the shared database"
   },
   "optFlush": {
     "message": "Send queued rows now"
@@ -513,7 +489,7 @@
     "message": "That file could not be read"
   },
   "optResetConfirm": {
-    "message": "Reset weights, warnings, and the avoid list to defaults? Database URLs are left alone."
+    "message": "Reset weights, warnings, and the avoid list to defaults? Your online backups are left alone."
   },
   "optResetDone": {
     "message": "Reset to defaults"
@@ -559,5 +535,35 @@
   },
   "optNoteExport": {
     "message": "Exports as a plain JSON file you can keep, edit, or move to another computer."
+  },
+  "optSharedCache": {
+    "message": "Use the shared online database"
+  },
+  "optSettingsOnlineH": {
+    "message": "Your settings online"
+  },
+  "optBackup": {
+    "message": "Back up my settings to my Chrome account"
+  },
+  "optRestoreChrome": {
+    "message": "Restore from my Chrome account"
+  },
+  "optAccountSave": {
+    "message": "Sign in with Google and save"
+  },
+  "optAccountLoad": {
+    "message": "Sign in with Google and restore"
+  },
+  "optNavAccount": {
+    "message": "Backup"
+  },
+  "optRestored": {
+    "message": "Restored"
+  },
+  "loadingCacheTitle": {
+    "message": "Looking for a saved reading…"
+  },
+  "loadingCacheBody": {
+    "message": "Amazon didn't publish the ingredients as text. Checking whether this product was already read, here or in the shared database."
   }
 }

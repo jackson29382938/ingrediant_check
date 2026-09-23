@@ -1,6 +1,6 @@
 # Privacy (Chrome Web Store)
 
-Ingredient Check scores Amazon grocery labels **on your computer**. Nothing is required to leave the machine for the default install.
+Ingredient Check scores Amazon grocery labels **on your computer**. By default two things go online: product data to the shared database (so products are not re-read from Amazon), and a settings backup to your own Chrome account. Both can be switched off.
 
 This page is the one-screen note for a store listing. Settings copy and [DIAGNOSTICS.md](DIAGNOSTICS.md) say the same things at more length.
 
@@ -12,25 +12,29 @@ It does not read your Amazon password, payment details, cart, orders, or account
 
 ## What leaves your computer
 
-**Default: scoring stays on the computer.** The shared Google Sheet link is filled in for a new
-install, but Chrome blocks that read until you allow `docs.google.com`. Clearing the database URL
-skips it. Nothing is written to the sheet until you paste an Apps Script URL and turn a send
-option on.
+Scoring is always local: the rules, your weights and every score are computed in the browser.
 
-| You turn on | What is sent | Who sees it |
+| Feature | What is sent | Who sees it |
 |---|---|---|
-| **Rate every search result** or **Score on hover** | Ordinary `GET` of `/dp/ASIN` using your Amazon session (`credentials: same-origin`) | **Amazon.** Each auto-scored or hovered tile looks like you opened that product. The extension does not send those views anywhere else. |
-| **Read label photos** | Fetch of the product image on `m.media-amazon.com` | The image is read **on your computer** (Tesseract). The pixels are not uploaded to us. |
+| **Shared online database** (on by default; off in settings) | The store and product IDs of search tiles this computer cannot already answer (one batched request per page), and of a product page whose ingredients Amazon did not publish as text. For products you score: what was read off the page — ingredient text, title, feature bullets, certifications, nutrition numbers, how it was read — and when. One pull count when a shared read is used. Never your settings, your scores, or anything that identifies you. | The Ingredient Check Apps Script, which keeps a **private** spreadsheet (nobody can open it). It learns which products are being looked at, not by whom. See [CACHE.md](CACHE.md). |
+| **Back up my settings** (on by default) | Weights, allergen and diet choices, avoid list, toggles | Chrome's own sync, for the Google account signed into Chrome. Not the Ingredient Check database. |
+| **Sign in with Google** (only when you click it) | A Google access token (checked with Google, never stored) and the same settings | The Ingredient Check database, keyed by a SHA-256 of your Google account id — not your email. |
+| **Rate every search result** or **Score on hover** | Ordinary `GET` of `/dp/ASIN` using your Amazon session (`credentials: same-origin`) | **Amazon.** Each auto-scored or hovered tile looks like you opened that product. |
+| **Read label photos** | Fetch of the product image on `m.media-amazon.com` | The image is read **on your computer** (Tesseract). The pixels are not uploaded. |
 | **Open Food Facts fallback** | The **barcode only** | Open Food Facts, after Chrome grants the host. |
-| **Accuracy diagnostics** | One row per scored product (ASIN, store, ingredient text, score, source) | **Only the Google Sheet / Apps Script URL you paste.** That is a browse trace of products you scored — and with auto-score on, of tiles that scrolled into view. Off by default. |
-| **Save / load scoring settings** | The settings export: weights, allergen and diet flags, avoid list, food-only switch | The Apps Script URL you paste, which upserts the `settings` tab. Load reads that tab (or `GET ?kind=settings`). Not which products you opened. Off until you use the button or the update toggle. |
+| **Send certifications** / "Looks wrong?" | Product identifiers and certification text; a report adds what the score was | The Ingredient Check database. |
+| **Accuracy diagnostics** (off by default) | One row per scored product (ASIN, store, ingredient text, score, source) | The Ingredient Check database. That is a trace of products you scored — with auto-score on, of tiles that scrolled into view. |
+
+Turn off the shared database and the backup, leave the other options off, and the extension makes
+no network requests of its own. A build shipped without an endpoint behaves the same way for
+everything but the Chrome backup.
 
 There is no Ingredient Check account, no analytics SDK, and no third-party ad or crash reporter.
 
 ## What is stored on the device
 
-`chrome.storage.local` holds your weights, allergen/diet flags, avoid list, optional sheet URLs, and a **score cache** (number, verdict, ASIN — not the full ingredient blob). You can clear the cache from the popup.
+`chrome.storage.local` holds your weights, allergen/diet flags, avoid list, toggles, a **score cache** (number, verdict, ASIN) and the **product data** behind it (what was read off each product page, kept 30 days so a weight change does not refetch). **Clear cached scores** in the popup removes both.
 
 ## Single purpose
 
-Help you read Amazon grocery ingredient lists. Optional network hosts are Amazon (required for the page), Open Food Facts (barcode lookup you grant), and Google (the shared sheet, after you allow it, and an Apps Script URL if you paste one).
+Help you read Amazon grocery ingredient lists. Network hosts are Amazon (the page itself), Google (the Ingredient Check Apps Script, Chrome sync, and sign-in if you use it), and Open Food Facts (barcode lookup you grant).

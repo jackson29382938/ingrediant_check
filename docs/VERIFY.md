@@ -17,7 +17,7 @@ command-line flag; loading by hand works in your normal Chrome.
 
 1. `chrome://extensions` → enable **Developer mode** (top right)
 2. **Load unpacked** → select this folder
-3. Expect: *Ingredient Check 1.0.2*, no errors under the card
+3. Expect: *Ingredient Check 1.1.0*, no errors under the card
 
 If a red **Errors** button appears, open it — a manifest problem shows here and nowhere else.
 
@@ -78,10 +78,18 @@ Expect **nothing at all** on the first — no chips, no hover, no observer — a
 the second. Non-food departments and queries stand the extension down entirely. The popup's
 "This page" card stays empty on search pages and shows a score once a product page has been scored.
 
-## 5. Diagnostics to your sheet
+## 5. The shared database and diagnostics
 
-Follow [DIAGNOSTICS.md](DIAGNOSTICS.md) to deploy `apps-script.gs` and paste the `/exec` URL into
-settings, then tick **Send scoring diagnostics**.
+Needs a build with `ENDPOINT` set ([SETTINGS-SYNC.md](SETTINGS-SYNC.md)). Settings should show no
+red "not set up in this build" line under *Shared online database*.
+
+- Score a product, wait 15 seconds, and a `products` tab appears on the sheet with one row.
+- On a second Chrome profile, search for the same product: its tile gets a badge with no Amazon
+  request for it (DevTools → Network shows no `/dp/<asin>` fetch), and its row's `pulls` goes up.
+- Move a weight slider: badges change at once, with no `/dp/` fetches.
+- Untick **Use the shared online database**: nothing goes to `script.google.com` any more.
+
+For diagnostics, tick **Send scoring diagnostics**.
 
 Rows batch in twelves, so browse a dozen products or press **Send queued rows now**. The status
 line reports what happened. Expect a `diagnostics` tab to appear with headers.
@@ -116,7 +124,8 @@ every Amazon ad refresh, on non-food pages included.
 - A shampoo — *"Not scored — this does not look like food"* with **Score anyway**
 - Settings → move a slider — scores on screen change and the cache clears
 - Settings → import a random JSON file — it is refused; a stamped export re-imports
-- Settings → paste a non-Google URL in a database field — the field stays invalid and is not saved
+- Settings → **Restore from my Chrome account** after changing a weight — the backup comes back, the
+  master switch does not change
 
 ## Browser harnesses (no Amazon login)
 
@@ -138,10 +147,10 @@ removal); see [history/LIVE-TEST-2026-09-05.md](history/LIVE-TEST-2026-09-05.md)
 never checked in — treat the notes as a log, not a screenshot gallery. Re-run the post-WAR OCR
 steps above before claiming live OCR.
 
-Open Food Facts and the Apps Script sheet still need a grant / deploy on *your* Chrome profile
-before they can be claimed as verified. Client-side, invalid contribution URLs are rejected,
-queued diagnostic rows carry a `rowId`, and each flush sends a `batchId`. Redeploy
-[apps-script.gs](apps-script.gs) so a lost ACK cannot double-write the sheet.
+Open Food Facts needs a grant on *your* Chrome profile, and the shared database needs the Apps
+Script deployed, before either can be claimed as verified live. Client-side, an endpoint that is
+not an Apps Script `/exec` URL is never called, queued diagnostic rows carry a `rowId`, and each
+flush sends a `batchId`.
 
 Amazon layouts outside the `.com` live checks and the harness snapshot are not fully proven.
 The nutritional model is specified and tested, not scientifically validated.

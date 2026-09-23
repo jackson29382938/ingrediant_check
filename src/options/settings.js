@@ -32,7 +32,7 @@ function msg(key, fallback, sub) {
 })();
 
 const state = PREFS.sanitizeScoring({});
-const DB_KEYS = ['sheetUrl', 'producersUrl', 'contributeUrl', 'shareContributions', 'sendDiagnostics', 'syncSettings'];
+const DB_KEYS = ['sharedCache', 'shareContributions', 'sendDiagnostics', 'settingsBackup'];
 let saveTimer = null;
 let writing = false;
 
@@ -74,22 +74,6 @@ function applyScoring(next) {
   state.diets = clean.diets;
   state.avoidList = clean.avoidList;
   state.foodOnly = clean.foodOnly;
-}
-
-function markUrl(el, ok) {
-  if (!el) return;
-  el.classList.toggle('invalid', ok === false);
-  el.setAttribute('aria-invalid', ok === false ? 'true' : 'false');
-}
-
-function readUrlField(id, kind) {
-  const el = document.getElementById(id);
-  const raw = ((el && el.value) || '').trim();
-  if (!raw) { markUrl(el, true); return ''; }
-  const ok = kind === 'script' ? !!PREFS.toScriptUrl(raw) : !!PREFS.toSheetUrl(raw);
-  markUrl(el, ok);
-  if (!ok) return null;
-  return kind === 'script' ? PREFS.toScriptUrl(raw) : raw;
 }
 
 // ---------------------------------------------------------------- categories
@@ -460,7 +444,7 @@ function wireFileActions() {
   });
 
   document.getElementById('reset').addEventListener('click', () => {
-    if (!window.confirm(msg('optResetConfirm', 'Reset weights, warnings, and the avoid list to defaults? Database URLs are left alone.'))) return;
+    if (!window.confirm(msg('optResetConfirm', 'Reset weights, warnings, and the avoid list to defaults? Your online backups are left alone.'))) return;
     applyScoring({});
     renderAll();
     save({ immediate: true });
@@ -622,12 +606,5 @@ chrome.storage.onChanged.addListener(changes => {
       applyScoring(o);
       renderAll();
     });
-  }
-  for (const key of ['sheetUrl', 'producersUrl', 'contributeUrl']) {
-    if (!changes[key]) continue;
-    const el = document.getElementById(key);
-    if (!el || document.activeElement === el) continue;
-    el.value = changes[key].newValue || '';
-    markUrl(el, true);
   }
 });

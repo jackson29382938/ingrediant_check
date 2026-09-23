@@ -339,7 +339,7 @@
     "message": "Ingredient Check — Settings"
   },
   "optLede": {
-    "message": "Everything below runs on your computer. No account, no AI, no data leaves this machine except the two optional lookups you switch on yourself."
+    "message": "Die Bewertung läuft auf deinem Computer. Die gemeinsame Datenbank und die Einstellungs-Sicherung lassen sich unten abschalten."
   },
   "optNavAria": {
     "message": "Settings sections"
@@ -384,7 +384,7 @@
     "message": "Your own avoid list"
   },
   "optDatabaseH": {
-    "message": "Shared provenance database"
+    "message": "Gemeinsame Online-Datenbank"
   },
   "optDiagnosticsH": {
     "message": "Accuracy diagnostics"
@@ -425,29 +425,14 @@
   "optAvoidPh": {
     "message": "carrageenan\nred 40\nnatural flavors"
   },
-  "optSheetPh": {
-    "message": "https://docs.google.com/spreadsheets/d/..."
-  },
-  "optScriptPh": {
-    "message": "https://script.google.com/macros/s/.../exec"
-  },
-  "optSheetRead": {
-    "message": "Database URL (read)"
-  },
-  "optSheetWrite": {
-    "message": "Contribution URL (write, optional)"
-  },
-  "optProducers": {
-    "message": "Producer registry URL (optional)"
-  },
   "optShare": {
-    "message": "Send certifications I come across back to the sheet"
+    "message": "Gefundene Zertifizierungen an die gemeinsame Datenbank senden"
   },
   "optRefresh": {
     "message": "Refresh database now"
   },
   "optSendDiag": {
-    "message": "Send scoring diagnostics to my endpoint"
+    "message": "Bewertungsdiagnosen an die gemeinsame Datenbank senden"
   },
   "optFlush": {
     "message": "Send queued rows now"
@@ -486,7 +471,7 @@
     "message": "That file could not be read"
   },
   "optResetConfirm": {
-    "message": "Gewichte, Warnungen und Vermeidungsliste zurücksetzen? Datenbank-URLs bleiben."
+    "message": "Gewichtungen, Warnungen und Vermeiden-Liste auf Standard zurücksetzen? Online-Sicherungen bleiben erhalten."
   },
   "optResetDone": {
     "message": "Auf Standard zurückgesetzt"
@@ -532,5 +517,35 @@
   },
   "optNoteExport": {
     "message": "Exports as a plain JSON file you can keep, edit, or move to another computer."
+  },
+  "optSharedCache": {
+    "message": "Gemeinsame Online-Datenbank verwenden"
+  },
+  "optSettingsOnlineH": {
+    "message": "Deine Einstellungen online"
+  },
+  "optBackup": {
+    "message": "Einstellungen in meinem Chrome-Konto sichern"
+  },
+  "optRestoreChrome": {
+    "message": "Aus meinem Chrome-Konto wiederherstellen"
+  },
+  "optAccountSave": {
+    "message": "Mit Google anmelden und speichern"
+  },
+  "optAccountLoad": {
+    "message": "Mit Google anmelden und wiederherstellen"
+  },
+  "optNavAccount": {
+    "message": "Sicherung"
+  },
+  "optRestored": {
+    "message": "Wiederhergestellt"
+  },
+  "loadingCacheTitle": {
+    "message": "Suche nach einer gespeicherten Lesung…"
+  },
+  "loadingCacheBody": {
+    "message": "Amazon hat die Zutaten nicht als Text veröffentlicht. Es wird geprüft, ob dieses Produkt schon gelesen wurde – hier oder in der gemeinsamen Datenbank."
   }
 }

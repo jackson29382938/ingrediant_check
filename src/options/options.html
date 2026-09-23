@@ -142,8 +142,8 @@
 <body>
 <div class="wrap">
   <h1 data-i18n="appName">Ingredient Check</h1>
-  <p class="lede" data-i18n="optLede">Everything below runs on your computer. No account, no AI, no data leaves this
-    machine except the two optional lookups you switch on yourself.</p>
+  <p class="lede" data-i18n="optLede">Scoring runs on your computer. The shared database and the settings
+    backup can be switched off below.</p>
   <nav class="jump" data-i18n-aria="optNavAria" aria-label="Settings sections">
     <a href="#sec-rate" data-i18n="optNavRate">Rate</a>
     <a href="#sec-presets" data-i18n="optNavPresets">Presets</a>
@@ -151,6 +151,7 @@
     <a href="#sec-warnings" data-i18n="optNavWarnings">Warnings</a>
     <a href="#sec-avoid" data-i18n="optNavAvoid">Avoid</a>
     <a href="#sec-database" data-i18n="optNavDatabase">Database</a>
+    <a href="#sec-account" data-i18n="optNavAccount">Backup</a>
     <a href="#sec-file" data-i18n="optNavFile">File</a>
   </nav>
 
@@ -244,124 +245,118 @@
   </section>
 
   <section id="sec-database">
-    <h2 data-i18n="optDatabaseH">Shared provenance database</h2>
+    <h2 data-i18n="optDatabaseH">Shared online database</h2>
     <p class="note" style="margin: -6px 0 12px">
-      For single-ingredient foods — ground beef, eggs, milk, salmon — the ingredient list tells you
-      almost nothing. Everything that varies is in certifications, and Amazon publishes very little
-      of it.       A shared sheet lets that be recorded once per product instead of re-derived by everyone.
-      New installs start with the Ingredient Check sheet filled in. Clear the database URL to keep
-      lookups on this computer. The contribution URL stays empty until you deploy the Apps Script.
+      A product read once — its ingredient text, title, bullets, certifications and nutrition
+      numbers, before any weighting — is kept on a shared, private spreadsheet, so no one has to
+      fetch it from Amazon again for a month. Every computer scores it under its own settings, so
+      your weights never leave this browser. Certifications for whole foods come from the same
+      place.
     </p>
-    <label style="display:block;margin-bottom:12px">
-      <span class="t" data-i18n="optSheetRead">Database URL (read)</span>
-      <span class="d">A Google Sheet published to the web. Paste the normal share link or the
-      published CSV link — either works.</span>
-      <input type="url" id="sheetUrl" data-i18n-placeholder="optSheetPh" placeholder="https://docs.google.com/spreadsheets/d/..."
-             style="width:100%;margin-top:6px;padding:8px 10px;border:1px solid #d5d9d9;border-radius:8px;font:inherit;font-size:13px">
+    <p class="note" id="endpointStatus" hidden style="margin: -4px 0 12px; color:#a4161a"></p>
+    <label class="chip" style="margin-bottom:10px">
+      <input type="checkbox" id="sharedCache">
+      <span data-i18n="optSharedCache">Use the shared online database</span>
     </label>
-    <label style="display:block;margin-bottom:12px">
-      <span class="t" data-i18n="optSheetWrite">Contribution URL (write, optional)</span>
-      <span class="d">An Apps Script web app deployed from the sheet above. Leave this empty until
-      you deploy <code>docs/apps-script.gs</code> (see <code>docs/SETTINGS-SYNC.md</code>). Writes
-      for contributions, diagnostics, and scoring settings all use this URL.</span>
-      <input type="url" id="contributeUrl" data-i18n-placeholder="optScriptPh" placeholder="https://script.google.com/macros/s/.../exec"
-             style="width:100%;margin-top:6px;padding:8px 10px;border:1px solid #d5d9d9;border-radius:8px;font:inherit;font-size:13px">
-    </label>
-    <label style="display:block;margin-bottom:12px">
-      <span class="t" data-i18n="optProducers">Producer registry URL (optional)</span>
-      <span class="d">A second published tab mapping brands to certifications you have confirmed in a
-      certifier's own directory. A match here upgrades a label claim to verified, and the panel says
-      which directory it came from.</span>
-      <input type="url" id="producersUrl" data-i18n-placeholder="optSheetPh" placeholder="https://docs.google.com/spreadsheets/d/..."
-             style="width:100%;margin-top:6px;padding:8px 10px;border:1px solid #d5d9d9;border-radius:8px;font:inherit;font-size:13px">
-    </label>
+    <p class="note" style="margin: 0 0 12px">Off keeps every lookup on this computer: scores still
+      work, products are just read from Amazon instead. What is sent: the store and product IDs on a
+      search page you are looking at (or of a product page with no ingredient text), and what was
+      read off products you scored. Never your settings,
+      and nothing about who you are.</p>
     <label class="chip" style="margin-bottom:10px">
       <input type="checkbox" id="shareContributions">
-      <span data-i18n="optShare">Send certifications I come across back to the sheet</span>
+      <span data-i18n="optShare">Send certifications I come across to the shared database</span>
     </label>
     <div class="row">
       <button class="act" id="refreshSheet" data-i18n="optRefresh">Refresh database now</button>
       <span class="status" id="sheetStatus"></span>
     </div>
-    <p class="note">Only product identifiers and certification text are ever sent. Never anything
-      about you or what you browse, and never without this box ticked.</p>
-    <p class="note" style="margin: 16px 0 10px">
-      <strong>Scoring settings on this sheet.</strong>
-      Save and load use the same JSON as Export settings: weights, warnings, diets, the avoid list,
-      and the food-only switch. The write needs the contribution URL above. Load reads the
-      <code>settings</code> tab, then the web app if that tab is not public.
-      See <code>docs/SETTINGS-SYNC.md</code>.
+  </section>
+
+  <section id="sec-account">
+    <h2 data-i18n="optSettingsOnlineH">Your settings online</h2>
+    <p class="note" style="margin: -6px 0 12px">
+      The settings on this computer are always the ones in use. A copy online only comes back when
+      you click Restore: weights, warnings, diets, the avoid list and the toggles above — not the
+      master switch.
     </p>
     <label class="chip" style="margin-bottom:10px">
-      <input type="checkbox" id="syncSettings">
-      <span data-i18n="optSyncSettings">Keep scoring settings updated on the sheet</span>
+      <input type="checkbox" id="settingsBackup">
+      <span data-i18n="optBackup">Back up my settings to my Chrome account</span>
     </label>
+    <p class="note" style="margin: 0 0 4px">Uses Chrome's own sync for the Google account signed into
+      Chrome. Private to you. If Chrome sync is off, the copy stays on this computer.</p>
     <div class="row">
-      <button class="act" id="saveSettingsSheet" data-i18n="optSaveSettings">Save settings to sheet</button>
-      <button class="act" id="loadSettingsSheet" data-i18n="optLoadSettings">Load settings from sheet</button>
-      <span class="status" id="settingsSyncStatus"></span>
+      <button class="act" id="restoreChrome" data-i18n="optRestoreChrome">Restore from my Chrome account</button>
+      <span class="status" id="backupStatus"></span>
+    </div>
+    <div id="accountBlock" hidden>
+      <p class="note" style="margin: 16px 0 4px">Or keep a copy with your Google account on the
+        Ingredient Check database, for a browser that is not signed into Chrome. Only a hash of your
+        account id is stored — not your email.</p>
+      <div class="row">
+        <button class="act" id="accountSave" data-i18n="optAccountSave">Sign in with Google and save</button>
+        <button class="act" id="accountLoad" data-i18n="optAccountLoad">Sign in with Google and restore</button>
+        <span class="status" id="accountStatus"></span>
+      </div>
     </div>
   </section>
 
   <section>
     <h2 data-i18n="optDiagnosticsH">Accuracy diagnostics</h2>
     <p class="note" style="margin: -6px 0 12px">
-      Sends one row per scored product to the same endpoint as the shared database, on its own
-      sheet. Each row carries the ingredient text that was read, where it came from, which rules
-      fired, and the score that resulted — enough to judge whether a score was right, rather than
-      only noticing when one looks wrong. Batched, and only sent while a contribution URL is set.
+      Sends one row per scored product to the shared database, on its own tab. Each row carries
+      the ingredient text that was read, where it came from, which rules fired, and the score that
+      resulted — enough to judge whether a score was right, rather than only noticing when one looks
+      wrong. Batched.
     </p>
     <p class="note" style="margin: -6px 0 12px; color:#a4161a">
       <strong>This records which products you looked at.</strong> No name, no account, no session
       id, nothing from any other page — but with “Rate every search result” on, a results page
-      produces a row per tile, and that is a meaningful trace of your browsing. It goes only to the
-      endpoint you configure, which is your own. Off unless you turn it on.
+      produces a row per tile, and that is a meaningful trace of your browsing. It goes to the
+      Ingredient Check database, not to any third party. Off unless you turn it on.
     </p>
     <label class="chip" style="margin-bottom:10px">
       <input type="checkbox" id="sendDiagnostics">
-      <span data-i18n="optSendDiag">Send scoring diagnostics to my endpoint</span>
+      <span data-i18n="optSendDiag">Send scoring diagnostics to the shared database</span>
     </label>
     <div class="row">
       <button class="act" id="flushDiagnostics" data-i18n="optFlush">Send queued rows now</button>
       <span class="status" id="diagStatus"></span>
     </div>
-    <p class="note">The Apps Script that receives these is in <code>docs/apps-script.gs</code>.</p>
   </section>
 
   <section>
     <h2 data-i18n="optLeavesH">What leaves your computer</h2>
     <p class="note" style="margin: -6px 0 12px">
       Scoring itself is entirely local: the rules, your weights and every score are computed in
-      your browser, and there is no account, no analytics and no telemetry. Optional features
-      make network requests only after you allow the host or tick the box. The shared sheet link
-      is filled in already; Chrome still asks before any read.
+      your browser, and there is no analytics and no telemetry.
     </p>
     <ul class="note" style="margin: 0 0 4px 18px; padding: 0">
+      <li><strong>Shared online database</strong> (on by default) — the store and product IDs on a
+        search page, and what was read off products you score, go to the Ingredient Check Apps
+        Script. The spreadsheet behind it is private. Never your settings.</li>
       <li><strong>Rate every search result</strong> and <strong>Score on hover</strong> — request
         product pages from amazon.com using your normal signed-in session, so Amazon sees them
-        much as it would if you had opened the products yourself. At most three at a time. Nothing
-        is sent anywhere else.</li>
+        much as it would if you had opened the products yourself. At most three at a time.</li>
       <li><strong>Open Food Facts fallback</strong> — sends a barcode to
         world.openfoodfacts.org when a page has one but no readable ingredients. The barcode and
         nothing else.</li>
-      <li><strong>Shared provenance database</strong> — reads the Google Sheet in the database URL
-        (filled in for a new install). Nothing is sent to it unless you also tick the sharing box.
-        Clear the URL to skip the read.</li>
-      <li><strong>Scoring settings on the sheet</strong> — posts the same JSON as Export settings
-        to the contribution URL when you click Save or turn on the update toggle. Not which
-        products you opened.</li>
-      <li><strong>Share what this page disclosed</strong> — posts product identifiers and
-        certification text to the endpoint you configure. Never anything about you or your
-        browsing. "Looks wrong?" reports use the same endpoint.</li>
-      <li><strong>Accuracy diagnostics</strong> — posts one row per scored product to that same
-        endpoint. This one does record which products were scored; see the section above.</li>
+      <li><strong>Back up my settings</strong> (on by default) — Chrome's own sync, for your Chrome
+        account only. <strong>Sign in with Google</strong> stores a copy on the Ingredient Check
+        database keyed by a hash of your account id, only when you click it.</li>
+      <li><strong>Send certifications</strong> and "Looks wrong?" reports — product identifiers and
+        certification text. Never anything about you.</li>
+      <li><strong>Accuracy diagnostics</strong> — one row per scored product. This one does record
+        which products were scored; see the section above.</li>
     </ul>
     <p class="note">
       <strong>Read label photos</strong> makes no network request of its own beyond fetching the
       product image the page already shows: the OCR engine ships with the extension and runs on
       your computer.
     </p>
-    <p class="note">Clear the database URL and leave the other boxes off, and the extension makes no network requests at all.</p>
+    <p class="note">Turn off the shared database and the backup, leave the other boxes off, and the
+      extension makes no network requests of its own.</p>
   </section>
 
   <section>

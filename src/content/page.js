@@ -88,10 +88,12 @@
     } catch (e) { /* messaging unavailable in some frames */ }
   }
 
-  function cacheScore(asin, result, name, source, provenanceSource) {
+  // `t` is when the ingredients were read: a score worked out now from a 20-day-old reading must
+  // expire when that reading does.
+  function cacheScore(asin, result, name, source, provenanceSource, t = Date.now()) {
     if (!asin || !result) return;
     const entry = {
-      schema: CACHE.SCHEMA, v: ENGINE_VERSION, t: Date.now(),
+      schema: CACHE.SCHEMA, v: ENGINE_VERSION, t,
       store: storeHost(), asin, prefs: CACHE.fingerprint(cachePrefs(), source || 'page'),
       score: result.score, verdict: result.verdict, nova: result.nova,
       source: source || 'page',
@@ -101,6 +103,23 @@
     if (isProductPage()) state.pageScore = entry;
     if (source === 'manual-paste' || source === 'food-override') { cache(asin, null); return; }
     cache(asin, entry);
+  }
+
+  // What was read off the page, before weighting (docs/CACHE.md): kept on this computer as
+  // `p:<store>:<asin>` so a weight change rescores without refetching, and — unless `share` is
+  // false because the row came FROM the shared cache — queued for the shared products tab. The
+  // worker drops the upload when the shared database is off. Pasted lists never get here.
+  function rememberProduct(asin, scan, { share = true } = {}) {
+    const C = root.AIR.db.productCache;
+    const row = scan && scan.key ? C.sanitize(scan) : C.fromScan({ store: storeHost(), asin, ...scan });
+    if (!row) return null;
+    try {
+      // Pulls are the shared tab's business; on this computer only age decides a rescan.
+      chrome.storage.local.set({ [C.localKey(row.store, row.asin)]: { ...row, pulls: 0, t: Date.parse(row.scanned_at) } })
+        ?.catch?.(() => {});
+      if (share) chrome.runtime.sendMessage({ type: 'productsQueue', upserts: [row] }, () => void chrome.runtime.lastError);
+    } catch (e) { /* context invalidated */ }
+    return row;
   }
 
   function cache(asin, value) {
@@ -118,7 +137,7 @@
     cachePrefs, cacheKey, usableCache, storeHost, ingredientSig,
     MAX_EXTRACT_RETRIES, isProductPage, isListPage, isRelevantPage,
     MIN_COVERAGE, unreadable,
-    sendDiagnostic, publishActionBadge, cacheScore, cache,
+    sendDiagnostic, publishActionBadge, cacheScore, cache, rememberProduct,
   };
   root.AIR.page = page;
   if (typeof module !== 'undefined' && module.exports) module.exports = page;

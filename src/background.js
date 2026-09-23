@@ -1,18 +1,15 @@
 // Service worker.
 //
-// One optional job, off unless the user turns it on: Open Food Facts barcode lookup when the page
-// has a UPC but no readable ingredient text. Search-result badges use scores already cached by the
-// content script; this worker never fetches Amazon pages.
-//
-// Everything else in this extension is local. These are the only paths that touch the network.
-// Open Food Facts, contributions, and diagnostics stay off until toggled. The shared sheet URL
-// defaults to the Ingredient Check spreadsheet; Chrome still blocks that read until the host is
-// allowed, and clearing the URL keeps lookups on the device.
+// Scoring is local. This worker holds the only network paths, and never fetches Amazon pages:
+//   - the shared online database (product cache, provenance) — one Apps Script endpoint, a build
+//     constant in prefs.js; on by default, off with `sharedCache`, inert while the constant is empty
+//   - Open Food Facts, contributions, diagnostics — each off until toggled
+//   - the settings backup (chrome.storage.sync) and the optional Google-account copy
 
 if (typeof importScripts === 'function') {
   importScripts('engine/db/_module.js', 'engine/db/allergens.js', 'engine/categories.js',
     'engine/db/ingestible.js', 'engine/db/prefs.js',
-    'engine/db/ocr-text.js', 'worker/messages.js', 'worker/sheet-store.js');
+    'engine/db/ocr-text.js', 'engine/db/product-cache.js', 'worker/messages.js', 'worker/sheet-store.js');
 }
 
 const OFF_ENDPOINT = 'https://world.openfoodfacts.org/api/v2/product/';
@@ -49,7 +46,7 @@ chrome.storage.onChanged?.addListener((changes, area) => {
     // A paused content script can ignore a reply, but only the offscreen host can stop its CPU work.
     chrome.runtime.sendMessage({ target: 'ocr-offscreen', type: 'cancelOcr' }).catch(() => {});
   }
-  noteSettingsStorageChange(changes);
+  noteBackupChange(changes);
 });
 
 // The test VM preloads ingestible.js; Chrome loads it via importScripts above. One implementation.
@@ -258,30 +255,33 @@ chrome.alarms.onAlarm.addListener(a => {
   sweepCache();
   // A partial batch would otherwise sit until enough new products were scored to fill it.
   flushDiagnostics().catch(() => {});
+  flushProducts().catch(() => {});
 });
-function ensureDefaultSheetUrl() {
-  chrome.storage.local.get('sheetUrl', stored => {
-    if (!stored || stored.sheetUrl == null) {
-      chrome.storage.local.set({ sheetUrl: self.AIR.db.prefs.DEFAULT_SHEET_URL });
-    }
-  });
+// Keys and indexes from the pasted-URL era (sheet, producers, contribution URL, the one-row
+// settings tab, the per-settings ratings cache). The endpoint is now a build constant.
+const LEGACY_KEYS = ['sheetUrl', 'producersUrl', 'contributeUrl', 'syncSettings', 'ratingsQueue',
+  'sheetIndex', 'producerIndex', 'ratingsIndex'];
+function dropLegacy() {
+  chrome.storage.local.remove(LEGACY_KEYS);
+  for (const k of ['sheetIndex', 'producerIndex', 'ratingsIndex']) clearSheetIndex(k).catch(() => {});
 }
 chrome.runtime.onStartup.addListener(() => sweepCache());
 chrome.runtime.onInstalled.addListener(() => {
   sweepCache();
-  ensureDefaultSheetUrl();
+  dropLegacy();
 });
 
 async function sweepCache() {
   const all = await chrome.storage.local.get(null);
-  const entries = Object.entries(all).filter(([k]) => /^(s|off):/.test(k));
+  // s: weighted scores, p: product data (docs/CACHE.md), off: Open Food Facts records.
+  const entries = Object.entries(all).filter(([k]) => /^(s|p|off):/.test(k));
   const stale = entries
     .filter(([, v]) => v && v.t && Date.now() - v.t > TTL_MS)
     .map(([k]) => k);
   const staleSet = new Set(stale);   // `stale.includes` inside the filter below was O(n²) at 5k+ keys
   // Hard cap as well as a TTL: a heavy auto-scoring session can add thousands of fresh entries
   // that a time-based sweep will not touch for a month. Oldest go first.
-  const MAX_ENTRIES = 5000;
+  const MAX_ENTRIES = 10000;   // a product usually holds one s: and one p: entry
   const fresh = entries.filter(([k]) => !staleSet.has(k));
   const overflow = fresh.length > MAX_ENTRIES
     ? fresh.sort((a, b) => (a[1]?.t || 0) - (b[1]?.t || 0)).slice(0, fresh.length - MAX_ENTRIES).map(([k]) => k)
@@ -294,42 +294,35 @@ async function sweepCache() {
 // ---------------------------------------------------------------- shared provenance database
 //
 // Single-ingredient foods carry their quality in certifications, not ingredients, and Amazon
-// publishes almost none of it. A shared sheet lets that knowledge accumulate once per product
-// instead of being re-derived by every person who looks at it.
-//
-// Read path is a published Google Sheet exported as CSV — no API key, no OAuth, no account. Write
-// path is an Apps Script web app deployed from that sheet. The database URL defaults to the shared
-// Ingredient Check spreadsheet; an empty string is the offline opt-out. The contribution URL stays
-// empty until that web app exists — this file never invents an /exec address.
+// publishes almost none of it. The first tab of the shared spreadsheet records them once per
+// product, and a `producers` tab maps brands to certifications confirmed in a certifier's own
+// directory. The sheet is private; `GET ?kind=provenance` on the endpoint returns both tables,
+// fetched whole (never one product at a time) and kept for six hours.
 
 const SHEET_TTL_MS = 1000 * 60 * 60 * 6;
-const SHEET_CACHE_KEY = 'sheetIndex';
-// Bound sheet/producer caches so a huge published CSV cannot eat chrome.storage quota.
+const PROVENANCE_CACHE_KEY = 'provenanceIndex';
+// Bound the tables so a huge sheet cannot eat storage.
 const MAX_SHEET_BYTES = 2 * 1024 * 1024;
 const MAX_SHEET_ROWS = 8000;
 
-// Published-sheet URLs and CSV parsing: one implementation, in prefs. Tests load prefs.js first.
-function toCsvUrl(raw) {
-  return self.AIR.db.prefs.toSheetUrl(raw);
-}
-function parseCsv(text) {
-  return self.AIR.db.prefs.parseCsv(text);
-}
-function activeSheetUrl(conf) {
-  return self.AIR.db.prefs.resolveSheetUrl(conf || {});
+// The endpoint, when this build has one and the user has not switched the shared database off.
+async function sharedEndpoint(conf) {
+  const c = conf || await chrome.storage.local.get(['enabled', 'sharedCache']);
+  if (c.enabled === false || c.sharedCache === false) return '';
+  return self.AIR.db.prefs.endpoint();
 }
 
 function indexRows(rows) {
-  // Null-prototype maps: every key here comes from an untrusted CSV, and on a plain object a row
+  // Null-prototype maps: every key here comes from an untrusted sheet, and on a plain object a row
   // with brand "__proto__" made lookupRecord() return Object.prototype as a truthy "record".
   const empty = () => ({ byAsin: Object.create(null), byUpc: Object.create(null),
                          byBrand: Object.create(null), count: 0 });
   if (!rows.length) return empty();
-  const head = rows[0].map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
+  const head = rows[0].map(h => String(h).trim().toLowerCase().replace(/\s+/g, '_'));
   const idx = empty();
   for (const r of rows.slice(1)) {
     const rec = Object.create(null);
-    head.forEach((h, i) => { rec[h] = (r[i] || '').trim(); });
+    head.forEach((h, i) => { rec[h] = String(r[i] == null ? '' : r[i]).trim(); });
     if (!rec.certifications && !rec.feed && !rec.origin) continue;
     rec.source = rec.verified_by ? `shared database (${rec.verified_by})` : 'shared database';
     idx.count++;
@@ -341,34 +334,48 @@ function indexRows(rows) {
   return idx;
 }
 
-async function loadSheetIndex(force = false) {
-  const conf = await chrome.storage.local.get(['enabled', 'sheetUrl']);
-  if (conf.enabled === false) return null;
-  const csvUrl = toCsvUrl(activeSheetUrl(conf));
-  if (!csvUrl) return null;
-  const cached = await getSheetIndex(SHEET_CACHE_KEY);
-  if (!force && cached && cached.url === csvUrl && Date.now() - cached.t < SHEET_TTL_MS) return cached.index;
+function indexProducers(rows) {
+  const head = (rows[0] || []).map(h => String(h).trim().toLowerCase().replace(/\s+/g, '_'));
+  const index = Object.create(null);
+  for (const r of rows.slice(1)) {
+    const rec = Object.create(null);
+    head.forEach((h, i) => { rec[h] = String(r[i] == null ? '' : r[i]).trim(); });
+    if (!rec.brand || !rec.certifications) continue;
+    index[rec.brand.toLowerCase()] = rec;
+  }
+  return index;
+}
+
+const tableOk = rows => Array.isArray(rows) && rows.length <= MAX_SHEET_ROWS && rows.every(Array.isArray);
+
+// -> { index, producers }, or null when offline / unconfigured. A failed refresh keeps the last copy.
+async function loadProvenance(force = false) {
+  const url = await sharedEndpoint();
+  if (!url) return null;
+  const cached = await getSheetIndex(PROVENANCE_CACHE_KEY);
+  const fallback = cached && cached.url === url ? cached.value : null;
+  if (!force && fallback && Date.now() - cached.t < SHEET_TTL_MS) return fallback;
   try {
-    const csv = await networkRequest(csvUrl, { credentials: 'omit' }, res => {
+    const text = await networkRequest(`${url}?kind=provenance`, { credentials: 'omit' }, res => {
       if (!res.ok) throw new Error(String(res.status));
       return res.text();
     });
-    if (typeof csv !== 'string' || csv.length > MAX_SHEET_BYTES) {
-      return cached && cached.url === csvUrl && cached.index ? cached.index : null;
-    }
-    const rows = parseCsv(csv);
-    if (rows.length > MAX_SHEET_ROWS) {
-      return cached && cached.url === csvUrl && cached.index ? cached.index : null;
-    }
-    const index = indexRows(rows);
-    // The revision is a hash of the CSV, not a timestamp: the score cache fingerprints on it, and a
-    // refresh that changed nothing must not retire every cached score. Content scripts read only the
-    // small revision key, never the index itself.
-    await putSheetIndex(SHEET_CACHE_KEY, { t: Date.now(), url: csvUrl, index });
-    await chrome.storage.local.set({ sheetIndexRev: revisionOf(csv) });
-    return index;
+    if (typeof text !== 'string' || text.length > MAX_SHEET_BYTES) return fallback;
+    const body = JSON.parse(text);
+    const rows = body && body.ok ? body.provenance || [] : null;
+    const producerRows = body && body.ok ? body.producers || [] : null;
+    if (!tableOk(rows) || !tableOk(producerRows)) return fallback;
+    const value = { index: indexRows(rows), producers: indexProducers(producerRows) };
+    await putSheetIndex(PROVENANCE_CACHE_KEY, { t: Date.now(), url, value });
+    // Revisions are content hashes: the score cache fingerprints on them, and a refresh that changed
+    // nothing must not retire every cached score.
+    await chrome.storage.local.set({
+      sheetIndexRev: revisionOf(JSON.stringify(rows)),
+      producerIndexRev: revisionOf(JSON.stringify(producerRows)),
+    });
+    return value;
   } catch (e) {
-    return cached && cached.url === csvUrl && cached.index ? cached.index : null;   // stale beats nothing
+    return fallback;   // stale beats nothing
   }
 }
 
@@ -380,52 +387,11 @@ function lookupRecord(index, { asin, upc, brand }) {
   return null;
 }
 
-// Producer registry: brand -> certifications someone has confirmed against a certifier's own
-// directory. Live-scraping AGA/GAP/Certified Humane on every page view would be fragile, slow, and
-// would need a host permission per certifier — and those directories change slowly. Checking them
-// periodically by hand and recording the answer here is both more reliable and more honest about
-// where the fact came from.
-const PRODUCERS_CACHE_KEY = 'producerIndex';
-
-async function loadProducerIndex(force = false) {
-  const conf = await chrome.storage.local.get(['enabled', 'producersUrl']);
-  if (conf.enabled === false) return null;
-  const csvUrl = toCsvUrl(conf.producersUrl);
-  if (!csvUrl) return null;
-  const cached = await getSheetIndex(PRODUCERS_CACHE_KEY);
-  if (!force && cached && cached.url === csvUrl && Date.now() - cached.t < SHEET_TTL_MS) return cached.index;
-  try {
-    const csv = await networkRequest(csvUrl, { credentials: 'omit' }, res => {
-      if (!res.ok) throw new Error(String(res.status));
-      return res.text();
-    });
-    if (typeof csv !== 'string' || csv.length > MAX_SHEET_BYTES) {
-      return cached && cached.url === csvUrl && cached.index ? cached.index : null;
-    }
-    const rows = parseCsv(csv);
-    if (rows.length > MAX_SHEET_ROWS) {
-      return cached && cached.url === csvUrl && cached.index ? cached.index : null;
-    }
-    const head = (rows[0] || []).map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
-    const index = Object.create(null);
-    for (const r of rows.slice(1)) {
-      const rec = Object.create(null);
-      head.forEach((h, i) => { rec[h] = (r[i] || '').trim(); });
-      if (!rec.brand || !rec.certifications) continue;
-      index[rec.brand.toLowerCase()] = rec;
-    }
-    await putSheetIndex(PRODUCERS_CACHE_KEY, { t: Date.now(), url: csvUrl, index });
-    await chrome.storage.local.set({ producerIndexRev: revisionOf(csv) });
-    return index;
-  } catch (e) {
-    return cached && cached.url === csvUrl && cached.index ? cached.index : null;
-  }
-}
-
 async function contribute(payload) {
-  const conf = await chrome.storage.local.get(['enabled', 'contributeUrl', 'shareContributions']);
-  if (conf.enabled === false || conf.shareContributions !== true || !conf.contributeUrl) return { ok: false, reason: 'not-enabled' };
-  return postRecord(conf.contributeUrl, payload);
+  const conf = await chrome.storage.local.get(['enabled', 'shareContributions']);
+  const url = self.AIR.db.prefs.endpoint();
+  if (conf.enabled === false || conf.shareContributions !== true || !url) return { ok: false, reason: 'not-enabled' };
+  return postRecord(url, payload);
 }
 
 async function postRecord(url, payload) {
@@ -442,7 +408,7 @@ async function postRecord(url, payload) {
       body: JSON.stringify(payload),
     }, res => res.ok ? res.json() : null);
     const ok = receipt?.ok === true && receipt.wrote === 1;
-    return ok ? { ok: true, tab: receipt.tab } : { ok: false, reason: 'write-not-confirmed' };
+    return ok ? { ok: true, tab: receipt.tab, receipt } : { ok: false, reason: 'write-not-confirmed', receipt };
   } catch (e) {
     return { ok: false, reason: 'network' };
   }
@@ -501,8 +467,8 @@ function batchIdFor(queue) {
 }
 
 async function appendDiagnostic(record) {
-  const conf = await chrome.storage.local.get(['enabled', 'sendDiagnostics', 'contributeUrl', DIAG_KEY]);
-  if (conf.enabled === false || !conf.sendDiagnostics || !conf.contributeUrl) return { ok: false, reason: 'not-enabled' };
+  const conf = await chrome.storage.local.get(['enabled', 'sendDiagnostics', DIAG_KEY]);
+  if (conf.enabled === false || !conf.sendDiagnostics || !self.AIR.db.prefs.endpoint()) return { ok: false, reason: 'not-enabled' };
   if (!record || typeof record !== 'object') return { ok: false, reason: 'no-record' };
   const queue = [...(conf[DIAG_KEY] || []), ensureRowId(record)].slice(-DIAG_MAX);
   await chrome.storage.local.set({ [DIAG_KEY]: queue });
@@ -511,14 +477,11 @@ async function appendDiagnostic(record) {
 }
 
 async function sendDiagnostics() {
-  const conf = await chrome.storage.local.get(['enabled', 'sendDiagnostics', 'contributeUrl', DIAG_KEY]);
+  const conf = await chrome.storage.local.get(['enabled', 'sendDiagnostics', DIAG_KEY]);
   if (conf.enabled === false || !conf.sendDiagnostics) return { ok: false, reason: 'not-enabled' };
   const queue = (conf[DIAG_KEY] || []).map(ensureRowId);
-  if (!conf.contributeUrl || !queue.length) return { ok: false, reason: 'nothing-to-send' };
-  const safe = self.AIR && self.AIR.db && self.AIR.db.prefs
-    ? self.AIR.db.prefs.toScriptUrl(conf.contributeUrl)
-    : null;
-  if (!safe) return { ok: false, reason: 'bad-url' };
+  const safe = self.AIR.db.prefs.endpoint();
+  if (!safe || !queue.length) return { ok: false, reason: 'nothing-to-send' };
   // Upgrade old queued rows before sending, so their retry IDs survive a worker restart.
   await chrome.storage.local.set({ [DIAG_KEY]: queue });
   try {
@@ -538,81 +501,177 @@ async function sendDiagnostics() {
   }
 }
 
-// Scoring settings sync. The body is exportPayload only. Auto-save follows the syncSettings toggle;
-// Save / Load in options call these directly. A load writes the sanitized scoring keys back.
-const SETTINGS_SYNC_KEYS = ['weights', 'allergens', 'diets', 'avoidList', 'foodOnly'];
-let settingsSyncTimer = null;
-let suppressSettingsSync = 0;
+// ---------------------------------------------------------------- shared product cache
+//
+// docs/CACHE.md. Reads are one POST per search page (the tiles the device could not answer), with a
+// short in-memory memo so infinite scroll does not re-ask. Writes are a queue of upserts and pull
+// counts, flushed together after a quiet spell, when the batch fills, or on the housekeeping alarm,
+// so a results page does not POST once per tile.
 
-function noteSettingsStorageChange(changes) {
-  if (suppressSettingsSync || !changes) return;
-  if (!SETTINGS_SYNC_KEYS.some(key => changes[key])) return;
-  clearTimeout(settingsSyncTimer);
-  settingsSyncTimer = setTimeout(() => {
-    settingsSyncTimer = null;
-    if (suppressSettingsSync) return;
-    saveSettingsToEndpoint({ onlyIfEnabled: true }).catch(() => {});
-  }, 1200);
-}
-
-async function saveSettingsToEndpoint({ onlyIfEnabled = false } = {}) {
-  const conf = await chrome.storage.local.get([
-    'enabled', 'contributeUrl', 'syncSettings',
-    'weights', 'allergens', 'diets', 'avoidList', 'foodOnly',
-  ]);
-  if (conf.enabled === false) return { ok: false, reason: 'not-enabled' };
-  if (onlyIfEnabled && conf.syncSettings !== true) return { ok: false, reason: 'not-enabled' };
-  if (!conf.contributeUrl) return { ok: false, reason: 'no-endpoint' };
-  const result = await postRecord(conf.contributeUrl, self.AIR.db.prefs.settingsSaveBody(conf));
-  // An older web app appends unknown kinds onto contributions and still says wrote: 1.
-  if (result.ok && result.tab !== 'settings') return { ok: false, reason: 'write-not-confirmed' };
+const PRODUCTS_KEY = 'productsQueue';
+const PRODUCTS_BATCH = 25;
+const PRODUCTS_QUIET_MS = 15000;
+const LOOKUP_MAX = 100;
+const MEMO_MS = 10 * 60 * 1000;
+const MEMO_MAX = 5000;
+const lookupMemo = new Map();   // key -> { t, row | null }
+let productsWork = Promise.resolve();
+let productsTimer = null;
+// After a failed send, only the quiet timer and the alarm retry; otherwise every tile would POST.
+let productsBackoff = false;
+function serializeProducts(work) {
+  const result = productsWork.then(work);
+  productsWork = result.catch(() => {});
   return result;
 }
 
-async function commitLoadedSettings(prefs) {
-  suppressSettingsSync++;
-  try {
-    await chrome.storage.local.set(prefs);
-  } finally {
-    setTimeout(() => { suppressSettingsSync = Math.max(0, suppressSettingsSync - 1); }, 1600);
+// -> { rows: { ASIN: row } } of fresh shared rows for this store.
+async function productsLookup(store, asins) {
+  const C = self.AIR.db.productCache;
+  const rows = {};
+  const url = await sharedEndpoint();
+  if (!url || !Array.isArray(asins)) return { rows };
+  const now = Date.now();
+  const ask = [];
+  for (const asin of asins.slice(0, LOOKUP_MAX)) {
+    const k = C.key(store, asin);
+    const memo = lookupMemo.get(k);
+    if (memo && now - memo.t < MEMO_MS) { if (memo.row && !C.stale(memo.row)) rows[memo.row.asin] = memo.row; }
+    else ask.push(k);
   }
-  return { ok: true, prefs };
+  if (!ask.length) return { rows };
+  try {
+    const body = await networkRequest(url, {
+      method: 'POST', credentials: 'omit',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ kind: 'lookup', keys: ask }),
+    }, res => res.ok ? res.json() : null);
+    if (!body || body.ok !== true || !Array.isArray(body.rows)) return { rows };
+    if (lookupMemo.size > MEMO_MAX) lookupMemo.clear();
+    const found = new Map();
+    for (const raw of body.rows) {
+      const row = C.sanitize(raw);
+      if (row && ask.includes(row.key)) found.set(row.key, row);
+    }
+    for (const k of ask) {
+      const row = found.get(k) || null;
+      lookupMemo.set(k, { t: now, row });
+      if (row && !C.stale(row)) rows[row.asin] = row;
+    }
+  } catch (e) { /* offline: the device cache and live scoring carry on */ }
+  return { rows };
 }
 
-async function loadSettingsFromSheet() {
-  const conf = await chrome.storage.local.get(['enabled', 'sheetUrl', 'contributeUrl']);
-  if (conf.enabled === false) return { ok: false, reason: 'not-enabled' };
-  const prefsApi = self.AIR.db.prefs;
-  let lastReason = 'no-settings';
-  const csvUrl = prefsApi.toSettingsSheetUrl(conf);
-  if (csvUrl) {
-    try {
-      const csv = await networkRequest(csvUrl, { credentials: 'omit' }, res => {
-        if (res.status === 401 || res.status === 403) throw new Error('sheet-private');
-        if (!res.ok) throw new Error(String(res.status));
-        return res.text();
-      });
-      if (typeof csv !== 'string' || csv.length > 500000) throw new Error('too-large');
-      const parsed = prefsApi.parseSettingsExport(csv);
-      if (parsed.ok) return commitLoadedSettings(parsed.prefs);
-      lastReason = parsed.reason || 'no-settings';
-    } catch (e) {
-      lastReason = e && e.message === 'sheet-private' ? 'sheet-private' : 'network';
-    }
-  }
-  const script = prefsApi.toScriptUrl(conf.contributeUrl || '');
-  if (!script) return { ok: false, reason: lastReason };
+function queueProducts(msg) {
+  return serializeProducts(async () => {
+    if (!await sharedEndpoint()) return { ok: false, reason: 'not-enabled' };
+    const C = self.AIR.db.productCache;
+    const conf = await chrome.storage.local.get(PRODUCTS_KEY);
+    const queue = C.mergeQueue(conf[PRODUCTS_KEY], msg);
+    await chrome.storage.local.set({ [PRODUCTS_KEY]: queue });
+    // A row this device just uploaded is the freshest answer for it; no need to ask again.
+    for (const row of Object.values(queue.upserts)) lookupMemo.set(row.key, { t: Date.now(), row });
+    const queued = C.queueSize(queue);
+    clearTimeout(productsTimer);
+    if (queued >= PRODUCTS_BATCH && !productsBackoff) return sendProducts();
+    productsTimer = setTimeout(() => { flushProducts().catch(() => {}); }, PRODUCTS_QUIET_MS);
+    return { ok: true, queued };
+  });
+}
+
+function flushProducts() {
+  return serializeProducts(() => sendProducts());
+}
+
+async function sendProducts() {
+  const url = await sharedEndpoint();
+  if (!url) return { ok: false, reason: 'not-enabled' };
+  const C = self.AIR.db.productCache;
+  const conf = await chrome.storage.local.get(PRODUCTS_KEY);
+  const queue = { upserts: {}, pulls: {}, ...conf[PRODUCTS_KEY] };
+  // The receiver takes at most 300 items per POST; the queue can hold 300 of each.
+  const upserts = Object.keys(queue.upserts).slice(0, 150);
+  const pulls = Object.keys(queue.pulls).slice(0, 150);
+  if (!upserts.length && !pulls.length) return { ok: false, reason: 'nothing-to-send' };
+  const result = await postRecord(url, {
+    kind: 'products',
+    upserts: upserts.map(k => queue.upserts[k]),
+    pulls: pulls.map(key => ({ key, scanned_at: queue.pulls[key].scanned_at, n: queue.pulls[key].n })),
+  });
+  // An older web app appends unknown kinds onto contributions and still says wrote: 1.
+  const confirmed = result.ok && result.tab === C.TAB;
+  productsBackoff = !confirmed;
+  if (!confirmed) return { ok: false, reason: result.reason || 'write-not-confirmed', queued: C.queueSize(queue) };
+  upserts.forEach(k => delete queue.upserts[k]);
+  pulls.forEach(k => delete queue.pulls[k]);
+  const left = C.queueSize(queue);
+  if (left) await chrome.storage.local.set({ [PRODUCTS_KEY]: queue });
+  else await chrome.storage.local.remove([PRODUCTS_KEY]);
+  return { ok: true, sent: upserts.length + pulls.length, queued: left };
+}
+
+// ---------------------------------------------------------------- settings online
+//
+// docs/SETTINGS-SYNC.md. Local settings are always the ones in force. Two copies can live online,
+// and neither is ever applied without the user clicking Restore:
+//   - the Chrome account (chrome.storage.sync), refreshed after every change while `settingsBackup`
+//     is on — no setup, private to that account, works offline until Chrome syncs
+//   - the user's own row on the shared sheet, keyed by a hash of their Google account id, written
+//     and read only through the optional Google sign-in (the options page supplies the token)
+
+const BACKUP_SOURCE_KEYS = ['weights', 'allergens', 'diets', 'avoidList', 'foodOnly',
+  ...Object.keys(self.AIR.db.prefs.TOGGLE_DEFAULTS)];
+let backupTimer = null;
+
+function noteBackupChange(changes) {
+  if (!changes || !BACKUP_SOURCE_KEYS.some(key => changes[key])) return;
+  clearTimeout(backupTimer);
+  // Debounced: a slider drag is dozens of writes, and chrome.storage.sync allows 120 a minute.
+  backupTimer = setTimeout(() => { backupTimer = null; backupToChrome().catch(() => {}); }, 2000);
+}
+
+async function backupToChrome() {
+  if (!chrome.storage.sync) return { ok: false, reason: 'no-sync' };
+  const conf = await chrome.storage.local.get(BACKUP_SOURCE_KEYS);
+  if (conf.settingsBackup === false) return { ok: false, reason: 'not-enabled' };
+  const P = self.AIR.db.prefs;
+  await chrome.storage.sync.set(P.toSyncItems(P.backupPayload(conf)));
+  return { ok: true };
+}
+
+// The options page hands over an OAuth access token; the web app verifies it with Google and
+// keys the row by a hash of the account id. The token is never stored.
+async function accountRequest(kind, token, payload) {
+  const url = self.AIR.db.prefs.endpoint();
+  if (!url) return { ok: false, reason: 'no-endpoint' };
+  if (typeof token !== 'string' || !/^[\w.~+/-]{20,4096}={0,2}$/.test(token)) return { ok: false, reason: 'no-token' };
   try {
-    const body = await networkRequest(`${script}?kind=settings`, { credentials: 'omit' }, res => {
-      if (!res.ok) throw new Error(String(res.status));
-      return res.json();
-    });
-    const parsed = prefsApi.parseSettingsExport(body);
-    if (!parsed.ok) return { ok: false, reason: parsed.reason || 'no-settings' };
-    return commitLoadedSettings(parsed.prefs);
+    const body = await networkRequest(url, {
+      method: 'POST', credentials: 'omit',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ kind, token, ...(payload ? { payload } : {}) }),
+    }, res => res.ok ? res.json() : null);
+    return body || { ok: false, reason: 'network' };
   } catch (e) {
     return { ok: false, reason: 'network' };
   }
+}
+
+async function accountSave(token) {
+  const P = self.AIR.db.prefs;
+  const conf = await chrome.storage.local.get(BACKUP_SOURCE_KEYS);
+  const res = await accountRequest('account', token, P.backupPayload(conf));
+  return res.ok === true && res.tab === 'accounts' ? { ok: true } : { ok: false, reason: res.reason || res.error || 'write-not-confirmed' };
+}
+
+async function accountLoad(token) {
+  const res = await accountRequest('accountGet', token);
+  if (res.ok !== true) return { ok: false, reason: res.reason || res.error || 'network' };
+  if (!res.payload) return { ok: false, reason: 'no-backup' };
+  const parsed = self.AIR.db.prefs.parseBackup(res.payload);
+  if (!parsed.ok) return parsed;
+  await chrome.storage.local.set(parsed.values);
+  return { ok: true, ts: parsed.ts };
 }
 
 function handleSharedDbMessage(msg, reply) {
@@ -625,15 +684,17 @@ function handleSharedDbMessage(msg, reply) {
     return true;
   }
   if (msg.type === 'diagnosticsStatus') {
-    chrome.storage.local.get([DIAG_KEY, 'sendDiagnostics', 'contributeUrl'], o => reply({
+    chrome.storage.local.get([DIAG_KEY, 'sendDiagnostics'], o => reply({
       queued: (o[DIAG_KEY] || []).length,
       enabled: o.sendDiagnostics === true,
-      configured: !!o.contributeUrl,
+      configured: !!self.AIR.db.prefs.endpoint(),
     }));
     return true;
   }
   if (msg.type === 'provenanceLookup') {
-    Promise.all([loadSheetIndex(), loadProducerIndex()]).then(([index, producers]) => {
+    loadProvenance().then(value => {
+      const index = value && value.index;
+      const producers = value && value.producers;
       const record = lookupRecord(index, msg.key || {});
       const brand = (msg.key && msg.key.brand || '').toLowerCase();
       const producer = producers && brand && Object.hasOwn(producers, brand) ? producers[brand] : null;
@@ -645,17 +706,16 @@ function handleSharedDbMessage(msg, reply) {
   // A report is a deliberate click, so it is sent whenever an endpoint is configured — unlike
   // passive contribution, which additionally requires the sharing box to be ticked.
   if (msg.type === 'report') {
-    chrome.storage.local.get('contributeUrl', async conf => {
-      if (!conf.contributeUrl) { reply({ ok: false, reason: 'no-endpoint' }); return; }
-      reply(await postRecord(conf.contributeUrl, { ...msg.payload, kind: 'report' }));
-    });
+    const url = self.AIR.db.prefs.endpoint();
+    if (!url) { reply({ ok: false, reason: 'no-endpoint' }); return false; }
+    postRecord(url, { ...msg.payload, kind: 'report' }).then(reply);
     return true;
   }
   if (msg.type === 'refreshSheet') {
-    Promise.all([loadSheetIndex(true), loadProducerIndex(true)]).then(([index, producers]) => reply({
-      ok: !!(index || producers),
-      count: index ? index.count : 0,
-      producers: producers ? Object.keys(producers).length : 0,
+    loadProvenance(true).then(value => reply({
+      ok: !!value,
+      count: value ? value.index.count : 0,
+      producers: value ? Object.keys(value.producers).length : 0,
     }));
     return true;
   }
@@ -663,17 +723,25 @@ function handleSharedDbMessage(msg, reply) {
     contribute(msg.payload).then(reply);
     return true;
   }
-  if (msg.type === 'saveSettings') {
-    saveSettingsToEndpoint().then(reply);
+  if (msg.type === 'productsLookup') {
+    productsLookup(String(msg.store || ''), msg.asins).then(reply, () => reply({ rows: {} }));
     return true;
   }
-  if (msg.type === 'loadSettings') {
-    loadSettingsFromSheet().then(reply);
+  if (msg.type === 'productsQueue') {
+    queueProducts(msg).then(reply, () => reply({ ok: false }));
+    return true;
+  }
+  if (msg.type === 'accountSave') {
+    accountSave(msg.token).then(reply, () => reply({ ok: false }));
+    return true;
+  }
+  if (msg.type === 'accountLoad') {
+    accountLoad(msg.token).then(reply, () => reply({ ok: false }));
     return true;
   }
   return false;
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { toCsvUrl, parseCsv, indexRows, lookupRecord, sweepCache, isOpenFoodFactsFood, batchIdFor, revisionOf, ensureHousekeepingAlarm, allowMessage, isOwnExtension, isAmazonTabSender, isSettingsSender, isOffscreenSender, allowedOcrUrls, MAX_SHEET_BYTES, MAX_SHEET_ROWS };
+  module.exports = { indexRows, lookupRecord, sweepCache, isOpenFoodFactsFood, batchIdFor, revisionOf, ensureHousekeepingAlarm, allowMessage, isOwnExtension, isAmazonTabSender, isSettingsSender, isOffscreenSender, allowedOcrUrls, MAX_SHEET_BYTES, MAX_SHEET_ROWS };
 }

@@ -268,6 +268,16 @@
   function renderLoading(meta) {
     const ocr = !!(meta && meta.ocr);
     const slow = !!(meta && meta.slow);
+    if (meta && meta.cache) {
+      return `
+    <style>${CSS}</style>
+    <div class="card" style="--fg:#565959;--bg:#f7f8f8;--ring:#d5d9d9">
+      <div class="fail loading" role="status" aria-live="polite">
+        <b>${esc(t('loadingCacheTitle', 'Looking for a saved reading…'))}</b>
+        ${esc(t('loadingCacheBody', "Amazon didn't publish the ingredients as text. Checking whether this product was already read, here or in the shared database."))}
+      </div>
+    </div>`;
+    }
     const title = ocr
       ? (slow
         ? t('loadingOcrSlowTitle', 'Still reading the label…')
