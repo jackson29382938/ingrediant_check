@@ -51,6 +51,7 @@
       return false;
     }
     host.dataset.airState = 'scored';
+    delete host.dataset.airCheck;
     state.lastTextSig = (meta && meta.textSig != null) ? meta.textSig : (ingredientSig() || data.text || '');
     state.failedExtracts = 0;
     // Do not settle('scored') — keep watching for late ingredient hydration.
@@ -60,7 +61,7 @@
       via: meta.via,
       provenanceSource: meta.provenanceSource,
     }), meta.report === false ? null : reporter(data, result));
-    cacheScore(key, result, meta.cacheName || data.title, meta.via, meta.provenanceSource);
+    cacheScore(key, result, meta.cacheName || data.title, meta.via, meta.provenanceSource, meta.t);
     if (meta.input && meta.via !== 'manual-paste' && meta.via !== 'food-override') {
       P().rememberProduct(key, { input: meta.input, via: meta.via, confidence: meta.confidence,
         food: !(data.ingestible && data.ingestible.ok === false) });
@@ -146,53 +147,19 @@
 
     if (!data.ok) {
       if (host.dataset.airState === 'fail') return;
-      if (host.dataset.airState === 'loading' && !data.upc) return;
+      // A cache check in flight holds 'loading' too; a barcode must not start Open Food Facts under it.
+      if (host.dataset.airState === 'loading' && (!data.upc || host.dataset.airCheck)) return;
       cache(key, null);
-      if (data.upc) {
-        const conf = state.cacheOptions || {};
-        if (conf.useOpenFoodFacts !== true) {
-          showFailure(host, data, key);
-          return;
-        }
-        const requestId = ++state.requestId;
-        host.dataset.airState = 'loading';
-        root.AIR.panel.mount(host, root.AIR.panel.renderLoading(data));
-        chrome.runtime.sendMessage({ type: 'lookupBarcode', code: data.upc, foodOnly: state.foodOnly }, fallback => {
-          const messageError = chrome.runtime.lastError;
-          if (requestId !== state.requestId || state.lastKey !== key || !host.isConnected) return;
-          if (fallback && fallback.rejected === 'not-food') {
-            host.dataset.airState = 'not-food';
-            P().publishActionBadge({ status: 'not-food' });
-            const shadow = root.AIR.panel.mount(host, root.AIR.panel.renderNotFood({
-              ...data,
-              ingestible: { ok: false, reason: fallback.reason || 'Open Food Facts lists this as a non-food product' },
-            }));
-            wireScoreAnyway(shadow, host, data, key);
-            return;
-          }
-          if (messageError || !fallback || !fallback.ingredients_text) {
-            showFailure(host, { ...data, lookupAttempted: true }, key);
-            return;
-          }
-          const input = {
-            name: fallback.name || data.title,
-            labels: `${data.labels || ''} ${fallback.labels || ''}`,
-            ingredients_text: fallback.ingredients_text,
-          };
-          const result = root.AIR.engine.score(input, state.prefs);
-          presentResult(host, data, key, result, {
-            input,
-            title: data.title || fallback.name,
-            confidence: 0.55,
-            via: 'open-food-facts',
-            text: fallback.ingredients_text,
-            cacheName: data.title || fallback.name,
-            textSig: fallback.ingredients_text.slice(0, 320),
-          });
-        });
+      // Someone may already have read this product — on this computer, or on another one through
+      // the shared cache (a label photo read by OCR, a barcode match). Ask before spending a network
+      // lookup or seconds of OCR on it. Once per panel: a new panel (navigation, a weight change)
+      // asks again, and a local hit then answers instantly.
+      if (!host.dataset.airCacheTried && /^[A-Z0-9]{10}$/.test(key)) {
+        host.dataset.airCacheTried = '1';
+        fromCache(host, data, key, () => unreadablePage(host, data, key));
         return;
       }
-      showFailure(host, data, key);
+      unreadablePage(host, data, key);
       return;
     }
 
@@ -212,6 +179,99 @@
     })) return;
 
     if (result.provenance) enrichProvenance(host, data, key, result, requestId);
+  }
+
+  // The page published no readable ingredients: Open Food Facts when a barcode and the toggle allow
+  // it, otherwise the failure card (which tries the label photo when that is on).
+  function unreadablePage(host, data, key) {
+    const { state } = P();
+    if (data.upc) {
+      const conf = state.cacheOptions || {};
+      if (conf.useOpenFoodFacts !== true) {
+        showFailure(host, data, key);
+        return;
+      }
+      const requestId = ++state.requestId;
+      host.dataset.airState = 'loading';
+      root.AIR.panel.mount(host, root.AIR.panel.renderLoading(data));
+      chrome.runtime.sendMessage({ type: 'lookupBarcode', code: data.upc, foodOnly: state.foodOnly }, fallback => {
+        const messageError = chrome.runtime.lastError;
+        if (requestId !== state.requestId || state.lastKey !== key || !host.isConnected) return;
+        if (fallback && fallback.rejected === 'not-food') {
+          host.dataset.airState = 'not-food';
+          P().publishActionBadge({ status: 'not-food' });
+          const shadow = root.AIR.panel.mount(host, root.AIR.panel.renderNotFood({
+            ...data,
+            ingestible: { ok: false, reason: fallback.reason || 'Open Food Facts lists this as a non-food product' },
+          }));
+          wireScoreAnyway(shadow, host, data, key);
+          return;
+        }
+        if (messageError || !fallback || !fallback.ingredients_text) {
+          showFailure(host, { ...data, lookupAttempted: true }, key);
+          return;
+        }
+        const input = {
+          name: fallback.name || data.title,
+          labels: `${data.labels || ''} ${fallback.labels || ''}`,
+          ingredients_text: fallback.ingredients_text,
+        };
+        const result = root.AIR.engine.score(input, state.prefs);
+        presentResult(host, data, key, result, {
+          input,
+          title: data.title || fallback.name,
+          confidence: 0.55,
+          via: 'open-food-facts',
+          text: fallback.ingredients_text,
+          cacheName: data.title || fallback.name,
+          textSig: fallback.ingredients_text.slice(0, 320),
+        });
+      });
+      return;
+    }
+    showFailure(host, data, key);
+  }
+
+  // A saved reading of this product, from this computer (p:) or the shared products tab. Only an
+  // 'ok' row with text helps here — an 'unreadable' row says what this page already said.
+  function fromCache(host, data, key, next) {
+    const { state, storeHost, rememberProduct } = P();
+    const C = root.AIR.db.productCache;
+    const requestId = ++state.requestId;
+    const live = () => requestId === state.requestId && state.lastKey === key && host.isConnected;
+    const done = () => { delete host.dataset.airCheck; host.dataset.airState = ''; };
+    host.dataset.airState = 'loading';
+    host.dataset.airCheck = '1';
+    root.AIR.panel.mount(host, root.AIR.panel.renderLoading({ ...data, cache: true }));
+    const use = (row, shared) => {
+      done();
+      const result = root.AIR.engine.score(C.toInput(row), state.prefs);
+      if (!presentResult(host, data, key, result, {
+        title: data.title || row.data.title, confidence: row.data.confidence, via: row.data.via,
+        text: row.data.text, textSig: row.data.text.slice(0, 320), t: Date.parse(row.scanned_at),
+      })) return;
+      if (!shared) return;
+      rememberProduct(key, row, { share: false });
+      try {
+        chrome.runtime.sendMessage({ type: 'productsQueue', pulls: [{ key: row.key, scanned_at: row.scanned_at }] },
+          () => void chrome.runtime.lastError);
+      } catch (e) { /* context invalidated */ }
+    };
+    const miss = () => { done(); next(); };
+    const localKey = C.localKey(storeHost(), key);
+    chrome.storage.local.get(localKey, obj => {
+      if (!live()) return;
+      const local = C.sanitize(obj && obj[localKey]);
+      if (local && local.status === 'ok' && !C.stale(local)) { use(local, false); return; }
+      try {
+        chrome.runtime.sendMessage({ type: 'productsLookup', store: storeHost(), asins: [key] }, reply => {
+          void chrome.runtime.lastError;
+          if (!live()) return;
+          const row = C.sanitize(reply && reply.rows && reply.rows[key]);
+          if (row && row.status === 'ok') use(row, true); else miss();
+        });
+      } catch (e) { miss(); }
+    });
   }
 
   function enrichProvenance(host, data, key, first, requestId) {

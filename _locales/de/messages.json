@@ -541,5 +541,11 @@
   },
   "optRestored": {
     "message": "Wiederhergestellt"
+  },
+  "loadingCacheTitle": {
+    "message": "Suche nach einer gespeicherten Lesung…"
+  },
+  "loadingCacheBody": {
+    "message": "Amazon hat die Zutaten nicht als Text veröffentlicht. Es wird geprüft, ob dieses Produkt schon gelesen wurde – hier oder in der gemeinsamen Datenbank."
   }
 }

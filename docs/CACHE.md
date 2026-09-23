@@ -25,8 +25,10 @@ A search tile stops at the first source that can answer it:
 3. **The shared `products` tab**, one request for every tile the first two could not answer.
 4. **Amazon** — auto-score or hover, as before. The result is kept locally and uploaded.
 
-The product page always reads its own DOM, which costs no request, and still records what it read.
-Pasted lists and "Score anyway" overrides never leave the tab.
+The product page reads its own DOM first, which costs no request, and records what it read. When
+Amazon published no ingredient text there, it asks this computer's `p:` entry and then the shared
+tab before spending an Open Food Facts lookup or seconds of label OCR — someone may already have
+read that label. Pasted lists and "Score anyway" overrides never leave the tab.
 
 ## Stale and rescan
 

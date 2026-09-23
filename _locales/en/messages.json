@@ -559,5 +559,11 @@
   },
   "optRestored": {
     "message": "Restored"
+  },
+  "loadingCacheTitle": {
+    "message": "Looking for a saved reading…"
+  },
+  "loadingCacheBody": {
+    "message": "Amazon didn't publish the ingredients as text. Checking whether this product was already read, here or in the shared database."
   }
 }

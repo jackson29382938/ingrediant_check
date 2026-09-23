@@ -63,7 +63,9 @@ function setup() {
     },
     fetch: (url, options) => new Promise(resolve => fetches.push({ url, options, resolve })),
     chrome: {
-      runtime: { getManifest: () => ({ version: '0.9.0' }), sendMessage(m) { messages.push(m); } },
+      // The worker answers a product lookup with no rows unless a test says otherwise.
+      runtime: { getManifest: () => ({ version: '0.9.0' }),
+        sendMessage(m, cb) { messages.push(m); if (m.type === 'productsLookup' && cb) cb({ rows: {} }); } },
       i18n: { getMessage: () => '' },
       storage: { local: { get(keys, cb) {
         // Defer boot; selected preference reads happen after the script initializes.
@@ -76,6 +78,7 @@ function setup() {
       db: {
         scoreCache: require('../src/engine/db/score-cache.js'),
         prefs: require('../src/engine/db/prefs.js'),
+        productCache: require('../src/engine/db/product-cache.js'),
       },
       extract: {
         extract: () => ({ ok: true, title: 'Oats', text: 'oats' }),
@@ -84,6 +87,7 @@ function setup() {
       engine: { score: (input, prefs) => ({ score: 90, verdict: 'Excellent', nova: 1, input, prefs }) },
       panel: { BAND_COLOR: () => ({ fg: '', bg: '', ring: '' }),
         renderFailure: m => { failMeta = m; return 'failure'; },
+        renderLoading: () => 'loading',
         render: r => { rendered.push(r); return r; },
         mount: (h, r, report, paste) => { if (paste) pasted = paste; } },
     },
@@ -332,4 +336,30 @@ test('a live tile read is kept locally and queued for the shared cache', async (
   assert.equal(kept.data.text, 'oats');
   const up = w.messages.find(m => m.type === 'productsQueue' && m.upserts);
   assert.equal(up.upserts[0].key, 'amazon.com:B000000001');
+});
+
+test('an unreadable product page is answered by a saved reading before OCR or the paste box', () => {
+  const row = cachedRow('B000000001', { via: 'label-ocr', input: { name: 'Kefir', ingredients_text: 'cultured milk, cane sugar' } });
+  const w = cacheSetup({ local: { [PC.localKey('amazon.com', 'B000000001')]: { ...row, t: Date.parse(row.scanned_at) } } });
+  w.h.state.ocrLabels = true;
+  w.context.AIR.extract.extract = () => ({ ok: false, title: 'Kefir', asin: 'B000000001' });
+  w.h.scoreCurrentPage();
+  assert.equal(w.host.dataset.airState, 'scored');
+  assert.equal(w.rendered.at(-1).input.ingredients_text, 'cultured milk, cane sugar');
+  assert.equal(w.messages.filter(m => m.type === 'ocrLabels' || m.type === 'productsLookup').length, 0, 'no OCR, no network');
+});
+test('a shared reading answers an unreadable page and counts a pull; a miss falls through to OCR', () => {
+  const w = cacheSetup({ shared: { B000000001: cachedRow('B000000001', { via: 'label-ocr' }) } });
+  w.context.AIR.extract.extract = () => ({ ok: false, title: 'Oats', asin: 'B000000001' });
+  w.h.scoreCurrentPage();
+  assert.equal(w.host.dataset.airState, 'scored');
+  assert.ok(w.writes.some(x => x['p:amazon.com:B000000001']));
+  assert.equal(w.messages.find(m => m.type === 'productsQueue').pulls[0].key, 'amazon.com:B000000001');
+  const miss = cacheSetup();
+  miss.h.state.ocrLabels = true;
+  miss.context.AIR.db.ocrText = { imageCandidates: () => ['https://m.media-amazon.com/images/I/label._SL1600_.jpg'] };
+  miss.context.AIR.extract.extract = () => ({ ok: false, title: 'Oats', asin: 'B000000001' });
+  miss.h.scoreCurrentPage();
+  assert.equal(miss.lookups.length, 1);
+  assert.ok(miss.messages.some(m => m.type === 'ocrLabels'), 'nothing saved anywhere: read the label');
 });
