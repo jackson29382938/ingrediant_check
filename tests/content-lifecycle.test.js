@@ -264,3 +264,72 @@ test('manual scores are available to this tab but never stored as search scores'
   w.h.state.prefs.weights = { sugar: 2 };
   assert.equal(w.h.usableCache(entry, 'B000000001'), false);
 });
+
+// ---------------------------------------------------------------- product cache (docs/CACHE.md)
+const PC = require('../src/engine/db/product-cache.js');
+function cacheSetup({ local = {}, shared = {} } = {}) {
+  const w = setup();
+  const c = w.context;
+  c.AIR.db.productCache = PC;
+  w.lookups = [];
+  c.chrome.storage.local.get = (keys, cb) => cb(Object.fromEntries([].concat(keys).filter(k => k in local).map(k => [k, local[k]])));
+  c.chrome.storage.local.set = v => { w.writes.push(v); return Promise.resolve(); };
+  c.chrome.runtime.sendMessage = (m, cb) => {
+    w.messages.push(m);
+    if (m.type === 'productsLookup') { w.lookups.push(m); cb({ rows: shared }); }
+  };
+  c.DOMParser = class { parseFromString() { return { querySelector: () => ({}) }; } };
+  return w;
+}
+const cachedRow = (asin, over = {}) => PC.fromScan({ store: 'amazon.com', asin, input: { name: 'Oats', ingredients_text: 'oats' },
+  via: 'nic-ingredients-content', t: Date.now() - 1000, ...over });
+const tileFor = (w, asin) => {
+  const own = [];
+  const title = { innerText: 'Oats', insertBefore(b) { own.push(b); w.badges.push(b); } };
+  return { isConnected: true, getAttribute: () => asin, querySelector: s => (s === '.air-badge' ? own[0] : title) };
+};
+
+test('a tile answered by product data on this computer needs no lookup and no Amazon fetch', () => {
+  const row = cachedRow('B000000001');
+  const w = cacheSetup({ local: { [PC.localKey('amazon.com', 'B000000001')]: { ...row, t: Date.parse(row.scanned_at) } } });
+  const missed = [];
+  w.context.AIR.search.resolveTiles([{ tile: w.tile, asin: 'B000000001' }], it => missed.push(it));
+  assert.equal(w.badges.length, 1);
+  assert.equal(w.lookups.length, 0);
+  assert.equal(missed.length, 0);
+  assert.equal(w.fetches.length, 0);
+  const score = w.writes.map(x => x['s:amazon.com:B000000001']).find(Boolean);
+  assert.equal(score.t, Date.parse(row.scanned_at), 'the score expires with the reading it came from');
+});
+test('local misses go to the shared cache in one lookup, count a pull, and are kept locally', () => {
+  const w = cacheSetup({ shared: { B000000002: cachedRow('B000000002') } });
+  const tiles = ['B000000002', 'B000000003'].map(a => ({ tile: tileFor(w, a), asin: a }));
+  const missed = [];
+  w.context.AIR.search.resolveTiles(tiles, it => missed.push(it.asin));
+  assert.equal(w.lookups.length, 1);
+  assert.deepEqual([...w.lookups[0].asins], ['B000000002', 'B000000003']);
+  assert.deepEqual(missed, ['B000000003']);
+  assert.ok(w.writes.some(x => x['p:amazon.com:B000000002']), 'the shared row is kept on this computer');
+  const queued = w.messages.filter(m => m.type === 'productsQueue');
+  assert.equal(queued.length, 1);
+  assert.equal(queued[0].pulls[0].key, 'amazon.com:B000000002');
+  assert.equal(queued[0].upserts, undefined, 'a row that came from the shared cache is not uploaded back');
+});
+test('with the food gate on, a not-food row paints nothing and fetches nothing', () => {
+  const w = cacheSetup({ shared: { B000000004: cachedRow('B000000004', { status: 'not-food', input: { name: 'Shampoo' }, food: false }) } });
+  w.h.state.foodOnly = true;
+  const missed = [];
+  w.context.AIR.search.resolveTiles([{ tile: tileFor(w, 'B000000004'), asin: 'B000000004' }], it => missed.push(it));
+  assert.equal(w.badges.length, 0);
+  assert.equal(missed.length, 0);
+});
+test('a live tile read is kept locally and queued for the shared cache', async () => {
+  const w = cacheSetup();
+  const run = w.h.scoreTile(w.tile, 'B000000001', w.h.queue.epoch, w.context.location.href);
+  w.fetches[0].resolve({ ok: true, text: async () => '<html></html>' });
+  await run;
+  const kept = w.writes.map(x => x['p:amazon.com:B000000001']).find(Boolean);
+  assert.equal(kept.data.text, 'oats');
+  const up = w.messages.find(m => m.type === 'productsQueue' && m.upserts);
+  assert.equal(up.upserts[0].key, 'amazon.com:B000000001');
+});

@@ -60,43 +60,69 @@
     cancelTileWork();
   }
 
-  // Local miss -> shared ratings_cache. A row counts only if it was scored by this engine version
-  // with these settings; the fingerprint depends on the row's source, so match per row.
-  // done(hits) gets { asin: entry } for rows painted from the shared cache.
-  function sharedLookup(asins, done) {
-    const { state, cachePrefs, usableCache, storeHost, ENGINE_VERSION, CACHE } = P();
-    const R = root.AIR.db.ratingsCache;
-    if (!R || !asins.length) { done({}); return; }
+  // A cached product row -> what the tile shows (docs/CACHE.md). The row is weight-independent, so
+  // it is scored here under this reader's settings. Returns false when the row cannot answer for
+  // this reader: a not-food row carries no text, so with the food gate off it must be read live.
+  function applyRow(tile, asin, row) {
+    const { state, unreadable, cacheScore } = P();
+    if (state.foodOnly && (row.status === 'not-food' || row.data.food === false)) {
+      tile.querySelector('.air-badge')?.remove();
+      return true;
+    }
+    if (row.status === 'not-food') return false;
+    if (row.status === 'unreadable') { paintBadge(tile, 'unreadable'); return true; }
+    const result = root.AIR.engine.score(root.AIR.db.productCache.toInput(row), state.prefs);
+    if (unreadable(result)) { paintBadge(tile, 'unreadable'); return true; }
+    paintBadge(tile, result);
+    cacheScore(asin, result, row.data.title, row.data.via || 'search-tile', '', Date.parse(row.scanned_at));
+    return true;
+  }
+
+  // Cheapest answer first: this computer's weighted score, then this computer's product data (a
+  // weight change lands here), then the shared products tab. Whatever is left goes to onMiss. One
+  // storage read and at most one worker request per call, however many tiles.
+  function resolveTiles(items, onMiss) {
+    const { state, cacheKey, usableCache, storeHost, rememberProduct } = P();
+    const C = root.AIR.db.productCache;
+    if (!items.length) return;
     const epoch = queue.epoch;
-    try {
-      chrome.runtime.sendMessage({ type: 'ratingsLookup', store: storeHost(), asins }, reply => {
-        void chrome.runtime.lastError;
-        const hits = {};
-        if (epoch !== queue.epoch || !state.enabled || !state.badges) { done(hits); return; }
-        const picked = [];
-        for (const asin of asins) {
-          let best = null;
-          for (const row of (reply && reply.rows && reply.rows[asin]) || []) {
-            const fp = CACHE.fingerprint(cachePrefs(), row.source);
-            if (row.prefs !== R.prefsHash(ENGINE_VERSION, fp)) continue;
-            const entry = R.toEntry(row, fp, { schema: CACHE.SCHEMA, version: ENGINE_VERSION });
-            if (usableCache(entry, asin) && (!best || best.entry.t < entry.t)) best = { row, entry };
+    const live = () => epoch === queue.epoch && state.enabled && state.badges;
+    const localKey = asin => C.localKey(storeHost(), asin);
+    chrome.storage.local.get(items.flatMap(({ asin }) => [cacheKey(asin), localKey(asin)]), obj => {
+      if (!live()) return;
+      const misses = [];
+      for (const it of items) {
+        if (!it.tile.isConnected) continue;
+        const hit = obj[cacheKey(it.asin)];
+        if (usableCache(hit, it.asin)) { paintBadge(it.tile, hit); queue.seen.add(it.asin); continue; }
+        const local = C.sanitize(obj[localKey(it.asin)]);
+        if (local && !C.stale(local) && applyRow(it.tile, it.asin, local)) { queue.seen.add(it.asin); continue; }
+        misses.push(it);
+      }
+      if (!misses.length) return;
+      try {
+        chrome.runtime.sendMessage({ type: 'productsLookup', store: storeHost(), asins: misses.map(m => m.asin) }, reply => {
+          void chrome.runtime.lastError;
+          if (!live()) return;
+          const rows = (reply && reply.rows) || {};
+          const pulls = [];
+          for (const it of misses) {
+            if (!it.tile.isConnected || it.tile.querySelector('.air-badge')) continue;
+            const row = C.sanitize(rows[it.asin]);
+            if (!row || !applyRow(it.tile, it.asin, row)) { if (onMiss) onMiss(it); continue; }
+            rememberProduct(it.asin, row, { share: false });
+            // Both the badge pass and the auto-score observer resolve a tile; count one pull per view.
+            if (!queue.seen.has(it.asin)) pulls.push({ key: row.key, scanned_at: row.scanned_at });
+            queue.seen.add(it.asin);
           }
-          if (!best) continue;
-          hits[asin] = best.entry;
-          // Both the badge pass and the auto-score observer look up a miss; count one pull per view.
-          if (!queue.seen.has(asin)) picked.push({ key: best.row.key, scanned_at: best.row.scanned_at });
-        }
-        if (picked.length) {
-          chrome.runtime.sendMessage({ type: 'ratingsQueue', pulls: picked }, () => void chrome.runtime.lastError);
-        }
-        done(hits);
-      });
-    } catch (e) { done({}); }
+          if (pulls.length) chrome.runtime.sendMessage({ type: 'productsQueue', pulls }, () => void chrome.runtime.lastError);
+        });
+      } catch (e) { if (onMiss) misses.forEach(onMiss); }
+    });
   }
 
   function badgeSearchResults() {
-    const { state, BADGE_ATTR, cacheKey, usableCache } = P();
+    const { state, BADGE_ATTR } = P();
     const tiles = document.querySelectorAll('[data-asin]:not([' + BADGE_ATTR + '])');
     const pending = [];
     tiles.forEach(tile => {
@@ -106,29 +132,9 @@
       if (state.foodOnly && root.AIR.db.ingestible && root.AIR.db.ingestible.looksNonFoodFromTitle(tileTitle(tile))) {
         return;
       }
-      pending.push({ tile, asin, key: cacheKey(asin) });
+      pending.push({ tile, asin });
     });
-    if (pending.length) {
-      const epoch = queue.epoch;
-      chrome.storage.local.get(pending.map(p => p.key), obj => {
-        if (epoch !== queue.epoch || !state.enabled || !state.badges) return;
-        const misses = [];
-        for (const { tile, asin, key } of pending) {
-          if (!tile.isConnected) continue;
-          const hit = obj[key];
-          if (!usableCache(hit, asin)) { misses.push({ tile, asin }); continue; }
-          paintBadge(tile, hit);
-        }
-        sharedLookup(misses.map(m => m.asin), hits => {
-          for (const { tile, asin } of misses) {
-            if (hits[asin] && tile.isConnected && !tile.querySelector('.air-badge')) {
-              paintBadge(tile, hits[asin]);
-              queue.seen.add(asin);
-            }
-          }
-        });
-      });
-    }
+    resolveTiles(pending);
     armHoverPass();
     armAutoScorePass();
   }
@@ -323,29 +329,22 @@
   }
 
   function autoObserver() {
-    const { state, cacheKey, usableCache } = P();
+    const { state } = P();
     if (tileObserver) return tileObserver;
     tileObserver = new IntersectionObserver(entries => {
       if (!state.enabled || !state.badges || !state.autoScoreSearch) return;
       if (!searchAllowed()) return;
+      const visible = [];
       for (const entry of entries) {
         if (!entry.isIntersecting) continue;
         const tile = entry.target;
         tileObserver.unobserve(tile);
         const asin = tile.getAttribute('data-asin');
         if (!asin || tile.querySelector('.air-badge')) continue;
-        const epoch = queue.epoch;
-        chrome.storage.local.get(cacheKey(asin), obj => {
-          if (epoch !== queue.epoch || !state.enabled || !state.badges || !state.autoScoreSearch || !tile.isConnected) return;
-          const hit = obj[cacheKey(asin)];
-          if (usableCache(hit, asin)) { paintBadge(tile, hit); queue.seen.add(asin); return; }
-          sharedLookup([asin], hits => {
-            if (!tile.isConnected || tile.querySelector('.air-badge')) return;
-            if (hits[asin]) { paintBadge(tile, hits[asin]); queue.seen.add(asin); return; }
-            if (epoch === queue.epoch && state.autoScoreSearch && !queue.throttled) enqueue(tile, asin);
-          });
-        });
+        visible.push({ tile, asin });
       }
+      // enqueue() re-checks the auto-score toggle, the throttle and the per-page cap.
+      resolveTiles(visible, ({ tile, asin }) => enqueue(tile, asin));
     }, { rootMargin: '150px' });
     return tileObserver;
   }
@@ -365,7 +364,7 @@
   }
 
   async function scoreTile(tile, asin, epoch, url) {
-    const { state, unreadable, cacheScore, sendDiagnostic } = P();
+    const { state, unreadable, cacheScore, sendDiagnostic, rememberProduct } = P();
     const current = () => epoch === queue.epoch && url === location.href && state.enabled
       && state.badges && tile.isConnected && searchAllowed();
     if (!current()) return;
@@ -383,16 +382,26 @@
       const doc = new DOMParser().parseFromString(html, 'text/html');
       const data = root.AIR.extract.extract(doc, { asin, foodOnly: state.foodOnly });
       if (!current()) return;
-      if (state.foodOnly && data.ingestible && !data.ingestible.ok) {
+      // A robot check or an error page is not an answer about the product; never record it.
+      const real = !!doc.querySelector('#productTitle');
+      const food = !(data.ingestible && data.ingestible.ok === false);
+      if (state.foodOnly && !food) {
+        if (real) rememberProduct(asin, { status: 'not-food', input: { name: data.title }, food });
         const b = tile.querySelector('.air-badge');
         if (b) b.remove();
         return;
       }
-      if (!data.ok) { paintBadge(tile, 'unreadable'); return; }
-      const result = root.AIR.engine.score({
+      if (!data.ok) {
+        if (real) rememberProduct(asin, { status: 'unreadable', input: { name: data.title }, food });
+        paintBadge(tile, 'unreadable');
+        return;
+      }
+      const input = {
         name: data.title, labels: data.labels, certifications: data.certifications,
         nutrition: data.nutrition, ingredients_text: data.text,
-      }, state.prefs);
+      };
+      const result = root.AIR.engine.score(input, state.prefs);
+      rememberProduct(asin, { input, via: data.via || 'search-tile', confidence: data.confidence, food });
       if (unreadable(result)) { paintBadge(tile, 'unreadable'); return; }
       paintBadge(tile, result);
       cacheScore(asin, result, data.title, data.via || 'search-tile');
@@ -424,7 +433,7 @@
   const search = {
     queue, TILE_FAIL_LIMIT,
     searchAllowed, resetSearchGate, standDown, badgeSearchResults,
-    armHoverPass, armAutoScorePass, enqueue, scoreTile, cancelTileWork,
+    armHoverPass, armAutoScorePass, enqueue, scoreTile, cancelTileWork, resolveTiles,
     pauseForThrottle, clearBadges, paintBadge,
   };
   root.AIR.search = search;

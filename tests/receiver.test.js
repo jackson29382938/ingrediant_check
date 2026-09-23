@@ -3,17 +3,26 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 
-function receiver() {
+function receiver({ clientId = 'client-1', tokens = {} } = {}) {
   const tabs = new Map();
+  const order = [];
   let locked = false, failFlush = false, legacy = '{}';
   function newSheet() {
     const data = [];
-    return { data, getLastRow: () => data.length,
-      appendRow(row) { data.push([...row]); }, setFrozenRows() {},
+    const sheet = { data, getLastRow: () => data.length,
+      getLastColumn: () => Math.max(0, ...data.map(r => r.length)),
+      appendRow(row) { assert.equal(locked, true, 'all appends must hold the shared lock'); data.push([...row]); },
+      setFrozenRows() {},
+      getRangeList: a1s => ({ getRanges: () => a1s.map(a1 => {
+        const [, r] = a1.match(/^A(\d+):G\d+$/);
+        return sheet.getRange(Number(r), 1, 1, 7);
+      }) }),
       getRange(r, c, height = 1, width = 1) {
+        const values = () => Array.from({ length: height }, (_, i) =>
+          Array.from({ length: width }, (_, j) => data[r - 1 + i]?.[c - 1 + j] ?? ''));
         return {
-          getValues: () => Array.from({ length: height }, (_, i) =>
-            Array.from({ length: width }, (_, j) => data[r - 1 + i]?.[c - 1 + j] ?? '')),
+          getValues: values,
+          getDisplayValues: () => values().map(row => row.map(String)),
           setValue(value) { this.setValues([[value]]); },
           setValues(values) {
             assert.equal(locked, true, 'all appends must hold the shared lock');
@@ -25,6 +34,7 @@ function receiver() {
         };
       },
     };
+    return sheet;
   }
   const c = vm.createContext({
     LockService: { getScriptLock: () => ({
@@ -33,15 +43,26 @@ function receiver() {
     }) },
     SpreadsheetApp: { getActiveSpreadsheet: () => ({
       getSheetByName: name => tabs.get(name),
-      insertSheet(name) { const sheet = newSheet(); tabs.set(name, sheet); return sheet; },
+      getSheets: () => order.map(n => tabs.get(n)),
+      insertSheet(name) { const sheet = newSheet(); tabs.set(name, sheet); order.push(name); return sheet; },
     }), flush() { if (failFlush) { failFlush = false; throw new Error('lost acknowledgement'); } } },
+    // Google's tokeninfo: `tokens` maps an access token to what Google would say about it.
+    UrlFetchApp: { fetch(url) {
+      const info = tokens[decodeURIComponent(url.split('access_token=')[1])];
+      return { getResponseCode: () => (info ? 200 : 400), getContentText: () => JSON.stringify(info || {}) };
+    } },
+    Utilities: { DigestAlgorithm: { SHA_256: 'sha256' },
+      computeDigest: (_alg, text) => [...require('node:crypto').createHash('sha256').update(text).digest()].map(b => (b << 24) >> 24) },
     PropertiesService: { getScriptProperties: () => ({ getProperty: () => legacy,
       setProperty() { throw new Error('dedup must not depend on property writes'); } }) },
     ContentService: { MimeType: { JSON: 'json' },
       createTextOutput: text => ({ setMimeType: () => JSON.parse(text) }) },
   });
-  vm.runInContext(fs.readFileSync(require.resolve('../docs/apps-script.gs'), 'utf8'), c);
-  return { tabs, post: body => c.doPost({ postData: { contents: JSON.stringify(body) } }),
+  vm.runInContext(fs.readFileSync(require.resolve('../docs/apps-script.gs'), 'utf8').replace(
+    "var OAUTH_CLIENT_ID = '';", `var OAUTH_CLIENT_ID = ${JSON.stringify(clientId)};`), c);
+  return { tabs, order, post: body => c.doPost({ postData: { contents: JSON.stringify(body) } }),
+    get: parameter => c.doGet({ parameter }),
+    sheet: name => { const sh = newSheet(); tabs.set(name, sh); order.push(name); return sh; },
     failNext: () => { failFlush = true; }, setLocked: v => { locked = v; },
     setLegacy: v => { legacy = JSON.stringify(v); } };
 }
@@ -78,28 +99,77 @@ test('legacy dedup history is respected during migration', () => {
   assert.equal(r.post(batch(0)).inserted, 0);
   assert.equal(r.post(batch(12)).inserted, 11);
 });
-const rating = over => ({ store: 'amazon.com', asin: 'B00TESTOAT', score: 80, verdict: 'Good', prefs: 'p1a2b3c',
-  source: 'search-tile', nova: 1, name: 'Oats', scanned_at: '2026-09-20T00:00:00.000Z', ...over });
-test('ratings: older scans never overwrite newer rows; newer scans replace and reset pulls', () => {
+const product = over => ({ store: 'amazon.com', asin: 'B00TESTOAT', status: 'ok',
+  data: { title: 'Oats', text: 'Organic rolled oats', via: 'nic-ingredients-content' },
+  scanned_at: '2026-09-20T00:00:00.000Z', ...over });
+const KEY = 'amazon.com:B00TESTOAT';
+test('products: older scans never overwrite newer rows; newer scans replace and reset pulls', () => {
   const r = receiver();
-  assert.equal(r.post({ kind: 'ratings', upserts: [rating(), rating({ source: 'manual-paste', asin: 'B00TESTOA2' })] }).upserted, 1);
-  const tab = r.tabs.get('ratings_cache');
-  assert.deepEqual(tab.data[0], ['key', 'store', 'asin', 'score', 'verdict', 'prefs', 'source', 'nova', 'name', 'scanned_at', 'pulls']);
-  assert.equal(tab.data[1][0], "'amazon.com:B00TESTOAT:p1a2b3c");
-  assert.equal(r.post({ kind: 'ratings', upserts: [rating({ score: 10, scanned_at: '2026-09-19T00:00:00Z' })] }).upserted, 0);
-  assert.equal(r.post({ kind: 'ratings', pulls: [{ key: 'amazon.com:B00TESTOAT:p1a2b3c', scanned_at: '2026-09-20T00:00:00Z', n: 3 }] }).pulled, 1);
-  assert.equal(tab.data[1][10], 3);
-  assert.equal(r.post({ kind: 'ratings', upserts: [rating({ score: 60, scanned_at: '2026-09-21T00:00:00Z' })] }).upserted, 1);
+  assert.equal(r.post({ kind: 'products', upserts: [product(), product({ asin: 'bad' }), product({ status: 'great', asin: 'B00TESTOA2' })] }).upserted, 1);
+  const tab = r.tabs.get('products');
+  assert.deepEqual(tab.data[0], ['key', 'store', 'asin', 'status', 'data', 'scanned_at', 'pulls']);
+  assert.equal(tab.data[1][0], "'" + KEY);
+  assert.equal(JSON.parse(tab.data[1][4].replace(/^'/, '')).text, 'Organic rolled oats');
+  assert.equal(r.post({ kind: 'products', upserts: [product({ data: { text: 'Sugar' }, scanned_at: '2026-09-19T00:00:00Z' })] }).upserted, 0);
+  assert.equal(r.post({ kind: 'products', pulls: [{ key: KEY, scanned_at: '2026-09-20T00:00:00Z', n: 3 }] }).pulled, 1);
+  assert.equal(tab.data[1][6], 3);
+  assert.equal(r.post({ kind: 'products', upserts: [product({ data: { text: 'Oats, salt' }, scanned_at: '2026-09-21T00:00:00Z' })] }).upserted, 1);
   assert.equal(tab.data.length, 2);
-  assert.equal(tab.data[1][3], 60);
-  assert.equal(tab.data[1][10], 0);
+  assert.equal(JSON.parse(tab.data[1][4].replace(/^'/, '')).text, 'Oats, salt');
+  assert.equal(tab.data[1][6], 0);
 });
-test('ratings: a pull counts only against the scan the reader saw', () => {
+test('products: a pull counts only against the scan the reader saw, and batches are bounded', () => {
   const r = receiver();
-  r.post({ kind: 'ratings', upserts: [rating()] });
-  const res = r.post({ kind: 'ratings', pulls: [{ key: 'amazon.com:B00TESTOAT:p1a2b3c', scanned_at: '2026-09-01T00:00:00Z' }] });
+  r.post({ kind: 'products', upserts: [product()] });
+  const res = r.post({ kind: 'products', pulls: [{ key: KEY, scanned_at: '2026-09-01T00:00:00Z' }] });
   assert.equal(res.pulled, 0);
-  assert.equal(res.tab, 'ratings_cache');
-  assert.equal(r.tabs.get('ratings_cache').data[1][10], 0);
-  assert.equal(r.post({ kind: 'ratings', upserts: Array(301).fill(rating()) }).ok, false);
+  assert.equal(res.tab, 'products');
+  assert.equal(r.tabs.get('products').data[1][6], 0);
+  assert.equal(r.post({ kind: 'products', upserts: Array(301).fill(product()) }).ok, false);
+  assert.equal(r.post({ kind: 'products', upserts: [product({ data: { text: 'x'.repeat(13000) } })] }).upserted, 0);
+});
+test('lookup returns only the rows asked for, parsed, without taking the write lock', () => {
+  const r = receiver();
+  assert.deepEqual(r.post({ kind: 'lookup', keys: [KEY] }).rows, []);
+  r.post({ kind: 'products', upserts: [product(), product({ asin: 'B00TESTOA2' })] });
+  r.setLocked(true);   // a batch write in progress must not block reads
+  const res = r.post({ kind: 'lookup', keys: [KEY, 'amazon.com:B000MISSING', KEY] });
+  r.setLocked(false);
+  assert.equal(res.ok, true);
+  assert.equal(res.rows.length, 1);
+  assert.equal(res.rows[0].asin, 'B00TESTOAT');
+  assert.equal(res.rows[0].data.text, 'Organic rolled oats');
+  assert.equal(res.rows[0].scanned_at, '2026-09-20T00:00:00.000Z');
+  assert.equal(r.post({ kind: 'lookup', keys: Array(101).fill(KEY) }).ok, false);
+});
+test('GET ?kind=provenance serves the first tab and the producers tab as text', () => {
+  const r = receiver();
+  r.sheet('Sheet1').data.push(['asin', 'upc', 'certifications'], ['B000000001', 12345678, 'USDA Organic']);
+  r.sheet('producers').data.push(['brand', 'certifications'], ['Acme', 'AGA']);
+  const res = r.get({ kind: 'provenance' });
+  assert.deepEqual(res.provenance, [['asin', 'upc', 'certifications'], ['B000000001', '12345678', 'USDA Organic']]);
+  assert.deepEqual(res.producers, [['brand', 'certifications'], ['Acme', 'AGA']]);
+  assert.equal(r.get({}).service, 'ingredient-check');
+});
+test('accounts: a verified token opens only its own row, keyed by a hash, never the email', () => {
+  const tokens = {
+    ['a'.repeat(30)]: { aud: 'client-1', sub: '1001', email: 'person@example.com' },
+    ['b'.repeat(30)]: { aud: 'client-1', sub: '1002' },
+    ['c'.repeat(30)]: { aud: 'someone-else', sub: '1001' },
+  };
+  const r = receiver({ tokens });
+  const payload = { _format: 'ingredient-check-settings', weights: { sugar: 0.5 } };
+  assert.equal(r.post({ kind: 'account', token: 'a'.repeat(30), payload }).tab, 'accounts');
+  assert.equal(r.post({ kind: 'account', token: 'a'.repeat(30), payload: { ...payload, weights: { sugar: 0.7 } } }).ok, true);
+  const tab = r.tabs.get('accounts');
+  assert.equal(tab.data.length, 2, 'one row per account, replaced in place');
+  assert.ok(!JSON.stringify(tab.data).includes('person@example.com'));
+  assert.ok(!JSON.stringify(tab.data).includes('1001'));
+  assert.equal(r.post({ kind: 'accountGet', token: 'a'.repeat(30) }).payload.weights.sugar, 0.7);
+  assert.equal(r.post({ kind: 'accountGet', token: 'b'.repeat(30) }).payload, null);
+  assert.equal(r.post({ kind: 'accountGet', token: 'c'.repeat(30) }).ok, false, 'a token for another app is refused');
+  assert.equal(r.post({ kind: 'accountGet', token: 'd'.repeat(30) }).ok, false, 'an unknown token is refused');
+  assert.equal(r.post({ kind: 'account', token: 'a'.repeat(30), payload: { weights: {} } }).ok, false);
+  assert.equal(receiver({ clientId: '', tokens }).post({ kind: 'accountGet', token: 'a'.repeat(30) }).ok, false,
+    'accounts stay off until a client id is configured');
 });

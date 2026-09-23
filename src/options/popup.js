@@ -278,7 +278,7 @@ function paintPageScore() {
     }
     const store = new URL(url).hostname;
     const key = CACHE.key(store, asin);
-    chrome.storage.local.get([key, 'weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sheetUrl', 'producersUrl', 'sheetIndexRev', 'producerIndexRev'], async obj => {
+    chrome.storage.local.get([key, 'weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sheetIndexRev', 'producerIndexRev'], async obj => {
       let live = null;
       try { live = await chrome.tabs.sendMessage(tab.id, { type: 'currentPageScore' }); } catch { /* tab has no active content script */ }
       const context = { store, asin, version, prefs: obj };
@@ -323,8 +323,10 @@ function paintPageScore() {
   });
 }
 
+// Scores (s:), the product data behind them (p:) and barcode records (off:). Clearing only the
+// scores would rebuild them instantly from p:, which is not what "clear" means here.
 function cacheKeys(all) {
-  return Object.keys(all || {}).filter(key => /^(s|off):/.test(key));
+  return Object.keys(all || {}).filter(key => /^(s|p|off):/.test(key));
 }
 
 function compareLabel(hit) {
@@ -379,7 +381,7 @@ function paintCompare() {
   chrome.storage.local.get(null, all => {
     const prefs = {
       weights: all.weights, foodOnly: all.foodOnly, ocrLabels: all.ocrLabels,
-      useOpenFoodFacts: all.useOpenFoodFacts, sheetUrl: all.sheetUrl, producersUrl: all.producersUrl,
+      useOpenFoodFacts: all.useOpenFoodFacts,
       sheetIndexRev: all.sheetIndexRev, producerIndexRev: all.producerIndexRev,
     };
     const listed = CACHE.listScores(all, { version, prefs });
@@ -425,8 +427,8 @@ function paintCacheCount() {
   const btn = document.getElementById('clear');
   if (!btn) return;
   chrome.storage.local.get(null, all => {
-    const n = cacheKeys(all).length;
-    btn.disabled = n === 0;
+    const n = cacheKeys(all).filter(k => !k.startsWith('p:')).length;
+    btn.disabled = cacheKeys(all).length === 0;
     btn.textContent = n
       ? msg('popupClearN', `Clear ${n} cached scores`, n)
       : msg('popupClear', 'Clear cached scores');
@@ -456,7 +458,7 @@ chrome.storage.onChanged.addListener(changes => {
   }
   if (changes.weights) renderPresets(changes.weights.newValue);
   if (changes.popupShowWhy) paintWhy(changes.popupShowWhy.newValue === true);
-  if (Object.keys(changes).some(k => /^(s|off):/.test(k) || ['weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sheetUrl', 'producersUrl', 'sheetIndexRev', 'producerIndexRev', 'compareA', 'compareB'].includes(k))) {
+  if (Object.keys(changes).some(k => /^(s|p|off):/.test(k) || ['weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sheetIndexRev', 'producerIndexRev', 'compareA', 'compareB'].includes(k))) {
     paintCacheCount();
     paintPageScore();
     paintCompare();
@@ -480,8 +482,9 @@ document.getElementById('clear').addEventListener('click', async event => {
     const all = await chrome.storage.local.get(null);
     const keys = cacheKeys(all);
     await chrome.storage.local.remove(keys);
-    const cleared = chrome.i18n && chrome.i18n.getMessage('popupCleared', [String(keys.length)]);
-    event.target.textContent = cleared || `Cleared ${keys.length} cached scores`;
+    const n = keys.filter(k => !k.startsWith('p:')).length;
+    const cleared = chrome.i18n && chrome.i18n.getMessage('popupCleared', [String(n)]);
+    event.target.textContent = cleared || `Cleared ${n} cached scores`;
     event.target.disabled = true;
     paintPageScore();
     paintCompare();

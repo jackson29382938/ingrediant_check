@@ -3,7 +3,7 @@
 // chrome.storage.local is untyped: a hand-edited import, a partial write, or a leftover key from
 // an older build can put anything in. Scoring and the options page both read those keys, so one
 // function heals them before anything else trusts them. Unknown ids are dropped, weights are
-// clamped to the slider range, and URLs that are not Google Sheets / Apps Script are rejected.
+// clamped to the slider range. The online endpoint is a constant of the build, not a setting.
 
 if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./_module.js');
 
@@ -14,12 +14,14 @@ const SETTINGS_VERSION = 1;
 const AVOID_MAX_LINES = 80;
 const AVOID_MAX_LEN = 80;
 
-// Shared sheet owned by the extension author. New installs and a missing sheetUrl use this.
-// contributeUrl stays empty until someone deploys docs/apps-script.gs and pastes the /exec URL.
-const DEFAULT_SHEET_ID = '1UwIIewq0rsLdIFu57d4W1ifkmv_leQnc76dbDGO6C1Y';
-const DEFAULT_SHEET_URL = `https://docs.google.com/spreadsheets/d/${DEFAULT_SHEET_ID}/edit`;
-const SETTINGS_TAB = 'settings';
-const SETTINGS_SAVE_KIND = 'settings';
+// The Apps Script web app deployed from the shared (private) spreadsheet — docs/SETTINGS-SYNC.md.
+// Every online feature goes through it; nothing reads the sheet directly, so the sheet itself stays
+// private. Empty until the script is deployed: the extension then runs entirely on this computer.
+// Never invent one. Mutable only so the tests can point it somewhere.
+const ENDPOINT = '';
+// OAuth "Web application" client for the optional Google sign-in (docs/SETTINGS-SYNC.md). Empty
+// hides the sign-in buttons. The same id goes into OAUTH_CLIENT_ID in apps-script.gs.
+const OAUTH_CLIENT_ID = '';
 
 const TOGGLE_DEFAULTS = {
   enabled: true,
@@ -31,6 +33,10 @@ const TOGGLE_DEFAULTS = {
   useOpenFoodFacts: false,
   shareContributions: false,
   sendDiagnostics: false,
+  // Shared product cache and provenance reads. Off keeps every lookup on this computer.
+  sharedCache: true,
+  // Copy of the settings in the Chrome account (chrome.storage.sync). Never restored on its own.
+  settingsBackup: true,
 };
 
 function db(name) {
@@ -96,21 +102,6 @@ function sanitizeScoring(raw) {
   };
 }
 
-// Published-sheet URLs come in several shapes. Normalise whatever the user pasted into a CSV export.
-function toSheetUrl(raw) {
-  let url;
-  try { url = new URL(String(raw || '').trim()); } catch { return null; }
-  if (url.protocol !== 'https:' || url.hostname !== 'docs.google.com' || url.username || url.password) return null;
-  const match = url.pathname.match(/^\/spreadsheets\/d\/(e\/)?([A-Za-z0-9_-]{20,})(?:\/|$)/);
-  if (!match) return null;
-  const [, published, id] = match;
-  const gid = url.searchParams.get('gid') || new URLSearchParams(url.hash.slice(1)).get('gid');
-  const tab = gid && /^\d+$/.test(gid) ? `&gid=${gid}` : '';
-  return published
-    ? `https://docs.google.com/spreadsheets/d/e/${id}/pub?output=csv${tab}`
-    : `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv${tab}`;
-}
-
 // Apps Script web apps are the only write endpoint the extension will call.
 function toScriptUrl(raw) {
   let url;
@@ -122,113 +113,10 @@ function toScriptUrl(raw) {
   return `https://script.google.com/macros/s/${match[1]}/exec`;
 }
 
-function sanitizeUrl(raw, kind) {
-  const text = String(raw || '').trim();
-  if (!text) return '';
-  if (text.length > 500) return '';
-  if (kind === 'script') return toScriptUrl(text) || '';
-  return toSheetUrl(text) ? text : '';
-}
-
-// A missing sheetUrl is the shared default. An explicit empty string is the offline opt-out.
-function resolveSheetUrl(storedOrUrl) {
-  if (typeof storedOrUrl === 'string') return sanitizeUrl(storedOrUrl, 'sheet');
-  const src = storedOrUrl && typeof storedOrUrl === 'object' ? storedOrUrl : {};
-  if (!Object.prototype.hasOwnProperty.call(src, 'sheetUrl') || src.sheetUrl == null) return DEFAULT_SHEET_URL;
-  return sanitizeUrl(src.sheetUrl, 'sheet');
-}
-
-function sanitizeUrls(raw) {
-  const src = raw && typeof raw === 'object' ? raw : {};
-  return {
-    sheetUrl: resolveSheetUrl(src),
-    producersUrl: sanitizeUrl(src.producersUrl, 'sheet'),
-    contributeUrl: sanitizeUrl(src.contributeUrl, 'script'),
-  };
-}
-
-// gviz/pub CSV for a named tab. Provenance reads stay on toSheetUrl (first tab or gid).
-function toSettingsSheetUrl(raw) {
-  return toTabSheetUrl(raw, SETTINGS_TAB);
-}
-
-function toTabSheetUrl(raw, tab) {
-  const sheetUrl = raw == null ? DEFAULT_SHEET_URL
-    : (typeof raw === 'object' ? resolveSheetUrl(raw) : raw);
-  const base = toSheetUrl(sheetUrl);
-  if (!base) return null;
-  const url = new URL(base);
-  url.searchParams.delete('gid');
-  url.searchParams.set('sheet', tab);
-  return url.toString();
-}
-
-// Minimal RFC-4180 parser. Sheet cells routinely contain commas, so a split would shred them.
-function parseCsv(text) {
-  const rows = [];
-  let row = [], field = '', quoted = false;
-  const src = String(text || '').replace(/^\uFEFF/, '');
-  for (let i = 0; i < src.length; i++) {
-    const ch = src[i];
-    if (quoted) {
-      if (ch === '"') { if (src[i + 1] === '"') { field += '"'; i++; } else quoted = false; }
-      else field += ch;
-    } else if (ch === '"') quoted = true;
-    else if (ch === ',') { row.push(field); field = ''; }
-    else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
-    else if (ch !== '\r') field += ch;
-  }
-  if (field.length || row.length) { row.push(field); rows.push(row); }
-  return rows.filter(r => r.some(c => c.trim()));
-}
-
-function settingsPayloadCell(rows) {
-  if (!Array.isArray(rows) || rows.length < 2) return '';
-  const head = rows[0].map(h => String(h || '').trim().toLowerCase());
-  const keyCol = head.indexOf('key');
-  const valueCol = head.indexOf('value');
-  if (keyCol < 0 || valueCol < 0) return '';
-  let found = '';
-  for (let i = 1; i < rows.length; i++) {
-    if (String(rows[i][keyCol] || '').trim() !== 'payload') continue;
-    let cell = String(rows[i][valueCol] || '').trim();
-    if (cell.startsWith("'")) cell = cell.slice(1);
-    if (cell) found = cell;
-  }
-  return found;
-}
-
-function parseSettingsRows(rows) {
-  const raw = settingsPayloadCell(rows);
-  if (!raw) return { ok: false, reason: 'no-settings' };
-  return parseImport(raw);
-}
-
-// Accept a settings-tab CSV, an Apps Script GET body, or an export object. Always sanitize.
-function parseSettingsExport(input) {
-  if (typeof input === 'string') {
-    const trimmed = input.replace(/^\uFEFF/, '').trim();
-    if (!trimmed) return { ok: false, reason: 'no-settings' };
-    if (trimmed[0] === '<' || /accounts\.google\.com|ServiceLogin/i.test(trimmed.slice(0, 800))) {
-      return { ok: false, reason: 'sheet-private' };
-    }
-    if (trimmed[0] === '{' || trimmed[0] === '[') return parseImport(trimmed);
-    return parseSettingsRows(parseCsv(trimmed));
-  }
-  if (input && typeof input === 'object' && !Array.isArray(input)) {
-    if (input.payload && typeof input.payload === 'object' && !Array.isArray(input.payload)) {
-      return parseImport(JSON.stringify(input.payload));
-    }
-    if (looksLikeSettings(input)) return parseImport(JSON.stringify(input));
-  }
-  return { ok: false, reason: 'no-settings' };
-}
-
-// The only settings body the extension posts. Built from exportPayload, never raw storage.
-function settingsSaveBody(prefs, now) {
-  const payload = exportPayload(prefs);
-  const clock = now instanceof Date ? now : new Date();
-  return { kind: SETTINGS_SAVE_KIND, ts: clock.toISOString(), payload };
+// The endpoint the worker may call: the build constant, re-validated so a typo cannot send data
+// anywhere but an Apps Script /exec URL.
+function endpoint() {
+  return toScriptUrl(_exports.ENDPOINT) || '';
 }
 
 function looksLikeSettings(obj) {
@@ -259,6 +147,37 @@ function exportPayload(prefs) {
   };
 }
 
+// Backup of everything the user chose: the scoring export plus the toggles, minus the master
+// switch (restoring a paused state from another computer would look like a broken install).
+function backupPayload(raw, now) {
+  const toggles = sanitizeToggles(raw);
+  delete toggles.enabled;
+  return { ...exportPayload(raw), ts: (now instanceof Date ? now : new Date()).toISOString(), toggles };
+}
+
+// Anything that claims to be a backup -> the storage values to write. Always re-sanitized.
+function parseBackup(obj) {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj) || !looksLikeSettings(obj)) {
+    return { ok: false, reason: 'no-backup' };
+  }
+  const toggles = sanitizeToggles(obj.toggles);
+  delete toggles.enabled;
+  const ts = Date.parse(obj.ts);
+  return { ok: true, values: { ...sanitizeScoring(obj), ...toggles }, ts: Number.isFinite(ts) ? ts : null };
+}
+
+// chrome.storage.sync caps an item at 8 KB, and a full avoid list is ~6.5 KB on its own.
+const SYNC_KEYS = ['icBackup', 'icBackupAvoid'];
+function toSyncItems(payload) {
+  const { avoidList, ...rest } = payload;
+  return { icBackup: rest, icBackupAvoid: avoidList || [] };
+}
+function fromSyncItems(items) {
+  const main = items && items.icBackup;
+  if (!main) return { ok: false, reason: 'no-backup' };
+  return parseBackup({ ...main, avoidList: items.icBackupAvoid || [] });
+}
+
 function scoringEqual(a, b) {
   const left = sanitizeScoring(a);
   const right = sanitizeScoring(b);
@@ -267,12 +186,10 @@ function scoringEqual(a, b) {
 
 const _exports = AIRmodule('prefs', {
   SETTINGS_FORMAT, SETTINGS_VERSION, TOGGLE_DEFAULTS,
-  AVOID_MAX_LINES, AVOID_MAX_LEN,
-  DEFAULT_SHEET_ID, DEFAULT_SHEET_URL, SETTINGS_TAB, SETTINGS_SAVE_KIND,
-  sanitizeToggles, sanitizeScoring, sanitizeAvoidList, sanitizeUrls, resolveSheetUrl,
-  toSheetUrl, toScriptUrl, toSettingsSheetUrl, toTabSheetUrl, parseCsv,
-  parseSettingsRows, parseSettingsExport, settingsSaveBody,
+  AVOID_MAX_LINES, AVOID_MAX_LEN, ENDPOINT, OAUTH_CLIENT_ID, SYNC_KEYS,
+  sanitizeToggles, sanitizeScoring, sanitizeAvoidList, toScriptUrl, endpoint,
   parseImport, exportPayload, looksLikeSettings, scoringEqual,
+  backupPayload, parseBackup, toSyncItems, fromSyncItems,
 });
 if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 

@@ -4,17 +4,16 @@ The engine has 215 rules and a lot of hand-tuned constants. The test suite prove
 way it is specified to; it cannot tell you whether a score matches what a careful person would say
 about the product. That needs volume, and it needs the evidence next to the answer.
 
-Turning on **Accuracy diagnostics** sends one row per scored product to a Google Sheet you own.
+Turning on **Accuracy diagnostics** sends one row per scored product to the shared database — the
+same Apps Script and private spreadsheet as the product cache ([SETTINGS-SYNC.md](SETTINGS-SYNC.md)).
 
 ## Setup
 
-1. Create a Google Sheet.
-2. **Extensions → Apps Script**, paste [`apps-script.gs`](apps-script.gs) over `Code.gs`, save.
-3. **Deploy → New deployment → Web app**, execute as *Me*, access *Anyone*. Copy the `/exec` URL.
-4. Extension settings → *Shared provenance database* → **Where to send contributions** → paste it.
-5. Extension settings → *Accuracy diagnostics* → tick **Send scoring diagnostics to my endpoint**.
+1. Deploy the web app once (see [SETTINGS-SYNC.md](SETTINGS-SYNC.md)); the build carries its URL.
+2. Extension settings → *Accuracy diagnostics* → tick **Send scoring diagnostics to the shared database**.
 
-The sheet's `diagnostics` tab is created on the first write, with headers.
+The sheet's `diagnostics` tab is created on the first write, with headers. To collect into a sheet
+of your own instead, deploy the same script from it and build with that `ENDPOINT`.
 
 ## What a row contains
 
@@ -69,10 +68,8 @@ storage quota is not. A failed POST keeps the rows for the next attempt.
 
 **Send queued rows now** in settings flushes immediately and reports what happened.
 
-The same web app also accepts `kind: "settings"` and answers `GET ?kind=settings` for the scoring
-export. That payload lives on the `settings` tab, not in `diagnostics`. Redeploy after updating
-[`apps-script.gs`](apps-script.gs). Setup for the shared sheet and the settings buttons is
-[SETTINGS-SYNC.md](SETTINGS-SYNC.md).
+The same web app serves the product cache, provenance and account settings; each has its own tab.
+Publish a new version of the deployment after updating [`apps-script.gs`](apps-script.gs).
 
 Each queued row carries a `rowId`, and each POST carries a `batchId`. The Apps Script in
 `docs/apps-script.gs` remembers recent ids so a lost acknowledgement cannot duplicate the

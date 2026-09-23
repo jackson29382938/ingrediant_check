@@ -1,77 +1,74 @@
-# Settings sync
+# The shared database and settings online
 
-Scoring settings can live on the shared Google Sheet as well as on this computer. Reads use the
-sheet's CSV export. Writes use the Apps Script web app. The extension does not use Google OAuth.
-
-## Default sheet
-
-New installs, and any profile that has never stored a database URL, use this spreadsheet:
+Everything online goes through **one Apps Script web app** deployed from the shared spreadsheet.
+The extension never reads the sheet directly, so the sheet stays private: nobody can open or edit
+it. Scoring stays local either way.
 
 | | |
 | --- | --- |
-| Title | Ingredient Check — settings & provenance |
+| Spreadsheet | Ingredient Check — settings & provenance |
 | ID | `1UwIIewq0rsLdIFu57d4W1ifkmv_leQnc76dbDGO6C1Y` |
-| URL | https://docs.google.com/spreadsheets/d/1UwIIewq0rsLdIFu57d4W1ifkmv_leQnc76dbDGO6C1Y/edit |
+| Endpoint | `ENDPOINT` in [`src/engine/db/prefs.js`](../src/engine/db/prefs.js) — empty until deployed |
 
-That link is the **Database URL** on the settings page. Clear the field and it stays empty: lookups
-and settings loads then stay on this computer. The **Contribution URL** is not filled in. Nothing
-in the extension invents an `/exec` address. Paste one only after the deploy below.
+While `ENDPOINT` is empty the extension runs entirely on the computer: no shared cache, no
+provenance, no diagnostics or contributions. The Chrome-account settings backup still works.
 
 ## Tabs
 
 | Tab | Created by | Contents |
 | --- | --- | --- |
-| First sheet (the provenance table) | You, on the first tab | Product rows the extension reads for certifications: `asin`, `upc`, `brand`, `certifications`, `feed`, `origin`, `verified_by`, `notes`. A gid on the database URL pins a different tab. |
-| `settings` | Apps Script, on the first settings save | One `payload` row. Columns: `key`, `value`, `ts`. `value` is the scoring export JSON. Later saves replace that row. |
-| `diagnostics` | Apps Script, on the first diagnostic batch | One row per scored product. See [DIAGNOSTICS.md](DIAGNOSTICS.md). |
-| `reports` | Apps Script, on the first "Looks wrong?" | The same columns as a contribution. |
-| `contributions` | Apps Script, on the first shared certification | Product identifiers and certification text. |
-| `ratings_cache` | Apps Script, on the first shared score | One row per product and scoring setup: `key`, `store`, `asin`, `score`, `verdict`, `prefs`, `source`, `nova`, `name`, `scanned_at`, `pulls`. See [CACHE.md](CACHE.md). |
+| First sheet | You | Provenance: `asin`, `upc`, `brand`, `certifications`, `feed`, `origin`, `verified_by`, `notes` |
+| `producers` | You (optional) | Brands confirmed in a certifier's own directory: `brand`, `certifications`, … |
+| `products` | Script, first shared read | The product cache. See [CACHE.md](CACHE.md) |
+| `accounts` | Script, first Google sign-in save | `id` (SHA-256 of the Google account id), `payload`, `ts` |
+| `diagnostics` | Script, first batch | See [DIAGNOSTICS.md](DIAGNOSTICS.md) |
+| `reports`, `contributions` | Script | "Looks wrong?" clicks and shared certifications |
 
-Provenance reads use `gviz/tq?tqx=out:csv` on the database URL (first tab, or the gid you pasted).
-Settings reads use the same spreadsheet with `&sheet=settings`, and shared ratings use
-`&sheet=ratings_cache`. They do not share a tab, so a settings or ratings row is never indexed as a
-product.
+The old one-row `settings` tab (every user's save replaced the last, and anyone with the link could
+read the allergens in it) and the `ratings_cache` tab are no longer used and can be deleted.
 
-## What is saved
+## Deploy (once)
 
-The body is the same object as **Export settings**, produced by `exportPayload` and read back
-through `parseImport`:
+1. Open the spreadsheet. **Share → General access → Restricted.** The script runs as you, so it
+   can still read and write; nobody else can open the sheet.
+2. **Extensions → Apps Script.** Replace `Code.gs` with [`apps-script.gs`](apps-script.gs). Save.
+3. **Deploy → New deployment → Web app.** Execute as **Me**, Who has access **Anyone**.
+   Authorize when asked (spreadsheet access, and "connect to an external service" — that is the
+   Google token check used by sign-in).
+4. Copy the URL ending in `/exec` into `ENDPOINT` in `src/engine/db/prefs.js` and ship the build.
 
-- `_format`, `_version`
-- `weights`, `allergens`, `diets`, `avoidList`, `foodOnly`
+After changing the script, **Deploy → Manage deployments → Edit → New version**. That keeps the
+same `/exec` URL; a *new deployment* would change it and every installed copy would lose the
+database until the next release.
 
-URLs, the diagnostics queue, score cache, and anything else in `chrome.storage` are not uploaded.
-On the way in, unknown ids are dropped and weights are clamped again. A hand-edited cell cannot
-widen what the extension will trust.
+## Settings online
 
-## Deploy the web app
+The settings on the computer are always the ones in use. Nothing is ever applied on its own.
 
-Do this once, from the spreadsheet above. Skip it and **Save settings to sheet** has nowhere to
-write; **Load settings from sheet** can still read a public `settings` tab.
+- **Chrome account backup** (default on). After every change the settings — weights, allergens,
+  diets, the avoid list and the toggles, never the master switch — are written to
+  `chrome.storage.sync` (`icBackup`, `icBackupAvoid`; split because an item is capped at 8 KB).
+  Chrome syncs that privately to the Google account signed into Chrome. **Restore from my Chrome
+  account** brings it back after a confirmation. No setup, and nothing goes to the shared sheet.
+- **Sign in with Google** (optional, hidden until configured). For a browser that is not signed
+  into Chrome. The options page gets an OAuth access token (scope `openid`) through
+  `chrome.identity.launchWebAuthFlow` and hands it to the worker for one request. The script asks
+  Google who the token belongs to, refuses a token issued to any other app, and keys the row by a
+  SHA-256 of the account id — not the email. The token is never stored.
 
-1. Open the spreadsheet. **Share → General access → Anyone with the link → Viewer**, so a read
-   does not need a Google sign-in. Writes still go through the script, which runs as you.
-2. **Extensions → Apps Script**. Replace `Code.gs` with [`apps-script.gs`](apps-script.gs). Save.
-3. **Deploy → New deployment → Web app**.
-   - Execute as: **Me**
-   - Who has access: **Anyone**
-4. Copy the URL that ends in `/exec`.
-5. Extension settings → **Shared provenance database** → **Contribution URL**. Paste it.
-   Chrome will ask for `script.google.com`. Allow it.
-6. **Save settings to sheet**, or tick **Keep scoring settings updated on the sheet**.
-7. On another browser, paste the same contribution URL (or rely on the public `settings` tab)
-   and click **Load settings from sheet**.
+To turn sign-in on:
 
-Redeploy as a new deployment after you change the script. An old `/exec` URL keeps the previous
-code, including one that does not know `kind: "settings"`.
+1. Google Cloud console → a project → **APIs & Services → OAuth consent screen** (External; scope
+   `openid` only needs no verification).
+2. **Credentials → Create OAuth client ID → Web application.** Authorized redirect URI:
+   `https://<extension-id>.chromiumapp.org/` — the Chrome Web Store id, or the unpacked id shown on
+   `chrome://extensions`.
+3. Put the client id in `OAUTH_CLIENT_ID` in both `src/engine/db/prefs.js` and `apps-script.gs`,
+   and publish a new version of the script.
 
-`GET ?kind=settings` on that `/exec` URL returns `{ ok, kind: "settings", payload, ts }`. Any other
-GET is only a liveness check. The extension tries the `settings` tab first and uses this GET when
-the tab is missing or not public.
+## Checks on the way in
 
-## Privacy
-
-Anyone who can open the spreadsheet can read the settings row. Anyone who has the `/exec` URL can
-replace it. The web app URL is a write secret. The row is weights and an avoid list, not a browse
-history — diagnostics are a separate toggle and a separate tab.
+Every row, on both sides, is re-validated: products by `sanitize()` (field bounds, known statuses,
+no future timestamps, no pasted lists), settings by `parseBackup()` (unknown ids dropped, weights
+clamped to the slider range). A hand-edited cell or a crafted POST cannot widen what the extension
+will trust.

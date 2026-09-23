@@ -5,11 +5,11 @@
 
 var PAGE_MESSAGE_TYPES = new Set([
   'pageScore', 'ocrLabels', 'lookupBarcode', 'provenanceLookup',
-  'contribute', 'report', 'diagnostic', 'ratingsLookup', 'ratingsQueue',
+  'contribute', 'report', 'diagnostic', 'productsLookup', 'productsQueue',
 ]);
 var SETTINGS_MESSAGE_TYPES = new Set([
   'flushDiagnostics', 'diagnosticsStatus', 'refreshSheet',
-  'saveSettings', 'loadSettings',
+  'accountSave', 'accountLoad',
 ]);
 var OFFSCREEN_MESSAGE_TYPES = new Set(['ocrIdle']);
 var AMAZON_HOST = /(^|\.)amazon\.(com|co\.uk|ca|com\.au|ie|in|sg|ae|sa|de|fr|es|it|nl|se|pl|com\.be|com\.tr|com\.mx|com\.br|co\.jp)$/i;

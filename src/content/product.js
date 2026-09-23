@@ -61,6 +61,10 @@
       provenanceSource: meta.provenanceSource,
     }), meta.report === false ? null : reporter(data, result));
     cacheScore(key, result, meta.cacheName || data.title, meta.via, meta.provenanceSource);
+    if (meta.input && meta.via !== 'manual-paste' && meta.via !== 'food-override') {
+      P().rememberProduct(key, { input: meta.input, via: meta.via, confidence: meta.confidence,
+        food: !(data.ingestible && data.ingestible.ok === false) });
+    }
     publishActionBadge(result);
     if (meta.sendDiag !== false) {
       sendDiagnostic(data, result, meta.via, meta.text || data.text);
@@ -170,12 +174,14 @@
             showFailure(host, { ...data, lookupAttempted: true }, key);
             return;
           }
-          const result = root.AIR.engine.score({
+          const input = {
             name: fallback.name || data.title,
             labels: `${data.labels || ''} ${fallback.labels || ''}`,
             ingredients_text: fallback.ingredients_text,
-          }, state.prefs);
+          };
+          const result = root.AIR.engine.score(input, state.prefs);
           presentResult(host, data, key, result, {
+            input,
             title: data.title || fallback.name,
             confidence: 0.55,
             via: 'open-food-facts',
@@ -194,11 +200,13 @@
     if (existingState === 'loading') state.requestId++;
 
     const requestId = ++state.requestId;
-    const result = root.AIR.engine.score({
+    const input = {
       name: data.title, labels: data.labels, certifications: data.certifications,
       nutrition: data.nutrition, ingredients_text: data.text,
-    }, state.prefs);
+    };
+    const result = root.AIR.engine.score(input, state.prefs);
     if (!presentResult(host, data, key, result, {
+      input,   // sanitize() keeps only known nutrition fields, so the engine's _normalised mark stays out
       title: data.title, confidence: data.confidence, via: data.via,
       text: data.text, textSig: (data.text || '').slice(0, 320),
     })) return;
@@ -208,8 +216,7 @@
 
   function enrichProvenance(host, data, key, first, requestId) {
     const { state } = P();
-    const conf = state.cacheOptions || {};
-    if (!conf.sheetUrl && !conf.producersUrl) { maybeContribute(data, first); return; }
+    if ((state.cacheOptions || {}).sharedCache === false) { maybeContribute(data, first); return; }
     try {
       chrome.runtime.sendMessage({
         type: 'provenanceLookup',
@@ -287,11 +294,13 @@
         const best = res && res.ok && root.AIR.db.ocrText.bestBlock(res.results,
           t => root.AIR.extract.looksLikeIngredients(t, data.title));
         if (!best) { giveUp({}); return; }
-        const result = root.AIR.engine.score({
+        const input = {
           name: data.title, labels: data.labels, certifications: data.certifications,
           ingredients_text: best.text,
-        }, state.prefs);
+        };
+        const result = root.AIR.engine.score(input, state.prefs);
         presentResult(host, data, key, result, {
+          input,
           title: data.title, confidence: 0.7, via: 'label-ocr',
           text: best.text, textSig: best.text.slice(0, 320),
           ocrAttempted: true,

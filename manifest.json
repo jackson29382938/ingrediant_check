@@ -7,7 +7,9 @@
   "permissions": [
     "storage",
     "alarms",
-    "offscreen"
+    "offscreen",
+    "unlimitedStorage",
+    "identity"
   ],
   "host_permissions": [
     "*://*.amazon.com/*",
@@ -33,10 +35,7 @@
     "*://*.amazon.co.jp/*"
   ],
   "optional_host_permissions": [
-    "https://world.openfoodfacts.org/*",
-    "https://docs.google.com/*",
-    "https://script.google.com/*",
-    "https://script.googleusercontent.com/*"
+    "https://world.openfoodfacts.org/*"
   ],
   "action": {
     "default_popup": "src/options/popup.html",
@@ -744,7 +743,7 @@
         "src/engine/db/prefs.js",
         "src/engine/db/revision.js",
         "src/engine/db/score-cache.js",
-        "src/engine/db/ratings-cache.js",
+        "src/engine/db/product-cache.js",
         "src/engine/score.js",
         "src/content/extract.js",
         "src/content/panel.js",

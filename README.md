@@ -35,7 +35,7 @@ After editing `src/`, `manifest.json`, or `icons/`, run `npm run chrome:reload`.
 
 On an Amazon product page it reads the ingredient list (page text, optional on-device OCR, optional Open Food Facts barcode, or a paste box) and scores it. Search pages can show score chips. Non-food listings are skipped. The toolbar icon shows the current product’s score.
 
-The toolbar popup is the master switch plus network opt-ins and shortcuts to the existing weight presets (the same `categories.PRESETS` the settings page uses). On an Amazon product tab it also shows the cached score for that ASIN. If two or more `s:` cache entries are valid, **Compare cached scores** shows them side-by-side — no extra Amazon requests. Explanations are collapsed until you open **Why these matter**. **Scoring weights, allergens & avoid list** opens the full settings page (searchable categories, dark mode, avoid-list suggestions, section jump). Imports, sliders, and storage values are sanitized before they are trusted: unknown ids are dropped, weights stay in the 0–2 slider range, and only Google Sheet / Apps Script URLs are kept.
+The toolbar popup is the master switch plus network opt-ins and shortcuts to the existing weight presets (the same `categories.PRESETS` the settings page uses). On an Amazon product tab it also shows the cached score for that ASIN. If two or more `s:` cache entries are valid, **Compare cached scores** shows them side-by-side — no extra Amazon requests. Explanations are collapsed until you open **Why these matter**. **Scoring weights, allergens & avoid list** opens the full settings page (searchable categories, dark mode, avoid-list suggestions, section jump). Imports, sliders, and storage values are sanitized before they are trusted: unknown ids are dropped, weights stay in the 0–2 slider range. Settings back up to your Chrome account and come back only when you click Restore.
 
 Ingredient headings are recognised in English and several EU languages (Zutaten, Ingredientes, Ingrédients, Ingredienti, Ingrediënten, Składniki, Ingredienser, İçindekiler), including same-line `Ingredients:` detail-bullet forms. Japanese and Arabic stores decline photo OCR until a local reader exists — English Tesseract misreads those labels. Scoring is strongest on English US/UK/CA/AU labels. DE/FR/ES/IT/PT/NL lists usually score via synonym pack + E-numbers; other storefronts may extract headings but under-score or decline unrecognised text. A list the rulebase mostly cannot read is declined rather than scored. Allergen and diet flags read the same four languages, cover the EU’s celery, mustard and lupin as well as the US list, and never move the score. Chrome 116 or newer is required.
 
@@ -59,17 +59,18 @@ CI runs `npm test` and `npm run preflight` on Node 20 and 22, plus a Playwright 
 
 Live Amazon checks are in [docs/VERIFY.md](docs/VERIFY.md). When a rule changes, `tests/rules-revision.test.js` fails until `RULES_REVISION` in `src/engine/db/revision.js` is bumped — that is what retires cached scores.
 
-## Optional network
+## Network
 
-All off by default.
+Scoring is always local. The shared database and the settings backup are on by default and can be switched off in settings; everything else is off until you turn it on.
 
 - **Open Food Facts fallback** — barcode only, after Chrome grants the host
 - **Read label photos** — local Tesseract; fetches the product image already on the page
-- **Shared provenance / diagnostics / settings** — the Ingredient Check Google Sheet is the default database URL ([docs/SETTINGS-SYNC.md](docs/SETTINGS-SYNC.md)). Reads are CSV/gviz. Writes need an Apps Script `/exec` URL you deploy from [docs/apps-script.gs](docs/apps-script.gs); that field starts empty. Diagnostics: [docs/DIAGNOSTICS.md](docs/DIAGNOSTICS.md). Redeploy the script so a lost ACK cannot double-write rows and so `kind: "settings"` is accepted.
+- **Shared online database** (on by default) — what was read off each product, before weighting, kept on a private Google Sheet behind one Apps Script ([docs/CACHE.md](docs/CACHE.md), [docs/SETTINGS-SYNC.md](docs/SETTINGS-SYNC.md)). Every computer scores it under its own settings, so a product is read from Amazon about once a month instead of once per person. Inert until `ENDPOINT` in `src/engine/db/prefs.js` is set. Diagnostics use the same endpoint: [docs/DIAGNOSTICS.md](docs/DIAGNOSTICS.md).
+- **Settings backup** (on by default) — Chrome's own sync; optional Google sign-in copy on the shared database.
 
 ## Accuracy
 
-The test suite proves the engine matches its spec. To see whether scores match a careful reading of real labels, turn on diagnostics against a sheet you own, shop a grocery search, and sort by `coverage`, `source`, and `cap`. Promote misses into `tests/corpus.json` before changing rules.
+The test suite proves the engine matches its spec. To see whether scores match a careful reading of real labels, turn on diagnostics, shop a grocery search, and sort by `coverage`, `source`, and `cap`. Promote misses into `tests/corpus.json` before changing rules.
 
 Chrome Web Store submit checklist: [docs/store-listing/README.md](docs/store-listing/README.md).
 Owner live checks: [docs/VERIFY.md](docs/VERIFY.md). Historical audit logs and plans live under

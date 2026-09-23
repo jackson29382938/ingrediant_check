@@ -58,10 +58,11 @@ test('listScores returns valid s: entries newest first and skips off: / stale', 
   assert.equal(cache.parseKey(cache.key('www.amazon.com', 'B000000001')).asin, 'B000000001');
   assert.equal(cache.parseKey('off:1'), null);
 });
-test('fingerprints track weights, food gate, sheets; OCR/OFF only for those sources', () => {
+test('fingerprints track weights, food gate, provenance revisions; OCR/OFF only for those sources', () => {
   assert.equal(cache.fingerprint({}), cache.fingerprint({ weights: cats.DEFAULT_WEIGHTS }));
+  // The endpoint is a build constant now; a leftover sheet URL in storage must not split the cache.
+  assert.equal(cache.fingerprint({ sheetUrl: 'sheet', producersUrl: 'producer' }), cache.fingerprint({}));
   for (const prefs of [{ weights: { sugar: 2 } }, { foodOnly: false },
-    { sheetUrl: 'sheet' }, { producersUrl: 'producer' },
     { sheetIndexRev: 'a1b2-120' }, { producerIndexRev: 'c3d4-80' }]) {
     assert.notEqual(cache.fingerprint(prefs), cache.fingerprint({}), JSON.stringify(prefs));
   }
