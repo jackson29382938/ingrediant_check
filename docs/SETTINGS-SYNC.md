@@ -8,7 +8,7 @@ it. Scoring stays local either way.
 | --- | --- |
 | Spreadsheet | Ingredient Check — settings & provenance |
 | ID | `1UwIIewq0rsLdIFu57d4W1ifkmv_leQnc76dbDGO6C1Y` |
-| Endpoint | `ENDPOINT` in [`src/engine/db/prefs.js`](../src/engine/db/prefs.js) — empty until deployed |
+| Endpoint | `ENDPOINT` in [`src/engine/db/prefs.js`](../src/engine/db/prefs.js) — the **Web app** deployment's `/exec` URL |
 
 While `ENDPOINT` is empty the extension runs entirely on the computer: no shared cache, no
 provenance, no diagnostics or contributions. The Chrome-account settings backup still works.
@@ -36,6 +36,9 @@ read the allergens in it) and the `ratings_cache` tab are no longer used and can
    Authorize when asked (spreadsheet access, and "connect to an external service" — that is the
    Google token check used by sign-in).
 4. Copy the URL ending in `/exec` into `ENDPOINT` in `src/engine/db/prefs.js` and ship the build.
+   It must come from a **Web app** deployment. A **Library** deployment also gets an `AKfycb…` id,
+   but its `/exec` URL answers `403 Access Denied` to everyone. Check in an incognito window: a
+   working URL shows `{"ok":true,"service":"ingredient-check",…}`.
 
 After changing the script, **Deploy → Manage deployments → Edit → New version**. That keeps the
 same `/exec` URL; a *new deployment* would change it and every installed copy would lose the

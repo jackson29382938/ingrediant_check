@@ -18,7 +18,7 @@ const AVOID_MAX_LEN = 80;
 // Every online feature goes through it; nothing reads the sheet directly, so the sheet itself stays
 // private. Empty until the script is deployed: the extension then runs entirely on this computer.
 // Never invent one. Mutable only so the tests can point it somewhere.
-const ENDPOINT = '';
+const ENDPOINT = 'https://script.google.com/macros/s/AKfycbw4rTzddQVMtsqolUDse8Rfcv3eqXyL0qiS6ct6hHaQrMzTcff0p6JByc6Brvk-Lugd/exec';
 // OAuth "Web application" client for the optional Google sign-in (docs/SETTINGS-SYNC.md). Empty
 // hides the sign-in buttons. The same id goes into OAUTH_CLIENT_ID in apps-script.gs.
 const OAUTH_CLIENT_ID = '';
