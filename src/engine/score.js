@@ -219,6 +219,20 @@ const CAPS = [
 // ENGLISH food nouns costs the gate nothing, because the text this is meant to catch — another
 // language, OCR noise, a cosmetics panel — will not match English food words either. Matched
 // anywhere in the entry, since "turmeric root powder" should count as much as "turmeric".
+// Probiotic strains are written as a genus initial and a species: "B. breve", "L. acidophilus", and
+// on Amazon's card "B, BREVE". Split at that period or comma, a kefir listing twelve strains became
+// twenty-four fragments the rulebase could not read, and the label was declined as unreadable.
+// joinStrains keeps each strain as one entry ("b breve"); parseEntries gives a run of them one shared
+// position, the way a parenthetical sub-list shares its parent's, so twelve strains listed first do
+// not push the milk to position thirteen.
+const STRAIN_SPECIES = 'breve|lactis|longum|acidophilus|casei|paracasei|cremoris|plantarum|reuteri|rhamnosus'
+  + '|diacetylactis|florentinus|bulgaricus|delbrueckii|thermophilus|bifidum|infantis|animalis|adolescentis'
+  + '|helveticus|fermentum|salivarius|gasseri|johnsonii|kefiri|kefiranofaciens|mesenteroides|coagulans'
+  + '|subtilis|boulardii|cerevisiae';
+const STRAIN_JOIN = new RegExp('(^|[,;(:]\\s*)([a-z])[.,]\\s*(' + STRAIN_SPECIES + ')\\b', 'gi');
+const STRAIN_ENTRY = new RegExp('^[a-z] (?:' + STRAIN_SPECIES + ')\\b', 'i');
+const joinStrains = text => text.replace(STRAIN_JOIN, '$1$2 $3');
+
 const COMMON_PANEL = new RegExp('\\b(?:' + [
   // panel staples
   'water|salt|spices?|herbs?|seasoning|vinegar|yeast|baking soda|baking powder|sodium bicarbonate',
@@ -246,6 +260,10 @@ const COMMON_PANEL = new RegExp('\\b(?:' + [
   'milk|cream|butter|cheese|yogh?urt|kefir|ghee|whey|curd|eggs?',
   // seaweed, fungi, ferments
   'nori|kombu|wakame|seaweed|kelp|spirulina|chlorella|miso|kimchi|sauerkraut|sourdough|nutritional yeast',
+  // Probiotic organisms, by genus or as the "B. breve" / "L. acidophilus" short form (joined by
+  // joinStrains below). A kefir that names its twelve strains is not an unreadable label.
+  'bifidobacteri(?:um|a)|bifidus|lactobacill(?:us|i)|lactococcus|lacticaseibacillus|leuconostoc|saccharomyces|streptococcus thermophilus|probiotics?|live (?:and )?active cultures',
+  '[a-z] (?:' + STRAIN_SPECIES + ')',
   'honey|maple|molasses|syrup',
   // Fortification vocabulary, which real cereal panels are full of. Without it a fortified product
   // reads as barely recognisable: Kellogg's Frosted Flakes measured 44% coverage against live
@@ -353,11 +371,15 @@ function expandEntry(part) {
 
 // [{ ing, pos }] where pos is the TOP-LEVEL position, shared by an ingredient's own sub-list.
 function parseEntries(text) {
-  const flat = text.replace(/\b((?:contains )?(?:less than \d+(?:\.\d+)?% of|\d+(?:\.\d+)?% or less of)|and\/or)\b/gi, ',');
+  const flat = joinStrains(text.replace(/\b((?:contains )?(?:less than \d+(?:\.\d+)?% of|\d+(?:\.\d+)?% or less of)|and\/or)\b/gi, ','));
   const out = [];
-  splitTopLevel(flat).forEach((part, pos) => {
+  let pos = -1, strainRun = false;
+  for (const part of splitTopLevel(flat)) {
+    const strain = STRAIN_ENTRY.test(tidy(part));
+    if (!(strain && strainRun)) pos++;
+    strainRun = strain;
     for (const ing of expandEntry(part)) out.push({ ing, pos });
-  });
+  }
   return out;
 }
 
@@ -523,7 +545,9 @@ function score(product, options = {}) {
 
   const { kept, total: rawPenalty } = collapse(hits);
   const nova = novaClass(list, txt, hardHits, softHits);
-  const listPenalty = list.length > 20 ? 8 : 0;
+  // Named strains are one ingredient ("cultures") spelled out, not a long recipe.
+  const listLength = list.filter(i => !STRAIN_ENTRY.test(i)).length;
+  const listPenalty = listLength > 20 ? 8 : 0;
   const rawTotal = rawPenalty + listPenalty;
   const penalty = saturate(rawTotal);
 
@@ -531,7 +555,7 @@ function score(product, options = {}) {
   // at, so the saturation discount is distributed back across them proportionally rather than
   // applied invisibly at the end. Largest remainder gets the rounding slack.
   const shown = kept.map(h => ({ raw: h.scaled, why: h.why, ing: h.ing, cat: h.cat, refined: h.refined }));
-  if (listPenalty) shown.push({ raw: listPenalty, why: `Very long ingredient list (${list.length} items)` });
+  if (listPenalty) shown.push({ raw: listPenalty, why: `Very long ingredient list (${listLength} items)` });
   if (rawTotal > 0 && shown.length) {
     // Largest-remainder allocation. Every row gets at least 1 point when there is room for it,
     // and the leftover is corrected against the biggest rows in whichever direction it lands, so
