@@ -27,8 +27,12 @@ const TOGGLE_DEFAULTS = {
   enabled: true,
   badges: true,
   foodOnly: true,
-  autoScoreSearch: false,
+  // Numbers on every results tile out of the box: product pages are fetched from Amazon a few at a
+  // time (at most 60 per page), and the shared cache answers most of them without a fetch.
+  autoScoreSearch: true,
   hoverScore: false,
+  // Hover or focus a score badge on a results page to see why it scored that way.
+  hoverBreakdown: true,
   ocrLabels: false,
   useOpenFoodFacts: false,
   shareContributions: false,
@@ -41,6 +45,20 @@ const TOGGLE_DEFAULTS = {
 
 function db(name) {
   return (typeof AIR !== 'undefined' && AIR.db && AIR.db[name]) || null;
+}
+
+// Non-boolean display settings for the results-page breakdown.
+const DISPLAY_DEFAULTS = { breakdownDetail: 'full', breakdownDelayMs: 200 };
+const BREAKDOWN_DELAY_MAX = 1500;
+function sanitizeDisplay(raw) {
+  const src = raw && typeof raw === 'object' ? raw : {};
+  const delay = Number(src.breakdownDelayMs);
+  return {
+    breakdownDetail: src.breakdownDetail === 'compact' ? 'compact' : 'full',
+    breakdownDelayMs: Number.isFinite(delay)
+      ? Math.round(Math.min(BREAKDOWN_DELAY_MAX, Math.max(0, delay)) / 50) * 50
+      : DISPLAY_DEFAULTS.breakdownDelayMs,
+  };
 }
 
 function asBool(value, fallback) {
@@ -152,7 +170,8 @@ function exportPayload(prefs) {
 function backupPayload(raw, now) {
   const toggles = sanitizeToggles(raw);
   delete toggles.enabled;
-  return { ...exportPayload(raw), ts: (now instanceof Date ? now : new Date()).toISOString(), toggles };
+  return { ...exportPayload(raw), ts: (now instanceof Date ? now : new Date()).toISOString(), toggles,
+    display: sanitizeDisplay(raw) };
 }
 
 // Anything that claims to be a backup -> the storage values to write. Always re-sanitized.
@@ -163,7 +182,8 @@ function parseBackup(obj) {
   const toggles = sanitizeToggles(obj.toggles);
   delete toggles.enabled;
   const ts = Date.parse(obj.ts);
-  return { ok: true, values: { ...sanitizeScoring(obj), ...toggles }, ts: Number.isFinite(ts) ? ts : null };
+  return { ok: true, values: { ...sanitizeScoring(obj), ...toggles, ...sanitizeDisplay(obj.display) },
+    ts: Number.isFinite(ts) ? ts : null };
 }
 
 // chrome.storage.sync caps an item at 8 KB, and a full avoid list is ~6.5 KB on its own.
@@ -185,7 +205,7 @@ function scoringEqual(a, b) {
 }
 
 const _exports = AIRmodule('prefs', {
-  SETTINGS_FORMAT, SETTINGS_VERSION, TOGGLE_DEFAULTS,
+  SETTINGS_FORMAT, SETTINGS_VERSION, TOGGLE_DEFAULTS, DISPLAY_DEFAULTS, BREAKDOWN_DELAY_MAX, sanitizeDisplay,
   AVOID_MAX_LINES, AVOID_MAX_LEN, ENDPOINT, OAUTH_CLIENT_ID, SYNC_KEYS,
   sanitizeToggles, sanitizeScoring, sanitizeAvoidList, toScriptUrl, endpoint,
   parseImport, exportPayload, looksLikeSettings, scoringEqual,

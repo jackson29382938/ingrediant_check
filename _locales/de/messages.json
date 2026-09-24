@@ -547,5 +547,54 @@
   },
   "loadingCacheBody": {
     "message": "Amazon hat die Zutaten nicht als Text veröffentlicht. Es wird geprüft, ob dieses Produkt schon gelesen wurde – hier oder in der gemeinsamen Datenbank."
+  },
+  "popupBreakdown": {
+    "message": "Begründung beim Überfahren zeigen"
+  },
+  "popupBreakdownD": {
+    "message": "Fahre mit der Maus über eine Bewertung in den Suchergebnissen, springe mit Tab dorthin oder klicke sie an, um zu sehen, was sie erhöht und gesenkt hat. Wird auf deinem Computer aus bereits Gelesenem berechnet — keine zusätzlichen Anfragen."
+  },
+  "optNoteBreakdown": {
+    "message": "Fahre mit der Maus über eine Bewertung in den Suchergebnissen, springe mit Tab dorthin oder klicke sie an, um zu sehen, was sie erhöht und gesenkt hat. Wird auf deinem Computer aus bereits Gelesenem mit deinen aktuellen Gewichtungen berechnet — keine zusätzlichen Anfragen. Ein Klick hält sie offen; Esc oder ein Klick daneben schließt sie."
+  },
+  "optBreakdownDetail": {
+    "message": "Anzeigen"
+  },
+  "optBreakdownFull": {
+    "message": "Alles, wie auf der Produktseite"
+  },
+  "optBreakdownCompact": {
+    "message": "Nur die wichtigsten Gründe"
+  },
+  "optBreakdownDelay": {
+    "message": "Verzögerung beim Überfahren"
+  },
+  "breakdownMore": {
+    "message": "Produkt öffnen für alle Details"
+  },
+  "breakdownNone": {
+    "message": "Diese Bewertung wurde gespeichert, bevor Begründungen aufbewahrt wurden. Öffne das Produkt, um zu sehen, warum."
+  },
+  "breakdownClean": {
+    "message": "Nichts auf diesem Etikett hat die Bewertung erhöht oder gesenkt."
+  },
+  "breakdownTrimmed": {
+    "message": "Es werden nur die wichtigsten Gründe gezeigt."
+  },
+  "breakdownDiffers": {
+    "message": "Die Produktseite hat dies mit $SCORE$ bewertet, mit geteilten Zertifizierungsdaten, die diese Aufschlüsselung nicht enthält.",
+    "placeholders": {
+      "score": {
+        "content": "$1"
+      }
+    }
+  },
+  "breakdownLabel": {
+    "message": "Warum dies $SCORE$ erhielt",
+    "placeholders": {
+      "score": {
+        "content": "$1"
+      }
+    }
   }
 }

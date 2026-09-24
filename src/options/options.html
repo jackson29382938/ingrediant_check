@@ -170,6 +170,27 @@
       it was judged as something you could eat. When this is on, a non-food page shows why it was
       skipped instead of a silent blank.
     </p>
+    <label class="chip" style="margin: 14px 0 8px">
+      <input type="checkbox" id="hoverBreakdown" checked>
+      <span data-i18n="popupBreakdown">Show why on hover</span>
+    </label>
+    <p class="note" data-i18n="optNoteBreakdown">
+      Hover, tab to or click a score on a results page to see what raised and lowered it. Worked out
+      on your computer from what was already read, under your current weights — no extra requests.
+      A click pins it open; Esc or a click elsewhere closes it.
+    </p>
+    <div class="row" style="margin-top:10px">
+      <label for="breakdownDetail" class="note" style="margin:0" data-i18n="optBreakdownDetail">Show</label>
+      <select id="breakdownDetail">
+        <option value="full" data-i18n="optBreakdownFull">Everything, like the product page</option>
+        <option value="compact" data-i18n="optBreakdownCompact">The biggest reasons only</option>
+      </select>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <label for="breakdownDelayMs" class="note" style="margin:0" data-i18n="optBreakdownDelay">Hover delay</label>
+      <input type="range" id="breakdownDelayMs" min="0" max="1500" step="50" value="200" style="width:180px">
+      <span class="status" id="breakdownDelayVal" style="color:inherit">0.2 s</span>
+    </div>
   </section>
 
   <section id="sec-presets">
@@ -336,9 +357,10 @@
       <li><strong>Shared online database</strong> (on by default) — the store and product IDs on a
         search page, and what was read off products you score, go to the Ingredient Check Apps
         Script. The spreadsheet behind it is private. Never your settings.</li>
-      <li><strong>Rate every search result</strong> and <strong>Score on hover</strong> — request
-        product pages from amazon.com using your normal signed-in session, so Amazon sees them
-        much as it would if you had opened the products yourself. At most three at a time.</li>
+      <li><strong>Rate every search result</strong> (on by default) and <strong>Score on hover</strong>
+        — request product pages from amazon.com using your normal signed-in session, so Amazon sees
+        them much as it would if you had opened the products yourself. Three at a time, at most 60
+        per results page, and only for products not already answered.</li>
       <li><strong>Open Food Facts fallback</strong> — sends a barcode to
         world.openfoodfacts.org when a page has one but no readable ingredients. The barcode and
         nothing else.</li>
@@ -355,8 +377,8 @@
       product image the page already shows: the OCR engine ships with the extension and runs on
       your computer.
     </p>
-    <p class="note">Turn off the shared database and the backup, leave the other boxes off, and the
-      extension makes no network requests of its own.</p>
+    <p class="note">Turn off the shared database, the backup and <strong>Rate every search
+      result</strong>, leave the other boxes off, and the extension makes no network requests of its own.</p>
   </section>
 
   <section>

@@ -209,19 +209,27 @@
     return t('srcPageConf', 'Ingredients read from page ($1% confidence)', Math.round((meta.confidence || 0) * 100));
   }
 
-  // `result` is the engine output; `meta` carries title/confidence/source.
-  function render(result, meta) {
-    const c = BAND_COLOR(result.score);
+  // The panel's rows, grouped. Shared by the product panel and the results-page breakdown so the
+  // two can never disagree about what a score was made of.
+  function sections(result) {
     const isCapRow = h => h.c === 'CAP' || h.cap === true;
-    const caps = result.bad.filter(isCapRow);
-    const minus = result.bad.filter(h => !isCapRow(h));
-    const plus = result.good.filter(h => h.c > 0);
     // The engine marks rows from the refined-sugar table; this used to re-list those rule names
     // here and had already drifted from sugars.js once.
     const refinedSugarPresent = result.bad.some(h => h.refined === true);
-    // A zero-point note about milk or fruit sugar is useful on a clean food, but reads like a health
-    // halo on candy or chips. Hide that cosmetic note when refined added sugar is also present.
-    const neutral = result.good.filter(h => h.c === 0 && !(refinedSugarPresent && /Natural sugar/i.test(h.why)));
+    return {
+      caps: result.bad.filter(isCapRow),
+      minus: result.bad.filter(h => !isCapRow(h)),
+      plus: result.good.filter(h => h.c > 0),
+      // A zero-point note about milk or fruit sugar is useful on a clean food, but reads like a
+      // health halo on candy or chips. Hide that cosmetic note when refined added sugar is present.
+      neutral: result.good.filter(h => h.c === 0 && !(refinedSugarPresent && /Natural sugar/i.test(h.why))),
+    };
+  }
+
+  // `result` is the engine output; `meta` carries title/confidence/source.
+  function render(result, meta) {
+    const c = BAND_COLOR(result.score);
+    const { caps, minus, plus, neutral } = sections(result);
     const copyLine = [result.score, verdictText(result.verdict), NOVA_TEXT[result.nova], meta.title || '']
       .filter(Boolean).join(' · ');
 
@@ -263,6 +271,63 @@
           'A guide to what is on the label, not health advice. Ingredient text can be incomplete or out of date — check the package before you rely on this.'))}</p>
       </div>
     </div>`;
+  }
+
+  const POP_CSS = `
+  .pop { width: 340px; max-width: calc(100vw - 16px); max-height: min(70vh, 540px); overflow: auto;
+         background: #fff; border: 1px solid #d5d9d9; border-radius: 10px; font-size: 13px;
+         box-shadow: 0 6px 24px rgba(0,0,0,.18); padding: 12px 14px 10px; }
+  .pop .top { display: flex; align-items: center; gap: 10px; }
+  .pop .score { width: 40px; height: 40px; font-size: 16px; border-width: 2px; }
+  .pop h4 { margin: 10px 0 4px; }
+  .pop li { padding: 2px 0; font-size: 12px; }
+  .pop .flags { padding: 8px 0 0; }
+  .pop .prov { padding: 6px 0 0; }
+  .pop .note { margin-top: 8px; font-size: 11px; color: #565959; }
+  .pop .more { display: block; margin-top: 10px; padding-top: 8px; border-top: 1px solid #eaeded;
+               font-size: 12px; font-weight: 600; color: #007185; text-decoration: none; }
+  .pop .more:hover { color: #c7511f; text-decoration: underline; }
+  .pop .more:focus-visible { outline: 3px solid #007185; outline-offset: 2px; }
+  @media (prefers-color-scheme: dark) {
+    .pop { background: #1b1c1c; border-color: #3a3c3c; }
+    .pop .note { color: #aeaeae; }
+    .pop .more { color: #4db6c8; border-top-color: #3a3c3c; }
+  }
+  `;
+
+  // Why a results-page badge says what it says. `result` is the engine output for that product
+  // under the reader's weights, or null when no reading is kept for it; `meta` carries the badge's
+  // own score and verdict, the ASIN, and `detail`: 'full' (every row, as on the product page) or
+  // 'compact' (disqualifiers, the top five minuses and top three pluses).
+  function renderBreakdown(result, meta) {
+    const shown = result || { score: meta.score, verdict: meta.verdict, nova: meta.nova, good: [], bad: [] };
+    const c = BAND_COLOR(shown.score);
+    const more = `<a class="more" href="/dp/${esc(meta.asin)}">${esc(t('breakdownMore', 'Open product for full detail'))} →</a>`;
+    const head = `<div class="top">
+        <span class="score">${shown.score}</span>
+        <span class="meta"><span class="verdict">${esc(verdictText(shown.verdict).toUpperCase())}</span>
+          <span class="sub">${esc(NOVA_TEXT[shown.nova] || '')}</span></span>
+      </div>`;
+    let body;
+    if (!result) {
+      body = `<p class="note">${esc(t('breakdownNone', 'This score was saved before breakdowns were kept. Open the product to see why.'))}</p>`;
+    } else {
+      const compact = meta.detail === 'compact';
+      const { caps, minus, plus, neutral } = sections(result);
+      const top = (rows, n) => (compact ? rows.slice().sort((a, b) => Math.abs(b.c) - Math.abs(a.c)).slice(0, n) : rows);
+      body = `${flagsHTML(result.flags)}
+        ${compact ? '' : provenanceHTML(result.provenance, meta)}
+        ${caps.length ? `<h4>${esc(t('headDisqualifying', 'Disqualifying'))}</h4>${rowsHTML(caps, 'minus')}` : ''}
+        ${plus.length ? `<h4>${esc(t('headGood', "What's good"))}</h4>${rowsHTML(top(plus, 3), 'plus')}` : ''}
+        ${minus.length ? `<h4>${esc(t('headHurt', 'What hurt'))}</h4>${rowsHTML(top(minus, 5), 'minus')}` : ''}
+        ${!compact && neutral.length ? `<h4>${esc(t('headNeutral', 'Not counted against it'))}</h4>${rowsHTML(neutral, 'plus')}` : ''}
+        ${!caps.length && !plus.length && !minus.length ? `<p class="note">${esc(t('breakdownClean', 'Nothing on this label moved the score up or down.'))}</p>` : ''}
+        ${compact && (minus.length > 5 || plus.length > 3 || neutral.length) ? `<p class="note">${esc(t('breakdownTrimmed', 'Showing the biggest reasons only.'))}</p>` : ''}
+        ${result.score !== meta.score ? `<p class="note">${esc(t('breakdownDiffers', 'The product page scored this $1 with shared certification data this breakdown does not include.', meta.score))}</p>` : ''}`;
+    }
+    return `<style>${CSS}${POP_CSS}</style>
+    <div class="pop" role="dialog" aria-label="${esc(t('breakdownLabel', 'Why this scored $1', shown.score))}"
+         style="--fg:${c.fg};--bg:${c.bg};--ring:${c.ring}">${head}${body}${more}</div>`;
   }
 
   function renderLoading(meta) {
@@ -465,6 +530,6 @@
     return shadow;
   }
 
-  root.AIR.panel = { render, renderLoading, renderFailure, renderNotFood, mount, shadowOf, BAND_COLOR, NOVA_TEXT, pasteLooksValid, t };
+  root.AIR.panel = { render, renderBreakdown, renderLoading, renderFailure, renderNotFood, mount, shadowOf, BAND_COLOR, NOVA_TEXT, pasteLooksValid, t };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.AIR.panel;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

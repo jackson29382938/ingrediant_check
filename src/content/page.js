@@ -8,7 +8,8 @@
 
   const HOST_ID = 'air-score-panel';
   const BADGE_ATTR = 'data-air-badge';
-  const state = { enabled: true, badges: true, hoverScore: false, autoScoreSearch: false, foodOnly: true,
+  const state = { enabled: true, badges: true, hoverScore: false, autoScoreSearch: true, foodOnly: true,
+    hoverBreakdown: true, breakdownDetail: 'full', breakdownDelayMs: 200,
     ocrLabels: false, sendDiagnostics: false, settled: null, lastBadgeScore: undefined,
     prefs: { weights: {}, allergens: [], diets: [], avoidList: [] }, lastKey: null, requestId: 0,
     failedExtracts: 0, manual: null, lastTextSig: null, lastFailSig: null };

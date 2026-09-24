@@ -43,7 +43,7 @@ function setup() {
       createElement: tag => {
         if (tag === 'span') {
           const el = { style: { cssText: '' }, textContent: '', className: '',
-            setAttribute() {}, getAttribute: () => null, appendChild() {},
+            setAttribute() {}, removeAttribute() {}, getAttribute: () => null, appendChild() {},
             remove() { badges.splice(badges.indexOf(el), 1); } };
           return el;
         }

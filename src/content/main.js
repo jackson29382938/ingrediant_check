@@ -213,13 +213,16 @@
     clearBadges();
   }
 
-  chrome.storage.local.get(['enabled', 'badges', 'hoverScore', 'autoScoreSearch', 'foodOnly', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList', 'useOpenFoodFacts', 'sheetIndexRev', 'producerIndexRev'], o => {
+  chrome.storage.local.get(['enabled', 'badges', 'hoverScore', 'autoScoreSearch', 'hoverBreakdown',
+    'breakdownDetail', 'breakdownDelayMs', 'foodOnly', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList', 'useOpenFoodFacts', 'sheetIndexRev', 'producerIndexRev'], o => {
     state.cacheOptions = { ...o };
     const toggles = AIR.db.prefs.sanitizeToggles(o);
     state.enabled = toggles.enabled;
     state.badges = toggles.badges;
     state.hoverScore = toggles.hoverScore;
     state.autoScoreSearch = toggles.autoScoreSearch;
+    state.hoverBreakdown = toggles.hoverBreakdown;
+    Object.assign(state, AIR.db.prefs.sanitizeDisplay(o));
     state.foodOnly = toggles.foodOnly;
     state.ocrLabels = toggles.ocrLabels;
     state.sendDiagnostics = toggles.sendDiagnostics;
@@ -279,6 +282,19 @@
       if (state.enabled && state.badges) wake();
     }
     if (changes.sendDiagnostics) state.sendDiagnostics = changes.sendDiagnostics.newValue === true;
+    // Badges are repainted so they gain or lose the button role and the plain tooltip.
+    if (changes.hoverBreakdown) {
+      state.hoverBreakdown = changes.hoverBreakdown.newValue !== false;
+      resetListState();
+      if (state.enabled && state.badges) wake();
+    }
+    if (changes.breakdownDetail || changes.breakdownDelayMs) {
+      Object.assign(state, AIR.db.prefs.sanitizeDisplay({
+        breakdownDetail: changes.breakdownDetail ? changes.breakdownDetail.newValue : state.breakdownDetail,
+        breakdownDelayMs: changes.breakdownDelayMs ? changes.breakdownDelayMs.newValue : state.breakdownDelayMs,
+      }));
+      AIR.hoverCard?.close();
+    }
     if (changes.ocrLabels) {
       state.ocrLabels = changes.ocrLabels.newValue === true;
       resetListState();

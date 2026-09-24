@@ -61,7 +61,7 @@ Live Amazon checks are in [docs/VERIFY.md](docs/VERIFY.md). When a rule changes,
 
 ## Network
 
-Scoring is always local. The shared database and the settings backup are on by default and can be switched off in settings; everything else is off until you turn it on.
+Scoring is always local. The shared database, the settings backup and **Rate every search result** (product pages fetched from Amazon, a few at a time, at most 60 per results page) are on by default and can be switched off; everything else is off until you turn it on. Hover a score on a results page to see why it scored that way (**Show why on hover**, computed locally).
 
 - **Open Food Facts fallback** — barcode only, after Chrome grants the host
 - **Read label photos** — local Tesseract; fetches the product image already on the page

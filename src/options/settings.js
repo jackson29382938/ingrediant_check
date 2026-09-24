@@ -554,6 +554,40 @@ function renderAll() {
   markPresetDirty();
 }
 
+// Results-page breakdown: the toggle, how much it shows, and how long a hover waits before it opens.
+function wireBreakdown() {
+  const box = document.getElementById('hoverBreakdown');
+  const detail = document.getElementById('breakdownDetail');
+  const delay = document.getElementById('breakdownDelayMs');
+  const val = document.getElementById('breakdownDelayVal');
+  if (!box || !detail || !delay) return;
+  const paintDelay = ms => { if (val) val.textContent = `${(ms / 1000).toFixed(ms % 100 ? 2 : 1)} s`; };
+  const paint = o => {
+    const shown = { ...PREFS.sanitizeToggles(o), ...PREFS.sanitizeDisplay(o) };
+    box.checked = shown.hoverBreakdown;
+    detail.value = shown.breakdownDetail;
+    delay.value = String(shown.breakdownDelayMs);
+    paintDelay(shown.breakdownDelayMs);
+    detail.disabled = delay.disabled = !shown.hoverBreakdown;
+  };
+  const keys = ['hoverBreakdown', 'breakdownDetail', 'breakdownDelayMs'];
+  chrome.storage.local.get(keys, paint);
+  chrome.storage.onChanged.addListener(changes => {
+    if (keys.some(k => changes[k])) chrome.storage.local.get(keys, paint);
+  });
+  box.addEventListener('change', () => {
+    detail.disabled = delay.disabled = !box.checked;
+    persist({ hoverBreakdown: box.checked }, ok => { if (ok) flash(msg('optSaved', 'Saved')); });
+  });
+  detail.addEventListener('change', () =>
+    persist(PREFS.sanitizeDisplay({ breakdownDetail: detail.value, breakdownDelayMs: Number(delay.value) }),
+      ok => { if (ok) flash(msg('optSaved', 'Saved')); }));
+  delay.addEventListener('input', () => paintDelay(Number(delay.value)));
+  delay.addEventListener('change', () =>
+    persist({ breakdownDelayMs: PREFS.sanitizeDisplay({ breakdownDelayMs: Number(delay.value) }).breakdownDelayMs },
+      ok => { if (ok) flash(msg('optSaved', 'Saved')); }));
+}
+
 function startSettingsPage() {
   chrome.storage.local.get(['weights', 'allergens', 'diets', 'avoidList', 'foodOnly'], o => {
     applyScoring(o);
@@ -564,6 +598,7 @@ function startSettingsPage() {
     wireCatTools();
     wireFileActions();
     wireDatabase();
+    wireBreakdown();
 
     document.getElementById('avoidList').addEventListener('input', e => {
       state.avoidList = PREFS.sanitizeAvoidList(e.target.value);
