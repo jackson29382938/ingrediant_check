@@ -620,7 +620,7 @@ async function sendProducts() {
 //     and read only through the optional Google sign-in (the options page supplies the token)
 
 const BACKUP_SOURCE_KEYS = ['weights', 'allergens', 'diets', 'avoidList', 'foodOnly',
-  ...Object.keys(self.AIR.db.prefs.TOGGLE_DEFAULTS)];
+  ...Object.keys(self.AIR.db.prefs.TOGGLE_DEFAULTS), ...Object.keys(self.AIR.db.prefs.DISPLAY_DEFAULTS)];
 let backupTimer = null;
 
 function noteBackupChange(changes) {

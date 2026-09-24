@@ -750,6 +750,7 @@
         "src/content/page.js",
         "src/content/product.js",
         "src/content/search.js",
+        "src/content/hover-card.js",
         "src/content/main.js"
       ],
       "exclude_globs": [

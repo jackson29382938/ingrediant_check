@@ -185,9 +185,15 @@
       b.className = 'air-badge';
       titleEl.insertBefore(b, titleEl.firstChild);
     }
+    const breakdown = hit !== 'pending' && hit !== 'unreadable' && P().state.hoverBreakdown;
     const sig = hit === 'pending' ? 'p' : hit === 'unreadable' ? '?' : `${hit.score}:${hit.verdict}`;
     if (typeof b.getAttribute === 'function' && b.getAttribute('data-air') === sig) return b;
     if (typeof b.setAttribute === 'function') b.setAttribute('data-air', sig);
+    // A numbered badge opens the breakdown card (hover-card.js) when that setting is on, so it is a
+    // focusable button and drops the plain tooltip the card replaces.
+    if (typeof b.removeAttribute === 'function') {
+      for (const a of ['role', 'tabindex', 'aria-haspopup', 'aria-expanded']) b.removeAttribute(a);
+    }
     if (hit === 'pending') {
       b.textContent = '…';
       b.title = 'Reading ingredients…';
@@ -213,6 +219,14 @@
     b.title = `Ingredient Check: ${hit.score}/100 — ${verdict}`;
     b.setAttribute('aria-label', b.title);
     b.style.cssText = `color:${c.fg};background:${c.bg};border:2px solid ${c.ring};`;
+    if (breakdown) {
+      b.removeAttribute('title');
+      b.setAttribute('role', 'button');
+      b.setAttribute('tabindex', '0');
+      b.setAttribute('aria-haspopup', 'dialog');
+      b.setAttribute('aria-expanded', 'false');
+      b.style.cursor = 'pointer';
+    }
     return b;
   }
 
@@ -435,6 +449,7 @@
 
   function clearBadges() {
     const { BADGE_ATTR } = P();
+    root.AIR.hoverCard?.close();
     document.querySelectorAll('.air-badge').forEach(b => b.remove());
     document.querySelectorAll(`[${BADGE_ATTR}]`).forEach(tile => tile.removeAttribute(BADGE_ATTR));
     for (const ac of hoverAborts) ac.abort();

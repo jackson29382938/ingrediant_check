@@ -24,7 +24,8 @@ check('unknown and non-boolean values fall back to defaults', () => {
   assert.strictEqual(clean.enabled, true);
   assert.strictEqual(clean.badges, true);
   assert.strictEqual(clean.ocrLabels, true);
-  assert.strictEqual(clean.autoScoreSearch, false);
+  assert.strictEqual(clean.autoScoreSearch, true, 'numbers on every results tile by default');
+  assert.strictEqual(clean.hoverBreakdown, true);
   assert.ok(!('extra' in clean));
 });
 check('false is kept for on-by-default keys', () => {
