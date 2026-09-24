@@ -112,7 +112,7 @@ check('store description is within the 132-character limit', () => {
 });
 
 console.log('\nHTML pages point at files that exist, and carry no inline handlers');
-for (const page of ['src/options/options.html', 'src/options/popup.html', 'src/offscreen/ocr.html']) {
+for (const page of ['src/options/options.html', 'src/options/popup.html', 'src/options/welcome.html', 'src/offscreen/ocr.html']) {
   check(page, () => {
     const html = read(page);
     for (const m of html.matchAll(/<script[^>]+src="([^"]+)"/g)) {

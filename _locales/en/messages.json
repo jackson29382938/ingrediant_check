@@ -351,7 +351,7 @@
     "message": "Preset categories"
   },
   "optNotePresets": {
-    "message": "Pick a goal to load a full set of scoring weights. You can still move any slider afterwards — the active label becomes Custom until the dials match a preset again. This app scores ingredient quality, not calorie targets; training and body-goal presets remap protein, sugar, grain and processing dials to match the aim."
+    "message": "Pick one goal or several — they combine, and where two set the same dial they are averaged. Some goals turn a minus into a plus: fat-reduced dairy under Weight loss, added vitamins under Vitamins & minerals. Hard ceilings like Red 40 never become pluses. You can still move any slider afterwards; the active label then shows Custom. Click a selected goal again to remove it; Balanced clears them all."
   },
   "optTitle": {
     "message": "Ingredient Check — Settings"
@@ -614,5 +614,71 @@
         "content": "$1"
       }
     }
+  },
+  "popupGoalsCombined": {
+    "message": "Goals combined: where two set the same dial, they are averaged."
+  },
+  "welTitle": {
+    "message": "Set up Ingredient Check"
+  },
+  "welGoalsH": {
+    "message": "What are you aiming for?"
+  },
+  "welGoalsLede": {
+    "message": "Pick any that fit — they combine. Scores change to match: under Weight loss, low-fat dairy becomes a plus; under Vitamins & minerals, added vitamins do. Pick nothing for the balanced default."
+  },
+  "welWarnH": {
+    "message": "Anything to warn you about?"
+  },
+  "welWarnLede": {
+    "message": "Tap any allergens or diets. Warnings sit on top of the score and never change it. They only cover the ingredient text on the page — always check the package."
+  },
+  "welAllergens": {
+    "message": "Allergens"
+  },
+  "welAvoidH": {
+    "message": "Anything you avoid?"
+  },
+  "welAvoidLede": {
+    "message": "Optional. Products containing these get a red flag. Tap common ones or type your own, one per line."
+  },
+  "welOptionsH": {
+    "message": "A few last choices"
+  },
+  "welOptionsLede": {
+    "message": "Scoring always happens on your computer. These decide what the extension may fetch. You can change them later in the toolbar popup."
+  },
+  "welSharedD": {
+    "message": "Reuses what others already read off a product, so it is not fetched from Amazon again. Never sends your settings or anything about you."
+  },
+  "welDoneH": {
+    "message": "You're set"
+  },
+  "welDoneLede": {
+    "message": "Open any grocery product or search on Amazon. Hover a score on a results page to see why. Everything here can be changed later under Settings."
+  },
+  "welTry": {
+    "message": "Try a grocery search →"
+  },
+  "welBack": {
+    "message": "Back"
+  },
+  "welSkip": {
+    "message": "Skip setup"
+  },
+  "welNext": {
+    "message": "Next"
+  },
+  "welFinish": {
+    "message": "Finish"
+  },
+  "welClose": {
+    "message": "Close"
+  },
+  "welStep": {
+    "message": "Step"
+  },
+  "popupSetupAgain": {
+    "message": "Run setup again"
   }
 }

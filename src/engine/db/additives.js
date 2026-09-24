@@ -70,8 +70,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // ---------------------------------------------------------------- flavour & glutamates
   const FLAVOURS = [
     { m: /\bartificial (and natural )?flavou?rs?\b/i,     pts: 18, why: 'Artificial flavour' },
-    { m: /\bnatural (and artificial )?flavou?rs?\b/i,     pts: 15, why: '"Natural flavors" — an undisclosed proprietary blend, not a food' },
-    { m: /\bnatural [a-z]+ flavou?rs?\b/i,                pts: 15, why: '"Natural flavor" — undisclosed proprietary flavour compound' },
+    { m: /\bnatural (and artificial )?flavou?rs?\b/i,     pts: 15, cat: 'naturalFlavour', why: '"Natural flavors" — an undisclosed proprietary blend, not a food' },
+    { m: /\bnatural [a-z]+ flavou?rs?\b/i,                pts: 15, cat: 'naturalFlavour', why: '"Natural flavor" — undisclosed proprietary flavour compound' },
   // Mirror of the natural-flavour catch-all. Without it "artificial butter flavor" and
   // "artificial vanilla flavor" slipped past every flavour rule entirely.
   { m: /\bartificial [a-z]+ flavou?rs?\b/i,             pts: 18, why: 'Artificial flavour compound' },
@@ -81,7 +81,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     // Same `why` as the English rules on purpose: a bilingual label lists "natural flavour /
     // arôme naturel" and must be charged once, and `seen` de-duplicates by reason.
     { m: /\b(?:aromas?|ar[ôo]mes?|aromen|aromi)\s+(?:artificial(?:es)?|artificiels?|k[üu]nstlich\w*|artificial[ei]|kunstmatig\w*)\b|\bk[üu]nstliche[sn]?\s+aroma\b|\bkunstmatig(?:e)?\s+aroma\b/i, pts: 18, why: 'Artificial flavour' },
-    { m: /\b(?:aromas?|ar[ôo]mes?|aromen|aromi)\s+(?:natural(?:es)?|naturels?|naturali|natuurlijk\w*)\b|\bnat[üu]rliche[sn]?\s+aroma\b|\bnatuurlijk(?:e)?\s+aroma\b/i, pts: 15, why: '"Natural flavors" — an undisclosed proprietary blend, not a food' },
+    { m: /\b(?:aromas?|ar[ôo]mes?|aromen|aromi)\s+(?:natural(?:es)?|naturels?|naturali|natuurlijk\w*)\b|\bnat[üu]rliche[sn]?\s+aroma\b|\bnatuurlijk(?:e)?\s+aroma\b/i, pts: 15, cat: 'naturalFlavour', why: '"Natural flavors" — an undisclosed proprietary blend, not a food' },
     { m: /\b(?:aromas?|ar[ôo]mes?|aromen|aromi)\b(?!\s+(?:natural|naturel|artificial|artificiel|k[üu]nstlich|kunstmatig|natuurlijk))/i, pts: 12, why: 'Unspecified flavouring' },
     { m: /\bmonosodium glutamate\b|\bmsg\b|\be[- ]?62[0-5]\b|\bglutamic acid\b|\b(?:mono)?potassium glutamate\b|\bcalcium diglutamate\b|\bglutamato monos[óo]dico\b|\bglutamate monosodique\b|\bglutamato monoss[óo]dico\b/i, pts: 16, why: 'MSG' },
     { m: /\b(autolyzed )?yeast extract\b|\bextracto de levadura\b|\bextrait de levure\b|\bhefeextrakt\b|\bestratto di lievito\b|\bextrato de levedura\b|\bgistextract\b/i, pts: 14, why: 'Yeast extract — MSG under another name' },
@@ -229,10 +229,23 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   ];
 
   // Traditional preparation (sourdough, sprouting, soaking) removes the grain penalty.
+  // ---------------------------------------------------------------- nuts, seeds & legumes
+  // Off for everyone by default (the plantDefense weight is 0). Only the animal-based goal counts
+  // these, on the view that plant defence compounds (lectins, phytates, oxalates) are worth avoiding.
+  // Anchored so nutmeg, coconut, pea protein and seed oils are not caught: oils have their own rules.
+  const PLANTS = [
+    { m: /\b(?:beans?|lentils?|chickpeas?|garbanzos?|split peas|(?<!pea )peas\b|peanuts?|soy ?beans?|soya|edamame|tofu|tempeh)\b(?!\s+(?:oil|protein|lecithin))/i,
+      pts: 8, why: 'Legumes — lectins and phytates' },
+    { m: /\b(?:almonds?|cashews?|walnuts?|pecans?|pistachios?|hazelnuts?|macadamias?|brazil nuts?|pine nuts?)\b(?!\s+(?:oil|milk))/i,
+      pts: 6, why: 'Tree nuts — phytates and oxalates' },
+    { m: /\b(?:chia|flax(?:seed)?s?|linseed|sesame(?: seeds?)?|(?:sunflower|pumpkin|hemp|poppy) seeds?)\b(?!\s+oil)/i,
+      pts: 6, why: 'Seeds — phytates and plant defence compounds' },
+  ];
+
   const TRADITIONAL_PREP = /\b(sourdough|sprouted|soaked|long[- ]?fermented|naturally leavened|einkorn|emmer|khorasan|kamut|heritage (wheat|grain))\b/i;
 
   const _exports = AIRmodule('additives', {
-    CAPS, ISOLATES, FLAVOURS, TEXTURE, PRESERVATIVES, PROCESSING, FORTIFICATION, GRAINS, UNNAMED, TRADITIONAL_PREP,
+    CAPS, ISOLATES, FLAVOURS, TEXTURE, PRESERVATIVES, PROCESSING, FORTIFICATION, GRAINS, UNNAMED, TRADITIONAL_PREP, PLANTS,
   });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 

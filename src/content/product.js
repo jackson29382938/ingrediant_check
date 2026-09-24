@@ -52,7 +52,11 @@
     }
     host.dataset.airState = 'scored';
     delete host.dataset.airCheck;
-    state.lastTextSig = (meta && meta.textSig != null) ? meta.textSig : (ingredientSig() || data.text || '');
+    // The page's own ingredient text as it stands now, so the next tick compares page to page. A
+    // score from a label photo, a barcode or a saved reading used to record ITS text here; the page
+    // (a blurb, or nothing) never matched it, so every Amazon update re-read the page and replaced
+    // the score with the failure card.
+    state.lastTextSig = ingredientSig() || ((meta && meta.textSig != null) ? meta.textSig : (data.text || ''));
     state.failedExtracts = 0;
     // Do not settle('scored') — keep watching for late ingredient hydration.
     root.AIR.panel.mount(host, root.AIR.panel.render(result, {
@@ -146,7 +150,9 @@
     state.lastKey = key;
 
     if (!data.ok) {
-      if (host.dataset.airState === 'fail') return;
+      // A failed re-read never replaces a score: it came from a label photo, a barcode, a saved
+      // reading, or text that has since gone. A new product gets a new panel via navigation.
+      if (host.dataset.airState === 'fail' || host.dataset.airState === 'scored') return;
       // A cache check in flight holds 'loading' too; a barcode must not start Open Food Facts under it.
       if (host.dataset.airState === 'loading' && (!data.upc || host.dataset.airCheck)) return;
       cache(key, null);
