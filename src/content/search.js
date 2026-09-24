@@ -9,12 +9,22 @@
   const MAX_CONCURRENT = 3;
   const REQUEST_GAP_MS = 250;
   const TILE_FAIL_LIMIT = 5;
-  // Hard cap on auto-score fan-out per search page epoch (hover still prioritised).
-  const MAX_AUTO_PER_PAGE = 40;
+  // Amazon product-page fetches auto-score may make per results page (hover is not capped). It
+  // counts fetches only: it used to count every tile touched, so tiles answered from the cache or
+  // skipped as non-food used up the budget and scoring stopped about forty tiles down. A page holds
+  // 48 organic results plus sponsored rows; the 3-at-a-time pacing and the throttle pause still apply.
+  const MAX_AUTO_FETCHES = 60;
+
+  // A badge is painted into the tile's title. Results pages also carry [data-asin] carousel cards
+  // with no title; arming those fetched product pages for badges that could never be shown, and on
+  // a kefir search 37 of them spent the auto-score budget before the last real results. A card that
+  // renders its title later is picked up by the next pass, since nothing marks it until then.
+  const TITLE_SEL = 'h2, [data-cy="title-recipe"]';
+  const badgeable = tile => !!tile.querySelector(TITLE_SEL);
 
   const searchGate = { url: null, decision: null };
   const queue = { pending: [], active: 0, seen: new Set(), lastStart: 0, epoch: 0, controllers: new Set(),
-    failStreak: 0, throttled: false };
+    failStreak: 0, throttled: false, fetches: 0 };
   let tileObserver = null;
   let badgeStyleReady = false;
   const hoverAborts = new Set();
@@ -127,7 +137,7 @@
     const pending = [];
     tiles.forEach(tile => {
       const asin = tile.getAttribute('data-asin');
-      if (!asin || asin.length !== 10) return;
+      if (!asin || asin.length !== 10 || !badgeable(tile)) return;
       tile.setAttribute(BADGE_ATTR, '1');
       if (state.foodOnly && root.AIR.db.ingestible && root.AIR.db.ingestible.looksNonFoodFromTitle(tileTitle(tile))) {
         return;
@@ -145,7 +155,7 @@
     if (!isListPage() || !searchAllowed()) return;
     document.querySelectorAll('[data-asin]:not([data-air-hover])').forEach(tile => {
       const asin = tile.getAttribute('data-asin');
-      if (!asin || !/^[A-Z0-9]{10}$/.test(asin)) return;
+      if (!asin || !/^[A-Z0-9]{10}$/.test(asin) || !badgeable(tile)) return;
       armHover(tile, asin);
     });
   }
@@ -167,7 +177,7 @@
 
   function paintBadge(tile, hit) {
     ensureBadgeStyle();
-    const titleEl = tile.querySelector('h2, [data-cy="title-recipe"]');
+    const titleEl = tile.querySelector(TITLE_SEL);
     if (!titleEl) return null;
     let b = tile.querySelector('.air-badge');
     if (!b) {
@@ -258,6 +268,7 @@
     queue.lastStart = 0;
     queue.failStreak = 0;
     queue.throttled = false;
+    queue.fetches = 0;
     clearThrottleNotice();
     for (const controller of queue.controllers) controller.abort();
     queue.controllers.clear();
@@ -279,12 +290,13 @@
     if (!state.enabled || !state.badges || !searchAllowed()) return;
     if (front ? !state.hoverScore : !state.autoScoreSearch) return;
     if (queue.seen.has(asin)) return;
-    if (!front && queue.seen.size >= MAX_AUTO_PER_PAGE) return;
+    if (!front && queue.fetches >= MAX_AUTO_FETCHES) return;
     if (state.foodOnly && root.AIR.db.ingestible && root.AIR.db.ingestible.looksNonFoodFromTitle(tileTitle(tile))) {
       queue.seen.add(asin);
       return;
     }
     queue.seen.add(asin);
+    if (!front) queue.fetches++;
     const job = { tile, asin, epoch: queue.epoch, url: location.href };
     if (front) queue.pending.unshift(job); else queue.pending.push(job);
     pump();
@@ -357,7 +369,7 @@
     const obs = autoObserver();
     document.querySelectorAll('[data-asin]:not([data-air-auto])').forEach(tile => {
       const asin = tile.getAttribute('data-asin');
-      if (!asin || !/^[A-Z0-9]{10}$/.test(asin)) return;
+      if (!asin || !/^[A-Z0-9]{10}$/.test(asin) || !badgeable(tile)) return;
       tile.setAttribute('data-air-auto', '1');
       obs.observe(tile);
     });
@@ -431,7 +443,7 @@
   }
 
   const search = {
-    queue, TILE_FAIL_LIMIT,
+    queue, TILE_FAIL_LIMIT, MAX_AUTO_FETCHES,
     searchAllowed, resetSearchGate, standDown, badgeSearchResults,
     armHoverPass, armAutoScorePass, enqueue, scoreTile, cancelTileWork, resolveTiles,
     pauseForThrottle, clearBadges, paintBadge,
