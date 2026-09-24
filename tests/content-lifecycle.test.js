@@ -363,3 +363,36 @@ test('a shared reading answers an unreadable page and counts a pull; a miss fall
   assert.equal(miss.lookups.length, 1);
   assert.ok(miss.messages.some(m => m.type === 'ocrLabels'), 'nothing saved anywhere: read the label');
 });
+
+test('tiles answered without a fetch do not use up the auto-score budget', () => {
+  const w = cacheSetup();
+  w.h.state.foodOnly = false;
+  const S = w.context.AIR.search;
+  // Fifty tiles already painted from the cache on this page.
+  for (let i = 0; i < 50; i++) S.queue.seen.add(`B0CACHED${String(i).padStart(2, '0')}`);
+  S.enqueue(tileFor(w, 'B000000100'), 'B000000100');
+  assert.equal(S.queue.fetches, 1, 'a real fetch is still allowed after fifty cache hits');
+  for (let i = 1; i < S.MAX_AUTO_FETCHES + 5; i++) S.enqueue(tileFor(w, `B0000${String(i).padStart(5, '0')}`), `B0000${String(i).padStart(5, '0')}`);
+  assert.equal(S.queue.fetches, S.MAX_AUTO_FETCHES, 'fetches stop at the cap');
+  w.h.state.hoverScore = true;
+  S.enqueue(tileFor(w, 'B0HOVER001'), 'B0HOVER001', { front: true });
+  assert.equal(S.queue.fetches, S.MAX_AUTO_FETCHES, 'hover is never capped or counted');
+  assert.ok(S.queue.seen.has('B0HOVER001'));
+  S.cancelTileWork();
+  assert.equal(S.queue.fetches, 0, 'a new search starts a new budget');
+});
+
+test('carousel cards with no title are never armed for auto-score', () => {
+  const w = setup();
+  const c = w.context;
+  Object.assign(c.location, { pathname: '/s', search: '?k=kefir', href: 'https://www.amazon.com/s?k=kefir' });
+  const observed = [];
+  c.IntersectionObserver = class { observe(t) { observed.push(t.getAttribute('data-asin')); } disconnect() {} unobserve() {} };
+  const attrs = () => { const a = {}; return { getAttribute: k => (k === 'data-asin' ? a.asin : a[k] ?? null), setAttribute: (k, v) => { a[k] = v; }, a }; };
+  const titled = attrs(); titled.a.asin = 'B000000010'; titled.querySelector = s => (/h2/.test(s) ? {} : null);
+  const card = attrs(); card.a.asin = 'B000000011'; card.querySelector = () => null;
+  c.document.querySelectorAll = sel => (/data-air-auto/.test(sel) ? [titled, card] : []);
+  c.AIR.search.armAutoScorePass();
+  assert.deepEqual(observed, ['B000000010']);
+  assert.equal(card.getAttribute('data-air-auto'), null, 'left unmarked, so a card that renders a title later is armed then');
+});
