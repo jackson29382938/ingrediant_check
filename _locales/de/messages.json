@@ -596,5 +596,74 @@
         "content": "$1"
       }
     }
+  },
+  "popupGoalsCombined": {
+    "message": "Ziele kombiniert: Wo zwei denselben Regler setzen, wird gemittelt."
+  },
+  "optNotePresets": {
+    "message": "Wähle ein Ziel oder mehrere — sie werden kombiniert, und wo zwei denselben Regler setzen, wird gemittelt. Manche Ziele machen aus einem Minus ein Plus: fettreduzierte Milchprodukte bei Abnehmen, zugesetzte Vitamine bei Vitamine & Mineralstoffe. Harte Obergrenzen wie Red 40 werden nie zum Plus. Du kannst danach jeden Regler verschieben; dann steht dort Benutzerdefiniert. Ein erneuter Klick entfernt ein Ziel; Ausgewogen setzt alle zurück."
+  },
+  "welTitle": {
+    "message": "Ingredient Check einrichten"
+  },
+  "welGoalsH": {
+    "message": "Was ist dein Ziel?"
+  },
+  "welGoalsLede": {
+    "message": "Wähle alle, die passen — sie werden kombiniert. Die Bewertungen passen sich an: Bei Abnehmen werden fettarme Milchprodukte zum Plus, bei Vitamine & Mineralstoffe zugesetzte Vitamine. Nichts wählen heißt ausgewogener Standard."
+  },
+  "welWarnH": {
+    "message": "Wovor sollen wir dich warnen?"
+  },
+  "welWarnLede": {
+    "message": "Tippe Allergene oder Ernährungsweisen an. Warnungen stehen über der Bewertung und ändern sie nie. Sie beziehen sich nur auf den Zutatentext der Seite — prüfe immer die Verpackung."
+  },
+  "welAllergens": {
+    "message": "Allergene"
+  },
+  "welAvoidH": {
+    "message": "Vermeidest du etwas?"
+  },
+  "welAvoidLede": {
+    "message": "Optional. Produkte, die das enthalten, bekommen eine rote Markierung. Tippe gängige an oder schreibe eigene, eine pro Zeile."
+  },
+  "welOptionsH": {
+    "message": "Noch ein paar Entscheidungen"
+  },
+  "welOptionsLede": {
+    "message": "Bewertet wird immer auf deinem Computer. Hier legst du fest, was die Erweiterung abrufen darf. Du kannst das später im Symbolleisten-Popup ändern."
+  },
+  "welSharedD": {
+    "message": "Nutzt, was andere bereits von einem Produkt gelesen haben, damit es nicht erneut von Amazon geladen wird. Sendet nie deine Einstellungen oder etwas über dich."
+  },
+  "welDoneH": {
+    "message": "Fertig"
+  },
+  "welDoneLede": {
+    "message": "Öffne ein Lebensmittel oder eine Suche bei Amazon. Fahre über eine Bewertung in den Ergebnissen, um die Begründung zu sehen. Alles hier lässt sich später in den Einstellungen ändern."
+  },
+  "welTry": {
+    "message": "Probiere eine Lebensmittelsuche →"
+  },
+  "welBack": {
+    "message": "Zurück"
+  },
+  "welSkip": {
+    "message": "Einrichtung überspringen"
+  },
+  "welNext": {
+    "message": "Weiter"
+  },
+  "welFinish": {
+    "message": "Fertigstellen"
+  },
+  "welClose": {
+    "message": "Schließen"
+  },
+  "welStep": {
+    "message": "Schritt"
+  },
+  "popupSetupAgain": {
+    "message": "Einrichtung erneut starten"
   }
 }

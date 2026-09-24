@@ -85,6 +85,7 @@
   .val { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; font-size: 13px; }
   .val.zero { color: #767676; font-weight: 400; }
   .val.high { color: #0f7b3f; }
+  .val.plus { color: #0f7b3f; font-weight: 700; }
 
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .chip { display: inline-flex; align-items: center; gap: 7px; border: 1px solid #d5d9d9;
@@ -142,6 +143,7 @@
 <body>
 <div class="wrap">
   <h1 data-i18n="appName">Ingredient Check</h1>
+  <p class="note" style="margin:0 0 10px"><a href="welcome.html" data-i18n="popupSetupAgain">Run setup again</a></p>
   <p class="lede" data-i18n="optLede">Scoring runs on your computer. The shared database and the settings
     backup can be switched off below.</p>
   <nav class="jump" data-i18n-aria="optNavAria" aria-label="Settings sections">
@@ -196,10 +198,7 @@
   <section id="sec-presets">
     <h2 data-i18n="optPresetsH">Goal-based scoring</h2>
     <p class="note" style="margin: -6px 0 12px" data-i18n="optNotePresets">
-      Pick a goal to load a full set of scoring weights. You can still move any slider afterwards —
-      the active label becomes Custom until the dials match a preset again. This app scores
-      ingredient quality, not calorie targets; training and body-goal presets remap protein, sugar,
-      grain and processing dials to match the aim.
+      Pick one goal or several — they combine, and where two set the same dial they are averaged. Some goals turn a minus into a plus: fat-reduced dairy under Weight loss, added vitamins under Vitamins & minerals. Hard ceilings like Red 40 never become pluses. You can still move any slider afterwards; the active label then shows Custom. Click a selected goal again to remove it; Balanced clears them all.
     </p>
     <div class="preset-active" id="presetActive" aria-live="polite">
       <span class="preset-active-label" data-i18n="optPresetActive">Active</span>

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="welTitle">Set up Ingredient Check</title>
+<style>
+  :root { color-scheme: light dark; --fg: #0f1111; --muted: #565959; --bg: #f7f8f8; --card: #fff;
+          --line: #d5d9d9; --accent: #0f7b3f; --accent-bg: #e8f5ec; --link: #007185; }
+  @media (prefers-color-scheme: dark) {
+    :root { --fg: #f3f3f3; --muted: #aeaeae; --bg: #131414; --card: #1b1c1c; --line: #3a3c3c;
+            --accent: #5cc98a; --accent-bg: #1d3326; --link: #4db6c8; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 32px 16px 64px; background: var(--bg); color: var(--fg);
+         font: 15px/1.55 "Amazon Ember", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .card { max-width: 720px; margin: 0 auto; background: var(--card); border: 1px solid var(--line);
+          border-radius: 14px; padding: 28px 28px 20px; }
+  .progress { display: flex; gap: 6px; margin: 0 0 18px; }
+  .progress span { flex: 1; height: 4px; border-radius: 4px; background: var(--line); }
+  .progress span.on { background: var(--accent); }
+  .kicker { font-size: 12px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--muted); margin: 0; }
+  h1 { font-size: 22px; margin: 4px 0 6px; }
+  .lede { color: var(--muted); margin: 0 0 18px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin: 18px 0 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); border-radius: 999px;
+          padding: 7px 13px; cursor: pointer; font-size: 14px; background: var(--card); color: var(--fg); font: inherit; }
+  .chip[aria-pressed="true"], .chip:has(input:checked) { border-color: var(--accent); background: var(--accent-bg); font-weight: 600; }
+  .chip input { margin: 0; accent-color: var(--accent); }
+  .chip:focus-visible, .chip:focus-within, button:focus-visible, input:focus-visible { outline: 3px solid var(--link); outline-offset: 2px; }
+  .goal-note { color: var(--muted); font-size: 13px; min-height: 2.6em; margin: 12px 0 0; }
+  .opt { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-top: 1px solid var(--line); cursor: pointer; }
+  .opt:first-of-type { border-top: 0; }
+  .opt input { margin-top: 4px; width: 18px; height: 18px; accent-color: var(--accent); flex: 0 0 auto; }
+  .opt b { display: block; }
+  .opt span span { display: block; color: var(--muted); font-size: 13px; }
+  textarea { width: 100%; min-height: 70px; margin-top: 12px; padding: 8px 10px; border: 1px solid var(--line);
+             border-radius: 8px; font: inherit; font-size: 14px; background: var(--card); color: var(--fg); }
+  .foot { display: flex; align-items: center; gap: 10px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line); }
+  .foot .spacer { flex: 1; }
+  button.primary { background: #ffd814; border: 1px solid #fcd200; color: #0f1111; border-radius: 999px;
+                   padding: 9px 22px; font: inherit; font-weight: 700; cursor: pointer; }
+  button.primary:hover { background: #f7ca00; }
+  button.ghost { background: none; border: 0; color: var(--link); font: inherit; cursor: pointer; padding: 6px 4px; }
+  button.ghost:hover { text-decoration: underline; }
+  .status { color: #a4161a; font-size: 13px; min-height: 1.3em; margin: 8px 0 0; }
+  .done a { color: var(--link); }
+  [hidden] { display: none !important; }
+  @media (max-width: 520px) { .card { padding: 20px 16px 16px; } }
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="progress" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+  <p class="kicker" id="stepCount"></p>
+
+  <section data-step="1">
+    <h1 data-i18n="welGoalsH">What are you aiming for?</h1>
+    <p class="lede" data-i18n="welGoalsLede">Pick any that fit — they combine. Scores change to match: under Weight loss, low-fat dairy becomes a plus; under Vitamins &amp; minerals, added vitamins do. Pick nothing for the balanced default.</p>
+    <div id="goals"></div>
+    <p class="goal-note" id="goalNote" aria-live="polite"></p>
+  </section>
+
+  <section data-step="2" hidden>
+    <h1 data-i18n="welWarnH">Anything to warn you about?</h1>
+    <p class="lede" data-i18n="welWarnLede">Tap any allergens or diets. Warnings sit on top of the score and never change it. They only cover the ingredient text on the page — always check the package.</p>
+    <h2 data-i18n="welAllergens">Allergens</h2>
+    <div class="chips" id="allergens"></div>
+    <h2 data-i18n="optDietsH">Diets</h2>
+    <div class="chips" id="diets"></div>
+  </section>
+
+  <section data-step="3" hidden>
+    <h1 data-i18n="welAvoidH">Anything you avoid?</h1>
+    <p class="lede" data-i18n="welAvoidLede">Optional. Products containing these get a red flag. Tap common ones or type your own, one per line.</p>
+    <div class="chips" id="avoidHints"></div>
+    <textarea id="avoidList" aria-label="Your own avoid list" placeholder="e.g. palm oil"></textarea>
+  </section>
+
+  <section data-step="4" hidden>
+    <h1 data-i18n="welOptionsH">A few last choices</h1>
+    <p class="lede" data-i18n="welOptionsLede">Scoring always happens on your computer. These decide what the extension may fetch. You can change them later in the toolbar popup.</p>
+    <label class="opt"><input type="checkbox" id="autoScoreSearch"><span><b data-i18n="popupAutoScore">Rate every search result</b>
+      <span data-i18n="popupAutoScoreD">Scores tiles automatically as you scroll a results page.</span></span></label>
+    <label class="opt"><input type="checkbox" id="sharedCache"><span><b data-i18n="optSharedCache">Use the shared online database</b>
+      <span data-i18n="welSharedD">Reuses what others already read off a product, so it is not fetched from Amazon again. Never sends your settings or anything about you.</span></span></label>
+    <label class="opt"><input type="checkbox" id="ocrLabels"><span><b data-i18n="popupOcr">Read label photos</b>
+      <span data-i18n="popupOcrD">When a page has no readable ingredients, read them from the label photo, on your computer.</span></span></label>
+    <label class="opt"><input type="checkbox" id="useOpenFoodFacts"><span><b data-i18n="popupOff">Open Food Facts fallback</b>
+      <span data-i18n="popupOffD">When a page has a barcode but no readable ingredients, look it up. Chrome will ask first.</span></span></label>
+    <p class="status" id="status" role="status"></p>
+  </section>
+
+  <section data-step="5" class="done" hidden>
+    <h1 data-i18n="welDoneH">You're set</h1>
+    <p class="lede" data-i18n="welDoneLede">Open any grocery product or search on Amazon. Hover a score on a results page to see why. Everything here can be changed later under Settings.</p>
+    <p><a href="https://www.amazon.com/s?k=organic+oats&amp;i=grocery" target="_blank" rel="noopener" data-i18n="welTry">Try a grocery search →</a></p>
+  </section>
+
+  <div class="foot">
+    <button type="button" class="ghost" id="back" data-i18n="welBack">Back</button>
+    <button type="button" class="ghost" id="skip" data-i18n="welSkip">Skip setup</button>
+    <span class="spacer"></span>
+    <button type="button" class="primary" id="next" data-i18n="welNext">Next</button>
+  </div>
+</main>
+<script src="../engine/db/_module.js"></script>
+<script src="../engine/db/allergens.js"></script>
+<script src="../engine/categories.js"></script>
+<script src="../engine/db/prefs.js"></script>
+<script src="welcome.js"></script>
+</body>
+</html>

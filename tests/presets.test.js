@@ -42,7 +42,8 @@ describe('goal-based scoring presets', () => {
     for (const [id, preset] of Object.entries(PRESETS)) {
       for (const [k, v] of Object.entries(preset.weights || {})) {
         assert.ok(k in DEFAULT_WEIGHTS, `${id} unknown weight key ${k}`);
-        assert.ok(typeof v === 'number' && v >= 0 && v <= 2, `${id}.${k}=${v} out of range`);
+        const min = categories.SIGNED.has(k) ? -2 : 0;
+        assert.ok(typeof v === 'number' && v >= min && v <= 2, `${id}.${k}=${v} out of range`);
       }
     }
   });

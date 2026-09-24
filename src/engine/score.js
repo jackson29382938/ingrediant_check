@@ -143,7 +143,9 @@ const PENALTIES = [
   // sugar is penalised, but sugar alone is not ultra-processing. `refined` travels onto the panel
   // row, so the panel can tell added sugar from honey without re-listing rule names.
   ...tag(sugars.REFINED, 'soft', 'sugar').map(r => ({ ...r, refined: true })),
-  ...tag(sugars.TRADITIONAL, 'none', 'sugar'),
+  ...tag(sugars.TRADITIONAL, 'none', 'sugar', 'traditionalSweetener'),
+  // Weight 0 by default: only the animal-based goal counts these, and they never vote on NOVA.
+  ...tag(add.PLANTS, 'none', 'plant', 'plantDefense'),
   ...tag(sugars.ALCOHOLS, 'hard', 'sweetener', 'sweetener'),
 ];
 
@@ -157,6 +159,13 @@ const PENALTIES = [
 // that job belongs to the hard caps.
 const PENALTY_SATURATION = 55;
 const saturate = total => Math.round(PENALTY_SATURATION * (1 - Math.exp(-total / PENALTY_SATURATION)));
+
+// A goal can set a signed category below zero (categories.js), which turns its rules into pluses:
+// fat-reduced dairy under Weight loss, added vitamins under Vitamins & minerals. Those rows are
+// collapsed per group like penalties (twelve vitamins are one fact) and capped in total, so a goal
+// can lift a product but never launder it. Hard caps still apply after them.
+const GOAL_REWARD_CAP = 20;
+const goalHead = why => why.split(' — ')[0];
 
 const GROUP_EXTRA = 0.25;
 const GROUP_CEIL = 1.6;
@@ -479,7 +488,7 @@ function score(product, options = {}) {
   const provenanceOwnsSourcing = provenanceApplies && PROVENANCE_CRITICAL.includes(kindInfo.kind);
 
   const good = [], bad = [], seen = new Set();
-  const hits = [];
+  const hits = [], rewards = [];
   let hardHits = 0, softHits = 0;
   const tradPrep = add.TRADITIONAL_PREP.test(txt);
 
@@ -537,7 +546,13 @@ function score(product, options = {}) {
         else if (r.upf === 'soft') softHits++;
       }
       if (isFreeSugar && r.group === 'sugar' && w_('naturalSugar') === 0) continue;
-      const scaled = r.pts * w * w_(r.cat) * tradRelief;
+      const cw = w_(r.cat);
+      if (cw < 0) {
+        const earned = r.pts * w * -cw * tradRelief;
+        if (earned >= 0.5) rewards.push({ off: Math.round(earned), why: r.why, ing, group: r.group, cat: r.cat });
+        continue;
+      }
+      const scaled = r.pts * w * cw * tradRelief;
       if (scaled < 0.5) continue;                       // category switched off by the user
       hits.push({ off: Math.round(scaled), why: r.why, ing, group: r.group, cat: r.cat, refined: !!r.refined });
     }
@@ -616,6 +631,16 @@ function score(product, options = {}) {
     good.push({ c: +add_, why: titleOnly ? `${b.why} (label claim, unverified)` : b.why });
   }
   pts += bonus;
+
+  // Goal rewards: largest first, trimmed at the cap so the rows still add up to what was added.
+  let rewardLeft = GOAL_REWARD_CAP;
+  for (const h of collapse(rewards).kept.sort((a, b) => b.scaled - a.scaled)) {
+    const c = Math.min(h.scaled, rewardLeft);
+    if (c < 1) break;
+    rewardLeft -= c;
+    pts += c;
+    good.push({ c, why: `${goalHead(h.why)} — a plus for your goals`, ing: h.ing, cat: h.cat, goal: true });
+  }
 
   // hard caps
   let cap = 100, capWhy = null;
