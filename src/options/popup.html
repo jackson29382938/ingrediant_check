@@ -26,6 +26,7 @@
  input{margin-top:2px}
  .t{font-weight:600}
  .d{color:#565959;font-size:11px;display:none;margin-top:1px}
+ .net{display:block;color:#565959;font-size:11px;margin-top:1px}
  label.master .d,body.show-why .d{display:block}
  .preset-block{margin-top:10px;padding-top:10px;border-top:1px solid #eaeded}
  .preset-active{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;margin:0 0 8px}
@@ -60,16 +61,17 @@
  .compare-card{padding:8px;border:1px solid var(--ring,#d5d9d9);border-radius:8px;background:var(--bg,#f7f8f8)}
  .compare-card .ps-num{width:32px;height:32px;font-size:13px;margin-bottom:6px}
  .compare-card .ps-sub{-webkit-line-clamp:3}
- #toggleWhy,#openSettings,#clear{display:block;margin-top:10px;padding:0;border:0;background:none;
+ #toggleWhy,#openSettings,#openNetwork,#clear{display:block;margin-top:10px;padding:0;border:0;background:none;
    font:inherit;font-size:11px;color:#007185;text-decoration:none;cursor:pointer;text-align:left}
  #clear{margin-top:6px}
- #toggleWhy:hover,#openSettings:hover,#clear:hover{text-decoration:underline}
+ #openNetwork{margin:2px 0 4px}
+ #toggleWhy:hover,#openSettings:hover,#openNetwork:hover,#clear:hover{text-decoration:underline}
  #clear:disabled{color:#767676;cursor:default;text-decoration:none}
- input:focus-visible,#toggleWhy:focus-visible,#openSettings:focus-visible,#clear:focus-visible,
+ input:focus-visible,#toggleWhy:focus-visible,#openSettings:focus-visible,#openNetwork:focus-visible,#clear:focus-visible,
  .preset:focus-visible,.preset-cat:focus-visible{outline:3px solid #007185;outline-offset:2px}
  @media (prefers-color-scheme: dark) {
    body{color:#f3f3f3;background:#1b1c1c}
-   .sub,.d,.ps-sub,.ps-empty,.ps-kicker,.preset-note,.preset-snip,.preset-active-kicker{color:#aeaeae}
+   .sub,.d,.net,.ps-sub,.ps-empty,.ps-kicker,.preset-note,.preset-snip,.preset-active-kicker{color:#aeaeae}
    label,.page-score,.preset-block{border-color:#3a3c3c}
    label.master{border-bottom-color:#3a3c3c}
    .page-score{background:#232525}
@@ -114,15 +116,20 @@
    scoring them. Shampoo has an ingredient list too, and a score on one implies it was judged as
    something you could eat.</span></span></label>
  <label><input type="checkbox" id="autoScoreSearch" checked><span><span class="t" data-i18n="popupAutoScore">Rate every search result</span>
-   <span class="d" data-i18n="popupAutoScoreD">Scores tiles automatically as you scroll a results page. Requests each product
-   page from Amazon once, a few at a time, using your normal signed-in session — so Amazon sees
-   them much as it would if you had opened the products yourself.</span></span></label>
+   <span class="net" data-i18n="popupAutoScoreNet">Requests product pages from Amazon, signed in as you.</span>
+   <span class="d" data-i18n="popupAutoScoreD">Scores results automatically as you scroll. For each one this computer and the
+   shared database cannot already answer, it requests the product page from the Amazon store you are
+   on, a few at a time and at most 60 per results page, with your Amazon sign-in. Amazon sees these
+   requests much as if you had opened the products yourself. Off: only products already read get a
+   score.</span></span></label>
  <label><input type="checkbox" id="hoverBreakdown" checked><span><span class="t" data-i18n="popupBreakdown">Show why on hover</span>
    <span class="d" data-i18n="popupBreakdownD">Hover, tab to or click a score on a results page to see what raised and
    lowered it. Worked out on your computer from what was already read — no extra requests.</span></span></label>
  <label><input type="checkbox" id="hoverScore"><span><span class="t" data-i18n="popupHover">Score on hover</span>
+   <span class="net" data-i18n="popupHoverNet">Requests that product page from Amazon, signed in as you.</span>
    <span class="d" data-i18n="popupHoverD">Hover or tab to a search result for half a second and it requests that product
-   page from Amazon to score it. Only the tile you point at.</span></span></label>
+   page from Amazon to score it, with your Amazon sign-in. Only the result you point at.</span></span></label>
+ <a href="#" id="openNetwork" data-i18n="popupNetworkLink">Amazon access and what is sent</a>
  <label><input type="checkbox" id="ocrLabels"><span><span class="t" data-i18n="popupOcr">Read label photos</span>
    <span class="d" data-i18n="popupOcrD">When a page has no readable ingredients, read them from the product's
    label photo. Runs on your computer and takes a few seconds per product — nothing is sent anywhere.</span></span></label>

@@ -37,7 +37,7 @@ On an Amazon product page it reads the ingredient list (page text, optional on-d
 
 The toolbar popup is the master switch plus network opt-ins and shortcuts to the existing weight presets (the same `categories.PRESETS` the settings page uses). On an Amazon product tab it also shows the cached score for that ASIN. If two or more `s:` cache entries are valid, **Compare cached scores** shows them side-by-side — no extra Amazon requests. Explanations are collapsed until you open **Why these matter**. **Scoring weights, allergens & avoid list** opens the full settings page (searchable categories, dark mode, avoid-list suggestions, section jump). Imports, sliders, and storage values are sanitized before they are trusted: unknown ids are dropped, weights stay in the 0–2 slider range. Settings back up to your Chrome account and come back only when you click Restore.
 
-Ingredient headings are recognised in English and several EU languages (Zutaten, Ingredientes, Ingrédients, Ingredienti, Ingrediënten, Składniki, Ingredienser, İçindekiler), including same-line `Ingredients:` detail-bullet forms. Japanese and Arabic stores decline photo OCR until a local reader exists — English Tesseract misreads those labels. Scoring is strongest on English US/UK/CA/AU labels. DE/FR/ES/IT/PT/NL lists usually score via synonym pack + E-numbers; other storefronts may extract headings but under-score or decline unrecognised text. A list the rulebase mostly cannot read is declined rather than scored. Allergen and diet flags read the same four languages, cover the EU’s celery, mustard and lupin as well as the US list, and never move the score. Chrome 116 or newer is required.
+Ingredient headings are recognised in English and several EU languages (Zutaten, Ingredientes, Ingrédients, Ingredienti, Ingrediënten, Składniki, Ingredienser, İçindekiler), including same-line `Ingredients:` detail-bullet forms. Japanese and Arabic stores decline photo OCR until a local reader exists — English Tesseract misreads those labels. Scoring is strongest on English US/UK/CA/AU labels. A synonym pack plus E-numbers lets DE/FR/ES/IT/PT/NL lists score, but that is tested only on synthetic translations, not on real labels. Swedish, Polish and Turkish lists are mostly declined. A list the rulebase mostly cannot read is declined rather than scored. [docs/ACCURACY.md](docs/ACCURACY.md) lists the evidence behind each language. Allergen and diet flags read the same four languages, cover the EU’s celery, mustard and lupin as well as the US list, and never move the score. Chrome 116 or newer is required.
 
 ## Tests
 
@@ -61,7 +61,9 @@ Live Amazon checks are in [docs/VERIFY.md](docs/VERIFY.md). When a rule changes,
 
 ## Network
 
-Scoring is always local. The shared database, the settings backup and **Rate every search result** (product pages fetched from Amazon, a few at a time, at most 60 per results page) are on by default and can be switched off; everything else is off until you turn it on. Hover a score on a results page to see why it scored that way (**Show why on hover**, computed locally).
+Scoring is always local. The shared database, the settings backup and **Rate every search result** are on by default and can be switched off; everything else is off until you turn it on. Hover a score on a results page to see why it scored that way (**Show why on hover**, computed locally).
+
+**Rate every search result** requests product pages from the Amazon store you are on, a few at a time and at most 60 per results page. The requests use your Amazon sign-in. This is shown under the switch in the popup, in Settings → *What to rate*, and once on the first results page it rates, with a **Turn off automatic rating** button. The extension has access to the 21 supported Amazon stores, granted by Chrome at install. Settings lists them and explains how to limit that access. See [docs/PRIVACY.md](docs/PRIVACY.md).
 
 - **Open Food Facts fallback** — barcode only, after Chrome grants the host
 - **Read label photos** — local Tesseract; fetches the product image already on the page
@@ -70,7 +72,7 @@ Scoring is always local. The shared database, the settings backup and **Rate eve
 
 ## Accuracy
 
-The test suite proves the engine matches its spec. To see whether scores match a careful reading of real labels, turn on diagnostics, shop a grocery search, and sort by `coverage`, `source`, and `cap`. Promote misses into `tests/corpus.json` before changing rules.
+The test suite proves the engine matches its spec. To see whether scores match a careful reading of real labels, turn on diagnostics, shop a grocery search, and sort by `coverage`, `source`, and `cap`. Promote misses into `tests/corpus.json` before changing rules. Every corpus entry records its language and whether it is a live capture, modelled on a real product, or synthetic. None is a live capture yet. See [docs/ACCURACY.md](docs/ACCURACY.md).
 
 Chrome Web Store submit checklist: [docs/store-listing/README.md](docs/store-listing/README.md).
 Owner live checks: [docs/VERIFY.md](docs/VERIFY.md). Historical audit logs and plans live under

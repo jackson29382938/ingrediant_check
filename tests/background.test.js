@@ -218,6 +218,7 @@ test('message allowlist is inverted: page / settings / offscreen / deny-unknown'
   assert.equal(w.call(`allowMessage({type:"ocrLabels"}, ${JSON.stringify(amazonTab)})`), true);
   assert.equal(w.call('allowMessage({type:"flushDiagnostics"}, {id:"ext"})'), false);
   assert.equal(w.call(`allowMessage({type:"flushDiagnostics"}, ${JSON.stringify(settingsSender)})`), true);
+  assert.equal(w.call(`allowMessage({type:"flushDiagnostics"}, ${JSON.stringify(popupSender)})`), false);
   assert.equal(w.call(`allowMessage({type:"diagnosticsStatus"}, ${JSON.stringify(popupSender)})`), true);
   assert.equal(w.call(`allowMessage({type:"refreshSheet"}, ${JSON.stringify(amazonTab)})`), false);
   assert.equal(w.call(`allowMessage({type:"accountSave"}, ${JSON.stringify(settingsSender)})`), true);
@@ -378,4 +379,45 @@ test('account save and restore carry a token and the sanitized backup only', asy
   assert.equal(w.data.contributeUrl, undefined);
   assert.equal((await w.send({ type: 'accountSave', token: 'short' }, settingsSender)).ok, false);
   assert.equal(bodies.length, 2);
+});
+
+test('only the settings page can flush diagnostics; the popup and pages cannot', async () => {
+  let posts = 0;
+  const w = worker({ ...enabled, diagQueue: [{ id: 1, rowId: 'r1' }] }, async () => {
+    posts++;
+    return { ok: true, json: async () => ({ ok: true, wrote: 1 }) };
+  });
+  const otherExtension = { id: 'other', url: 'chrome-extension://other/src/options/options.html' };
+  for (const sender of [popupSender, amazonTab, offscreenSender, otherExtension, { id: 'ext' }]) {
+    assert.equal(await w.send({ type: 'flushDiagnostics' }, sender), undefined, JSON.stringify(sender));
+  }
+  assert.equal(posts, 0, 'a rejected sender still reached the endpoint');
+  assert.equal(w.data.diagQueue.length, 1);
+  // The popup keeps the read-only status it was allowed before.
+  assert.equal(w.call(`allowMessage({type:"diagnosticsStatus"}, ${JSON.stringify(popupSender)})`), true);
+  const res = await w.send({ type: 'flushDiagnostics' }, settingsSender);
+  assert.equal(res.ok, true);
+  assert.equal(res.sent, 1);
+  assert.equal(posts, 1);
+  assert.equal(w.data.diagQueue.length, 0);
+});
+
+test('the sender rule does not stop the alarm flush or a full batch', async () => {
+  let alarm = null;
+  const alarms = { onAlarm: { addListener(fn) { alarm = fn; } }, get: (name, cb) => cb({ name }), create() {} };
+  const bodies = [];
+  const fetcher = async (_url, opts) => {
+    const body = JSON.parse(opts.body);
+    bodies.push(body);
+    return { ok: true, json: async () => ({ ok: true, wrote: body.rows ? body.rows.length : 1 }) };
+  };
+  const w = worker({ ...enabled, diagQueue: [{ id: 1, rowId: 'r1' }] }, fetcher, { alarms });
+  alarm({ name: 'air-housekeeping' });
+  for (let i = 0; i < 20 && w.data.diagQueue.length; i++) await new Promise(r => setTimeout(r, 5));
+  assert.equal(w.data.diagQueue.length, 0, 'the housekeeping alarm no longer flushed');
+  assert.equal(bodies.filter(b => b.kind === 'diagnostics').length, 1);
+  // A page's twelfth row flushes from inside the worker, whoever the page is.
+  for (let i = 0; i < 12; i++) await w.send({ type: 'diagnostic', record: { id: i } }, amazonTab);
+  assert.equal(bodies.filter(b => b.kind === 'diagnostics').length, 2);
+  assert.equal(w.data.diagQueue.length, 0);
 });

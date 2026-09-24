@@ -171,6 +171,34 @@
       skipped instead of a silent blank.
     </p>
     <label class="chip" style="margin: 14px 0 8px">
+      <input type="checkbox" id="autoScoreSearch" checked>
+      <span data-i18n="popupAutoScore">Rate every search result</span>
+    </label>
+    <p class="note" data-i18n="optNoteAutoScore">
+      On by default. As you scroll a results page, each result that this computer and the shared
+      database cannot already answer is scored by requesting its product page from the Amazon store
+      you are on: three at a time, at most 60 per results page. The requests carry your Amazon
+      sign-in, so Amazon sees them much as if you had opened each product yourself. Turn this off
+      and only products already read (by you, or through the shared database) show a score.
+    </p>
+    <label class="chip" style="margin: 14px 0 8px">
+      <input type="checkbox" id="hoverScore">
+      <span data-i18n="popupHover">Score on hover</span>
+    </label>
+    <p class="note" data-i18n="optNoteHover">
+      Off by default. Hover or tab to one result for half a second and it requests that product page
+      from Amazon in the same way, with your Amazon sign-in. Only the result you point at.
+    </p>
+    <p class="note" id="amazonAccess" style="margin-top: 12px">
+      <strong>Amazon access.</strong> When you install Ingredient Check, it asks Chrome for access
+      to the Amazon stores it supports:
+      <span id="amazonStores">amazon.com and the other supported Amazon stores</span>.
+      It uses that access to read product and search pages, and to request product pages for the
+      two options above. Its scripts run only on product, search, browse and brand-store pages, never on your
+      account, cart or checkout. To limit it, open <code>chrome://extensions</code>, choose
+      <em>Details</em> under Ingredient Check, and change <em>Site access</em>.
+    </p>
+    <label class="chip" style="margin: 14px 0 8px">
       <input type="checkbox" id="hoverBreakdown" checked>
       <span data-i18n="popupBreakdown">Show why on hover</span>
     </label>
@@ -358,9 +386,10 @@
         search page, and what was read off products you score, go to the Ingredient Check Apps
         Script. The spreadsheet behind it is private. Never your settings.</li>
       <li><strong>Rate every search result</strong> (on by default) and <strong>Score on hover</strong>
-        — request product pages from amazon.com using your normal signed-in session, so Amazon sees
-        them much as it would if you had opened the products yourself. Three at a time, at most 60
-        per results page, and only for products not already answered.</li>
+        — request product pages from the Amazon store you are on, using your Amazon sign-in, so
+        Amazon sees them much as it would if you had opened the products yourself. Three at a time,
+        at most 60 per results page, and only for products not already answered. Both are under
+        <a href="#sec-rate">What to rate</a>.</li>
       <li><strong>Open Food Facts fallback</strong> — sends a barcode to
         world.openfoodfacts.org when a page has one but no readable ingredients. The barcode and
         nothing else.</li>

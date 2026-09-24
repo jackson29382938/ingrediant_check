@@ -11,6 +11,11 @@ var SETTINGS_MESSAGE_TYPES = new Set([
   'flushDiagnostics', 'diagnosticsStatus', 'refreshSheet',
   'accountSave', 'accountLoad',
 ]);
+// Settings types that only the full settings page sends. The popup has no control for them, so it
+// has no reason to send them either. Flushing POSTs the queued diagnostic rows (a trace of scored
+// products) to the endpoint. The housekeeping alarm and a full batch still flush from inside the
+// worker; neither is a message, so neither is affected by this list.
+var OPTIONS_ONLY_MESSAGE_TYPES = new Set(['flushDiagnostics']);
 var OFFSCREEN_MESSAGE_TYPES = new Set(['ocrIdle']);
 var AMAZON_HOST = /(^|\.)amazon\.(com|co\.uk|ca|com\.au|ie|in|sg|ae|sa|de|fr|es|it|nl|se|pl|com\.be|com\.tr|com\.mx|com\.br|co\.jp)$/i;
 
@@ -43,6 +48,10 @@ function isSettingsSender(sender) {
   return /\/(options|popup)\.html$/i.test(path);
 }
 
+function isOptionsPageSender(sender) {
+  return /\/options\.html$/i.test(extensionPagePath(sender));
+}
+
 function isOffscreenSender(sender) {
   return /\/offscreen\/ocr\.html$/i.test(extensionPagePath(sender));
 }
@@ -50,6 +59,7 @@ function isOffscreenSender(sender) {
 function allowMessage(msg, sender) {
   if (!msg || !isOwnExtension(sender)) return false;
   if (PAGE_MESSAGE_TYPES.has(msg.type)) return isAmazonTabSender(sender);
+  if (OPTIONS_ONLY_MESSAGE_TYPES.has(msg.type)) return isOptionsPageSender(sender);
   if (SETTINGS_MESSAGE_TYPES.has(msg.type)) return isSettingsSender(sender);
   if (OFFSCREEN_MESSAGE_TYPES.has(msg.type)) return isOffscreenSender(sender);
   if (msg.type === 'ping') return true;

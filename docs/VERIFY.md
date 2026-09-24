@@ -41,7 +41,7 @@ Extension popup (click the icon):
 | --- | --- |
 | **Open Food Facts fallback** | Chrome asks for permission. On the kefir page you should now get **28 Poor** |
 | **Read label photos** | *"Reading the label photo…"* for a few seconds, then **~28 Poor**, footer reads *"Read from the label photo on this page"* |
-| **Rate every search result** | Score chips appear on tiles as you scroll a grocery search |
+| **Rate every search result** (on by default) | Score chips appear on tiles as you scroll a grocery search. The first time, a blue *"Ingredient Check is rating these results"* notice appears above the results. **Turn off automatic rating** unticks this toggle; **OK** hides the notice for good |
 
 After a product scores, the toolbar icon shows the number as a badge, and reopening the popup
 shows a "This page" card with the same score. Host permissions already cover Amazon tabs; the
@@ -63,7 +63,7 @@ test page. If nothing happens after ~15 seconds:
 The offscreen page loads Tesseract with `chrome.runtime.getURL` from extension origin. Amazon
 pages can no longer probe `chrome-extension://<id>/vendor/tesseract/*`.
 
-**Manual retest (this environment did not run a live Amazon session):**
+**Manual retest (not yet run on a live Amazon session; see the 2026-09-24 record below):**
 
 1. Load unpacked, enable **Read label photos**
 2. Open `https://www.amazon.com/dp/B00LOAW7U6`
@@ -90,6 +90,11 @@ red "not set up in this build" line under *Shared online database*.
 - Untick **Use the shared online database**: nothing goes to `script.google.com` any more.
 
 For diagnostics, tick **Send scoring diagnostics**.
+
+Only the settings page can flush the queue. In the popup's DevTools console,
+`chrome.runtime.sendMessage({type: 'flushDiagnostics'}, r => console.log(r, chrome.runtime.lastError))`
+logs `undefined` and *"The message port closed before a response was received."* The same line in the
+settings page's console logs a result object.
 
 Rows batch in twelves, so browse a dozen products or press **Send queued rows now**. The status
 line reports what happened. Expect a `diagnostics` tab to appear with headers.
@@ -139,6 +144,39 @@ CI also runs `npm run harness:ci` (Playwright, Chromium, local pages only).
 - OCR: http://127.0.0.1:8731/tests/harness-ocr.html
 - Lifecycle: http://127.0.0.1:8731/tests/harness-lifecycle.html
 - Food-only + settings: http://127.0.0.1:8731/tests/verify-food-settings.html
+
+## Verification record — 2026-09-24
+
+Run from a cloud container. Its network policy blocks `www.amazon.com`, `world.openfoodfacts.org`
+and `script.google.com`, so **none of the three live flows below could be run**. Nothing here counts
+as live verification. What did run:
+
+| Check | How | Result |
+|---|---|---|
+| `npm test`, `npm run preflight`, `npm run harness:ci` | Node 22; Playwright Chromium on local pages | Pass |
+| Unpacked extension loads; worker starts; `importScripts` globals resolve; no `web_accessible_resources` | Chromium 141 (headless), `--load-extension`, driven over CDP | Pass |
+| `flushDiagnostics` from `options.html` answered; from `popup.html` refused (no reply); `diagnosticsStatus` from the popup still answered | Same, messages sent from the real extension pages | Pass |
+| Offscreen OCR document created by the worker; vendored Tesseract runs in it with no WAR | Same, a label drawn on a canvas, not an Amazon image | Pass, ~0.8 s |
+| Content script → worker → offscreen OCR → panel, and search auto-rating with the new notice | Same, but `www.amazon.com` and `m.media-amazon.com` mapped to a local TLS server serving hand-built pages; all other hosts mapped to NOTFOUND | Pass: DOM list 95, label photo 35 (`label-ocr`), 8 badges from 7 `/dp/` fetches, notice's turn-off button sets `autoScoreSearch: false` |
+
+The last row shows the extension's own chain works in a real Chromium with no WAR. It does not
+show Amazon's real markup, its image CDN, or its CORS headers. **Live OCR is still unverified.**
+
+**Still unverified, and what the owner needs to do:**
+
+1. **Post-WAR OCR on real Amazon.** Load unpacked in your own Chrome, turn on **Read label photos**,
+   and open `https://www.amazon.com/dp/B00LOAW7U6`. Expect ~28–29 Poor with the footer *"Read from
+   the label photo on this page"*. If it fails, follow the steps in *After removing
+   `web_accessible_resources`* above.
+2. **Open Food Facts.** Needs a click on Chrome's permission prompt in your profile, which automation
+   here cannot give. Popup → **Open Food Facts fallback** → **Allow** → the same Lifeway page. Expect
+   ~28 Poor. Then untick it and check `chrome://extensions` → *Details* → *Site access* no longer
+   lists world.openfoodfacts.org.
+3. **Shared database and diagnostics.** `ENDPOINT` is set in this build. Whether the Apps Script
+   behind it is deployed as **Execute as: Me** / **Anyone** could not be checked. Run section 5
+   above. Nothing was sent to it from here.
+4. **The notice on real Amazon.** On a grocery search, check the notice sits above the results, not
+   above Amazon's header, and that **Turn off automatic rating** stops the `…` badges.
 
 ## What is still unproven
 

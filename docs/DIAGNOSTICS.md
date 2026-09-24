@@ -66,7 +66,11 @@ daily housekeeping alarm so a partial batch is not stranded. The queue is capped
 beyond that the oldest are dropped, because losing diagnostic rows is a non-event and filling the
 storage quota is not. A failed POST keeps the rows for the next attempt.
 
-**Send queued rows now** in settings flushes immediately and reports what happened.
+**Send queued rows now** in settings flushes immediately and reports what happened. Only the
+settings page can ask for that flush. The service worker refuses a `flushDiagnostics` message from
+the popup, a content script or any other page (`OPTIONS_ONLY_MESSAGE_TYPES` in
+`src/worker/messages.js`). The alarm and the full-batch flush run inside the worker and are not
+affected.
 
 The same web app serves the product cache, provenance and account settings; each has its own tab.
 Publish a new version of the deployment after updating [`apps-script.gs`](apps-script.gs).

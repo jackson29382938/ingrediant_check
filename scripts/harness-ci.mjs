@@ -209,8 +209,65 @@ async function run() {
         return nums.includes('74');
       }, { timeout: 5000 });
       console.log('  ok  popup compare →', cmp.nums.join(' vs '), `(${cmp.options} cached, B→74)`);
+
+      // The Amazon-request options must say so without "Why these matter" being opened.
+      const net = await comparePage.evaluate(() => {
+        const shown = el => !!el && getComputedStyle(el).display !== 'none' && el.getClientRects().length > 0;
+        const line = id => document.getElementById(id).closest('label').querySelector('.net');
+        return {
+          auto: shown(line('autoScoreSearch')), hover: shown(line('hoverScore')),
+          link: shown(document.getElementById('openNetwork')),
+          longHidden: !shown(document.getElementById('autoScoreSearch').closest('label').querySelector('.d')),
+        };
+      });
+      if (!net.auto || !net.hover || !net.link || !net.longHidden) {
+        throw new Error(`popup network disclosure: ${JSON.stringify(net)}`);
+      }
+      console.log('  ok  popup names Amazon requests up front (auto-rate, hover, access link)');
     } finally {
       await comparePage.close();
+    }
+
+    // Settings: the same two switches, their explanation, and the stores named from the manifest.
+    const settingsPage = await browser.newPage();
+    try {
+      await settingsPage.addInitScript(({ hosts }) => {
+        const data = {};
+        window.__stored = data;
+        window.chrome = {
+          runtime: { lastError: null, getManifest: () => ({ version: '0', host_permissions: hosts }),
+            sendMessage: (m, cb) => { if (typeof cb === 'function') cb(undefined); } },
+          i18n: { getMessage: () => '' },
+          storage: {
+            onChanged: { addListener() {} },
+            local: {
+              get(keys, cb) {
+                const result = keys == null ? { ...data }
+                  : Object.fromEntries((Array.isArray(keys) ? keys : [keys]).map(k => [k, data[k]]));
+                if (typeof cb === 'function') cb(result);
+                return Promise.resolve(result);
+              },
+              set(values, cb) { Object.assign(data, values); if (typeof cb === 'function') cb(); return Promise.resolve(); },
+            },
+          },
+        };
+      }, { hosts: manifest.host_permissions });
+      await settingsPage.goto(`${base}/src/options/options.html`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await settingsPage.waitForFunction(() => /amazon\.co\.jp/.test(document.getElementById('amazonStores').textContent),
+        { timeout: 8000 });
+      const before = await settingsPage.evaluate(() => ({
+        stores: document.getElementById('amazonStores').textContent.split(', ').length,
+        auto: document.getElementById('autoScoreSearch').checked,
+        hover: document.getElementById('hoverScore').checked,
+      }));
+      if (before.stores !== manifest.host_permissions.length || !before.auto || before.hover) {
+        throw new Error(`settings search scoring: ${JSON.stringify(before)}`);
+      }
+      await settingsPage.click('#autoScoreSearch');
+      await settingsPage.waitForFunction(() => window.__stored.autoScoreSearch === false, { timeout: 5000 });
+      console.log(`  ok  settings → auto-rate and hover switches, ${before.stores} stores from the manifest, saves off`);
+    } finally {
+      await settingsPage.close();
     }
   } finally {
     await browser.close();

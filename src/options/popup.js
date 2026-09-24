@@ -470,6 +470,15 @@ document.getElementById('openSettings').addEventListener('click', e => {
   chrome.runtime.openOptionsPage();
 });
 
+// Straight to the settings that fetch from Amazon, and the note on which stores it can reach.
+// openOptionsPage() cannot take a fragment; creating a tab needs no extra permission.
+document.getElementById('openNetwork').addEventListener('click', e => {
+  e.preventDefault();
+  const url = chrome.runtime.getURL('src/options/options.html#sec-rate');
+  if (chrome.tabs && typeof chrome.tabs.create === 'function') chrome.tabs.create({ url });
+  else chrome.runtime.openOptionsPage();
+});
+
 document.getElementById('toggleWhy').addEventListener('click', () => {
   const next = !document.body.classList.contains('show-why');
   paintWhy(next);

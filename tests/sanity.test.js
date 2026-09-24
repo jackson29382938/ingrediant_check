@@ -297,5 +297,32 @@ check('every message has a non-empty string', () => {
   assert.strictEqual(bad.length, 0, `empty messages: ${bad.join(', ')}`);
 });
 
+check('Amazon access and default-on auto-rating are disclosed where users look', () => {
+  // The manifest grants every store below at install. Privacy copy that names fewer stores, or a
+  // settings page without the switch beside its explanation, under-states what the extension can do.
+  const hosts = JSON.parse(read('manifest.json')).host_permissions;
+  const privacy = read('docs/PRIVACY.md');
+  const stores = hosts.map(h => (h.match(/^\*:\/\/\*\.amazon(\.[a-z.]+)\/\*$/) || [])[1]);
+  assert.ok(stores.every(Boolean), `unexpected host permission: ${hosts.join(', ')}`);
+  // Named as "amazon.com" or, further along the list, as ".co.uk," / ".com.br and" / ".co.jp)".
+  const named = tld => {
+    const t = tld.replace(/\./g, '\\.');
+    return new RegExp(`(?:amazon|\\s)${t}(?:,|\\)|\\s+and\\b)`).test(privacy);
+  };
+  const missing = stores.filter(tld => !named(tld));
+  assert.deepEqual(missing, [], `docs/PRIVACY.md does not name ${missing.join(', ')}`);
+  assert.match(privacy, new RegExp(`the ${hosts.length} Amazon stores`), 'PRIVACY.md store count');
+  assert.match(privacy, /Rate every search result is on by default/);
+  const options = read('src/options/options.html');
+  for (const id of ['autoScoreSearch', 'hoverScore', 'amazonStores']) {
+    assert.match(options, new RegExp(`id="${id}"`), `settings page lost #${id}`);
+  }
+  const popup = read('src/options/popup.html');
+  for (const key of ['popupAutoScoreNet', 'popupHoverNet', 'popupNetworkLink']) {
+    assert.match(popup, new RegExp(`data-i18n="${key}"`), `popup lost ${key}`);
+  }
+  assert.match(popup, /\.net\{display:block/, 'the popup network line must not hide behind "Why these matter"');
+});
+
 if (failed) { console.error('\n' + failed + ' failed'); process.exit(1); }
 console.log('\nall passed');
