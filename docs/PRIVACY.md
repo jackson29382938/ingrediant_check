@@ -59,6 +59,8 @@ Scoring is always local: the rules, your weights and every score are computed in
 | **Back up my settings** (on by default) | Weights, allergen and diet choices, avoid list, toggles | Chrome's own sync, for the Google account signed into Chrome. Not the Ingredient Check database. |
 | **Sign in with Google** (only when you click it) | A Google access token (checked with Google, never stored) and the same settings | The Ingredient Check database, keyed by a SHA-256 of your Google account id — not your email. |
 | **Rate every search result** (on by default) or **Score on hover** | Ordinary `GET` of `/dp/ASIN` on the Amazon store you are on, using your Amazon session (`credentials: same-origin`), three at a time and at most 60 per results page — only for tiles this computer and the shared database cannot already answer | **Amazon.** Each auto-scored or hovered tile looks like you opened that product. See *Access to Amazon* above. |
+| **Sort results → Rate them first** (the default sort setting; only when *Rate every search result* is on) | The same product-page `GET`s as *Rate every search result*, for listings on the page without a score, at most 60 per results page | **Amazon**, as above. |
+| **Sort results → Load more results** (off by default) | Amazon search pages after this one, until the chosen number of listings (1–500), then, with *Rate them first*, product pages of listings still without a score: three at a time, with your Amazon session, stopping if Amazon refuses | **Amazon**, as above. The shared database is asked first, like for badges, if it is on. |
 | **Show why on hover** (on by default) | Nothing. The breakdown is worked out on your computer from what was already read. | — |
 | **Read label photos** | Fetch of the product image on `m.media-amazon.com` | The image is read **on your computer** (Tesseract). The pixels are not uploaded. |
 | **Open Food Facts fallback** | The **barcode only** | Open Food Facts, after Chrome grants the host. |
@@ -90,6 +92,10 @@ email. The extension does not keep a copy of what you typed. There is no form se
 tracking behind this.
 
 ## What is stored on the device
+
+The sorted list (*Open sorted list*) is kept in `chrome.storage.session`: in memory, for this
+browser session only, gone when Chrome closes. It holds each listing's title, link, image link,
+price, rating text and score. Nothing about it is sent anywhere.
 
 `chrome.storage.local` holds your weights, allergen/diet flags, avoid list, toggles, a **score cache** (number, verdict, ASIN) and the **product data** behind it (what was read off each product page, kept 30 days so a weight change does not refetch). **Clear cached scores** in the popup removes both.
 

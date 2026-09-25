@@ -6,7 +6,11 @@
 var PAGE_MESSAGE_TYPES = new Set([
   'pageScore', 'ocrLabels', 'lookupBarcode', 'provenanceLookup',
   'contribute', 'report', 'diagnostic', 'productsLookup', 'productsQueue',
+  // Sort by score (src/content/sort.js): open the sorted list, open the sort settings.
+  'openSortedResults', 'openSortSettings',
 ]);
+// The sorted list (src/options/sorted.html) asks for the same list in Chrome's side panel.
+var SORTED_VIEW_MESSAGE_TYPES = new Set(['openResultsSidePanel']);
 // Sent only by the settings page (settings-database.js, loaded by options.html alone), so only the
 // settings page may send them. The popup and the setup page have no control for any of them:
 // flushing POSTs queued diagnostic rows (a trace of scored products), refreshSheet fetches the
@@ -59,6 +63,10 @@ function isOptionsPageSender(sender) {
   return /\/options\.html$/i.test(extensionPagePath(sender));
 }
 
+function isSortedViewSender(sender) {
+  return /\/options\/sorted\.html$/i.test(extensionPagePath(sender));
+}
+
 function isOffscreenSender(sender) {
   return /\/offscreen\/ocr\.html$/i.test(extensionPagePath(sender));
 }
@@ -69,6 +77,7 @@ function allowMessage(msg, sender) {
     return isAmazonTabSender(sender) || (RETAILER_MESSAGE_TYPES.has(msg.type) && isRetailerTabSender(sender));
   }
   if (SETTINGS_MESSAGE_TYPES.has(msg.type)) return isOptionsPageSender(sender);
+  if (SORTED_VIEW_MESSAGE_TYPES.has(msg.type)) return isSortedViewSender(sender);
   if (OFFSCREEN_MESSAGE_TYPES.has(msg.type)) return isOffscreenSender(sender);
   if (msg.type === 'ping') return true;
   return false;

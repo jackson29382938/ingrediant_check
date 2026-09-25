@@ -585,6 +585,40 @@ function wireSearchScoring() {
   if (list && stores.length) list.textContent = stores.join(', ');
 }
 
+// Sort results by score (src/content/sort.js): what to do with unscored listings, and load more.
+// Saved on change, bounded by sortedResults.sanitizeSort, followed if another page changes them.
+function wireSort() {
+  const R = AIR.db.sortedResults;
+  const count = document.getElementById('sortCount');
+  const more = document.getElementById('sortLoadMore');
+  const radios = [...document.querySelectorAll('input[name="sortMissing"]')];
+  if (!R || !count || !more || !radios.length) return;
+  const keys = Object.keys(R.SORT_DEFAULTS);
+  const paint = o => {
+    const v = R.sanitizeSort(o);
+    radios.forEach(r => { r.checked = r.value === v.sortMissing; });
+    more.checked = v.sortLoadMore;
+    count.value = String(v.sortCount);
+    count.disabled = !v.sortLoadMore;
+  };
+  const save = () => {
+    const v = R.sanitizeSort({
+      sortMissing: (radios.find(r => r.checked) || {}).value,
+      sortLoadMore: more.checked,
+      sortCount: count.value,
+    });
+    paint(v);
+    persist(v, ok => { if (ok) flash(msg('optSaved', 'Saved')); });
+  };
+  chrome.storage.local.get(keys, paint);
+  chrome.storage.onChanged.addListener(changes => {
+    if (keys.some(k => changes[k])) chrome.storage.local.get(keys, paint);
+  });
+  radios.forEach(r => r.addEventListener('change', save));
+  more.addEventListener('change', save);
+  count.addEventListener('change', save);
+}
+
 // Results-page breakdown: the toggle, how much it shows, and how long a hover waits before it opens.
 function wireBreakdown() {
   const detail = document.getElementById('breakdownDetail');
@@ -624,6 +658,7 @@ function startSettingsPage() {
     wireFileActions();
     wireDatabase();
     wireSearchScoring();
+    wireSort();
     wireBreakdown();
 
     document.getElementById('avoidList').addEventListener('input', e => {

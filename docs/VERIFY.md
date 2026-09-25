@@ -122,7 +122,22 @@ Measured with `tests/harness-lifecycle.html`, which counts what the content scri
 Previously the observer stayed connected for the life of the page and re-ran the full extraction on
 every Amazon ad refresh, on non-food pages included.
 
-## 7. Worth a look while you are in there
+## 7. Sort by score
+
+On an Amazon grocery search (`organic rolled oats`), a green bar sits above the results.
+
+1. **Sort results.** With *Rate every search result* on (the default), listings without a score
+   are rated first (the `…` badges fill in), then the cards move: best score first, `?` and unscored
+   listings last. The status line says how many were sorted and how many have no score.
+2. **Restore order.** Amazon's order comes back.
+3. **Settings** opens Settings → *Sort*. Turn on *Load more Amazon results* and set 30.
+4. Back on the search, **Load more results.** It reads the next results pages until it has 30
+   listings, then rates the ones without a score (three at a time). **Stop** halts it.
+5. **Open sorted list.** A tab lists all of them best first, with price, rating and a link to each
+   product. **Open side panel** shows the same list beside the page.
+6. Turn the master switch off: the bar goes and Amazon's order is restored.
+
+## 8. Worth a look while you are in there
 
 - A product with a normal ingredient list — panel expands, rows sum to the score
 - A capped product (anything with canola or soybean oil) — a **numbered** `CAP` row, not a bare label
@@ -227,6 +242,21 @@ for the same barcode). It is harmless but wasteful, and it predates this work.
 **Target, Walmart, Costco:** see [STORES.md](STORES.md). Target was read live behind its bot check
 and stays preview. Walmart and Costco were blocked by theirs.
 
+## Record: sort by score, 2026-09-25
+
+Ported from the Amazon Cost per Ounce Sorter. The sort key is the Ingredient Check score, not
+price per ounce.
+
+| Check | How | Result |
+|---|---|---|
+| Sort, Restore, Load more across 2 pages, sorted list tab, side panel request, no requests outside Amazon search and product pages | Real extension in Chromium, on local stand-ins for Amazon search and product pages | Pass, 7/7 |
+| Sort order, Restore, the list handed to the worker (real titles, not the badge number), the sorted list dropping unsafe links and foreign images, Sort settings defaults and bounds | `npm run harness:ci` | Pass |
+| Order, settings bounds, sanitizer, who may send each new message, worker handlers | `npm test` (`tests/sort.test.js`) | Pass |
+| Existing Amazon auto-rating, OCR and Target flows unchanged | Earlier extension simulations, run again | Pass (6/6, 19/19, 8/8) |
+| **Live on amazon.com** | Real extension, `organic rolled oats` | **Not verified.** Amazon answered search pages from this cloud machine with HTTP 503 ("Sorry, something went wrong on our end") three times in a row, while product pages loaded. Not retried further. |
+
+**For the owner:** run §7 above once in your own Chrome.
+
 **Still for the owner:**
 
 1. Press **Allow** on Chrome's Open Food Facts prompt once in your own profile, to confirm the grant
@@ -241,6 +271,8 @@ and stays preview. Walmart and Costco were blocked by theirs.
   granted (2026-09-25), but pressing **Allow** needs a person.
 - **Target in normal use.** Target's pages were read live, but behind its bot check ([STORES.md](STORES.md)).
 - **Walmart and Costco.** Not implemented; their bot checks blocked inspection.
+- **Sort by score on live Amazon.** Checked only on local stand-ins; amazon.com refused this
+  machine's search pages on 2026-09-25 (§7 has the steps).
 - **Amazon stores other than amazon.com.** They share code and markup with .com and the harness
   snapshots, but none was checked live one by one.
 - The nutritional model is specified and tested, not scientifically validated.

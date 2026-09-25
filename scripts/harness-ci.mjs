@@ -261,6 +261,72 @@ async function run() {
       await targetPopup.close();
     }
 
+    // Sort by score (src/content/sort.js) on an Amazon-shaped page with seeded scores and no fetching.
+    let sentResults = null;
+    await withPage(browser, `${base}/tests/harness-sort.html`, async sortPage => {
+      await sortPage.waitForFunction(() => window.__toolbar && window.__toolbar(), { timeout: 10000 });
+      const original = await sortPage.evaluate(() => window.__order());
+      await sortPage.evaluate(() => window.__toolbar().querySelector('.sort').click());
+      await sortPage.waitForFunction(() => /Sorted/.test(window.__toolbar().querySelector('.status').textContent), { timeout: 10000 });
+      const sortedOrder = await sortPage.evaluate(() => window.__order());
+      const expected = ['B0SORT0006', 'B0SORT0003', 'B0SORT0008', 'B0SORT0001', 'B0SORT0004', 'B0SORT0002', 'B0SORT0005', 'B0SORT0007'];
+      if (JSON.stringify(sortedOrder) !== JSON.stringify(expected)) throw new Error(`sort order: ${sortedOrder}`);
+      const status = await sortPage.evaluate(() => window.__toolbar().querySelector('.status').textContent);
+      if (!/3 without a score are at the end/.test(status)) throw new Error(`sort status: ${status}`);
+      await sortPage.evaluate(() => window.__toolbar().querySelector('.restore').click());
+      const restored = await sortPage.evaluate(() => window.__order());
+      if (JSON.stringify(restored) !== JSON.stringify(original)) throw new Error(`restore: ${restored}`);
+      await sortPage.evaluate(() => window.__toolbar().querySelector('.open').click());
+      await sortPage.waitForFunction(() => window.__messages.some(m => m.type === 'openSortedResults'), { timeout: 5000 });
+      const msg = await sortPage.evaluate(() => window.__messages.find(m => m.type === 'openSortedResults'));
+      if (msg.results.map(r => r.asin).join() !== expected.join()) throw new Error(`sent list: ${msg.results.map(r => r.asin)}`);
+      // Every card already shows its cached badge inside the title; the badge must not become the title.
+      const badges = await sortPage.evaluate(() => document.querySelectorAll('.s-main-slot .air-badge').length);
+      const titles = Object.fromEntries(msg.results.map(r => [r.asin, r.title]));
+      if (badges < 5 || titles.B0SORT0003 !== 'Organic rolled oats' || titles.B0SORT0006 !== 'Steel cut oats'
+        || msg.results.some(r => /^\d+$/.test(r.title) || /^\d{2}\n/.test(r.details))) {
+        throw new Error(`titles: ${JSON.stringify(titles)} (${badges} badges)`);
+      }
+      const oats = msg.results.find(r => r.asin === 'B0SORT0003');
+      if (oats.listingPrice !== 6.29 || !/1K\+ bought/.test(oats.bought) || oats.score !== 90) throw new Error(`listing: ${JSON.stringify(oats)}`);
+      const fetches = await sortPage.evaluate(() => window.__messages.filter(m => m.type !== 'openSortedResults').map(m => m.type));
+      sentResults = msg.results;
+      console.log(`  ok  sort → ${expected.length} cards by score, restore puts Amazon's order back, list sent (${fetches.length} worker messages, no fetch)`);
+    });
+
+    // The sorted list page renders what the worker stored, and drops anything unsafe on the way in.
+    const listPage = await browser.newPage();
+    try {
+      const items = sentResults.map(r => ({ ...r, url: `https://www.amazon.com/dp/${r.asin}` }))
+        .concat([{ asin: 'B0SORT0099', url: 'javascript:alert(1)', title: 'Unsafe link', score: 99, image: 'https://evil.example/x.png' }]);
+      await listPage.addInitScript(({ items }) => {
+        window.chrome = {
+          runtime: { lastError: null, sendMessage: (m, cb) => cb && cb({ ok: true }) },
+          i18n: { getMessage: () => '' },
+          storage: { onChanged: { addListener() {} }, session: {
+            get: () => Promise.resolve({ sortedResults: { items, sourceUrl: 'https://www.amazon.com/s?k=organic+oats' } }),
+          } },
+        };
+      }, { items });
+      await listPage.goto(`${base}/src/options/sorted.html`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await listPage.waitForFunction(() => document.querySelectorAll('.product').length > 0, { timeout: 8000 });
+      const view = await listPage.evaluate(() => ({
+        titles: [...document.querySelectorAll('.product h2')].map(h => h.textContent),
+        chips: [...document.querySelectorAll('.score-chip')].map(c => c.textContent),
+        unsafe: [...document.querySelectorAll('a')].filter(a => /^javascript:/i.test(a.getAttribute('href') || '')).length,
+        evilImg: [...document.querySelectorAll('img')].filter(i => /evil/.test(i.src)).length,
+        back: document.querySelector('a.button')?.getAttribute('href'),
+        panelButton: !!document.querySelector('button.button'),
+      }));
+      if (view.chips.join() !== '99,95,90,72,40,40,–,–,–' || view.unsafe || view.evilImg
+        || view.back !== 'https://www.amazon.com/s?k=organic+oats' || !view.panelButton) {
+        throw new Error(`sorted list: ${JSON.stringify(view)}`);
+      }
+      console.log('  ok  sorted list → best first, unscored last, unsafe link and foreign image dropped, back link kept');
+    } finally {
+      await listPage.close();
+    }
+
     // Settings: the same two switches, their explanation, and the stores named from the manifest.
     const settingsPage = await browser.newPage();
     try {
@@ -333,6 +399,24 @@ async function run() {
       const dup = await settingsPage.evaluate(() => document.getElementById('reqNameError').textContent);
       if (!/already works/.test(dup)) throw new Error(`stores duplicate: ${dup}`);
       console.log('  ok  settings → store list from the registry; request draft previewed, trimmed to the site, refused when invalid');
+
+      // Sort settings: defaults, bounded count, saved on change.
+      const sortDefaults = await settingsPage.evaluate(() => ({
+        missing: document.querySelector('input[name="sortMissing"]:checked')?.value,
+        more: document.getElementById('sortLoadMore').checked,
+        countDisabled: document.getElementById('sortCount').disabled,
+        count: document.getElementById('sortCount').value,
+      }));
+      if (sortDefaults.missing !== 'rate-first' || sortDefaults.more || !sortDefaults.countDisabled || sortDefaults.count !== '100') {
+        throw new Error(`sort defaults: ${JSON.stringify(sortDefaults)}`);
+      }
+      await settingsPage.click('#sortLoadMore');
+      await settingsPage.fill('#sortCount', '9999');
+      await settingsPage.dispatchEvent('#sortCount', 'change');
+      await settingsPage.click('input[name="sortMissing"][value="end"]');
+      await settingsPage.waitForFunction(() => window.__stored.sortLoadMore === true && window.__stored.sortCount === 500
+        && window.__stored.sortMissing === 'end', { timeout: 5000 });
+      console.log('  ok  settings → sort: rate first / off / 100 by default; saves load more, count clamped to 500, missing → end');
     } finally {
       await settingsPage.close();
     }

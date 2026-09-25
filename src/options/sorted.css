@@ -1,0 +1,67 @@
+/* Sorted list (sorted.html) and side panel (sidepanel.html). Adapted from the Amazon Cost per Ounce
+   Sorter's ui.css, in Ingredient Check's colours. */
+:root { color-scheme: light dark; font-family: "Amazon Ember", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f1111; background: #f4f6f5; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+.results-page { min-height: 100vh; background: #f4f6f5; }
+.results-shell { width: min(100%, 1060px); margin: 0 auto; padding: 25px 22px 50px; }
+.eyebrow { margin: 0 0 8px; color: #565959; font-size: 11px; font-weight: 700; letter-spacing: .09em; }
+h1 { margin: 0; font-size: 25px; letter-spacing: -.02em; }
+.results-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding-bottom: 18px; border-bottom: 1px solid #d5d9d9; }
+.results-subtitle { margin: 8px 0 0; color: #565959; font-size: 13px; }
+.header-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.button { appearance: none; display: inline-block; padding: 9px 13px; border: 1px solid #0f7b3f; border-radius: 8px; background: #0f7b3f; color: #fff; font-family: inherit; font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer; }
+.button.secondary { border-color: #b9c4bf; background: #fff; color: #0f1111; }
+.button.secondary:hover { background: #eef0f0; }
+button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px solid #007185; outline-offset: 2px; }
+.result-list { display: grid; gap: 11px; padding-top: 17px; }
+.product { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 17px; padding: 15px; border: 1px solid #d5d9d9; border-radius: 8px; background: #fff; }
+.product-image { width: 130px; height: 130px; object-fit: contain; background: #fff; }
+.product h2 { margin: 0 0 8px; font-size: 16px; line-height: 1.4; font-weight: 600; }
+.product h2 a { color: #007185; text-decoration: none; }
+.product h2 a:hover { text-decoration: underline; }
+.product-meta { display: flex; flex-wrap: wrap; gap: 8px 15px; color: #565959; font-size: 12px; }
+.score { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 10px 0; }
+.score-chip { display: inline-grid; place-items: center; min-width: 38px; height: 38px; padding: 0 6px; border: 2px solid #d5d9d9; border-radius: 999px; font: 700 15px/1 sans-serif; font-variant-numeric: tabular-nums; }
+.score-chip.none { color: #767676; background: #f7f8f8; border-style: dashed; }
+.score-verdict { font-weight: 700; font-size: 15px; }
+.score-verdict.none { color: #565959; font-weight: 600; }
+.score small { flex-basis: 100%; color: #565959; font-size: 11px; }
+.listing-price { margin: 0; font-size: 14px; font-weight: 700; }
+.product details { margin-top: 9px; }
+.product summary { color: #007185; font-size: 12px; cursor: pointer; }
+.product pre { max-height: 180px; overflow: auto; margin: 8px 0 0; padding: 10px; background: #f7f8f8; color: #3d4545; white-space: pre-wrap; font-family: inherit; font-size: 11px; line-height: 1.5; }
+.empty-state { margin-top: 25px; padding: 24px; border: 1px dashed #b9c4bf; border-radius: 8px; background: #fff; color: #3d4545; line-height: 1.55; }
+.empty-state h2 { margin: 0 0 5px; color: #0f1111; font-size: 17px; }
+.empty-state p { margin: 0; font-size: 13px; }
+@media (max-width: 580px) {
+  .results-shell { padding: 18px 12px 35px; }
+  .results-header { align-items: flex-start; flex-direction: column; }
+  .product { grid-template-columns: 78px minmax(0, 1fr); gap: 12px; padding: 11px; }
+  .product-image { width: 78px; height: 88px; }
+  .product h2 { font-size: 14px; }
+}
+.results-page[data-view="panel"] .results-shell { padding: 14px 10px 26px; }
+.results-page[data-view="panel"] .results-header { align-items: flex-start; flex-direction: column; gap: 9px; }
+.results-page[data-view="panel"] h1 { font-size: 19px; }
+.results-page[data-view="panel"] .results-subtitle { font-size: 11px; line-height: 1.45; }
+.results-page[data-view="panel"] .product { grid-template-columns: 58px minmax(0, 1fr); gap: 9px; padding: 9px; }
+.results-page[data-view="panel"] .product-image { width: 58px; height: 70px; }
+.results-page[data-view="panel"] .product h2 { font-size: 12px; line-height: 1.35; }
+.results-page[data-view="panel"] .product-meta { gap: 5px 9px; font-size: 10px; }
+.results-page[data-view="panel"] .score-chip { min-width: 30px; height: 30px; font-size: 12px; }
+.results-page[data-view="panel"] .score-verdict { font-size: 12px; }
+.results-page[data-view="panel"] .listing-price { font-size: 12px; }
+@media (prefers-color-scheme: dark) {
+  :root, .results-page { background: #151616; color: #f3f3f3; }
+  .results-header { border-color: #3a3c3c; }
+  .eyebrow, .results-subtitle, .product-meta, .score small, .score-verdict.none { color: #aeaeae; }
+  .product, .empty-state { background: #1f2020; border-color: #3a3c3c; color: #e3e3e3; }
+  .product-image { background: #fff; border-radius: 4px; }
+  .product h2 a, .product summary { color: #5cc3d6; }
+  .product pre { background: #151616; color: #cfd3d3; }
+  .score-chip.none { background: #262828; color: #aeaeae; }
+  .button.secondary { background: #262828; border-color: #3a3c3c; color: #f3f3f3; }
+  .button.secondary:hover { background: #2f3131; }
+  .empty-state h2 { color: #f3f3f3; }
+}

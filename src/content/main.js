@@ -94,6 +94,7 @@
         if (!searchAllowed()) { standDown(); settle('non-food search'); return; }
         if (!state.badges) { standDown(); settle('badges off'); return; }
         badgeSearchResults();
+        AIR.sort?.mount();                        // the sort-by-score toolbar (sort.js)
         // After the first badge pass, watch only the results slot — not the whole document.
         startObserving(true);
       } else {

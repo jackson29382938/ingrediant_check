@@ -460,8 +460,43 @@
     });
   }
 
+  // What one fetched product page says, with no side effects: 'not-food', 'unreadable' (no list),
+  // 'low-coverage' (a list the rulebase mostly cannot read) or 'scored'. Shared by the tile queue and
+  // the sort's load-more pass (sort.js), so both read a product page exactly the same way.
+  function readProductHtml(asin, html) {
+    const { state, unreadable } = P();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const data = root.AIR.extract.extract(doc, { asin, foodOnly: state.foodOnly });
+    // A robot check or an error page is not an answer about the product; never record it.
+    const real = !!doc.querySelector('#productTitle');
+    const food = !(data.ingestible && data.ingestible.ok === false);
+    if (state.foodOnly && !food) return { outcome: 'not-food', real, food, data };
+    if (!data.ok) return { outcome: 'unreadable', real, food, data };
+    const input = {
+      name: data.title, labels: data.labels, certifications: data.certifications,
+      nutrition: data.nutrition, ingredients_text: data.text,
+    };
+    const result = root.AIR.engine.score(input, state.prefs);
+    return { outcome: unreadable(result) ? 'low-coverage' : 'scored', real, food, data, input, result };
+  }
+
+  // Keep what a reading found: the product data (p:) whenever the page was real, and the weighted
+  // score (s:) plus a diagnostic row when there is a score.
+  function recordReading(asin, reading, source) {
+    const { cacheScore, sendDiagnostic, rememberProduct } = P();
+    const { outcome, real, food, data } = reading;
+    if (outcome === 'not-food' || outcome === 'unreadable') {
+      if (real) rememberProduct(asin, { status: outcome, input: { name: data.title }, food });
+      return;
+    }
+    rememberProduct(asin, { input: reading.input, via: data.via || source, confidence: data.confidence, food });
+    if (outcome !== 'scored') return;
+    cacheScore(asin, reading.result, data.title, data.via || source);
+    sendDiagnostic(data, reading.result, source);
+  }
+
   async function scoreTile(tile, asin, epoch, url) {
-    const { state, unreadable, cacheScore, sendDiagnostic, rememberProduct } = P();
+    const { state } = P();
     const current = () => epoch === queue.epoch && url === location.href && state.enabled
       && state.badges && tile.isConnected && searchAllowed();
     if (!current()) return;
@@ -476,33 +511,21 @@
       if (!res.ok) throw Object.assign(new Error(String(res.status)), { httpStatus: res.status });
       const html = await res.text();
       if (!current()) return;
-      const doc = new DOMParser().parseFromString(html, 'text/html');
-      const data = root.AIR.extract.extract(doc, { asin, foodOnly: state.foodOnly });
+      const reading = readProductHtml(asin, html);
       if (!current()) return;
-      // A robot check or an error page is not an answer about the product; never record it.
-      const real = !!doc.querySelector('#productTitle');
-      const food = !(data.ingestible && data.ingestible.ok === false);
-      if (state.foodOnly && !food) {
-        if (real) rememberProduct(asin, { status: 'not-food', input: { name: data.title }, food });
+      if (reading.outcome === 'not-food') {
+        recordReading(asin, reading, 'search-tile');
         const b = tile.querySelector('.air-badge');
         if (b) b.remove();
         return;
       }
-      if (!data.ok) {
-        if (real) rememberProduct(asin, { status: 'unreadable', input: { name: data.title }, food });
+      if (reading.outcome !== 'scored') {
+        recordReading(asin, reading, 'search-tile');
         paintBadge(tile, 'unreadable');
         return;
       }
-      const input = {
-        name: data.title, labels: data.labels, certifications: data.certifications,
-        nutrition: data.nutrition, ingredients_text: data.text,
-      };
-      const result = root.AIR.engine.score(input, state.prefs);
-      rememberProduct(asin, { input, via: data.via || 'search-tile', confidence: data.confidence, food });
-      if (unreadable(result)) { paintBadge(tile, 'unreadable'); return; }
-      paintBadge(tile, result);
-      cacheScore(asin, result, data.title, data.via || 'search-tile');
-      sendDiagnostic(data, result, 'search-tile');
+      paintBadge(tile, reading.result);
+      recordReading(asin, reading, 'search-tile');
       queue.failStreak = 0;
     } catch (e) {
       if (!current()) return;
@@ -521,6 +544,9 @@
   function clearBadges() {
     const { BADGE_ATTR } = P();
     root.AIR.hoverCard?.close();
+    // Every stand-down comes through here (master switch, badges off, non-food search, navigation,
+    // a settings change), so the sort toolbar goes too and Amazon's order is put back.
+    root.AIR.sort?.unmount();
     clearAutoScoreNotice();
     document.querySelectorAll('.air-badge').forEach(b => b.remove());
     document.querySelectorAll(`[${BADGE_ATTR}]`).forEach(tile => tile.removeAttribute(BADGE_ATTR));
@@ -534,6 +560,7 @@
     searchAllowed, resetSearchGate, standDown, badgeSearchResults,
     armHoverPass, armAutoScorePass, enqueue, scoreTile, cancelTileWork, resolveTiles,
     pauseForThrottle, clearBadges, paintBadge, AUTO_NOTICE_ID, AUTO_NOTICE_SEEN,
+    readProductHtml, recordReading,
   };
   root.AIR.search = search;
   if (typeof module !== 'undefined' && module.exports) module.exports = search;

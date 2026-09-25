@@ -105,6 +105,11 @@
   .status.error { color: #a4161a; }
   input.invalid { border-color: #a4161a !important; box-shadow: 0 0 0 2px rgba(164,22,26,.15); }
   .note { color: #565959; font-size: 12px; margin-top: 8px; }
+  .sort-choices { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .sort-choices legend { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  .sort-choice { align-items: flex-start; border-radius: 10px; padding: 8px 12px; }
+  .sort-choice span { display: grid; gap: 2px; }
+  .sort-choice small { color: #565959; font-size: 12px; font-weight: 400; }
   .store-list { list-style: none; margin: 0 0 6px; padding: 0; display: grid; gap: 6px; }
   .store-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font-size: 13px; }
   .store-badge { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 1px 8px; border: 1px solid #d5d9d9; }
@@ -171,6 +176,7 @@
     backup can be switched off below.</p>
   <nav class="jump" data-i18n-aria="optNavAria" aria-label="Settings sections">
     <a href="#sec-rate" data-i18n="optNavRate">Rate</a>
+    <a href="#sec-sort" data-i18n="optNavSort">Sort</a>
     <a href="#sec-presets" data-i18n="optNavPresets">Presets</a>
     <a href="#sec-weights" data-i18n="optNavWeights">Weights</a>
     <a href="#sec-warnings" data-i18n="optNavWarnings">Warnings</a>
@@ -251,6 +257,40 @@
       <input type="range" id="breakdownDelayMs" min="0" max="1500" step="50" value="200" style="width:180px">
       <span class="status" id="breakdownDelayVal" style="color:inherit">0.2 s</span>
     </div>
+  </section>
+
+  <section id="sec-sort">
+    <h2 data-i18n="optSortH">Sort results by score</h2>
+    <p class="note" style="margin: -6px 0 12px" data-i18n="optSortLede">
+      On an Amazon grocery search, the bar above the results puts the listings in score order, best
+      first, and back again with Restore order. Listings without a score go to the end. Open sorted
+      list shows the same list in a tab or in Chrome's side panel.
+    </p>
+    <fieldset class="sort-choices">
+      <legend data-i18n="optSortMissingH">Listings without a score</legend>
+      <label class="chip sort-choice"><input type="radio" name="sortMissing" value="rate-first">
+        <span><strong data-i18n="optSortRateFirst">Rate them first</strong>
+        <small data-i18n="optSortRateFirstD">Uses “Rate every search result”: their product pages are requested from Amazon with your sign-in, as for the badges (at most 60 per page). Does nothing when that option is off.</small></span></label>
+      <label class="chip sort-choice"><input type="radio" name="sortMissing" value="end">
+        <span><strong data-i18n="optSortEnd">Put them at the end</strong>
+        <small data-i18n="optSortEndD">No extra requests. Only scores this computer or the shared database already has.</small></span></label>
+    </fieldset>
+    <label class="chip" style="margin: 14px 0 8px">
+      <input type="checkbox" id="sortLoadMore">
+      <span data-i18n="optSortLoadMore">Load more Amazon results</span>
+    </label>
+    <p class="note" data-i18n="optSortLoadMoreD">
+      Off by default. Reads further Amazon search pages until it has the number below, then asks the
+      shared database for their scores and, with “Rate them first”, requests the product pages of the
+      rest: three at a time, with your Amazon sign-in, stopping if Amazon starts refusing. Listings
+      from other pages appear only in the sorted list.
+    </p>
+    <div class="row" style="margin-top:10px">
+      <label for="sortCount" class="note" style="margin:0" data-i18n="optSortCount">Products to compare</label>
+      <input type="number" id="sortCount" min="1" max="500" step="1" value="100" inputmode="numeric" style="width:90px">
+      <span class="note" style="margin:0">1–500</span>
+    </div>
+    <p class="note" data-i18n="optSortStorage">The sorted list is kept in memory for this browser session only and is gone when Chrome closes.</p>
   </section>
 
   <section id="sec-presets">
@@ -427,6 +467,10 @@
         database keyed by a hash of your account id, only when you click it.</li>
       <li><strong>Send certifications</strong> and "Looks wrong?" reports — product identifiers and
         certification text. Never anything about you.</li>
+      <li><strong>Sort results</strong> — with <em>Rate them first</em>, the same product-page requests
+        as <strong>Rate every search result</strong>. <strong>Load more results</strong> (off by default)
+        also requests further Amazon search pages and product pages, with your Amazon sign-in. See
+        <a href="#sec-sort">Sort results by score</a>.</li>
       <li><strong>Target (preview)</strong> — nothing. The page you open is read and scored on your
         computer; no request is made to Target, the shared database or anyone else.</li>
       <li><strong>Request a store</strong> — nothing is sent by the extension. It opens a draft
@@ -508,6 +552,7 @@
 <script src="../engine/db/allergens.js"></script>
 <script src="../engine/categories.js"></script>
 <script src="../engine/db/prefs.js"></script>
+<script src="../engine/db/sorted-results.js"></script>
 <script src="settings.js"></script>
 <script src="settings-database.js"></script>
 <script src="../stores/registry.js"></script>

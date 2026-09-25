@@ -9,7 +9,8 @@
 if (typeof importScripts === 'function') {
   importScripts('engine/db/_module.js', 'engine/db/allergens.js', 'engine/categories.js',
     'engine/db/ingestible.js', 'engine/db/prefs.js',
-    'engine/db/ocr-text.js', 'engine/db/product-cache.js', 'worker/messages.js', 'worker/sheet-store.js');
+    'engine/db/ocr-text.js', 'engine/db/product-cache.js', 'engine/db/sorted-results.js',
+    'worker/messages.js', 'worker/sheet-store.js');
 }
 
 const OFF_ENDPOINT = 'https://world.openfoodfacts.org/api/v2/product/';
@@ -227,11 +228,46 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     return true;   // async reply
   }
   if (msg && msg.type === 'ping') { reply({ ok: true }); return false; }
+  if (msg && msg.type === 'openSortedResults') {
+    openSortedResults(msg).then(reply, e => reply({ ok: false, reason: String((e && e.message) || e) }));
+    return true;
+  }
+  if (msg && msg.type === 'openSortSettings') {
+    chrome.tabs.create({ url: chrome.runtime.getURL('src/options/options.html#sec-sort') })
+      .then(() => reply({ ok: true }), e => reply({ ok: false, reason: String((e && e.message) || e) }));
+    return true;
+  }
+  if (msg && msg.type === 'openResultsSidePanel') {
+    openResultsSidePanel(sender).then(reply, e => reply({ ok: false, reason: String((e && e.message) || e) }));
+    return true;
+  }
   // Shared-database messages are handled here too. Registering a second onMessage listener works in
   // Chrome but shadowed the first one in the test harness, and one entry point is simpler anyway.
   if (msg && typeof handleSharedDbMessage === 'function') return handleSharedDbMessage(msg, reply);
   return false;
 });
+
+// ---------------------------------------------------------------- sorted results
+//
+// The sort toolbar (src/content/sort.js) hands over the listings it sorted; they are re-checked here
+// (a web page's content script sent them) and kept in chrome.storage.session, which lives in memory
+// and is cleared when the browser closes. src/options/sorted.html and the side panel read them.
+async function openSortedResults(msg) {
+  const R = self.AIR.db.sortedResults;
+  const items = R.sanitizeResults(msg.results);
+  if (!items.length) return { ok: false, reason: 'no-results' };
+  await chrome.storage.session.set({ sortedResults: { items, sourceUrl: R.sanitizeSourceUrl(msg.sourceUrl), t: Date.now() } });
+  await chrome.tabs.create({ url: chrome.runtime.getURL('src/options/sorted.html') });
+  return { ok: true, count: items.length };
+}
+
+async function openResultsSidePanel(sender) {
+  if (!chrome.sidePanel || typeof chrome.sidePanel.open !== 'function') return { ok: false, reason: 'no-side-panel' };
+  const tabId = sender && sender.tab && sender.tab.id;
+  if (typeof tabId !== 'number') return { ok: false, reason: 'no-tab' };
+  await chrome.sidePanel.open({ tabId });
+  return { ok: true };
+}
 
 // Housekeeping. This used to run only on chrome.runtime.onStartup, and browsers routinely go weeks
 // without restarting — with auto-scoring on that is one cache entry per product scrolled past,
@@ -747,5 +783,5 @@ function handleSharedDbMessage(msg, reply) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { indexRows, lookupRecord, sweepCache, isOpenFoodFactsFood, batchIdFor, revisionOf, ensureHousekeepingAlarm, allowMessage, isOwnExtension, isAmazonTabSender, isRetailerTabSender, isOptionsPageSender, isOffscreenSender, allowedOcrUrls, MAX_SHEET_BYTES, MAX_SHEET_ROWS };
+  module.exports = { indexRows, lookupRecord, sweepCache, isOpenFoodFactsFood, batchIdFor, revisionOf, ensureHousekeepingAlarm, allowMessage, isOwnExtension, isAmazonTabSender, isRetailerTabSender, isOptionsPageSender, isSortedViewSender, isOffscreenSender, allowedOcrUrls, openSortedResults, openResultsSidePanel, MAX_SHEET_BYTES, MAX_SHEET_ROWS };
 }
