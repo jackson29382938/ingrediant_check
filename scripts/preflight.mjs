@@ -46,8 +46,12 @@ check('every declared file exists', () => {
 });
 check('permissions and CSP match the features', () => {
   if (!manifest.permissions.includes('offscreen')) throw new Error('offscreen permission missing (OCR)');
-  if (manifest.permissions.includes('activeTab')) {
-    throw new Error('activeTab is unused — host permissions already cover Amazon tabs for the popup card');
+  // activeTab is only for the report's screenshot (chrome.tabs.captureVisibleTab needs it or
+  // <all_urls>; host permissions do not count). Anything else is covered by the host permissions.
+  const capturesTab = /captureVisibleTab\(/.test(read('src/options/popup.js'));
+  if (manifest.permissions.includes('activeTab') !== capturesTab) {
+    throw new Error(capturesTab ? 'activeTab missing: the report screenshot needs it'
+      : 'activeTab is unused — host permissions already cover Amazon tabs for the popup card');
   }
   const csp = (manifest.content_security_policy || {}).extension_pages || '';
   if (!/wasm-unsafe-eval/.test(csp)) throw new Error('wasm-unsafe-eval missing (OCR will not compile)');
@@ -151,6 +155,8 @@ check('every key resolves', () => {
     ...[...read('src/options/sorted.js').matchAll(/\bt\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
     ...[...read('src/options/popup.html').matchAll(/data-i18n="([A-Za-z0-9_]+)"/g)].map(m => m[1]),
     ...[...read('src/options/options.html').matchAll(/data-i18n(?:-placeholder|-aria)?="([A-Za-z0-9_]+)"/g)].map(m => m[1]),
+    ...[...read('src/options/report.html').matchAll(/data-i18n="([A-Za-z0-9_]+)"/g)].map(m => m[1]),
+    ...[...read('src/options/report.js').matchAll(/\bt\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
     ...[...read('src/options/popup.js').matchAll(/\bmsg\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
     ...[...read('src/options/settings.js').matchAll(/\bmsg\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
     ...[...read('src/content/search.js').matchAll(/throttleCopy\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),

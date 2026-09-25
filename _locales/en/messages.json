@@ -1039,7 +1039,7 @@
     "message": "Amazon’s unit price"
   },
   "sortedUnitCalculated": {
-    "message": "Worked out from the listed price and package weight"
+    "message": "Worked out from the listed price and package size"
   },
   "sortedMatch": {
     "message": "Match $FIRST$",
@@ -1159,5 +1159,118 @@
   },
   "sortedStalled": {
     "message": "Nothing has arrived from the Amazon tab yet. Refresh the Amazon results page (after reloading the extension, old tabs lose their connection to it) and choose the option again."
+  },
+  "sortedPerFlOunce": {
+    "message": "$FIRST$/fl oz",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "reportTitle": {
+    "message": "Report a problem or suggest an improvement — Ingredient Check"
+  },
+  "reportH": {
+    "message": "Report a problem or suggest an improvement"
+  },
+  "reportLede": {
+    "message": "Tell the developer what went wrong or what you would like. Ingredient Check adds a screenshot, the page you were on, your settings and your recent clicks, so it can be fixed without back-and-forth. Everything is shown below and you can leave any part out. Nothing is sent from here: your email app opens with a draft, and nothing leaves until you press Send."
+  },
+  "reportWhatH": {
+    "message": "What is it about?"
+  },
+  "reportKindLegend": {
+    "message": "Kind of report"
+  },
+  "reportKindProblem": {
+    "message": "Something is wrong / needs a fix"
+  },
+  "reportKindFeature": {
+    "message": "Add something new"
+  },
+  "reportKindImprovement": {
+    "message": "Make something better"
+  },
+  "reportKindOther": {
+    "message": "Other"
+  },
+  "reportTitleLabel": {
+    "message": "Short title"
+  },
+  "reportDescLabel": {
+    "message": "What happened, or what would you like?"
+  },
+  "reportStepsLabel": {
+    "message": "What did you click? (steps, if you remember them)"
+  },
+  "reportExpectedLabel": {
+    "message": "What did you expect instead?"
+  },
+  "reportIncludedH": {
+    "message": "Included with your report"
+  },
+  "reportIncShot": {
+    "message": "Screenshot of the page you were on"
+  },
+  "reportShotNone": {
+    "message": "No screenshot was taken (Chrome allows it only on normal web pages). You can add one below, or paste an image with Ctrl/Cmd+V."
+  },
+  "reportShotAdd": {
+    "message": "Add or replace a screenshot:"
+  },
+  "reportIncPage": {
+    "message": "The page, its score and the side panel list"
+  },
+  "reportIncSettings": {
+    "message": "Your Ingredient Check settings"
+  },
+  "reportSettingsNote": {
+    "message": "Includes your allergen, diet and avoid-list choices, since they change scores. Never includes cached scores, sign-in tokens or anything from other pages."
+  },
+  "reportIncActions": {
+    "message": "Your recent clicks in Ingredient Check (this browser session)"
+  },
+  "reportIncEnv": {
+    "message": "Extension and browser version (always)"
+  },
+  "reportSendH": {
+    "message": "Send it"
+  },
+  "reportStep1": {
+    "message": "Download the report file (one .html file with the screenshot and all the details)."
+  },
+  "reportStep2": {
+    "message": "Open the email draft and attach that file, then press Send."
+  },
+  "reportDownload": {
+    "message": "1. Download report file"
+  },
+  "reportEmail": {
+    "message": "2. Open email draft"
+  },
+  "reportCopy": {
+    "message": "Copy report text"
+  },
+  "reportPreviewH": {
+    "message": "Preview the email text"
+  },
+  "popupReport": {
+    "message": "Report a problem or suggest an improvement"
+  },
+  "reportNoActions": {
+    "message": "Nothing recorded yet in this browser session."
+  },
+  "reportDownloaded": {
+    "message": "Saved to your Downloads folder. Now open the email draft and attach it."
+  },
+  "reportEmailOpened": {
+    "message": "Your email app should open with the draft. Attach the report file, then press Send."
+  },
+  "reportCopied": {
+    "message": "Copied. Paste it wherever you like."
+  },
+  "reportCopyFailed": {
+    "message": "Could not copy. Select the preview text below instead."
   }
 }

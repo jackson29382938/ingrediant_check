@@ -140,12 +140,22 @@
     } catch (e) { /* storage unavailable in some frames */ }
   }
 
+  // A line for "Report a problem"'s recent actions (engine/db/activity.js), via the worker. Repeats
+  // are dropped here, since a product page re-scores as Amazon updates it.
+  let lastAction = '';
+  function logAction(where, what) {
+    const line = `${where}|${what}`;
+    if (line === lastAction) return;
+    lastAction = line;
+    try { chrome.runtime.sendMessage({ type: 'logAction', where, what }, () => void chrome.runtime.lastError); } catch (e) { /* context gone */ }
+  }
+
   const page = {
     HOST_ID, BADGE_ATTR, state, ENGINE_VERSION, CACHE,
     cachePrefs, cacheKey, usableCache, freshLocal, sharedOk, speed, storeHost, ingredientSig,
     MAX_EXTRACT_RETRIES, isProductPage, isListPage, isRelevantPage,
     MIN_COVERAGE, unreadable,
-    sendDiagnostic, publishActionBadge, cacheScore, cache, rememberProduct,
+    sendDiagnostic, publishActionBadge, cacheScore, cache, rememberProduct, logAction,
   };
   root.AIR.page = page;
   if (typeof module !== 'undefined' && module.exports) module.exports = page;

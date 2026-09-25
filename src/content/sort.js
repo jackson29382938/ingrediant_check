@@ -212,12 +212,16 @@
     for (const c of controllers) c.abort();
     controllers.clear();
     const sourceUrl = location.href;
+    P().logAction?.('Amazon sort menu', `chose ${mode === 'unitPrice' ? 'Price per ounce' : 'Ingredient Check score'} on ${location.pathname}`);
     send({ type: 'openSortedPanel', mode, sourceUrl, unitEnabled: P().state.unitPrice !== false }).then(async reply => {
       pending = false;
       if (token !== run || !reply || !reply.runId) return;
       runId = reply.runId;
       // No side panel (an older Chrome, or the click no longer counted): the same list in a tab.
-      if (!reply.ok) send({ type: 'openSortedTab' });
+      if (!reply.ok) {
+        P().logAction?.('Amazon sort menu', `side panel did not open (${reply.reason || 'unknown'}); opened a tab`);
+        send({ type: 'openSortedTab' });
+      }
       try {
         await collect(token);
       } catch (e) {
@@ -290,7 +294,7 @@
     // "2,310 ratings" in aria-label is exact where the visible text is rounded ("(2.3K)").
     const reviewsLabel = reviewsNode?.getAttribute('aria-label') || '';
     const reviews = (/\d/.test(reviewsLabel) ? reviewsLabel : (reviewsNode?.innerText || reviewsNode?.textContent || '')).trim();
-    const unit = settings.unitPrice === false ? { unitPrice: null, unitSource: 'none' }
+    const unit = settings.unitPrice === false ? { unitPrice: null, unitSource: 'none', unitKind: '' }
       : U().unitPriceFor({ title, text, listingPrice }, settings);
     const asin = card.dataset.asin || '';
     return {
@@ -301,6 +305,7 @@
       listingPrice,
       unitPrice: unit.unitPrice,
       unitSource: unit.unitSource,
+      unitKind: unit.unitKind,
       rating,
       ratingValue: ratingValue(rating),
       reviews,
@@ -524,6 +529,7 @@
     else if (partialError) status = `${collected} ${t('sortPartial', 'More results could not be loaded')} (${partialError}).${tail}`;
     else if (settings.sortLoadMore && items.length < settings.sortCount) status = `${t('sortNoMore', 'Amazon has no more results.')} ${collected}${tail}`;
     else status = `${collected}${tail}`;
+    P().logAction?.('side panel list', `${status} (${items.filter(p => p.unitPrice != null).length} with price per ounce)`);
     await publish(token, items, false, status, true);
   }
 

@@ -89,6 +89,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
       listingPrice: Number.isFinite(price) && price > 0 && price < 1e6 ? Math.round(price * 100) / 100 : null,
       unitPrice: Number.isFinite(unit) && unit > 0 && unit < 1e5 ? Math.round(unit * 10000) / 10000 : null,
       unitSource: UNIT_SOURCES.has(raw.unitSource) && Number.isFinite(unit) && unit > 0 && unit < 1e5 ? raw.unitSource : 'none',
+      unitKind: Number.isFinite(unit) && unit > 0 && unit < 1e5 && (raw.unitKind === 'fluid' || raw.unitKind === 'weight') ? raw.unitKind : '',
       score: finiteScore(raw.score),
       verdict: str(raw.verdict, 20),
       source: SOURCES.has(raw.source) ? raw.source : 'unrated',
