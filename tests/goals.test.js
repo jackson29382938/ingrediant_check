@@ -71,6 +71,16 @@ test('Animal-based: nuts, seeds and legumes count against, honey counts for; off
     .some(b => /Tree nuts|Legumes|Seeds —/.test(b.why)), 'coconut, nutmeg, oils and pea protein are not caught');
 });
 
+test('Animal-based: soy lecithin and soy oil are not legumes in any language the stores use', () => {
+  // The English exclusion already named oil, protein and lecithin. Turkish writes soy lecithin as
+  // "soya lesitini" and soy oil as "soya yağı", and both were charged as legumes.
+  for (const text of ['Sugar, cocoa butter, emulsifier (soya lecithin)', 'Şeker, kakao yağı, emülgatör (soya lesitini)',
+    'Sucre, émulsifiant (soya lécithine)', 'Patates, soya yağı, tuz']) {
+    assert.ok(!score(text, ['animalBased']).bad.some(b => /Legumes/.test(b.why)), text);
+  }
+  assert.ok(score('Soya, water', ['animalBased']).bad.some(b => /Legumes/.test(b.why)), 'the bean itself still counts');
+});
+
 test('signed categories clamp to -2..2, everything else to 0..2', () => {
   const w = C.resolveWeights({ reducedFatDairy: -9, fortification: -1.5, colour: -1, sugar: 5 });
   assert.equal(w.reducedFatDairy, -2);
