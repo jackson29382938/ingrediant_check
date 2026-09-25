@@ -73,8 +73,28 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { pts: 6, why: 'Fat-reduced dairy', cat: 'reducedFatDairy', m: /\b(non[- ]?fat|fat[- ]?free|skim|low[- ]?fat|lowfat|reduced[- ]?fat|part[- ]?skim|1%|2%)\b(?:\s+\w+){0,2}\s+(milk|dairy|yogh?urt|cheese|kefir|cream|buttermilk|ricotta|cheddar|mozzarella)\b/i },
   ];
 
+  // Full-fat dairy, for the fat-reduced dairy rule above. A whole-milk kefir with some nonfat milk
+  // added ("pasteurized organic milk, organic nonfat milk, pectin…") is not a fat-reduced product:
+  // ingredients are listed by weight, so when full-fat dairy comes first the product is mostly
+  // full fat (8 g fat in a 150-calorie bottle, in the Lifeway case). It was scored as fat-reduced
+  // either way: a processing penalty by default and a +15 "a plus for your goals" under Weight loss.
+  // Plain "milk" is whole milk on a US label. Plant milks and milk fractions (protein, powder
+  // without "whole", whey, lactose…) are not counted as full-fat dairy.
+  const DAIRY_NOUN = /\b(milk|cream|kefir|yogh?urt|cheese|buttermilk)\b/i;
+  const NOT_FULL_FAT_DAIRY = /\b(protein|isolate|concentrate|solids|powder|permeate|whey|casein(?:ate)?|lactose|minerals?|coconut|almond|oat|soy|soya|rice|cashew|hemp|pea|macadamia|chocolate|substitute|non[- ]?dairy|dairy[- ]?free|plant)\b/i;
+  const FULL_FAT_WORD = /\b(whole|full[- ]fat|full[- ]cream)\b/i;
+  function isFullFatDairy(ing) {
+    const s = String(ing || '');
+    if (!DAIRY_NOUN.test(s)) return false;
+    if (DAIRY_PENALTY.some(r => r.cat === 'reducedFatDairy' && r.m.test(s))) return false;
+    return FULL_FAT_WORD.test(s) || !NOT_FULL_FAT_DAIRY.test(s);
+  }
+  // The title settles it too: "Whole Milk Kefir", "Full Fat Greek Yogurt".
+  const FULL_FAT_TITLE = /\b(whole[- ]milk|full[- ]fat|full[- ]cream|whole[- ]fat)\b/i;
+
   const _exports = AIRmodule('labels', {
     BONUSES, BONUS_CAP, TITLE_BONUS_CAP, WHOLE, CULINARY, PROCESSED_SIGNAL, DAIRY_PENALTY,
+    isFullFatDairy, FULL_FAT_TITLE,
   });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 

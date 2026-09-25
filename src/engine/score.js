@@ -507,6 +507,11 @@ function score(product, options = {}) {
     if (!bareFunction && recognised(e.ing, { unnamed: false })) namedBeside.set(e.pos, true);
   }
 
+  // For the fat-reduced dairy rule: is there full-fat dairy ahead of this position?
+  const fullFatTitle = labels.FULL_FAT_TITLE ? labels.FULL_FAT_TITLE.test(product.name || '') : false;
+  const firstFullFat = entries.reduce((min, e) => (e.pos < min && labels.isFullFatDairy && labels.isFullFatDairy(e.ing) ? e.pos : min), Infinity);
+  const fullFatBefore = pos => firstFullFat < pos;
+
   entries.forEach(({ ing, pos }) => {
     const w = weight(pos);
     const tripped = penaltiesFor(ing);
@@ -530,6 +535,15 @@ function score(product, options = {}) {
       if (!tripped.has(r)) continue;
       if (seen.has(r.why)) continue;
       if (r.unnamed && namedBeside.get(pos)) continue;   // the additive is named right beside it
+      // Fat-reduced dairy describes the product only when it is mostly fat-reduced: not when
+      // full-fat dairy comes earlier in the list, or the title says whole milk / full fat.
+      if (r.cat === 'reducedFatDairy' && (fullFatTitle || fullFatBefore(pos))) {
+        if (!seen.has('fullFatLead')) {
+          seen.add('fullFatLead');
+          good.push({ c: 0, why: 'Mostly full-fat dairy — the fat-reduced dairy in it is not counted', ing });
+        }
+        continue;
+      }
       // Sugar that comes with its whole food is exempt unless the user turns 'naturally occurring
       // sugars' on, at which point it is scored like any other sugar.
       // Traditional preparation (sourdough, sprouting, soaking) halves the grain penalty rather

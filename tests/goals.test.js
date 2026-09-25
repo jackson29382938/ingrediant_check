@@ -22,6 +22,30 @@ test('Weight loss: fat-reduced dairy becomes a big plus, natural flavors barely 
   assert.ok(Math.abs(row(plain, /Natural flavors/).c) >= 10);
 });
 
+// Lifeway Organic Plain Kefir (amazon.com B0DX45213W): whole milk first, some nonfat milk after it.
+// 8 g fat in a 150-calorie bottle, so not a fat-reduced product, and Weight loss must not reward it.
+const WHOLE_KEFIR = 'PASTEURIZED ORGANIC MILK, ORGANIC NONFAT MILK, PECTIN, LACTASE ENZYME, VITAMIN D3, CULTURES';
+test('full-fat dairy first: the nonfat milk after it is neither a plus nor a penalty', () => {
+  for (const goals of [[], ['weightLoss'], ['strength'], ['endurance']]) {
+    const r = score(WHOLE_KEFIR, goals);
+    assert.equal(row(r, /^Fat-reduced dairy/), undefined, `goals ${goals}: no fat-reduced dairy row`);
+    assert.ok(row(r, /^Mostly full-fat dairy/), 'the panel says why');
+  }
+  const LOWFAT_KEFIR = 'PASTEURIZED ORGANIC LOWFAT MILK, PECTIN, LACTASE ENZYME, VITAMIN D3, CULTURES';
+  assert.ok(score(WHOLE_KEFIR, ['weightLoss']).score < score(LOWFAT_KEFIR, ['weightLoss']).score,
+    'the same kefir made with lowfat milk still ranks above it for weight loss');
+  // The title settles it even when nonfat milk comes first.
+  const titled = engine.score({ name: 'Whole Milk Kefir', ingredients_text: 'Pasteurized nonfat milk, cream, cultures' }, { weights: C.goalWeights(['weightLoss']) });
+  assert.equal(row(titled, /^Fat-reduced dairy/), undefined);
+});
+test('fat-reduced dairy still counts when it leads, or only milk fractions or plant milks come first', () => {
+  for (const text of ['Cultured pasteurized nonfat milk, live cultures', 'Skim milk, vitamin A palmitate, vitamin D3',
+    'Water, milk protein concentrate, nonfat milk, sucralose', 'Oat milk, nonfat milk, coffee', 'Whey protein, nonfat dry milk, cocoa']) {
+    assert.ok(row(score(text, ['weightLoss']), /^Fat-reduced dairy — a plus/), text);
+    assert.ok(row(score(text, []), /^Fat-reduced dairy/).c < 0, text);
+  }
+});
+
 test('Vitamins & minerals: added vitamins count in favour', () => {
   const r = score('Oats, vitamin D3, niacin, folic acid', ['vitamins']);
   assert.ok(r.good.some(g => g.goal && /Folic acid/.test(g.why)));

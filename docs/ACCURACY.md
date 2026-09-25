@@ -55,6 +55,18 @@ spellings of lecithin, and Turkish `yağ` (oil). `RULES_REVISION` became `2026-0
 a synthetic twin and the rule's own stated intent. No real Turkish label was checked. No default
 score changed in the corpus under any goal (58 products × 21 settings compared).
 
+**Whole-milk kefir scored as fat-reduced (reported 2026-09-25, fixed).** Lifeway Organic Plain
+Kefir (amazon.com `B0DX45213W`) lists *pasteurized organic milk, organic nonfat milk, pectin…*: whole
+milk first, 8 g fat in a 150-calorie bottle. The fat-reduced dairy rule fired on the nonfat milk, so
+the kefir took a processing penalty by default (81) and a +15 "a plus for your goals" under Weight
+loss (91, ranked like a cutting food). The rule now stands down when full-fat dairy comes earlier in
+the list (ingredients are listed by weight) or the title says whole milk / full fat, and the panel
+says so. Now 88 by default and 76 under Weight loss; the same kefir made with lowfat milk still ranks
+above it for weight loss. Plant milks and milk fractions (protein, whey, nonfat dry milk) ahead of
+the nonfat milk do not count as full-fat dairy. The label was read from the owner's screenshot of the
+listing, not captured by the extension. No corpus product changed (3 of 58 contain fat-reduced dairy;
+none has full-fat dairy ahead of it). `RULES_REVISION` became `2026-09-25.1`.
+
 ## Automated evidence and live observations
 
 These are different kinds of evidence. Only the second kind says anything about a real store.

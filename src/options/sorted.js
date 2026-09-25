@@ -313,10 +313,25 @@
     ui.list.textContent = '';
     ui.empty.textContent = '';
     ui.empty.hidden = items.length > 0;
+    clearTimeout(ui.stallTimer);
     if (!items.length) {
       ui.subtitle.textContent = '';
-      ui.empty.append(node('h2', '', loading ? t('sortedReading', 'Reading Amazon listings…') : t('sortedEmptyTitle', 'No sorted results yet')));
-      if (!loading) ui.empty.append(node('p', '', t('sortedEmptyBody', 'On an Amazon grocery search, open Amazon’s “Sort by” menu and choose “Ingredient Check score: High to Low” or “Price per ounce: Low to High”.')));
+      const status = R.sanitizeStatus(saved && saved.status);
+      ui.empty.append(node('h2', '', loading ? t('sortedReading', 'Reading Amazon listings…')
+        : saved ? t('sortedNothingFound', 'No listings came back') : t('sortedEmptyTitle', 'No sorted results yet')));
+      if (!loading) {
+        ui.empty.append(node('p', '', status || t('sortedEmptyBody', 'On an Amazon grocery search, open Amazon’s “Sort by” menu and choose “Ingredient Check score: High to Low” or “Price per ounce: Low to High”.')));
+        ui.status.textContent = '';
+      } else {
+        // The Amazon tab sends the first listings within a second or two. If nothing has come, say so
+        // rather than leaving an empty panel.
+        const started = Number(saved && saved.t) || Date.now();
+        const waitMs = Math.max(0, 12000 - (Date.now() - started));
+        ui.stallTimer = setTimeout(() => {
+          if (!saved || !saved.loading || (saved.items || []).length) return;
+          ui.empty.append(node('p', '', t('sortedStalled', 'Nothing has arrived from the Amazon tab yet. Refresh the Amazon results page (after reloading the extension, old tabs lose their connection to it) and choose the option again.')));
+        }, waitMs);
+      }
       return;
     }
     const ranked = R.rank(items, weights, { unitEnabled: unitEnabled() });

@@ -61,7 +61,7 @@
   });
 
   const isSearchPage = () => /(^|\/)s(?:\/|$)/.test(location.pathname) || new URLSearchParams(location.search).has('k');
-  const toAbsoluteUrl = value => { try { return new URL(value, location.href).href; } catch { return ''; } };
+  const toAbsoluteUrl = value => { if (!value) return ''; try { return new URL(value, location.href).href; } catch { return ''; } };
 
   // ------------------------------------------------------------------ the menu
   const labels = () => ({
@@ -218,13 +218,32 @@
       runId = reply.runId;
       // No side panel (an older Chrome, or the click no longer counted): the same list in a tab.
       if (!reply.ok) send({ type: 'openSortedTab' });
-      await collect(token);
+      try {
+        await collect(token);
+      } catch (e) {
+        // Never leave the panel on "Reading Amazon listings…": say what went wrong.
+        publish(token, [], false, t('sortFailed', 'Could not read this results page ($1). Refresh the Amazon page and choose the option again.',
+          String((e && e.message) || e).slice(0, 120)), true);
+      }
     });
   }
 
   // ------------------------------------------------------------------ listings
-  const isCard = card => card.dataset && card.dataset.asin && card.querySelector('h2 a, a.a-link-normal.s-no-outline');
-  const productCardsIn = doc => [...doc.querySelectorAll(CARD)].filter(isCard);
+  // A listing is what the badges treat as one (search.js): an element with a real ASIN and a title,
+  // not inside another such element. This used to also demand an `h2 a` link or Amazon's image
+  // link; current Amazon cards put the h2 INSIDE the link (and grocery / Whole Foods cards may have
+  // neither), so on those pages no card qualified and the side panel stayed empty.
+  const TITLE_SEL = 'h2, [data-cy="title-recipe"]';
+  const ASIN = /^[A-Z0-9]{10}$/;
+  const isCard = card => !!(card.dataset && ASIN.test(card.dataset.asin || '') && card.querySelector(TITLE_SEL));
+  function productCardsIn(doc) {
+    const slot = doc.querySelector('.s-main-slot, [data-component-type="s-search-results"] .s-result-list') || doc;
+    let cards = [...slot.querySelectorAll(CARD + ', [data-asin]')].filter(isCard);
+    if (!cards.length && slot !== doc) cards = [...doc.querySelectorAll('[data-asin]')].filter(isCard);
+    const set = new Set(cards);
+    // Outermost only: a card can hold a variation or an inner element carrying the same ASIN.
+    return cards.filter(card => { for (let a = card.parentElement; a; a = a.parentElement) if (set.has(a)) return false; return true; });
+  }
 
   function getPrice(card) {
     for (const node of card.querySelectorAll('.a-price:not(.a-text-price) .a-offscreen')) {
@@ -252,8 +271,11 @@
     // Our own score badge sits at the start of the title (search.js paintBadge); it is not the title.
     const badge = (card.querySelector('.air-badge')?.textContent || '').trim();
     const withoutBadge = s => (badge && s.startsWith(badge) ? s.slice(badge.length) : s).trim();
-    const titleNode = card.querySelector('h2 span:not(.air-badge)') || card.querySelector('h2');
-    const linkNode = card.querySelector('h2 a') || card.querySelector('a.a-link-normal.s-no-outline');
+    const titleNode = card.querySelector('h2 span:not(.air-badge)') || card.querySelector('h2')
+      || card.querySelector('[data-cy="title-recipe"]');
+    const linkNode = card.querySelector('h2 a')
+      || [...card.querySelectorAll('a[href]')].find(a => /\/(?:dp|gp\/product)\/[A-Z0-9]{10}/.test(a.getAttribute('href') || ''))
+      || card.querySelector('a.a-link-normal.s-no-outline');
     const title = withoutBadge((titleNode?.innerText || titleNode?.textContent || '').trim());
     const text = (card.innerText || card.textContent || '').replace(/\u00a0/g, ' ').trim()
       .split(/\n/).map(line => withoutBadge(line.trim())).filter(line => line && line !== badge).join('\n');
@@ -261,16 +283,20 @@
     const imageUrl = image?.getAttribute('src');
     const imageFallback = image?.getAttribute('data-src') || image?.getAttribute('data-old-hires');
     const ratingNode = card.querySelector('[aria-label*="out of 5 stars"], .a-icon-alt');
-    const reviewsNode = card.querySelector('a[href*="customerReviews"] .a-size-base, a[href*="customerReviews"]');
+    const reviewsNode = card.querySelector('a[href*="customerReviews"] .a-size-base, a[href*="customerReviews"]')
+      || card.querySelector('[aria-label$=" ratings"], [aria-label$=" rating"]');
     const listingPrice = getPrice(card);
     const rating = (ratingNode?.getAttribute('aria-label') || ratingNode?.textContent || '').trim();
-    const reviews = (reviewsNode?.innerText || reviewsNode?.textContent || '').trim();
+    // "2,310 ratings" in aria-label is exact where the visible text is rounded ("(2.3K)").
+    const reviewsLabel = reviewsNode?.getAttribute('aria-label') || '';
+    const reviews = (/\d/.test(reviewsLabel) ? reviewsLabel : (reviewsNode?.innerText || reviewsNode?.textContent || '')).trim();
     const unit = settings.unitPrice === false ? { unitPrice: null, unitSource: 'none' }
       : U().unitPriceFor({ title, text, listingPrice }, settings);
+    const asin = card.dataset.asin || '';
     return {
-      asin: card.dataset.asin || '',
+      asin,
       title: title || 'Amazon listing',
-      url: toAbsoluteUrl(linkNode?.getAttribute('href')),
+      url: toAbsoluteUrl(linkNode?.getAttribute('href')) || (ASIN.test(asin) ? `${location.origin}/dp/${asin}` : ''),
       image: toAbsoluteUrl(imageUrl && !imageUrl.startsWith('data:') ? imageUrl : imageFallback || imageUrl),
       listingPrice,
       unitPrice: unit.unitPrice,

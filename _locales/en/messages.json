@@ -1145,5 +1145,19 @@
   },
   "popupPresetsHint": {
     "message": "Pick one or several, on any tab. They combine."
+  },
+  "sortFailed": {
+    "message": "Could not read this results page ($FIRST$). Refresh the Amazon page and choose the option again.",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "sortedNothingFound": {
+    "message": "No listings came back"
+  },
+  "sortedStalled": {
+    "message": "Nothing has arrived from the Amazon tab yet. Refresh the Amazon results page (after reloading the extension, old tabs lose their connection to it) and choose the option again."
   }
 }
