@@ -67,6 +67,7 @@ Scoring is always local: the rules, your weights and every score are computed in
 | **Read label photos** | Fetch of the product image on `m.media-amazon.com` | The image is read **on your computer** (Tesseract). The pixels are not uploaded. |
 | **Open Food Facts fallback** | The **barcode only** | Open Food Facts, after Chrome grants the host. |
 | **Send certifications** / "Looks wrong?" | Product identifiers and certification text; a report adds what the score was | The Ingredient Check database. |
+| **Report a problem or suggest an improvement** (only when you attach the file and send the draft yourself) | Nothing from the extension. Your email app sends what you wrote, and the report file if you attach it: a screenshot of the tab you were on, that page's address (path and search term only), its score and the side panel list, your Ingredient Check settings, your recent clicks in the extension, and the extension and browser version. Every part is shown first and can be left out | The maintainer, by email from your address. See *Reporting a problem* below. |
 | **Request a store** (only when you open the draft and send it yourself) | Nothing from the extension. Your email app sends the store name and optional site address, if you press Send | The maintainer, by email from your address. See *Requesting a store* below. |
 | **Accuracy diagnostics** (off by default) | One row per scored product (ASIN, store, ingredient text, score, source) | The Ingredient Check database. That is a trace of products you scored — with auto-score on, of tiles that scrolled into view. |
 
@@ -75,6 +76,30 @@ off, and the extension makes no network requests of its own. A build shipped wit
 everything but the Chrome backup.
 
 There is no Ingredient Check account, no analytics SDK, and no third-party ad or crash reporter.
+
+## Reporting a problem or suggesting an improvement
+
+The toolbar popup has **Report a problem or suggest an improvement**. Clicking it takes a screenshot
+of the tab you are on (Chrome allows this only right after you click the toolbar button, which is what
+the `activeTab` permission is for; it grants nothing on any other tab or at any other time) and opens
+a report page. That page shows everything that would be included:
+
+- what you type: the kind of report, a title, what happened, what you clicked, what you expected
+- the screenshot (you can replace it, or add one by pasting)
+- the page's address, cut to its path and search term, the score shown for it, and a summary of the
+  side panel list (option, how many listings, how many with a score or a price per ounce, its status)
+- your Ingredient Check settings, read through the same checks the extension uses: switches, weights,
+  goals, allergens, diets, avoid list, sort and speed settings, and how many scores are cached. Never
+  the cached scores themselves, a sign-in token, queued diagnostics, or anything another page stored
+- your recent clicks in the extension this browser session (up to 60 short lines, such as "popup:
+  autoScoreSearch off" or "Amazon sort menu: chose Price per ounce on /s"), kept in memory only
+  (`chrome.storage.session`) and gone when Chrome closes
+- the extension version, rules revision, browser and language
+
+Each part except the version line can be left out. Nothing is sent from the page. **Download report
+file** saves one `.html` file with the screenshot and every detail to your Downloads folder; **Open
+email draft** opens your own email app addressed to jackson29382938@gmail.com with the text of the
+report, for you to attach that file and send, or not.
 
 ## Requesting a store
 

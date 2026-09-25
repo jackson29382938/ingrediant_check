@@ -172,6 +172,7 @@ function applyPreset(id) {
   popupPresetCategory = CATS.PRESETS[id].category || popupPresetCategory;
   if (host) host.dataset.userTab = '1';
   persist({ weights, goals }, ok => { if (ok) renderPresets(weights, goals); });
+  AIR.db.activity && AIR.db.activity.log('popup', `goal ${goals.includes(id) ? 'picked' : 'removed'}: ${id} (now: ${goals.join(', ') || 'balanced'})`);
 }
 
 chrome.storage.local.get([...KEYS, 'weights', 'goals'], options => {
@@ -188,6 +189,7 @@ chrome.storage.local.get([...KEYS, 'weights', 'goals'], options => {
     input.checked = toggles[key];
     input.addEventListener('change', () => {
       save(key, input.checked);
+      AIR.db.activity && AIR.db.activity.log('popup', `${key} ${input.checked ? 'on' : 'off'}`);
       if (key === 'enabled') paintMaster(input.checked);
     });
   }
@@ -559,6 +561,25 @@ document.getElementById('openNetwork').addEventListener('click', e => {
 document.getElementById('openStores').addEventListener('click', e => {
   e.preventDefault();
   openSettingsAt('sec-stores');
+});
+
+// Report a problem or suggest an improvement. The screenshot is taken here, because Chrome allows
+// capturing the tab only right after the toolbar button was clicked (activeTab); the report page
+// then shows it, and the reader decides whether it goes out. Nothing is sent from here.
+document.getElementById('openReport').addEventListener('click', async e => {
+  e.preventDefault();
+  const draft = { t: Date.now(), url: '', shot: '', pageScore: null };
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab) {
+      draft.url = tab.url || '';
+      try { draft.shot = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'jpeg', quality: 70 }); } catch (err) { draft.shot = ''; }
+      try { draft.pageScore = await chrome.tabs.sendMessage(tab.id, { type: 'currentPageScore' }); } catch (err) { draft.pageScore = null; }
+    }
+  } catch (err) { /* no tab access */ }
+  try { await chrome.storage.session.set({ reportDraft: draft }); } catch (err) { /* the page still opens */ }
+  await AIR.db.activity.log('popup', 'opened "Report a problem or suggest an improvement"');
+  chrome.tabs.create({ url: chrome.runtime.getURL('src/options/report.html') });
 });
 
 document.getElementById('toggleWhy').addEventListener('click', () => {

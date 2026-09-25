@@ -10,7 +10,8 @@
     "offscreen",
     "unlimitedStorage",
     "identity",
-    "sidePanel"
+    "sidePanel",
+    "activeTab"
   ],
   "host_permissions": [
     "*://*.amazon.com/*",

@@ -10,6 +10,8 @@ var PAGE_MESSAGE_TYPES = new Set([
   // open it in a tab when Chrome would not open the panel. The list pages themselves send nothing:
   // they call chrome.tabs / chrome.sidePanel directly.
   'openSortedPanel', 'updateSortedResults', 'openSortedTab',
+  // A line for "Report a problem"'s recent actions (engine/db/activity.js).
+  'logAction',
 ]);
 // Sent only by the settings page (settings-database.js, loaded by options.html alone), so only the
 // settings page may send them. The popup and the setup page have no control for any of them:

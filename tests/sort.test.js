@@ -90,20 +90,51 @@ test('price per ounce: the Cost Sorter\'s own cases', () => {
   assert.equal(U.parseWeightToOunces('Green Tea, 100 Count, 7 oz'), null, 'a count may be per item: no guess');
   assert.equal(U.parseWeightToOunces('Mints .5 oz'), 0.5);
   assert.equal(U.parseWeightToOunces('Almonds 39 oz (2.4 lb)'), 39, 'equivalent weights are one size');
-  assert.equal(U.parseWeightToOunces('Protein Powder 2 lb, 25g Protein'), null, 'two different weights: no guess');
-  assert.equal(U.parseWeightToOunces('Sparkling Water 12 fl oz, 12-Pack'), null);
+  // The Cost Sorter gave up here (two different weights); "25g Protein" is a nutrient, so it is 2 lb.
+  assert.equal(U.parseWeightToOunces('Protein Powder 2 lb, 25g Protein'), 32);
+  assert.equal(U.parseWeightToOunces('Trail mix 2 lb (16 oz)'), null, 'two different sizes: no guess');
+  // The Cost Sorter left fluid ounces unread (null); they are read now, per fluid ounce.
+  assert.equal(U.parseWeightToOunces('Sparkling Water 12 fl oz, 12-Pack'), 144);
   near(U.parseWeightToOunces('Rice 2 kg'), 70.548);
 });
 
 test('price per ounce: Amazon\'s unit price wins; the setting decides the rest', () => {
   const card = { title: 'Rolled Oats, 32 oz', text: 'Rolled Oats\n$6.40\n2K bought in past month', listingPrice: 6.4 };
-  assert.deepEqual(U.unitPriceFor(card, {}), { unitPrice: 0.2, unitSource: 'calculated' });
-  assert.deepEqual(U.unitPriceFor(card, { unitMissing: 'displayed-only' }), { unitPrice: null, unitSource: 'none' });
-  assert.deepEqual(U.unitPriceFor({ ...card, text: '$6.40 ($0.18/Ounce)' }, { unitMissing: 'displayed-only' }), { unitPrice: 0.18, unitSource: 'amazon' });
+  assert.deepEqual(U.unitPriceFor(card, {}), { unitPrice: 0.2, unitSource: 'calculated', unitKind: 'weight' });
+  assert.deepEqual(U.unitPriceFor(card, { unitMissing: 'displayed-only' }), { unitPrice: null, unitSource: 'none', unitKind: '' });
+  assert.deepEqual(U.unitPriceFor({ ...card, text: '$6.40 ($0.18/Ounce)' }, { unitMissing: 'displayed-only' }), { unitPrice: 0.18, unitSource: 'amazon', unitKind: 'weight' });
   const weightInText = { title: 'Rolled Oats', text: 'Rolled Oats\nNet Wt 32 oz\n$6.40', listingPrice: 6.4 };
   assert.equal(U.unitPriceFor(weightInText, {}).unitPrice, null, 'by default only the title is read for a weight');
   assert.equal(U.unitPriceFor(weightInText, { unitMissing: 'infer-more' }).unitPrice, 0.2);
   assert.equal(U.sanitizeUnit({ unitMissing: 'guess' }).unitMissing, 'calculate-clear');
+});
+
+test('price per ounce on the owner\'s kefir search (2026-09-25): fluid ounces, FZ, counts, nutrient grams', () => {
+  const near = (a, e) => assert.ok(a != null && Math.abs(a - e) < 0.002, `${a} != ${e}`);
+  const per = (title, price, extra = '') => U.unitPriceFor({ title, text: `${title}\n${extra}`, listingPrice: price }, {});
+  // Amazon's own "$0.11/fluid ounce" was not recognised, so these showed "No price per ounce".
+  const plain = per('Lifeway Low Fat Kefir – Probiotic Drink with 10g Protein, 12 Live Active Cultures – Plain, 32 oz.', 3.5, '$3.50 ($0.11/fluid ounce)');
+  assert.deepEqual([plain.unitPrice, plain.unitSource, plain.unitKind], [0.11, 'amazon', 'fluid']);
+  assert.equal(U.parseDisplayedUnit('$4.99 ($0.16/FZ)').kind, 'fluid');
+  near(U.parseDisplayedUnitPrice('$3.50 ($0.11/fluid\u00a0ounce)'), 0.11);   // Amazon's no-break space
+  near(U.parseDisplayedUnitPrice('$2.99 ($0.30/100 ml)'), 0.30 / (100 / 29.5735295625));
+  // "10g Protein" was taken for the package: an 8 fl oz bottle at $2.59 showed $7.34/oz.
+  near(per('Lifeway Organic Whole Milk Kefir, Mixed Berry, 8 Fl Oz, 10g Protein, 12 Live Active Cultures', 2.59).unitPrice, 2.59 / 8);
+  near(per('Lifeway Organic Whole Milk Kefir, 10g Protein, Mixed Berry, 32 Fl Oz', 6.99).unitPrice, 6.99 / 32);
+  near(per('Chobani® 20g Protein Lowfat Greek Yogurt Drink Strawberries & Cream 10 fl oz 4PK', 9.79).unitPrice, 9.79 / 40);
+  near(per('Lifeway Organic Low Fat Kefir, Plain, 32 Ounce, 11g Protein, 12 Live Active Cultures', 6.99).unitPrice, 6.99 / 32);
+  // "32 Fl Oz" and Whole Foods' "32 FZ" were not read at all.
+  near(per('Meyenberg Goat Dairy, Kefir Goat Plain, 32 Fl Oz', 9.49).unitPrice, 9.49 / 32);
+  near(per('365 by Whole Foods Market Plain Kefir, 32 FZ', 4.99).unitPrice, 4.99 / 32);
+  assert.equal(per('365 by Whole Foods Market Plain Kefir, 32 FZ', 4.99).unitKind, 'fluid');
+  // A liquid's size is per bottle next to a count; a weight next to a count stays unsorted.
+  near(per('LifeWay Kefir Multi Pack Organic Low Fat Mixed Berry, 3.5 Fl Oz, 4 Count', 5.99).unitPrice, 5.99 / 14);
+  near(per('Activia Dailies Vanilla Low Fat Yogurt Drink, 3.1 fl oz, 8 Count', 4.99).unitPrice, 4.99 / 24.8);
+  assert.equal(per('Green Tea, 100 Count, 7 oz', 5).unitPrice, null);
+  near(per('Whole Milk, 1 Gallon', 4.99).unitPrice, 4.99 / 128);
+  near(per('Orange Juice 52 fl oz (1.53 L)', 4.5).unitPrice, 4.5 / 52);
+  assert.equal(per('Mooala Bananamilk, Plant-Based Beverage, On the Go 12 Pack', 35.99).unitPrice, null, 'no size: no guess');
+  assert.equal(U.parseQuantity('Protein shake 32 fl oz, 2 lb tub'), null, 'volume and weight together: no guess');
 });
 
 test('priorities: presets, bounds, missing values last, ties in Amazon\'s order', () => {

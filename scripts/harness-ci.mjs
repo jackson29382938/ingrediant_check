@@ -326,8 +326,9 @@ async function run() {
         || !/3 without a score are at the end/.test(run.final.status)) {
         throw new Error(`list sent: ${JSON.stringify({ items, status: run.final.status })}`);
       }
-      // productsLookup is the badge pass asking the worker, which answers from the shared database only when that is on.
-      if (run.types.some(t => !['openSortedPanel', 'updateSortedResults', 'productsLookup'].includes(t))) throw new Error(`messages: ${run.types}`);
+      // productsLookup is the badge pass asking the worker (it answers from the shared database only when that is
+      // on); logAction is a line for "Report a problem"'s recent actions.
+      if (run.types.some(t => !['openSortedPanel', 'updateSortedResults', 'productsLookup', 'logAction'].includes(t))) throw new Error(`messages: ${run.types}`);
       sentResults = items;
 
       // The score option, from the keyboard (a change on the <select> itself).

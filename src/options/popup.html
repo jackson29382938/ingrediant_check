@@ -63,13 +63,13 @@
  .compare-card{padding:8px;border:1px solid var(--ring,#d5d9d9);border-radius:8px;background:var(--bg,#f7f8f8)}
  .compare-card .ps-num{width:32px;height:32px;font-size:13px;margin-bottom:6px}
  .compare-card .ps-sub{-webkit-line-clamp:3}
- #toggleWhy,#openSettings,#openSetup,#openNetwork,#openStores,#clear{display:block;margin-top:10px;padding:0;border:0;background:none;
+ #toggleWhy,#openSettings,#openSetup,#openNetwork,#openStores,#openReport,#clear{display:block;margin-top:10px;padding:0;border:0;background:none;
    font:inherit;font-size:11px;color:#007185;text-decoration:none;cursor:pointer;text-align:left}
  #clear{margin-top:6px}
  #openNetwork{margin:2px 0 4px}
- #toggleWhy:hover,#openSettings:hover,#openSetup:hover,#openNetwork:hover,#openStores:hover,#clear:hover{text-decoration:underline}
+ #toggleWhy:hover,#openSettings:hover,#openSetup:hover,#openNetwork:hover,#openStores:hover,#openReport:hover,#clear:hover{text-decoration:underline}
  #clear:disabled{color:#767676;cursor:default;text-decoration:none}
- input:focus-visible,#toggleWhy:focus-visible,#openSettings:focus-visible,#openSetup:focus-visible,#openNetwork:focus-visible,#openStores:focus-visible,#clear:focus-visible,
+ input:focus-visible,#toggleWhy:focus-visible,#openSettings:focus-visible,#openSetup:focus-visible,#openNetwork:focus-visible,#openStores:focus-visible,#openReport:focus-visible,#clear:focus-visible,
  .preset:focus-visible,.preset-cat:focus-visible{outline:3px solid #007185;outline-offset:2px}
  @media (prefers-color-scheme: dark) {
    body{color:#f3f3f3;background:#1b1c1c}
@@ -147,6 +147,7 @@
  <a href="#" id="openSettings" data-i18n="popupSettingsLink">Scoring weights, allergens &amp; avoid list</a>
  <a href="#" id="openSetup" data-i18n="popupSetupAgain">Run setup again</a>
  <a href="#" id="openStores" data-i18n="popupRequestStore">Request a store</a>
+ <a href="#" id="openReport" data-i18n="popupReport">Report a problem or suggest an improvement</a>
  <div class="sub" data-i18n="popupDisclaimer" style="margin-top:10px;font-size:11px">Scores are a guide, not health or allergy
    advice. Always read the label.</div>
  <button type="button" id="clear" data-i18n="popupClear">Clear cached scores</button>
@@ -168,6 +169,7 @@
  <script src="../engine/db/prefs.js"></script>
  <script src="../engine/db/revision.js"></script>
  <script src="../engine/db/score-cache.js"></script>
+ <script src="../engine/db/activity.js"></script>
  <script src="../content/panel.js"></script>
  <script src="../stores/target.js"></script>
  <script src="popup.js"></script>

@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="reportTitle">Report a problem or suggest an improvement — Ingredient Check</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px 20px 70px; color: #0f1111; background: #f7f8f8;
+         font: 14px/1.55 "Amazon Ember", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .lede { color: #565959; margin: 0 0 18px; max-width: 66ch; }
+  section { background: #fff; border: 1px solid #d5d9d9; border-radius: 10px; padding: 16px 18px; margin-bottom: 16px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .7px; color: #565959; margin: 0 0 12px; }
+  label.field { display: block; margin: 10px 0 4px; font-weight: 600; }
+  input[type=text], textarea { width: 100%; font: inherit; padding: 8px 10px; border: 1px solid #b9c4bf; border-radius: 8px; background: #fff; color: inherit; }
+  textarea { min-height: 84px; resize: vertical; }
+  .kinds { display: flex; flex-wrap: wrap; gap: 8px; border: 0; padding: 0; margin: 0; }
+  .kinds label { display: inline-flex; gap: 6px; align-items: center; padding: 6px 12px; border: 1px solid #b9c4bf; border-radius: 999px; cursor: pointer; }
+  .kinds input:checked + span { font-weight: 700; color: #0b5a2e; }
+  .part { border-top: 1px solid #eaeded; padding: 10px 0; }
+  .part:first-of-type { border-top: 0; }
+  .part > label { font-weight: 600; display: flex; gap: 8px; align-items: center; }
+  .part .body { margin: 6px 0 0 26px; }
+  .part.off .body { opacity: .35; }
+  pre { white-space: pre-wrap; word-break: break-word; background: #f4f6f5; border-radius: 8px; padding: 10px; font-size: 12px; max-height: 260px; overflow: auto; margin: 0; }
+  #shot { max-width: 100%; max-height: 320px; border: 1px solid #d5d9d9; border-radius: 6px; display: block; margin-bottom: 8px; }
+  #shot[hidden], [hidden] { display: none !important; }
+  .note { color: #565959; font-size: 12px; margin: 6px 0 0; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .button { appearance: none; display: inline-block; padding: 9px 14px; border: 1px solid #0f7b3f; border-radius: 8px; background: #0f7b3f; color: #fff;
+            font: inherit; font-weight: 600; text-decoration: none; cursor: pointer; }
+  .button.secondary { background: #fff; color: #0f1111; border-color: #b9c4bf; }
+  .button[aria-disabled="true"] { opacity: .5; pointer-events: none; }
+  ol.steps { margin: 0 0 10px 18px; padding: 0; }
+  #status { min-height: 1.4em; color: #0b5a2e; font-weight: 600; }
+  button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid #007185; outline-offset: 2px; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #151616; color: #f3f3f3; }
+    section { background: #1f2020; border-color: #3a3c3c; }
+    input[type=text], textarea { background: #151616; border-color: #3a3c3c; }
+    pre { background: #151616; color: #cfd3d3; }
+    .part { border-color: #3a3c3c; }
+    .lede, .note, h2 { color: #aeaeae; }
+    .button.secondary { background: #262828; color: #f3f3f3; border-color: #3a3c3c; }
+    .kinds input:checked + span, #status { color: #6fd39a; }
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1 data-i18n="reportH">Report a problem or suggest an improvement</h1>
+  <p class="lede" data-i18n="reportLede">Tell the developer what went wrong or what you would like. Ingredient Check adds a screenshot,
+    the page you were on, your settings and your recent clicks, so it can be fixed without back-and-forth.
+    Everything is shown below and you can leave any part out. Nothing is sent from here: your email app
+    opens with a draft, and nothing leaves until you press Send.</p>
+
+  <section>
+    <h2 data-i18n="reportWhatH">What is it about?</h2>
+    <fieldset class="kinds" id="kinds">
+      <legend class="note" style="margin-bottom:6px" data-i18n="reportKindLegend">Kind of report</legend>
+      <label><input type="radio" name="kind" value="problem" checked><span data-i18n="reportKindProblem">Something is wrong / needs a fix</span></label>
+      <label><input type="radio" name="kind" value="feature"><span data-i18n="reportKindFeature">Add something new</span></label>
+      <label><input type="radio" name="kind" value="improvement"><span data-i18n="reportKindImprovement">Make something better</span></label>
+      <label><input type="radio" name="kind" value="other"><span data-i18n="reportKindOther">Other</span></label>
+    </fieldset>
+    <label class="field" for="title" data-i18n="reportTitleLabel">Short title</label>
+    <input type="text" id="title" maxlength="120" placeholder="e.g. Side panel shows no price per ounce for kefir">
+    <label class="field" for="description" data-i18n="reportDescLabel">What happened, or what would you like?</label>
+    <textarea id="description" maxlength="4000"></textarea>
+    <label class="field" for="steps" data-i18n="reportStepsLabel">What did you click? (steps, if you remember them)</label>
+    <textarea id="steps" maxlength="4000" placeholder="1. Searched Amazon for kefir&#10;2. Chose Price per ounce in Amazon's Sort by menu&#10;3. …"></textarea>
+    <label class="field" for="expected" data-i18n="reportExpectedLabel">What did you expect instead?</label>
+    <textarea id="expected" maxlength="4000"></textarea>
+  </section>
+
+  <section>
+    <h2 data-i18n="reportIncludedH">Included with your report</h2>
+    <div class="part" id="part-screenshot">
+      <label><input type="checkbox" id="inc-screenshot" checked><span data-i18n="reportIncShot">Screenshot of the page you were on</span></label>
+      <div class="body">
+        <img id="shot" alt="Screenshot that will be attached" hidden>
+        <p class="note" id="shotNone" data-i18n="reportShotNone">No screenshot was taken (Chrome allows it only on normal web pages). You can add one below, or paste an image with Ctrl/Cmd+V.</p>
+        <label class="note"><span data-i18n="reportShotAdd">Add or replace a screenshot:</span> <input type="file" id="shotFile" accept="image/png,image/jpeg,image/webp"></label>
+      </div>
+    </div>
+    <div class="part" id="part-page">
+      <label><input type="checkbox" id="inc-page" checked><span data-i18n="reportIncPage">The page, its score and the side panel list</span></label>
+      <div class="body"><pre id="pagePreview"></pre></div>
+    </div>
+    <div class="part" id="part-settings">
+      <label><input type="checkbox" id="inc-settings" checked><span data-i18n="reportIncSettings">Your Ingredient Check settings</span></label>
+      <div class="body"><pre id="settingsPreview"></pre>
+        <p class="note" data-i18n="reportSettingsNote">Includes your allergen, diet and avoid-list choices, since they change scores. Never includes cached scores, sign-in tokens or anything from other pages.</p></div>
+    </div>
+    <div class="part" id="part-actions">
+      <label><input type="checkbox" id="inc-actions" checked><span data-i18n="reportIncActions">Your recent clicks in Ingredient Check (this browser session)</span></label>
+      <div class="body"><pre id="actionsPreview"></pre></div>
+    </div>
+    <div class="part">
+      <label><input type="checkbox" checked disabled><span data-i18n="reportIncEnv">Extension and browser version (always)</span></label>
+      <div class="body"><pre id="envPreview"></pre></div>
+    </div>
+  </section>
+
+  <section>
+    <h2 data-i18n="reportSendH">Send it</h2>
+    <ol class="steps">
+      <li data-i18n="reportStep1">Download the report file (one .html file with the screenshot and all the details).</li>
+      <li data-i18n="reportStep2">Open the email draft and attach that file, then press Send.</li>
+    </ol>
+    <div class="actions">
+      <button type="button" class="button" id="download" data-i18n="reportDownload">1. Download report file</button>
+      <a class="button" id="email" href="#" data-i18n="reportEmail">2. Open email draft</a>
+      <button type="button" class="button secondary" id="copy" data-i18n="reportCopy">Copy report text</button>
+    </div>
+    <p id="status" role="status" aria-live="polite"></p>
+    <details>
+      <summary data-i18n="reportPreviewH">Preview the email text</summary>
+      <pre id="textPreview"></pre>
+    </details>
+  </section>
+</main>
+<script src="../engine/db/_module.js"></script>
+<script src="../engine/db/allergens.js"></script>
+<script src="../engine/categories.js"></script>
+<script src="../engine/db/prefs.js"></script>
+<script src="../engine/db/revision.js"></script>
+<script src="../engine/db/sorted-results.js"></script>
+<script src="../engine/db/unit-price.js"></script>
+<script src="../engine/db/speed.js"></script>
+<script src="../engine/db/activity.js"></script>
+<script src="store-request.js"></script>
+<script src="report-data.js"></script>
+<script src="report.js"></script>
+</body>
+</html>

@@ -277,6 +277,26 @@ title), and `harness:ci` includes three cards in those shapes (it fails with the
 panel also now reports an error or a stall instead of staying blank. Still not checked live: Amazon
 answers this machine's search pages with 503.
 
+## Record: price per fluid ounce and the report page, 2026-09-25
+
+From the owner's kefir search (55 listings): most showed "No price per ounce" and several Lifeway
+bottles showed $7.34/oz and $19.82/oz.
+
+- Amazon writes liquids' unit price as "$0.11/fluid ounce", which was not recognised. Fluid ounces,
+  "Fl Oz", Whole Foods' "FZ", ml, litres, quarts, pints and gallons are read now; liquids show "/fl oz".
+- "10g Protein" was read as the package (10 g = 0.35 oz): $2.59 / 0.35 = $7.34. Nutrient amounts
+  (protein, fat, sugar, fibre…) are skipped now; the 8 fl oz bottle is $0.32/fl oz.
+- "3.1 fl oz, 8 Count" is 24.8 fl oz (a liquid's size is per bottle); a weight next to a count is
+  still left alone, as the Cost Sorter did.
+- `npm test` has the owner's titles; the simulation's oat milk (64 fl oz) now ranks first by price.
+
+**Report a problem or suggest an improvement** (toolbar popup): the real extension in the simulation
+opened the report page from the popup; it listed the recent clicks (the sort menu choice, the side
+panel's preset and buttons), the settings and the side panel summary, and **Download report file**
+saved one `ingredient-check-report-….html` with the text and data. The screenshot needs a real click
+on the toolbar button (`activeTab`), which the simulation cannot make, so it showed "No screenshot
+was taken". **For the owner:** click the toolbar button on an Amazon page and try it once.
+
 **Still for the owner:**
 
 1. Press **Allow** on Chrome's Open Food Facts prompt once in your own profile, to confirm the grant

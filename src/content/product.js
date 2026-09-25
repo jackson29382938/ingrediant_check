@@ -71,6 +71,7 @@
         food: !(data.ingestible && data.ingestible.ok === false) });
     }
     publishActionBadge(result);
+    P().logAction?.('product page', `${key}: ${result.score} ${result.verdict} (read from ${meta.via || 'page'})`);
     if (meta.sendDiag !== false) {
       sendDiagnostic(data, result, meta.via, meta.text || data.text);
     }

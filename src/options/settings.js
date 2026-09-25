@@ -45,6 +45,11 @@ function flash(msg, kind) {
 
 function persist(values, done) {
   writing = true;
+  // Which settings changed, for "Report a problem"'s recent actions (names and short values only).
+  if (AIR.db.activity) {
+    AIR.db.activity.log('settings', Object.entries(values || {}).map(([k, v]) =>
+      (typeof v === 'object' ? k : `${k}=${String(v).slice(0, 20)}`)).join(', '));
+  }
   chrome.storage.local.set(values, () => {
     writing = false;
     if (chrome.runtime.lastError) {

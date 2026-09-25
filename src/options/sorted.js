@@ -67,6 +67,8 @@
 
   try { chrome.windows.getCurrent(w => { void chrome.runtime.lastError; if (w) windowId = w.id; }); } catch (e) { /* no windows API */ }
 
+  const logUi = what => { try { AIR.db.activity && AIR.db.activity.log(isPanel ? 'side panel' : 'list tab', what); } catch (e) { /* ignore */ } };
+
   function node(tag, className, text) {
     const element = document.createElement(tag);
     if (className) element.className = className;
@@ -87,6 +89,7 @@
 
   // ---------------------------------------------------------------- buttons
   async function backToAmazon() {
+    logUi('Back to Amazon search');
     const url = R.sanitizeSourceUrl(saved && saved.sourceUrl);
     if (!url) return;
     const tabId = saved && saved.sourceTabId;
@@ -101,6 +104,7 @@
     chrome.tabs.create({ url }).catch(() => {});
   }
   function openInTab() {
+    logUi('Open in new tab');
     chrome.tabs.create({ url: chrome.runtime.getURL('src/options/sorted.html') }).catch(() => {});
   }
   // Synchronous inside the click, so Chrome counts it as the user's action.
@@ -114,6 +118,7 @@
     chrome.tabs.create({ url: chrome.runtime.getURL('src/options/options.html#sec-sort') }).catch(() => {});
   }
   function stopRating() {
+    logUi('Stop rating');
     if (!saved || !Number.isInteger(saved.sourceTabId)) return;
     try {
       chrome.tabs.sendMessage(saved.sourceTabId, { type: 'sortStop', runId: saved.runId }, () => void chrome.runtime.lastError);
@@ -168,6 +173,7 @@
     ui.presets.setAttribute('aria-label', t('sortedPresetsAria', 'Starting points'));
     for (const id of Object.keys(R.PRESETS)) {
       const b = button('chip', PRESET_TEXT[id](), () => {
+        logUi(`preset ${id}`);
         weights = R.sanitizeWeights(R.PRESETS[id], { unitEnabled: unitEnabled() });
         paintSliders();
         renderList();
@@ -189,6 +195,7 @@
       input.max = String(R.WEIGHT_MAX);
       input.step = '1';
       const value = node('output', 'slider-value');
+      input.addEventListener('change', () => logUi(`slider ${f}=${input.value}`));
       input.addEventListener('input', () => {
         weights = R.sanitizeWeights({ ...weights, [f]: Number(input.value) }, { unitEnabled: unitEnabled() });
         paintSliders();
@@ -272,9 +279,11 @@
     const facts = node('div', 'facts');
     if (unitEnabled()) {
       const unit = node('span', 'fact unit', product.unitPrice != null
-        ? t('sortedPerOunce', '$1/oz', money.format(product.unitPrice)) : t('sortedNoUnit', 'No price per ounce'));
+        ? (product.unitKind === 'fluid' ? t('sortedPerFlOunce', '$1/fl oz', money.format(product.unitPrice))
+          : t('sortedPerOunce', '$1/oz', money.format(product.unitPrice)))
+        : t('sortedNoUnit', 'No price per ounce'));
       if (product.unitPrice != null) unit.title = product.unitSource === 'amazon'
-        ? t('sortedUnitAmazon', 'Amazon’s unit price') : t('sortedUnitCalculated', 'Worked out from the listed price and package weight');
+        ? t('sortedUnitAmazon', 'Amazon’s unit price') : t('sortedUnitCalculated', 'Worked out from the listed price and package size');
       facts.append(unit);
     }
     if (product.listingPrice != null) facts.append(node('span', 'fact', money.format(product.listingPrice)));

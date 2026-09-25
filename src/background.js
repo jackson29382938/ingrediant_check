@@ -10,7 +10,7 @@ if (typeof importScripts === 'function') {
   importScripts('engine/db/_module.js', 'engine/db/allergens.js', 'engine/categories.js',
     'engine/db/ingestible.js', 'engine/db/prefs.js',
     'engine/db/ocr-text.js', 'engine/db/product-cache.js', 'engine/db/sorted-results.js',
-    'worker/messages.js', 'worker/sheet-store.js');
+    'engine/db/activity.js', 'worker/messages.js', 'worker/sheet-store.js');
 }
 
 const OFF_ENDPOINT = 'https://world.openfoodfacts.org/api/v2/product/';
@@ -233,6 +233,12 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (msg && msg.type === 'openSortedPanel') { openSortedPanel(msg, sender, reply); return true; }
   if (msg && msg.type === 'updateSortedResults') {
     updateSortedResults(msg, sender).then(reply, e => reply({ ok: false, reason: String((e && e.message) || e) }));
+    return true;
+  }
+  // A line for "Report a problem" (engine/db/activity.js), from a content script, which cannot reach
+  // session storage itself. Short text only; nothing leaves the browser.
+  if (msg && msg.type === 'logAction') {
+    self.AIR.db.activity.log(String(msg.where || ''), String(msg.what || '')).then(() => reply({ ok: true }));
     return true;
   }
   if (msg && msg.type === 'openSortedTab') {
