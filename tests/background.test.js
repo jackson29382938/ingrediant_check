@@ -219,7 +219,7 @@ test('message allowlist is inverted: page / settings / offscreen / deny-unknown'
   assert.equal(w.call('allowMessage({type:"flushDiagnostics"}, {id:"ext"})'), false);
   assert.equal(w.call(`allowMessage({type:"flushDiagnostics"}, ${JSON.stringify(settingsSender)})`), true);
   assert.equal(w.call(`allowMessage({type:"flushDiagnostics"}, ${JSON.stringify(popupSender)})`), false);
-  assert.equal(w.call(`allowMessage({type:"diagnosticsStatus"}, ${JSON.stringify(popupSender)})`), true);
+  assert.equal(w.call(`allowMessage({type:"diagnosticsStatus"}, ${JSON.stringify(popupSender)})`), false);
   assert.equal(w.call(`allowMessage({type:"refreshSheet"}, ${JSON.stringify(amazonTab)})`), false);
   assert.equal(w.call(`allowMessage({type:"accountSave"}, ${JSON.stringify(settingsSender)})`), true);
   assert.equal(w.call(`allowMessage({type:"accountLoad"}, ${JSON.stringify(amazonTab)})`), false);
@@ -381,7 +381,7 @@ test('account save and restore carry a token and the sanitized backup only', asy
   assert.equal(bodies.length, 2);
 });
 
-test('only the settings page can flush diagnostics; the popup and pages cannot', async () => {
+test('only the settings page can send settings messages; the popup and pages cannot', async () => {
   let posts = 0;
   const w = worker({ ...enabled, diagQueue: [{ id: 1, rowId: 'r1' }] }, async () => {
     posts++;
@@ -393,8 +393,14 @@ test('only the settings page can flush diagnostics; the popup and pages cannot',
   }
   assert.equal(posts, 0, 'a rejected sender still reached the endpoint');
   assert.equal(w.data.diagQueue.length, 1);
-  // The popup keeps the read-only status it was allowed before.
-  assert.equal(w.call(`allowMessage({type:"diagnosticsStatus"}, ${JSON.stringify(popupSender)})`), true);
+  // Every settings message has one caller, the settings page, and only it is accepted.
+  const setupSender = { id: 'ext', url: 'chrome-extension://ext/src/options/welcome.html' };
+  for (const type of ['flushDiagnostics', 'diagnosticsStatus', 'refreshSheet', 'accountSave', 'accountLoad']) {
+    assert.equal(w.call(`allowMessage({type:"${type}"}, ${JSON.stringify(settingsSender)})`), true, type);
+    for (const other of [popupSender, setupSender]) {
+      assert.equal(w.call(`allowMessage({type:"${type}"}, ${JSON.stringify(other)})`), false, `${type} from ${other.url}`);
+    }
+  }
   const res = await w.send({ type: 'flushDiagnostics' }, settingsSender);
   assert.equal(res.ok, true);
   assert.equal(res.sent, 1);

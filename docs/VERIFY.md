@@ -155,7 +155,7 @@ as live verification. What did run:
 |---|---|---|
 | `npm test`, `npm run preflight`, `npm run harness:ci` | Node 22; Playwright Chromium on local pages | Pass |
 | Unpacked extension loads; worker starts; `importScripts` globals resolve; no `web_accessible_resources` | Chromium 141 (headless), `--load-extension`, driven over CDP | Pass |
-| `flushDiagnostics` from `options.html` answered; from `popup.html` refused (no reply); `diagnosticsStatus` from the popup still answered | Same, messages sent from the real extension pages | Pass |
+| `flushDiagnostics` from `options.html` answered; from `popup.html` refused (no reply); `diagnosticsStatus` from the popup still answered (since 2026-09-25 the popup is refused for every settings message) | Same, messages sent from the real extension pages | Pass |
 | Offscreen OCR document created by the worker; vendored Tesseract runs in it with no WAR | Same, a label drawn on a canvas, not an Amazon image | Pass, ~0.8 s |
 | Content script → worker → offscreen OCR → panel, and search auto-rating with the new notice | Same, but `www.amazon.com` and `m.media-amazon.com` mapped to a local TLS server serving hand-built pages; all other hosts mapped to NOTFOUND | Pass: DOM list 95, label photo 35 (`label-ocr`), 8 badges from 7 `/dp/` fetches, notice's turn-off button sets `autoScoreSearch: false` |
 

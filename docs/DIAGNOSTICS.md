@@ -67,8 +67,9 @@ beyond that the oldest are dropped, because losing diagnostic rows is a non-even
 storage quota is not. A failed POST keeps the rows for the next attempt.
 
 **Send queued rows now** in settings flushes immediately and reports what happened. Only the
-settings page can ask for that flush. The service worker refuses a `flushDiagnostics` message from
-the popup, a content script or any other page (`OPTIONS_ONLY_MESSAGE_TYPES` in
+settings page can ask for that flush. The service worker refuses `flushDiagnostics` from the popup,
+the setup page, a content script or any other page. The same applies to the queue status, the
+database refresh and the Google-account save and restore (`SETTINGS_MESSAGE_TYPES` in
 `src/worker/messages.js`). The alarm and the full-batch flush run inside the worker and are not
 affected.
 

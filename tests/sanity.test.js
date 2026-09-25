@@ -85,6 +85,25 @@ check('every chrome.runtime.sendMessage type in src is registered in the worker 
   assert.strictEqual(missing.length, 0, `unregistered message types: ${missing.join(', ')}`);
 });
 
+check('settings messages are sent only from the settings page', () => {
+  // The worker accepts SETTINGS_MESSAGE_TYPES from options.html alone (src/worker/messages.js).
+  // A caller anywhere else would be refused in production without an error, so fail here instead.
+  const types = [...read('src/worker/messages.js').match(/SETTINGS_MESSAGE_TYPES\s*=\s*new Set\(\[([\s\S]*?)\]\)/)[1]
+    .matchAll(/'([A-Za-z0-9_]+)'/g)].map(m => m[1]);
+  assert.ok(types.includes('flushDiagnostics') && types.includes('accountSave'), `parse: ${types}`);
+  const allowed = new Set(['src/worker/messages.js', 'src/background.js', 'src/options/settings-database.js']);
+  for (const f of srcFiles) {
+    const p = rel(f).split(path.sep).join('/');
+    if (allowed.has(p)) continue;
+    const raw = fs.readFileSync(f, 'utf8');
+    for (const t of types) assert.ok(!raw.includes(`'${t}'`), `${p} mentions settings message '${t}'`);
+  }
+  for (const page of ['src/options/popup.html', 'src/options/welcome.html']) {
+    assert.ok(!read(page).includes('settings-database.js'), `${page} loads settings-database.js`);
+  }
+  assert.ok(read('src/options/options.html').includes('settings-database.js'));
+});
+
 check('content scripts split page / product / search before main', () => {
   const iPage = declared.indexOf('src/content/page.js');
   const iProduct = declared.indexOf('src/content/product.js');

@@ -7,15 +7,16 @@ var PAGE_MESSAGE_TYPES = new Set([
   'pageScore', 'ocrLabels', 'lookupBarcode', 'provenanceLookup',
   'contribute', 'report', 'diagnostic', 'productsLookup', 'productsQueue',
 ]);
+// Sent only by the settings page (settings-database.js, loaded by options.html alone), so only the
+// settings page may send them. The popup and the setup page have no control for any of them:
+// flushing POSTs queued diagnostic rows (a trace of scored products), refreshSheet fetches the
+// shared database, and the account pair carries a Google token and overwrites local settings.
+// The housekeeping alarm and a full diagnostics batch flush from inside the worker; neither is a
+// message, so neither is affected. tests/sanity.test.js fails if another page starts sending one.
 var SETTINGS_MESSAGE_TYPES = new Set([
   'flushDiagnostics', 'diagnosticsStatus', 'refreshSheet',
   'accountSave', 'accountLoad',
 ]);
-// Settings types that only the full settings page sends. The popup has no control for them, so it
-// has no reason to send them either. Flushing POSTs the queued diagnostic rows (a trace of scored
-// products) to the endpoint. The housekeeping alarm and a full batch still flush from inside the
-// worker; neither is a message, so neither is affected by this list.
-var OPTIONS_ONLY_MESSAGE_TYPES = new Set(['flushDiagnostics']);
 var OFFSCREEN_MESSAGE_TYPES = new Set(['ocrIdle']);
 var AMAZON_HOST = /(^|\.)amazon\.(com|co\.uk|ca|com\.au|ie|in|sg|ae|sa|de|fr|es|it|nl|se|pl|com\.be|com\.tr|com\.mx|com\.br|co\.jp)$/i;
 
@@ -43,11 +44,6 @@ function extensionPagePath(sender) {
   } catch { return ''; }
 }
 
-function isSettingsSender(sender) {
-  const path = extensionPagePath(sender);
-  return /\/(options|popup)\.html$/i.test(path);
-}
-
 function isOptionsPageSender(sender) {
   return /\/options\.html$/i.test(extensionPagePath(sender));
 }
@@ -59,8 +55,7 @@ function isOffscreenSender(sender) {
 function allowMessage(msg, sender) {
   if (!msg || !isOwnExtension(sender)) return false;
   if (PAGE_MESSAGE_TYPES.has(msg.type)) return isAmazonTabSender(sender);
-  if (OPTIONS_ONLY_MESSAGE_TYPES.has(msg.type)) return isOptionsPageSender(sender);
-  if (SETTINGS_MESSAGE_TYPES.has(msg.type)) return isSettingsSender(sender);
+  if (SETTINGS_MESSAGE_TYPES.has(msg.type)) return isOptionsPageSender(sender);
   if (OFFSCREEN_MESSAGE_TYPES.has(msg.type)) return isOffscreenSender(sender);
   if (msg.type === 'ping') return true;
   return false;
