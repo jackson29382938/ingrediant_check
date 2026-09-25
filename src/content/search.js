@@ -13,7 +13,9 @@
   // counts fetches only: it used to count every tile touched, so tiles answered from the cache or
   // skipped as non-food used up the budget and scoring stopped about forty tiles down. A page holds
   // 48 organic results plus sponsored rows; the 3-at-a-time pacing and the throttle pause still apply.
+  // The speed setting lowers it (AIR.db.speed autoFetches); 60 is the Balanced default.
   const MAX_AUTO_FETCHES = 60;
+  const autoFetchCap = () => (P().speed ? P().speed().autoFetches : MAX_AUTO_FETCHES);
 
   // A badge is painted into the tile's title. Results pages also carry [data-asin] carousel cards
   // with no title; arming those fetched product pages for badges that could never be shown, and on
@@ -92,7 +94,7 @@
   // weight change lands here), then the shared products tab. Whatever is left goes to onMiss. One
   // storage read and at most one worker request per call, however many tiles.
   function resolveTiles(items, onMiss) {
-    const { state, cacheKey, usableCache, storeHost, rememberProduct } = P();
+    const { state, cacheKey, usableCache, freshLocal, sharedOk, speed, storeHost, rememberProduct } = P();
     const C = root.AIR.db.productCache;
     if (!items.length) return;
     const epoch = queue.epoch;
@@ -106,10 +108,12 @@
         const hit = obj[cacheKey(it.asin)];
         if (usableCache(hit, it.asin)) { paintBadge(it.tile, hit); queue.seen.add(it.asin); continue; }
         const local = C.sanitize(obj[localKey(it.asin)]);
-        if (local && !C.stale(local) && applyRow(it.tile, it.asin, local)) { queue.seen.add(it.asin); continue; }
+        if (local && freshLocal(local) && applyRow(it.tile, it.asin, local)) { queue.seen.add(it.asin); continue; }
         misses.push(it);
       }
       if (!misses.length) return;
+      // "Most up to date" reads every product page itself instead of asking the shared database.
+      if (!speed().sharedDays) { if (onMiss) misses.forEach(onMiss); return; }
       try {
         chrome.runtime.sendMessage({ type: 'productsLookup', store: storeHost(), asins: misses.map(m => m.asin) }, reply => {
           void chrome.runtime.lastError;
@@ -119,7 +123,7 @@
           for (const it of misses) {
             if (!it.tile.isConnected || it.tile.querySelector('.air-badge')) continue;
             const row = C.sanitize(rows[it.asin]);
-            if (!row || !applyRow(it.tile, it.asin, row)) { if (onMiss) onMiss(it); continue; }
+            if (!row || !sharedOk(row) || !applyRow(it.tile, it.asin, row)) { if (onMiss) onMiss(it); continue; }
             rememberProduct(it.asin, row, { share: false });
             // Both the badge pass and the auto-score observer resolve a tile; count one pull per view.
             if (!queue.seen.has(it.asin)) pulls.push({ key: row.key, scanned_at: row.scanned_at });
@@ -375,7 +379,7 @@
     if (!state.enabled || !state.badges || !searchAllowed()) return;
     if (front ? !state.hoverScore : !state.autoScoreSearch) return;
     if (queue.seen.has(asin)) return;
-    if (!front && queue.fetches >= MAX_AUTO_FETCHES) return;
+    if (!front && queue.fetches >= autoFetchCap()) return;
     if (state.foodOnly && root.AIR.db.ingestible && root.AIR.db.ingestible.looksNonFoodFromTitle(tileTitle(tile))) {
       queue.seen.add(asin);
       return;
@@ -460,8 +464,43 @@
     });
   }
 
+  // What one fetched product page says, with no side effects: 'not-food', 'unreadable' (no list),
+  // 'low-coverage' (a list the rulebase mostly cannot read) or 'scored'. Shared by the tile queue and
+  // the sort's load-more pass (sort.js), so both read a product page exactly the same way.
+  function readProductHtml(asin, html) {
+    const { state, unreadable } = P();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const data = root.AIR.extract.extract(doc, { asin, foodOnly: state.foodOnly });
+    // A robot check or an error page is not an answer about the product; never record it.
+    const real = !!doc.querySelector('#productTitle');
+    const food = !(data.ingestible && data.ingestible.ok === false);
+    if (state.foodOnly && !food) return { outcome: 'not-food', real, food, data };
+    if (!data.ok) return { outcome: 'unreadable', real, food, data };
+    const input = {
+      name: data.title, labels: data.labels, certifications: data.certifications,
+      nutrition: data.nutrition, ingredients_text: data.text,
+    };
+    const result = root.AIR.engine.score(input, state.prefs);
+    return { outcome: unreadable(result) ? 'low-coverage' : 'scored', real, food, data, input, result };
+  }
+
+  // Keep what a reading found: the product data (p:) whenever the page was real, and the weighted
+  // score (s:) plus a diagnostic row when there is a score.
+  function recordReading(asin, reading, source) {
+    const { cacheScore, sendDiagnostic, rememberProduct } = P();
+    const { outcome, real, food, data } = reading;
+    if (outcome === 'not-food' || outcome === 'unreadable') {
+      if (real) rememberProduct(asin, { status: outcome, input: { name: data.title }, food });
+      return;
+    }
+    rememberProduct(asin, { input: reading.input, via: data.via || source, confidence: data.confidence, food });
+    if (outcome !== 'scored') return;
+    cacheScore(asin, reading.result, data.title, data.via || source);
+    sendDiagnostic(data, reading.result, source);
+  }
+
   async function scoreTile(tile, asin, epoch, url) {
-    const { state, unreadable, cacheScore, sendDiagnostic, rememberProduct } = P();
+    const { state } = P();
     const current = () => epoch === queue.epoch && url === location.href && state.enabled
       && state.badges && tile.isConnected && searchAllowed();
     if (!current()) return;
@@ -476,33 +515,21 @@
       if (!res.ok) throw Object.assign(new Error(String(res.status)), { httpStatus: res.status });
       const html = await res.text();
       if (!current()) return;
-      const doc = new DOMParser().parseFromString(html, 'text/html');
-      const data = root.AIR.extract.extract(doc, { asin, foodOnly: state.foodOnly });
+      const reading = readProductHtml(asin, html);
       if (!current()) return;
-      // A robot check or an error page is not an answer about the product; never record it.
-      const real = !!doc.querySelector('#productTitle');
-      const food = !(data.ingestible && data.ingestible.ok === false);
-      if (state.foodOnly && !food) {
-        if (real) rememberProduct(asin, { status: 'not-food', input: { name: data.title }, food });
+      if (reading.outcome === 'not-food') {
+        recordReading(asin, reading, 'search-tile');
         const b = tile.querySelector('.air-badge');
         if (b) b.remove();
         return;
       }
-      if (!data.ok) {
-        if (real) rememberProduct(asin, { status: 'unreadable', input: { name: data.title }, food });
+      if (reading.outcome !== 'scored') {
+        recordReading(asin, reading, 'search-tile');
         paintBadge(tile, 'unreadable');
         return;
       }
-      const input = {
-        name: data.title, labels: data.labels, certifications: data.certifications,
-        nutrition: data.nutrition, ingredients_text: data.text,
-      };
-      const result = root.AIR.engine.score(input, state.prefs);
-      rememberProduct(asin, { input, via: data.via || 'search-tile', confidence: data.confidence, food });
-      if (unreadable(result)) { paintBadge(tile, 'unreadable'); return; }
-      paintBadge(tile, result);
-      cacheScore(asin, result, data.title, data.via || 'search-tile');
-      sendDiagnostic(data, result, 'search-tile');
+      paintBadge(tile, reading.result);
+      recordReading(asin, reading, 'search-tile');
       queue.failStreak = 0;
     } catch (e) {
       if (!current()) return;
@@ -534,6 +561,7 @@
     searchAllowed, resetSearchGate, standDown, badgeSearchResults,
     armHoverPass, armAutoScorePass, enqueue, scoreTile, cancelTileWork, resolveTiles,
     pauseForThrottle, clearBadges, paintBadge, AUTO_NOTICE_ID, AUTO_NOTICE_SEEN,
+    readProductHtml, recordReading,
   };
   root.AIR.search = search;
   if (typeof module !== 'undefined' && module.exports) module.exports = search;

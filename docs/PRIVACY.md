@@ -59,6 +59,10 @@ Scoring is always local: the rules, your weights and every score are computed in
 | **Back up my settings** (on by default) | Weights, allergen and diet choices, avoid list, toggles | Chrome's own sync, for the Google account signed into Chrome. Not the Ingredient Check database. |
 | **Sign in with Google** (only when you click it) | A Google access token (checked with Google, never stored) and the same settings | The Ingredient Check database, keyed by a SHA-256 of your Google account id — not your email. |
 | **Rate every search result** (on by default) or **Score on hover** | Ordinary `GET` of `/dp/ASIN` on the Amazon store you are on, using your Amazon session (`credentials: same-origin`), three at a time and at most 60 per results page — only for tiles this computer and the shared database cannot already answer | **Amazon.** Each auto-scored or hovered tile looks like you opened that product. See *Access to Amazon* above. |
+| **Sort menu → Rate them** (the default sort setting; only when *Rate every search result* is on) | After you choose an Ingredient Check option in Amazon's sort menu: the same product-page `GET`s as *Rate every search result*, for listings in the list without a score, three at a time, stopping if Amazon refuses or you press *Stop rating* | **Amazon**, as above. |
+| **Sort menu → Load more results** (off by default) | Amazon search pages after this one, until the chosen number of listings (1–500), then, with *Rate them*, product pages of listings still without a score, as above | **Amazon**, as above. The shared database is asked first, like for badges, if it is on. |
+| **Price per ounce** (on by default) | Nothing. Read from the results page already open | Nobody. |
+| **Speed and freshness** | *Fastest* and *Faster* request fewer product pages than before; *Fresher* and *Most up to date* re-read products sooner and trust shared readings less, so they request more. *Most up to date* never asks the shared database for answers | **Amazon** (product pages), as above. |
 | **Show why on hover** (on by default) | Nothing. The breakdown is worked out on your computer from what was already read. | — |
 | **Read label photos** | Fetch of the product image on `m.media-amazon.com` | The image is read **on your computer** (Tesseract). The pixels are not uploaded. |
 | **Open Food Facts fallback** | The **barcode only** | Open Food Facts, after Chrome grants the host. |
@@ -91,7 +95,10 @@ tracking behind this.
 
 ## What is stored on the device
 
-`chrome.storage.local` holds your weights, allergen/diet flags, avoid list, toggles, a **score cache** (number, verdict, ASIN) and the **product data** behind it (what was read off each product page, kept 30 days so a weight change does not refetch). **Clear cached scores** in the popup removes both.
+The sorted list (opened from Amazon's sort menu) and the priorities set in its *Prioritize* bar are kept in `chrome.storage.session`: in memory, for this
+browser session only, gone when Chrome closes.
+
+`chrome.storage.local` holds your weights, allergen/diet flags, avoid list, toggles, a **score cache** (number, verdict, ASIN) and the **product data** behind it (what was read off each product page, kept 30 days by default, 1 to 90 days under Settings → *Speed*, so a weight change does not refetch). **Clear cached scores** in the popup removes both.
 
 ## Single purpose
 

@@ -221,7 +221,10 @@ function renderPresetCategories() {
     b.dataset.category = cat.id;
     b.setAttribute('role', 'tab');
     b.setAttribute('aria-selected', String(cat.id === presetCategory));
-    b.textContent = cat.label;
+    // "Goals · 2": how many selected goals a tab holds, so goals picked on other tabs stay visible.
+    const picks = currentGoals().ids.filter(g => CATS.PRESETS[g] && (CATS.PRESETS[g].category || 'everyday') === cat.id).length;
+    b.textContent = picks ? `${cat.label} · ${picks}` : cat.label;
+    b.classList.toggle('has-picks', picks > 0);
     b.addEventListener('click', () => {
       presetCategory = cat.id;
       const grid = document.getElementById('presets');
@@ -341,8 +344,11 @@ function applyPreset(id) {
   if (!CATS.PRESETS[id]) return;
   const goals = CATS.toggleGoal(currentGoals().ids, id);
   applyScoring({ ...state, goals, weights: CATS.goalWeights(goals) });
+  // Goals combine across tabs: stay on the tab that was clicked instead of jumping to the first
+  // selected goal's tab, which hid the goal just picked.
   const host = document.getElementById('presets');
-  if (host) delete host.dataset.userTab;
+  presetCategory = CATS.PRESETS[id].category || presetCategory;
+  if (host) host.dataset.userTab = '1';
   renderCategories();
   renderPresetCategories();
   renderPresets();
@@ -585,6 +591,74 @@ function wireSearchScoring() {
   if (list && stores.length) list.textContent = stores.join(', ');
 }
 
+// Sort results by score (src/content/sort.js): what to do with unscored listings, and load more.
+// Saved on change, bounded by sortedResults.sanitizeSort, followed if another page changes them.
+function wireSort() {
+  const R = AIR.db.sortedResults;
+  const count = document.getElementById('sortCount');
+  const more = document.getElementById('sortLoadMore');
+  const radios = [...document.querySelectorAll('input[name="sortMissing"]')];
+  if (!R || !count || !more || !radios.length) return;
+  const keys = Object.keys(R.SORT_DEFAULTS);
+  const paint = o => {
+    const v = R.sanitizeSort(o);
+    radios.forEach(r => { r.checked = r.value === v.sortMissing; });
+    more.checked = v.sortLoadMore;
+    count.value = String(v.sortCount);
+    count.disabled = !v.sortLoadMore;
+  };
+  const save = () => {
+    const v = R.sanitizeSort({
+      sortMissing: (radios.find(r => r.checked) || {}).value,
+      sortLoadMore: more.checked,
+      sortCount: count.value,
+    });
+    paint(v);
+    persist(v, ok => { if (ok) flash(msg('optSaved', 'Saved')); });
+  };
+  chrome.storage.local.get(keys, paint);
+  chrome.storage.onChanged.addListener(changes => {
+    if (keys.some(k => changes[k])) chrome.storage.local.get(keys, paint);
+  });
+  radios.forEach(r => r.addEventListener('change', save));
+  more.addEventListener('change', save);
+  count.addEventListener('change', save);
+
+  // Price per ounce: the on/off switch (also in the popup) and what to do without Amazon's unit price.
+  const U = AIR.db.unitPrice;
+  const unitRadios = [...document.querySelectorAll('input[name="unitMissing"]')];
+  if (U && unitRadios.length) {
+    const paintUnit = o => {
+      const v = U.sanitizeUnit(o);
+      unitRadios.forEach(r => { r.checked = r.value === v.unitMissing; });
+    };
+    bindToggle('unitPrice', on => unitRadios.forEach(r => { r.disabled = !on; }));
+    chrome.storage.local.get('unitMissing', paintUnit);
+    chrome.storage.onChanged.addListener(changes => { if (changes.unitMissing) paintUnit({ unitMissing: changes.unitMissing.newValue }); });
+    unitRadios.forEach(r => r.addEventListener('change', () => {
+      const v = U.sanitizeUnit({ unitMissing: (unitRadios.find(x => x.checked) || {}).value });
+      persist(v, ok => { if (ok) flash(msg('optSaved', 'Saved')); });
+    }));
+  }
+}
+
+// Speed and freshness (AIR.db.speed): five steps, Balanced by default.
+function wireSpeed() {
+  const SP = AIR.db.speed;
+  const radios = [...document.querySelectorAll('input[name="speedMode"]')];
+  if (!SP || !radios.length) return;
+  const paint = o => {
+    const { speedMode } = SP.sanitizeSpeed(o);
+    radios.forEach(r => { r.checked = r.value === speedMode; });
+  };
+  chrome.storage.local.get('speedMode', paint);
+  chrome.storage.onChanged.addListener(changes => { if (changes.speedMode) paint({ speedMode: changes.speedMode.newValue }); });
+  radios.forEach(r => r.addEventListener('change', () => {
+    const v = SP.sanitizeSpeed({ speedMode: (radios.find(x => x.checked) || {}).value });
+    persist(v, ok => { if (ok) flash(msg('optSaved', 'Saved')); });
+  }));
+}
+
 // Results-page breakdown: the toggle, how much it shows, and how long a hover waits before it opens.
 function wireBreakdown() {
   const detail = document.getElementById('breakdownDetail');
@@ -624,6 +698,8 @@ function startSettingsPage() {
     wireFileActions();
     wireDatabase();
     wireSearchScoring();
+    wireSort();
+    wireSpeed();
     wireBreakdown();
 
     document.getElementById('avoidList').addEventListener('input', e => {

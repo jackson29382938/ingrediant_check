@@ -46,7 +46,7 @@ Suggested screenshot set (capture live, or from `npm run harness` + popup):
 - **Language:** English (primary). Mention EU synonym support in the long description, not as universal coverage.  
 - **Privacy:** host [PRIVACY.md](../PRIVACY.md) (GitHub blob/raw or Pages) and paste that URL in the CWS privacy field.  
 - **Single purpose:** local ingredient scoring on Amazon grocery pages.  
-- **Permissions justification:** `storage` (weights + cache), `alarms` (housekeeping), `offscreen` (on-device OCR), Amazon host permissions (read product and search pages; **Rate every search result**, on by default, and **Score on hover** request product pages with the user’s Amazon session — disclosed in the popup, in settings, and once on the first results page it rates, with a button to turn it off). Optional hosts: Open Food Facts (barcode only), Google Sheets / Apps Script (owner-configured).
+- **Permissions justification:** `storage` (weights + cache), `alarms` (housekeeping), `offscreen` (on-device OCR), `sidePanel` (choosing an Ingredient Check option in Amazon's sort menu opens the ranked list beside the Amazon page), Amazon host permissions (read product and search pages; **Rate every search result**, on by default, and **Score on hover** request product pages with the user’s Amazon session — disclosed in the popup, in settings, and once on the first results page it rates, with a button to turn it off). Optional hosts: Open Food Facts (barcode only), Google Sheets / Apps Script (owner-configured).
 
 ## Do not claim until VERIFY is green
 

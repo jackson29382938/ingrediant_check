@@ -772,5 +772,378 @@
   },
   "optNoteTarget": {
     "message": "Target (preview): Ingredient Check also runs on Target product and search pages. There it only reads the page you have open and scores it on your computer. It requests nothing from Target or anyone else, and a Target search page shows scores only for products you opened before. The two options above apply to Amazon only."
+  },
+  "sortThrottled": {
+    "message": "Amazon stopped answering product pages, so rating paused."
+  },
+  "sortLoadingPage": {
+    "message": "Loading Amazon results page $FIRST$ ($SECOND$ products found)…",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      },
+      "second": {
+        "content": "$2"
+      }
+    }
+  },
+  "sortRatingMore": {
+    "message": "Rating listings without a score: $FIRST$ of $SECOND$…",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      },
+      "second": {
+        "content": "$2"
+      }
+    }
+  },
+  "sortUnscoredTailOne": {
+    "message": "1 without a score is at the end."
+  },
+  "sortUnscoredTail": {
+    "message": "$FIRST$ without a score are at the end.",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "sortCollected": {
+    "message": "Collected $FIRST$ products.",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "sortPartial": {
+    "message": "More results could not be loaded"
+  },
+  "sortNoMore": {
+    "message": "Amazon has no more results."
+  },
+  "sortNoCardsHelp": {
+    "message": "No Amazon product cards were found. Check that this is a search results page, then refresh after listings load."
+  },
+  "sortLoadMore": {
+    "message": "Load more results"
+  },
+  "sortStop": {
+    "message": "Stop"
+  },
+  "sortedSrcScored": {
+    "message": "Ingredient Check score, under your current settings"
+  },
+  "sortedSrcUnreadable": {
+    "message": "No readable ingredient list on Amazon"
+  },
+  "sortedSrcNotFood": {
+    "message": "Not scored: does not look like food"
+  },
+  "sortedSrcUnrated": {
+    "message": "Not scored yet"
+  },
+  "sortedEmptyTitle": {
+    "message": "No sorted results yet"
+  },
+  "sortedEmptyBody": {
+    "message": "On an Amazon grocery search, open Amazon’s “Sort by” menu and choose “Ingredient Check score: High to Low” or “Price per ounce: Low to High”."
+  },
+  "sortedReviews": {
+    "message": "$FIRST$ reviews",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "sortedSponsored": {
+    "message": "Sponsored"
+  },
+  "sortedResultPage": {
+    "message": "Amazon page $FIRST$",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "sortedNoScore": {
+    "message": "No score"
+  },
+  "sortedDetails": {
+    "message": "Listing details"
+  },
+  "sortedEyebrow": {
+    "message": "INGREDIENT CHECK"
+  },
+  "sortedOpenPanel": {
+    "message": "Open side panel"
+  },
+  "sortedPanelFallback": {
+    "message": "Open the side panel from Chrome’s side panel menu"
+  },
+  "sortedBack": {
+    "message": "Back to Amazon search"
+  },
+  "sortedListAria": {
+    "message": "Amazon listings ranked by your priorities"
+  },
+  "optNavSort": {
+    "message": "Sort"
+  },
+  "optSortH": {
+    "message": "Sort by score or price per ounce"
+  },
+  "optSortLede": {
+    "message": "On an Amazon grocery search, Amazon's own “Sort by” menu gets “Ingredient Check score: High to Low” and “Price per ounce: Low to High”. Choosing one opens Chrome's side panel with this search's listings ranked; Amazon's page is left as it is. In the panel, Prioritize weighs health score, price per ounce, total price, rating and number of reviews, and Open in new tab shows the same list in a tab."
+  },
+  "optSortMissingH": {
+    "message": "Listings without a score"
+  },
+  "optSortRateFirst": {
+    "message": "Rate them"
+  },
+  "optSortRateFirstD": {
+    "message": "Uses “Rate every search result”: their product pages are requested from Amazon with your sign-in, three at a time, while the side panel fills in. Stop rating in the panel halts it. Does nothing when that option is off."
+  },
+  "optSortEnd": {
+    "message": "Leave them unscored"
+  },
+  "optSortEndD": {
+    "message": "No extra requests. Only scores this computer or the shared database already has."
+  },
+  "optSortLoadMore": {
+    "message": "Load more Amazon results"
+  },
+  "optSortLoadMoreD": {
+    "message": "Off by default. Reads further Amazon search pages until it has the number below, then asks the shared database for their scores and, with “Rate them”, requests the product pages of the rest: three at a time, with your Amazon sign-in, stopping if Amazon starts refusing."
+  },
+  "optSortCount": {
+    "message": "Products to compare"
+  },
+  "optSortStorage": {
+    "message": "The sorted list is kept in memory for this browser session only and is gone when Chrome closes."
+  },
+  "sortMenuScore": {
+    "message": "Ingredient Check score: High to Low"
+  },
+  "sortMenuUnit": {
+    "message": "Price per ounce: Low to High"
+  },
+  "sortStatusFound": {
+    "message": "$FIRST$ listings so far.",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "sortStatusChecking": {
+    "message": "Checking saved scores…"
+  },
+  "sortedFactorHealth": {
+    "message": "Health score"
+  },
+  "sortedFactorUnit": {
+    "message": "Price per ounce"
+  },
+  "sortedFactorPrice": {
+    "message": "Total price"
+  },
+  "sortedFactorRating": {
+    "message": "Customer rating"
+  },
+  "sortedFactorReviews": {
+    "message": "Number of reviews"
+  },
+  "sortedPresetHealth": {
+    "message": "Healthiest"
+  },
+  "sortedPresetUnit": {
+    "message": "Cheapest per ounce"
+  },
+  "sortedPresetBalanced": {
+    "message": "Balanced"
+  },
+  "sortedPresetPrice": {
+    "message": "Lowest price"
+  },
+  "sortedPresetRating": {
+    "message": "Best rated"
+  },
+  "sortedTitleHealth": {
+    "message": "Healthiest first"
+  },
+  "sortedTitleUnit": {
+    "message": "Lowest price per ounce first"
+  },
+  "sortedTitleBalanced": {
+    "message": "Balanced: health, price per ounce and rating"
+  },
+  "sortedTitlePrice": {
+    "message": "Lowest price first"
+  },
+  "sortedTitleRating": {
+    "message": "Best rated first"
+  },
+  "sortedTitleCustom": {
+    "message": "Ranked by your priorities"
+  },
+  "sortedMissingHealth": {
+    "message": "no score"
+  },
+  "sortedMissingUnit": {
+    "message": "no price per ounce"
+  },
+  "sortedMissingPrice": {
+    "message": "no price"
+  },
+  "sortedMissingRating": {
+    "message": "no rating"
+  },
+  "sortedMissingReviews": {
+    "message": "no reviews count"
+  },
+  "sortedOpenTab": {
+    "message": "Open in new tab"
+  },
+  "sortedStop": {
+    "message": "Stop rating"
+  },
+  "sortedSettings": {
+    "message": "Settings"
+  },
+  "sortedPriorities": {
+    "message": "Prioritize"
+  },
+  "sortedPresetsAria": {
+    "message": "Starting points"
+  },
+  "sortedPriorityNote": {
+    "message": "Drag toward 10 for what matters most, 0 to ignore it. A listing missing a value counts as the worst on it. Prices compare on a log scale; price per ounce and price come from the results page, never a coupon or subscription price."
+  },
+  "sortedPerOunce": {
+    "message": "$FIRST$/oz",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "sortedNoUnit": {
+    "message": "No price per ounce"
+  },
+  "sortedUnitAmazon": {
+    "message": "Amazon’s unit price"
+  },
+  "sortedUnitCalculated": {
+    "message": "Worked out from the listed price and package weight"
+  },
+  "sortedMatch": {
+    "message": "Match $FIRST$",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "sortedResultFirst": {
+    "message": "Amazon page 1"
+  },
+  "sortedReading": {
+    "message": "Reading Amazon listings…"
+  },
+  "sortedSubtitleLoading": {
+    "message": "$FIRST$ listings so far · still loading",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "sortedSubtitleDone": {
+    "message": "$FIRST$ listings · scored on your computer with your settings",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "optNavSpeed": {
+    "message": "Speed"
+  },
+  "optSortUnitPrice": {
+    "message": "Price per ounce"
+  },
+  "optSortUnitPriceD": {
+    "message": "Amazon's unit price when the results page shows one; otherwise worked out from the listed price and a package weight in the title. No extra requests. Coupons and subscription prices are not included. Also in the toolbar popup."
+  },
+  "optUnitMissingH": {
+    "message": "When Amazon shows no unit price"
+  },
+  "optUnitCalc": {
+    "message": "Work it out when the weight is clear"
+  },
+  "optUnitCalcD": {
+    "message": "Uses a package weight in the product title when it is unambiguous (“12 oz, Pack of 6” is 72 oz; “100 Count, 7 oz” is left alone)."
+  },
+  "optUnitDisplayed": {
+    "message": "Amazon's unit price only"
+  },
+  "optUnitDisplayedD": {
+    "message": "Listings without one have no price per ounce."
+  },
+  "optUnitMore": {
+    "message": "Look through more of the listing"
+  },
+  "optUnitMoreD": {
+    "message": "Also checks the rest of the listing text for a package weight. Ambiguous listings still get none."
+  },
+  "optSpeedH": {
+    "message": "Speed and freshness"
+  },
+  "optSpeedLede": {
+    "message": "Faster reuses saved scores for longer and requests fewer product pages. Fresher re-reads products sooner and trusts older shared readings less. Balanced is how Ingredient Check has always worked. A product page you open is always read again, whatever you choose."
+  },
+  "optSpeedFastest": {
+    "message": "Fastest"
+  },
+  "optSpeedFastestD": {
+    "message": "Saved scores for up to 90 days. At most 20 product pages per results page. Shared readings up to 30 days old."
+  },
+  "optSpeedFast": {
+    "message": "Faster"
+  },
+  "optSpeedFastD": {
+    "message": "Saved scores for up to 60 days. At most 40 product pages per results page. Shared readings up to 30 days old."
+  },
+  "optSpeedBalanced": {
+    "message": "Balanced (default)"
+  },
+  "optSpeedBalancedD": {
+    "message": "Saved scores for up to 30 days. At most 60 product pages per results page. Shared readings up to 30 days old."
+  },
+  "optSpeedFresh": {
+    "message": "Fresher"
+  },
+  "optSpeedFreshD": {
+    "message": "Saved scores for up to 7 days. At most 60 product pages per results page. Shared readings up to 7 days old."
+  },
+  "optSpeedFreshest": {
+    "message": "Most up to date"
+  },
+  "optSpeedFreshestD": {
+    "message": "Saved scores for 1 day. At most 60 product pages per results page. Never uses shared readings: reads every product page itself, so more requests go to Amazon."
+  },
+  "popupUnitPrice": {
+    "message": "Price per ounce"
+  },
+  "popupUnitPriceD": {
+    "message": "Adds \"Price per ounce: Low to High\" to Amazon's sort menu and price per ounce to the sorted list, worked out from the results page. No extra requests."
+  },
+  "popupPresetsHint": {
+    "message": "Pick one or several, on any tab. They combine."
   }
 }

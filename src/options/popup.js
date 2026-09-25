@@ -1,11 +1,11 @@
 const CACHE = AIR.db.scoreCache;
 const CATS = AIR.db.categories;
 const PREFS = AIR.db.prefs;
-const KEYS = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'hoverBreakdown', 'hoverScore', 'ocrLabels', 'useOpenFoodFacts'];
+const KEYS = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'hoverBreakdown', 'hoverScore', 'unitPrice', 'ocrLabels', 'useOpenFoodFacts'];
 // Every plain checkbox. useOpenFoodFacts is handled separately because it also drives an
 // optional-permission request. hoverScore was missing from this list, which left the
 // checkbox inert: it never loaded its stored value and never wrote one.
-const TOGGLE_KEYS = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'hoverBreakdown', 'hoverScore', 'ocrLabels'];
+const TOGGLE_KEYS = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'hoverBreakdown', 'hoverScore', 'unitPrice', 'ocrLabels'];
 const OFF_PERMISSION = { origins: ['https://world.openfoodfacts.org/*'] };
 let writing = false;
 
@@ -73,6 +73,13 @@ function paintPopupActive(goals) {
   name.classList.toggle('is-custom', goals.custom);
 }
 
+// "Goals · 2": how many selected goals a tab holds, so goals picked on other tabs stay visible.
+function paintCategoryCount(tab, cat, goalIds) {
+  const n = (goalIds || []).filter(id => CATS.PRESETS[id] && (CATS.PRESETS[id].category || 'everyday') === cat.id).length;
+  tab.textContent = n ? `${cat.label} · ${n}` : cat.label;
+  tab.classList.toggle('has-picks', n > 0);
+}
+
 function renderPresetCategories(weights, goalIds) {
   const host = document.getElementById('presetCats');
   if (!host) return;
@@ -85,7 +92,7 @@ function renderPresetCategories(weights, goalIds) {
     b.dataset.category = cat.id;
     b.setAttribute('role', 'tab');
     b.setAttribute('aria-selected', String(cat.id === popupPresetCategory));
-    b.textContent = cat.label;
+    paintCategoryCount(b, cat, goalIds);
     b.addEventListener('click', () => {
       popupPresetCategory = cat.id;
       const grid = document.getElementById('presets');
@@ -107,7 +114,7 @@ function renderPresets(weights, goalIds = popupGoals) {
   if (first && CATS.PRESETS[first].category && !host.dataset.userTab) {
     popupPresetCategory = CATS.PRESETS[first].category;
   }
-  renderPresetCategories(weights, popupGoals);
+  renderPresetCategories(weights, goals.ids);
 
   host.textContent = '';
   const entries = Object.entries(CATS.PRESETS)
@@ -153,14 +160,17 @@ function renderPresets(weights, goalIds = popupGoals) {
   }
 }
 
-// A goal card toggles that goal; the weights become the average of everything selected.
+// A goal card toggles that goal; the weights become the average of everything selected. Goals
+// combine across tabs, so the popup stays on the tab that was clicked: it used to jump back to the
+// first selected goal's tab, which hid the goal just picked and looked like only one could be chosen.
 let popupWeights = null;
 function applyPreset(id) {
   if (!CATS.PRESETS[id]) return;
   const goals = CATS.toggleGoal(currentGoals(popupWeights, popupGoals).ids, id);
   const weights = PREFS.sanitizeScoring({ weights: CATS.goalWeights(goals) }).weights;
   const host = document.getElementById('presets');
-  if (host) delete host.dataset.userTab;
+  popupPresetCategory = CATS.PRESETS[id].category || popupPresetCategory;
+  if (host) host.dataset.userTab = '1';
   persist({ weights, goals }, ok => { if (ok) renderPresets(weights, goals); });
 }
 

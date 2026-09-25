@@ -241,7 +241,7 @@
   // A saved reading of this product, from this computer (p:) or the shared products tab. Only an
   // 'ok' row with text helps here — an 'unreadable' row says what this page already said.
   function fromCache(host, data, key, next) {
-    const { state, storeHost, rememberProduct } = P();
+    const { state, storeHost, rememberProduct, freshLocal, sharedOk, speed } = P();
     const C = root.AIR.db.productCache;
     const requestId = ++state.requestId;
     const live = () => requestId === state.requestId && state.lastKey === key && host.isConnected;
@@ -256,6 +256,7 @@
         title: data.title || row.data.title, confidence: row.data.confidence, via: row.data.via,
         text: row.data.text, textSig: row.data.text.slice(0, 320), t: Date.parse(row.scanned_at),
       })) return;
+      refreshAfterSaved(host, data, key, result, row.data.text);
       if (!shared) return;
       rememberProduct(key, row, { share: false });
       try {
@@ -268,16 +269,68 @@
     chrome.storage.local.get(localKey, obj => {
       if (!live()) return;
       const local = C.sanitize(obj && obj[localKey]);
-      if (local && local.status === 'ok' && !C.stale(local)) { use(local, false); return; }
+      if (local && local.status === 'ok' && freshLocal(local)) { use(local, false); return; }
+      if (!speed().sharedDays) { miss(); return; }
       try {
         chrome.runtime.sendMessage({ type: 'productsLookup', store: storeHost(), asins: [key] }, reply => {
           void chrome.runtime.lastError;
           if (!live()) return;
           const row = C.sanitize(reply && reply.rows && reply.rows[key]);
-          if (row && row.status === 'ok') use(row, true); else miss();
+          if (row && row.status === 'ok' && sharedOk(row)) use(row, true); else miss();
         });
       } catch (e) { miss(); }
     });
+  }
+
+  // A saved reading answered first, because it is instant. Opening the product page still reads it
+  // again: the barcode lookup and the label photo run now when those settings are on, and their
+  // reading replaces the saved one only when it differs (another score or other ingredient text).
+  // A re-read that fails, or finds nothing, leaves the saved score in place. When the page itself
+  // has readable ingredients this is never reached: scoreCurrentPage scores the live page directly.
+  function refreshAfterSaved(host, data, key, shown, shownText) {
+    const { state } = P();
+    const conf = state.cacheOptions || {};
+    const byBarcode = !!data.upc && conf.useOpenFoodFacts === true;
+    const byPhoto = state.ocrLabels === true
+      && (!root.AIR.extract.ocrReadyForHost || root.AIR.extract.ocrReadyForHost(location.hostname));
+    if (!byBarcode && !byPhoto) return;
+    const requestId = state.requestId;
+    const live = () => requestId === state.requestId && state.lastKey === key && host.isConnected
+      && host.dataset.airState === 'scored';
+    const norm = t => String(t || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    const offer = (input, meta) => {
+      if (!live()) return false;
+      const result = root.AIR.engine.score(input, state.prefs);
+      if (P().unreadable(result)) return false;
+      if (result.score === shown.score && norm(input.ingredients_text) === norm(shownText)) return true;
+      presentResult(host, data, key, result, { input, sendDiag: false, ...meta });
+      return true;
+    };
+    const photo = () => {
+      if (!byPhoto || !live()) return;
+      const urls = (root.AIR.db.ocrText && root.AIR.db.ocrText.imageCandidates(document)) || [];
+      if (!urls.length) return;
+      try {
+        chrome.runtime.sendMessage({ type: 'ocrLabels', urls }, res => {
+          void chrome.runtime.lastError;
+          const best = res && res.ok && root.AIR.db.ocrText.bestBlock(res.results,
+            t => root.AIR.extract.looksLikeIngredients(t, data.title));
+          if (!best) return;
+          offer({ name: data.title, labels: data.labels, certifications: data.certifications, ingredients_text: best.text },
+            { title: data.title, confidence: 0.7, via: 'label-ocr', text: best.text, textSig: best.text.slice(0, 320), ocrAttempted: true });
+        });
+      } catch (e) { /* messaging unavailable */ }
+    };
+    if (!byBarcode) { photo(); return; }
+    try {
+      chrome.runtime.sendMessage({ type: 'lookupBarcode', code: data.upc, foodOnly: state.foodOnly }, fallback => {
+        void chrome.runtime.lastError;
+        const text = fallback && fallback.ingredients_text;
+        const used = text && offer({ name: fallback.name || data.title, labels: `${data.labels || ''} ${fallback.labels || ''}`, ingredients_text: text },
+          { title: data.title || fallback.name, confidence: 0.55, via: 'open-food-facts', text, textSig: text.slice(0, 320), cacheName: data.title || fallback.name });
+        if (!used) photo();
+      });
+    } catch (e) { photo(); }
   }
 
   function enrichProvenance(host, data, key, first, requestId) {

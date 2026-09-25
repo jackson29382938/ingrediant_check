@@ -349,7 +349,74 @@ test('an unreadable product page is answered by a saved reading before OCR or th
   w.h.scoreCurrentPage();
   assert.equal(w.host.dataset.airState, 'scored');
   assert.equal(w.rendered.at(-1).input.ingredients_text, 'cultured milk, cane sugar');
-  assert.equal(w.messages.filter(m => m.type === 'ocrLabels' || m.type === 'productsLookup').length, 0, 'no OCR, no network');
+  assert.equal(w.messages.filter(m => m.type === 'productsLookup').length, 0, 'answered on this computer: no lookup');
+  assert.equal(w.rendered.length, 1, 'shown at once, before any re-read');
+});
+
+// Opening the product page always reads it again: the saved reading shows first, then the label
+// photo (or the barcode lookup) is read, and replaces the saved one only when it differs.
+function refreshSetup(ocrText) {
+  const row = cachedRow('B000000001', { via: 'label-ocr', input: { name: 'Kefir', ingredients_text: 'cultured milk, cane sugar' } });
+  const w = cacheSetup({ local: { [PC.localKey('amazon.com', 'B000000001')]: { ...row, t: Date.parse(row.scanned_at) } } });
+  w.h.state.ocrLabels = true;
+  w.context.AIR.extract.extract = () => ({ ok: false, title: 'Kefir', asin: 'B000000001' });
+  w.context.AIR.extract.looksLikeIngredients = () => true;
+  w.context.AIR.db.ocrText = { imageCandidates: () => ['https://m.media-amazon.com/images/I/label._SL1600_.jpg'],
+    bestBlock: results => (results && results[0] ? { text: results[0] } : null) };
+  const send = w.context.chrome.runtime.sendMessage;
+  w.context.chrome.runtime.sendMessage = (m, cb) => {
+    if (m.type === 'ocrLabels') { w.messages.push(m); cb(ocrText == null ? { ok: false } : { ok: true, results: [ocrText] }); return; }
+    send(m, cb);
+  };
+  w.h.scoreCurrentPage();
+  return w;
+}
+test('a saved reading shows first, then the label photo is read again and a different reading replaces it', () => {
+  const w = refreshSetup('cultured lowfat milk, strawberries, cane sugar, pectin');
+  assert.equal(w.messages.filter(m => m.type === 'ocrLabels').length, 1, 'the label photo is read again');
+  assert.equal(w.rendered.length, 2);
+  assert.equal(w.rendered[0].input.ingredients_text, 'cultured milk, cane sugar', 'saved reading first');
+  assert.equal(w.rendered[1].input.ingredients_text, 'cultured lowfat milk, strawberries, cane sugar, pectin', 'then the fresh one');
+  assert.equal(w.host.dataset.airState, 'scored');
+  const kept = w.writes.map(x => x['p:amazon.com:B000000001']).filter(Boolean).at(-1);
+  assert.equal(kept.data.text, 'cultured lowfat milk, strawberries, cane sugar, pectin', 'the fresh reading is saved');
+});
+test('the same reading, or a re-read that fails, leaves the saved score in place', () => {
+  const same = refreshSetup('Cultured milk,  cane sugar');
+  assert.equal(same.messages.filter(m => m.type === 'ocrLabels').length, 1);
+  assert.equal(same.rendered.length, 1, 'nothing changed: not re-rendered');
+  const failed = refreshSetup(null);
+  assert.equal(failed.rendered.length, 1);
+  assert.equal(failed.host.dataset.airState, 'scored', 'no failure card over a good saved score');
+});
+
+test('speed: "Most up to date" reads pages itself instead of asking the shared database', () => {
+  const w = cacheSetup({ shared: { B000000002: cachedRow('B000000002') } });
+  w.context.AIR.db.speed = require('../src/engine/db/speed.js');
+  w.h.state.speedMode = 'freshest';
+  const missed = [];
+  w.context.AIR.search.resolveTiles([{ tile: tileFor(w, 'B000000002'), asin: 'B000000002' }], it => missed.push(it.asin));
+  assert.equal(w.lookups.length, 0, 'no shared-database lookup');
+  assert.deepEqual(missed, ['B000000002'], 'goes to the product page instead');
+  w.h.state.speedMode = 'balanced';
+  w.context.AIR.search.resolveTiles([{ tile: tileFor(w, 'B000000002'), asin: 'B000000002' }], it => missed.push(it.asin));
+  assert.equal(w.lookups.length, 1, 'Balanced asks the shared database as before');
+});
+test('speed: "Fresher" re-reads a product saved 10 days ago; Balanced still uses it', () => {
+  const tenDays = Date.now() - 10 * 24 * 60 * 60 * 1000;
+  const row = cachedRow('B000000001', { t: tenDays });
+  const local = { [PC.localKey('amazon.com', 'B000000001')]: { ...row, t: tenDays } };
+  const fresh = cacheSetup({ local });
+  fresh.context.AIR.db.speed = require('../src/engine/db/speed.js');
+  fresh.h.state.speedMode = 'fresh';
+  const missed = [];
+  fresh.context.AIR.search.resolveTiles([{ tile: fresh.tile, asin: 'B000000001' }], it => missed.push(it.asin));
+  assert.equal(fresh.badges.length, 0);
+  assert.deepEqual(missed, ['B000000001']);
+  const balanced = cacheSetup({ local });
+  balanced.context.AIR.db.speed = require('../src/engine/db/speed.js');
+  balanced.context.AIR.search.resolveTiles([{ tile: balanced.tile, asin: 'B000000001' }], () => {});
+  assert.equal(balanced.badges.length, 1);
 });
 test('a shared reading answers an unreadable page and counts a pull; a miss falls through to OCR', () => {
   const w = cacheSetup({ shared: { B000000001: cachedRow('B000000001', { via: 'label-ocr' }) } });

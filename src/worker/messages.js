@@ -6,6 +6,10 @@
 var PAGE_MESSAGE_TYPES = new Set([
   'pageScore', 'ocrLabels', 'lookupBarcode', 'provenanceLookup',
   'contribute', 'report', 'diagnostic', 'productsLookup', 'productsQueue',
+  // Amazon's sort menu (src/content/sort.js): open the side panel, send the list as it fills in, and
+  // open it in a tab when Chrome would not open the panel. The list pages themselves send nothing:
+  // they call chrome.tabs / chrome.sidePanel directly.
+  'openSortedPanel', 'updateSortedResults', 'openSortedTab',
 ]);
 // Sent only by the settings page (settings-database.js, loaded by options.html alone), so only the
 // settings page may send them. The popup and the setup page have no control for any of them:

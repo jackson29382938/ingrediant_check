@@ -122,7 +122,31 @@ Measured with `tests/harness-lifecycle.html`, which counts what the content scri
 Previously the observer stayed connected for the life of the page and re-ran the full extraction on
 every Amazon ad refresh, on non-food pages included.
 
-## 7. Worth a look while you are in there
+## 7. Sort by score or price per ounce
+
+Reload the extension in `chrome://extensions` first, then open an Amazon grocery search
+(`organic rolled oats`).
+
+1. Open Amazon's **Sort by** menu. *Price per ounce: Low to High* sits under *Price: Low to High*, and
+   *Ingredient Check score: High to Low* is at the end.
+2. Choose **Price per ounce: Low to High**. Chrome's side panel opens beside the page, and Amazon's
+   page does not change or reload. The panel says *Reading Amazon listings…*, then fills in, cheapest
+   per ounce first. With *Rate every search result* on, listings without a score are rated while you
+   watch; **Stop rating** halts that.
+3. In **Prioritize**, try *Healthiest*, *Balanced* and the sliders: the list re-ranks at once. With
+   more than one factor, each listing shows a *Match* number.
+4. **Open in new tab** (next to **Back to Amazon search**) shows the same list, same priorities, in a
+   tab. **Back to Amazon search** returns to the search tab.
+5. Choose **Ingredient Check score: High to Low** from Amazon's menu: a new list, healthiest first.
+6. Amazon's own options (*Price: High to Low*) still sort Amazon's page as normal.
+7. Toolbar popup → turn **Price per ounce** off: its menu option and the price-per-ounce slider go.
+8. Settings → *Sort* → turn on *Load more Amazon results* and set 30; choose an option again: the
+   panel collects 30 listings across Amazon's results pages.
+9. Settings → *Speed*: *Balanced* is selected. *Most up to date* rates results without asking the
+   shared database; *Fastest* rates at most 20 per results page.
+10. Turn the master switch off: the options leave Amazon's menu.
+
+## 8. Worth a look while you are in there
 
 - A product with a normal ingredient list — panel expands, rows sum to the score
 - A capped product (anything with canola or soybean oil) — a **numbered** `CAP` row, not a bare label
@@ -227,6 +251,23 @@ for the same barcode). It is harmless but wasteful, and it predates this work.
 **Target, Walmart, Costco:** see [STORES.md](STORES.md). Target was read live behind its bot check
 and stays preview. Walmart and Costco were blocked by theirs.
 
+## Record: Amazon sort menu, price per ounce, priorities and speed, 2026-09-25
+
+The in-page sort bar (and reordering Amazon's page) is gone. Amazon's own *Sort by* menu gets two
+options, and choosing one opens the side panel. This follows the newer Amazon Cost per Ounce Sorter
+(read from the owner's Google Drive copy; GitHub had only its first commit).
+
+| Check | How | Result |
+|---|---|---|
+| A real (trusted) click on *Price per ounce: Low to High* in a stand-in for Amazon's menu opens Chrome's side panel (a `SIDE_PANEL` context, no fallback tab); Amazon's page does not navigate; the list fills in over 2 results pages with scores and price per ounce; the panel ranks it; *Open in new tab* keeps the priorities; the score option starts a new list; Amazon's own options still work; only Amazon search and product pages requested | Real extension in Chromium, local TLS stand-ins for amazon.com | Pass, 9/9 |
+| Menu options in the right places; a pick caught before the menu script (which sets the `<select>` jQuery-style, with no native change event, the likely reason the Cost Sorter's panel did not open); keyboard change; turning price per ounce off removes it from a list Amazon already built; the list page's presets, sliders and buttons; the settings defaults | `npm run harness:ci` | Pass. Disabling the click interception makes it fail. |
+| Unit-price parsing (the Cost Sorter's own `price.test.js` cases), ranking, speed steps (*Balanced* equal to the old constants), sanitizer, worker: `sidePanel.open` called before anything else, stale runs refused | `npm test` | Pass |
+| Product page: a saved reading shows first, the label photo is read again and a different reading replaces it; the same or a failed re-read leaves it; speed steps change what the badges reuse | `npm test` (`tests/content-lifecycle.test.js`) | Pass. Removing the re-read makes it fail. |
+| Existing Amazon auto-rating, OCR and Target flows | Earlier extension simulations, run again | Pass (6/6, 19/19, 8/8) |
+| **Live on amazon.com** | | **Not verified.** Amazon still answers this machine's search pages with HTTP 503. Whether Amazon's real menu passes the click through the same way is the open question. |
+
+**For the owner:** run §7 above once in your own Chrome, starting with step 2.
+
 **Still for the owner:**
 
 1. Press **Allow** on Chrome's Open Food Facts prompt once in your own profile, to confirm the grant
@@ -241,6 +282,8 @@ and stays preview. Walmart and Costco were blocked by theirs.
   granted (2026-09-25), but pressing **Allow** needs a person.
 - **Target in normal use.** Target's pages were read live, but behind its bot check ([STORES.md](STORES.md)).
 - **Walmart and Costco.** Not implemented; their bot checks blocked inspection.
+- **The sort-menu options on live Amazon.** Checked only on a stand-in for Amazon's menu; amazon.com
+  refused this machine's search pages on 2026-09-25 (§7 has the steps).
 - **Amazon stores other than amazon.com.** They share code and markup with .com and the harness
   snapshots, but none was checked live one by one.
 - The nutritional model is specified and tested, not scientifically validated.

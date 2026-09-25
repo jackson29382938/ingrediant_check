@@ -210,6 +210,29 @@ async function run() {
       }, { timeout: 5000 });
       console.log('  ok  popup compare →', cmp.nums.join(' vs '), `(${cmp.options} cached, B→74)`);
 
+      // Goals combine across tabs: picking one on another tab keeps that tab open with it selected,
+      // and each tab counts its picks. (It used to jump back to the first goal's tab.)
+      const pickGoal = async (category, n) => {
+        await comparePage.click(`.preset-cat[data-category="${category}"]`);
+        const id = await comparePage.evaluate(i => [...document.querySelectorAll('.preset')][i].dataset.preset, n);
+        await comparePage.click(`.preset[data-preset="${id}"]`);
+        await comparePage.waitForFunction(g => document.querySelector(`.preset[data-preset="${g}"]`)?.getAttribute('aria-pressed') === 'true', id, { timeout: 3000 });
+        return id;
+      };
+      const g1 = await pickGoal('everyday', 1);
+      const g2 = await pickGoal('goals', 0);
+      const multi = await comparePage.evaluate(() => ({
+        tab: document.querySelector('.preset-cat[aria-selected="true"]').dataset.category,
+        labels: [...document.querySelectorAll('.preset-cat')].map(t => t.textContent),
+        active: document.getElementById('presetActiveName').textContent,
+      }));
+      const stored = await comparePage.evaluate(() => new Promise(r => chrome.storage.local.get('goals', o => r(o.goals))));
+      if (multi.tab !== 'goals' || JSON.stringify(stored) !== JSON.stringify([g1, g2]) || !/ \+ /.test(multi.active)
+        || !multi.labels.some(l => / · 1$/.test(l)) || multi.labels.filter(l => / · 1$/.test(l)).length !== 2) {
+        throw new Error(`popup goals: ${JSON.stringify({ ...multi, stored })}`);
+      }
+      console.log('  ok  popup goals → two goals on two tabs combine; the clicked tab stays open; tabs count their picks');
+
       // The Amazon-request options must say so without "Why these matter" being opened.
       const net = await comparePage.evaluate(() => {
         const shown = el => !!el && getComputedStyle(el).display !== 'none' && el.getClientRects().length > 0;
@@ -259,6 +282,155 @@ async function run() {
       console.log('  ok  popup → Target tab card from the content script\'s reply:', card.trim());
     } finally {
       await targetPopup.close();
+    }
+
+    // Amazon's Sort by menu (src/content/sort.js): two options join it; picking one is caught before
+    // Amazon's own menu code, opens the side panel and sends the list; Amazon's page is not reordered.
+    let sentResults = null;
+    await withPage(browser, `${base}/tests/harness-sort.html`, async sortPage => {
+      const unitText = 'Price per ounce: Low to High';
+      const scoreText = 'Ingredient Check score: High to Low';
+      await sortPage.waitForFunction(t => window.__options().includes(t), scoreText, { timeout: 10000 });
+      const options = await sortPage.evaluate(() => window.__options());
+      if (options.join('|') !== ['Featured', 'Price: Low to High', unitText, 'Price: High to Low', 'Avg. Customer Review',
+        'Newest Arrivals', 'Best Sellers', scoreText].join('|')) throw new Error(`menu options: ${options}`);
+      const original = await sortPage.evaluate(() => window.__order());
+      await sortPage.click('#a-autoid-0');
+      const rows = await sortPage.evaluate(() => window.__rows());
+      if (!rows || !rows.includes(unitText) || !rows.includes(scoreText)) throw new Error(`menu rows: ${rows}`);
+      await sortPage.click(`.a-popover a:text-is("${unitText}")`);
+      await sortPage.waitForFunction(() => window.__final(), { timeout: 10000 });
+      const run = await sortPage.evaluate(() => ({
+        picks: window.__amazonPicks, open: window.__messages.filter(m => m.type === 'openSortedPanel'),
+        menuOpen: !!window.__rows(), order: window.__order(), final: window.__final(),
+        select: document.getElementById('s-result-sort-select').value,
+        updates: window.__messages.filter(m => m.type === 'updateSortedResults').length,
+        types: [...new Set(window.__messages.map(m => m.type))],
+      }));
+      if (run.picks.length || run.open.length !== 1 || run.open[0].mode !== 'unitPrice' || run.open[0].sourceUrl.indexOf('/s?k=organic+oats') < 0
+        || run.menuOpen || run.select !== 'relevanceblender' || JSON.stringify(run.order) !== JSON.stringify(original)) {
+        throw new Error(`menu pick: ${JSON.stringify({ ...run, final: undefined })}`);
+      }
+      const items = run.final.items;
+      const by = Object.fromEntries(items.map(r => [r.asin, r]));
+      const near = (a, b) => a != null && Math.abs(a - b) < 0.001;
+      if (items.length !== 8 || by.B0SORT0003.title !== 'Organic rolled oats, 32 oz' || by.B0SORT0003.score !== 90
+        || !near(by.B0SORT0003.unitPrice, 0.18) || by.B0SORT0003.unitSource !== 'amazon' || by.B0SORT0003.ratingValue !== 4.7
+        || by.B0SORT0003.reviewCount !== 12345 || !/1K\+ bought/.test(by.B0SORT0003.bought) || by.B0SORT0003.listingPrice !== 6.29
+        || !near(by.B0SORT0008.unitPrice, 7.99 / 88) || !near(by.B0SORT0006.unitPrice, 5.49 / 32) || by.B0SORT0004.unitPrice !== null
+        || by.B0SORT0006.title !== 'Steel cut oats, 2 lb' || items.some(r => /^\d+$/.test(r.title))
+        || !/3 without a score are at the end/.test(run.final.status)) {
+        throw new Error(`list sent: ${JSON.stringify({ items, status: run.final.status })}`);
+      }
+      // productsLookup is the badge pass asking the worker, which answers from the shared database only when that is on.
+      if (run.types.some(t => !['openSortedPanel', 'updateSortedResults', 'productsLookup'].includes(t))) throw new Error(`messages: ${run.types}`);
+      sentResults = items;
+
+      // The score option, from the keyboard (a change on the <select> itself).
+      await sortPage.evaluate(v => {
+        const select = document.getElementById('s-result-sort-select');
+        select.value = v;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      }, 'ingredient-check-score');
+      await sortPage.waitForFunction(() => window.__messages.filter(m => m.type === 'openSortedPanel').length === 2, { timeout: 5000 });
+      const keyboard = await sortPage.evaluate(() => ({ mode: window.__messages.filter(m => m.type === 'openSortedPanel')[1].mode,
+        select: document.getElementById('s-result-sort-select').value }));
+      if (keyboard.mode !== 'health' || keyboard.select !== 'relevanceblender') throw new Error(`keyboard pick: ${JSON.stringify(keyboard)}`);
+
+      // Price per ounce off: its option leaves the menu, including a list Amazon already built.
+      await sortPage.click('#a-autoid-0');
+      await sortPage.evaluate(() => window.__set('unitPrice', false));
+      await sortPage.waitForFunction(t => !window.__options().includes(t) && !(window.__rows() || []).includes(t), unitText, { timeout: 5000 });
+      const after = await sortPage.evaluate(() => ({ options: window.__options(), rows: window.__rows() }));
+      if (!after.options.includes(scoreText) || !(after.rows || []).includes(scoreText)) throw new Error(`unit off: ${JSON.stringify(after)}`);
+      // Amazon's own options still work as before.
+      await sortPage.click('.a-popover a:text-is("Price: High to Low")');
+      const picks = await sortPage.evaluate(() => window.__amazonPicks);
+      if (picks.join() !== 'price-desc-rank') throw new Error(`Amazon's own option: ${picks}`);
+      console.log(`  ok  sort menu → 2 options in Amazon's list; a pick opens the panel (Amazon's page untouched), sends ${items.length} listings with price per ounce; keyboard works; off removes it`);
+    });
+
+    // The list page: side panel and tab, ranked by the priority bar, unsafe input dropped.
+    const listStub = ({ items, view }) => {
+      window.__calls = [];
+      const sessionData = { sortedResults: { runId: 'r1', mode: 'health', unitEnabled: true, loading: false, status: 'Collected 9 products.',
+        items, sourceUrl: 'https://www.amazon.com/s?k=organic+oats', sourceTabId: 3, sourceWindowId: 1 } };
+      window.chrome = {
+        runtime: { lastError: null, getURL: p => `chrome-extension://ext/${p}`, sendMessage: () => {} },
+        i18n: { getMessage: () => '' },
+        windows: { getCurrent: cb => cb({ id: 1 }), update: () => Promise.resolve() },
+        tabs: {
+          create: o => { window.__calls.push(['tabs.create', o.url]); return Promise.resolve({}); },
+          get: id => Promise.resolve({ id, windowId: 1, url: 'https://www.amazon.com/dp/B0SORT0003' }),
+          update: (id, o) => { window.__calls.push(['tabs.update', id, o.url || '', o.active]); return Promise.resolve({}); },
+          sendMessage: (id, m) => { window.__calls.push(['tabs.sendMessage', id, m.type]); },
+        },
+        sidePanel: { open: o => { window.__calls.push(['sidePanel.open', o.windowId]); return Promise.resolve(); } },
+        storage: { onChanged: { addListener() {} }, session: {
+          get: () => Promise.resolve(JSON.parse(JSON.stringify(sessionData))),
+          set: v => { window.__calls.push(['session.set', Object.keys(v).join()]); return Promise.resolve(); },
+        } },
+      };
+      void view;
+    };
+    const items = sentResults.map(r => ({ ...r, url: `https://www.amazon.com/dp/${r.asin}` }))
+      .concat([{ asin: 'B0SORT0099', url: 'javascript:alert(1)', title: 'Unsafe link', score: 99, image: 'https://evil.example/x.png' }]);
+    const listPage = await browser.newPage();
+    try {
+      await listPage.addInitScript(listStub, { items, view: 'tab' });
+      await listPage.goto(`${base}/src/options/sorted.html`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await listPage.waitForFunction(() => document.querySelectorAll('.product').length > 0, { timeout: 8000 });
+      const read = () => listPage.evaluate(() => ({
+        asins: [...document.querySelectorAll('.product h2 a')].map(a => a.href.slice(-10)),
+        chips: [...document.querySelectorAll('.score-chip')].map(c => c.textContent),
+        units: [...document.querySelectorAll('.fact.unit')].map(c => c.textContent),
+        title: document.querySelector('h1').textContent,
+        unsafe: [...document.querySelectorAll('a')].filter(a => /^javascript:/i.test(a.getAttribute('href') || '')).length,
+        evilImg: [...document.querySelectorAll('img')].filter(i => /evil/.test(i.src)).length,
+        buttons: [...document.querySelectorAll('.header-actions button:not([hidden])')].map(b => b.textContent),
+      }));
+      const health = await read();
+      if (health.chips.join() !== '99,95,90,72,40,40,–,–,–' || health.unsafe || health.evilImg || health.title !== 'Healthiest first'
+        || health.buttons.join('|') !== 'Back to Amazon search|Open side panel|Settings') {
+        throw new Error(`list (health): ${JSON.stringify(health)}`);
+      }
+      await listPage.click('.chip[data-preset="unitPrice"]');
+      const unit = await read();
+      if (unit.asins.slice(0, 5).join() !== 'B0SORT0008,B0SORT0006,B0SORT0003,B0SORT0002,B0SORT0001'
+        || unit.title !== 'Lowest price per ounce first' || unit.units[0] !== '$0.09/oz') throw new Error(`list (price per ounce): ${JSON.stringify(unit)}`);
+      // A slider: health back up to 10 with price per ounce still at 10 is a mix, not a preset.
+      await listPage.evaluate(() => {
+        const input = document.querySelector('.slider[data-factor="health"] input');
+        input.value = '10';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      const mixed = await read();
+      if (mixed.title !== 'Ranked by your priorities' || !(await listPage.$('.fact.match'))) throw new Error(`list (mixed): ${JSON.stringify(mixed)}`);
+      await listPage.click('text=Open side panel');
+      await listPage.waitForFunction(() => window.__calls.some(c => c[0] === 'session.set'), { timeout: 3000 });
+      const tabCalls = await listPage.evaluate(() => window.__calls);
+      if (!tabCalls.some(c => c[0] === 'sidePanel.open' && c[1] === 1)) throw new Error(`open side panel: ${JSON.stringify(tabCalls)}`);
+    } finally {
+      await listPage.close();
+    }
+    const panelPage = await browser.newPage();
+    try {
+      await panelPage.addInitScript(listStub, { items, view: 'panel' });
+      await panelPage.goto(`${base}/src/options/sidepanel.html`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await panelPage.waitForFunction(() => document.querySelectorAll('.product').length > 0, { timeout: 8000 });
+      const buttons = await panelPage.evaluate(() => [...document.querySelectorAll('.header-actions button:not([hidden])')].map(b => b.textContent));
+      if (buttons.join('|') !== 'Back to Amazon search|Open in new tab|Settings') throw new Error(`panel buttons: ${buttons}`);
+      await panelPage.click('text=Open in new tab');
+      await panelPage.click('text=Back to Amazon search');
+      await panelPage.waitForFunction(() => window.__calls.some(c => c[0] === 'tabs.update'), { timeout: 3000 });
+      const calls = await panelPage.evaluate(() => window.__calls);
+      if (!calls.some(c => c[0] === 'tabs.create' && /src\/options\/sorted\.html$/.test(c[1]))
+        || !calls.some(c => c[0] === 'tabs.update' && c[1] === 3 && c[2] === 'https://www.amazon.com/s?k=organic+oats' && c[3] === true)) {
+        throw new Error(`panel calls: ${JSON.stringify(calls)}`);
+      }
+      console.log('  ok  sorted list → priority bar re-ranks (health, price per ounce, a mix); panel has Open in new tab beside Back to Amazon search; unsafe link and image dropped');
+    } finally {
+      await panelPage.close();
     }
 
     // Settings: the same two switches, their explanation, and the stores named from the manifest.
@@ -333,6 +505,43 @@ async function run() {
       const dup = await settingsPage.evaluate(() => document.getElementById('reqNameError').textContent);
       if (!/already works/.test(dup)) throw new Error(`stores duplicate: ${dup}`);
       console.log('  ok  settings → store list from the registry; request draft previewed, trimmed to the site, refused when invalid');
+
+      // Sort settings: defaults, bounded count, saved on change.
+      const sortDefaults = await settingsPage.evaluate(() => ({
+        missing: document.querySelector('input[name="sortMissing"]:checked')?.value,
+        more: document.getElementById('sortLoadMore').checked,
+        countDisabled: document.getElementById('sortCount').disabled,
+        count: document.getElementById('sortCount').value,
+      }));
+      if (sortDefaults.missing !== 'rate-first' || sortDefaults.more || !sortDefaults.countDisabled || sortDefaults.count !== '100') {
+        throw new Error(`sort defaults: ${JSON.stringify(sortDefaults)}`);
+      }
+      await settingsPage.click('#sortLoadMore');
+      await settingsPage.fill('#sortCount', '9999');
+      await settingsPage.dispatchEvent('#sortCount', 'change');
+      await settingsPage.click('input[name="sortMissing"][value="end"]');
+      await settingsPage.waitForFunction(() => window.__stored.sortLoadMore === true && window.__stored.sortCount === 500
+        && window.__stored.sortMissing === 'end', { timeout: 5000 });
+      console.log('  ok  settings → sort: rate first / off / 100 by default; saves load more, count clamped to 500, missing → end');
+
+      // Price per ounce and speed: on / "clear weight" / Balanced by default, each saved on change.
+      const more = await settingsPage.evaluate(() => ({
+        unit: document.getElementById('unitPrice').checked,
+        missing: document.querySelector('input[name="unitMissing"]:checked')?.value,
+        speed: document.querySelector('input[name="speedMode"]:checked')?.value,
+        nav: !!document.querySelector('nav a[href="#sec-speed"], a[href="#sec-speed"]'),
+      }));
+      if (!more.unit || more.missing !== 'calculate-clear' || more.speed !== 'balanced' || !more.nav) {
+        throw new Error(`unit/speed defaults: ${JSON.stringify(more)}`);
+      }
+      await settingsPage.click('input[name="unitMissing"][value="displayed-only"]');
+      await settingsPage.click('input[name="speedMode"][value="freshest"]');
+      await settingsPage.click('#unitPrice');
+      await settingsPage.waitForFunction(() => window.__stored.unitMissing === 'displayed-only' && window.__stored.speedMode === 'freshest'
+        && window.__stored.unitPrice === false, { timeout: 5000 });
+      const disabled = await settingsPage.evaluate(() => [...document.querySelectorAll('input[name="unitMissing"]')].every(r => r.disabled));
+      if (!disabled) throw new Error('unit price off should disable its choices');
+      console.log('  ok  settings → price per ounce on, "clear weight", speed Balanced by default; each saves; off disables its choices');
     } finally {
       await settingsPage.close();
     }

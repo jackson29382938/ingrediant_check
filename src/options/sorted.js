@@ -1,0 +1,354 @@
+// The sorted list, in Chrome's side panel (sidepanel.html) or a tab (sorted.html). Ported from the
+// Amazon Cost per Ounce Sorter's results view, with a priority bar: the reader weighs health score,
+// price per ounce, total price, customer rating and number of reviews, and the list re-ranks at once
+// (AIR.db.sortedResults.rank). Choosing an option in Amazon's sort menu opens this with that option's
+// preset; the listings arrive while it is open (src/content/sort.js -> worker -> session storage).
+//
+// Everything is rendered with textContent. Links and images were already limited to Amazon by the
+// worker (sanitizeResults), and are re-checked here. The buttons use chrome.tabs and chrome.sidePanel
+// directly: an extension page needs no message to the worker for them.
+
+(function () {
+  const R = AIR.db.sortedResults;
+  const { BAND_COLOR } = AIR.panel;
+  const root = document.querySelector('#results-root');
+  const isPanel = document.body.dataset.view === 'panel';
+  const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+  const count = new Intl.NumberFormat('en-US');
+  const t = (key, fallback, ...subs) => {
+    const args = subs.map(String);
+    let text = '';
+    try { text = (chrome.i18n && chrome.i18n.getMessage(key, args)) || ''; } catch (e) { /* no locale */ }
+    return text || fallback.replace(/\$(\d)/g, (m, n) => (args[n - 1] != null ? args[n - 1] : m));
+  };
+
+  const FACTOR_TEXT = {
+    health: () => t('sortedFactorHealth', 'Health score'),
+    unitPrice: () => t('sortedFactorUnit', 'Price per ounce'),
+    price: () => t('sortedFactorPrice', 'Total price'),
+    rating: () => t('sortedFactorRating', 'Customer rating'),
+    reviews: () => t('sortedFactorReviews', 'Number of reviews'),
+  };
+  const PRESET_TEXT = {
+    health: () => t('sortedPresetHealth', 'Healthiest'),
+    unitPrice: () => t('sortedPresetUnit', 'Cheapest per ounce'),
+    balanced: () => t('sortedPresetBalanced', 'Balanced'),
+    price: () => t('sortedPresetPrice', 'Lowest price'),
+    rating: () => t('sortedPresetRating', 'Best rated'),
+  };
+  const HEADING_TEXT = {
+    health: () => t('sortedTitleHealth', 'Healthiest first'),
+    unitPrice: () => t('sortedTitleUnit', 'Lowest price per ounce first'),
+    balanced: () => t('sortedTitleBalanced', 'Balanced: health, price per ounce and rating'),
+    price: () => t('sortedTitlePrice', 'Lowest price first'),
+    rating: () => t('sortedTitleRating', 'Best rated first'),
+    custom: () => t('sortedTitleCustom', 'Ranked by your priorities'),
+  };
+  const SOURCE_TEXT = {
+    scored: () => t('sortedSrcScored', 'Ingredient Check score, under your current settings'),
+    unreadable: () => t('sortedSrcUnreadable', 'No readable ingredient list on Amazon'),
+    'not-food': () => t('sortedSrcNotFood', 'Not scored: does not look like food'),
+    unrated: () => t('sortedSrcUnrated', 'Not scored yet'),
+  };
+  const MISSING_TEXT = {
+    health: () => t('sortedMissingHealth', 'no score'),
+    unitPrice: () => t('sortedMissingUnit', 'no price per ounce'),
+    price: () => t('sortedMissingPrice', 'no price'),
+    rating: () => t('sortedMissingRating', 'no rating'),
+    reviews: () => t('sortedMissingReviews', 'no reviews count'),
+  };
+
+  let saved = null;           // chrome.storage.session sortedResults
+  let weights = R.presetFor('health');
+  let windowId = null;
+  let saveTimer = 0;
+  let lastSaved = '';     // our own write, echoed back by storage.onChanged
+  const ui = {};
+
+  try { chrome.windows.getCurrent(w => { void chrome.runtime.lastError; if (w) windowId = w.id; }); } catch (e) { /* no windows API */ }
+
+  function node(tag, className, text) {
+    const element = document.createElement(tag);
+    if (className) element.className = className;
+    if (text != null) element.textContent = text;
+    return element;
+  }
+  function button(className, text, onClick) {
+    const b = node('button', className, text);
+    b.type = 'button';
+    b.addEventListener('click', onClick);
+    return b;
+  }
+  const unitEnabled = () => !saved || saved.unitEnabled !== false;
+  const activePreset = () => Object.keys(R.PRESETS).find(id => {
+    const p = R.sanitizeWeights(R.PRESETS[id], { unitEnabled: unitEnabled() });
+    return R.FACTORS.every(f => p[f] === weights[f]);
+  }) || 'custom';
+
+  // ---------------------------------------------------------------- buttons
+  async function backToAmazon() {
+    const url = R.sanitizeSourceUrl(saved && saved.sourceUrl);
+    if (!url) return;
+    const tabId = saved && saved.sourceTabId;
+    if (Number.isInteger(tabId)) {
+      try {
+        const tab = await chrome.tabs.get(tabId);
+        await chrome.tabs.update(tabId, tab.url === url ? { active: true } : { url, active: true });
+        if (Number.isInteger(tab.windowId)) chrome.windows.update(tab.windowId, { focused: true }).catch(() => {});
+        return;
+      } catch (e) { /* the Amazon tab was closed: open the search again */ }
+    }
+    chrome.tabs.create({ url }).catch(() => {});
+  }
+  function openInTab() {
+    chrome.tabs.create({ url: chrome.runtime.getURL('src/options/sorted.html') }).catch(() => {});
+  }
+  // Synchronous inside the click, so Chrome counts it as the user's action.
+  function openSidePanel(b) {
+    const target = windowId != null ? { windowId } : Number.isInteger(saved && saved.sourceWindowId) ? { windowId: saved.sourceWindowId } : null;
+    const fail = () => { b.textContent = t('sortedPanelFallback', 'Open the side panel from Chrome’s side panel menu'); };
+    if (!target || !chrome.sidePanel || typeof chrome.sidePanel.open !== 'function') { fail(); return; }
+    try { chrome.sidePanel.open(target).catch(fail); } catch (e) { fail(); }
+  }
+  function openSettings() {
+    chrome.tabs.create({ url: chrome.runtime.getURL('src/options/options.html#sec-sort') }).catch(() => {});
+  }
+  function stopRating() {
+    if (!saved || !Number.isInteger(saved.sourceTabId)) return;
+    try {
+      chrome.tabs.sendMessage(saved.sourceTabId, { type: 'sortStop', runId: saved.runId }, () => void chrome.runtime.lastError);
+    } catch (e) { /* the tab is gone */ }
+    ui.stop.disabled = true;
+  }
+
+  // ---------------------------------------------------------------- the page, built once
+  function build() {
+    root.textContent = '';
+    const header = node('header', 'results-header');
+    const headingGroup = node('div');
+    headingGroup.append(node('p', 'eyebrow', t('sortedEyebrow', 'INGREDIENT CHECK')));
+    ui.title = node('h1');
+    headingGroup.append(ui.title);
+    ui.subtitle = node('p', 'results-subtitle');
+    headingGroup.append(ui.subtitle);
+    ui.status = node('p', 'results-status');
+    ui.status.setAttribute('role', 'status');
+    ui.status.setAttribute('aria-live', 'polite');
+    headingGroup.append(ui.status);
+    header.append(headingGroup);
+
+    const actions = node('div', 'header-actions');
+    ui.back = button('button secondary', t('sortedBack', 'Back to Amazon search'), backToAmazon);
+    actions.append(ui.back);
+    if (isPanel) actions.append(button('button secondary', t('sortedOpenTab', 'Open in new tab'), openInTab));
+    else {
+      const panelButton = button('button secondary', t('sortedOpenPanel', 'Open side panel'), () => openSidePanel(panelButton));
+      actions.append(panelButton);
+    }
+    ui.stop = button('button secondary', t('sortedStop', 'Stop rating'), stopRating);
+    actions.append(ui.stop);
+    actions.append(button('button tertiary', t('sortedSettings', 'Settings'), openSettings));
+    header.append(actions);
+    root.append(header);
+
+    root.append(buildPriorities());
+    ui.list = node('section', 'result-list');
+    ui.list.setAttribute('aria-label', t('sortedListAria', 'Amazon listings ranked by your priorities'));
+    root.append(ui.list);
+    ui.empty = node('section', 'empty-state');
+    root.append(ui.empty);
+  }
+
+  function buildPriorities() {
+    const box = node('details', 'priorities');
+    box.open = true;
+    box.append(node('summary', '', t('sortedPriorities', 'Prioritize')));
+    ui.presets = node('div', 'preset-row');
+    ui.presets.setAttribute('role', 'group');
+    ui.presets.setAttribute('aria-label', t('sortedPresetsAria', 'Starting points'));
+    for (const id of Object.keys(R.PRESETS)) {
+      const b = button('chip', PRESET_TEXT[id](), () => {
+        weights = R.sanitizeWeights(R.PRESETS[id], { unitEnabled: unitEnabled() });
+        paintSliders();
+        renderList();
+        saveWeights();
+      });
+      b.dataset.preset = id;
+      ui.presets.append(b);
+    }
+    box.append(ui.presets);
+    ui.sliders = {};
+    const grid = node('div', 'slider-grid');
+    for (const f of R.FACTORS) {
+      const row = node('label', 'slider');
+      row.dataset.factor = f;
+      const name = node('span', 'slider-name', FACTOR_TEXT[f]());
+      const input = node('input');
+      input.type = 'range';
+      input.min = '0';
+      input.max = String(R.WEIGHT_MAX);
+      input.step = '1';
+      const value = node('output', 'slider-value');
+      input.addEventListener('input', () => {
+        weights = R.sanitizeWeights({ ...weights, [f]: Number(input.value) }, { unitEnabled: unitEnabled() });
+        paintSliders();
+        renderList();
+        saveWeights();
+      });
+      row.append(name, input, value);
+      grid.append(row);
+      ui.sliders[f] = { row, input, value };
+    }
+    box.append(grid);
+    box.append(node('p', 'priority-note', t('sortedPriorityNote',
+      'Drag toward 10 for what matters most, 0 to ignore it. A listing missing a value counts as the worst on it. Prices compare on a log scale; price per ounce and price come from the results page, never a coupon or subscription price.')));
+    return box;
+  }
+
+  function paintSliders() {
+    for (const f of R.FACTORS) {
+      const s = ui.sliders[f];
+      s.row.hidden = f === 'unitPrice' && !unitEnabled();
+      if (document.activeElement !== s.input) s.input.value = String(weights[f]);
+      s.value.textContent = String(weights[f]);
+    }
+    const active = activePreset();
+    for (const b of ui.presets.children) {
+      b.setAttribute('aria-pressed', String(b.dataset.preset === active));
+      b.hidden = b.dataset.preset === 'unitPrice' && !unitEnabled();
+    }
+    ui.title.textContent = HEADING_TEXT[active]();
+  }
+
+  // Kept for the other view (panel <-> tab) while the browser is open.
+  function saveWeights() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      lastSaved = JSON.stringify(weights);
+      try { chrome.storage.session.set({ sortWeights: weights }); } catch (e) { /* not an extension page */ }
+    }, 250);
+  }
+
+  // ---------------------------------------------------------------- the list
+  function chipFor(product) {
+    const score = node('div', 'score');
+    if (typeof product.score === 'number') {
+      const c = BAND_COLOR(product.score);
+      const chip = node('span', 'score-chip', String(product.score));
+      chip.style.color = c.fg;
+      chip.style.background = c.bg;
+      chip.style.borderColor = c.ring;
+      score.append(chip, node('span', 'score-verdict', product.verdict || ''));
+    } else {
+      score.append(node('span', 'score-chip none', '–'), node('span', 'score-verdict none', t('sortedNoScore', 'No score')));
+    }
+    score.append(node('small', '', (SOURCE_TEXT[product.source] || SOURCE_TEXT.unrated)()));
+    return score;
+  }
+
+  function makeProduct({ product, match, missing }, index, multi) {
+    const article = node('article', product.image ? 'product' : 'product no-image');
+    if (product.image) {
+      const image = node('img', 'product-image');
+      image.src = product.image;
+      image.alt = '';
+      image.loading = 'lazy';
+      image.referrerPolicy = 'no-referrer';
+      article.append(image);
+    }
+    const content = node('div', 'product-content');
+    const heading = node('h2');
+    heading.append(node('span', 'rank', `${index + 1}.`), ' ');
+    if (product.url) {
+      const link = node('a', '', product.title || 'Amazon listing');
+      link.href = product.url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      heading.append(link);
+    } else heading.append(product.title || 'Amazon listing');
+    content.append(heading);
+    content.append(chipFor(product));
+
+    const facts = node('div', 'facts');
+    if (unitEnabled()) {
+      const unit = node('span', 'fact unit', product.unitPrice != null
+        ? t('sortedPerOunce', '$1/oz', money.format(product.unitPrice)) : t('sortedNoUnit', 'No price per ounce'));
+      if (product.unitPrice != null) unit.title = product.unitSource === 'amazon'
+        ? t('sortedUnitAmazon', 'Amazon’s unit price') : t('sortedUnitCalculated', 'Worked out from the listed price and package weight');
+      facts.append(unit);
+    }
+    if (product.listingPrice != null) facts.append(node('span', 'fact', money.format(product.listingPrice)));
+    if (product.ratingValue != null) facts.append(node('span', 'fact', `★ ${product.ratingValue.toFixed(1)}`));
+    if (product.reviewCount != null) facts.append(node('span', 'fact', t('sortedReviews', '$1 reviews', count.format(product.reviewCount))));
+    if (multi) facts.append(node('span', 'fact match', t('sortedMatch', 'Match $1', match)));
+    content.append(facts);
+
+    const meta = node('div', 'product-meta');
+    if (product.bought) meta.append(node('span', '', product.bought));
+    if (product.sponsored) meta.append(node('span', '', t('sortedSponsored', 'Sponsored')));
+    meta.append(node('span', '', product.pageNumber > 1
+      ? t('sortedResultPage', 'Amazon page $1', product.pageNumber) : t('sortedResultFirst', 'Amazon page 1')));
+    if (missing.length) meta.append(node('span', 'missing', missing.map(f => MISSING_TEXT[f]()).join(', ')));
+    content.append(meta);
+
+    if (product.details) {
+      const details = node('details');
+      details.append(node('summary', '', t('sortedDetails', 'Listing details')));
+      details.append(node('pre', '', product.details));
+      content.append(details);
+    }
+    article.append(content);
+    return article;
+  }
+
+  function renderList() {
+    // Re-checked on read too: session storage is shared with every extension page.
+    const items = R.sanitizeResults(saved && saved.items);
+    const loading = !!(saved && saved.loading);
+    ui.back.hidden = !R.sanitizeSourceUrl(saved && saved.sourceUrl);
+    ui.stop.hidden = !loading;
+    if (!loading) ui.stop.disabled = false;
+    ui.status.textContent = R.sanitizeStatus(saved && saved.status);
+    root.setAttribute('aria-busy', String(loading));
+    ui.list.textContent = '';
+    ui.empty.textContent = '';
+    ui.empty.hidden = items.length > 0;
+    if (!items.length) {
+      ui.subtitle.textContent = '';
+      ui.empty.append(node('h2', '', loading ? t('sortedReading', 'Reading Amazon listings…') : t('sortedEmptyTitle', 'No sorted results yet')));
+      if (!loading) ui.empty.append(node('p', '', t('sortedEmptyBody', 'On an Amazon grocery search, open Amazon’s “Sort by” menu and choose “Ingredient Check score: High to Low” or “Price per ounce: Low to High”.')));
+      return;
+    }
+    const ranked = R.rank(items, weights, { unitEnabled: unitEnabled() });
+    const multi = R.FACTORS.filter(f => weights[f] > 0).length > 1;
+    ui.subtitle.textContent = loading
+      ? t('sortedSubtitleLoading', '$1 listings so far · still loading', items.length)
+      : t('sortedSubtitleDone', '$1 listings · scored on your computer with your settings', items.length);
+    const frag = document.createDocumentFragment();
+    ranked.forEach((entry, index) => frag.append(makeProduct(entry, index, multi)));
+    ui.list.append(frag);
+  }
+
+  async function load() {
+    let got = {};
+    try { got = await chrome.storage.session.get(['sortedResults', 'sortWeights']); } catch (e) { got = {}; }
+    saved = got.sortedResults || null;
+    weights = R.sanitizeWeights(got.sortWeights || R.presetFor(saved && saved.mode), { unitEnabled: unitEnabled() });
+    paintSliders();
+    renderList();
+  }
+
+  build();
+  // New listings (or a new choice in Amazon's menu) while this page is open.
+  try {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== 'session') return;
+      if (changes.sortedResults) saved = changes.sortedResults.newValue || null;
+      if (changes.sortWeights && JSON.stringify(changes.sortWeights.newValue) !== lastSaved) {
+        weights = R.sanitizeWeights(changes.sortWeights.newValue, { unitEnabled: unitEnabled() });
+      }
+      if (changes.sortedResults || changes.sortWeights) { paintSliders(); renderList(); }
+    });
+  } catch (e) { /* not an extension page */ }
+  load().catch(() => renderList());
+})();

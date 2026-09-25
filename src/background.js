@@ -9,7 +9,8 @@
 if (typeof importScripts === 'function') {
   importScripts('engine/db/_module.js', 'engine/db/allergens.js', 'engine/categories.js',
     'engine/db/ingestible.js', 'engine/db/prefs.js',
-    'engine/db/ocr-text.js', 'engine/db/product-cache.js', 'worker/messages.js', 'worker/sheet-store.js');
+    'engine/db/ocr-text.js', 'engine/db/product-cache.js', 'engine/db/sorted-results.js',
+    'worker/messages.js', 'worker/sheet-store.js');
 }
 
 const OFF_ENDPOINT = 'https://world.openfoodfacts.org/api/v2/product/';
@@ -227,11 +228,72 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     return true;   // async reply
   }
   if (msg && msg.type === 'ping') { reply({ ok: true }); return false; }
+  // Amazon's sort menu (src/content/sort.js). openSortedPanel must reach sidePanel.open before any
+  // await, so it is not wrapped in a promise chain here.
+  if (msg && msg.type === 'openSortedPanel') { openSortedPanel(msg, sender, reply); return true; }
+  if (msg && msg.type === 'updateSortedResults') {
+    updateSortedResults(msg, sender).then(reply, e => reply({ ok: false, reason: String((e && e.message) || e) }));
+    return true;
+  }
+  if (msg && msg.type === 'openSortedTab') {
+    chrome.tabs.create({ url: chrome.runtime.getURL('src/options/sorted.html') })
+      .then(() => reply({ ok: true }), e => reply({ ok: false, reason: String((e && e.message) || e) }));
+    return true;
+  }
   // Shared-database messages are handled here too. Registering a second onMessage listener works in
   // Chrome but shadowed the first one in the test harness, and one entry point is simpler anyway.
   if (msg && typeof handleSharedDbMessage === 'function') return handleSharedDbMessage(msg, reply);
   return false;
 });
+
+// ---------------------------------------------------------------- sorted results
+//
+// Choosing an Ingredient Check option in Amazon's sort menu (src/content/sort.js) opens Chrome's side
+// panel at once, empty and "loading"; the content script then sends the listings as it gathers them.
+// Everything it sends is re-checked here (a web page's content script sent it) and kept in
+// chrome.storage.session, which lives in memory and is cleared when the browser closes.
+// src/options/sidepanel.html and sorted.html read it; the list page keeps the reader's priorities
+// under `sortWeights` in the same place.
+//
+// Chrome opens the side panel only in response to a user action. The click in Amazon's menu counts
+// only while this listener runs, so sidePanel.open is the first thing called, before any await.
+function openSortedPanel(msg, sender, reply) {
+  const R = self.AIR.db.sortedResults;
+  const tab = (sender && sender.tab) || {};
+  let opening;
+  try {
+    opening = chrome.sidePanel && typeof chrome.sidePanel.open === 'function'
+      ? chrome.sidePanel.open({ tabId: tab.id })
+      : Promise.reject(new Error('no-side-panel'));
+  } catch (e) { opening = Promise.reject(e); }
+  const mode = msg.mode === 'unitPrice' ? 'unitPrice' : 'health';
+  const unitEnabled = msg.unitEnabled !== false;
+  const runId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  const list = {
+    runId, mode, unitEnabled, loading: true, status: '', items: [],
+    sourceUrl: R.sanitizeSourceUrl(msg.sourceUrl), sourceTabId: tab.id, sourceWindowId: tab.windowId, t: Date.now(),
+  };
+  const saving = chrome.storage.session.set({ sortedResults: list, sortWeights: R.sanitizeWeights(R.presetFor(mode), { unitEnabled }) });
+  Promise.allSettled([opening, saving]).then(([opened, saved]) => {
+    if (saved.status !== 'fulfilled') { reply({ ok: false, reason: 'no-session-storage' }); return; }
+    reply(opened.status === 'fulfilled' ? { ok: true, runId }
+      : { ok: false, runId, reason: String((opened.reason && opened.reason.message) || opened.reason) });
+  });
+}
+
+// A newer list (another choice, in this tab or another) wins: updates for an older run are refused
+// and the content script stops working on it.
+async function updateSortedResults(msg, sender) {
+  const R = self.AIR.db.sortedResults;
+  const { sortedResults: list } = await chrome.storage.session.get('sortedResults');
+  const tabId = sender && sender.tab && sender.tab.id;
+  if (!list || !msg.runId || list.runId !== msg.runId || list.sourceTabId !== tabId) return { ok: false, stale: true };
+  const items = R.sanitizeResults(msg.items);
+  await chrome.storage.session.set({ sortedResults: {
+    ...list, items, loading: msg.loading === true, status: R.sanitizeStatus(msg.status), t: Date.now(),
+  } });
+  return { ok: true, count: items.length };
+}
 
 // Housekeeping. This used to run only on chrome.runtime.onStartup, and browsers routinely go weeks
 // without restarting — with auto-scoring on that is one cache entry per product scrolled past,
@@ -747,5 +809,5 @@ function handleSharedDbMessage(msg, reply) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { indexRows, lookupRecord, sweepCache, isOpenFoodFactsFood, batchIdFor, revisionOf, ensureHousekeepingAlarm, allowMessage, isOwnExtension, isAmazonTabSender, isRetailerTabSender, isOptionsPageSender, isOffscreenSender, allowedOcrUrls, MAX_SHEET_BYTES, MAX_SHEET_ROWS };
+  module.exports = { indexRows, lookupRecord, sweepCache, isOpenFoodFactsFood, batchIdFor, revisionOf, ensureHousekeepingAlarm, allowMessage, isOwnExtension, isAmazonTabSender, isRetailerTabSender, isOptionsPageSender, isOffscreenSender, allowedOcrUrls, openSortedPanel, updateSortedResults, MAX_SHEET_BYTES, MAX_SHEET_ROWS };
 }

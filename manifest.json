@@ -9,7 +9,8 @@
     "alarms",
     "offscreen",
     "unlimitedStorage",
-    "identity"
+    "identity",
+    "sidePanel"
   ],
   "host_permissions": [
     "*://*.amazon.com/*",
@@ -51,6 +52,9 @@
     "service_worker": "src/background.js"
   },
   "options_page": "src/options/options.html",
+  "side_panel": {
+    "default_path": "src/options/sidepanel.html"
+  },
   "content_scripts": [
     {
       "matches": [
@@ -744,6 +748,9 @@
         "src/engine/db/revision.js",
         "src/engine/db/score-cache.js",
         "src/engine/db/product-cache.js",
+        "src/engine/db/sorted-results.js",
+        "src/engine/db/unit-price.js",
+        "src/engine/db/speed.js",
         "src/engine/score.js",
         "src/content/extract.js",
         "src/content/panel.js",
@@ -751,6 +758,7 @@
         "src/content/product.js",
         "src/content/search.js",
         "src/content/hover-card.js",
+        "src/content/sort.js",
         "src/content/main.js"
       ],
       "exclude_globs": [

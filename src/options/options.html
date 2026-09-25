@@ -51,6 +51,7 @@
                 padding: 6px 12px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
   .preset-cat:hover { background: #eef0f0; }
   .preset-cat[aria-selected="true"] { background: #0f1111; border-color: #0f1111; color: #fff; }
+  .preset-cat.has-picks:not([aria-selected="true"]) { border-color: #0f7b3f; color: #0b5a2e; font-weight: 700; }
   .preset-cat-blurb { color: #565959; font-size: 12px; margin: -4px 0 12px; }
   .preset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
   .preset-card { display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
@@ -105,6 +106,11 @@
   .status.error { color: #a4161a; }
   input.invalid { border-color: #a4161a !important; box-shadow: 0 0 0 2px rgba(164,22,26,.15); }
   .note { color: #565959; font-size: 12px; margin-top: 8px; }
+  .sort-choices { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .sort-choices legend { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  .sort-choice { align-items: flex-start; border-radius: 10px; padding: 8px 12px; }
+  .sort-choice span { display: grid; gap: 2px; }
+  .sort-choice small { color: #565959; font-size: 12px; font-weight: 400; }
   .store-list { list-style: none; margin: 0 0 6px; padding: 0; display: grid; gap: 6px; }
   .store-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font-size: 13px; }
   .store-badge { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 1px 8px; border: 1px solid #d5d9d9; }
@@ -131,6 +137,7 @@
   }
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   @media (prefers-color-scheme: dark) {
+    .preset-cat.has-picks:not([aria-selected="true"]) { border-color: #3fa66b; color: #bfe8cf; }
     body, .jump { background: #1b1c1c; color: #f3f3f3; }
     .lede, .note, .preset-note, .cat .help, h2 { color: #aeaeae; }
     section, .chip, .jump a, .hint-chip, .cat-tools input[type=search] { background: #232525; border-color: #3a3c3c; color: #f3f3f3; }
@@ -171,6 +178,8 @@
     backup can be switched off below.</p>
   <nav class="jump" data-i18n-aria="optNavAria" aria-label="Settings sections">
     <a href="#sec-rate" data-i18n="optNavRate">Rate</a>
+    <a href="#sec-sort" data-i18n="optNavSort">Sort</a>
+    <a href="#sec-speed" data-i18n="optNavSpeed">Speed</a>
     <a href="#sec-presets" data-i18n="optNavPresets">Presets</a>
     <a href="#sec-weights" data-i18n="optNavWeights">Weights</a>
     <a href="#sec-warnings" data-i18n="optNavWarnings">Warnings</a>
@@ -251,6 +260,88 @@
       <input type="range" id="breakdownDelayMs" min="0" max="1500" step="50" value="200" style="width:180px">
       <span class="status" id="breakdownDelayVal" style="color:inherit">0.2 s</span>
     </div>
+  </section>
+
+  <section id="sec-sort">
+    <h2 data-i18n="optSortH">Sort by score or price per ounce</h2>
+    <p class="note" style="margin: -6px 0 12px" data-i18n="optSortLede">
+      On an Amazon grocery search, Amazon's own “Sort by” menu gets “Ingredient Check score: High to
+      Low” and “Price per ounce: Low to High”. Choosing one opens Chrome's side panel with this
+      search's listings ranked; Amazon's page is left as it is. In the panel, Prioritize weighs health
+      score, price per ounce, total price, rating and number of reviews, and Open in new tab shows the
+      same list in a tab.
+    </p>
+    <label class="chip" style="margin: 0 0 8px">
+      <input type="checkbox" id="unitPrice">
+      <span data-i18n="optSortUnitPrice">Price per ounce</span>
+    </label>
+    <p class="note" data-i18n="optSortUnitPriceD">
+      Amazon's unit price when the results page shows one; otherwise worked out from the listed price
+      and a package weight in the title. No extra requests. Coupons and subscription prices are not
+      included. Also in the toolbar popup.
+    </p>
+    <fieldset class="sort-choices" id="unitMissingChoices">
+      <legend data-i18n="optUnitMissingH">When Amazon shows no unit price</legend>
+      <label class="chip sort-choice"><input type="radio" name="unitMissing" value="calculate-clear">
+        <span><strong data-i18n="optUnitCalc">Work it out when the weight is clear</strong>
+        <small data-i18n="optUnitCalcD">Uses a package weight in the product title when it is unambiguous (“12 oz, Pack of 6” is 72 oz; “100 Count, 7 oz” is left alone).</small></span></label>
+      <label class="chip sort-choice"><input type="radio" name="unitMissing" value="displayed-only">
+        <span><strong data-i18n="optUnitDisplayed">Amazon's unit price only</strong>
+        <small data-i18n="optUnitDisplayedD">Listings without one have no price per ounce.</small></span></label>
+      <label class="chip sort-choice"><input type="radio" name="unitMissing" value="infer-more">
+        <span><strong data-i18n="optUnitMore">Look through more of the listing</strong>
+        <small data-i18n="optUnitMoreD">Also checks the rest of the listing text for a package weight. Ambiguous listings still get none.</small></span></label>
+    </fieldset>
+    <fieldset class="sort-choices">
+      <legend data-i18n="optSortMissingH">Listings without a score</legend>
+      <label class="chip sort-choice"><input type="radio" name="sortMissing" value="rate-first">
+        <span><strong data-i18n="optSortRateFirst">Rate them</strong>
+        <small data-i18n="optSortRateFirstD">Uses “Rate every search result”: their product pages are requested from Amazon with your sign-in, three at a time, while the side panel fills in. Stop rating in the panel halts it. Does nothing when that option is off.</small></span></label>
+      <label class="chip sort-choice"><input type="radio" name="sortMissing" value="end">
+        <span><strong data-i18n="optSortEnd">Leave them unscored</strong>
+        <small data-i18n="optSortEndD">No extra requests. Only scores this computer or the shared database already has.</small></span></label>
+    </fieldset>
+    <label class="chip" style="margin: 14px 0 8px">
+      <input type="checkbox" id="sortLoadMore">
+      <span data-i18n="optSortLoadMore">Load more Amazon results</span>
+    </label>
+    <p class="note" data-i18n="optSortLoadMoreD">
+      Off by default. Reads further Amazon search pages until it has the number below, then asks the
+      shared database for their scores and, with “Rate them”, requests the product pages of the rest:
+      three at a time, with your Amazon sign-in, stopping if Amazon starts refusing.
+    </p>
+    <div class="row" style="margin-top:10px">
+      <label for="sortCount" class="note" style="margin:0" data-i18n="optSortCount">Products to compare</label>
+      <input type="number" id="sortCount" min="1" max="500" step="1" value="100" inputmode="numeric" style="width:90px">
+      <span class="note" style="margin:0">1–500</span>
+    </div>
+    <p class="note" data-i18n="optSortStorage">The sorted list is kept in memory for this browser session only and is gone when Chrome closes.</p>
+  </section>
+
+  <section id="sec-speed">
+    <h2 data-i18n="optSpeedH">Speed and freshness</h2>
+    <p class="note" style="margin: -6px 0 12px" data-i18n="optSpeedLede">
+      Faster reuses saved scores for longer and requests fewer product pages. Fresher re-reads products
+      sooner and trusts older shared readings less. Balanced is how Ingredient Check has always worked.
+      A product page you open is always read again, whatever you choose.
+    </p>
+    <fieldset class="sort-choices" id="speedChoices">
+      <label class="chip sort-choice"><input type="radio" name="speedMode" value="fastest">
+        <span><strong data-i18n="optSpeedFastest">Fastest</strong>
+        <small data-i18n="optSpeedFastestD">Saved scores for up to 90 days. At most 20 product pages per results page. Shared readings up to 30 days old.</small></span></label>
+      <label class="chip sort-choice"><input type="radio" name="speedMode" value="fast">
+        <span><strong data-i18n="optSpeedFast">Faster</strong>
+        <small data-i18n="optSpeedFastD">Saved scores for up to 60 days. At most 40 product pages per results page. Shared readings up to 30 days old.</small></span></label>
+      <label class="chip sort-choice"><input type="radio" name="speedMode" value="balanced">
+        <span><strong data-i18n="optSpeedBalanced">Balanced (default)</strong>
+        <small data-i18n="optSpeedBalancedD">Saved scores for up to 30 days. At most 60 product pages per results page. Shared readings up to 30 days old.</small></span></label>
+      <label class="chip sort-choice"><input type="radio" name="speedMode" value="fresh">
+        <span><strong data-i18n="optSpeedFresh">Fresher</strong>
+        <small data-i18n="optSpeedFreshD">Saved scores for up to 7 days. At most 60 product pages per results page. Shared readings up to 7 days old.</small></span></label>
+      <label class="chip sort-choice"><input type="radio" name="speedMode" value="freshest">
+        <span><strong data-i18n="optSpeedFreshest">Most up to date</strong>
+        <small data-i18n="optSpeedFreshestD">Saved scores for 1 day. At most 60 product pages per results page. Never uses shared readings: reads every product page itself, so more requests go to Amazon.</small></span></label>
+    </fieldset>
   </section>
 
   <section id="sec-presets">
@@ -427,6 +518,10 @@
         database keyed by a hash of your account id, only when you click it.</li>
       <li><strong>Send certifications</strong> and "Looks wrong?" reports — product identifiers and
         certification text. Never anything about you.</li>
+      <li><strong>Sort results</strong> — with <em>Rate them first</em>, the same product-page requests
+        as <strong>Rate every search result</strong>. <strong>Load more results</strong> (off by default)
+        also requests further Amazon search pages and product pages, with your Amazon sign-in. See
+        <a href="#sec-sort">Sort by score or price per ounce</a>.</li>
       <li><strong>Target (preview)</strong> — nothing. The page you open is read and scored on your
         computer; no request is made to Target, the shared database or anyone else.</li>
       <li><strong>Request a store</strong> — nothing is sent by the extension. It opens a draft
@@ -508,6 +603,9 @@
 <script src="../engine/db/allergens.js"></script>
 <script src="../engine/categories.js"></script>
 <script src="../engine/db/prefs.js"></script>
+<script src="../engine/db/sorted-results.js"></script>
+<script src="../engine/db/unit-price.js"></script>
+<script src="../engine/db/speed.js"></script>
 <script src="settings.js"></script>
 <script src="settings-database.js"></script>
 <script src="../stores/registry.js"></script>

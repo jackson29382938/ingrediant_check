@@ -147,6 +147,8 @@ check('every key resolves', () => {
     ...[...read('manifest.json').matchAll(/__MSG_([A-Za-z0-9_]+)__/g)].map(m => m[1]),
     ...[...read('src/content/panel.js').matchAll(/\bt\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
     ...[...read('src/content/retailer.js').matchAll(/\bt\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
+    ...[...read('src/content/sort.js').matchAll(/\b(?:t\(|label\('[^']*',)\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
+    ...[...read('src/options/sorted.js').matchAll(/\bt\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
     ...[...read('src/options/popup.html').matchAll(/data-i18n="([A-Za-z0-9_]+)"/g)].map(m => m[1]),
     ...[...read('src/options/options.html').matchAll(/data-i18n(?:-placeholder|-aria)?="([A-Za-z0-9_]+)"/g)].map(m => m[1]),
     ...[...read('src/options/popup.js').matchAll(/\bmsg\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
