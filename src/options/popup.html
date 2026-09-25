@@ -37,7 +37,9 @@
  .preset-cat{border:1px solid #d5d9d9;background:#fff;border-radius:6px;padding:3px 8px;
    font:inherit;font-size:10px;font-weight:600;cursor:pointer;color:inherit}
  .preset-cat:hover{background:#eef0f0}
+ .preset-hint{margin:2px 0 6px;color:#565959;font-size:11px}
  .preset-cat[aria-selected="true"]{background:#0f1111;border-color:#0f1111;color:#fff}
+ .preset-cat.has-picks:not([aria-selected="true"]){border-color:#0f7b3f;color:#0b5a2e;font-weight:700}
  .presets{display:flex;flex-direction:column;gap:4px;margin:4px 0 0;max-height:148px;overflow:auto}
  .preset{display:flex;align-items:flex-start;gap:8px;width:100%;text-align:left;
    border:1px solid #d5d9d9;background:#f7f8f8;border-radius:8px;padding:7px 8px;
@@ -80,6 +82,7 @@
    .preset:hover,.preset-cat:hover{background:#3a3c3c}
    .preset[aria-pressed="true"]{background:#1e2a22;border-color:#0f7b3f}
    .preset-cat[aria-selected="true"]{background:#f3f3f3;border-color:#f3f3f3;color:#0f1111}
+   .preset-cat.has-picks:not([aria-selected="true"]){border-color:#3fa66b;color:#bfe8cf}
    .preset-glyph{background:#1b1c1c;border-color:#3a3c3c;color:#f3f3f3}
    .preset-active-name.is-custom{color:#aeaeae}
    .compare-pick,.compare-card,.compare-block{border-color:#3a3c3c}
@@ -131,6 +134,7 @@
  </div>
  <div class="preset-block">
    <div class="ps-kicker" data-i18n="popupPresets">Goal-based scoring</div>
+   <p class="preset-hint" data-i18n="popupPresetsHint">Pick one or several, on any tab. They combine.</p>
    <div class="preset-active" aria-live="polite">
      <span class="preset-active-kicker" data-i18n="optPresetActive">Active</span>
      <span class="preset-active-name" id="presetActiveName">Balanced</span>

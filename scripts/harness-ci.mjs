@@ -210,6 +210,29 @@ async function run() {
       }, { timeout: 5000 });
       console.log('  ok  popup compare →', cmp.nums.join(' vs '), `(${cmp.options} cached, B→74)`);
 
+      // Goals combine across tabs: picking one on another tab keeps that tab open with it selected,
+      // and each tab counts its picks. (It used to jump back to the first goal's tab.)
+      const pickGoal = async (category, n) => {
+        await comparePage.click(`.preset-cat[data-category="${category}"]`);
+        const id = await comparePage.evaluate(i => [...document.querySelectorAll('.preset')][i].dataset.preset, n);
+        await comparePage.click(`.preset[data-preset="${id}"]`);
+        await comparePage.waitForFunction(g => document.querySelector(`.preset[data-preset="${g}"]`)?.getAttribute('aria-pressed') === 'true', id, { timeout: 3000 });
+        return id;
+      };
+      const g1 = await pickGoal('everyday', 1);
+      const g2 = await pickGoal('goals', 0);
+      const multi = await comparePage.evaluate(() => ({
+        tab: document.querySelector('.preset-cat[aria-selected="true"]').dataset.category,
+        labels: [...document.querySelectorAll('.preset-cat')].map(t => t.textContent),
+        active: document.getElementById('presetActiveName').textContent,
+      }));
+      const stored = await comparePage.evaluate(() => new Promise(r => chrome.storage.local.get('goals', o => r(o.goals))));
+      if (multi.tab !== 'goals' || JSON.stringify(stored) !== JSON.stringify([g1, g2]) || !/ \+ /.test(multi.active)
+        || !multi.labels.some(l => / · 1$/.test(l)) || multi.labels.filter(l => / · 1$/.test(l)).length !== 2) {
+        throw new Error(`popup goals: ${JSON.stringify({ ...multi, stored })}`);
+      }
+      console.log('  ok  popup goals → two goals on two tabs combine; the clicked tab stays open; tabs count their picks');
+
       // The Amazon-request options must say so without "Why these matter" being opened.
       const net = await comparePage.evaluate(() => {
         const shown = el => !!el && getComputedStyle(el).display !== 'none' && el.getClientRects().length > 0;

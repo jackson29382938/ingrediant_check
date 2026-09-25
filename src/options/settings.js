@@ -221,7 +221,10 @@ function renderPresetCategories() {
     b.dataset.category = cat.id;
     b.setAttribute('role', 'tab');
     b.setAttribute('aria-selected', String(cat.id === presetCategory));
-    b.textContent = cat.label;
+    // "Goals · 2": how many selected goals a tab holds, so goals picked on other tabs stay visible.
+    const picks = currentGoals().ids.filter(g => CATS.PRESETS[g] && (CATS.PRESETS[g].category || 'everyday') === cat.id).length;
+    b.textContent = picks ? `${cat.label} · ${picks}` : cat.label;
+    b.classList.toggle('has-picks', picks > 0);
     b.addEventListener('click', () => {
       presetCategory = cat.id;
       const grid = document.getElementById('presets');
@@ -341,8 +344,11 @@ function applyPreset(id) {
   if (!CATS.PRESETS[id]) return;
   const goals = CATS.toggleGoal(currentGoals().ids, id);
   applyScoring({ ...state, goals, weights: CATS.goalWeights(goals) });
+  // Goals combine across tabs: stay on the tab that was clicked instead of jumping to the first
+  // selected goal's tab, which hid the goal just picked.
   const host = document.getElementById('presets');
-  if (host) delete host.dataset.userTab;
+  presetCategory = CATS.PRESETS[id].category || presetCategory;
+  if (host) host.dataset.userTab = '1';
   renderCategories();
   renderPresetCategories();
   renderPresets();

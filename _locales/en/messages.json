@@ -1142,5 +1142,8 @@
   },
   "popupUnitPriceD": {
     "message": "Adds \"Price per ounce: Low to High\" to Amazon's sort menu and price per ounce to the sorted list, worked out from the results page. No extra requests."
+  },
+  "popupPresetsHint": {
+    "message": "Pick one or several, on any tab. They combine."
   }
 }
