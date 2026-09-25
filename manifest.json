@@ -767,18 +767,10 @@
     },
     {
       "matches": [
-        "https://www.target.com/*"
-      ],
-      "exclude_globs": [
-        "*://www.target.com/cart*",
-        "*://www.target.com/checkout*",
-        "*://www.target.com/co-*",
-        "*://www.target.com/account*",
-        "*://www.target.com/orders*",
-        "*://www.target.com/login*",
-        "*://www.target.com/guest*",
-        "*://www.target.com/gift-registry*",
-        "*://www.target.com/pharmacy*"
+        "https://www.target.com/p/*",
+        "https://www.target.com/s",
+        "https://www.target.com/s?*",
+        "https://www.target.com/s/*"
       ],
       "run_at": "document_idle",
       "js": [

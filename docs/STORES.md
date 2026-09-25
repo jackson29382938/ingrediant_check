@@ -28,8 +28,8 @@ result you have already opened on this computer.
 **What it does not do.** It never requests anything from Target or anyone else. There is no
 background rating of search results, no shared database, no Open Food Facts and no label photos.
 The worker accepts only the toolbar-badge message from a Target tab. It has no host permission for
-Target. A content script on `https://www.target.com/*` is all it has, and it is kept off cart,
-checkout, account, order and login pages.
+Target. Its content script is matched only on product (`/p/*`) and search (`/s…`) routes; cart,
+checkout, account, order and login pages do not match at all.
 
 **Why search results are not rated automatically.** Target's server HTML does not contain the
 ingredient list, only a JSON blob inside a script, and Target runs bot detection on its pages.
@@ -119,7 +119,8 @@ For each store:
 
 - Read only what a signed-out visitor sees. Never get past a CAPTCHA, a login, a bot check or any
   other access control. If a store blocks reading, it stays planned and this page says why.
-- Match only that store's host, and exclude its cart, checkout, account, order and login pages.
+- Match only that store's host and the product/search routes it needs; keep cart, checkout, account,
+  order and login pages out of the content-script matches.
   Prefer a content script over a host permission. Any new host in the manifest, including a
   content-script match, makes Chrome ask existing users to approve it on update.
 - Add sanitized fixtures under `tests/pages/` covering a product with a list, one without, a non-food

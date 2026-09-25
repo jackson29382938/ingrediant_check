@@ -13,7 +13,8 @@ It does not read your Amazon password, payment details, cart, orders, or account
 On Target (preview) it reads the same kind of thing from the product page you have open: the title,
 the breadcrumbs, and the *Label info* section with the ingredient list and nutrition numbers. On a
 Target search page it reads the product id and title of each result, to show scores you already
-have. It does not run on Target's cart, checkout, account, order or login pages.
+have. The content script is matched only on Target product (`/p/…`) and search (`/s…`) routes; it
+does not run on cart, checkout, account, order or login pages.
 
 ## Access to Amazon
 
@@ -39,8 +40,8 @@ or through the shared database. Scoring on product pages you open does not chang
 
 ## Access to Target (preview)
 
-Target is reached through a content script on `https://www.target.com/*` only (excluding cart,
-checkout, account, order and login pages). The extension has **no host permission** for Target, and
+Target is reached through a content script on product (`https://www.target.com/p/*`) and search
+(`/s…`) routes only. The extension has **no host permission** for Target, and
 on Target it **makes no network requests**. It does not fetch product pages, does not use the shared
 database, Open Food Facts or label photos, and cannot send diagnostics or reports from there. Scores
 are computed and kept on your computer. A search page shows a score only for products you have

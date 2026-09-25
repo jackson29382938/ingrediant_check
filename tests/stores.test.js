@@ -27,11 +27,14 @@ test('a preview store runs through a content script only, with no host permissio
       assert.ok(!covers(d), `${s.name} is preview but the manifest grants host permission for ${d}`);
     }
   }
-  // Target's script stays off account, cart and checkout pages, as Amazon's does.
-  const target = manifest.content_scripts.find(cs => cs.matches.includes('https://www.target.com/*'));
-  for (const path of ['cart', 'checkout', 'account', 'orders', 'login']) {
-    assert.ok(target.exclude_globs.includes(`*://www.target.com/${path}*`), `Target script not excluded from /${path}`);
-  }
+  // Target's script is scoped directly to product and search routes. Private routes are out of
+  // scope by construction, rather than protected by an ever-growing exclusion list.
+  const target = manifest.content_scripts.find(cs => cs.matches.includes('https://www.target.com/p/*'));
+  assert.deepEqual(target.matches, [
+    'https://www.target.com/p/*', 'https://www.target.com/s',
+    'https://www.target.com/s?*', 'https://www.target.com/s/*',
+  ]);
+  assert.equal(target.exclude_globs, undefined);
   // And it loads none of Amazon's pipeline: no page fetches, no shared database, no OCR.
   for (const f of ['src/content/main.js', 'src/content/search.js', 'src/content/product.js', 'src/engine/db/product-cache.js', 'src/engine/db/ocr-text.js']) {
     assert.ok(!target.js.includes(f), `Target loads ${f}`);
