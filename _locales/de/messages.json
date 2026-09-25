@@ -857,9 +857,6 @@
   "sortedNoScore": {
     "message": "No score"
   },
-  "sortedDetails": {
-    "message": "Listing details"
-  },
   "sortedEyebrow": {
     "message": "INGREDIENT CHECK"
   },
@@ -1257,5 +1254,16 @@
   },
   "reportCopyFailed": {
     "message": "Could not copy. Select the preview text below instead."
+  },
+  "sortedWhyHead": {
+    "message": "Why it scored $FIRST$",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "sortedWhyNone": {
+    "message": "The reasons were not kept for this saved score. Open the product to see why."
   }
 }

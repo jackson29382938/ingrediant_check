@@ -71,6 +71,26 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     } catch (e) { return ''; }
   }
 
+  // Why a listing scored what it did (sort.js whyOf): up to 8 rows per section, each a number of
+  // points (or 'CAP'), a reason and the ingredient it came from. Shown as text only.
+  const WHY_SECTIONS = { caps: 8, plus: 8, minus: 8, neutral: 3 };
+  function sanitizeWhy(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const out = {};
+    let any = false;
+    for (const [section, max] of Object.entries(WHY_SECTIONS)) {
+      out[section] = (Array.isArray(raw[section]) ? raw[section] : []).slice(0, max).map(r => {
+        if (!r || typeof r !== 'object') return null;
+        const c = r.c === 'CAP' ? 'CAP' : Math.round(Number(r.c));
+        const why = str(r.why, 140);
+        if (!why || (c !== 'CAP' && (!Number.isFinite(c) || Math.abs(c) > 100))) return null;
+        return { c, why, ing: str(r.ing, 80) };
+      }).filter(Boolean);
+      if (out[section].length) any = true;
+    }
+    return any ? out : { caps: [], plus: [], minus: [], neutral: [], clean: true };
+  }
+
   function sanitizeProduct(raw) {
     if (!raw || typeof raw !== 'object') return null;
     const asin = /^[A-Z0-9]{10}$/.test(String(raw.asin || '')) ? raw.asin : '';
@@ -101,6 +121,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
       sponsored: raw.sponsored === true,
       pageNumber: Number.isFinite(page) && page >= 1 && page <= 100 ? page : 1,
       details: str(raw.details, 2600),
+      why: typeof finiteScore(raw.score) === 'number' ? sanitizeWhy(raw.why) : null,
     };
   }
 
@@ -198,7 +219,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   const _exports = AIRmodule('sortedResults', {
     MAX_RESULTS, COUNT_MIN, COUNT_MAX, SORT_DEFAULTS, FACTORS, WEIGHT_MAX, PRESETS,
     sortByScore, parseMoney, sanitizeSort, sanitizeProduct, sanitizeResults, sanitizeSourceUrl,
-    sanitizeWeights, presetFor, factorValues, rank, sanitizeStatus,
+    sanitizeWeights, presetFor, factorValues, rank, sanitizeStatus, sanitizeWhy,
   });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 })();

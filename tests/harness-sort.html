@@ -152,6 +152,12 @@ for (const [asin, [score, verdict]] of Object.entries(seed)) {
     provenanceSource: '', name: asin,
   };
 }
+// The product reading behind one saved score, as rememberProduct() keeps it: the reasons come from it.
+const PC = AIR.db.productCache;
+SETTINGS[PC.localKey(C.normalizeStore(location.hostname), 'B0SORT0003')] = PC.fromScan({
+  store: C.normalizeStore(location.hostname), asin: 'B0SORT0003', via: 'nic-ingredients-content', confidence: 0.9,
+  input: { name: 'Organic rolled oats, 32 oz', ingredients_text: 'Organic whole grain rolled oats', labels: 'USDA Organic' },
+  t: Date.now() - 1000 });
 window.__order = () => [...document.querySelectorAll('.s-main-slot [data-asin]')].map(el => el.dataset.asin);
 window.__options = () => [...document.getElementById('s-result-sort-select').options].map(o => o.textContent);
 window.__rows = () => (window.__popover() && window.__popover().style.display !== 'none')

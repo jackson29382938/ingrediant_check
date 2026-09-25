@@ -313,3 +313,18 @@ test('updates are re-checked, and only the newest run from its own tab lands', a
   assert.equal(w.session.sortedResults.items.length, 2, 'refused updates change nothing');
   assert.equal((await w.send({ type: 'updateSortedResults', runId: reply.runId, items: [] }, targetTab)).reply, undefined, 'refused from Target');
 });
+
+test('why it scored: bounded rows, points or CAP, only for a scored listing', () => {
+  const why = { plus: [{ c: 8, why: 'Certified organic' }, { c: 5, why: 'Fermented / live cultures', ing: 'cultures' }],
+    minus: [{ c: -5, why: 'Naturally occurring sugar', ing: 'pasteurized organic milk' }, { c: 'CAP', why: 'Capped' }, { c: 500, why: 'absurd' },
+      { c: -3, why: '' }, null, 'junk'], neutral: Array.from({ length: 9 }, (_, i) => ({ c: 0, why: `n${i}` })), extra: [{ c: 1, why: 'x' }] };
+  const clean = R.sanitizeProduct(p('B000000001', 78, { why })).why;
+  assert.deepEqual(clean.plus.map(r => [r.c, r.why, r.ing]), [[8, 'Certified organic', ''], [5, 'Fermented / live cultures', 'cultures']]);
+  assert.deepEqual(clean.minus.map(r => r.c), [-5, 'CAP'], 'out-of-range points and empty reasons dropped');
+  assert.equal(clean.neutral.length, 3);
+  assert.equal(clean.extra, undefined);
+  assert.equal(R.sanitizeProduct(p('B000000002', null, { why })).why, null, 'no score, no reasons');
+  assert.equal(R.sanitizeProduct(p('B000000003', 60)).why, null, 'reasons not kept: null');
+  assert.equal(R.sanitizeProduct(p('B000000004', 99, { why: {} })).why.clean, true, 'nothing moved the score');
+  assert.equal(R.sanitizeProduct(p('B000000005', 70, { why: { plus: [{ c: 3, why: 'x'.repeat(500) }] } })).why.plus[0].why.length, 140);
+});

@@ -135,6 +135,9 @@ Reload the extension in `chrome://extensions` first, then open an Amazon grocery
    watch; **Stop rating** halts that.
 3. In **Prioritize**, try *Healthiest*, *Balanced* and the sliders: the list re-ranks at once. With
    more than one factor, each listing shows a *Match* number.
+   Hover (or tab to) a score: a pop-up says why it scored that ("What's good", "What hurt"), and
+   **Why it scored N** under each listing shows the same. A score saved before its reading was kept
+   says to open the product instead.
 4. **Open in new tab** (next to **Back to Amazon search**) shows the same list, same priorities, in a
    tab. **Back to Amazon search** returns to the search tab.
 5. Choose **Ingredient Check score: High to Low** from Amazon's menu: a new list, healthiest first.
