@@ -178,6 +178,28 @@ show Amazon's real markup, its image CDN, or its CORS headers. **Live OCR is sti
 4. **The notice on real Amazon.** On a grocery search, check the notice sits above the results, not
    above Amazon's header, and that **Turn off automatic rating** stops the `…` badges.
 
+## Verification record — 2026-09-25
+
+Same environment, same result for the live flows. `www.amazon.com`, `world.openfoodfacts.org`,
+`script.google.com`, `www.target.com`, `www.walmart.com`, `www.costco.com` and `web.archive.org` were
+all refused, both on direct connections and through the web-fetch tool. **No live store, Open Food
+Facts or Apps Script check was possible, and none is claimed.**
+
+Re-run on the merged tree (goals change + this work), unpacked extension in Chromium 141:
+
+| Check | Result |
+|---|---|
+| Settings messages (`flushDiagnostics`, `diagnosticsStatus`, `refreshSheet`, `accountLoad`) from `popup.html` and `welcome.html` get no reply; from `options.html` they are answered | Pass (19/19 smoke checks) |
+| Offscreen OCR runs the vendored Tesseract with no `web_accessible_resources` | Pass |
+| Simulated Amazon (local TLS server, all other hosts NOTFOUND): DOM list, label-photo OCR, search auto-rating and its notice | Pass (6/6) |
+| Settings → Stores renders the registry; the request draft is previewed, trimmed to the site address, and refused when invalid (`harness:ci`) | Pass |
+
+The owner steps in the 2026-09-24 record above still stand, and one is added:
+
+5. **Store wishlist.** Settings → *Stores* → type a store name → **Open email draft**. Your email
+   app should open a draft to jackson29382938@gmail.com matching the preview. You do not need to
+   send it. Automation here cannot open a mail app.
+
 ## What is still unproven
 
 The installed extension’s offscreen OCR round-trip was reported green on 2026-09-05 (before WAR

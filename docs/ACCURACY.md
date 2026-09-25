@@ -46,6 +46,39 @@ There are no `live-capture` entries in any language. Every non-English entry is 
 score 46. Its English twin scores 25. `tests/languages.test.js` pins this, so it fails if the gate is
 lowered or if the list starts to score without the cap.
 
+**Turkish false positive (caught 2026-09-25, fixed).** The goals change added a legume rule that
+skipped "oil" and "lecithin" only in English. Turkish writes soy lecithin as `soya lesitini`, so it
+was recognised as a legume. That lifted a Turkish chocolate list from 33% to 50% recognised, over the
+gate, and it scored 49 against 31 for its English twin. `tests/languages.test.js` failed when the
+goals change was merged. The rule now also skips the Turkish, French, Spanish, Italian and Polish
+spellings of lecithin, and Turkish `yağ` (oil). `RULES_REVISION` became `2026-09-25`. The evidence is
+a synthetic twin and the rule's own stated intent. No real Turkish label was checked. No default
+score changed in the corpus under any goal (58 products × 21 settings compared).
+
+## Automated evidence and live observations
+
+These are different kinds of evidence. Only the second kind says anything about a real store.
+
+**Automated** (repeatable, runs in CI or locally, no live store):
+
+- `npm test`: engine, corpus bands, synonym and language twins, extraction on sanitized snapshots.
+- `npm run harness:ci`: the panel, lifecycle, OCR engine and popup/settings pages in Chromium, on
+  local pages.
+- Local runs of the unpacked extension in Chromium with Amazon replaced by a local server
+  ([VERIFY.md](VERIFY.md), 2026-09-24/25). They prove the extension's own chain works, not that
+  Amazon's pages still look the way the fixtures assume.
+
+**Live observations** (a real store page in a real browser), newest first:
+
+| Date | Store | What was seen | Source |
+|---|---|---|---|
+| 2026-09-24 | amazon.com | "The low-fat kefir" (product not named) scored 31 at default weights and 44 under Weight loss + Vitamins & minerals; the score held through 30 s of page updates | Reported in the goals commit (`bcfcc87`). Not re-checked here. |
+| 2026-09-05 | amazon.com | Lifeway kefir `B00LOAW7U6`: blurb refused with fallbacks off; 29 Poor from the label photo (before the `web_accessible_resources` change) | [history/LIVE-TEST-2026-09-05.md](history/LIVE-TEST-2026-09-05.md) |
+| 2026-09-05 | amazon.com | Organic-oats grocery search scored tiles; running-shoes search showed nothing | same |
+
+None of these were captured as corpus entries, so none can be replayed. No live observation exists for
+any non-English Amazon store, for Open Food Facts, or for the shared database.
+
 ## By extraction source
 
 `via` on a diagnostics row or a shared-database row says how the text was read.
