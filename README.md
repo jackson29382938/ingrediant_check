@@ -39,6 +39,10 @@ The toolbar popup is the master switch plus network opt-ins and shortcuts to the
 
 Ingredient headings are recognised in English and several EU languages (Zutaten, Ingredientes, Ingrédients, Ingredienti, Ingrediënten, Składniki, Ingredienser, İçindekiler), including same-line `Ingredients:` detail-bullet forms. Japanese and Arabic stores decline photo OCR until a local reader exists — English Tesseract misreads those labels. Scoring is strongest on English US/UK/CA/AU labels. A synonym pack plus E-numbers lets DE/FR/ES/IT/PT/NL lists score, but that is tested only on synthetic translations, not on real labels. Swedish, Polish and Turkish lists are mostly declined. A list the rulebase mostly cannot read is declined rather than scored. [docs/ACCURACY.md](docs/ACCURACY.md) lists the evidence behind each language. Allergen and diet flags read the same four languages, cover the EU’s celery, mustard and lupin as well as the US list, and never move the score. Chrome 116 or newer is required.
 
+## Goals
+
+A new install opens a one-minute setup (goals, allergens and diets, an avoid list, and four fetch choices); **Run setup again** in the popup or settings reopens it. Goals can be combined — where two set the same dial they are averaged — and some turn a minus into a plus: fat-reduced dairy under **Weight loss**, added vitamins under **Vitamins & minerals**, honey under **Animal-based (Paul Saladino)**. Those rows are marked "a plus for your goals" and capped at +20 in total; hard caps such as Red 40 never become pluses. Definitions live in `src/engine/categories.js` (`PRESETS`, `goalWeights`).
+
 ## Tests
 
 ```bash

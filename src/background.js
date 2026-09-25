@@ -266,9 +266,13 @@ function dropLegacy() {
   for (const k of ['sheetIndex', 'producerIndex', 'ratingsIndex']) clearSheetIndex(k).catch(() => {});
 }
 chrome.runtime.onStartup.addListener(() => sweepCache());
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener(details => {
   sweepCache();
   dropLegacy();
+  // A new install asks its setup questions (src/options/welcome.html); an update never does.
+  if (details && details.reason === 'install' && chrome.tabs) {
+    chrome.tabs.create({ url: chrome.runtime.getURL('src/options/welcome.html') });
+  }
 });
 
 async function sweepCache() {

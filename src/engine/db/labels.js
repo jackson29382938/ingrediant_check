@@ -70,7 +70,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     // dairy as far as this rule was concerned, because only milk/dairy/yogurt/cheese counted.
     // Up to two words may sit between the qualifier and the noun: "nonfat dry milk",
     // "part-skim mozzarella cheese", "reduced fat sharp cheddar cheese".
-    { pts: 6, why: 'Fat-reduced dairy', m: /\b(non[- ]?fat|fat[- ]?free|skim|low[- ]?fat|lowfat|reduced[- ]?fat|part[- ]?skim|1%|2%)\b(?:\s+\w+){0,2}\s+(milk|dairy|yogh?urt|cheese|kefir|cream|buttermilk|ricotta|cheddar|mozzarella)\b/i },
+    { pts: 6, why: 'Fat-reduced dairy', cat: 'reducedFatDairy', m: /\b(non[- ]?fat|fat[- ]?free|skim|low[- ]?fat|lowfat|reduced[- ]?fat|part[- ]?skim|1%|2%)\b(?:\s+\w+){0,2}\s+(milk|dairy|yogh?urt|cheese|kefir|cream|buttermilk|ricotta|cheddar|mozzarella)\b/i },
   ];
 
   const _exports = AIRmodule('labels', {

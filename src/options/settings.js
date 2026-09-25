@@ -69,6 +69,7 @@ function save({ immediate = false } = {}) {
 function applyScoring(next) {
   const clean = PREFS.sanitizeScoring(next);
   state.weights = clean.weights;
+  state.goals = clean.goals;
   state.allergens = clean.allergens;
   state.diets = clean.diets;
   state.avoidList = clean.avoidList;
@@ -157,7 +158,8 @@ function renderCategories() {
 
     const slider = document.createElement('input');
     slider.type = 'range';
-    slider.min = '0'; slider.max = '2'; slider.step = '0.1';
+    // Signed categories go below zero: a goal can make them count in a product's favour.
+    slider.min = CATS.SIGNED && CATS.SIGNED.has(c.id) ? '-2' : '0'; slider.max = '2'; slider.step = '0.1';
     slider.value = String(weightOf(c.id));
     slider.id = `w-${c.id}`;
     slider.setAttribute('aria-label', `${c.label} weight`);
@@ -165,8 +167,9 @@ function renderCategories() {
     const val = document.createElement('div');
     val.className = 'val';
     const paint = v => {
-      val.textContent = Number(v) === 0 ? 'off' : `${Number(v).toFixed(1)}×`;
-      val.className = 'val' + (Number(v) === 0 ? ' zero' : Number(v) > 1 ? ' high' : '');
+      const n = Number(v);
+      val.textContent = n === 0 ? 'off' : n < 0 ? `+${Math.abs(n).toFixed(1)}× plus` : `${n.toFixed(1)}×`;
+      val.className = 'val' + (n === 0 ? ' zero' : n < 0 ? ' plus' : n > 1 ? ' high' : '');
     };
     paint(slider.value);
 
@@ -201,12 +204,9 @@ function presetCategories() {
   ];
 }
 
-function findMatchingPreset() {
-  if (CATS.matchPreset) return CATS.matchPreset(state.weights);
-  return Object.entries(CATS.PRESETS).find(([, p]) => {
-    const target = { ...CATS.DEFAULT_WEIGHTS, ...p.weights };
-    return Object.keys(target).every(k => Math.abs(weightOf(k) - target[k]) < 0.001);
-  }) || null;
+// { ids, custom } — the selected goals, and whether a slider has since moved off them.
+function currentGoals() {
+  return CATS.describeGoals(state.weights, state.goals);
 }
 
 function renderPresetCategories() {
@@ -240,8 +240,8 @@ function renderPresets() {
   const host = document.getElementById('presets');
   if (!host) return;
   host.textContent = '';
-  const match = findMatchingPreset();
-  const matchId = match ? match[0] : null;
+  const goals = currentGoals();
+  const matchId = goals.ids[0] || (goals.custom ? null : 'balanced');
   if (matchId && CATS.PRESETS[matchId] && CATS.PRESETS[matchId].category && !host.dataset.userTab) {
     presetCategory = CATS.PRESETS[matchId].category;
   }
@@ -252,7 +252,7 @@ function renderPresets() {
     b.type = 'button';
     b.className = 'preset-card';
     b.dataset.preset = id;
-    b.setAttribute('aria-pressed', String(id === matchId));
+    b.setAttribute('aria-pressed', String(goals.ids.includes(id) || (id === 'balanced' && !goals.ids.length && !goals.custom)));
     b.setAttribute('aria-describedby', 'presetNote');
 
     const top = document.createElement('div');
@@ -285,7 +285,7 @@ function renderPresets() {
   const active = presetCategories().find(c => c.id === presetCategory);
   if (blurb) blurb.textContent = (active && active.blurb) || '';
 
-  paintPresetActive(match);
+  paintPresetActive(goals);
   if (matchId && CATS.PRESETS[matchId] && CATS.PRESETS[matchId].category === presetCategory) {
     showPresetDetail(matchId);
   } else if (entries[0]) {
@@ -326,26 +326,21 @@ function showPresetDetail(id, { previewOnly = false } = {}) {
   }
 }
 
-function paintPresetActive(match) {
+function paintPresetActive(goals) {
   const name = document.getElementById('presetActiveName');
   if (!name) return;
-  if (match) {
-    name.textContent = match[1].label;
-    name.classList.remove('is-custom');
-  } else {
-    name.textContent = msg('optPresetCustomLabel', 'Custom');
-    name.classList.add('is-custom');
-  }
+  const label = CATS.goalsLabel(goals.ids);
+  name.textContent = goals.custom
+    ? `${msg('optPresetCustomLabel', 'Custom')}${goals.ids.length ? ` (${label})` : ''}`
+    : label;
+  name.classList.toggle('is-custom', goals.custom);
 }
 
+// A goal card toggles that goal; the weights become the average of everything selected.
 function applyPreset(id) {
-  const preset = CATS.PRESETS[id];
-  if (!preset) return;
-  const weights = CATS.presetWeightMap
-    ? CATS.presetWeightMap(id)
-    : { ...CATS.DEFAULT_WEIGHTS, ...preset.weights };
-  applyScoring({ ...state, weights });
-  if (preset.category) presetCategory = preset.category;
+  if (!CATS.PRESETS[id]) return;
+  const goals = CATS.toggleGoal(currentGoals().ids, id);
+  applyScoring({ ...state, goals, weights: CATS.goalWeights(goals) });
   const host = document.getElementById('presets');
   if (host) delete host.dataset.userTab;
   renderCategories();
@@ -355,17 +350,18 @@ function applyPreset(id) {
   save({ immediate: true });
 }
 
-function markActivePreset(id) {
-  document.querySelectorAll('.preset-card').forEach(b =>
-    b.setAttribute('aria-pressed', String(b.dataset.preset === id)));
+function markActivePreset(goals) {
+  document.querySelectorAll('.preset-card').forEach(b => b.setAttribute('aria-pressed', String(
+    goals.ids.includes(b.dataset.preset) || (b.dataset.preset === 'balanced' && !goals.ids.length && !goals.custom))));
 }
 
 function markPresetDirty() {
   // Once a slider moves, the weights are the user's, not a preset's. Say so rather than leaving a
   // preset highlighted that no longer describes what is set.
-  const match = findMatchingPreset();
-  markActivePreset(match ? match[0] : null);
-  paintPresetActive(match);
+  const goals = currentGoals();
+  const match = goals.custom ? null : [goals.ids.at(-1) || 'balanced'];
+  markActivePreset(goals);
+  paintPresetActive(goals);
   const note = document.getElementById('presetNote');
   const versus = document.getElementById('presetVersus');
   const title = document.getElementById('presetDetailTitle');
@@ -618,11 +614,11 @@ function wireBreakdown() {
 }
 
 function startSettingsPage() {
-  chrome.storage.local.get(['weights', 'allergens', 'diets', 'avoidList', 'foodOnly'], o => {
+  chrome.storage.local.get(['weights', 'goals', 'allergens', 'diets', 'avoidList', 'foodOnly'], o => {
     applyScoring(o);
     if (!PREFS.scoringEqual(o, state)) persist(scoringPayload());
-    const match = findMatchingPreset();
-    if (match && match[1].category) presetCategory = match[1].category;
+    const first = currentGoals().ids[0];
+    if (first && CATS.PRESETS[first].category) presetCategory = CATS.PRESETS[first].category;
     renderAll();
     wireCatTools();
     wireFileActions();
@@ -666,8 +662,8 @@ chrome.storage.onChanged.addListener(changes => {
     const fo = document.getElementById('foodOnly');
     if (fo) fo.checked = state.foodOnly;
   }
-  if (changes.weights || changes.allergens || changes.diets || changes.avoidList) {
-    chrome.storage.local.get(['weights', 'allergens', 'diets', 'avoidList', 'foodOnly'], o => {
+  if (changes.weights || changes.goals || changes.allergens || changes.diets || changes.avoidList) {
+    chrome.storage.local.get(['weights', 'goals', 'allergens', 'diets', 'avoidList', 'foodOnly'], o => {
       applyScoring(o);
       renderAll();
     });

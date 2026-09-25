@@ -113,6 +113,7 @@ function sanitizeScoring(raw) {
   const dietIds = new Set((allergens && allergens.DIETS || []).map(d => d.id));
   return {
     weights,
+    goals: cats && typeof cats.sanitizeGoals === 'function' ? cats.sanitizeGoals(src.goals) : [],
     allergens: uniqueKnown(src.allergens, allergenIds),
     diets: uniqueKnown(src.diets, dietIds),
     avoidList: sanitizeAvoidList(src.avoidList),
@@ -158,6 +159,7 @@ function exportPayload(prefs) {
     _format: SETTINGS_FORMAT,
     _version: SETTINGS_VERSION,
     weights: clean.weights,
+    goals: clean.goals,
     allergens: clean.allergens,
     diets: clean.diets,
     avoidList: clean.avoidList,

@@ -56,30 +56,24 @@ function weightOf(weights, id) {
   return w != null ? w : CATS.DEFAULT_WEIGHTS[id];
 }
 
-function matchingPreset(weights) {
-  if (CATS.matchPreset) return CATS.matchPreset(weights);
-  const found = Object.entries(CATS.PRESETS).find(([, p]) => {
-    const target = { ...CATS.DEFAULT_WEIGHTS, ...p.weights };
-    return Object.keys(target).every(k => Math.abs(weightOf(weights, k) - target[k]) < 0.001);
-  });
-  return found || null;
+// { ids, custom } — the selected goals, and whether a slider has since moved off them.
+function currentGoals(weights, goals) {
+  return CATS.describeGoals(weights, goals);
 }
 
 let popupPresetCategory = 'everyday';
 
-function paintPopupActive(match) {
+function paintPopupActive(goals) {
   const name = document.getElementById('presetActiveName');
   if (!name) return;
-  if (match) {
-    name.textContent = match[1].label;
-    name.classList.remove('is-custom');
-  } else {
-    name.textContent = msg('optPresetCustomLabel', 'Custom');
-    name.classList.add('is-custom');
-  }
+  const label = CATS.goalsLabel(goals.ids);
+  name.textContent = goals.custom
+    ? `${msg('optPresetCustomLabel', 'Custom')}${goals.ids.length ? ` (${label})` : ''}`
+    : label;
+  name.classList.toggle('is-custom', goals.custom);
 }
 
-function renderPresetCategories(weights) {
+function renderPresetCategories(weights, goalIds) {
   const host = document.getElementById('presetCats');
   if (!host) return;
   const cats = CATS.PRESET_CATEGORIES || [{ id: 'everyday', label: 'Everyday' }];
@@ -96,20 +90,24 @@ function renderPresetCategories(weights) {
       popupPresetCategory = cat.id;
       const grid = document.getElementById('presets');
       if (grid) grid.dataset.userTab = '1';
-      renderPresets(weights);
+      renderPresets(weights, goalIds);
     });
     host.appendChild(b);
   }
 }
 
-function renderPresets(weights) {
+let popupGoals = [];
+function renderPresets(weights, goalIds = popupGoals) {
   const host = document.getElementById('presets');
   if (!host) return;
-  const match = matchingPreset(weights);
-  if (match && match[1].category && !host.dataset.userTab) {
-    popupPresetCategory = match[1].category;
+  popupGoals = goalIds || [];
+  popupWeights = weights;
+  const goals = currentGoals(weights, popupGoals);
+  const first = goals.ids[0] || (goals.custom ? null : 'balanced');
+  if (first && CATS.PRESETS[first].category && !host.dataset.userTab) {
+    popupPresetCategory = CATS.PRESETS[first].category;
   }
-  renderPresetCategories(weights);
+  renderPresetCategories(weights, popupGoals);
 
   host.textContent = '';
   const entries = Object.entries(CATS.PRESETS)
@@ -119,7 +117,7 @@ function renderPresets(weights) {
     b.type = 'button';
     b.className = 'preset';
     b.dataset.preset = id;
-    b.setAttribute('aria-pressed', String(!!(match && match[0] === id)));
+    b.setAttribute('aria-pressed', String(goals.ids.includes(id) || (id === 'balanced' && !goals.ids.length && !goals.custom)));
     b.title = preset.note;
     const glyph = document.createElement('span');
     glyph.className = 'preset-glyph';
@@ -143,29 +141,30 @@ function renderPresets(weights) {
     tab.setAttribute('aria-selected', String(tab.dataset.category === popupPresetCategory));
   });
 
-  paintPopupActive(match);
+  paintPopupActive(goals);
   const note = document.getElementById('presetNote');
   if (note) {
-    note.textContent = match
-      ? match[1].note
-      : msg('popupPresetCustom', 'Custom weights — open Settings to fine-tune every dial.');
+    const last = goals.ids.at(-1);
+    note.textContent = goals.custom
+      ? msg('popupPresetCustom', 'Custom weights — open Settings to fine-tune every dial.')
+      : goals.ids.length > 1
+        ? msg('popupGoalsCombined', 'Goals combined: where two set the same dial, they are averaged.')
+        : CATS.PRESETS[last || 'balanced'].note;
   }
 }
 
+// A goal card toggles that goal; the weights become the average of everything selected.
+let popupWeights = null;
 function applyPreset(id) {
-  const preset = CATS.PRESETS[id];
-  if (!preset) return;
-  const raw = CATS.presetWeightMap
-    ? CATS.presetWeightMap(id)
-    : { ...CATS.DEFAULT_WEIGHTS, ...preset.weights };
-  const weights = PREFS.sanitizeScoring({ weights: raw }).weights;
-  if (preset.category) popupPresetCategory = preset.category;
+  if (!CATS.PRESETS[id]) return;
+  const goals = CATS.toggleGoal(currentGoals(popupWeights, popupGoals).ids, id);
+  const weights = PREFS.sanitizeScoring({ weights: CATS.goalWeights(goals) }).weights;
   const host = document.getElementById('presets');
   if (host) delete host.dataset.userTab;
-  persist({ weights }, ok => { if (ok) renderPresets(weights); });
+  persist({ weights, goals }, ok => { if (ok) renderPresets(weights, goals); });
 }
 
-chrome.storage.local.get([...KEYS, 'weights'], options => {
+chrome.storage.local.get([...KEYS, 'weights', 'goals'], options => {
   const toggles = cleanToggles(options);
   const healed = {};
   for (const key of KEYS) {
@@ -183,7 +182,7 @@ chrome.storage.local.get([...KEYS, 'weights'], options => {
     });
   }
   paintMaster(toggles.enabled);
-  renderPresets(options.weights);
+  renderPresets(options.weights, options.goals);
 
   const fallback = document.getElementById('useOpenFoodFacts');
   chrome.permissions.contains(OFF_PERMISSION, hasPermission => {
@@ -456,7 +455,7 @@ chrome.storage.onChanged.addListener(changes => {
     const fallback = document.getElementById('useOpenFoodFacts');
     if (fallback && !fallback.disabled) fallback.checked = isOn('useOpenFoodFacts', changes.useOpenFoodFacts.newValue);
   }
-  if (changes.weights) renderPresets(changes.weights.newValue);
+  if (changes.weights || changes.goals) chrome.storage.local.get(['weights', 'goals'], o => renderPresets(o.weights, o.goals));
   if (changes.popupShowWhy) paintWhy(changes.popupShowWhy.newValue === true);
   if (Object.keys(changes).some(k => /^(s|p|off):/.test(k) || ['weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sheetIndexRev', 'producerIndexRev', 'compareA', 'compareB'].includes(k))) {
     paintCacheCount();
@@ -468,6 +467,10 @@ chrome.storage.onChanged.addListener(changes => {
 document.getElementById('openSettings').addEventListener('click', e => {
   e.preventDefault();
   chrome.runtime.openOptionsPage();
+});
+document.getElementById('openSetup').addEventListener('click', e => {
+  e.preventDefault();
+  chrome.tabs.create({ url: chrome.runtime.getURL('src/options/welcome.html') });
 });
 
 // Straight to the settings that fetch from Amazon, and the note on which stores it can reach.

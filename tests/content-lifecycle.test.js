@@ -443,3 +443,24 @@ test('no notice once seen, for hover scoring, or while paused', () => {
   paused.h.enqueue(paused.tile, 'B000000001');
   assert.equal(paused.notices.filter(n => n.id === 'air-auto-notice').length, 0);
 });
+
+test('a score from a saved reading survives the next Amazon page update', () => {
+  const row = cachedRow('B000000001', { via: 'label-ocr', input: { name: 'Kefir', ingredients_text: 'lowfat milk, cane sugar' } });
+  const w = cacheSetup({ local: { [PC.localKey('amazon.com', 'B000000001')]: { ...row, t: Date.parse(row.scanned_at) } } });
+  const removed = [];
+  w.context.chrome.storage.local.remove = (k, cb) => { removed.push(k); cb?.(); };
+  w.context.AIR.extract.extract = () => ({ ok: false, title: 'Kefir', asin: 'B000000001' });
+  // Amazon's card carries the product NAME where the list should be (the Lifeway case): readable
+  // text, not an ingredient list. The old code compared it with the saved reading and re-read.
+  const realQuery = w.context.document.querySelector;
+  w.context.document.querySelector = sel => Object.assign(realQuery(sel) || {},
+    { innerText: 'Lifeway Lowfat Kefir, Strawberry, 32 Ounce, 11g Protein' });
+  w.h.scoreCurrentPage();
+  assert.equal(w.host.dataset.airState, 'scored');
+  const renders = w.rendered.length;
+  const removals = removed.length;
+  for (let i = 0; i < 3; i++) w.h.scoreCurrentPage();   // ad refresh, carousel, lazy image
+  assert.equal(w.host.dataset.airState, 'scored', 'not replaced by the failure card');
+  assert.equal(w.rendered.length, renders, 'not re-rendered either');
+  assert.equal(removed.length, removals, 'the saved score is not deleted by a later update');
+});
