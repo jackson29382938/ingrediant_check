@@ -13,7 +13,7 @@ that check is not complete yet.
 
 | Store | Status | Implemented | Automated checks | Live checked | Notes |
 |---|---|---|---|---|---|
-| Amazon | supported | yes | pass (`npm test`, `npm run harness:ci`) | amazon.com product and search pages, 2026-09-05 ([history/LIVE-TEST-2026-09-05.md](history/LIVE-TEST-2026-09-05.md)) | Only amazon.com has been live checked. The other 20 Amazon stores share its code and markup but were not checked one by one. |
+| Amazon | supported | yes | pass (`npm test`, `npm run harness:ci`) | amazon.com product and search pages, 2026-09-05 and again 2026-09-25, including label-photo OCR, Open Food Facts and the shared database ([VERIFY.md](VERIFY.md)) | Only amazon.com has been live checked. The other 20 Amazon stores share its code and markup but were not checked one by one. |
 | Target | preview | yes, 2026-09-25 (`src/stores/target.js`, `src/content/retailer.js`) | pass (`tests/target.test.js`, `tests/stores.test.js`) | **partly**, 2026-09-25: live product and search pages were read correctly, but behind Target's bot check | See *Target* below. Needs one check in your own Chrome to become supported. |
 | Walmart | planned | no | — | **blocked** 2026-09-25 | Every page answered with Walmart's "Robot or human?" challenge. Not implemented. |
 | Costco | planned | no | — | **blocked** 2026-09-25 | Product and search pages would not render (bot management script blocked, page scripts 404). Not implemented. |

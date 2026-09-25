@@ -72,12 +72,16 @@ These are different kinds of evidence. Only the second kind says anything about 
 
 | Date | Store | What was seen | Source |
 |---|---|---|---|
+| 2026-09-25 | amazon.com | Lifeway kefir `B00LOAW7U6`: 31 Poor from the label photo and 30 Poor from Open Food Facts. Two independent readings agree | [VERIFY.md](VERIFY.md) live record |
+| 2026-09-25 | amazon.com | Grocery search "organic rolled oats": 20 tiles scored 95–97 from `nic-ingredients-content`, several `?` where no list was published | same |
+| 2026-09-25 | target.com | Avocado-oil chips 96, organic oats 95 from *Label info*. Read behind Target's bot check | [STORES.md](STORES.md) |
 | 2026-09-24 | amazon.com | "The low-fat kefir" (product not named) scored 31 at default weights and 44 under Weight loss + Vitamins & minerals; the score held through 30 s of page updates | Reported in the goals commit (`bcfcc87`). Not re-checked here. |
 | 2026-09-05 | amazon.com | Lifeway kefir `B00LOAW7U6`: blurb refused with fallbacks off; 29 Poor from the label photo (before the `web_accessible_resources` change) | [history/LIVE-TEST-2026-09-05.md](history/LIVE-TEST-2026-09-05.md) |
 | 2026-09-05 | amazon.com | Organic-oats grocery search scored tiles; running-shoes search showed nothing | same |
 
-None of these were captured as corpus entries, so none can be replayed. No live observation exists for
-any non-English Amazon store, for Open Food Facts, or for the shared database.
+None of these were captured as corpus entries, so none can be replayed. The Target chips and oats
+lists are kept as sanitized page fixtures (`tests/pages/target-p-*.html`), which test reading, not
+score accuracy. No live observation exists for any non-English Amazon store.
 
 ## By extraction source
 
@@ -89,8 +93,10 @@ any non-English Amazon store, for Open Food Facts, or for the shared database.
 | `heading-scan:*`, `scope:*`, `line-*` | `tests/pages.test.js` (SE expander, TR inline), `tests/ocr.test.js` | .se layout built by hand from a captured shape, not a live capture |
 | `feature-bullets` | `tests/pages.test.js` (Lay's placeholder case) | Lay's `B0005Z6FYA` shape seen live |
 | `label-ocr` | `tests/ocr.test.js`, the OCR smoke in `harness:ci` (no Amazon image) | Last seen live **before** `web_accessible_resources` was removed. Not rechecked since. See [VERIFY.md](VERIFY.md). |
-| `open-food-facts` | `tests/background.test.js` (fetch mocked) | **Never seen live.** Needs a permission grant on a real profile. |
-| shared database rows | `tests/product-cache.test.js`, `tests/background.test.js` | **Never seen live.** Needs the Apps Script deployed. |
+| `open-food-facts` | `tests/background.test.js` (fetch mocked) | Seen live 2026-09-25 with the host granted (kefir 30 Poor). The grant dialog itself was not exercised. |
+| shared database rows | `tests/product-cache.test.js`, `tests/background.test.js` | Seen live 2026-09-25: upload, read-back and diagnostics against the deployed Apps Script |
+| `label-ocr` (post-WAR) | as above | Seen live 2026-09-25 on the kefir (31 Poor) |
+| Target *Label info* | `tests/target.test.js` | Seen live 2026-09-25 behind Target's bot check |
 
 ## The coverage gate
 
