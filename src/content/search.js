@@ -260,6 +260,77 @@
     document.getElementById('air-throttle-notice')?.remove();
   }
 
+  // Automatic rating is on by default, and what it does is not visible from the tiles: each result
+  // it scores is a product-page request to this Amazon store, made with the reader's own Amazon
+  // sign-in. So the first time it is about to make one, the page says so once, next to the
+  // results, with the switch right there. It never waits on an answer: scoring carries on
+  // underneath, exactly as before, until the reader turns it off here or in the popup.
+  const AUTO_NOTICE_ID = 'air-auto-notice';
+  const AUTO_NOTICE_SEEN = 'autoScoreNoticeSeen';
+  let autoNoticeChecked = false;
+
+  function noticeButton(text, onClick) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = text;
+    b.style.cssText = 'margin:8px 8px 0 0;padding:4px 10px;border:1px solid #8d9096;border-radius:6px;'
+      + 'background:#fff;color:#0f1111;font:inherit;cursor:pointer;';
+    b.addEventListener('click', onClick);
+    return b;
+  }
+
+  function showAutoScoreNotice() {
+    if (document.getElementById(AUTO_NOTICE_ID)) return;
+    const el = document.createElement('div');
+    el.id = AUTO_NOTICE_ID;
+    el.setAttribute('role', 'status');
+    el.style.cssText = 'margin:12px 0;padding:12px 14px;border:1px solid #8fb4d9;border-radius:8px;'
+      + 'background:#eef5fb;color:#0f1111;font:13px/1.45 "Amazon Ember",sans-serif;';
+    const title = document.createElement('b');
+    title.style.display = 'block';
+    title.textContent = throttleCopy('autoNoticeTitle', 'Ingredient Check is rating these results');
+    const body = document.createElement('span');
+    body.textContent = throttleCopy('autoNoticeBody',
+      'To score a result, it requests that product\'s page from this Amazon store in the background, '
+      + 'signed in as you: a few at a time, at most 60 per results page. Amazon sees each request much as '
+      + 'if you had opened the product. You can change this at any time in the Ingredient Check toolbar popup.');
+    const done = values => {
+      el.remove();
+      try { chrome.storage.local.set(values); } catch (e) { /* extension reloaded */ }
+    };
+    el.appendChild(title);
+    el.appendChild(body);
+    el.appendChild(document.createElement('br'));
+    el.appendChild(noticeButton(throttleCopy('autoNoticeOff', 'Turn off automatic rating'),
+      () => done({ autoScoreSearch: false, [AUTO_NOTICE_SEEN]: true })));
+    el.appendChild(noticeButton(throttleCopy('autoNoticeOk', 'OK'), () => done({ [AUTO_NOTICE_SEEN]: true })));
+    // In priority order: one selector list would return <body> first, since it precedes the results
+    // in the document, and the notice would land above Amazon's header instead of beside the results.
+    const results = document.querySelector('#search') || document.querySelector('.s-main-slot');
+    if (results && results.parentNode) results.parentNode.insertBefore(el, results);
+    else if (document.body) document.body.insertBefore(el, document.body.firstChild);
+    else document.documentElement.appendChild(el);
+  }
+
+  // Asked once per page (and again after the notice is cleared), not once per tile.
+  function noteAutoFetch() {
+    if (autoNoticeChecked) return;
+    autoNoticeChecked = true;
+    try {
+      chrome.storage.local.get(AUTO_NOTICE_SEEN, o => {
+        void chrome.runtime.lastError;
+        const { state } = P();
+        if ((o && o[AUTO_NOTICE_SEEN]) || !state.enabled || !state.autoScoreSearch || queue.throttled) return;
+        showAutoScoreNotice();
+      });
+    } catch (e) { /* extension reloaded under the page */ }
+  }
+
+  function clearAutoScoreNotice() {
+    autoNoticeChecked = false;
+    document.getElementById(AUTO_NOTICE_ID)?.remove();
+  }
+
   function pauseForThrottle() {
     if (queue.throttled) return;
     queue.throttled = true;
@@ -310,7 +381,7 @@
       return;
     }
     queue.seen.add(asin);
-    if (!front) queue.fetches++;
+    if (!front) { queue.fetches++; noteAutoFetch(); }
     const job = { tile, asin, epoch: queue.epoch, url: location.href };
     if (front) queue.pending.unshift(job); else queue.pending.push(job);
     pump();
@@ -450,6 +521,7 @@
   function clearBadges() {
     const { BADGE_ATTR } = P();
     root.AIR.hoverCard?.close();
+    clearAutoScoreNotice();
     document.querySelectorAll('.air-badge').forEach(b => b.remove());
     document.querySelectorAll(`[${BADGE_ATTR}]`).forEach(tile => tile.removeAttribute(BADGE_ATTR));
     for (const ac of hoverAborts) ac.abort();
@@ -461,7 +533,7 @@
     queue, TILE_FAIL_LIMIT, MAX_AUTO_FETCHES,
     searchAllowed, resetSearchGate, standDown, badgeSearchResults,
     armHoverPass, armAutoScorePass, enqueue, scoreTile, cancelTileWork, resolveTiles,
-    pauseForThrottle, clearBadges, paintBadge,
+    pauseForThrottle, clearBadges, paintBadge, AUTO_NOTICE_ID, AUTO_NOTICE_SEEN,
   };
   root.AIR.search = search;
   if (typeof module !== 'undefined' && module.exports) module.exports = search;

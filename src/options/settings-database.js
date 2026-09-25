@@ -1,8 +1,10 @@
 // Shared database, diagnostics, and settings online (docs/SETTINGS-SYNC.md, docs/CACHE.md).
-// Loaded after settings.js so flash/persist/msg/PREFS/DB_KEYS exist. There are no URLs to paste:
+// Loaded after settings.js so flash/persist/msg/PREFS exist. There are no URLs to paste:
 // the endpoint is a constant of the build, and an empty one means everything stays on this computer.
 
 const ONLINE = !!PREFS.endpoint();
+// The toggles this section owns. They go online, so they live here beside what they send.
+const DB_KEYS = ['sharedCache', 'shareContributions', 'sendDiagnostics', 'settingsBackup'];
 
 function say(id, text, kind) {
   const el = document.getElementById(id);

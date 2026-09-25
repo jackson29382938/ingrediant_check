@@ -209,8 +209,132 @@ async function run() {
         return nums.includes('74');
       }, { timeout: 5000 });
       console.log('  ok  popup compare →', cmp.nums.join(' vs '), `(${cmp.options} cached, B→74)`);
+
+      // The Amazon-request options must say so without "Why these matter" being opened.
+      const net = await comparePage.evaluate(() => {
+        const shown = el => !!el && getComputedStyle(el).display !== 'none' && el.getClientRects().length > 0;
+        const line = id => document.getElementById(id).closest('label').querySelector('.net');
+        return {
+          auto: shown(line('autoScoreSearch')), hover: shown(line('hoverScore')),
+          link: shown(document.getElementById('openNetwork')),
+          longHidden: !shown(document.getElementById('autoScoreSearch').closest('label').querySelector('.d')),
+        };
+      });
+      if (!net.auto || !net.hover || !net.link || !net.longHidden) {
+        throw new Error(`popup network disclosure: ${JSON.stringify(net)}`);
+      }
+      console.log('  ok  popup names Amazon requests up front (auto-rate, hover, access link)');
     } finally {
       await comparePage.close();
+    }
+
+    // Popup on a Target tab: Chrome hides the address (no host permission), so the card comes from
+    // the content script's own reply, validated like a cached score.
+    const targetPopup = await browser.newPage();
+    try {
+      await targetPopup.addInitScript(({ v }) => {
+        const data = {};
+        window.chrome = {
+          runtime: { lastError: null, getManifest: () => ({ version: v }), openOptionsPage() {} },
+          i18n: { getMessage: () => '' },
+          tabs: {
+            query: (q, cb) => cb([{ id: 7 }]),
+            // Built in the page, where AIR.db.scoreCache exists, so the fingerprint is the real one.
+            sendMessage: async () => ({
+              schema: AIR.db.scoreCache.SCHEMA, v, t: Date.now() - 1000, store: 'target.com', asin: '16600402',
+              prefs: AIR.db.scoreCache.fingerprint({}, 'page'), score: 96, verdict: 'Excellent', nova: 3,
+              source: 'page', provenanceSource: '', name: 'Boulder Canyon Avocado Oil Chips' }),
+          },
+          permissions: { contains: (p, cb) => cb(false) },
+          storage: { onChanged: { addListener() {} }, local: {
+            get(keys, cb) { const r = {}; if (typeof cb === 'function') cb(r); return Promise.resolve(r); },
+            set(values, cb) { Object.assign(data, values); if (typeof cb === 'function') cb(); return Promise.resolve(); },
+          } },
+        };
+      }, { v: version });
+      await targetPopup.goto(`${base}/src/options/popup.html`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await targetPopup.waitForFunction(() => !document.getElementById('pageScore').hidden, { timeout: 8000 });
+      const card = await targetPopup.evaluate(() => document.getElementById('pageScore').innerText.replace(/\s+/g, ' '));
+      if (!/This page · Target/i.test(card) || !/96/.test(card)) throw new Error(`target popup card: ${card}`);
+      console.log('  ok  popup → Target tab card from the content script\'s reply:', card.trim());
+    } finally {
+      await targetPopup.close();
+    }
+
+    // Settings: the same two switches, their explanation, and the stores named from the manifest.
+    const settingsPage = await browser.newPage();
+    try {
+      await settingsPage.addInitScript(({ hosts }) => {
+        const data = {};
+        window.__stored = data;
+        window.chrome = {
+          runtime: { lastError: null, getManifest: () => ({ version: '0', host_permissions: hosts }),
+            sendMessage: (m, cb) => { if (typeof cb === 'function') cb(undefined); } },
+          i18n: { getMessage: () => '' },
+          storage: {
+            onChanged: { addListener() {} },
+            local: {
+              get(keys, cb) {
+                const result = keys == null ? { ...data }
+                  : Object.fromEntries((Array.isArray(keys) ? keys : [keys]).map(k => [k, data[k]]));
+                if (typeof cb === 'function') cb(result);
+                return Promise.resolve(result);
+              },
+              set(values, cb) { Object.assign(data, values); if (typeof cb === 'function') cb(); return Promise.resolve(); },
+            },
+          },
+        };
+      }, { hosts: manifest.host_permissions });
+      await settingsPage.goto(`${base}/src/options/options.html`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await settingsPage.waitForFunction(() => /amazon\.co\.jp/.test(document.getElementById('amazonStores').textContent),
+        { timeout: 8000 });
+      const before = await settingsPage.evaluate(() => ({
+        stores: document.getElementById('amazonStores').textContent.split(', ').length,
+        auto: document.getElementById('autoScoreSearch').checked,
+        hover: document.getElementById('hoverScore').checked,
+      }));
+      if (before.stores !== manifest.host_permissions.length || !before.auto || before.hover) {
+        throw new Error(`settings search scoring: ${JSON.stringify(before)}`);
+      }
+      await settingsPage.click('#autoScoreSearch');
+      await settingsPage.waitForFunction(() => window.__stored.autoScoreSearch === false, { timeout: 5000 });
+      console.log(`  ok  settings → auto-rate and hover switches, ${before.stores} stores from the manifest, saves off`);
+
+      // Store wishlist: the list comes from the registry, and the draft link only exists once valid.
+      const idle = await settingsPage.evaluate(() => ({
+        rows: [...document.querySelectorAll('#storeList li')].map(li => li.querySelector('strong').textContent
+          + ':' + li.querySelector('.store-badge').className.replace('store-badge ', '')),
+        href: document.getElementById('reqSend').getAttribute('href'),
+        disabled: document.getElementById('reqSend').getAttribute('aria-disabled'),
+      }));
+      if (idle.rows.join() !== 'Amazon:supported,Target:preview,Walmart:planned,Costco:planned'
+        || idle.href !== '#' || idle.disabled !== 'true') throw new Error(`stores idle: ${JSON.stringify(idle)}`);
+      await settingsPage.fill('#reqName', 'Marks & Spencer');
+      await settingsPage.fill('#reqUrl', 'https://www.marksandspencer.com/food/p/12345?utm_source=x');
+      const ready = await settingsPage.evaluate(() => ({
+        href: document.getElementById('reqSend').getAttribute('href'),
+        disabled: document.getElementById('reqSend').getAttribute('aria-disabled'),
+        preview: document.getElementById('reqPreview').textContent,
+        notes: document.getElementById('reqNotes').textContent,
+      }));
+      if (!ready.href.startsWith('mailto:jackson29382938@gmail.com?subject=Store%20request%3A%20Marks%20%26%20Spencer&body=')
+        || ready.disabled !== 'false' || /12345|utm/.test(ready.href + ready.preview)
+        || !/Website: https:\/\/www\.marksandspencer\.com\n/.test(ready.preview) || !/removed/.test(ready.notes)) {
+        throw new Error(`stores ready: ${JSON.stringify(ready)}`);
+      }
+      await settingsPage.fill('#reqUrl', 'javascript:alert(1)');
+      const bad = await settingsPage.evaluate(() => ({
+        href: document.getElementById('reqSend').getAttribute('href'),
+        error: document.getElementById('reqUrlError').textContent,
+      }));
+      if (bad.href !== '#' || !bad.error) throw new Error(`stores invalid: ${JSON.stringify(bad)}`);
+      await settingsPage.fill('#reqName', 'Amazon');
+      await settingsPage.fill('#reqUrl', '');
+      const dup = await settingsPage.evaluate(() => document.getElementById('reqNameError').textContent);
+      if (!/already works/.test(dup)) throw new Error(`stores duplicate: ${dup}`);
+      console.log('  ok  settings → store list from the registry; request draft previewed, trimmed to the site, refused when invalid');
+    } finally {
+      await settingsPage.close();
     }
   } finally {
     await browser.close();

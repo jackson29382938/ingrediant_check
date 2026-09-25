@@ -265,7 +265,8 @@
             typeof result.coverage === 'number' && result.coverage < 1
               ? ' · ' + esc(t('footCoverage', '$1% of the list recognised', Math.round(result.coverage * 100))) : ''}</span>
           <span><button class="copy" type="button" data-copy="${esc(copyLine)}">${esc(t('copyScore', 'Copy score'))}</button>
-            · ${esc(sourceLabel(meta))} · <button class="report" type="button">${esc(t('reportLink', 'Looks wrong?'))}</button></span>
+            · ${esc(sourceLabel(meta))}${meta.report === false ? ''
+              : ` · <button class="report" type="button">${esc(t('reportLink', 'Looks wrong?'))}</button>`}</span>
         </div>
         <p class="disclaim">${esc(t('disclaimer',
           'A guide to what is on the label, not health advice. Ingredient text can be incomplete or out of date — check the package before you rely on this.'))}</p>
@@ -385,6 +386,21 @@
     </div>`;
   }
 
+  // A neutral message with one optional action, for a store page that needs something from the
+  // visitor before it can be read (Target's collapsed "Label info"). The action is a button in the
+  // panel; the page itself is only touched when the visitor presses it.
+  function renderNotice(meta) {
+    return `
+    <style>${CSS}</style>
+    <div class="card" style="--fg:#565959;--bg:#f7f8f8;--ring:#d5d9d9">
+      <div class="fail" role="status" aria-live="polite">
+        <b>${esc(meta.title || '')}</b>
+        ${esc(meta.body || '')}
+        ${meta.action ? `<div class="paste"><button class="go notice-action" type="button">${esc(meta.action)}</button></div>` : ''}
+      </div>
+    </div>`;
+  }
+
   // Honest failure state. Never fabricate a score.
   function renderFailure(meta) {
     return `
@@ -400,6 +416,8 @@
           ? esc(t('failOcr', 'The label photo was checked too, and no ingredient list could be read from it. '))
           : meta && meta.lookupAttempted
           ? esc(t('failLookup', "The optional barcode lookup didn't return an ingredient list. "))
+          : meta && meta.storeName
+          ? esc(t('failNoTextStore', "$1 doesn't publish an ingredient list for every product. ", meta.storeName))
           : esc(t('failNoText', "Amazon doesn't always publish them as text — sometimes they only exist inside the label photo. "))}
         ${esc(t('failPastePrompt', "Paste them here and I'll score it."))}
         <div class="paste">
@@ -530,6 +548,6 @@
     return shadow;
   }
 
-  root.AIR.panel = { render, renderBreakdown, renderLoading, renderFailure, renderNotFood, mount, shadowOf, BAND_COLOR, NOVA_TEXT, pasteLooksValid, t };
+  root.AIR.panel = { render, renderBreakdown, renderLoading, renderFailure, renderNotFood, renderNotice, mount, shadowOf, BAND_COLOR, NOVA_TEXT, pasteLooksValid, t };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.AIR.panel;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

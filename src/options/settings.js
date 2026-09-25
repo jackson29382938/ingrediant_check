@@ -32,7 +32,6 @@ function msg(key, fallback, sub) {
 })();
 
 const state = PREFS.sanitizeScoring({});
-const DB_KEYS = ['sharedCache', 'shareContributions', 'sendDiagnostics', 'settingsBackup'];
 let saveTimer = null;
 let writing = false;
 
@@ -550,30 +549,60 @@ function renderAll() {
   markPresetDirty();
 }
 
+// A checkbox for one of the popup's toggles (prefs.TOGGLE_DEFAULTS). It shows the stored value,
+// follows the popup if that flips it while this page is open, and saves on change. `onPaint` runs
+// with the value whenever it is shown or changed, for controls that depend on it.
+function bindToggle(id, onPaint) {
+  const box = document.getElementById(id);
+  if (!box) return null;
+  const show = on => { box.checked = on; if (onPaint) onPaint(on); };
+  const read = () => chrome.storage.local.get(id, o => show(PREFS.sanitizeToggles(o)[id]));
+  read();
+  chrome.storage.onChanged.addListener(changes => { if (changes[id]) read(); });
+  box.addEventListener('change', () => {
+    if (onPaint) onPaint(box.checked);
+    persist({ [id]: box.checked }, ok => { if (ok) flash(msg('optSaved', 'Saved')); });
+  });
+  return box;
+}
+
+// "Amazon access" names the stores from the manifest, so the list cannot drift from what Chrome
+// actually granted. "*://*.amazon.co.uk/*" -> "amazon.co.uk".
+function amazonStores(manifest) {
+  return ((manifest && manifest.host_permissions) || [])
+    .map(p => (String(p).match(/^\*:\/\/\*\.(amazon\.[a-z.]+)\/\*$/) || [])[1])
+    .filter(Boolean);
+}
+
+// Results pages: the two options that request product pages from Amazon, and which stores it can
+// reach. They are in the popup too; they are here so the explanation sits next to the switch.
+function wireSearchScoring() {
+  bindToggle('autoScoreSearch');
+  bindToggle('hoverScore');
+  const list = document.getElementById('amazonStores');
+  let stores = [];
+  try { stores = amazonStores(chrome.runtime.getManifest()); } catch (e) { /* not an extension page */ }
+  if (list && stores.length) list.textContent = stores.join(', ');
+}
+
 // Results-page breakdown: the toggle, how much it shows, and how long a hover waits before it opens.
 function wireBreakdown() {
-  const box = document.getElementById('hoverBreakdown');
   const detail = document.getElementById('breakdownDetail');
   const delay = document.getElementById('breakdownDelayMs');
   const val = document.getElementById('breakdownDelayVal');
-  if (!box || !detail || !delay) return;
+  if (!document.getElementById('hoverBreakdown') || !detail || !delay) return;
   const paintDelay = ms => { if (val) val.textContent = `${(ms / 1000).toFixed(ms % 100 ? 2 : 1)} s`; };
+  bindToggle('hoverBreakdown', on => { detail.disabled = delay.disabled = !on; });
   const paint = o => {
-    const shown = { ...PREFS.sanitizeToggles(o), ...PREFS.sanitizeDisplay(o) };
-    box.checked = shown.hoverBreakdown;
+    const shown = PREFS.sanitizeDisplay(o);
     detail.value = shown.breakdownDetail;
     delay.value = String(shown.breakdownDelayMs);
     paintDelay(shown.breakdownDelayMs);
-    detail.disabled = delay.disabled = !shown.hoverBreakdown;
   };
-  const keys = ['hoverBreakdown', 'breakdownDetail', 'breakdownDelayMs'];
+  const keys = ['breakdownDetail', 'breakdownDelayMs'];
   chrome.storage.local.get(keys, paint);
   chrome.storage.onChanged.addListener(changes => {
     if (keys.some(k => changes[k])) chrome.storage.local.get(keys, paint);
-  });
-  box.addEventListener('change', () => {
-    detail.disabled = delay.disabled = !box.checked;
-    persist({ hoverBreakdown: box.checked }, ok => { if (ok) flash(msg('optSaved', 'Saved')); });
   });
   detail.addEventListener('change', () =>
     persist(PREFS.sanitizeDisplay({ breakdownDetail: detail.value, breakdownDelayMs: Number(delay.value) }),
@@ -594,6 +623,7 @@ function startSettingsPage() {
     wireCatTools();
     wireFileActions();
     wireDatabase();
+    wireSearchScoring();
     wireBreakdown();
 
     document.getElementById('avoidList').addEventListener('input', e => {

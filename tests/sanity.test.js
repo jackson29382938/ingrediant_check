@@ -85,6 +85,25 @@ check('every chrome.runtime.sendMessage type in src is registered in the worker 
   assert.strictEqual(missing.length, 0, `unregistered message types: ${missing.join(', ')}`);
 });
 
+check('settings messages are sent only from the settings page', () => {
+  // The worker accepts SETTINGS_MESSAGE_TYPES from options.html alone (src/worker/messages.js).
+  // A caller anywhere else would be refused in production without an error, so fail here instead.
+  const types = [...read('src/worker/messages.js').match(/SETTINGS_MESSAGE_TYPES\s*=\s*new Set\(\[([\s\S]*?)\]\)/)[1]
+    .matchAll(/'([A-Za-z0-9_]+)'/g)].map(m => m[1]);
+  assert.ok(types.includes('flushDiagnostics') && types.includes('accountSave'), `parse: ${types}`);
+  const allowed = new Set(['src/worker/messages.js', 'src/background.js', 'src/options/settings-database.js']);
+  for (const f of srcFiles) {
+    const p = rel(f).split(path.sep).join('/');
+    if (allowed.has(p)) continue;
+    const raw = fs.readFileSync(f, 'utf8');
+    for (const t of types) assert.ok(!raw.includes(`'${t}'`), `${p} mentions settings message '${t}'`);
+  }
+  for (const page of ['src/options/popup.html', 'src/options/welcome.html']) {
+    assert.ok(!read(page).includes('settings-database.js'), `${page} loads settings-database.js`);
+  }
+  assert.ok(read('src/options/options.html').includes('settings-database.js'));
+});
+
 check('content scripts split page / product / search before main', () => {
   const iPage = declared.indexOf('src/content/page.js');
   const iProduct = declared.indexOf('src/content/product.js');
@@ -295,6 +314,33 @@ check('every message has a non-empty string', () => {
     .filter(([, v]) => !v || typeof v.message !== 'string' || !v.message.trim())
     .map(([k]) => k);
   assert.strictEqual(bad.length, 0, `empty messages: ${bad.join(', ')}`);
+});
+
+check('Amazon access and default-on auto-rating are disclosed where users look', () => {
+  // The manifest grants every store below at install. Privacy copy that names fewer stores, or a
+  // settings page without the switch beside its explanation, under-states what the extension can do.
+  const hosts = JSON.parse(read('manifest.json')).host_permissions;
+  const privacy = read('docs/PRIVACY.md');
+  const stores = hosts.map(h => (h.match(/^\*:\/\/\*\.amazon(\.[a-z.]+)\/\*$/) || [])[1]);
+  assert.ok(stores.every(Boolean), `unexpected host permission: ${hosts.join(', ')}`);
+  // Named as "amazon.com" or, further along the list, as ".co.uk," / ".com.br and" / ".co.jp)".
+  const named = tld => {
+    const t = tld.replace(/\./g, '\\.');
+    return new RegExp(`(?:amazon|\\s)${t}(?:,|\\)|\\s+and\\b)`).test(privacy);
+  };
+  const missing = stores.filter(tld => !named(tld));
+  assert.deepEqual(missing, [], `docs/PRIVACY.md does not name ${missing.join(', ')}`);
+  assert.match(privacy, new RegExp(`the ${hosts.length} Amazon stores`), 'PRIVACY.md store count');
+  assert.match(privacy, /Rate every search result is on by default/);
+  const options = read('src/options/options.html');
+  for (const id of ['autoScoreSearch', 'hoverScore', 'amazonStores']) {
+    assert.match(options, new RegExp(`id="${id}"`), `settings page lost #${id}`);
+  }
+  const popup = read('src/options/popup.html');
+  for (const key of ['popupAutoScoreNet', 'popupHoverNet', 'popupNetworkLink']) {
+    assert.match(popup, new RegExp(`data-i18n="${key}"`), `popup lost ${key}`);
+  }
+  assert.match(popup, /\.net\{display:block/, 'the popup network line must not hide behind "Why these matter"');
 });
 
 if (failed) { console.error('\n' + failed + ' failed'); process.exit(1); }

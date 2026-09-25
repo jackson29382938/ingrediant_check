@@ -14,8 +14,8 @@
 if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./_module.js');
 
 (function () {
-  const RULES_REVISION = '2026-09-24.1';
-  const RULES_HASH = '7c8e3d60-152832';
+  const RULES_REVISION = '2026-09-25';
+  const RULES_HASH = '6bf27ff2-153217';
   const _exports = AIRmodule('revision', { RULES_REVISION, RULES_HASH });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 })();

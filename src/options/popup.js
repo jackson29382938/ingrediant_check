@@ -254,14 +254,74 @@ function isAmazonUrl(url) {
   catch (e) { return false; }
 }
 
+// The product id on a page the extension runs on: the ASIN on Amazon, the store adapter's id
+// elsewhere (Target's TCIN). null when the extension does not run on this page at all.
+function productOnPage(url) {
+  if (isAmazonUrl(url)) return asinFromUrl(url);
+  let host = '';
+  try { host = new URL(url).hostname; } catch (e) { return null; }
+  const adapter = Object.values(AIR.storeAdapters || {}).find(a => a.matchesHost(host));
+  return adapter ? adapter.productId(url) : null;
+}
+
+// The "This page" card from a content script's own answer (see paintPageScore). The entry is the
+// score the page just computed, validated like any cached score before it is shown.
+function paintStoreCard(card, live, adapter) {
+  let version = '';
+  try { version = chrome.runtime.getManifest().version; } catch (e) { /* ignore */ }
+  chrome.storage.local.get(['weights', 'foodOnly', 'sheetIndexRev', 'producerIndexRev'], obj => {
+    if (!CACHE.valid(live, { store: live.store, asin: live.asin, version, prefs: obj, allowManual: true })) {
+      card.hidden = true;
+      return;
+    }
+    const c = bandColor(live.score);
+    card.hidden = false;
+    card.textContent = '';
+    card.className = 'page-score';
+    card.style.setProperty('--fg', c.fg);
+    card.style.setProperty('--bg', c.bg);
+    card.style.setProperty('--ring', c.ring);
+    const kicker = document.createElement('div');
+    kicker.className = 'ps-kicker';
+    kicker.textContent = `${msg('popupThisPage', 'This page')} · ${adapter.name}`;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:10px;align-items:center';
+    const num = document.createElement('div');
+    num.className = 'ps-num';
+    num.textContent = String(live.score);
+    const meta = document.createElement('div');
+    const verdict = document.createElement('div');
+    verdict.className = 'ps-verdict';
+    verdict.textContent = live.verdict || '';
+    const sub = document.createElement('div');
+    sub.className = 'ps-sub';
+    sub.textContent = [NOVA_SHORT[live.nova], live.name].filter(Boolean).join(' · ');
+    meta.append(verdict, sub);
+    row.append(num, meta);
+    card.append(kicker, row);
+  });
+}
+
 function paintPageScore() {
   const card = document.getElementById('pageScore');
   if (!card || !chrome.tabs || typeof chrome.tabs.query !== 'function') return;
-  chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+  chrome.tabs.query({ active: true, currentWindow: true }, async tabs => {
     const tab = tabs && tabs[0];
-    const url = tab && tab.url;
-    if (!url || !isAmazonUrl(url)) { card.hidden = true; return; }
-    const asin = asinFromUrl(url);
+    let url = tab && tab.url;
+    // A store the extension reaches only through a content script (Target) grants no host
+    // permission, so Chrome hides the tab's address from the popup. Its content script answers for
+    // the page instead; with no answer, the page is one the extension does not run on.
+    if (!url && tab && typeof tab.id === 'number') {
+      let live = null;
+      try { live = await chrome.tabs.sendMessage(tab.id, { type: 'currentPageScore' }); } catch { /* no content script */ }
+      if (live && live.store && live.asin) url = `https://www.${live.store}/`;
+      if (url) {
+        const adapter = Object.values(AIR.storeAdapters || {}).find(a => a.matchesHost(new URL(url).hostname));
+        if (adapter) return paintStoreCard(card, live, adapter);
+      }
+    }
+    const asin = url ? productOnPage(url) : null;
+    if (asin == null) { card.hidden = true; return; }
     let version = '';
     try { version = chrome.runtime.getManifest().version; } catch (e) { /* ignore */ }
     card.hidden = false;
@@ -471,6 +531,24 @@ document.getElementById('openSettings').addEventListener('click', e => {
 document.getElementById('openSetup').addEventListener('click', e => {
   e.preventDefault();
   chrome.tabs.create({ url: chrome.runtime.getURL('src/options/welcome.html') });
+});
+
+// Straight to a settings section. openOptionsPage() cannot take a fragment; creating a tab needs no
+// extra permission.
+function openSettingsAt(section) {
+  const url = chrome.runtime.getURL('src/options/options.html#' + section);
+  if (chrome.tabs && typeof chrome.tabs.create === 'function') chrome.tabs.create({ url });
+  else chrome.runtime.openOptionsPage();
+}
+// The settings that fetch from Amazon, and the note on which stores it can reach.
+document.getElementById('openNetwork').addEventListener('click', e => {
+  e.preventDefault();
+  openSettingsAt('sec-rate');
+});
+// Where it works, what is planned, and the request form.
+document.getElementById('openStores').addEventListener('click', e => {
+  e.preventDefault();
+  openSettingsAt('sec-stores');
 });
 
 document.getElementById('toggleWhy').addEventListener('click', () => {

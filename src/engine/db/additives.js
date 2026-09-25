@@ -233,8 +233,12 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // Off for everyone by default (the plantDefense weight is 0). Only the animal-based goal counts
   // these, on the view that plant defence compounds (lectins, phytates, oxalates) are worth avoiding.
   // Anchored so nutmeg, coconut, pea protein and seed oils are not caught: oils have their own rules.
+  // The exclusions after a legume cover how stores write oil and lecithin, not only English:
+  // Turkish soy lecithin is "soya lesitini" and soy oil "soya yağı". Matched as a legume, the lecithin
+  // was also counted as recognised text, and that lifted a Turkish chocolate list over the coverage
+  // gate it had been declined by (tests/languages.test.js).
   const PLANTS = [
-    { m: /\b(?:beans?|lentils?|chickpeas?|garbanzos?|split peas|(?<!pea )peas\b|peanuts?|soy ?beans?|soya|edamame|tofu|tempeh)\b(?!\s+(?:oil|protein|lecithin))/i,
+    { m: /\b(?:beans?|lentils?|chickpeas?|garbanzos?|split peas|(?<!pea )peas\b|peanuts?|soy ?beans?|soya|edamame|tofu|tempeh)\b(?!\s+(?:oil|protein|lecithin|l[eé][cs]it|lecyt|ya[gğ]))/i,
       pts: 8, why: 'Legumes — lectins and phytates' },
     { m: /\b(?:almonds?|cashews?|walnuts?|pecans?|pistachios?|hazelnuts?|macadamias?|brazil nuts?|pine nuts?)\b(?!\s+(?:oil|milk))/i,
       pts: 6, why: 'Tree nuts — phytates and oxalates' },

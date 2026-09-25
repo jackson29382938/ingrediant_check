@@ -32,11 +32,12 @@ function setup() {
       body,
       getElementById: id => {
         if (id === 'air-badge-style') return {};
-        if (id === 'air-throttle-notice') return notices.find(n => n.id === 'air-throttle-notice' && n.isConnected) || null;
+        if (id === 'air-throttle-notice' || id === 'air-auto-notice') return notices.find(n => n.id === id && n.isConnected) || null;
         return host.isConnected ? host : null;
       },
       querySelector: sel => {
         if (sel === 'body' || /(^|,)\s*body\s*$/.test(sel)) return body;
+        if (sel === '#search' || sel === '.s-main-slot') return null;   // a product page: no results container
         return { parentNode: { insertBefore(next) { host = next; host.isConnected = true; } } };
       },
       querySelectorAll: s => s === '.air-badge' ? [...badges] : [],
@@ -54,11 +55,13 @@ function setup() {
           return {
             dataset: {}, isConnected: false, id: '', style: { cssText: '' }, textContent: '',
             setAttribute(k, v) { if (k === 'id') this.id = v; },
-            appendChild() {},
+            children: [],
+            appendChild(child) { this.children.push(child); },
             remove() { this.isConnected = false; },
           };
         }
-        return { style: {}, setAttribute() {}, remove() { badges.splice(badges.indexOf(this), 1); } };
+        return { tag, style: {}, setAttribute() {}, addEventListener(type, fn) { this.on = fn; },
+          remove() { badges.splice(badges.indexOf(this), 1); } };
       },
     },
     fetch: (url, options) => new Promise(resolve => fetches.push({ url, options, resolve })),
@@ -395,6 +398,50 @@ test('carousel cards with no title are never armed for auto-score', () => {
   c.AIR.search.armAutoScorePass();
   assert.deepEqual(observed, ['B000000010']);
   assert.equal(card.getAttribute('data-air-auto'), null, 'left unmarked, so a card that renders a title later is armed then');
+});
+
+test('the first automatic fetch explains itself once, and its button turns auto-rating off', () => {
+  const w = setup();
+  w.h.enqueue(w.tile, 'B000000001');
+  const notice = w.notices.find(n => n.id === 'air-auto-notice');
+  assert.ok(notice && notice.isConnected, 'no notice before the first automatic Amazon request');
+  // Informational only: the request is scheduled whether or not anyone answers the notice.
+  assert.equal(w.h.queue.fetches, 1);
+  assert.ok(w.timers.length > 0, 'scoring waited on the notice');
+  w.h.enqueue({ ...w.tile, getAttribute: () => 'B000000002' }, 'B000000002');
+  assert.equal(w.notices.filter(n => n.id === 'air-auto-notice').length, 1, 'shown once per page, not per tile');
+  const [off, ok] = notice.children.filter(c => c.tag === 'button');
+  assert.ok(off && ok, 'the notice needs a turn-off button and an OK button');
+  off.on();
+  assert.equal(notice.isConnected, false);
+  assert.deepEqual(JSON.parse(JSON.stringify(w.writes.at(-1))), { autoScoreSearch: false, autoScoreNoticeSeen: true });
+});
+
+test('OK dismisses the notice for good without touching the setting', () => {
+  const w = setup();
+  w.h.enqueue(w.tile, 'B000000001');
+  const notice = w.notices.find(n => n.id === 'air-auto-notice');
+  notice.children.filter(c => c.tag === 'button')[1].on();
+  assert.deepEqual(JSON.parse(JSON.stringify(w.writes.at(-1))), { autoScoreNoticeSeen: true });
+});
+
+test('no notice once seen, for hover scoring, or while paused', () => {
+  const seen = setup();
+  seen.context.chrome.storage.local.get = (keys, cb) => cb({ autoScoreNoticeSeen: true });
+  seen.h.enqueue(seen.tile, 'B000000001');
+  assert.equal(seen.h.queue.fetches, 1);
+  assert.equal(seen.notices.filter(n => n.id === 'air-auto-notice').length, 0);
+
+  const hover = setup();
+  hover.h.state.hoverScore = true;
+  hover.h.enqueue(hover.tile, 'B000000001', { front: true });
+  assert.equal(hover.notices.filter(n => n.id === 'air-auto-notice').length, 0,
+    'hover asks for one product the reader pointed at; the popup already says so');
+
+  const paused = setup();
+  paused.h.state.enabled = false;
+  paused.h.enqueue(paused.tile, 'B000000001');
+  assert.equal(paused.notices.filter(n => n.id === 'air-auto-notice').length, 0);
 });
 
 test('a score from a saved reading survives the next Amazon page update', () => {
