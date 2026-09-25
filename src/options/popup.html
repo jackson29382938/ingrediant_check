@@ -52,7 +52,7 @@
  .preset-snip{color:#565959;font-size:10px;font-weight:400;line-height:1.3;margin-top:2px;
    overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
  .preset-note{color:#565959;font-size:11px;margin:6px 0 0;line-height:1.35}
- .compare-block{margin:0 0 12px;padding-top:2px}
+ .compare-block{margin:14px 0 0;padding-top:10px;border-top:1px solid #eaeded}
  .compare-empty{color:#565959;font-size:11px;margin:0 0 8px;line-height:1.35}
  .compare-pick{display:flex;flex-direction:column;gap:3px;padding:6px 0;border-top:1px solid #eaeded;cursor:default}
  .compare-pick span{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#565959}
@@ -82,7 +82,7 @@
    .preset-cat[aria-selected="true"]{background:#f3f3f3;border-color:#f3f3f3;color:#0f1111}
    .preset-glyph{background:#1b1c1c;border-color:#3a3c3c;color:#f3f3f3}
    .preset-active-name.is-custom{color:#aeaeae}
-   .compare-pick,.compare-card{border-color:#3a3c3c}
+   .compare-pick,.compare-card,.compare-block{border-color:#3a3c3c}
    .compare-pick select{background:#1b1c1c;border-color:#3a3c3c;color:#f3f3f3}
    .compare-card{background:#232525}
    .compare-empty{color:#aeaeae}
@@ -93,17 +93,6 @@
  <h1 data-i18n="appName">Ingredient Check</h1>
  <div class="sub" data-i18n="popupTagline">Ingredient quality, additives and processing — scored on your computer.</div>
  <div id="pageScore" class="page-score" hidden></div>
- <div class="compare-block" id="compareBlock" hidden>
-   <div class="ps-kicker" data-i18n="popupCompare">Compare cached scores</div>
-   <p class="compare-empty" id="compareEmpty" data-i18n="popupCompareEmpty">Score two products on Amazon, then pick them here. Uses the cache only — no extra requests.</p>
-   <div id="comparePick" hidden>
-     <label class="compare-pick"><span data-i18n="popupCompareA">A</span>
-       <select id="compareA" aria-label="First cached score"></select></label>
-     <label class="compare-pick"><span data-i18n="popupCompareB">B</span>
-       <select id="compareB" aria-label="Second cached score"></select></label>
-     <div class="compare-grid" id="compareGrid"></div>
-   </div>
- </div>
  <label class="master"><input type="checkbox" id="enabled" checked><span><span class="t" data-i18n="popupShowRatings">Ingredient Check is on</span>
    <span class="d" data-i18n="popupShowRatingsD">The master switch. Off stops everything on Amazon pages — no panel,
    no badges, no page watching. Nothing below is forgotten.</span></span></label>
@@ -129,6 +118,9 @@
    <span class="net" data-i18n="popupHoverNet">Requests that product page from Amazon, signed in as you.</span>
    <span class="d" data-i18n="popupHoverD">Hover or tab to a search result for half a second and it requests that product
    page from Amazon to score it, with your Amazon sign-in. Only the result you point at.</span></span></label>
+ <label><input type="checkbox" id="unitPrice" checked><span><span class="t" data-i18n="popupUnitPrice">Price per ounce</span>
+   <span class="d" data-i18n="popupUnitPriceD">Adds "Price per ounce: Low to High" to Amazon's sort menu and price per ounce to the
+   sorted list, worked out from the results page. No extra requests.</span></span></label>
  <a href="#" id="openNetwork" data-i18n="popupNetworkLink">Amazon access and what is sent</a>
  <label><input type="checkbox" id="ocrLabels"><span><span class="t" data-i18n="popupOcr">Read label photos</span>
    <span class="d" data-i18n="popupOcrD">When a page has no readable ingredients, read them from the product's
@@ -155,6 +147,17 @@
    advice. Always read the label.</div>
  <button type="button" id="clear" data-i18n="popupClear">Clear cached scores</button>
  <p id="status" class="d" role="status" aria-live="polite" style="margin-top:8px;min-height:1.3em;display:block"></p>
+ <div class="compare-block" id="compareBlock" hidden>
+   <div class="ps-kicker" data-i18n="popupCompare">Compare cached scores</div>
+   <p class="compare-empty" id="compareEmpty" data-i18n="popupCompareEmpty">Score two products on Amazon, then pick them here. Uses the cache only — no extra requests.</p>
+   <div id="comparePick" hidden>
+     <label class="compare-pick"><span data-i18n="popupCompareA">A</span>
+       <select id="compareA" aria-label="First cached score"></select></label>
+     <label class="compare-pick"><span data-i18n="popupCompareB">B</span>
+       <select id="compareB" aria-label="Second cached score"></select></label>
+     <div class="compare-grid" id="compareGrid"></div>
+   </div>
+ </div>
  <p id="version" class="sub" style="margin:10px 0 0;font-size:10px;opacity:.7"></p>
  <script src="../engine/db/_module.js"></script>
  <script src="../engine/categories.js"></script>

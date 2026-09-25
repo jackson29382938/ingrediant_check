@@ -1,11 +1,11 @@
 const CACHE = AIR.db.scoreCache;
 const CATS = AIR.db.categories;
 const PREFS = AIR.db.prefs;
-const KEYS = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'hoverBreakdown', 'hoverScore', 'ocrLabels', 'useOpenFoodFacts'];
+const KEYS = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'hoverBreakdown', 'hoverScore', 'unitPrice', 'ocrLabels', 'useOpenFoodFacts'];
 // Every plain checkbox. useOpenFoodFacts is handled separately because it also drives an
 // optional-permission request. hoverScore was missing from this list, which left the
 // checkbox inert: it never loaded its stored value and never wrote one.
-const TOGGLE_KEYS = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'hoverBreakdown', 'hoverScore', 'ocrLabels'];
+const TOGGLE_KEYS = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'hoverBreakdown', 'hoverScore', 'unitPrice', 'ocrLabels'];
 const OFF_PERMISSION = { origins: ['https://world.openfoodfacts.org/*'] };
 let writing = false;
 

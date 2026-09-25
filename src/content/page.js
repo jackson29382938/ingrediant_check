@@ -23,9 +23,16 @@
   const cachePrefs = () => ({ ...state.cacheOptions, weights: state.prefs.weights, foodOnly: state.foodOnly });
   const storeHost = () => CACHE.normalizeStore(location.hostname);
   const cacheKey = asin => CACHE.key(location.hostname, asin);
+  // The speed setting (AIR.db.speed): how old a cached score or saved reading may be, and whether a
+  // shared-database reading may answer.
+  state.speedMode = 'balanced';
+  const BALANCED = { mode: 'balanced', maxAgeMs: CACHE.TTL_MS, autoFetches: 60, sharedDays: 30 };
+  const speed = () => (root.AIR.db.speed ? root.AIR.db.speed.profile(state.speedMode) : BALANCED);
   const usableCache = (hit, asin) => CACHE.valid(hit, {
-    store: location.hostname, asin, version: ENGINE_VERSION, prefs: cachePrefs(),
+    store: location.hostname, asin, version: ENGINE_VERSION, prefs: cachePrefs(), maxAgeMs: speed().maxAgeMs,
   });
+  const freshLocal = row => !root.AIR.db.productCache.stale(row, Date.now(), speed().maxAgeMs);
+  const sharedOk = row => !!row && (!root.AIR.db.speed || root.AIR.db.speed.sharedUsable(row.scanned_at, state.speedMode));
 
   const MAX_EXTRACT_RETRIES = 8;
 
@@ -135,7 +142,7 @@
 
   const page = {
     HOST_ID, BADGE_ATTR, state, ENGINE_VERSION, CACHE,
-    cachePrefs, cacheKey, usableCache, storeHost, ingredientSig,
+    cachePrefs, cacheKey, usableCache, freshLocal, sharedOk, speed, storeHost, ingredientSig,
     MAX_EXTRACT_RETRIES, isProductPage, isListPage, isRelevantPage,
     MIN_COVERAGE, unreadable,
     sendDiagnostic, publishActionBadge, cacheScore, cache, rememberProduct,

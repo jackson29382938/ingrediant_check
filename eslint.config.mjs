@@ -42,7 +42,6 @@ export default [
         isRetailerTabSender: 'readonly',
         isOptionsPageSender: 'readonly',
         isOffscreenSender: 'readonly',
-        isSortedViewSender: 'readonly',
         getSheetIndex: 'readonly',
         putSheetIndex: 'readonly',
         clearSheetIndex: 'readonly',

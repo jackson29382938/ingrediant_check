@@ -36,6 +36,12 @@ A shared row is **stale** at `pulls >= 100` **or** 30 days after `scanned_at`, w
 first. Readers skip stale rows, so the next visitor reads the product live and writes a fresh row.
 Monthly, so a reformulated product is picked up. On this computer only the age counts.
 
+Settings → *Speed* (`speedMode`, `src/engine/db/speed.js`) moves these ages on the reader's side only.
+*Balanced*, the default, is the 30 days above. *Fastest* and *Faster* keep this computer's scores and
+readings for 90 and 60 days. *Fresher* re-reads after 7 days and ignores shared rows older than 7
+days. *Most up to date* re-reads after 1 day and never uses shared rows. Shared rows are never used
+past 30 days, whatever the step, because the worker drops them first.
+
 - A newer scan replaces the row straight away, even before it is stale, and resets `pulls`.
 - An older scan never overwrites a newer row.
 - A pull counts only when its `scanned_at` still matches the row, so a view of an old scan never

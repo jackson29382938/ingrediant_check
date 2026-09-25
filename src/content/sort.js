@@ -1,40 +1,47 @@
-// Sort Amazon search results by Ingredient Check score.
+// Ingredient Check in Amazon's own "Sort by" menu.
 //
-// A port of the Amazon Cost per Ounce Sorter (github.com/jackson29382938/amazon_cost_sorting) with
-// the score as the key: a toolbar above the results with Sort, Restore order, Load more results,
-// Open sorted list and Settings. Sorting moves Amazon's own result cards, best score first, listings
-// without a score at the end, ties in Amazon's order (AIR.db.sortedResults.sortByScore).
+// Ported from the Amazon Cost per Ounce Sorter (github.com/jackson29382938/amazon_cost_sorting): two
+// options join Amazon's list, "Ingredient Check score: High to Low" and, while the price-per-ounce
+// setting is on, "Price per ounce: Low to High". Choosing one never reorders Amazon's page. It opens
+// Chrome's side panel beside the results, with this search's listings ranked there; the panel's
+// priority bar mixes health score, price per ounce, total price and customer rating.
 //
-// Scores come from the same places the badges do: this computer's cache, then the shared database,
-// then, only when "Rate every search result" is on and the sort setting allows it, the product page
-// itself through search.js's queue and pacing. Nothing here fetches anything the badges would not.
-// "Load more results" (off by default) also reads further Amazon search pages and, for listings still
-// without a score, their product pages: up to the configured count, three at a time, and it stops
-// when Amazon starts refusing.
+// Chrome opens the side panel only in response to a user action, so the option's click is caught
+// here before Amazon's own menu code sees it, and the request goes out while that click still counts
+// (the worker calls sidePanel.open before anything else). Amazon's menu is a native <select> that
+// its script mirrors into a pop-up list and then drives through jQuery; jQuery's change event never
+// reaches addEventListener, which is why listening on the <select> alone is not enough.
+//
+// The list fills in as it goes: the listings on this page first, with the scores this computer and
+// the shared database already have; then, when "Load more results" is on, further Amazon results
+// pages; then, when the sort setting and "Rate every search result" allow, the product pages of the
+// listings still without a score (three at a time, stopped by the panel's Stop button, the master
+// switch, or Amazon refusing five times in a row). Nothing here fetches what the badges would not.
 
 (function (root) {
   root.AIR = root.AIR || {};
   const P = () => root.AIR.page;
   const S = () => root.AIR.search;
   const R = () => root.AIR.db.sortedResults;
+  const U = () => root.AIR.db.unitPrice;
 
   const CARD = '[data-component-type="s-search-result"][data-asin], .s-result-item[data-asin]';
-  const HOST_ID = 'air-sort-host';
+  const VALUE = { health: 'ingredient-check-score', unitPrice: 'ingredient-check-price-per-ounce' };
+  const MARK = 'data-air-sort';
   const MAX_CONCURRENT = 3;
   const REQUEST_GAP_MS = 250;
   const FAIL_LIMIT = 5;
   const LOOKUP_BATCH = 100;
-  const RATE_WAIT_MS = 90000;
+  const PUBLISH_GAP_MS = 700;
 
-  const originalOrder = new WeakMap();
-  const knownCards = [];
-  let toolbar = null;
-  let resultData = [];
-  let sorted = false;
-  let run = 0;                     // bumped to cancel whatever is in flight
+  let observer = null;
+  let observerTimer = 0;
+  let mounted = false;
+  let pending = false;
+  let run = 0;
+  let runId = null;
   const controllers = new Set();
 
-  // A message with $1, $2 filled in, from the locale file when it has one.
   const t = (key, fallback, ...subs) => {
     const args = subs.map(String);
     let text = '';
@@ -56,19 +63,168 @@
   const isSearchPage = () => /(^|\/)s(?:\/|$)/.test(location.pathname) || new URLSearchParams(location.search).has('k');
   const toAbsoluteUrl = value => { try { return new URL(value, location.href).href; } catch { return ''; } };
 
-  // ------------------------------------------------------------------ cards
-  const isCard = card => card.dataset && card.dataset.asin && card.querySelector('h2 a, a.a-link-normal.s-no-outline');
+  // ------------------------------------------------------------------ the menu
+  const labels = () => ({
+    health: t('sortMenuScore', 'Ingredient Check score: High to Low'),
+    unitPrice: t('sortMenuUnit', 'Price per ounce: Low to High'),
+  });
+  const modes = () => (P().state.unitPrice === false ? ['health'] : ['unitPrice', 'health']);
+  const modeOfValue = value => Object.keys(VALUE).find(mode => VALUE[mode] === value) || null;
 
-  function scanCards(rootNode = document) {
-    const found = [...rootNode.querySelectorAll(CARD)].filter(isCard);
-    for (const card of found) {
-      if (!originalOrder.has(card)) {
-        originalOrder.set(card, knownCards.length);
-        knownCards.push(card);
+  function sortSelects(doc = document) {
+    return [...doc.querySelectorAll('select#s-result-sort-select, select[id*="sort-select"], select[data-action*="sort"]')]
+      .filter(select => [...select.options].some(option => /featured|price\s*:\s*low\s*to\s*high/i.test(option.textContent)));
+  }
+
+  // Our options in the <select>: price per ounce after "Price: Low to High", the score at the end.
+  // Amazon builds its pop-up list from these when the menu opens.
+  function syncSelect(select) {
+    const want = modes();
+    const names = labels();
+    for (const mode of Object.keys(VALUE)) {
+      const existing = select.querySelector(`option[value="${VALUE[mode]}"]`);
+      if (!want.includes(mode)) { existing?.remove(); continue; }
+      if (existing) { if (existing.textContent !== names[mode]) existing.textContent = names[mode]; continue; }
+      const option = new Option(names[mode], VALUE[mode]);
+      option.setAttribute(MARK, mode);
+      const lowToHigh = [...select.options].find(item => /price\s*:\s*low\s*to\s*high/i.test(item.textContent));
+      if (mode === 'unitPrice' && lowToHigh) select.insertBefore(option, lowToHigh.nextSibling);
+      else select.append(option);
+    }
+    if (select.dataset.airSortListening) return;
+    select.dataset.airSortListening = '1';
+    select.addEventListener('input', onSelectChange, true);
+    select.addEventListener('change', onSelectChange, true);
+  }
+
+  // Amazon's pop-up list, when it is already built: add our rows if it was built before our options
+  // existed, and drop them when an option was turned off.
+  function syncPopover(select) {
+    const want = modes();
+    const names = labels();
+    const lists = new Set([...document.querySelectorAll(`a[id^="${CSS.escape(select.id)}_"]`)]
+      .map(a => a.closest('ul, [role="listbox"]')).filter(Boolean));
+    for (const list of lists) {
+      for (const mode of Object.keys(VALUE)) {
+        const row = list.querySelector(`[${MARK}="${mode}"]`)
+          || [...list.querySelectorAll('a')].find(a => dataValue(a) === VALUE[mode])?.closest('li');
+        if (!want.includes(mode)) { row?.remove(); continue; }
+        if (row) { row.setAttribute(MARK, mode); continue; }
+        const template = list.querySelector('li');
+        if (!template) continue;
+        const li = template.cloneNode(true);
+        li.setAttribute(MARK, mode);
+        li.setAttribute('aria-selected', 'false');
+        const a = li.querySelector('a') || li;
+        a.classList?.remove('a-active');
+        a.textContent = names[mode];
+        a.setAttribute('data-value', JSON.stringify({ stringVal: VALUE[mode] }));
+        a.id = `${select.id}_air_${mode}`;
+        if (mode === 'unitPrice') {
+          const after = [...list.querySelectorAll('a')].find(item => /price\s*:\s*low\s*to\s*high/i.test(item.textContent))?.closest('li');
+          if (after) { after.after(li); continue; }
+        }
+        list.append(li);
       }
     }
-    return found;
   }
+
+  function dataValue(a) {
+    try { return JSON.parse(a.getAttribute('data-value') || '{}').stringVal || ''; } catch { return ''; }
+  }
+
+  function install() {
+    if (!mounted) return;
+    for (const select of sortSelects()) {
+      syncSelect(select);
+      if (select.id) syncPopover(select);
+    }
+  }
+
+  function uninstall() {
+    document.querySelectorAll(`option[${MARK}], li[${MARK}]`).forEach(node => node.remove());
+    for (const mode of Object.keys(VALUE)) document.querySelectorAll(`option[value="${VALUE[mode]}"]`).forEach(node => node.remove());
+  }
+
+  // The row the user picked in Amazon's pop-up list, if it is ours.
+  function pickedMode(target) {
+    const el = target && target.closest ? target.closest(`[${MARK}], a.a-dropdown-link, [role="option"]`) : null;
+    if (!el) return null;
+    const marked = el.closest(`[${MARK}]`);
+    if (marked) return marked.getAttribute(MARK);
+    const link = el.matches('a') ? el : el.querySelector('a');
+    return link ? modeOfValue(dataValue(link)) : null;
+  }
+
+  function closeMenu(target) {
+    const popover = target.closest('.a-popover');
+    const escape = new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, which: 27, bubbles: true });
+    try { (document.activeElement || document.body).dispatchEvent(escape); } catch (e) { /* ignore */ }
+    if (popover) setTimeout(() => {
+      if (popover.isConnected && popover.getAttribute('aria-hidden') !== 'true' && getComputedStyle(popover).display !== 'none') {
+        popover.style.display = 'none';
+        popover.setAttribute('aria-hidden', 'true');
+      }
+    }, 60);
+  }
+
+  // Capture phase on window, so this runs before Amazon's delegated menu handlers.
+  function onMenuPointer(event) {
+    if (!mounted || !pickedMode(event.target)) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (event.type !== 'click') return;
+    const mode = pickedMode(event.target);
+    closeMenu(event.target);
+    choose(mode);
+  }
+
+  function onMenuKey(event) {
+    if (!mounted || (event.key !== 'Enter' && event.key !== ' ')) return;
+    const mode = pickedMode(event.target) || pickedMode(document.activeElement);
+    if (!mode) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    closeMenu(event.target);
+    choose(mode);
+  }
+
+  // Keyboard and native-dropdown choices land on the <select> itself.
+  function onSelectChange(event) {
+    const select = event.currentTarget;
+    const mode = modeOfValue(select.value);
+    if (!mode) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    // Put Amazon's current sort back so the page and the menu keep saying what Amazon is showing.
+    const current = new URLSearchParams(location.search).get('s');
+    const back = [...select.options].find(o => o.value === current) || [...select.options].find(o => !o.hasAttribute(MARK));
+    if (back) select.value = back.value;
+    if (event.type === 'change') choose(mode);
+  }
+
+  // ------------------------------------------------------------------ choosing
+  // Runs inside the click. The message goes out before any await so Chrome still counts the click.
+  function choose(mode) {
+    if (pending) return;
+    pending = true;
+    const token = ++run;
+    for (const c of controllers) c.abort();
+    controllers.clear();
+    const sourceUrl = location.href;
+    send({ type: 'openSortedPanel', mode, sourceUrl, unitEnabled: P().state.unitPrice !== false }).then(async reply => {
+      pending = false;
+      if (token !== run || !reply || !reply.runId) return;
+      runId = reply.runId;
+      // No side panel (an older Chrome, or the click no longer counted): the same list in a tab.
+      if (!reply.ok) send({ type: 'openSortedTab' });
+      await collect(token);
+    });
+  }
+
+  // ------------------------------------------------------------------ listings
+  const isCard = card => card.dataset && card.dataset.asin && card.querySelector('h2 a, a.a-link-normal.s-no-outline');
+  const productCardsIn = doc => [...doc.querySelectorAll(CARD)].filter(isCard);
 
   function getPrice(card) {
     for (const node of card.querySelectorAll('.a-price:not(.a-text-price) .a-offscreen')) {
@@ -79,8 +235,20 @@
     return null;
   }
 
+  // "4.6 out of 5 stars" -> 4.6; "(12,345)", "12.3K", "1K+" -> a count.
+  function ratingValue(text) {
+    const m = String(text || '').match(/(\d(?:\.\d)?)\s*out of\s*5/i);
+    return m ? Number(m[1]) : null;
+  }
+  function reviewCount(text) {
+    const m = String(text || '').replace(/,/g, '').match(/(\d+(?:\.\d+)?)\s*([KkMm])?/);
+    if (!m) return null;
+    const n = Number(m[1]) * (/k/i.test(m[2] || '') ? 1000 : /m/i.test(m[2] || '') ? 1e6 : 1);
+    return Number.isFinite(n) ? Math.round(n) : null;
+  }
+
   // The listing as the sorted list shows it. The score is added by withScores().
-  function extractProduct(card, pageNumber = 1) {
+  function extractProduct(card, pageNumber = 1, settings = {}) {
     // Our own score badge sits at the start of the title (search.js paintBadge); it is not the title.
     const badge = (card.querySelector('.air-badge')?.textContent || '').trim();
     const withoutBadge = s => (badge && s.startsWith(badge) ? s.slice(badge.length) : s).trim();
@@ -94,14 +262,23 @@
     const imageFallback = image?.getAttribute('data-src') || image?.getAttribute('data-old-hires');
     const ratingNode = card.querySelector('[aria-label*="out of 5 stars"], .a-icon-alt');
     const reviewsNode = card.querySelector('a[href*="customerReviews"] .a-size-base, a[href*="customerReviews"]');
+    const listingPrice = getPrice(card);
+    const rating = (ratingNode?.getAttribute('aria-label') || ratingNode?.textContent || '').trim();
+    const reviews = (reviewsNode?.innerText || reviewsNode?.textContent || '').trim();
+    const unit = settings.unitPrice === false ? { unitPrice: null, unitSource: 'none' }
+      : U().unitPriceFor({ title, text, listingPrice }, settings);
     return {
       asin: card.dataset.asin || '',
       title: title || 'Amazon listing',
       url: toAbsoluteUrl(linkNode?.getAttribute('href')),
       image: toAbsoluteUrl(imageUrl && !imageUrl.startsWith('data:') ? imageUrl : imageFallback || imageUrl),
-      listingPrice: getPrice(card),
-      rating: (ratingNode?.getAttribute('aria-label') || ratingNode?.textContent || '').trim(),
-      reviews: (reviewsNode?.innerText || reviewsNode?.textContent || '').trim(),
+      listingPrice,
+      unitPrice: unit.unitPrice,
+      unitSource: unit.unitSource,
+      rating,
+      ratingValue: ratingValue(rating),
+      reviews,
+      reviewCount: reviewCount(reviews),
       bought: text.match(/\b[\d,.]+\s*(?:K\+?\s*)?bought in past month\b/i)?.[0] || '',
       sponsored: /\bsponsored\b/i.test(text.slice(0, 200)),
       pageNumber,
@@ -114,7 +291,7 @@
   // asin -> { score, verdict, source }, from this computer only: the weighted score, else the product
   // data read earlier, scored under the current settings.
   async function knownScores(asins) {
-    const { cacheKey, usableCache, storeHost, unreadable, state, cacheScore } = P();
+    const { cacheKey, usableCache, freshLocal, storeHost, unreadable, state, cacheScore } = P();
     const C = root.AIR.db.productCache;
     const localKey = asin => C.localKey(storeHost(), asin);
     const got = await storageGet(asins.flatMap(a => [cacheKey(a), localKey(a)]));
@@ -123,7 +300,7 @@
       const hit = got[cacheKey(asin)];
       if (usableCache(hit, asin)) { out.set(asin, { score: hit.score, verdict: hit.verdict, source: 'scored' }); continue; }
       const row = C.sanitize(got[localKey(asin)]);
-      if (!row || C.stale(row)) continue;
+      if (!row || !freshLocal(row)) continue;
       if (row.status === 'not-food' || row.data.food === false) { out.set(asin, { score: null, source: 'not-food' }); continue; }
       if (row.status === 'unreadable') { out.set(asin, { score: null, source: 'unreadable' }); continue; }
       const result = root.AIR.engine.score(C.toInput(row), state.prefs);
@@ -134,116 +311,20 @@
     return out;
   }
 
-  function withScores(products, scores) {
-    return products.map(p => ({ ...p, ...(scores.get(p.asin) || { score: null, verdict: '', source: 'unrated' }) }));
-  }
-
-  // This page's cards without a score go through search.js exactly as the badges do (cache, shared
-  // database, then the paced product-page queue). Resolves once that queue has gone quiet.
-  async function rateThisPage(cards, token) {
-    const search = S();
-    const items = cards.filter(card => !/^\d+$/.test(card.querySelector('.air-badge')?.textContent || ''))
-      .map(card => ({ tile: card, asin: card.dataset.asin }));
-    if (!items.length) return;
-    search.resolveTiles(items, it => search.enqueue(it.tile, it.asin));
-    const started = Date.now();
-    let quiet = 0;
-    while (token === run && Date.now() - started < RATE_WAIT_MS) {
-      await sleep(300);
-      const q = search.queue;
-      quiet = !q.active && !q.pending.length ? quiet + 1 : 0;
-      if (quiet >= 3 || q.throttled) break;
-      const done = items.filter(it => it.tile.querySelector('.air-badge')?.textContent?.match(/^\d+$|^\?$/)).length;
-      setStatus(t('sortRating', 'Rating listings without a score ($1 done)…', done));
-    }
-  }
-
-  // ------------------------------------------------------------------ moving cards (from the Cost Sorter)
-  function getSortableUnits(cards) {
-    if (!cards.length) return null;
-    const mainSlot = cards[0].closest('.s-main-slot');
-    if (mainSlot && cards.every(card => mainSlot.contains(card))) {
-      const units = cards.map(card => {
-        let unit = card;
-        while (unit.parentElement && unit.parentElement !== mainSlot) unit = unit.parentElement;
-        return unit.parentElement === mainSlot ? unit : null;
-      });
-      if (units.every(Boolean) && new Set(units).size === units.length && units.every(unit => {
-        const count = (unit.matches(CARD) ? 1 : 0) + unit.querySelectorAll(CARD).length;
-        return count === 1;
-      })) return { container: mainSlot, units };
-    }
-    const parent = cards[0].parentElement;
-    if (parent && cards.every(card => card.parentElement === parent)) return { container: parent, units: cards.slice() };
-    return null;
-  }
-
-  function moveUnitsInSlots(topology, orderedUnits) {
-    if (!topology || orderedUnits.length !== topology.units.length) return false;
-    const { container, units } = topology;
-    if (units.some(unit => unit.parentElement !== container) || new Set(orderedUnits).size !== units.length) return false;
-    const markers = units.map(unit => {
-      const marker = document.createComment('air-sort-slot');
-      unit.replaceWith(marker);
-      return marker;
-    });
-    markers.forEach((marker, index) => marker.replaceWith(orderedUnits[index]));
-    return true;
-  }
-
-  // -> { ok, products, reason }. Rates this page first when the settings allow, then moves the cards.
-  async function sortCurrentPage(settings, token) {
-    const { state } = P();
-    let cards = scanCards();
-    if (!cards.length) return { ok: false, reason: t('sortNoCards', 'No Amazon product cards were found on this page.') };
-    if (settings.sortMissing === 'rate-first' && state.autoScoreSearch) await rateThisPage(cards, token);
-    if (token !== run) return { ok: false, cancelled: true };
-    cards = scanCards();
-    const scores = await knownScores(cards.map(c => c.dataset.asin));
-    const products = withScores(cards.map(card => extractProduct(card)), scores);
-    const entries = cards.map((card, i) => ({ card, product: products[i] }));
-    const order = R().sortByScore(entries.map((e, i) => ({ ...e.product, _i: i, score: e.product.score })));
-    const ordered = order.map(p => entries[p._i]);
-    const topology = getSortableUnits(cards);
-    const clean = ordered.map(e => e.product);
-    if (!topology) return { ok: false, products: clean, reason: t('sortCannotMove', 'Amazon’s result cards are arranged in a way that cannot be safely reordered here.') };
-    return moveUnitsInSlots(topology, ordered.map(e => topology.units[cards.indexOf(e.card)]))
-      ? { ok: true, count: ordered.length, products: clean }
-      : { ok: false, products: clean, reason: t('sortCouldNotMove', 'Amazon’s result cards could not be moved safely.') };
-  }
-
-  function restoreCurrentPage() {
-    const cards = scanCards();
-    const topology = getSortableUnits(cards);
-    if (!topology) return false;
-    const ordered = cards.slice().sort((left, right) => originalOrder.get(left) - originalOrder.get(right));
-    return moveUnitsInSlots(topology, ordered.map(card => topology.units[cards.indexOf(card)]));
-  }
-
-  // ------------------------------------------------------------------ load more
-  function findNextPage(doc, currentUrl) {
-    const next = doc.querySelector('a.s-pagination-next[href]');
-    if (!next || next.classList.contains('s-pagination-disabled') || next.getAttribute('aria-disabled') === 'true') return null;
-    try {
-      const url = new URL(next.getAttribute('href'), currentUrl);
-      return url.origin === location.origin ? url.href : null;
-    } catch { return null; }
-  }
-
-  const productCardsIn = doc => [...doc.querySelectorAll(CARD)].filter(isCard);
-
   // Shared-database rows for listings this computer has not read, scored here under this reader's
-  // settings; counts one pull per row used, as the badges do.
+  // settings; counts one pull per row used, as the badges do. Skipped when the shared database is
+  // off or the speed setting says to read every product page yourself.
   async function sharedScores(asins, token) {
-    const { storeHost, unreadable, state, cacheScore, rememberProduct } = P();
-    const C = root.AIR.db.productCache;
+    const { storeHost, unreadable, state, cacheScore, rememberProduct, sharedOk, speed } = P();
     const out = new Map();
+    if (!asins.length || state.cacheOptions?.sharedCache === false || !speed().sharedDays) return out;
+    const C = root.AIR.db.productCache;
     const pulls = [];
     for (let i = 0; i < asins.length && token === run; i += LOOKUP_BATCH) {
       const reply = await send({ type: 'productsLookup', store: storeHost(), asins: asins.slice(i, i + LOOKUP_BATCH) });
       for (const [asin, raw] of Object.entries((reply && reply.rows) || {})) {
         const row = C.sanitize(raw);
-        if (!row || !asins.includes(asin)) continue;
+        if (!row || !asins.includes(asin) || !sharedOk(row)) continue;
         rememberProduct(asin, row, { share: false });
         pulls.push({ key: row.key, scanned_at: row.scanned_at });
         if (row.status === 'not-food' || row.data.food === false) { out.set(asin, { score: null, source: 'not-food' }); continue; }
@@ -259,7 +340,8 @@
   }
 
   // Product pages for listings still without a score: three at a time, a short gap between starts,
-  // stopped by the Stop button, the master switch, or Amazon refusing FAIL_LIMIT times in a row.
+  // stopped by the panel's Stop button, the master switch, or Amazon refusing FAIL_LIMIT times in a
+  // row.
   async function rateByProductPage(asins, token, onProgress) {
     const search = S();
     const out = new Map();
@@ -270,6 +352,7 @@
         const wait = Math.max(0, lastStart + REQUEST_GAP_MS - Date.now());
         lastStart = Date.now() + wait;
         if (wait) await sleep(wait);
+        if (token !== run) return;
         const controller = new AbortController();
         controllers.add(controller);
         try {
@@ -291,7 +374,7 @@
         } finally {
           controllers.delete(controller);
           done++;
-          onProgress(done, asins.length);
+          onProgress(done, asins.length, out);
         }
       }
     }
@@ -299,231 +382,186 @@
     return { scores: out, stopped };
   }
 
-  async function onLoadMore() {
-    const token = ++run;
-    const settings = await getSettings();
-    showLoading(true);
-    const current = await sortCurrentPage(settings, token);
-    if (token !== run) return;
-    if (current.ok) { sorted = true; show('.restore', true); }
-    resultData = current.products || [];
-    if (!resultData.length) { showLoading(false); setStatus(t('sortNothingToLoad', 'No product listings were found to load.')); return; }
-    setStatus(t('sortLoadingUpTo', 'Sorted this page. Loading up to $1 products…', settings.sortCount));
-
-    const results = new Map(resultData.map(p => [p.asin || p.url, p]));
-    const extra = [];
-    let nextUrl = findNextPage(document, location.href);
-    let pageNumber = 1;
-    let partialError = '';
-    while (results.size < settings.sortCount && nextUrl && token === run) {
-      pageNumber += 1;
-      setStatus(t('sortLoadingPage', 'Loading Amazon results page $1 ($2 products found)…', pageNumber, results.size));
-      try {
-        await sleep(REQUEST_GAP_MS);
-        const response = await fetch(nextUrl, { credentials: 'same-origin', headers: { Accept: 'text/html' } });
-        if (!response.ok) throw new Error(`Amazon returned ${response.status}`);
-        const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
-        const cards = productCardsIn(doc);
-        if (!cards.length) throw new Error('no product cards on the next page');
-        for (const card of cards) {
-          const product = extractProduct(card, pageNumber);
-          const key = product.asin || product.url;
-          if (!results.has(key)) { results.set(key, product); extra.push(product); }
-          if (results.size >= settings.sortCount) break;
-        }
-        nextUrl = findNextPage(doc, nextUrl);
-      } catch (error) {
-        partialError = error.message || 'Amazon could not load another results page.';
-        break;
-      }
-    }
-    if (token !== run) return;
-
-    // Scores for the listings from further pages: this computer, the shared database, then pages.
-    let asins = extra.map(p => p.asin).filter(Boolean);
-    const scores = await knownScores(asins);
-    asins = asins.filter(a => !scores.has(a));
-    for (const [a, s] of await sharedScores(asins, token)) scores.set(a, s);
-    asins = asins.filter(a => !scores.has(a));
-    let stopped = '';
-    const { state } = P();
-    if (asins.length && settings.sortMissing === 'rate-first' && state.autoScoreSearch && token === run) {
-      const rated = await rateByProductPage(asins, token, (done, total) =>
-        setStatus(t('sortRatingMore', 'Rating listings without a score: $1 of $2…', done, total)));
-      for (const [a, s] of rated.scores) scores.set(a, s);
-      stopped = rated.stopped;
-    }
-    if (token !== run) return;
-    const scoredExtra = new Map(withScores(extra, scores).map(p => [p.asin || p.url, p]));
-    resultData = R().sortByScore([...results.values()].map(p => scoredExtra.get(p.asin || p.url) || p));
-    showLoading(false);
-    show('.open', true);
-    const unscored = resultData.filter(p => p.score == null).length;
-    const tail = unscored ? ' ' + unscoredTail(unscored) : '';
-    if (stopped) setStatus(`${stopped} ${t('sortCollected', 'Collected $1 products.', resultData.length)}${tail}`);
-    else if (partialError) setStatus(`${t('sortCollected', 'Collected $1 products.', resultData.length)} ${t('sortPartial', 'More results could not be loaded')} (${partialError}).${tail}`);
-    else if (resultData.length >= settings.sortCount) setStatus(`${t('sortCollected', 'Collected $1 products.', resultData.length)} ${t('sortOpenCombined', 'Open the sorted list; listings from other pages are only in that list.')}${tail}`);
-    else setStatus(`${t('sortNoMore', 'Amazon has no more results.')} ${t('sortCollected', 'Collected $1 products.', resultData.length)}${tail}`);
+  function findNextPage(doc, currentUrl) {
+    const next = doc.querySelector('a.s-pagination-next[href]');
+    if (!next || next.classList.contains('s-pagination-disabled') || next.getAttribute('aria-disabled') === 'true') return null;
+    try {
+      const url = new URL(next.getAttribute('href'), currentUrl);
+      return url.origin === location.origin ? url.href : null;
+    } catch { return null; }
   }
 
-  // ------------------------------------------------------------------ toolbar
+  // ------------------------------------------------------------------ building the list
   async function getSettings() {
-    return R().sanitizeSort(await storageGet(Object.keys(R().SORT_DEFAULTS)));
+    const got = await storageGet([...Object.keys(R().SORT_DEFAULTS), ...Object.keys(U().UNIT_DEFAULTS)]);
+    return { ...R().sanitizeSort(got), ...U().sanitizeUnit(got), unitPrice: P().state.unitPrice !== false };
   }
 
-  function setStatus(message) {
-    if (toolbar) toolbar.root.querySelector('.status').textContent = message;
-  }
-  function show(selector, visible) {
-    if (toolbar) toolbar.root.querySelector(selector).hidden = !visible;
-  }
-  function showLoading(on) {
-    show('.stop', on);
-    for (const sel of ['.sort', '.load']) {
-      const b = toolbar && toolbar.root.querySelector(sel);
-      if (b) b.disabled = on;
-    }
+  // Everything the panel shows comes through here; the worker re-checks it and keeps it in session
+  // storage. One at a time and in order, so a late progress update never lands after the final list;
+  // progress updates are spaced out.
+  let lastPublish = 0;
+  let publishing = Promise.resolve(true);
+  function publish(token, items, loading, status, force = false) {
+    if (token !== run) return Promise.resolve(false);
+    if (!force && loading && Date.now() - lastPublish < PUBLISH_GAP_MS) return Promise.resolve(true);
+    lastPublish = Date.now();
+    const id = runId;
+    publishing = publishing.then(async () => {
+      if (token !== run) return false;
+      const reply = await send({ type: 'updateSortedResults', runId: id, items, loading, status });
+      // A newer sort (in this tab or another) took the panel over: stop working for this one.
+      if (reply && reply.stale) { if (token === run) run++; return false; }
+      return true;
+    });
+    return publishing;
   }
 
-  async function onSort() {
-    const token = ++run;
+  async function collect(token) {
     const settings = await getSettings();
-    showLoading(true);
-    const result = await sortCurrentPage(settings, token);
-    if (token !== run || result.cancelled) return;
-    showLoading(false);
-    resultData = result.products || [];
-    show('.open', resultData.length > 0);
-    if (!result.ok) {
-      setStatus(resultData.length ? `${result.reason} ${t('sortOpenInstead', 'Open a sorted list instead.')}`
-        : t('sortNoCardsHelp', 'No Amazon product cards were found. Check that this is a search results page, then refresh after listings load.'));
+    const { state } = P();
+    const products = new Map();
+    const add = product => { const key = product.asin || product.url; if (key && !products.has(key)) products.set(key, product); };
+    for (const card of productCardsIn(document)) add(extractProduct(card, 1, settings));
+    const scores = new Map();
+    const list = () => [...products.values()].map(p => ({ ...p, ...(scores.get(p.asin) || { score: null, verdict: '', source: 'unrated' }) }));
+    const noScore = () => [...products.values()].map(p => p.asin).filter(a => a && !scores.has(a));
+    const counting = () => t('sortStatusFound', '$1 listings so far.', products.size);
+
+    if (!products.size) {
+      await publish(token, [], false, t('sortNoCardsHelp', 'No Amazon product cards were found. Check that this is a search results page, then refresh after listings load.'), true);
       return;
     }
-    sorted = true;
-    show('.restore', true);
-    const unscored = resultData.filter(p => p.score == null).length;
-    const offNote = settings.sortMissing === 'rate-first' && !P().state.autoScoreSearch && unscored
-      ? ' ' + t('sortAutoOff', '“Rate every search result” is off, so nothing was rated for this sort.') : '';
-    setStatus(t('sortSorted', 'Sorted $1 listings by score, best first.', result.count)
-      + (unscored ? ' ' + unscoredTail(unscored) : '') + offNote);
+    for (const [a, s] of await knownScores(noScore())) scores.set(a, s);
+    if (!await publish(token, list(), true, `${counting()} ${t('sortStatusChecking', 'Checking saved scores…')}`, true)) return;
+    for (const [a, s] of await sharedScores(noScore(), token)) scores.set(a, s);
+    if (!await publish(token, list(), true, counting(), true)) return;
+
+    // Further Amazon results pages, when "Load more results" is on.
+    let partialError = '';
+    if (settings.sortLoadMore && products.size < settings.sortCount) {
+      let nextUrl = findNextPage(document, location.href);
+      let pageNumber = 1;
+      while (products.size < settings.sortCount && nextUrl && token === run) {
+        pageNumber += 1;
+        await publish(token, list(), true, t('sortLoadingPage', 'Loading Amazon results page $1 ($2 products found)…', pageNumber, products.size), true);
+        try {
+          await sleep(REQUEST_GAP_MS);
+          const controller = new AbortController();
+          controllers.add(controller);
+          let response;
+          try { response = await fetch(nextUrl, { credentials: 'same-origin', headers: { Accept: 'text/html' }, signal: controller.signal }); }
+          finally { controllers.delete(controller); }
+          if (!response.ok) throw new Error(`Amazon returned ${response.status}`);
+          const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
+          const cards = productCardsIn(doc);
+          if (!cards.length) throw new Error('no product cards on the next page');
+          for (const card of cards) {
+            add(extractProduct(card, pageNumber, settings));
+            if (products.size >= settings.sortCount) break;
+          }
+          nextUrl = findNextPage(doc, nextUrl);
+        } catch (error) {
+          if (token !== run) return;
+          partialError = error.message || 'Amazon could not load another results page.';
+          break;
+        }
+      }
+      if (token !== run) return;
+      for (const [a, s] of await knownScores(noScore())) scores.set(a, s);
+      for (const [a, s] of await sharedScores(noScore(), token)) scores.set(a, s);
+      if (!await publish(token, list(), true, counting(), true)) return;
+    }
+
+    // Product pages for what is still unscored, when the settings allow it.
+    let stopped = '';
+    const rateAllowed = settings.sortMissing === 'rate-first' && state.autoScoreSearch;
+    if (rateAllowed && noScore().length && token === run) {
+      const asins = noScore();
+      const rated = await rateByProductPage(asins, token, (done, total, got) => {
+        for (const [a, s] of got) scores.set(a, s);
+        publish(token, list(), true, t('sortRatingMore', 'Rating listings without a score: $1 of $2…', done, total));
+      });
+      for (const [a, s] of rated.scores) scores.set(a, s);
+      stopped = rated.stopped;
+      // Tiles the badge queue finished meanwhile.
+      for (const [a, s] of await knownScores(noScore())) scores.set(a, s);
+    }
+    if (token !== run) return;
+
+    const items = list();
+    const unscored = items.filter(p => p.score == null).length;
+    const tail = unscored ? ' ' + unscoredTail(unscored) : '';
+    const collected = t('sortCollected', 'Collected $1 products.', items.length);
+    let status;
+    if (stopped) status = `${stopped} ${collected}${tail}`;
+    else if (partialError) status = `${collected} ${t('sortPartial', 'More results could not be loaded')} (${partialError}).${tail}`;
+    else if (settings.sortLoadMore && items.length < settings.sortCount) status = `${t('sortNoMore', 'Amazon has no more results.')} ${collected}${tail}`;
+    else status = `${collected}${tail}`;
+    await publish(token, items, false, status, true);
   }
 
-  function onRestore() {
-    run++;
-    const restored = restoreCurrentPage();
-    sorted = sorted && !restored;
-    setStatus(restored ? t('sortRestored', 'Original Amazon result order restored.')
-      : t('sortRestoreGone', 'The original order is no longer available on this page.'));
-    show('.restore', !restored);
-  }
-
-  function onStop() {
+  // The panel's Stop button (sorted.js) asks this tab directly.
+  function onPanelMessage(msg, sender) {
+    if (!msg || msg.type !== 'sortStop') return false;
+    let fromList = false;
+    try {
+      fromList = sender && sender.id === chrome.runtime.id && !sender.tab
+        && /\/src\/options\/(sorted|sidepanel)\.html(?:[?#]|$)/.test(new URL(sender.url || '').pathname + '#');
+    } catch (e) { fromList = false; }
+    if (!fromList || (msg.runId && msg.runId !== runId)) return false;
     run++;
     for (const c of controllers) c.abort();
     controllers.clear();
-    showLoading(false);
-    if (resultData.length) show('.open', true);
-    setStatus(t('sortStopped', 'Stopped. Listings sorted so far stay as they are.'));
+    return false;
   }
+  let listening = false;
 
-  async function openSortedResults() {
-    if (!resultData.length) return;
-    const reply = await send({ type: 'openSortedResults', results: R().sortByScore(resultData), sourceUrl: location.href });
-    setStatus(reply && reply.ok ? t('sortOpened', 'Opened the sorted list in a new tab.')
-      : t('sortOpenFailed', 'Could not open the sorted list.'));
-  }
-
-  async function refreshToolbarSettings() {
-    const settings = await getSettings();
-    show('.load', settings.sortLoadMore);
-  }
-
-  function createToolbar() {
-    const host = document.createElement('div');
-    host.id = HOST_ID;
-    host.style.cssText = 'position:relative;z-index:2147483000;';
-    const shadow = host.attachShadow({ mode: 'closed' });
-    shadow.innerHTML = `
-      <style>
-        :host{all:initial;font-family:"Amazon Ember",Arial,sans-serif;color:#0f1111}
-        .bar{box-sizing:border-box;display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:14px 0;padding:12px 14px;background:#f0faf4;border:1px solid #b9dcc6;border-radius:8px;color:#0f1111;font:13px/1.4 "Amazon Ember",Arial,sans-serif}
-        .brand{font-weight:700;margin-right:4px}.status{flex:1 1 180px;color:#3d4a44;min-width:120px}
-        button{appearance:none;border:1px solid #9fb8a8;border-radius:6px;background:#fff;color:#0f1111;padding:7px 10px;font:600 12px "Amazon Ember",Arial,sans-serif;cursor:pointer}
-        button:hover{background:#e6f2ea}button.primary{background:#0f7b3f;color:#fff;border-color:#0f7b3f}button.primary:hover{background:#0b6433}
-        button:disabled{opacity:.55;cursor:default}
-        button:focus-visible{outline:3px solid #007185;outline-offset:2px}[hidden]{display:none!important}
-      </style>
-      <section class="bar">
-        <span class="brand"></span>
-        <button class="primary sort" type="button"></button>
-        <button class="restore" type="button" hidden></button>
-        <button class="load" type="button" hidden></button>
-        <button class="stop" type="button" hidden></button>
-        <button class="open" type="button" hidden></button>
-        <button class="settings" type="button"></button>
-        <span class="status" role="status" aria-live="polite"></span>
-      </section>`;
-    // Labels as text, never markup: they may come from a locale file.
-    const label = (sel, key, fallback) => { shadow.querySelector(sel).textContent = t(key, fallback); };
-    label('.brand', 'sortBrand', 'Sort by Ingredient Check score');
-    label('.sort', 'sortButton', 'Sort results');
-    label('.restore', 'sortRestore', 'Restore order');
-    label('.load', 'sortLoadMore', 'Load more results');
-    label('.stop', 'sortStop', 'Stop');
-    label('.open', 'sortOpen', 'Open sorted list');
-    label('.settings', 'sortSettings', 'Settings');
-    label('.status', 'sortReady', 'Ready to sort these results by score.');
-    shadow.querySelector('.bar').setAttribute('aria-label', t('sortBrand', 'Sort by Ingredient Check score'));
-    const anchor = document.querySelector('.s-main-slot') || document.querySelector('#search');
-    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(host, anchor);
-    else document.body.insertBefore(host, document.body.firstChild);
-    shadow.querySelector('.sort').addEventListener('click', onSort);
-    shadow.querySelector('.restore').addEventListener('click', onRestore);
-    shadow.querySelector('.load').addEventListener('click', onLoadMore);
-    shadow.querySelector('.stop').addEventListener('click', onStop);
-    shadow.querySelector('.open').addEventListener('click', openSortedResults);
-    shadow.querySelector('.settings').addEventListener('click', () => send({ type: 'openSortSettings' }));
-    toolbar = { host, root: shadow };
-    refreshToolbarSettings();
-    return toolbar;
-  }
-
-  let settingsWired = false;
-  function wireSettings() {
-    if (settingsWired) return;
-    settingsWired = true;
-    chrome.storage.onChanged.addListener((changes, area) => {
-      if (area && area !== 'local') return;
-      if (changes.sortLoadMore || changes.sortCount) refreshToolbarSettings();
-    });
-  }
-
-  // Called by main.js once a food results page has its badges. Idempotent.
+  // ------------------------------------------------------------------ lifecycle
+  // Called by main.js on a food results page while Ingredient Check is on. Idempotent.
   function mount() {
     const { state } = P();
-    if (!state.enabled || !state.badges || !isSearchPage()) return;
-    if (toolbar && toolbar.host.isConnected) return;
-    toolbar = null;
-    scanCards();                                    // remember Amazon's order before anything moves
-    wireSettings();
-    createToolbar();
+    if (!state.enabled || !isSearchPage()) return;
+    if (!listening) {
+      listening = true;
+      window.addEventListener('pointerdown', onMenuPointer, true);
+      window.addEventListener('mousedown', onMenuPointer, true);
+      window.addEventListener('mouseup', onMenuPointer, true);
+      window.addEventListener('click', onMenuPointer, true);
+      window.addEventListener('keydown', onMenuKey, true);
+      try { chrome.runtime.onMessage.addListener(onPanelMessage); } catch (e) { /* no messaging */ }
+    }
+    mounted = true;
+    install();
+    if (observer) return;
+    // Amazon rebuilds the menu when results change; put the options back when it does.
+    observer = new MutationObserver(() => {
+      if (observerTimer) return;
+      observerTimer = setTimeout(() => { observerTimer = 0; install(); }, 120);
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
   }
 
-  // Whenever Ingredient Check stands down on this page (master switch off, badges off, a non-food
-  // search, navigation, a settings change): stop, put Amazon's order back, remove the toolbar.
+  // Whenever Ingredient Check stands down on this page (master switch off, a non-food search,
+  // navigation, a settings change): stop any list being built and take our options out of the menu.
   function unmount() {
+    mounted = false;
+    pending = false;
     run++;
     for (const c of controllers) c.abort();
     controllers.clear();
-    if (sorted) restoreCurrentPage();
-    sorted = false;
-    resultData = [];
-    if (toolbar) toolbar.host.remove();
-    toolbar = null;
+    if (observer) observer.disconnect();
+    observer = null;
+    clearTimeout(observerTimer);
+    observerTimer = 0;
+    uninstall();
   }
 
-  const api = { mount, unmount, isSearchPage, extractProduct, knownScores, sortCurrentPage, restoreCurrentPage,
-    findNextPage, getSortableUnits, HOST_ID, get resultData() { return resultData; } };
+  // A setting that changes which options exist (price per ounce on or off).
+  function refresh() { if (mounted) install(); }
+
+  const api = { mount, unmount, refresh, isSearchPage, extractProduct, knownScores, findNextPage, sortSelects,
+    ratingValue, reviewCount, VALUE, MARK, choose, get runId() { return runId; } };
   root.AIR.sort = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

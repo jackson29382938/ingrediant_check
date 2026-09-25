@@ -14,6 +14,9 @@
   const { searchAllowed, resetSearchGate, standDown, badgeSearchResults, armHoverPass,
     armAutoScorePass, cancelTileWork, clearBadges } = search;
 
+  // The speed setting (AIR.db.speed); 'balanced' when that module is not loaded.
+  const speedModeOf = v => (AIR.db.speed ? AIR.db.speed.sanitizeSpeed({ speedMode: v }).speedMode : 'balanced');
+
   chrome.runtime.onMessage?.addListener((msg, _sender, reply) => {
     if (msg?.type !== 'currentPageScore') return false;
     reply(state.enabled && isProductPage() ? state.pageScore : null);
@@ -91,10 +94,11 @@
           state.lastBadgeScore = undefined;
           publishActionBadge(null);
         }
-        if (!searchAllowed()) { standDown(); settle('non-food search'); return; }
-        if (!state.badges) { standDown(); settle('badges off'); return; }
+        if (!searchAllowed()) { standDown(); AIR.sort?.unmount(); settle('non-food search'); return; }
+        // Amazon's Sort by menu gets the Ingredient Check options (sort.js), with or without badges.
+        if (!state.badges) { standDown(); AIR.sort?.mount(); settle('badges off'); return; }
         badgeSearchResults();
-        AIR.sort?.mount();                        // the sort-by-score toolbar (sort.js)
+        AIR.sort?.mount();
         // After the first badge pass, watch only the results slot — not the whole document.
         startObserving(true);
       } else {
@@ -133,6 +137,7 @@
     state.lastFailSig = null;
     publishActionBadge(null);
     resetListState();
+    AIR.sort?.unmount();
     state.lastKey = null;
     state.failedExtracts = 0;
     resetSearchGate();
@@ -209,13 +214,16 @@
     state.requestId++;
   }
 
+  // Also takes the Ingredient Check options out of Amazon's sort menu (sort.js) and stops a sorted
+  // list being built: master switch off, navigation, or a page that is not a product or results page.
   function teardown() {
     removePanel();
     clearBadges();
+    AIR.sort?.unmount();
   }
 
   chrome.storage.local.get(['enabled', 'badges', 'hoverScore', 'autoScoreSearch', 'hoverBreakdown',
-    'breakdownDetail', 'breakdownDelayMs', 'foodOnly', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList', 'useOpenFoodFacts', 'sheetIndexRev', 'producerIndexRev'], o => {
+    'breakdownDetail', 'breakdownDelayMs', 'foodOnly', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList', 'useOpenFoodFacts', 'sharedCache', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'unitPrice'], o => {
     state.cacheOptions = { ...o };
     const toggles = AIR.db.prefs.sanitizeToggles(o);
     state.enabled = toggles.enabled;
@@ -227,6 +235,8 @@
     state.foodOnly = toggles.foodOnly;
     state.ocrLabels = toggles.ocrLabels;
     state.sendDiagnostics = toggles.sendDiagnostics;
+    state.unitPrice = toggles.unitPrice;
+    state.speedMode = speedModeOf(o.speedMode);
     readPrefs(o);
     if (state.enabled) resume(); else suspend();
   });
@@ -254,6 +264,11 @@
         state.lastKey = null;
         if (state.enabled) { wake(); armAutoScorePass(); }
       });
+    }
+    if (changes.speedMode) state.speedMode = speedModeOf(changes.speedMode.newValue);
+    if (changes.unitPrice) {
+      state.unitPrice = AIR.db.prefs.sanitizeToggles({ unitPrice: changes.unitPrice.newValue }).unitPrice;
+      AIR.sort?.refresh();
     }
     if (changes.enabled) {
       state.enabled = changes.enabled.newValue !== false;

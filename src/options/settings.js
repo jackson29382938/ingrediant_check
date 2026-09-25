@@ -617,6 +617,40 @@ function wireSort() {
   radios.forEach(r => r.addEventListener('change', save));
   more.addEventListener('change', save);
   count.addEventListener('change', save);
+
+  // Price per ounce: the on/off switch (also in the popup) and what to do without Amazon's unit price.
+  const U = AIR.db.unitPrice;
+  const unitRadios = [...document.querySelectorAll('input[name="unitMissing"]')];
+  if (U && unitRadios.length) {
+    const paintUnit = o => {
+      const v = U.sanitizeUnit(o);
+      unitRadios.forEach(r => { r.checked = r.value === v.unitMissing; });
+    };
+    bindToggle('unitPrice', on => unitRadios.forEach(r => { r.disabled = !on; }));
+    chrome.storage.local.get('unitMissing', paintUnit);
+    chrome.storage.onChanged.addListener(changes => { if (changes.unitMissing) paintUnit({ unitMissing: changes.unitMissing.newValue }); });
+    unitRadios.forEach(r => r.addEventListener('change', () => {
+      const v = U.sanitizeUnit({ unitMissing: (unitRadios.find(x => x.checked) || {}).value });
+      persist(v, ok => { if (ok) flash(msg('optSaved', 'Saved')); });
+    }));
+  }
+}
+
+// Speed and freshness (AIR.db.speed): five steps, Balanced by default.
+function wireSpeed() {
+  const SP = AIR.db.speed;
+  const radios = [...document.querySelectorAll('input[name="speedMode"]')];
+  if (!SP || !radios.length) return;
+  const paint = o => {
+    const { speedMode } = SP.sanitizeSpeed(o);
+    radios.forEach(r => { r.checked = r.value === speedMode; });
+  };
+  chrome.storage.local.get('speedMode', paint);
+  chrome.storage.onChanged.addListener(changes => { if (changes.speedMode) paint({ speedMode: changes.speedMode.newValue }); });
+  radios.forEach(r => r.addEventListener('change', () => {
+    const v = SP.sanitizeSpeed({ speedMode: (radios.find(x => x.checked) || {}).value });
+    persist(v, ok => { if (ok) flash(msg('optSaved', 'Saved')); });
+  }));
 }
 
 // Results-page breakdown: the toggle, how much it shows, and how long a hover waits before it opens.
@@ -659,6 +693,7 @@ function startSettingsPage() {
     wireDatabase();
     wireSearchScoring();
     wireSort();
+    wireSpeed();
     wireBreakdown();
 
     document.getElementById('avoidList').addEventListener('input', e => {

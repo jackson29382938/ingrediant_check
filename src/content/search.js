@@ -13,7 +13,9 @@
   // counts fetches only: it used to count every tile touched, so tiles answered from the cache or
   // skipped as non-food used up the budget and scoring stopped about forty tiles down. A page holds
   // 48 organic results plus sponsored rows; the 3-at-a-time pacing and the throttle pause still apply.
+  // The speed setting lowers it (AIR.db.speed autoFetches); 60 is the Balanced default.
   const MAX_AUTO_FETCHES = 60;
+  const autoFetchCap = () => (P().speed ? P().speed().autoFetches : MAX_AUTO_FETCHES);
 
   // A badge is painted into the tile's title. Results pages also carry [data-asin] carousel cards
   // with no title; arming those fetched product pages for badges that could never be shown, and on
@@ -92,7 +94,7 @@
   // weight change lands here), then the shared products tab. Whatever is left goes to onMiss. One
   // storage read and at most one worker request per call, however many tiles.
   function resolveTiles(items, onMiss) {
-    const { state, cacheKey, usableCache, storeHost, rememberProduct } = P();
+    const { state, cacheKey, usableCache, freshLocal, sharedOk, speed, storeHost, rememberProduct } = P();
     const C = root.AIR.db.productCache;
     if (!items.length) return;
     const epoch = queue.epoch;
@@ -106,10 +108,12 @@
         const hit = obj[cacheKey(it.asin)];
         if (usableCache(hit, it.asin)) { paintBadge(it.tile, hit); queue.seen.add(it.asin); continue; }
         const local = C.sanitize(obj[localKey(it.asin)]);
-        if (local && !C.stale(local) && applyRow(it.tile, it.asin, local)) { queue.seen.add(it.asin); continue; }
+        if (local && freshLocal(local) && applyRow(it.tile, it.asin, local)) { queue.seen.add(it.asin); continue; }
         misses.push(it);
       }
       if (!misses.length) return;
+      // "Most up to date" reads every product page itself instead of asking the shared database.
+      if (!speed().sharedDays) { if (onMiss) misses.forEach(onMiss); return; }
       try {
         chrome.runtime.sendMessage({ type: 'productsLookup', store: storeHost(), asins: misses.map(m => m.asin) }, reply => {
           void chrome.runtime.lastError;
@@ -119,7 +123,7 @@
           for (const it of misses) {
             if (!it.tile.isConnected || it.tile.querySelector('.air-badge')) continue;
             const row = C.sanitize(rows[it.asin]);
-            if (!row || !applyRow(it.tile, it.asin, row)) { if (onMiss) onMiss(it); continue; }
+            if (!row || !sharedOk(row) || !applyRow(it.tile, it.asin, row)) { if (onMiss) onMiss(it); continue; }
             rememberProduct(it.asin, row, { share: false });
             // Both the badge pass and the auto-score observer resolve a tile; count one pull per view.
             if (!queue.seen.has(it.asin)) pulls.push({ key: row.key, scanned_at: row.scanned_at });
@@ -375,7 +379,7 @@
     if (!state.enabled || !state.badges || !searchAllowed()) return;
     if (front ? !state.hoverScore : !state.autoScoreSearch) return;
     if (queue.seen.has(asin)) return;
-    if (!front && queue.fetches >= MAX_AUTO_FETCHES) return;
+    if (!front && queue.fetches >= autoFetchCap()) return;
     if (state.foodOnly && root.AIR.db.ingestible && root.AIR.db.ingestible.looksNonFoodFromTitle(tileTitle(tile))) {
       queue.seen.add(asin);
       return;
@@ -544,9 +548,6 @@
   function clearBadges() {
     const { BADGE_ATTR } = P();
     root.AIR.hoverCard?.close();
-    // Every stand-down comes through here (master switch, badges off, non-food search, navigation,
-    // a settings change), so the sort toolbar goes too and Amazon's order is put back.
-    root.AIR.sort?.unmount();
     clearAutoScoreNotice();
     document.querySelectorAll('.air-badge').forEach(b => b.remove());
     document.querySelectorAll(`[${BADGE_ATTR}]`).forEach(tile => tile.removeAttribute(BADGE_ATTR));

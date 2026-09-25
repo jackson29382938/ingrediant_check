@@ -228,17 +228,16 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     return true;   // async reply
   }
   if (msg && msg.type === 'ping') { reply({ ok: true }); return false; }
-  if (msg && msg.type === 'openSortedResults') {
-    openSortedResults(msg).then(reply, e => reply({ ok: false, reason: String((e && e.message) || e) }));
+  // Amazon's sort menu (src/content/sort.js). openSortedPanel must reach sidePanel.open before any
+  // await, so it is not wrapped in a promise chain here.
+  if (msg && msg.type === 'openSortedPanel') { openSortedPanel(msg, sender, reply); return true; }
+  if (msg && msg.type === 'updateSortedResults') {
+    updateSortedResults(msg, sender).then(reply, e => reply({ ok: false, reason: String((e && e.message) || e) }));
     return true;
   }
-  if (msg && msg.type === 'openSortSettings') {
-    chrome.tabs.create({ url: chrome.runtime.getURL('src/options/options.html#sec-sort') })
+  if (msg && msg.type === 'openSortedTab') {
+    chrome.tabs.create({ url: chrome.runtime.getURL('src/options/sorted.html') })
       .then(() => reply({ ok: true }), e => reply({ ok: false, reason: String((e && e.message) || e) }));
-    return true;
-  }
-  if (msg && msg.type === 'openResultsSidePanel') {
-    openResultsSidePanel(sender).then(reply, e => reply({ ok: false, reason: String((e && e.message) || e) }));
     return true;
   }
   // Shared-database messages are handled here too. Registering a second onMessage listener works in
@@ -249,24 +248,51 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
 
 // ---------------------------------------------------------------- sorted results
 //
-// The sort toolbar (src/content/sort.js) hands over the listings it sorted; they are re-checked here
-// (a web page's content script sent them) and kept in chrome.storage.session, which lives in memory
-// and is cleared when the browser closes. src/options/sorted.html and the side panel read them.
-async function openSortedResults(msg) {
+// Choosing an Ingredient Check option in Amazon's sort menu (src/content/sort.js) opens Chrome's side
+// panel at once, empty and "loading"; the content script then sends the listings as it gathers them.
+// Everything it sends is re-checked here (a web page's content script sent it) and kept in
+// chrome.storage.session, which lives in memory and is cleared when the browser closes.
+// src/options/sidepanel.html and sorted.html read it; the list page keeps the reader's priorities
+// under `sortWeights` in the same place.
+//
+// Chrome opens the side panel only in response to a user action. The click in Amazon's menu counts
+// only while this listener runs, so sidePanel.open is the first thing called, before any await.
+function openSortedPanel(msg, sender, reply) {
   const R = self.AIR.db.sortedResults;
-  const items = R.sanitizeResults(msg.results);
-  if (!items.length) return { ok: false, reason: 'no-results' };
-  await chrome.storage.session.set({ sortedResults: { items, sourceUrl: R.sanitizeSourceUrl(msg.sourceUrl), t: Date.now() } });
-  await chrome.tabs.create({ url: chrome.runtime.getURL('src/options/sorted.html') });
-  return { ok: true, count: items.length };
+  const tab = (sender && sender.tab) || {};
+  let opening;
+  try {
+    opening = chrome.sidePanel && typeof chrome.sidePanel.open === 'function'
+      ? chrome.sidePanel.open({ tabId: tab.id })
+      : Promise.reject(new Error('no-side-panel'));
+  } catch (e) { opening = Promise.reject(e); }
+  const mode = msg.mode === 'unitPrice' ? 'unitPrice' : 'health';
+  const unitEnabled = msg.unitEnabled !== false;
+  const runId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  const list = {
+    runId, mode, unitEnabled, loading: true, status: '', items: [],
+    sourceUrl: R.sanitizeSourceUrl(msg.sourceUrl), sourceTabId: tab.id, sourceWindowId: tab.windowId, t: Date.now(),
+  };
+  const saving = chrome.storage.session.set({ sortedResults: list, sortWeights: R.sanitizeWeights(R.presetFor(mode), { unitEnabled }) });
+  Promise.allSettled([opening, saving]).then(([opened, saved]) => {
+    if (saved.status !== 'fulfilled') { reply({ ok: false, reason: 'no-session-storage' }); return; }
+    reply(opened.status === 'fulfilled' ? { ok: true, runId }
+      : { ok: false, runId, reason: String((opened.reason && opened.reason.message) || opened.reason) });
+  });
 }
 
-async function openResultsSidePanel(sender) {
-  if (!chrome.sidePanel || typeof chrome.sidePanel.open !== 'function') return { ok: false, reason: 'no-side-panel' };
+// A newer list (another choice, in this tab or another) wins: updates for an older run are refused
+// and the content script stops working on it.
+async function updateSortedResults(msg, sender) {
+  const R = self.AIR.db.sortedResults;
+  const { sortedResults: list } = await chrome.storage.session.get('sortedResults');
   const tabId = sender && sender.tab && sender.tab.id;
-  if (typeof tabId !== 'number') return { ok: false, reason: 'no-tab' };
-  await chrome.sidePanel.open({ tabId });
-  return { ok: true };
+  if (!list || !msg.runId || list.runId !== msg.runId || list.sourceTabId !== tabId) return { ok: false, stale: true };
+  const items = R.sanitizeResults(msg.items);
+  await chrome.storage.session.set({ sortedResults: {
+    ...list, items, loading: msg.loading === true, status: R.sanitizeStatus(msg.status), t: Date.now(),
+  } });
+  return { ok: true, count: items.length };
 }
 
 // Housekeeping. This used to run only on chrome.runtime.onStartup, and browsers routinely go weeks
@@ -783,5 +809,5 @@ function handleSharedDbMessage(msg, reply) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { indexRows, lookupRecord, sweepCache, isOpenFoodFactsFood, batchIdFor, revisionOf, ensureHousekeepingAlarm, allowMessage, isOwnExtension, isAmazonTabSender, isRetailerTabSender, isOptionsPageSender, isSortedViewSender, isOffscreenSender, allowedOcrUrls, openSortedResults, openResultsSidePanel, MAX_SHEET_BYTES, MAX_SHEET_ROWS };
+  module.exports = { indexRows, lookupRecord, sweepCache, isOpenFoodFactsFood, batchIdFor, revisionOf, ensureHousekeepingAlarm, allowMessage, isOwnExtension, isAmazonTabSender, isRetailerTabSender, isOptionsPageSender, isOffscreenSender, allowedOcrUrls, openSortedPanel, updateSortedResults, MAX_SHEET_BYTES, MAX_SHEET_ROWS };
 }

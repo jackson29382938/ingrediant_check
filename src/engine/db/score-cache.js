@@ -33,12 +33,13 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
     return JSON.stringify(out);
   }
 
-  function valid(hit, { store, asin, version, prefs, allowManual = false }, now = Date.now()) {
+  // maxAgeMs: the speed setting's age limit (AIR.db.speed); TTL_MS when not given.
+  function valid(hit, { store, asin, version, prefs, allowManual = false, maxAgeMs = TTL_MS }, now = Date.now()) {
     if (!hit || hit.schema !== SCHEMA || hit.v !== version) return false;
     if (normalizeStore(hit.store) !== normalizeStore(store) || hit.asin !== asin) return false;
     if (hit.prefs !== fingerprint(prefs, hit.source)) return false;
     if (!Number.isFinite(hit.score) || hit.score < 0 || hit.score > 100) return false;
-    if (!Number.isFinite(hit.t) || hit.t > now || now - hit.t >= TTL_MS) return false;
+    if (!Number.isFinite(hit.t) || hit.t > now || now - hit.t >= maxAgeMs) return false;
     if (typeof hit.source !== 'string' || !hit.source) return false;
     if (!allowManual && ['manual-paste', 'food-override'].includes(hit.source)) return false;
     return true;

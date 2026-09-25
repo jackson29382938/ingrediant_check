@@ -1,43 +1,102 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><title>Sort harness</title>
 <style>body{font:13px/1.5 -apple-system,system-ui,sans-serif;margin:0;padding:16px;background:#f7f8f8}
-.s-result-item{background:#fff;border:1px solid #d5d9d9;border-radius:8px;padding:8px 12px;margin:6px 0}</style></head><body>
-<!-- Sort by score on an Amazon-shaped results page, with the real content scripts and a stub chrome.
-     Scores are seeded in the stub cache; "Rate every search result" is off, so nothing is fetched.
-     The harness records shadow roots so it can press the toolbar's buttons; the toolbar itself is
-     unchanged. Driven by scripts/harness-ci.mjs. -->
+.s-result-item{background:#fff;border:1px solid #d5d9d9;border-radius:8px;padding:8px 12px;margin:6px 0}
+.a-popover{position:absolute;top:60px;left:16px;background:#fff;border:1px solid #888;padding:4px 0;z-index:5}
+.a-popover ul{list-style:none;margin:0;padding:0}.a-popover a{display:block;padding:3px 14px;cursor:pointer}</style></head><body>
+<!-- Amazon's "Sort by" menu with the real content scripts and a stub chrome. Scores are seeded in the
+     stub cache; "Rate every search result" is off, so nothing is fetched. The menu script below stands
+     in for Amazon's: the pop-up list is built from the <select> when the menu opens, and a pick sets
+     the <select> the jQuery way (no native change event) and "navigates" (recorded in __amazonPicks).
+     Driven by scripts/harness-ci.mjs. -->
+<form method="get" action="/s" id="sortForm">
+  <span class="a-dropdown-container">
+    <label for="s-result-sort-select" class="a-native-dropdown">Sort by:</label>
+    <select name="s" id="s-result-sort-select" data-action="a-dropdown-select" class="a-native-dropdown" style="display:none">
+      <option value="relevanceblender" selected>Featured</option>
+      <option value="price-asc-rank">Price: Low to High</option>
+      <option value="price-desc-rank">Price: High to Low</option>
+      <option value="review-rank">Avg. Customer Review</option>
+      <option value="date-desc-rank">Newest Arrivals</option>
+      <option value="exact-aware-popularity-rank">Best Sellers</option>
+    </select>
+    <span class="a-button a-button-dropdown" id="a-autoid-0"><span class="a-button-inner"><span class="a-button-text" role="button">
+      <span class="a-dropdown-label">Sort by:</span> <span class="a-dropdown-prompt">Featured</span></span></span></span>
+  </span>
+</form>
 <div id="search">
   <div class="s-main-slot s-result-list">
-    <div data-component-type="s-search-result" data-asin="B0SORT0001" class="s-result-item"><h2><a href="/dp/B0SORT0001"><span>Oats with cane sugar</span></a></h2><span class="a-price"><span class="a-offscreen">$4.99</span></span></div>
-    <div data-component-type="s-search-result" data-asin="B0SORT0002" class="s-result-item"><h2><a href="/dp/B0SORT0002"><span>Oats, never opened</span></a></h2><span class="a-price"><span class="a-offscreen">$3.49</span></span></div>
-    <div data-component-type="s-search-result" data-asin="B0SORT0003" class="s-result-item"><h2><a href="/dp/B0SORT0003"><span>Organic rolled oats</span></a></h2><span class="a-price"><span class="a-offscreen">$6.29</span></span><div>1K+ bought in past month</div></div>
-    <div data-component-type="s-search-result" data-asin="B0SORT0004" class="s-result-item"><h2><a href="/dp/B0SORT0004"><span>Instant oatmeal, maple</span></a></h2><span class="a-price"><span class="a-offscreen">$2.99</span></span></div>
+    <div data-component-type="s-search-result" data-asin="B0SORT0001" class="s-result-item"><h2><a href="/dp/B0SORT0001"><span>Oats with cane sugar, 16 oz</span></a></h2><span class="a-price"><span class="a-offscreen">$4.99</span></span><span aria-label="4.1 out of 5 stars" class="a-icon-alt">4.1 out of 5 stars</span> <a href="/dp/B0SORT0001#customerReviews"><span class="a-size-base">(1,204)</span></a></div>
+    <div data-component-type="s-search-result" data-asin="B0SORT0002" class="s-result-item"><h2><a href="/dp/B0SORT0002"><span>Oats, never opened, 18 oz</span></a></h2><span class="a-price"><span class="a-offscreen">$3.49</span></span></div>
+    <div data-component-type="s-search-result" data-asin="B0SORT0003" class="s-result-item"><h2><a href="/dp/B0SORT0003"><span>Organic rolled oats, 32 oz</span></a></h2><span class="a-price"><span class="a-offscreen">$6.29</span></span> <span>($0.18/Ounce)</span><div>1K+ bought in past month</div><span aria-label="4.7 out of 5 stars" class="a-icon-alt">4.7 out of 5 stars</span> <a href="/dp/B0SORT0003#customerReviews"><span class="a-size-base">(12,345)</span></a></div>
+    <div data-component-type="s-search-result" data-asin="B0SORT0004" class="s-result-item"><h2><a href="/dp/B0SORT0004"><span>Instant oatmeal, maple, 10 Count, 15.1 oz</span></a></h2><span class="a-price"><span class="a-offscreen">$2.99</span></span></div>
     <div data-component-type="s-search-result" data-asin="B0SORT0005" class="s-result-item"><h2><a href="/dp/B0SORT0005"><span>Oat bar, never opened</span></a></h2></div>
-    <div data-component-type="s-search-result" data-asin="B0SORT0006" class="s-result-item"><h2><a href="/dp/B0SORT0006"><span>Steel cut oats</span></a></h2><span class="a-price"><span class="a-offscreen">$5.49</span></span></div>
+    <div data-component-type="s-search-result" data-asin="B0SORT0006" class="s-result-item"><h2><a href="/dp/B0SORT0006"><span>Steel cut oats, 2 lb</span></a></h2><span class="a-price"><span class="a-offscreen">$5.49</span></span></div>
     <div data-component-type="s-search-result" data-asin="B0SORT0007" class="s-result-item"><h2><a href="/dp/B0SORT0007"><span>Oat milk, never opened</span></a></h2></div>
-    <div data-component-type="s-search-result" data-asin="B0SORT0008" class="s-result-item"><h2><a href="/dp/B0SORT0008"><span>Oat flour</span></a></h2><span class="a-price"><span class="a-offscreen">$7.99</span></span></div>
+    <div data-component-type="s-search-result" data-asin="B0SORT0008" class="s-result-item"><h2><a href="/dp/B0SORT0008"><span>Oat flour, 22 oz (Pack of 4)</span></a></h2><span class="a-price"><span class="a-offscreen">$7.99</span></span></div>
   </div>
 </div>
 <script>
-window.__shadows = [];
-const realAttach = Element.prototype.attachShadow;
-Element.prototype.attachShadow = function (init) {
-  const shadow = realAttach.call(this, init);
-  window.__shadows.push({ host: this, root: shadow });
-  return shadow;
-};
+// Amazon's menu, as far as it matters here.
+window.__amazonPicks = [];
+(function () {
+  const select = document.getElementById('s-result-sort-select');
+  let popover = null;
+  function build() {
+    popover?.remove();
+    popover = document.createElement('div');
+    popover.className = 'a-popover a-dropdown';
+    popover.setAttribute('aria-hidden', 'false');
+    const ul = document.createElement('ul');
+    ul.setAttribute('role', 'listbox');
+    [...select.options].forEach((o, i) => {
+      const li = document.createElement('li');
+      li.className = 'a-dropdown-item';
+      li.setAttribute('role', 'option');
+      const a = document.createElement('a');
+      a.className = 'a-dropdown-link' + (o.selected ? ' a-active' : '');
+      a.id = `s-result-sort-select_${i}`;
+      a.setAttribute('data-value', JSON.stringify({ stringVal: o.value }));
+      a.textContent = o.textContent;
+      li.append(a);
+      ul.append(li);
+    });
+    popover.append(ul);
+    document.body.append(popover);
+  }
+  window.__openMenu = build;
+  window.__popover = () => popover;
+  document.addEventListener('click', e => {
+    if (e.target.closest('#a-autoid-0')) { build(); return; }
+    const a = e.target.closest('.a-popover a.a-dropdown-link');
+    if (!a) return;
+    const value = JSON.parse(a.getAttribute('data-value')).stringVal;
+    select.value = value;                       // jQuery-style: no native change event
+    window.__amazonPicks.push(value);           // Amazon would now submit the form
+    popover.style.display = 'none';
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && popover) { popover.style.display = 'none'; popover.setAttribute('aria-hidden', 'true'); } });
+})();
+
 window.__messages = [];
+const listeners = [];
 const SETTINGS = { enabled: true, badges: true, foodOnly: true, hoverScore: false, autoScoreSearch: false,
   hoverBreakdown: false, ocrLabels: false, sendDiagnostics: false, useOpenFoodFacts: false, sharedCache: false,
-  weights: {}, allergens: [], diets: [], avoidList: [], sortMissing: 'rate-first', sortLoadMore: false, sortCount: 100 };
+  weights: {}, allergens: [], diets: [], avoidList: [], sortMissing: 'rate-first', sortLoadMore: false, sortCount: 100,
+  unitPrice: true, unitMissing: 'calculate-clear' };
 window.__settings = SETTINGS;
+window.__set = (key, value) => { SETTINGS[key] = value; listeners.forEach(fn => fn({ [key]: { newValue: value } }, 'local')); };
+let run = 0;
 window.chrome = {
   runtime: {
-    getManifest: () => ({ version: '0.9.0' }), lastError: null, getURL: p => '/' + p,
+    id: 'harness', getManifest: () => ({ version: '0.9.0' }), lastError: null, getURL: p => '/' + p,
     sendMessage: (m, cb) => {
       window.__messages.push(JSON.parse(JSON.stringify(m)));
-      const reply = m.type === 'productsLookup' ? { rows: {} } : m.type === 'openSortedResults' ? { ok: true, count: m.results.length } : { ok: true };
+      const reply = m.type === 'productsLookup' ? { rows: {} }
+        : m.type === 'openSortedPanel' ? { ok: true, runId: `run-${++run}` }
+        : m.type === 'updateSortedResults' ? { ok: true, count: m.items.length } : { ok: true };
       if (cb) setTimeout(() => cb(reply), 0);
     },
+    onMessage: { addListener() {} },
   },
   storage: { local: {
     get: (keys, cb) => {
@@ -48,7 +107,7 @@ window.chrome = {
     },
     set: (o, cb) => { Object.assign(SETTINGS, o); if (cb) cb(); return Promise.resolve(); },
     remove: (k, cb) => { if (cb) cb(); return Promise.resolve(); },
-  }, onChanged: { addListener: () => {} } },
+  }, onChanged: { addListener: fn => listeners.push(fn) } },
   i18n: { getMessage: () => '' },
 };
 history.replaceState({}, '', '/s?k=organic+oats');
@@ -69,6 +128,8 @@ history.replaceState({}, '', '/s?k=organic+oats');
 <script src="/src/engine/db/score-cache.js"></script>
 <script src="/src/engine/db/product-cache.js"></script>
 <script src="/src/engine/db/sorted-results.js"></script>
+<script src="/src/engine/db/unit-price.js"></script>
+<script src="/src/engine/db/speed.js"></script>
 <script src="/src/engine/score.js"></script>
 <script src="/src/content/extract.js"></script>
 <script src="/src/content/panel.js"></script>
@@ -90,7 +151,10 @@ for (const [asin, [score, verdict]] of Object.entries(seed)) {
   };
 }
 window.__order = () => [...document.querySelectorAll('.s-main-slot [data-asin]')].map(el => el.dataset.asin);
-window.__toolbar = () => (window.__shadows.find(s => s.host.id === 'air-sort-host') || {}).root || null;
+window.__options = () => [...document.getElementById('s-result-sort-select').options].map(o => o.textContent);
+window.__rows = () => (window.__popover() && window.__popover().style.display !== 'none')
+  ? [...window.__popover().querySelectorAll('a')].map(a => a.textContent) : null;
+window.__final = () => window.__messages.filter(m => m.type === 'updateSortedResults' && m.loading === false).pop() || null;
 </script>
 <script src="/src/content/main.js"></script>
 </body></html>

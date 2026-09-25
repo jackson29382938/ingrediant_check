@@ -39,6 +39,9 @@ const TOGGLE_DEFAULTS = {
   sendDiagnostics: false,
   // Shared product cache and provenance reads. Off keeps every lookup on this computer.
   sharedCache: true,
+  // Price per ounce in the sorted list and "Price per ounce: Low to High" in Amazon's sort menu,
+  // worked out on this computer from the results page (AIR.db.unitPrice). No extra requests.
+  unitPrice: true,
   // Copy of the settings in the Chrome account (chrome.storage.sync). Never restored on its own.
   settingsBackup: true,
 };

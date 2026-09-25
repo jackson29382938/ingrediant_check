@@ -77,10 +77,11 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     };
   }
 
-  function stale(row, now = Date.now()) {
+  // maxAgeMs: the speed setting's age limit (AIR.db.speed); MAX_AGE_MS when not given.
+  function stale(row, now = Date.now(), maxAgeMs = MAX_AGE_MS) {
     const t = Date.parse(row && row.scanned_at);
     if (!Number.isFinite(t)) return true;
-    return (Number(row.pulls) || 0) >= MAX_PULLS || now - t >= MAX_AGE_MS;
+    return (Number(row.pulls) || 0) >= MAX_PULLS || now - t >= maxAgeMs;
   }
 
   // Engine input from a row. A fresh object each call: score() writes `_normalised` into nutrition.
