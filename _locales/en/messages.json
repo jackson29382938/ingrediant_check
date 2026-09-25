@@ -707,5 +707,47 @@
   },
   "popupSetupAgain": {
     "message": "Run setup again"
+  },
+  "optNavStores": {
+    "message": "Stores"
+  },
+  "optStoresH": {
+    "message": "Stores and store wishlist"
+  },
+  "optStoresLede": {
+    "message": "Where Ingredient Check works today, and which stores are planned. A planned store is not available yet: the extension does not run there and reads nothing from it."
+  },
+  "optStoreSupported": {
+    "message": "Supported"
+  },
+  "optStorePlanned": {
+    "message": "Planned — not available yet"
+  },
+  "optRequestH": {
+    "message": "Request a store"
+  },
+  "optRequestLede": {
+    "message": "Tell us which online grocery store you want next. This makes a draft in your own email app, addressed to jackson29382938@gmail.com. Nothing is sent until you press Send there, and it goes from your email address, so the recipient will see it."
+  },
+  "optRequestName": {
+    "message": "Store name"
+  },
+  "optRequestUrl": {
+    "message": "Store website (optional)"
+  },
+  "optRequestUrlNote": {
+    "message": "Only the website's address is kept. Anything after it, such as a product or a search, is removed before the draft is made."
+  },
+  "optRequestPreviewH": {
+    "message": "The draft will contain exactly this:"
+  },
+  "optRequestPreviewEmpty": {
+    "message": "Enter a store name to see the draft."
+  },
+  "optRequestSend": {
+    "message": "Open email draft"
+  },
+  "popupRequestStore": {
+    "message": "Request a store"
   }
 }

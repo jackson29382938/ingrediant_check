@@ -46,6 +46,7 @@ Scoring is always local: the rules, your weights and every score are computed in
 | **Read label photos** | Fetch of the product image on `m.media-amazon.com` | The image is read **on your computer** (Tesseract). The pixels are not uploaded. |
 | **Open Food Facts fallback** | The **barcode only** | Open Food Facts, after Chrome grants the host. |
 | **Send certifications** / "Looks wrong?" | Product identifiers and certification text; a report adds what the score was | The Ingredient Check database. |
+| **Request a store** (only when you open the draft and send it yourself) | Nothing from the extension. Your email app sends the store name and optional site address, if you press Send | The maintainer, by email from your address. See *Requesting a store* below. |
 | **Accuracy diagnostics** (off by default) | One row per scored product (ASIN, store, ingredient text, score, source) | The Ingredient Check database. That is a trace of products you scored — with auto-score on, of tiles that scrolled into view. |
 
 Turn off the shared database, the backup and **Rate every search result**, leave the other options
@@ -53,6 +54,23 @@ off, and the extension makes no network requests of its own. A build shipped wit
 everything but the Chrome backup.
 
 There is no Ingredient Check account, no analytics SDK, and no third-party ad or crash reporter.
+
+## Requesting a store
+
+Settings → **Stores** has a **Request a store** form. The extension sends nothing when you use it.
+It builds an email draft and opens your own email app with it:
+
+- **To:** jackson29382938@gmail.com
+- **Subject:** `Store request: <the store name you typed>`
+- **Body:** the store name, and the store's website if you gave one. Only the site address is kept
+  (for example `https://www.example.com`). Any product, search or tracking part of a pasted link is
+  removed first.
+
+The page shows the draft exactly before you open it. It contains nothing else: no browsing history,
+no products, no settings, no account details. Nothing is sent until you press Send in your email
+app. If you do, it goes from your email address, and the recipient sees that address as with any
+email. The extension does not keep a copy of what you typed. There is no form service, backend or
+tracking behind this.
 
 ## What is stored on the device
 

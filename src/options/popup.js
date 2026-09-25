@@ -473,13 +473,22 @@ document.getElementById('openSetup').addEventListener('click', e => {
   chrome.tabs.create({ url: chrome.runtime.getURL('src/options/welcome.html') });
 });
 
-// Straight to the settings that fetch from Amazon, and the note on which stores it can reach.
-// openOptionsPage() cannot take a fragment; creating a tab needs no extra permission.
-document.getElementById('openNetwork').addEventListener('click', e => {
-  e.preventDefault();
-  const url = chrome.runtime.getURL('src/options/options.html#sec-rate');
+// Straight to a settings section. openOptionsPage() cannot take a fragment; creating a tab needs no
+// extra permission.
+function openSettingsAt(section) {
+  const url = chrome.runtime.getURL('src/options/options.html#' + section);
   if (chrome.tabs && typeof chrome.tabs.create === 'function') chrome.tabs.create({ url });
   else chrome.runtime.openOptionsPage();
+}
+// The settings that fetch from Amazon, and the note on which stores it can reach.
+document.getElementById('openNetwork').addEventListener('click', e => {
+  e.preventDefault();
+  openSettingsAt('sec-rate');
+});
+// Where it works, what is planned, and the request form.
+document.getElementById('openStores').addEventListener('click', e => {
+  e.preventDefault();
+  openSettingsAt('sec-stores');
 });
 
 document.getElementById('toggleWhy').addEventListener('click', () => {

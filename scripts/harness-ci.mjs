@@ -266,6 +266,40 @@ async function run() {
       await settingsPage.click('#autoScoreSearch');
       await settingsPage.waitForFunction(() => window.__stored.autoScoreSearch === false, { timeout: 5000 });
       console.log(`  ok  settings → auto-rate and hover switches, ${before.stores} stores from the manifest, saves off`);
+
+      // Store wishlist: the list comes from the registry, and the draft link only exists once valid.
+      const idle = await settingsPage.evaluate(() => ({
+        rows: [...document.querySelectorAll('#storeList li')].map(li => li.querySelector('strong').textContent
+          + ':' + li.querySelector('.store-badge').className.replace('store-badge ', '')),
+        href: document.getElementById('reqSend').getAttribute('href'),
+        disabled: document.getElementById('reqSend').getAttribute('aria-disabled'),
+      }));
+      if (idle.rows.join() !== 'Amazon:supported,Target:planned,Walmart:planned,Costco:planned'
+        || idle.href !== '#' || idle.disabled !== 'true') throw new Error(`stores idle: ${JSON.stringify(idle)}`);
+      await settingsPage.fill('#reqName', 'Marks & Spencer');
+      await settingsPage.fill('#reqUrl', 'https://www.marksandspencer.com/food/p/12345?utm_source=x');
+      const ready = await settingsPage.evaluate(() => ({
+        href: document.getElementById('reqSend').getAttribute('href'),
+        disabled: document.getElementById('reqSend').getAttribute('aria-disabled'),
+        preview: document.getElementById('reqPreview').textContent,
+        notes: document.getElementById('reqNotes').textContent,
+      }));
+      if (!ready.href.startsWith('mailto:jackson29382938@gmail.com?subject=Store%20request%3A%20Marks%20%26%20Spencer&body=')
+        || ready.disabled !== 'false' || /12345|utm/.test(ready.href + ready.preview)
+        || !/Website: https:\/\/www\.marksandspencer\.com\n/.test(ready.preview) || !/removed/.test(ready.notes)) {
+        throw new Error(`stores ready: ${JSON.stringify(ready)}`);
+      }
+      await settingsPage.fill('#reqUrl', 'javascript:alert(1)');
+      const bad = await settingsPage.evaluate(() => ({
+        href: document.getElementById('reqSend').getAttribute('href'),
+        error: document.getElementById('reqUrlError').textContent,
+      }));
+      if (bad.href !== '#' || !bad.error) throw new Error(`stores invalid: ${JSON.stringify(bad)}`);
+      await settingsPage.fill('#reqName', 'Amazon');
+      await settingsPage.fill('#reqUrl', '');
+      const dup = await settingsPage.evaluate(() => document.getElementById('reqNameError').textContent);
+      if (!/already works/.test(dup)) throw new Error(`stores duplicate: ${dup}`);
+      console.log('  ok  settings → store list from the registry; request draft previewed, trimmed to the site, refused when invalid');
     } finally {
       await settingsPage.close();
     }
