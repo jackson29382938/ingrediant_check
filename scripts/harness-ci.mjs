@@ -323,6 +323,9 @@ async function run() {
         || by.B0SORT0002.title !== 'Oats, never opened, 18 oz' || !/\/dp\/B0SORT0002\//.test(by.B0SORT0002.url) || by.B0SORT0002.reviewCount !== 2310
         || by.B0SORT0005.title !== 'Oat bar, never opened' || !/\/dp\/B0SORT0005/.test(by.B0SORT0005.url)
         || by.B0SORT0007.title !== 'Oat milk, never opened' || !/\/dp\/B0SORT0007$/.test(by.B0SORT0007.url)
+        // Why it scored: from the saved product reading; a bare saved score has no reasons; no raw card text.
+        || !(by.B0SORT0003.why && by.B0SORT0003.why.plus.some(r => /organic/i.test(r.why) && r.c > 0))
+        || by.B0SORT0006.why !== null || items.some(r => 'details' in r)
         || !/3 without a score are at the end/.test(run.final.status)) {
         throw new Error(`list sent: ${JSON.stringify({ items, status: run.final.status })}`);
       }
@@ -394,6 +397,22 @@ async function run() {
         evilImg: [...document.querySelectorAll('img')].filter(i => /evil/.test(i.src)).length,
         buttons: [...document.querySelectorAll('.header-actions button:not([hidden])')].map(b => b.textContent),
       }));
+      // Why it scored: the dropdown under each listing and the pop-up on the score.
+      const whyView = await listPage.evaluate(() => {
+        const card = [...document.querySelectorAll('.product')].find(a => /B0SORT0003/.test(a.querySelector('h2 a')?.href || ''));
+        const summary = card.querySelector('.why-details > summary').textContent;
+        const rows = [...card.querySelectorAll('.why-details li')].map(li => li.textContent);
+        const bare = [...document.querySelectorAll('.product')].find(a => /B0SORT0006/.test(a.querySelector('h2 a')?.href || ''));
+        return { summary, rows, bare: bare.querySelector('.why-details .why-none')?.textContent || '', listingDetails: /Listing details/.test(document.body.textContent) };
+      });
+      await listPage.hover('.product:has(a[href$="B0SORT0003"]) .score-chip');
+      const popText = await listPage.evaluate(() => document.querySelector('.why-pop')?.textContent || '');
+      await listPage.mouse.move(0, 0);
+      const popGone = await listPage.evaluate(() => !document.querySelector('.why-pop'));
+      if (whyView.summary !== 'Why it scored 90' || !whyView.rows.some(r => /^\+\d+.*organic/i.test(r)) || !/not kept/.test(whyView.bare)
+        || whyView.listingDetails || !/Why it scored 90/.test(popText) || !/organic/i.test(popText) || !popGone) {
+        throw new Error(`why it scored: ${JSON.stringify({ ...whyView, popText, popGone })}`);
+      }
       const health = await read();
       if (health.chips.join() !== '99,95,90,72,40,40,–,–,–' || health.unsafe || health.evilImg || health.title !== 'Healthiest first'
         || health.buttons.join('|') !== 'Back to Amazon search|Open side panel|Settings') {
@@ -433,7 +452,7 @@ async function run() {
         || !calls.some(c => c[0] === 'tabs.update' && c[1] === 3 && c[2] === 'https://www.amazon.com/s?k=organic+oats' && c[3] === true)) {
         throw new Error(`panel calls: ${JSON.stringify(calls)}`);
       }
-      console.log('  ok  sorted list → priority bar re-ranks (health, price per ounce, a mix); panel has Open in new tab beside Back to Amazon search; unsafe link and image dropped');
+      console.log('  ok  sorted list → priority bar re-ranks (health, price per ounce, a mix); "Why it scored" dropdown and hover pop-up; Open in new tab beside Back to Amazon search; unsafe link and image dropped');
     } finally {
       await panelPage.close();
     }

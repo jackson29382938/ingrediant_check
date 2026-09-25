@@ -237,6 +237,61 @@
   }
 
   // ---------------------------------------------------------------- the list
+  // "What's good" / "What hurt": the same rows as the product panel and the results-page hover card.
+  function whyList(why) {
+    const box = node('div', 'why');
+    if (!why) {
+      box.append(node('p', 'why-none', t('sortedWhyNone', 'The reasons were not kept for this saved score. Open the product to see why.')));
+      return box;
+    }
+    const section = (rows, head, kind) => {
+      if (!rows || !rows.length) return;
+      box.append(node('h4', '', head));
+      const ul = node('ul');
+      for (const r of rows) {
+        const li = node('li', r.c === 'CAP' ? 'capflag' : kind);
+        li.append(node('span', 'pts', r.c === 'CAP' ? 'CAP' : r.c > 0 ? `+${r.c}` : String(r.c)));
+        const text = node('span', 'why-text', r.why);
+        if (r.ing) text.append(node('span', 'ing', ` — ${r.ing}`));
+        li.append(text);
+        ul.append(li);
+      }
+      box.append(ul);
+    };
+    section(why.caps, t('headDisqualifying', 'Disqualifying'), 'minus');
+    section(why.plus, t('headGood', "What's good"), 'plus');
+    section(why.minus, t('headHurt', 'What hurt'), 'minus');
+    section(why.neutral, t('headNeutral', 'Not counted against it'), 'plus');
+    if (!box.children.length) box.append(node('p', 'why-none', t('breakdownClean', 'Nothing on this label moved the score up or down.')));
+    return box;
+  }
+
+  // Hovering or focusing a score shows why, in one shared pop-up.
+  let pop = null;
+  function showWhy(chip, product) {
+    hideWhy();
+    pop = node('div', 'why-pop');
+    pop.setAttribute('role', 'tooltip');
+    pop.id = 'why-pop';
+    pop.append(node('p', 'why-pop-head', t('sortedWhyHead', 'Why it scored $1', product.score)), whyList(product.why));
+    document.body.append(pop);
+    chip.setAttribute('aria-describedby', 'why-pop');
+    const r = chip.getBoundingClientRect();
+    const width = Math.min(320, document.documentElement.clientWidth - 16);
+    pop.style.width = `${width}px`;
+    pop.style.left = `${Math.max(8, Math.min(r.left, document.documentElement.clientWidth - width - 8)) + scrollX}px`;
+    const below = innerHeight - r.bottom;
+    if (below >= pop.offsetHeight + 12 || below >= r.top) pop.style.top = `${r.bottom + 6 + scrollY}px`;
+    else pop.style.top = `${r.top - 6 - pop.offsetHeight + scrollY}px`;
+  }
+  function hideWhy() {
+    if (pop) pop.remove();
+    pop = null;
+    document.querySelectorAll('[aria-describedby="why-pop"]').forEach(el => el.removeAttribute('aria-describedby'));
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') hideWhy(); });
+  addEventListener('scroll', hideWhy, { passive: true });
+
   function chipFor(product) {
     const score = node('div', 'score');
     if (typeof product.score === 'number') {
@@ -245,6 +300,12 @@
       chip.style.color = c.fg;
       chip.style.background = c.bg;
       chip.style.borderColor = c.ring;
+      chip.tabIndex = 0;
+      chip.setAttribute('aria-label', t('sortedWhyHead', 'Why it scored $1', product.score));
+      chip.addEventListener('mouseenter', () => showWhy(chip, product));
+      chip.addEventListener('focus', () => showWhy(chip, product));
+      chip.addEventListener('mouseleave', hideWhy);
+      chip.addEventListener('blur', hideWhy);
       score.append(chip, node('span', 'score-verdict', product.verdict || ''));
     } else {
       score.append(node('span', 'score-chip none', '–'), node('span', 'score-verdict none', t('sortedNoScore', 'No score')));
@@ -300,10 +361,10 @@
     if (missing.length) meta.append(node('span', 'missing', missing.map(f => MISSING_TEXT[f]()).join(', ')));
     content.append(meta);
 
-    if (product.details) {
-      const details = node('details');
-      details.append(node('summary', '', t('sortedDetails', 'Listing details')));
-      details.append(node('pre', '', product.details));
+    if (typeof product.score === 'number') {
+      const details = node('details', 'why-details');
+      details.append(node('summary', '', t('sortedWhyHead', 'Why it scored $1', product.score)));
+      details.append(whyList(product.why));
       content.append(details);
     }
     article.append(content);
@@ -311,6 +372,7 @@
   }
 
   function renderList() {
+    hideWhy();
     // Re-checked on read too: session storage is shared with every extension page.
     const items = R.sanitizeResults(saved && saved.items);
     const loading = !!(saved && saved.loading);

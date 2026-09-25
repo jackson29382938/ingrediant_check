@@ -548,6 +548,6 @@
     return shadow;
   }
 
-  root.AIR.panel = { render, renderBreakdown, renderLoading, renderFailure, renderNotFood, renderNotice, mount, shadowOf, BAND_COLOR, NOVA_TEXT, pasteLooksValid, t };
+  root.AIR.panel = { render, renderBreakdown, renderLoading, renderFailure, renderNotFood, renderNotice, mount, shadowOf, BAND_COLOR, NOVA_TEXT, pasteLooksValid, t, sections };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.AIR.panel;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

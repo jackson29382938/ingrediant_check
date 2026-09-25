@@ -313,14 +313,25 @@
       bought: text.match(/\b[\d,.]+\s*(?:K\+?\s*)?bought in past month\b/i)?.[0] || '',
       sponsored: /\bsponsored\b/i.test(text.slice(0, 200)),
       pageNumber,
-      details: text.split(/\n+/).map(line => line.trim()).filter(Boolean)
-        .filter((line, index, lines) => lines.indexOf(line) === index).slice(0, 45).join('\n').slice(0, 2600),
     };
   }
 
   // ------------------------------------------------------------------ scores
-  // asin -> { score, verdict, source }, from this computer only: the weighted score, else the product
-  // data read earlier, scored under the current settings.
+  // Why a listing scored what it did: the same rows the product panel and the results-page hover card
+  // show ("What's good", "What hurt"), trimmed to what the list needs. The engine re-runs on the
+  // saved product reading under the reader's current settings, as the hover card does; no network.
+  const WHY_ROWS = 8;
+  function whyOf(result) {
+    if (!result || !root.AIR.panel || typeof root.AIR.panel.sections !== 'function') return null;
+    const { caps, minus, plus, neutral } = root.AIR.panel.sections(result);
+    const row = h => ({ c: h.c === 'CAP' ? 'CAP' : Math.round(Number(h.c) || 0), why: String(h.why || '').slice(0, 140),
+      ing: h.ing ? String(h.ing).slice(0, 80) : '' });
+    return { caps: caps.slice(0, WHY_ROWS).map(row), plus: plus.slice(0, WHY_ROWS).map(row),
+      minus: minus.slice(0, WHY_ROWS).map(row), neutral: neutral.slice(0, 3).map(row) };
+  }
+
+  // asin -> { score, verdict, source, why }, from this computer only: the weighted score, else the
+  // product data read earlier, scored under the current settings.
   async function knownScores(asins) {
     const { cacheKey, usableCache, freshLocal, storeHost, unreadable, state, cacheScore } = P();
     const C = root.AIR.db.productCache;
@@ -329,15 +340,21 @@
     const out = new Map();
     for (const asin of asins) {
       const hit = got[cacheKey(asin)];
-      if (usableCache(hit, asin)) { out.set(asin, { score: hit.score, verdict: hit.verdict, source: 'scored' }); continue; }
       const row = C.sanitize(got[localKey(asin)]);
+      const okRow = row && row.status === 'ok' && freshLocal(row);
+      if (usableCache(hit, asin)) {
+        // The saved score keeps no reasons; the product reading behind it does.
+        const why = okRow ? whyOf(root.AIR.engine.score(C.toInput(row), state.prefs)) : null;
+        out.set(asin, { score: hit.score, verdict: hit.verdict, source: 'scored', why });
+        continue;
+      }
       if (!row || !freshLocal(row)) continue;
       if (row.status === 'not-food' || row.data.food === false) { out.set(asin, { score: null, source: 'not-food' }); continue; }
       if (row.status === 'unreadable') { out.set(asin, { score: null, source: 'unreadable' }); continue; }
       const result = root.AIR.engine.score(C.toInput(row), state.prefs);
       if (unreadable(result)) { out.set(asin, { score: null, source: 'unreadable' }); continue; }
       cacheScore(asin, result, row.data.title, row.data.via || 'search-tile', '', Date.parse(row.scanned_at));
-      out.set(asin, { score: result.score, verdict: result.verdict, source: 'scored' });
+      out.set(asin, { score: result.score, verdict: result.verdict, source: 'scored', why: whyOf(result) });
     }
     return out;
   }
@@ -363,7 +380,7 @@
         const result = root.AIR.engine.score(C.toInput(row), state.prefs);
         if (unreadable(result)) { out.set(asin, { score: null, source: 'unreadable' }); continue; }
         cacheScore(asin, result, row.data.title, row.data.via || 'search-tile', '', Date.parse(row.scanned_at));
-        out.set(asin, { score: result.score, verdict: result.verdict, source: 'scored' });
+        out.set(asin, { score: result.score, verdict: result.verdict, source: 'scored', why: whyOf(result) });
       }
     }
     if (pulls.length) send({ type: 'productsQueue', pulls });
@@ -395,7 +412,7 @@
           const reading = search.readProductHtml(asin, html);
           search.recordReading(asin, reading, 'sort-list');
           out.set(asin, reading.outcome === 'scored'
-            ? { score: reading.result.score, verdict: reading.result.verdict, source: 'scored' }
+            ? { score: reading.result.score, verdict: reading.result.verdict, source: 'scored', why: whyOf(reading.result) }
             : { score: null, source: reading.outcome === 'not-food' ? 'not-food' : 'unreadable' });
           failStreak = 0;
         } catch (e) {
@@ -593,7 +610,7 @@
   function refresh() { if (mounted) install(); }
 
   const api = { mount, unmount, refresh, isSearchPage, extractProduct, knownScores, findNextPage, sortSelects,
-    ratingValue, reviewCount, VALUE, MARK, choose, get runId() { return runId; } };
+    ratingValue, reviewCount, whyOf, VALUE, MARK, choose, get runId() { return runId; } };
   root.AIR.sort = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof globalThis !== 'undefined' ? globalThis : self);
