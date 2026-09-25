@@ -268,6 +268,15 @@ options, and choosing one opens the side panel. This follows the newer Amazon Co
 
 **For the owner:** run §7 above once in your own Chrome, starting with step 2.
 
+**Follow-up, same day.** The owner's Chrome opened the side panel but it stayed empty. The side panel
+itself was then checked in the simulation over Chrome's DevTools protocol (not a copy in a tab): it
+shows the ranked list. The likely cause on real Amazon was card detection. The sort code required an
+`h2 a` link or Amazon's image link, while current Amazon cards put the `h2` inside the link and grocery
+/ Whole Foods cards can have neither. It now finds listings the way the badges do (an ASIN plus a
+title), and `harness:ci` includes three cards in those shapes (it fails with the old detection). The
+panel also now reports an error or a stall instead of staying blank. Still not checked live: Amazon
+answers this machine's search pages with 503.
+
 **Still for the owner:**
 
 1. Press **Allow** on Chrome's Open Food Facts prompt once in your own profile, to confirm the grant

@@ -319,6 +319,10 @@ async function run() {
         || by.B0SORT0003.reviewCount !== 12345 || !/1K\+ bought/.test(by.B0SORT0003.bought) || by.B0SORT0003.listingPrice !== 6.29
         || !near(by.B0SORT0008.unitPrice, 7.99 / 88) || !near(by.B0SORT0006.unitPrice, 5.49 / 32) || by.B0SORT0004.unitPrice !== null
         || by.B0SORT0006.title !== 'Steel cut oats, 2 lb' || items.some(r => /^\d+$/.test(r.title))
+        // Current and grocery card markup (no `h2 a`, no image link class): found, titled, linked.
+        || by.B0SORT0002.title !== 'Oats, never opened, 18 oz' || !/\/dp\/B0SORT0002\//.test(by.B0SORT0002.url) || by.B0SORT0002.reviewCount !== 2310
+        || by.B0SORT0005.title !== 'Oat bar, never opened' || !/\/dp\/B0SORT0005/.test(by.B0SORT0005.url)
+        || by.B0SORT0007.title !== 'Oat milk, never opened' || !/\/dp\/B0SORT0007$/.test(by.B0SORT0007.url)
         || !/3 without a score are at the end/.test(run.final.status)) {
         throw new Error(`list sent: ${JSON.stringify({ items, status: run.final.status })}`);
       }
