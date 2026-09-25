@@ -20,8 +20,8 @@
       name.textContent = store.name;
       const badge = document.createElement('span');
       badge.className = 'store-badge ' + store.status;
-      badge.textContent = store.status === 'supported'
-        ? t('optStoreSupported', 'Supported')
+      badge.textContent = store.status === 'supported' ? t('optStoreSupported', 'Supported')
+        : store.status === 'preview' ? t('optStorePreview', 'Preview — works on the pages you open; still being checked')
         : t('optStorePlanned', 'Planned — not available yet');
       const where = document.createElement('span');
       where.className = 'store-where';
@@ -34,6 +34,7 @@
   const NOTES = {
     'url-trimmed': 'The rest of the web address was removed; only the site is included.',
     'already-planned': 'This store is already planned. A request still helps show it is wanted.',
+    'already-preview': 'Ingredient Check already runs on this store as a preview. A request still helps show it is wanted.',
   };
 
   function paint() {

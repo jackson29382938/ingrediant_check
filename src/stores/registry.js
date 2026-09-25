@@ -1,10 +1,11 @@
 // Which online stores Ingredient Check works on, and which are planned.
 //
 // One list for the settings page's store wishlist, docs/STORES.md and the tests, so the UI cannot
-// claim a store the extension does not support. `supported` means the extension runs there today.
-// `planned` means it does not run there yet: no host permission, no content script, nothing read.
-// A store moves to `supported` only after its product page and search flow are checked in a real
-// browser (docs/STORES.md explains the steps and records the date).
+// claim a store the extension does not support.
+//   supported  runs there, and its product page and search flow were checked in a real browser
+//              in normal use (docs/STORES.md records when)
+//   preview    runs there and read the live pages correctly, but that check is not complete: say so
+//   planned    does not run there: no host permission, no content script, nothing read
 
 (function (root) {
   const STORES = [
@@ -16,7 +17,9 @@
         'amazon.nl', 'amazon.se', 'amazon.pl', 'amazon.com.be', 'amazon.com.tr', 'amazon.com.mx',
         'amazon.com.br', 'amazon.co.jp'],
     },
-    { id: 'target', name: 'Target', status: 'planned', domains: ['target.com'] },
+    // Reads the product page you open; search shows scores only for products opened before.
+    // Live pages were read correctly on 2026-09-25, but behind Target's bot check (docs/STORES.md).
+    { id: 'target', name: 'Target', status: 'preview', domains: ['target.com'] },
     { id: 'walmart', name: 'Walmart', status: 'planned', domains: ['walmart.com'] },
     { id: 'costco', name: 'Costco', status: 'planned', domains: ['costco.com'] },
   ];

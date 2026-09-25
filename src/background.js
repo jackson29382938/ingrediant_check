@@ -747,5 +747,5 @@ function handleSharedDbMessage(msg, reply) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { indexRows, lookupRecord, sweepCache, isOpenFoodFactsFood, batchIdFor, revisionOf, ensureHousekeepingAlarm, allowMessage, isOwnExtension, isAmazonTabSender, isOptionsPageSender, isOffscreenSender, allowedOcrUrls, MAX_SHEET_BYTES, MAX_SHEET_ROWS };
+  module.exports = { indexRows, lookupRecord, sweepCache, isOpenFoodFactsFood, batchIdFor, revisionOf, ensureHousekeepingAlarm, allowMessage, isOwnExtension, isAmazonTabSender, isRetailerTabSender, isOptionsPageSender, isOffscreenSender, allowedOcrUrls, MAX_SHEET_BYTES, MAX_SHEET_ROWS };
 }

@@ -1,6 +1,6 @@
 # Privacy (Chrome Web Store)
 
-Ingredient Check scores Amazon grocery labels **on your computer**. By default three things go online: product data to the shared database (so products are not re-read from Amazon), a settings backup to your own Chrome account, and — to put a number on every search result — requests for product pages to Amazon itself. All three can be switched off.
+Ingredient Check scores grocery labels on Amazon, and as a preview on Target, **on your computer**. By default three things go online: product data to the shared database (so products are not re-read from Amazon), a settings backup to your own Chrome account, and — to put a number on every search result — requests for product pages to Amazon itself. All three can be switched off.
 
 This page is the one-screen note for a store listing. Settings copy and [DIAGNOSTICS.md](DIAGNOSTICS.md) say the same things at more length.
 
@@ -9,6 +9,11 @@ This page is the one-screen note for a store listing. Settings copy and [DIAGNOS
 On Amazon product, search, browse, and store pages it already has permission to run on, it reads the product title, department crumbs, published ingredient text, nutrition table, barcode/ASIN, and (if you turn the option on) the product image URL already on the page.
 
 It does not read your Amazon password, payment details, cart, orders, or account pages. Content scripts are not injected there.
+
+On Target (preview) it reads the same kind of thing from the product page you have open: the title,
+the breadcrumbs, and the *Label info* section with the ingredient list and nutrition numbers. On a
+Target search page it reads the product id and title of each result, to show scores you already
+have. It does not run on Target's cart, checkout, account, order or login pages.
 
 ## Access to Amazon
 
@@ -31,6 +36,17 @@ are told about this in three places:
 
 Turn it off in any of those places. Results then only show a score for products already read, by you
 or through the shared database. Scoring on product pages you open does not change.
+
+## Access to Target (preview)
+
+Target is reached through a content script on `https://www.target.com/*` only (excluding cart,
+checkout, account, order and login pages). The extension has **no host permission** for Target, and
+on Target it **makes no network requests**. It does not fetch product pages, does not use the shared
+database, Open Food Facts or label photos, and cannot send diagnostics or reports from there. Scores
+are computed and kept on your computer. A search page shows a score only for products you have
+opened before. The only message a Target tab may send the extension's worker is the number for the
+toolbar badge. Chrome lists Target in the extension's site access because of that content script;
+you can switch it off in `chrome://extensions` → *Details* → *Site access*.
 
 ## What leaves your computer
 
@@ -78,4 +94,4 @@ tracking behind this.
 
 ## Single purpose
 
-Help you read Amazon grocery ingredient lists. Network hosts are Amazon (the page itself), Google (the Ingredient Check Apps Script, Chrome sync, and sign-in if you use it), and Open Food Facts (barcode lookup you grant).
+Help you read grocery ingredient lists on Amazon and, as a preview, Target. Network hosts are Amazon (the page itself), Google (the Ingredient Check Apps Script, Chrome sync, and sign-in if you use it), and Open Food Facts (barcode lookup you grant).

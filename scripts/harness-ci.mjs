@@ -228,6 +228,39 @@ async function run() {
       await comparePage.close();
     }
 
+    // Popup on a Target tab: Chrome hides the address (no host permission), so the card comes from
+    // the content script's own reply, validated like a cached score.
+    const targetPopup = await browser.newPage();
+    try {
+      await targetPopup.addInitScript(({ v }) => {
+        const data = {};
+        window.chrome = {
+          runtime: { lastError: null, getManifest: () => ({ version: v }), openOptionsPage() {} },
+          i18n: { getMessage: () => '' },
+          tabs: {
+            query: (q, cb) => cb([{ id: 7 }]),
+            // Built in the page, where AIR.db.scoreCache exists, so the fingerprint is the real one.
+            sendMessage: async () => ({
+              schema: AIR.db.scoreCache.SCHEMA, v, t: Date.now() - 1000, store: 'target.com', asin: '16600402',
+              prefs: AIR.db.scoreCache.fingerprint({}, 'page'), score: 96, verdict: 'Excellent', nova: 3,
+              source: 'page', provenanceSource: '', name: 'Boulder Canyon Avocado Oil Chips' }),
+          },
+          permissions: { contains: (p, cb) => cb(false) },
+          storage: { onChanged: { addListener() {} }, local: {
+            get(keys, cb) { const r = {}; if (typeof cb === 'function') cb(r); return Promise.resolve(r); },
+            set(values, cb) { Object.assign(data, values); if (typeof cb === 'function') cb(); return Promise.resolve(); },
+          } },
+        };
+      }, { v: version });
+      await targetPopup.goto(`${base}/src/options/popup.html`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await targetPopup.waitForFunction(() => !document.getElementById('pageScore').hidden, { timeout: 8000 });
+      const card = await targetPopup.evaluate(() => document.getElementById('pageScore').innerText.replace(/\s+/g, ' '));
+      if (!/This page · Target/i.test(card) || !/96/.test(card)) throw new Error(`target popup card: ${card}`);
+      console.log('  ok  popup → Target tab card from the content script\'s reply:', card.trim());
+    } finally {
+      await targetPopup.close();
+    }
+
     // Settings: the same two switches, their explanation, and the stores named from the manifest.
     const settingsPage = await browser.newPage();
     try {
@@ -274,7 +307,7 @@ async function run() {
         href: document.getElementById('reqSend').getAttribute('href'),
         disabled: document.getElementById('reqSend').getAttribute('aria-disabled'),
       }));
-      if (idle.rows.join() !== 'Amazon:supported,Target:planned,Walmart:planned,Costco:planned'
+      if (idle.rows.join() !== 'Amazon:supported,Target:preview,Walmart:planned,Costco:planned'
         || idle.href !== '#' || idle.disabled !== 'true') throw new Error(`stores idle: ${JSON.stringify(idle)}`);
       await settingsPage.fill('#reqName', 'Marks & Spencer');
       await settingsPage.fill('#reqUrl', 'https://www.marksandspencer.com/food/p/12345?utm_source=x');

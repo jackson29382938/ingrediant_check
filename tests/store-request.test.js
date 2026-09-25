@@ -101,6 +101,9 @@ test('supported stores are not requested again; planned ones are noted', () => {
   assert.equal(build('Not Amazon', 'https://notamazon.com').ok, true, 'a look-alike domain is not Amazon');
   const target = build('Target', 'https://www.target.com');
   assert.equal(target.ok, true);
-  assert.ok(target.notes.includes('already-planned'));
+  assert.ok(target.notes.includes('already-preview'), 'Target runs as a preview');
+  const walmart = build('Walmart', '');
+  assert.equal(walmart.ok, true);
+  assert.ok(walmart.notes.includes('already-planned'));
   assert.ok(R.MESSAGES['already-supported'] && Object.keys(R.MESSAGES).every(k => R.MESSAGES[k]));
 });

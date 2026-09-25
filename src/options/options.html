@@ -110,6 +110,7 @@
   .store-badge { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 1px 8px; border: 1px solid #d5d9d9; }
   .store-badge.supported { color: #0f7b3f; border-color: #0f7b3f; }
   .store-badge.planned { color: #565959; }
+  .store-badge.preview { color: #8a4b00; border-color: #c77d00; }
   .store-where { color: #565959; font-size: 12px; flex-basis: 100%; }
   .store-h { font-size: 14px; margin: 18px 0 4px; }
   .request-form { display: grid; gap: 4px; max-width: 460px; margin-top: 10px; }
@@ -156,6 +157,7 @@
     .request-form input, .request-preview, a.act.request-send { background: #1b1c1c; border-color: #3a3c3c; color: #f3f3f3; }
     .store-badge.supported { color: #6fdf9a; border-color: #6fdf9a; }
     .store-badge.planned, .store-where { color: #aeaeae; }
+    .store-badge.preview { color: #f3d19c; border-color: #8a6a2a; }
     .field-error { color: #ff8a8a; }
     button.danger { color: #ff8a8a; }
   }
@@ -221,6 +223,12 @@
       two options above. Its scripts run only on product, search, browse and brand-store pages, never on your
       account, cart or checkout. To limit it, open <code>chrome://extensions</code>, choose
       <em>Details</em> under Ingredient Check, and change <em>Site access</em>.
+    </p>
+    <p class="note" id="targetAccess" data-i18n="optNoteTarget">
+      Target (preview): Ingredient Check also runs on Target product and search pages. There it only
+      reads the page you have open and scores it on your computer. It requests nothing from Target or
+      anyone else, and a Target search page shows scores only for products you opened before. The two
+      options above apply to Amazon only.
     </p>
     <label class="chip" style="margin: 14px 0 8px">
       <input type="checkbox" id="hoverBreakdown" checked>
@@ -419,6 +427,8 @@
         database keyed by a hash of your account id, only when you click it.</li>
       <li><strong>Send certifications</strong> and "Looks wrong?" reports — product identifiers and
         certification text. Never anything about you.</li>
+      <li><strong>Target (preview)</strong> — nothing. The page you open is read and scored on your
+        computer; no request is made to Target, the shared database or anyone else.</li>
       <li><strong>Request a store</strong> — nothing is sent by the extension. It opens a draft
         in your email app with the store name and website you typed; you decide whether to send it.</li>
       <li><strong>Accuracy diagnostics</strong> — one row per scored product. This one does record

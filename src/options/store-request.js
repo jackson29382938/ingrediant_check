@@ -102,6 +102,7 @@
       const host = url.value ? new URL(url.value).hostname : '';
       const known = (host && stores.storeForHost(host)) || stores.storeForName(name.value);
       if (known && known.status === 'supported') errors.name = 'already-supported';
+      else if (known && known.status === 'preview') notes.push('already-preview');
       else if (known) notes.push('already-planned');
     }
     if (Object.keys(errors).length) return { ok: false, errors, notes };

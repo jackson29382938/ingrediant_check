@@ -734,5 +734,28 @@
   },
   "popupRequestStore": {
     "message": "Request a store"
+  },
+  "failNoTextStore": {
+    "message": "$STORE$ doesn't publish an ingredient list for every product. ",
+    "placeholders": {
+      "store": {
+        "content": "$1"
+      }
+    }
+  },
+  "labelClosedTitle": {
+    "message": "Open “Label info” to score this product."
+  },
+  "labelClosedBody": {
+    "message": "This store only shows the ingredient list once that section is open. Ingredient Check reads it from this page on your computer; nothing is sent anywhere."
+  },
+  "labelClosedAction": {
+    "message": "Open Label info"
+  },
+  "optStorePreview": {
+    "message": "Preview — works on the pages you open; still being checked"
+  },
+  "optNoteTarget": {
+    "message": "Target (preview): Ingredient Check also runs on Target product and search pages. There it only reads the page you have open and scores it on your computer. It requests nothing from Target or anyone else, and a Target search page shows scores only for products you opened before. The two options above apply to Amazon only."
   }
 }

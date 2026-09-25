@@ -10,10 +10,32 @@ const root = path.join(__dirname, '..');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
 const granted = [...manifest.host_permissions, ...(manifest.optional_host_permissions || [])];
 const covers = (domain) => granted.some(p => p === `*://*.${domain}/*`);
+const scripted = (domain) => manifest.content_scripts.some(cs => cs.matches.some(m => {
+  const host = (m.match(/^[*a-z]+:\/\/([^/]+)\//) || [])[1] || '';
+  return host === domain || host.endsWith('.' + domain);
+}));
 
 test('a supported store is exactly the hosts the manifest grants', () => {
   const amazon = stores.STORES.find(s => s.id === 'amazon');
   assert.deepEqual(amazon.domains.map(d => `*://*.${d}/*`), manifest.host_permissions);
+});
+
+test('a preview store runs through a content script only, with no host permission', () => {
+  for (const s of stores.STORES.filter(x => x.status === 'preview')) {
+    for (const d of s.domains) {
+      assert.ok(scripted(d), `${s.name} is preview but no content script runs on ${d}`);
+      assert.ok(!covers(d), `${s.name} is preview but the manifest grants host permission for ${d}`);
+    }
+  }
+  // Target's script stays off account, cart and checkout pages, as Amazon's does.
+  const target = manifest.content_scripts.find(cs => cs.matches.includes('https://www.target.com/*'));
+  for (const path of ['cart', 'checkout', 'account', 'orders', 'login']) {
+    assert.ok(target.exclude_globs.includes(`*://www.target.com/${path}*`), `Target script not excluded from /${path}`);
+  }
+  // And it loads none of Amazon's pipeline: no page fetches, no shared database, no OCR.
+  for (const f of ['src/content/main.js', 'src/content/search.js', 'src/content/product.js', 'src/engine/db/product-cache.js', 'src/engine/db/ocr-text.js']) {
+    assert.ok(!target.js.includes(f), `Target loads ${f}`);
+  }
 });
 
 test('a planned store has no permission and no content script', () => {
@@ -29,7 +51,7 @@ test('a planned store has no permission and no content script', () => {
 test('statuses are known and docs/STORES.md agrees with the registry', () => {
   const doc = fs.readFileSync(path.join(root, 'docs', 'STORES.md'), 'utf8');
   for (const s of stores.STORES) {
-    assert.ok(['supported', 'planned'].includes(s.status), `${s.id}: ${s.status}`);
+    assert.ok(['supported', 'preview', 'planned'].includes(s.status), `${s.id}: ${s.status}`);
     assert.match(doc, new RegExp(`\\|\\s*${s.name}\\s*\\|\\s*${s.status}\\s*\\|`, 'i'),
       `docs/STORES.md needs a row | ${s.name} | ${s.status} |`);
   }

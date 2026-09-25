@@ -39,6 +39,7 @@ export default [
         allowMessage: 'readonly',
         isOwnExtension: 'readonly',
         isAmazonTabSender: 'readonly',
+        isRetailerTabSender: 'readonly',
         isOptionsPageSender: 'readonly',
         isOffscreenSender: 'readonly',
         getSheetIndex: 'readonly',

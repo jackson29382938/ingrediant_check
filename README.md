@@ -33,6 +33,12 @@ After editing `src/`, `manifest.json`, or `icons/`, run `npm run chrome:reload`.
 
 ## What it does
 
+Stores: **Amazon** (21 storefronts) and, as a preview, **Target**. On Target it reads only the page
+you open and makes no network requests. Walmart and Costco are planned but blocked: their pages
+could not be inspected without getting past a bot check. Per-store status, dates and limits are in
+[docs/STORES.md](docs/STORES.md). Settings → *Stores* has a **Request a store** form that opens an
+email draft in your own mail app.
+
 On an Amazon product page it reads the ingredient list (page text, optional on-device OCR, optional Open Food Facts barcode, or a paste box) and scores it. Search pages can show score chips. Non-food listings are skipped. The toolbar icon shows the current product’s score.
 
 The toolbar popup is the master switch plus network opt-ins and shortcuts to the existing weight presets (the same `categories.PRESETS` the settings page uses). On an Amazon product tab it also shows the cached score for that ASIN. If two or more `s:` cache entries are valid, **Compare cached scores** shows them side-by-side — no extra Amazon requests. Explanations are collapsed until you open **Why these matter**. **Scoring weights, allergens & avoid list** opens the full settings page (searchable categories, dark mode, avoid-list suggestions, section jump). Imports, sliders, and storage values are sanitized before they are trusted: unknown ids are dropped, weights stay in the 0–2 slider range. Settings back up to your Chrome account and come back only when you click Restore.

@@ -19,6 +19,10 @@ var SETTINGS_MESSAGE_TYPES = new Set([
 ]);
 var OFFSCREEN_MESSAGE_TYPES = new Set(['ocrIdle']);
 var AMAZON_HOST = /(^|\.)amazon\.(com|co\.uk|ca|com\.au|ie|in|sg|ae|sa|de|fr|es|it|nl|se|pl|com\.be|com\.tr|com\.mx|com\.br|co\.jp)$/i;
+// Other stores (src/content/retailer.js) work on the page alone. The only thing their tabs may ask
+// the worker for is the toolbar badge; every network path above stays Amazon-only.
+var RETAILER_MESSAGE_TYPES = new Set(['pageScore']);
+var RETAILER_HOST = /^www\.target\.com$/i;
 
 function isOwnExtension(sender) {
   const id = chrome.runtime && chrome.runtime.id;
@@ -30,6 +34,13 @@ function isAmazonTabSender(sender) {
   const raw = sender && sender.tab && sender.tab.url;
   if (!raw) return false;
   try { return AMAZON_HOST.test(new URL(raw).hostname); }
+  catch { return false; }
+}
+
+function isRetailerTabSender(sender) {
+  const raw = sender && sender.tab && sender.tab.url;
+  if (!raw) return false;
+  try { return RETAILER_HOST.test(new URL(raw).hostname); }
   catch { return false; }
 }
 
@@ -54,7 +65,9 @@ function isOffscreenSender(sender) {
 
 function allowMessage(msg, sender) {
   if (!msg || !isOwnExtension(sender)) return false;
-  if (PAGE_MESSAGE_TYPES.has(msg.type)) return isAmazonTabSender(sender);
+  if (PAGE_MESSAGE_TYPES.has(msg.type)) {
+    return isAmazonTabSender(sender) || (RETAILER_MESSAGE_TYPES.has(msg.type) && isRetailerTabSender(sender));
+  }
   if (SETTINGS_MESSAGE_TYPES.has(msg.type)) return isOptionsPageSender(sender);
   if (OFFSCREEN_MESSAGE_TYPES.has(msg.type)) return isOffscreenSender(sender);
   if (msg.type === 'ping') return true;
