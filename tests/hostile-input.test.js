@@ -1,7 +1,8 @@
 // Every function that runs regular expressions over page or label text must stay fast on hostile
 // input: a pattern that backtracks badly freezes the Amazon tab it runs in. The size pattern once
 // took 226 seconds on a run of 6,000 digits (tests/storefronts.test.js). Each call here must take
-// well under a second on every input.
+// well under a second on every input, with room for a CI runner about twice as slow as a laptop: the
+// limit is 400 ms here because a path that took 600 ms locally failed CI at 1,100 ms.
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
@@ -53,7 +54,7 @@ for (const [name, run] of Object.entries(PATHS)) {
       const start = process.hrtime.bigint();
       run(text);
       const ms = Number(process.hrtime.bigint() - start) / 1e6;
-      assert.ok(ms < 1000, `${ms.toFixed(0)} ms on ${JSON.stringify(text.slice(0, 16))}…`);
+      assert.ok(ms < 400, `${ms.toFixed(0)} ms on ${JSON.stringify(text.slice(0, 16))}…`);
     }
   });
 }

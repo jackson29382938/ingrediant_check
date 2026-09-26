@@ -422,10 +422,14 @@ function splitTopLevel(text) {
 // EU labels name an additive after its job with a colon: "emulsifier: lecithins", "acidity regulator:
 // sodium citrates". Rules anchored at the start of the entry never saw the additive, so the colon form
 // is read as the parenthetical form it means: "emulsifier (lecithins)".
-const FUNCTION_HEAD = /^\s*([^:()]{3,40}?)\s*:\s*([^()]+)$/;
+const FUNCTION_HEAD = /^([^:()]{3,40}):([^()]+)$/;
 const SWEETENER_WORD = /^(?:sweeteners?|edulcorantes?|[ée]dulcorants?|s[üu][ßs]ungsmittel|dolcificanti|zoetstoff(?:en)?|s[öo]tningsmedel|substancje s[łl]odz[ąa]ce|tatland[ıi]r[ıi]c[ıi](?:lar)?|substancja s[łl]odz[ąa]ca)$/i;
 function colonAsParenthesis(part) {
-  const m = part.match(FUNCTION_HEAD);
+  // Only a short head before the colon can be a function word. Checked before the pattern runs, and
+  // the pattern has no free whitespace to backtrack over: on 6,000 spaces it once took a second.
+  const colon = part.indexOf(':');
+  if (colon < 0 || colon > 60) return part;
+  const m = part.trim().match(FUNCTION_HEAD);
   if (!m) return part;
   const head = tidy(m[1]);
   return add.UNNAMED.some(r => r.m.test(head)) || SWEETENER_WORD.test(head) ? `${m[1]} (${m[2]})` : part;
