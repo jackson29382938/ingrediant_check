@@ -393,3 +393,21 @@ test('single foods, fibre isolates and processing markers read the same in every
   }
   assert.deepEqual(reasons(score('sal, extractos de hierba aromáticas')), [], '"aromáticas" is not a flavouring');
 });
+
+test('meat, fish, eggs and milk in every label language are whole foods with a sourcing question', () => {
+  // Provenance and the whole-food list read English only, so "bœuf haché" scored 90 as NOVA 2 with
+  // no sourcing row where "ground beef" scores 86 as NOVA 1 and asks where it came from.
+  const pairs = [
+    ['ground beef', 'bœuf haché'], ['beef', 'Rindfleisch'], ['chicken breast', 'blanc de poulet'], ['chicken breast', 'Hähnchenbrust'],
+    ['chicken breast', 'pechuga de pollo'], ['salmon', 'saumon'], ['salmon', 'Lachs'], ['salmon', 'salmone'], ['salmon', 'łosoś'],
+    ['eggs', 'œufs'], ['eggs', 'Eier'], ['eggs', 'huevos'], ['milk', 'lait'], ['milk', 'Milch'], ['whole milk', 'lait entier'],
+    ['milk chocolate', 'chocolat au lait'], ['chicken broth', 'bouillon de poulet'],
+  ];
+  for (const [en, other] of pairs) {
+    const a = score(en), b = score(other);
+    assert.deepEqual(reasons(b).sort(), reasons(a).sort(), `${other} vs ${en}`);
+    assert.equal(b.score, a.score, `${other} vs ${en}`);
+    assert.equal(b.nova, a.nova, `${other} NOVA`);
+  }
+  for (const text of ['lemon rind', 'Rundkornreis']) assert.deepEqual(reasons(score(text)), [], text);
+});
