@@ -423,16 +423,23 @@ function wireFileActions() {
     a.href = URL.createObjectURL(blob);
     a.download = 'ingredient-check-settings.json';
     a.click();
-    URL.revokeObjectURL(a.href);
+    // Revoking at once can cancel the download before Chrome has read the blob.
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
     flash(msg('optExported', 'Exported'));
   });
 
   const file = document.getElementById('importFile');
   document.getElementById('importBtn').addEventListener('click', () => file.click());
+  // A settings export is a few kilobytes; a large file is the wrong file, and parsing it would hang.
+  const IMPORT_MAX_BYTES = 1024 * 1024;
   file.addEventListener('change', async () => {
     const f = file.files && file.files[0];
     if (!f) return;
     try {
+      if (f.size > IMPORT_MAX_BYTES) {
+        flash(msg('optNotExport', 'That file is not an Ingredient Check settings export'), 'error');
+        return;
+      }
       const parsed = PREFS.parseImport(await f.text());
       if (!parsed.ok) {
         flash(parsed.reason === 'not-json'
@@ -446,8 +453,10 @@ function wireFileActions() {
       flash(msg('optImported', 'Imported'));
     } catch (e) {
       flash(msg('optImportFailed', 'That file could not be read'), 'error');
+    } finally {
+      // Always cleared, so choosing the same file again after a failed import tries it again.
+      file.value = '';
     }
-    file.value = '';
   });
 
   document.getElementById('reset').addEventListener('click', () => {

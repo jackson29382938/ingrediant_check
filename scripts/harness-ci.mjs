@@ -600,6 +600,16 @@ async function run() {
       await settingsPage.waitForFunction(() => window.__stored.sharedCache === true, { timeout: 5000 });
       if ((await sharing()).disabled) throw new Error('shared readings should be usable again');
       console.log('  ok  settings → shared product readings off by default; disabled while the shared database is off');
+      // Import: a real export is applied; an oversized file is refused without touching the settings.
+      const exported = JSON.stringify({ _format: 'ingredient-check-settings', _version: 1, weights: { sugar: 1.7 }, allergens: ['milk'] });
+      await settingsPage.setInputFiles('#importFile', { name: 'settings.json', mimeType: 'application/json', buffer: Buffer.from(exported) });
+      await settingsPage.waitForFunction(() => window.__stored.weights && window.__stored.weights.sugar === 1.7, { timeout: 5000 });
+      await settingsPage.setInputFiles('#importFile', { name: 'huge.json', mimeType: 'application/json',
+        buffer: Buffer.from(JSON.stringify({ _format: 'ingredient-check-settings', weights: { sugar: 0.2 }, pad: 'x'.repeat(2 * 1024 * 1024) })) });
+      await settingsPage.waitForFunction(() => document.getElementById('status').classList.contains('error'), { timeout: 5000 });
+      const afterHuge = await settingsPage.evaluate(() => ({ sugar: window.__stored.weights.sugar, cleared: document.getElementById('importFile').value === '' }));
+      if (afterHuge.sugar !== 1.7 || !afterHuge.cleared) throw new Error(`oversized import: ${JSON.stringify(afterHuge)}`);
+      console.log('  ok  settings → import applies an export; an oversized file is refused and the picker cleared');
     } finally {
       await settingsPage.close();
     }
