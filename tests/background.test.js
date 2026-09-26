@@ -522,3 +522,17 @@ test('Open Food Facts: a failed lookup is not remembered, and the food check sta
   assert.equal(gated.rejected, 'not-food');
   assert.equal(open.name, 'Shampoo');
 });
+
+test('toolbar badge colours keep white text readable (WCAG AA, 4.5:1)', () => {
+  const lum = hex => {
+    const c = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(v => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  };
+  const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  const w = worker({});
+  for (const score of [96, 80, 60, 30, 5]) {
+    const bg = w.call(`badgeColor(${score})`);
+    assert.ok(contrast('#ffffff', bg) >= 4.5, `score ${score}: white on ${bg} is ${contrast('#ffffff', bg).toFixed(2)}:1`);
+  }
+  for (const bg of ['#767676', '#565959']) assert.ok(contrast('#ffffff', bg) >= 4.5, bg);
+});

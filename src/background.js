@@ -196,8 +196,13 @@ async function closeOffscreenIfIdle() {
   try { await chrome.offscreen.closeDocument(); } catch (e) { /* already gone */ }
 }
 
+// White text on each: every pair is at least 4.5:1 (WCAG AA). The old amber (#f0a02a) was 2.15:1
+// and the old green (#1a9850) 3.72:1, on a number a few pixels tall.
 function badgeColor(score) {
-  return score >= 75 ? '#1a9850' : score >= 50 ? '#f0a02a' : '#d73027';
+  return score >= 75 ? '#15803d' : score >= 50 ? '#b45309' : '#d73027';
+}
+function badgeText(tabId) {
+  if (typeof chrome.action.setBadgeTextColor === 'function') chrome.action.setBadgeTextColor({ tabId, color: '#ffffff' });
 }
 
 function paintActionBadge(tabId, score, status) {
@@ -205,11 +210,13 @@ function paintActionBadge(tabId, score, status) {
   if (status === 'fail') {
     chrome.action.setBadgeText({ tabId, text: '?' });
     chrome.action.setBadgeBackgroundColor({ tabId, color: '#767676' });
+    badgeText(tabId);
     return;
   }
   if (status === 'not-food') {
     chrome.action.setBadgeText({ tabId, text: '–' });
     chrome.action.setBadgeBackgroundColor({ tabId, color: '#565959' });
+    badgeText(tabId);
     return;
   }
   if (typeof score !== 'number' || !isFinite(score)) {
@@ -218,6 +225,7 @@ function paintActionBadge(tabId, score, status) {
   }
   chrome.action.setBadgeText({ tabId, text: String(Math.round(score)) });
   chrome.action.setBadgeBackgroundColor({ tabId, color: badgeColor(score) });
+  badgeText(tabId);
 }
 
 // Message allowlist lives in worker/messages.js (importScripts above / test harness preload).

@@ -219,7 +219,7 @@
       b.title = throttleCopy('badgeNoIngredients', "Amazon doesn't publish readable ingredients for this one");
       b.setAttribute('aria-label', b.title);
       b.setAttribute('role', 'img');
-      b.style.cssText = 'color:#767676;background:#f7f8f8;border:2px dashed #d5d9d9;';
+      b.style.cssText = 'color:#6a6a6a;background:#f7f8f8;border:2px dashed #d5d9d9;';
       return b;
     }
     const c = root.AIR.panel.BAND_COLOR(hit.score);
