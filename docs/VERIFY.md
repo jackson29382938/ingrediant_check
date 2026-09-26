@@ -262,8 +262,11 @@ checks on the real sites. Amazon showed no robot check at any point.
 rows (the kefir and 4 search tiles: ASIN, ingredient text, score, source). Nothing else. Diagnostics
 were switched off again, and the test profiles were deleted.
 
-**Seen but not changed:** each Open Food Facts lookup went out twice for one page view (two GETs
-for the same barcode). It is harmless but wasteful, and it predates this work.
+**Seen then, fixed since:** each Open Food Facts lookup went out twice for one page view (two GETs
+for the same barcode). The panel sent a second lookup whenever Amazon updated the page while the
+first answer was coming; it now asks once per barcode per panel, and the worker combines
+simultaneous lookups for one barcode (`tests/background.test.js`, `tests/content-lifecycle.test.js`).
+Re-check it live: DevTools → Network on the worker shows one `world.openfoodfacts.org` GET.
 
 **Target, Walmart, Costco:** see [STORES.md](STORES.md). Target was read live behind its bot check
 and stays preview. Walmart and Costco were blocked by theirs.

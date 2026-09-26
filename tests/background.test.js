@@ -482,3 +482,43 @@ test('turning shared product readings off drops what was waiting to upload', asy
   await w.call('productsWork');
   assert.equal(w.data.productsQueue, undefined);
 });
+
+test('Open Food Facts: simultaneous lookups for one barcode send one request', async () => {
+  const gets = [];
+  let answer;
+  const product = { product: { product_name: 'Kefir', ingredients_text: 'cultured milk', product_type: 'food', categories_tags: ['en:dairies'] } };
+  const w = worker({ useOpenFoodFacts: true }, url => {
+    gets.push(url);
+    return new Promise(resolve => { answer = () => resolve({ ok: true, json: async () => product }); });
+  });
+  const first = w.send({ type: 'lookupBarcode', code: '0012345678905' }, amazonTab);
+  const second = w.send({ type: 'lookupBarcode', code: '0012345678905', foodOnly: false }, amazonTab);
+  for (let i = 0; i < 10 && !answer; i++) await new Promise(r => setImmediate(r));
+  await new Promise(r => setImmediate(r));
+  assert.equal(gets.length, 1, 'the second caller joins the first request');
+  answer();
+  const [a, b] = await Promise.all([first, second]);
+  assert.equal(a.ingredients_text, 'cultured milk');
+  assert.equal(b.ingredients_text, 'cultured milk');
+  assert.ok(w.data['off:0012345678905'], 'cached once');
+  await w.send({ type: 'lookupBarcode', code: '0012345678905' }, amazonTab);
+  assert.equal(gets.length, 1, 'then answered from the cache');
+});
+
+test('Open Food Facts: a failed lookup is not remembered, and the food check stays per caller', async () => {
+  let calls = 0;
+  const shampoo = { product: { product_name: 'Shampoo', ingredients_text: 'aqua, sodium laureth sulfate', product_type: 'beauty' } };
+  const w = worker({ useOpenFoodFacts: true }, async () => {
+    calls++;
+    if (calls === 1) throw new Error('offline');
+    return { ok: true, json: async () => shampoo };
+  });
+  assert.equal(await w.send({ type: 'lookupBarcode', code: '0012345678912' }, amazonTab), null);
+  const [gated, open] = await Promise.all([
+    w.send({ type: 'lookupBarcode', code: '0012345678912' }, amazonTab),
+    w.send({ type: 'lookupBarcode', code: '0012345678912', foodOnly: false }, amazonTab),
+  ]);
+  assert.equal(calls, 2, 'retried after the failure, once for both callers');
+  assert.equal(gated.rejected, 'not-food');
+  assert.equal(open.name, 'Shampoo');
+});

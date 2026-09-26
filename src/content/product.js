@@ -155,7 +155,11 @@
       // reading, or text that has since gone. A new product gets a new panel via navigation.
       if (host.dataset.airState === 'fail' || host.dataset.airState === 'scored') return;
       // A cache check in flight holds 'loading' too; a barcode must not start Open Food Facts under it.
-      if (host.dataset.airState === 'loading' && (!data.upc || host.dataset.airCheck)) return;
+      // Nor may the same barcode start it twice: this panel already asked (airBarcode), whether the
+      // answer is still coming or the label photo is being read after it. Each Amazon page update used
+      // to send a second lookup for one page view, and drop the first answer.
+      if (host.dataset.airState === 'loading'
+          && (!data.upc || host.dataset.airCheck || host.dataset.airBarcode === String(data.upc))) return;
       cache(key, null);
       // Someone may already have read this product — on this computer, or on another one through
       // the shared cache (a label photo read by OCR, a barcode match). Ask before spending a network
@@ -200,6 +204,7 @@
       }
       const requestId = ++state.requestId;
       host.dataset.airState = 'loading';
+      host.dataset.airBarcode = String(data.upc);
       root.AIR.panel.mount(host, root.AIR.panel.renderLoading(data));
       chrome.runtime.sendMessage({ type: 'lookupBarcode', code: data.upc, foodOnly: state.foodOnly }, fallback => {
         const messageError = chrome.runtime.lastError;

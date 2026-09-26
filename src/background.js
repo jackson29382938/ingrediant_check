@@ -57,6 +57,12 @@ chrome.storage.onChanged?.addListener((changes, area) => {
 // The test VM preloads ingestible.js; Chrome loads it via importScripts above. One implementation.
 const isOpenFoodFactsFood = self.AIR.db.ingestible.isOpenFoodFactsFood;
 
+const NOT_FOOD_REASON = 'Open Food Facts lists this as a non-food product';
+
+// One request per barcode at a time: a second caller while the first is in flight waits for the same
+// answer instead of sending another GET. The live record of 2026-09-25 saw two GETs for one barcode.
+const offInFlight = new Map();
+
 async function lookupBarcode(code, { foodOnly = true } = {}) {
   const conf = await chrome.storage.local.get(['enabled', 'useOpenFoodFacts']);
   if (conf.enabled === false || conf.useOpenFoodFacts !== true) return null;
@@ -66,15 +72,29 @@ async function lookupBarcode(code, { foodOnly = true } = {}) {
   if (cached && Date.now() - cached.t < TTL_MS) {
     if (cached.rejected === 'not-food') {
       return foodOnly
-        ? { rejected: 'not-food', reason: cached.reason || 'Open Food Facts lists this as a non-food product' }
+        ? { rejected: 'not-food', reason: cached.reason || NOT_FOOD_REASON }
         : (cached.data || null);
     }
     if (foodOnly && cached.data && !isOpenFoodFactsFood(cached.data)) {
-      return { rejected: 'not-food', reason: 'Open Food Facts lists this as a non-food product' };
+      return { rejected: 'not-food', reason: NOT_FOOD_REASON };
     }
     return cached.data;
   }
 
+  let pending = offInFlight.get(key);
+  if (!pending) {
+    pending = fetchOpenFoodFacts(code, key).finally(() => offInFlight.delete(key));
+    offInFlight.set(key, pending);
+  }
+  // The food check is per caller: the record is the same, but one caller may have the food gate off.
+  const record = await pending;
+  if (!record) return null;
+  if (foodOnly && !record.food) return { rejected: 'not-food', reason: NOT_FOOD_REASON };
+  return record.data;
+}
+
+// -> { data, food } and the off: cache entry written, or null (no product, no ingredients, offline).
+async function fetchOpenFoodFacts(code, key) {
   try {
     const url = `${OFF_ENDPOINT}${encodeURIComponent(code)}.json`
       + `?fields=${OFF_FIELDS}`
@@ -96,19 +116,11 @@ async function lookupBarcode(code, { foodOnly = true } = {}) {
       categories: p.categories || '',
       pnns_groups_1: p.pnns_groups_1 || '',
     };
-    if (foodOnly && !isOpenFoodFactsFood(p)) {
-      await chrome.storage.local.set({
-        [key]: {
-          t: Date.now(),
-          rejected: 'not-food',
-          reason: 'Open Food Facts lists this as a non-food product',
-          data,
-        },
-      });
-      return { rejected: 'not-food', reason: 'Open Food Facts lists this as a non-food product' };
-    }
-    await chrome.storage.local.set({ [key]: { t: Date.now(), data } });
-    return data;
+    const food = isOpenFoodFactsFood(p);
+    await chrome.storage.local.set({
+      [key]: food ? { t: Date.now(), data } : { t: Date.now(), rejected: 'not-food', reason: NOT_FOOD_REASON, data },
+    });
+    return { data, food };
   } catch (e) {
     return null;   // offline, blocked, or rate-limited — the panel falls back to honest failure
   }

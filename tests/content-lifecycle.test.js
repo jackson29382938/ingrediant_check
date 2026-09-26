@@ -641,3 +641,15 @@ test("the sorted list's product pages count toward the per-results-page budget",
   assert.equal(w.S.queue.fetches, cap);
   assert.match(stopped, new RegExp(`at ${cap} product pages`));
 });
+
+test('one product page view asks Open Food Facts once, however often Amazon updates the page', () => {
+  const w = cacheSetup({ sharing: false });
+  w.h.state.cacheOptions.useOpenFoodFacts = true;
+  w.context.AIR.extract.extract = () => ({ ok: false, title: 'Kefir', asin: 'B000000001', upc: '0012345678905' });
+  const barcode = () => w.messages.filter(m => m.type === 'lookupBarcode').length;
+  w.h.scoreCurrentPage();
+  assert.equal(barcode(), 1);
+  assert.equal(w.host.dataset.airState, 'loading');
+  for (let i = 0; i < 5; i++) w.h.scoreCurrentPage();   // Amazon's page updates while the answer is coming
+  assert.equal(barcode(), 1, 'no second lookup for the same barcode');
+});
