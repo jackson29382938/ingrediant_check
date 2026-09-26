@@ -730,12 +730,36 @@ async function amazonEndToEnd(context, worker, pageErrors) {
   await shampoo.close();
 
   // "Rate every search result" is on by default: the badge queue requests each tile's product page.
-  const search = await open('http://www.amazon.com/s?k=rolled+oats');
+  // The breakdown is switched off here so the badges are plain named images, not buttons, and a page
+  // observer records any badge that is ever a live region, however briefly.
+  await worker.evaluate(() => chrome.storage.local.set({ hoverBreakdown: false }));
+  const search = await context.newPage();
+  search.on('pageerror', err => pageErrors.push(`search: uncaught ${err.message}`));
+  search.on('console', message => { if (message.text().includes('[AIR]')) pageErrors.push(`search: ${message.text()}`); });
+  await search.addInitScript(() => {
+    window.__liveBadges = 0;
+    new MutationObserver(records => {
+      for (const r of records) if (r.target.classList && r.target.classList.contains('air-badge') && r.target.getAttribute('role') === 'status') window.__liveBadges++;
+    }).observe(document, { subtree: true, attributes: true, attributeFilter: ['role'] });
+  });
+  await search.goto('http://www.amazon.com/s?k=rolled+oats', { waitUntil: 'load', timeout: 20000 });
   await search.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   const badges = await search.waitForFunction(() => {
     const n = [...document.querySelectorAll('.air-badge')].filter(b => /^\d+$/.test(b.textContent.trim())).length;
     return n >= 2 && n;
   }, { timeout: 20000 }).then(h => h.jsonValue());
+  // What a screen reader gets: a numbered badge is a named image (or a button, with the breakdown
+  // on), never a bare number, and no badge is a live region announcing itself per tile.
+  const named = await search.evaluate(() => [...document.querySelectorAll('.air-badge')].map(b => ({
+    text: b.textContent.trim(), role: b.getAttribute('role'), label: b.getAttribute('aria-label') || '',
+    hidden: b.getAttribute('aria-hidden'),
+  })));
+  if (await search.evaluate(() => window.__liveBadges)) throw new Error('a pending badge was a live region (role="status")');
+  for (const b of named) {
+    if (b.role === 'status') throw new Error(`a badge is a live region: ${JSON.stringify(b)}`);
+    if (/^\d+$/.test(b.text) && (b.role !== 'img' || !b.label.includes(b.text))) throw new Error(`badge not named for screen readers: ${JSON.stringify(b)}`);
+    if (b.text === '…' && b.hidden !== 'true') throw new Error(`pending badge is announced: ${JSON.stringify(b)}`);
+  }
   await search.close();
   console.log(`  ok  extension on saved Amazon pages → oats scored (toolbar ${badge}), shampoo not food, ${badges} results rated through the badge queue`);
 }

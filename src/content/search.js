@@ -201,13 +201,16 @@
     // A numbered badge opens the breakdown card (hover-card.js) when that setting is on, so it is a
     // focusable button and drops the plain tooltip the card replaces.
     if (typeof b.removeAttribute === 'function') {
-      for (const a of ['role', 'tabindex', 'aria-haspopup', 'aria-expanded']) b.removeAttribute(a);
+      for (const a of ['role', 'tabindex', 'aria-haspopup', 'aria-expanded', 'aria-hidden']) b.removeAttribute(a);
     }
+    // The badge sits inside the product link. aria-label on a plain span is ignored, so a score read
+    // as a bare "96"; role="img" makes the label the badge's name. The pending "…" is hidden: as a
+    // role="status" live region it announced "Reading ingredients" once per tile, and never the score.
     if (hit === 'pending') {
       b.textContent = '…';
       b.title = 'Reading ingredients…';
-      b.setAttribute('aria-label', 'Reading ingredients');
-      b.setAttribute('role', 'status');
+      b.removeAttribute('aria-label');
+      b.setAttribute('aria-hidden', 'true');
       b.style.cssText = 'color:#565959;background:#f0f2f2;border:2px solid #d5d9d9;';
       return b;
     }
@@ -215,6 +218,7 @@
       b.textContent = '?';
       b.title = throttleCopy('badgeNoIngredients', "Amazon doesn't publish readable ingredients for this one");
       b.setAttribute('aria-label', b.title);
+      b.setAttribute('role', 'img');
       b.style.cssText = 'color:#767676;background:#f7f8f8;border:2px dashed #d5d9d9;';
       return b;
     }
@@ -227,6 +231,7 @@
     const verdict = verdictKey ? throttleCopy(verdictKey, hit.verdict) : hit.verdict;
     b.title = `Ingredient Check: ${hit.score}/100 — ${verdict}`;
     b.setAttribute('aria-label', b.title);
+    b.setAttribute('role', 'img');
     b.style.cssText = `color:${c.fg};background:${c.bg};border:2px solid ${c.ring};`;
     if (breakdown) {
       b.removeAttribute('title');
