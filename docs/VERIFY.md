@@ -179,7 +179,16 @@ Reload the extension in `chrome://extensions` first, then open an Amazon grocery
 npm run harness
 ```
 
-CI also runs `npm run harness:ci` (Playwright, Chromium, local pages only).
+CI also runs `npm run harness:ci` (Playwright, Chromium, local pages only). What it proves, and what it
+does not:
+
+| Check | Runs on | Proves | Does not prove |
+|---|---|---|---|
+| Harness pages | Stubbed `chrome`, local pages | Panel, lifecycle, sort menu, list, popup and settings behaviour; any page error, `[AIR]` line or console error fails the run | Chrome's real APIs |
+| Extension smoke | The unpacked extension in Chromium | The service worker starts with every module; the six extension pages open against the real `chrome.*` APIs with no error, no unlabelled control, no nameless button | Anything on Amazon |
+| Saved Amazon pages | The unpacked extension; `www.amazon.com` mapped to the snapshots in `tests/pages/`, every other host unreachable | The real content scripts score a product page (toolbar badge included), stand down on a non-food page, and rate search results through the badge queue, with badges named for screen readers | That live Amazon still renders like the snapshots (§7 and the live records below) |
+
+`HARNESS_CHROME=/path/to/chromium npm run harness:ci` uses a local Chromium instead of Playwright's.
 
 - Panel: http://127.0.0.1:8731/
 - OCR: http://127.0.0.1:8731/tests/harness-ocr.html
