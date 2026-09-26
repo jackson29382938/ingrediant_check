@@ -108,8 +108,18 @@ function ocrImages(urls, { limit = 5, timeoutMs = 45000 } = {}) {
   });
 }
 
+// Only the service worker may ask. It checks "Read label photos", the master switch and the image
+// allowlist before it forwards a request (background.js ocrLabels); a message sent here directly —
+// from a content script, or another extension page — would skip all of that.
+function fromWorker(sender) {
+  if (!sender || sender.tab) return false;
+  if (sender.id && sender.id !== chrome.runtime.id) return false;
+  try { return /\/src\/background\.js$/.test(new URL(sender.url).pathname); } catch (e) { return false; }
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (!msg || msg.target !== 'ocr-offscreen') return false;
+  if (!fromWorker(sender)) return false;
   if (msg.type === 'cancelOcr') {
     for (const job of jobs) job.controller.abort();
     reply({ ok: true });
