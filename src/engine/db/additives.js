@@ -122,7 +122,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     // "Lecithin" with no source, or E322 — which is most EU chocolate. Between the two lecithins
     // above, because the source is exactly what the label declined to say.
     { m: /^(?:lecithins?|lecitin[ae]s?|l[ée]cithines?|lecithine?|lecitin(?:er)?|lecytyn[ay]?|lesitin)$|\be[- ]?322\b/i, pts: 7,  why: 'Lecithin — emulsifier, source not stated' },
-    { m: /\bmodified (food |corn |potato |tapioca |wheat )?starch\b|\be[- ]?14[0-5]\d\b|\balmid[óo]n modificado\b|\bamidon modifi[ée]\b|\bmodifizierte st[äa]rke\b|\bamido modificato\b|\bamido modificado\b|\bgemodificeerd zetmeel\b|\bmodifierad (?:majs|potatis|vete|tapioka)?st[äa]rkelse\b|\bskrobia (?:kukurydziana |ziemniaczana |pszenna |tapiokowa )?modyfikowana\b|\bmodyfikowana skrobia\b|\bmodifiye (?:m[ıi]s[ıi]r |patates |bu[ğg]day )?ni[şs]asta(?:s[ıi])?(?![a-zà-ÿ\u0100-\u017f])/i, pts: 14, why: 'Modified starch — chemically altered' },
+    { m: /\bmodified (food |corn |maize |potato |tapioca |wheat |rice |waxy maize )?starch\b|\be[- ]?14[0-5]\d\b|\balmid[óo]n modificado\b|\bamidon modifi[ée]\b|\bmodifizierte st[äa]rke\b|\bamido modificato\b|\bamido modificado\b|\bgemodificeerd zetmeel\b|\bmodifierad (?:majs|potatis|vete|tapioka)?st[äa]rkelse\b|\bskrobia (?:kukurydziana |ziemniaczana |pszenna |tapiokowa )?modyfikowana\b|\bmodyfikowana skrobia\b|\bmodifiye (?:m[ıi]s[ıi]r |patates |bu[ğg]day )?ni[şs]asta(?:s[ıi])?(?![a-zà-ÿ\u0100-\u017f])/i, pts: 14, why: 'Modified starch — chemically altered' },
     { m: /\bmaltod[eé]xtrin[ae]?\b|\bmaltodestrina\b|\bmaltodextrine\b|\bmaltodekstryna\b|\bmaltodekstrin\b/i,  pts: 18, why: 'Maltodextrin — raises blood sugar faster than table sugar' },
     { m: /\bcarboxymethyl\b/i,                         pts: 11, why: 'Carboxymethyl derivative' },
     { m: /\bpropylene glycol\b|\be[- ]?1520\b/i,                      pts: 14, why: 'Propylene glycol' },
@@ -212,7 +212,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
 
   // ---------------------------------------------------------------- grains, gluten, legumes
   const GRAINS = [
-    { m: /\benriched (wheat |bleached |unbleached )?flour\b/i, pts: 15, why: 'Enriched flour — stripped, then synthetically re-dosed' },
+    { m: /\b(?:enriched|fortified) (wheat |bleached |unbleached |white )?flour\b/i, pts: 15, why: 'Enriched flour — stripped, then synthetically re-dosed' },
     { m: /\b(bleached|refined|white) flour\b/i,     pts: 14, why: 'Refined white flour' },
     { m: /\bwheat flour\b|\bharina(?:\s+integral)?\s+de\s+trigo\b|\bfarine(?:\s+(?:compl[èe]te|int[ée]grale))?\s+de\s+bl[ée](?:$|[^a-z])|\b(?:vollkorn)?weizenmehl\b|\bvollkornweizenmehl\b|\bfarina(?:\s+integrale)?\s+di\s+(?:grano|frumento)\b|\bfarinha(?:\s+integral)?\s+de\s+trigo\b|\b(?:volkoren)?tarwemeel\b|\bvetemj[öo]l\b|\bm[ąa]ka\s+pszenna(?:\s+pe[łl]noziarnista)?\b|\bpszenna\s+m[ąa]ka\b|\bbu[ğg]day\s+unu\b/i, pts: 12, why: 'Wheat flour' },
     { m: /\bwheat\b|\btrigo\b|\bbl[ée](?:$|[^a-z])|\bweizen\b|\bfrumento\b|\btarwe\b|\bvete(?:mj[öo]l)?\b|\bpszen(?:ica|icy|n[aey])\b|\bbu[ğg]day\b/i, pts: 9,  why: 'Wheat', gluten: true },
@@ -222,7 +222,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\bspelt\b/i,                              pts: 5,  why: 'Spelt', gluten: true },
     { m: /\btriticale\b/i,                          pts: 8,  why: 'Triticale', gluten: true },
     { m: /\bmalted barley( flour)?\b/i,             pts: 8,  why: 'Malted barley', gluten: true },
-    { m: /\bcorn ?(flour|meal|starch|masa)\b|\bcornstarch\b|\bcornmeal\b|\balmid[óo]n de ma[ií]z\b|\bamidon de ma[ïi]s\b|\bmaisst[äa]rke\b|\bamido di mais\b|\bamido de milho\b|\bma[iï]szetmeel\b|\bmajsst[äa]rkelse\b|\bmajsmj[öo]l\b|\bskrobia kukurydziana\b|\bm[ąa]ka kukurydziana\b|\bm[ıi]s[ıi]r (?:ni[şs]astas[ıi](?![a-zà-ÿ\u0100-\u017f])|unu\b)/i, pts: 7,  why: 'Corn flour or starch' },
+    { m: /\bcorn ?(flour|meal|starch|masa)\b|\bcornstarch\b|\bcornmeal\b|\bmaize ?(?:flour|meal|starch)\b|\balmid[óo]n de ma[ií]z\b|\bamidon de ma[ïi]s\b|\bmaisst[äa]rke\b|\bamido di mais\b|\bamido de milho\b|\bma[iï]szetmeel\b|\bmajsst[äa]rkelse\b|\bmajsmj[öo]l\b|\bskrobia kukurydziana\b|\bm[ąa]ka kukurydziana\b|\bm[ıi]s[ıi]r (?:ni[şs]astas[ıi](?![a-zà-ÿ\u0100-\u017f])|unu\b)/i, pts: 7,  why: 'Corn flour or starch' },
     { m: /\boat (flour|fiber)\b/i,                  pts: 5,  why: 'Oat flour' },
     { m: /\brice flour\b/i,                         pts: 6,  why: 'Rice flour' },
     { m: /\bsoy(bean)? (flour|grits)\b/i,           pts: 12, why: 'Soy flour' },

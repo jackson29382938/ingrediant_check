@@ -229,3 +229,19 @@ test('flavourings are charged once, in every spelling', () => {
   assert.deepEqual(flavour('artificial flavourings'), ['Artificial flavour']);
   assert.deepEqual(flavour('smoke flavouring'), ['Liquid smoke flavouring'], 'charged once, as smoke');
 });
+
+test('UK wordings are charged like their US twins', () => {
+  // amazon.co.uk labels say maize, skimmed, treacle, golden syrup and fortified; each read as nothing,
+  // so a UK list scored better than the same US list (modified maize starch 90, modified corn starch 39).
+  const pairs = [
+    ['modified corn starch', 'modified maize starch'], ['corn starch', 'maize starch'], ['corn flour', 'maize flour'],
+    ['molasses', 'treacle'], ['molasses', 'black treacle'], ['skim milk powder', 'skimmed milk powder'],
+    ['nonfat milk', 'semi-skimmed milk'], ['caramel', 'caramelised sugar'], ['invert sugar syrup', 'golden syrup'],
+    ['invert sugar syrup', 'partially inverted sugar syrup'], ['enriched wheat flour', 'fortified wheat flour'],
+  ];
+  for (const [us, uk] of pairs) {
+    const a = score(`oats, ${us}`), b = score(`oats, ${uk}`);
+    assert.deepEqual(reasons(b).sort(), reasons(a).sort(), `${uk} vs ${us}`);
+    assert.equal(b.score, a.score, `${uk} vs ${us}`);
+  }
+});

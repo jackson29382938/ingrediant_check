@@ -25,7 +25,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   const TRADITIONAL = [
     { m: /^(organic |raw |unfiltered |wildflower |manuka |clover )*(honey|miel|honig|miele|mel|honing)$/i, pts: 3,  why: 'Honey — concentrated sweetener, light touch' },
     { m: /^(pure |organic )?maple (syrup|sugar)$/i,         pts: 4,  why: 'Maple syrup — concentrated sweetener' },
-    { m: /^(blackstrap )?molasses$/i,                       pts: 4,  why: 'Molasses' },
+    { m: /^(blackstrap )?molasses$|^(black )?treacle$/i,                       pts: 4,  why: 'Molasses' },
     { m: /^coconut (sugar|nectar|sap)$/i,                   pts: 5,  why: 'Coconut sugar' },
     { m: /^date (sugar|syrup)$/i,                           pts: 4,  why: 'Date sugar' },
     { m: /^sorghum( syrup)?$/i,                             pts: 5,  why: 'Sorghum syrup' },
@@ -44,7 +44,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /^(brown sugar|az[uú]car moren[oa]|a[cç][uú]car mascav[oa]do|sucre (brun|roux)|brauner zucker|zucchero bruno|basterdsuiker|farinsocker|brunt socker|cukier br[ąa]zowy|esmer [şs]eker)$/i, pts: 14, why: 'Brown sugar' },
     { m: /^beet sugar$/i,                               pts: 14, why: 'Beet sugar' },
     { m: /^powdered sugar$/i,                           pts: 14, why: 'Powdered sugar' },
-    { m: /^(invert sugar( syrup)?|az[uú]car invertid[oa]|a[cç][uú]car invertid[oa]|sucre inverti|invertzucker|zucchero invertito|invertsuiker|invertsocker(?:sirap)?|cukier inwertowany|syrop inwertowany|invert [şs]eker(?: [şs]urubu)?|invert [şs]urup)$/i, pts: 15, why: 'Invert sugar' },
+    { m: /^(invert sugar( syrup)?|golden syrup|(?:partially )?inverted (?:refiners[’']? )?sugar syrup|az[uú]car invertid[oa]|a[cç][uú]car invertid[oa]|sucre inverti|invertzucker|zucchero invertito|invertsuiker|invertsocker(?:sirap)?|cukier inwertowany|syrop inwertowany|invert [şs]eker(?: [şs]urubu)?|invert [şs]urup)$/i, pts: 15, why: 'Invert sugar' },
     { m: /^(dextrose|dextrosa|destrosio|traubenzucker|dextros|druvsocker|dekstroza|dekstroz)$/i, pts: 14, why: 'Dextrose' },
     { m: /^glucose( syrup| solids)?$|^(jarabe de glucosa|sirop de glucose|glukosesirup|sciroppo di glucosio|xarope de glucose|glucosestroop|glukossirap|glukos|syrop glukozowy|glukoza|gl[iu]koz(?: [şs]urubu)?)$/i, pts: 14, why: 'Glucose syrup' },
     { m: /^(fructose|fructosa|fruktose|fruttosio|frutose|fruktos|fruktoza|fr[üu]ktoz)$/i, pts: 16, why: 'Isolated fructose' },
@@ -54,7 +54,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /^(brown )?rice syrup$|^(jarabe de arroz|sirop de riz|reissirup|sciroppo di riso|rissirap|syrop ry[żz]owy|pirin[çc] [şs]urubu)$/i, pts: 14, why: 'Rice syrup' },
     { m: /^tapioca syrup$/i,                            pts: 13, why: 'Tapioca syrup' },
     { m: /^barley malt( syrup| extract)?$/i,            pts: 12, why: 'Barley malt syrup' },
-    { m: /^caramel$/i,                                  pts: 10, why: 'Caramel' },
+    { m: /^caramel$|^carameli[sz]ed sugar( syrup)?$|^burnt sugar$/i,                                  pts: 10, why: 'Caramel' },
     { m: /^honey (powder|solids)$/i,                    pts: 10, why: 'Honey powder — processed, not raw' },
   ];
 

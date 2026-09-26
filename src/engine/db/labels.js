@@ -69,8 +69,14 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     // The noun list matters: "lowfat kefir" and "low fat cottage cheese" were not fat-reduced
     // dairy as far as this rule was concerned, because only milk/dairy/yogurt/cheese counted.
     // Up to two words may sit between the qualifier and the noun: "nonfat dry milk",
-    // "part-skim mozzarella cheese", "reduced fat sharp cheddar cheese".
-    { pts: 6, why: 'Fat-reduced dairy', cat: 'reducedFatDairy', m: /\b(non[- ]?fat|fat[- ]?free|skim|low[- ]?fat|lowfat|reduced[- ]?fat|part[- ]?skim|1%|2%)\b(?:\s+\w+){0,2}\s+(milk|dairy|yogh?urt|cheese|kefir|cream|buttermilk|ricotta|cheddar|mozzarella)\b/i },
+    // "part-skim mozzarella cheese", "reduced fat sharp cheddar cheese". UK labels say "skimmed" and
+    // "semi-skimmed", which read as full fat.
+    { pts: 6, why: 'Fat-reduced dairy', cat: 'reducedFatDairy', m: new RegExp(/\b(non[- ]?fat|fat[- ]?free|skim(?:med)?|semi[- ]?skimmed|low[- ]?fat|lowfat|reduced[- ]?fat|part[- ]?skim|1%|2%)\b(?:\s+\w+){0,2}\s+(milk|dairy|yogh?urt|cheese|kefir|cream|buttermilk|ricotta|cheddar|mozzarella)\b/.source
+      // The same in each store language: Magermilch, lait écrémé, leche desnatada, latte scremato, magere melk,
+      // leite desnatado, skummjölk, mleko odtłuszczone, yağsız süt.
+      + '|\\b(?:mager|entrahmt)\\w*(?:milch|joghurt|quark)|\\bmagermilch|\\blait (?:demi[- ]?)?[ée]cr[ée]m[ée]|\\bleche (?:semi)?(?:desnatada|descremada)'
+      + '|\\blatte (?:parzialmente )?scremato|\\bmagere (?:melk|yoghurt|kwark)|\\bleite (?:semi)?desnatado|\\bskummj[öo]lk|\\bl[äa]ttmj[öo]lk'
+      + '|\\bmlek[oa] (?:odt[łl]uszczon\\w*|chude)|\\bya[ğg]s[ıi]z s[üu]t|\\by[aâ]r[ıi]m ya[ğg]l[ıi] s[üu]t', 'i') },
   ];
 
   // Full-fat dairy, for the fat-reduced dairy rule above. A whole-milk kefir with some nonfat milk
