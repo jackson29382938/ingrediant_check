@@ -127,11 +127,12 @@ check('an EU panel declared per 100 g is scored and labelled per 100g', () => {
     'a declared serving still wins');
 });
 
-check('Dutch, Swedish, Polish and Portuguese panels are readable', () => {
+check('Dutch, Swedish, Polish, Turkish and Portuguese panels are readable', () => {
   const panels = {
     nl: 'Voedingswaarde per 100 g Energie 1580 kJ / 377 kcal Verzadigde vetzuren 1,2 g Suikers 22 g Vezels 6 g Eiwitten 9 g Zout 0,5 g',
     se: 'Näringsvärde per 100 g Energi 1580 kJ / 377 kcal Mättat fett 1,2 g Sockerarter 22 g Kostfiber 6 g Protein 9 g Salt 0,5 g',
     pl: 'Wartość odżywcza w 100 g Wartość energetyczna 1580 kJ / 377 kcal Kwasy tłuszczowe nasycone 1,2 g Cukry 22 g Błonnik 6 g Białko 9 g Sól 0,5 g',
+    tr: "Besin değerleri 100 g'da Enerji 1580 kJ / 377 kcal Doymuş yağ 1,2 g Şekerler 22 g Lif 6 g Protein 9 g Tuz 0,5 g",
   };
   for (const [lang, text] of Object.entries(panels)) {
     const out = parsePanel(text);

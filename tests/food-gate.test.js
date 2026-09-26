@@ -224,6 +224,8 @@ check('line-sweep heading matches localised labels', () => {
   assert.ok(extract.LINE_BLOCK.test('Ingrediënten\nwater, suiker, zout\nVoedingswaarde'));
   assert.ok(extract.LINE_BLOCK.test('Składniki\nwoda, cukier, sól\nWartość odżywcza'));
   assert.ok(extract.LINE_BLOCK.test('Skład\nwoda, cukier, sól\nWartość odżywcza'));
+  assert.ok(ingestible.assess({ querySelector: () => null }, { title: 'Fındık kreması', text: 'Besin değerleri Enerji 377 kcal' }).score >= 5,
+    'a Turkish nutrition panel is food evidence');
   assert.equal(extract.LINE_INLINE.exec('Skład: mąka pszenna, cukier, olej rzepakowy')[1], 'mąka pszenna, cukier, olej rzepakowy');
   assert.equal(extract.LINE_BLOCK.exec('Ingredientes\nfarinha de trigo, açúcar, sal\nInformação nutricional\nValor energético 120 kcal')[1].trim(),
     'farinha de trigo, açúcar, sal', 'the Portuguese nutrition heading ends the list');

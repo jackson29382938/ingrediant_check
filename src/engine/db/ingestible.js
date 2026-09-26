@@ -25,11 +25,11 @@ const STRONG_POSITIVE = [
     // Amazon's international stores print the same panel under local names. Without these the
     // food gate scores 0 outside the US and every product is judged not-food, which would make
     // enabling those domains worse than not supporting them.
-    test: (doc, text) => /\bnutrition(al)? (facts|information)\b|\bn[äa]hrwert(angaben|e)?\b|\bvaleurs nutritionnelles\b|\binformaci[óo]n nutricional\b|\bvalori nutrizionali\b|\binforma[çc][ãa]o nutricional\b|\bvoedingswaarde\b|\bn[äa]ringsv[äa]rde\b|\bwarto[śs][ćc] od[żz]ywcza\b|栄養成分/i.test(text) },
+    test: (doc, text) => /\bnutrition(al)? (facts|information)\b|\bn[äa]hrwert(angaben|e)?\b|\bvaleurs nutritionnelles\b|\binformaci[óo]n nutricional\b|\bvalori nutrizionali\b|\binforma[çc][ãa]o nutricional\b|\bvoedingswaarde\b|\bn[äa]ringsv[äa]rde\b|\bwarto[śs][ćc] od[żz]ywcza\b|\bbesin de[ğg]erleri\b|\bbeslenme bilgisi\b|栄養成分/i.test(text) },
   { id: 'supplementPanel', pts: 5, why: 'Supplement Facts panel',
     test: (doc, text) => /\bsupplement facts\b/i.test(text) },
   { id: 'servingSize', pts: 3, why: 'Serving size and servings per container',
-    test: (doc, text) => /\bserving size\b|\bservings per container\b|\bportionsgr[öo]sse\b|\bpro portion\b|\bportion\b|\bpor[cç][ãa]o\b|\bporci[óo]n\b|\bporzione\b|\bper 100 ?g\b/i.test(text) },
+    test: (doc, text) => /\bserving size\b|\bservings per container\b|\bportionsgr[öo]sse\b|\bpro portion\b|\bportion\b|\bpor[cç][ãa]o\b|\bporci[óo]n\b|\bporzione\b|\bporsiyon\b|\bper 100 ?g\b/i.test(text) },
   { id: 'foodDept', pts: 5, why: 'Listed in a food or supplement department',
     test: (doc, text) => /\b(grocery & gourmet food|grocery and gourmet food|grocery|food cupboard|fresh food|whole foods market|amazon fresh|vitamins & dietary supplements|vitamins and dietary supplements|sports nutrition|baby food|health & personal care)\b/i.test(text)
       || /\b(lebensmittel|getr[äa]nke|drogerie & k[öo]rperpflege|[ée]picerie|alimentation|produits frais|alimentaci[óo]n|supermercado|alimentari|generi alimentari|mercearia|boodschappen|livsmedel|artyku[łl]y spo[żz]ywcze|g[ıi]da)\b/i.test(text)
