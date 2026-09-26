@@ -713,10 +713,35 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
         const focused = await page.evaluate(() => document.activeElement && document.activeElement.closest('[data-step]')?.dataset.step
           + ':' + document.activeElement.tagName);
         if (focused !== '2:H1') throw new Error(`setup: Next should focus step 2's heading, focus is on ${focused}`);
+        // The whole setup, through the real chrome.storage: a goal, an allergen, a diet and an avoid word
+        // are saved when it finishes. The settings it found are put back afterwards.
+        const before = await page.evaluate(() => new Promise(r => chrome.storage.local.get(null, r)));
+        await page.click('#back');
+        await page.click('#goals .chip');
+        const goalPicked = await page.evaluate(() => document.querySelector('#goals .chip').getAttribute('aria-pressed'));
+        await page.click('#next');
+        await page.click('#allergens .chip:has-text("Milk")');
+        await page.click('#diets .chip:has-text("Vegan")');
+        await page.click('#next');
+        await page.fill('#avoidList', 'palm oil');
+        await page.click('#next');
+        await page.click('#next');
+        await page.waitForFunction(() => !document.getElementById('skip') || document.getElementById('skip').hidden, { timeout: 5000 });
+        const saved = await page.evaluate(() => new Promise(r => chrome.storage.local.get(['goals', 'allergens', 'diets', 'avoidList', 'onboarded'], r)));
+        if (goalPicked !== 'true' || !saved.onboarded || !(saved.goals || []).length || !(saved.allergens || []).includes('milk')
+          || !(saved.diets || []).includes('vegan') || !JSON.stringify(saved.avoidList || '').includes('palm oil')) {
+          throw new Error(`setup did not save what was picked: ${JSON.stringify({ goalPicked, saved })}`);
+        }
+        await page.evaluate(old => new Promise(r => chrome.storage.local.clear(() => chrome.storage.local.set(old, r))), before);
+      }
+      if (name === 'options.html') {
+        // Google sign-in is off in this build (no OAuth client id), so its block must stay hidden.
+        const account = await page.evaluate(() => ({ hidden: document.getElementById('accountBlock')?.hidden, id: !!(window.AIR && AIR.db.prefs.OAUTH_CLIENT_ID) }));
+        if (!account.id && account.hidden !== true) throw new Error(`settings: the Google account block shows without a client id: ${JSON.stringify(account)}`);
       }
       await page.close();
     }
-    console.log(`  ok  extension → service worker started with every module; ${pages.length} pages open without errors, unnamed controls or low contrast (light and dark); goal tabs work by keyboard`);
+    console.log(`  ok  extension → service worker started with every module; ${pages.length} pages open without errors, unnamed controls or low contrast (light and dark); goal tabs work by keyboard; setup saves what was picked`);
     await amazonEndToEnd(context, worker, pageErrors);
   } finally {
     await context.close();
