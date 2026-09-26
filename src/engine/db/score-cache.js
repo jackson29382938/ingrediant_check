@@ -50,12 +50,13 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
     return m ? { store: m[1], asin: m[2].toUpperCase() } : null;
   }
 
-  function listScores(all, { version, prefs } = {}, now = Date.now()) {
+  // maxAgeMs: the speed setting's age limit, as for valid().
+  function listScores(all, { version, prefs, maxAgeMs = TTL_MS } = {}, now = Date.now()) {
     const out = [];
     for (const [cacheKey, hit] of Object.entries(all || {})) {
       const parsed = parseKey(cacheKey);
       if (!parsed || !hit) continue;
-      if (!valid(hit, { store: parsed.store, asin: parsed.asin, version, prefs }, now)) continue;
+      if (!valid(hit, { store: parsed.store, asin: parsed.asin, version, prefs, maxAgeMs }, now)) continue;
       out.push({
         key: cacheKey, store: hit.store, asin: hit.asin,
         name: hit.name || '', score: hit.score, verdict: hit.verdict || '',

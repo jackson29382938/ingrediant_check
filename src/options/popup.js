@@ -10,6 +10,9 @@ const OFF_PERMISSION = { origins: ['https://world.openfoodfacts.org/*'] };
 let writing = false;
 
 const cleanToggles = raw => PREFS.sanitizeToggles(raw);
+// How old a saved score may be under the speed setting (1 to 90 days), as the pages themselves use.
+// A fixed 30 days here showed "Not scored yet" for a score the page still showed under "Fastest".
+const maxAgeFor = speedMode => (AIR.db.speed ? AIR.db.speed.profile(speedMode).maxAgeMs : CACHE.TTL_MS);
 
 function say(msg) {
   const el = document.getElementById('status');
@@ -278,8 +281,8 @@ function productOnPage(url) {
 function paintStoreCard(card, live, adapter) {
   let version = '';
   try { version = chrome.runtime.getManifest().version; } catch (e) { /* ignore */ }
-  chrome.storage.local.get(['weights', 'foodOnly', 'sheetIndexRev', 'producerIndexRev'], obj => {
-    if (!CACHE.valid(live, { store: live.store, asin: live.asin, version, prefs: obj, allowManual: true })) {
+  chrome.storage.local.get(['weights', 'foodOnly', 'sheetIndexRev', 'producerIndexRev', 'speedMode'], obj => {
+    if (!CACHE.valid(live, { store: live.store, asin: live.asin, version, prefs: obj, allowManual: true, maxAgeMs: maxAgeFor(obj.speedMode) })) {
       card.hidden = true;
       return;
     }
@@ -346,10 +349,10 @@ function paintPageScore() {
     }
     const store = new URL(url).hostname;
     const key = CACHE.key(store, asin);
-    chrome.storage.local.get([key, 'weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sheetIndexRev', 'producerIndexRev'], async obj => {
+    chrome.storage.local.get([key, 'weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sheetIndexRev', 'producerIndexRev', 'speedMode'], async obj => {
       let live = null;
       try { live = await chrome.tabs.sendMessage(tab.id, { type: 'currentPageScore' }); } catch { /* tab has no active content script */ }
-      const context = { store, asin, version, prefs: obj };
+      const context = { store, asin, version, prefs: obj, maxAgeMs: maxAgeFor(obj.speedMode) };
       const hit = CACHE.valid(live, { ...context, allowManual: true }) ? live : obj[key];
       card.textContent = '';
       if (!CACHE.valid(hit, { ...context, allowManual: hit === live })) {
@@ -449,13 +452,13 @@ function paintCompare() {
   (async () => {
     const scoreKeys = (await CACHE.storedKeys(chrome.storage.local)).filter(k => k.startsWith('s:'));
     const all = await chrome.storage.local.get([...scoreKeys, 'weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts',
-      'sheetIndexRev', 'producerIndexRev', 'compareA', 'compareB']);
+      'sheetIndexRev', 'producerIndexRev', 'compareA', 'compareB', 'speedMode']);
     const prefs = {
       weights: all.weights, foodOnly: all.foodOnly, ocrLabels: all.ocrLabels,
       useOpenFoodFacts: all.useOpenFoodFacts,
       sheetIndexRev: all.sheetIndexRev, producerIndexRev: all.producerIndexRev,
     };
-    const listed = CACHE.listScores(all, { version, prefs });
+    const listed = CACHE.listScores(all, { version, prefs, maxAgeMs: maxAgeFor(all.speedMode) });
     if (listed.length < 2) {
       block.hidden = true;
       empty.hidden = false;

@@ -89,3 +89,13 @@ test('storedKeys lists keys without reading values when Chrome can, and falls ba
   assert.equal(fullReads, 1);
   assert.deepEqual(Object.keys(data).filter(cache.isCacheKey).sort(), ['p:amazon.com:B000000001', 's:amazon.com:B000000001']);
 });
+
+test('listScores follows the speed setting age it is given', () => {
+  const speed = require('../src/engine/db/speed.js');
+  const DAY = 24 * 60 * 60 * 1000;
+  const old = { ...entry, asin: 'B000000005', t: now - 45 * DAY };
+  const all = { [cache.key('amazon.com', 'B000000005')]: old };
+  assert.equal(cache.listScores(all, { version: context.version, prefs: {} }, now).length, 0, 'Balanced: past 30 days');
+  assert.equal(cache.listScores(all, { version: context.version, prefs: {}, maxAgeMs: speed.profile('fastest').maxAgeMs }, now).length, 1,
+    'Fastest keeps 90 days, and the popup lists it');
+});
