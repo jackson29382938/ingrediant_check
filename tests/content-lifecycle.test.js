@@ -664,3 +664,15 @@ test('changing the speed setting reworks the badges already on the page', () => 
   assert.equal(w.h.queue.seen.size, 0, 'tiles are resolved again under the new ages');
   assert.equal(w.h.queue.fetches, 0, 'and the new budget starts from zero');
 });
+
+test('a failed product-page request is not held: the next caller asks again', async () => {
+  const w = sortSetup();
+  const first = w.S.readProductPage('B000000001', 'search-tile');
+  w.fetches[0].resolve({ ok: false, status: 500, text: async () => '' });
+  await assert.rejects(first);
+  assert.equal(w.S.knownRead('B000000001'), null);
+  const second = w.S.readProductPage('B000000001', 'search-tile');
+  assert.equal(w.fetches.length, 2);
+  w.fetches[1].resolve(ok);
+  assert.equal((await second).outcome, 'scored');
+});

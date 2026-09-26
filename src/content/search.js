@@ -546,8 +546,7 @@
       ? AbortSignal.any([controller.signal, AbortSignal.timeout(15000)])
       : controller.signal;
     const stale = () => controller.signal.aborted || epoch !== queue.epoch || !state.enabled;
-    let work = null;
-    work = (async () => {
+    const work = (async () => {
       try {
         const res = await fetch(`/dp/${asin}`, { credentials: 'same-origin', signal });
         if (stale()) throw abortError();
@@ -565,10 +564,12 @@
         return reading;
       } finally {
         queue.controllers.delete(controller);
-        if (queue.reads.get(asin) === work) queue.reads.delete(asin);
       }
     })();
     queue.reads.set(asin, work);
+    // Once settled, a later caller finds the reading in `readings`, or (after a failure) asks again.
+    const forget = () => { if (queue.reads.get(asin) === work) queue.reads.delete(asin); };
+    work.then(forget, forget);
     return work;
   }
 
