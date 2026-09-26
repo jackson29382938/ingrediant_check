@@ -659,6 +659,12 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
       const a11y = await page.evaluate(accessibilityProblems);
       for (const problem of a11y) pageErrors.push(`extension ${name}: ${problem}`);
       if (name === 'popup.html' || name === 'options.html') await checkTabs(page, name);
+      if (name === 'welcome.html') {
+        await page.click('#next');
+        const focused = await page.evaluate(() => document.activeElement && document.activeElement.closest('[data-step]')?.dataset.step
+          + ':' + document.activeElement.tagName);
+        if (focused !== '2:H1') throw new Error(`setup: Next should focus step 2's heading, focus is on ${focused}`);
+      }
       await page.close();
     }
     console.log(`  ok  extension → service worker started with every module; ${pages.length} pages open without errors or unnamed controls; goal tabs work by keyboard`);

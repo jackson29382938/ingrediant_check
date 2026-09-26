@@ -95,7 +95,10 @@ function show(n) {
   document.getElementById('skip').hidden = n > LAST;
   document.getElementById('next').textContent = n > LAST ? msg('welClose', 'Close')
     : n === LAST ? msg('welFinish', 'Finish') : msg('welNext', 'Next');
-  document.querySelector(`[data-step="${n}"] h1`)?.focus?.();
+  // Focus the new step's heading, so a screen reader announces the step. A heading takes focus only
+  // with a tabindex; without one this call did nothing and focus stayed on the Next button.
+  const heading = document.querySelector(`[data-step="${n}"] h1`);
+  if (heading) { heading.tabIndex = -1; heading.focus(); }
 }
 
 function closeTab() {
