@@ -40,6 +40,8 @@
     // The same fingerprint inputs the popup validates with, so its "This page" card accepts these.
     state.raw = { weights: o.weights, foodOnly: toggles.foodOnly,
       sheetIndexRev: o.sheetIndexRev, producerIndexRev: o.producerIndexRev };
+    // How old a saved score may be: the speed setting's age (1 to 90 days), as on Amazon.
+    state.maxAgeMs = root.AIR.db.speed ? root.AIR.db.speed.profile(o.speedMode).maxAgeMs : CACHE.TTL_MS;
   }
 
   // ------------------------------------------------------------------ product page
@@ -178,7 +180,7 @@
     chrome.storage.local.get(keys, got => {
       for (const x of tiles) {
         const hit = got && got[CACHE.key(STORE, x.id)];
-        if (x.anchor.isConnected && CACHE.valid(hit, { store: STORE, asin: x.id, version: VERSION, prefs: state.raw })) {
+        if (x.anchor.isConnected && CACHE.valid(hit, { store: STORE, asin: x.id, version: VERSION, prefs: state.raw, maxAgeMs: state.maxAgeMs })) {
           paintBadge(x.anchor, hit);
         }
       }
@@ -234,7 +236,7 @@
   setInterval(() => { if (location.href !== state.url) { state.manual = null; reset(); } }, 1000);
 
   const KEYS = ['enabled', 'badges', 'foodOnly', 'weights', 'allergens', 'diets', 'avoidList',
-    'sheetIndexRev', 'producerIndexRev'];
+    'sheetIndexRev', 'producerIndexRev', 'speedMode'];
   chrome.storage.local.get(KEYS, o => { readSettings(o || {}); reset(); });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area && area !== 'local') return;

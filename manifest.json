@@ -794,6 +794,7 @@
         "src/engine/categories.js",
         "src/engine/db/prefs.js",
         "src/engine/db/revision.js",
+        "src/engine/db/speed.js",
         "src/engine/db/score-cache.js",
         "src/engine/score.js",
         "src/content/panel.js",

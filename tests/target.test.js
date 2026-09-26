@@ -149,7 +149,7 @@ function runner(file, url, stored = {}) {
     },
     AIR: {
       engine, storeAdapters: { target: T },
-      db: { scoreCache, prefs, ingestible },
+      db: { scoreCache, prefs, ingestible, speed: require('../src/engine/db/speed.js') },
       panel: {
         BAND_COLOR: () => ({ fg: '#000', bg: '#fff', ring: '#0f0' }),
         render: (r, meta) => `render:${r.score}:${meta.via}:report=${meta.report}`,
@@ -243,4 +243,17 @@ test('nutrition rows read thousands commas and decimals', () => {
   assert.equal(data.nutrition.protein, 7.5);
   assert.equal(data.nutrition.sugar, 2);
   assert.equal(data.nutrition.servingGrams, 245);
+});
+
+test('runner: search badges keep a saved score as long as the speed setting says', () => {
+  const oats = engine.score({ ingredients_text: 'organic whole grain rolled oats.' }, {});
+  const entry = { schema: scoreCache.SCHEMA, v: '1.1.0', t: Date.now() - 45 * 24 * 60 * 60 * 1000, store: 'target.com', asin: '79364857',
+    prefs: scoreCache.fingerprint({}, 'page'), score: oats.score, verdict: oats.verdict, nova: oats.nova, source: 'page',
+    provenanceSource: '', name: 'Oats' };
+  const painted = speedMode => {
+    const w = runner('target-s-oats.html', 'https://www.target.com/s?searchTerm=organic+oats', { 's:target.com:79364857': entry, speedMode });
+    return [...w.page.querySelectorAll('h3')].filter(h => h.inserted && h.inserted.length).length;
+  };
+  assert.equal(painted('balanced'), 0, 'Balanced: 45 days is past 30');
+  assert.equal(painted('fastest'), 1, 'Fastest keeps 90 days');
 });
