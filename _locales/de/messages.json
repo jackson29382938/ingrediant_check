@@ -1271,5 +1271,11 @@
   },
   "optSharedProductsD": {
     "message": "Standardmäßig aus. Wenn an, wird ein Produkt, das ein anderer Computer schon gelesen hat (Zutatentext, Titel, Stichpunkte, Zertifizierungen und Nährwerte, vor jeder Gewichtung), wiederverwendet statt erneut von Amazon geladen, und was dieser Computer liest, wird für andere hochgeladen. Jeder kann Daten hochladen, und noch prüft nichts, ob sie stimmen: Ein Suchergebnis oder die sortierte Liste könnte also eine Bewertung für einen Text zeigen, der nicht auf dem Etikett steht. Eine Produktseite, die du öffnest, wird immer von der Seite selbst gelesen. Was gesendet wird: Shop- und Produkt-IDs von Suchergebnissen, die dieser Computer nicht selbst beantworten kann, und was von bewerteten Produkten gelesen wurde."
+  },
+  "sortBudget": {
+    "message": "Bewertung nach $1 Produktseiten angehalten, dem Limit für die Amazon-Ergebnisseiten in dieser Liste."
+  },
+  "sortPageTimeout": {
+    "message": "Amazon hat zu lange gebraucht, die nächste Ergebnisseite zu senden"
   }
 }

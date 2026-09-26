@@ -25,8 +25,12 @@
   const badgeable = tile => !!tile.querySelector(TITLE_SEL);
 
   const searchGate = { url: null, decision: null };
+  // One queue for every Amazon product-page request this tab makes: the badges (below) and the sorted
+  // list (sort.js readByProductPage) share its slots, its gap between starts, its failure count and
+  // throttle pause, and its per-results-page budget (`fetches`). `reads` holds requests in flight and
+  // `readings` finished ones, by ASIN, so a product is requested once per results page whoever asks.
   const queue = { pending: [], active: 0, seen: new Set(), lastStart: 0, epoch: 0, controllers: new Set(),
-    failStreak: 0, throttled: false, fetches: 0 };
+    failStreak: 0, throttled: false, fetches: 0, reads: new Map(), readings: new Map() };
   let tileObserver = null;
   let badgeStyleReady = false;
   const hoverAborts = new Set();
@@ -359,6 +363,8 @@
     queue.failStreak = 0;
     queue.throttled = false;
     queue.fetches = 0;
+    queue.reads.clear();
+    queue.readings.clear();
     clearThrottleNotice();
     for (const controller of queue.controllers) controller.abort();
     queue.controllers.clear();
@@ -391,6 +397,28 @@
     if (front) queue.pending.unshift(job); else queue.pending.push(job);
     pump();
   }
+
+  // A request slot for the sorted list (sort.js). The badges' pump() takes slots directly; this waits
+  // until one is free and the gap since the last start has passed. -> false when `halted` says stop
+  // or Amazon throttled this tab.
+  async function acquireSlot(halted = () => false) {
+    for (;;) {
+      if (halted() || queue.throttled) return false;
+      const wait = Math.max(0, queue.lastStart + REQUEST_GAP_MS - Date.now());
+      if (queue.active < MAX_CONCURRENT && !wait) {
+        queue.active++;
+        queue.lastStart = Date.now();
+        return true;
+      }
+      await new Promise(resolve => setTimeout(resolve, wait || REQUEST_GAP_MS));
+    }
+  }
+  function releaseSlot() {
+    queue.active = Math.max(0, queue.active - 1);
+    pump();
+  }
+  // The request for this product, if one is in flight or done on this results page.
+  const knownRead = asin => queue.readings.get(asin) || queue.reads.get(asin) || null;
 
   function pump() {
     if (queue.throttled) return;
@@ -500,49 +528,73 @@
     sendDiagnostic(data, reading.result, source);
   }
 
+  const abortError = () => Object.assign(new Error('aborted'), { name: 'AbortError' });
+
+  // Fetch, read and record one product page, once per results page however many callers ask: a
+  // second caller joins the request in flight or gets the finished reading. Any caller's HTTP refusal
+  // counts toward the one throttle pause. Nothing is recorded once the search was reset (epoch), the
+  // master switch went off, or the request was aborted. -> the reading (readProductHtml).
+  function readProductPage(asin, source) {
+    const { state } = P();
+    const known = knownRead(asin);
+    if (known) return Promise.resolve(known);
+    if (queue.throttled) return Promise.reject(abortError());
+    const epoch = queue.epoch;
+    const controller = new AbortController();
+    queue.controllers.add(controller);
+    const signal = (typeof AbortSignal !== 'undefined' && AbortSignal.any)
+      ? AbortSignal.any([controller.signal, AbortSignal.timeout(15000)])
+      : controller.signal;
+    const stale = () => controller.signal.aborted || epoch !== queue.epoch || !state.enabled;
+    let work = null;
+    work = (async () => {
+      try {
+        const res = await fetch(`/dp/${asin}`, { credentials: 'same-origin', signal });
+        if (stale()) throw abortError();
+        // Only Amazon HTTP blocks count toward the throttle pause — offline / DNS is not a 403.
+        if (!res.ok) {
+          if (res.status >= 400) noteTileFailure();
+          throw Object.assign(new Error(String(res.status)), { httpStatus: res.status });
+        }
+        const html = await res.text();
+        if (stale()) throw abortError();
+        const reading = readProductHtml(asin, html);
+        recordReading(asin, reading, source);
+        queue.failStreak = 0;
+        queue.readings.set(asin, reading);
+        return reading;
+      } finally {
+        queue.controllers.delete(controller);
+        if (queue.reads.get(asin) === work) queue.reads.delete(asin);
+      }
+    })();
+    queue.reads.set(asin, work);
+    return work;
+  }
+
+  function paintReading(tile, reading) {
+    if (reading.outcome === 'not-food') { tile.querySelector('.air-badge')?.remove(); return; }
+    if (reading.outcome !== 'scored') { paintBadge(tile, 'unreadable'); return; }
+    paintBadge(tile, reading.result);
+  }
+
   async function scoreTile(tile, asin, epoch, url) {
     const { state } = P();
     const current = () => epoch === queue.epoch && url === location.href && state.enabled
       && state.badges && tile.isConnected && searchAllowed();
     if (!current()) return;
-    const controller = new AbortController();
-    queue.controllers.add(controller);
+    const done = queue.readings.get(asin);
+    if (done) { paintReading(tile, done); return; }
     paintBadge(tile, 'pending');
     try {
-      const signal = (typeof AbortSignal !== 'undefined' && AbortSignal.any)
-        ? AbortSignal.any([controller.signal, AbortSignal.timeout(15000)])
-        : controller.signal;
-      const res = await fetch(`/dp/${asin}`, { credentials: 'same-origin', signal });
-      if (!res.ok) throw Object.assign(new Error(String(res.status)), { httpStatus: res.status });
-      const html = await res.text();
+      const reading = await readProductPage(asin, 'search-tile');
       if (!current()) return;
-      const reading = readProductHtml(asin, html);
-      if (!current()) return;
-      if (reading.outcome === 'not-food') {
-        recordReading(asin, reading, 'search-tile');
-        const b = tile.querySelector('.air-badge');
-        if (b) b.remove();
-        return;
-      }
-      if (reading.outcome !== 'scored') {
-        recordReading(asin, reading, 'search-tile');
-        paintBadge(tile, 'unreadable');
-        return;
-      }
-      paintBadge(tile, reading.result);
-      recordReading(asin, reading, 'search-tile');
-      queue.failStreak = 0;
+      paintReading(tile, reading);
     } catch (e) {
       if (!current()) return;
-      const aborted = e && (e.name === 'AbortError' || e.name === 'TimeoutError' || controller.signal.aborted);
-      if (aborted) return;
+      // Refused, offline, or a request the sorted list started and then stopped.
       const b = tile.querySelector('.air-badge');
       if (b && b.textContent === '…') b.remove();
-      // Only Amazon HTTP blocks count toward the throttle pause — offline / DNS is not a 403.
-      const status = e && e.httpStatus;
-      if (typeof status === 'number' && status >= 400) noteTileFailure();
-    } finally {
-      queue.controllers.delete(controller);
     }
   }
 
@@ -558,7 +610,8 @@
   }
 
   const search = {
-    queue, TILE_FAIL_LIMIT, MAX_AUTO_FETCHES,
+    queue, TILE_FAIL_LIMIT, MAX_AUTO_FETCHES, MAX_CONCURRENT, autoFetchCap,
+    readProductPage, knownRead, acquireSlot, releaseSlot,
     searchAllowed, resetSearchGate, standDown, badgeSearchResults,
     armHoverPass, armAutoScorePass, enqueue, scoreTile, cancelTileWork, resolveTiles,
     pauseForThrottle, clearBadges, paintBadge, AUTO_NOTICE_ID, AUTO_NOTICE_SEEN,

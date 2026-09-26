@@ -1286,5 +1286,11 @@
   },
   "optSharedProductsD": {
     "message": "Off by default. When on, a product another computer already read (its ingredient text, title, bullets, certifications and nutrition numbers, before any weighting) is reused instead of fetched from Amazon again, and what this computer reads is uploaded for others. Anyone can upload a reading and nothing yet checks that it is true, so a search badge or the sorted list could show a score for text that is not on the label. A product page you open is always read from the page itself. What is sent: the store and product IDs of search results this computer cannot answer, and what was read off products you scored."
+  },
+  "sortBudget": {
+    "message": "Rating stopped at $1 product pages, the limit for the Amazon results pages in this list."
+  },
+  "sortPageTimeout": {
+    "message": "Amazon took too long to send the next results page"
   }
 }

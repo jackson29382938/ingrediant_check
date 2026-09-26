@@ -15,8 +15,10 @@
 // The list fills in as it goes: the listings on this page first, with the scores this computer and
 // the shared database already have; then, when "Load more results" is on, further Amazon results
 // pages; then, when the sort setting and "Rate every search result" allow, the product pages of the
-// listings still without a score (three at a time, stopped by the panel's Stop button, the master
-// switch, or Amazon refusing five times in a row). Nothing here fetches what the badges would not.
+// listings still without a score, through the badges' own request queue (search.js: three at a time,
+// one request per product, one throttle pause and one per-page budget), stopped by the panel's Stop
+// button, the master switch, Amazon refusing, or that budget. Nothing here fetches what the badges
+// would not.
 
 (function (root) {
   root.AIR = root.AIR || {};
@@ -28,11 +30,10 @@
   const CARD = '[data-component-type="s-search-result"][data-asin], .s-result-item[data-asin]';
   const VALUE = { health: 'ingredient-check-score', unitPrice: 'ingredient-check-price-per-ounce' };
   const MARK = 'data-air-sort';
-  const MAX_CONCURRENT = 3;
   const REQUEST_GAP_MS = 250;
-  const FAIL_LIMIT = 5;
   const LOOKUP_BATCH = 100;
   const PUBLISH_GAP_MS = 700;
+  const LOAD_MORE_TIMEOUT_MS = 15000;
 
   let observer = null;
   let observerTimer = 0;
@@ -387,46 +388,49 @@
     return out;
   }
 
-  // Product pages for listings still without a score: three at a time, a short gap between starts,
-  // stopped by the panel's Stop button, the master switch, or Amazon refusing FAIL_LIMIT times in a
-  // row.
-  async function rateByProductPage(asins, token, onProgress) {
+  // Product pages for listings still without a score, through the badges' request queue (search.js):
+  // the same three slots and gap between starts, one request per product whoever asks first, one
+  // throttle pause, and one budget per Amazon results page (`budget`, counted with the badges'
+  // requests). Stopped by the panel's Stop button, the master switch, Amazon refusing, or the budget.
+  async function rateByProductPage(asins, token, onProgress, budget) {
     const search = S();
+    const q = search.queue;
     const out = new Map();
-    let next = 0, done = 0, failStreak = 0, lastStart = 0, stopped = '';
+    let next = 0, done = 0, stopped = '';
+    const halted = () => token !== run || !!stopped || !P().state.enabled;
+    const throttled = () => t('sortThrottled', 'Amazon stopped answering product pages, so rating paused.');
+    const outOfBudget = () => t('sortBudget', 'Rating stopped at $1 product pages, the limit for the Amazon results pages in this list.', budget());
     async function worker() {
-      while (next < asins.length && token === run && !stopped && P().state.enabled) {
+      while (next < asins.length && !halted()) {
+        if (q.throttled) { stopped = throttled(); break; }
         const asin = asins[next++];
-        const wait = Math.max(0, lastStart + REQUEST_GAP_MS - Date.now());
-        lastStart = Date.now() + wait;
-        if (wait) await sleep(wait);
-        if (token !== run) return;
-        const controller = new AbortController();
-        controllers.add(controller);
+        let slot = false;
         try {
-          const signal = AbortSignal.any ? AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]) : controller.signal;
-          const res = await fetch(`/dp/${asin}`, { credentials: 'same-origin', signal });
-          if (!res.ok) throw Object.assign(new Error(String(res.status)), { httpStatus: res.status });
-          const html = await res.text();
+          // A product the badges already requested costs nothing more.
+          if (!search.knownRead(asin)) {
+            if (q.fetches >= budget()) { stopped = outOfBudget(); break; }
+            slot = await search.acquireSlot(halted);
+            if (!slot) { if (q.throttled && !stopped) stopped = throttled(); break; }
+            if (q.fetches >= budget()) { stopped = outOfBudget(); break; }
+            q.fetches++;
+          }
+          const reading = await search.readProductPage(asin, 'sort-list');
           if (token !== run) return;
-          const reading = search.readProductHtml(asin, html);
-          search.recordReading(asin, reading, 'sort-list');
           out.set(asin, reading.outcome === 'scored'
             ? { score: reading.result.score, verdict: reading.result.verdict, source: 'scored', why: whyOf(reading.result) }
             : { score: null, source: reading.outcome === 'not-food' ? 'not-food' : 'unreadable' });
-          failStreak = 0;
         } catch (e) {
-          if (e && typeof e.httpStatus === 'number' && e.httpStatus >= 400 && ++failStreak >= FAIL_LIMIT) {
-            stopped = t('sortThrottled', 'Amazon stopped answering product pages, so rating paused.');
-          }
+          // Refused, offline, or aborted: the listing stays without a score. Refusals count toward the
+          // shared throttle pause inside readProductPage.
         } finally {
-          controllers.delete(controller);
+          if (slot) search.releaseSlot();
           done++;
           onProgress(done, asins.length, out);
         }
       }
     }
-    await Promise.all(Array.from({ length: MAX_CONCURRENT }, worker));
+    await Promise.all(Array.from({ length: search.MAX_CONCURRENT }, worker));
+    if (!stopped && q.throttled) stopped = throttled();
     return { scores: out, stopped };
   }
 
@@ -487,6 +491,8 @@
 
     // Further Amazon results pages, when "Load more results" is on.
     let partialError = '';
+    // Amazon results pages in this list: the product-page budget is the badges' per-page cap for each.
+    let pagesInList = 1;
     if (settings.sortLoadMore && products.size < settings.sortCount) {
       let nextUrl = findNextPage(document, location.href);
       let pageNumber = 1;
@@ -498,12 +504,17 @@
           const controller = new AbortController();
           controllers.add(controller);
           let response;
-          try { response = await fetch(nextUrl, { credentials: 'same-origin', headers: { Accept: 'text/html' }, signal: controller.signal }); }
-          finally { controllers.delete(controller); }
+          const signal = AbortSignal.any ? AbortSignal.any([controller.signal, AbortSignal.timeout(LOAD_MORE_TIMEOUT_MS)]) : controller.signal;
+          try { response = await fetch(nextUrl, { credentials: 'same-origin', headers: { Accept: 'text/html' }, signal }); }
+          catch (error) {
+            if (error && error.name === 'TimeoutError') throw new Error(t('sortPageTimeout', 'Amazon took too long to send the next results page'));
+            throw error;
+          } finally { controllers.delete(controller); }
           if (!response.ok) throw new Error(`Amazon returned ${response.status}`);
           const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
           const cards = productCardsIn(doc);
           if (!cards.length) throw new Error('no product cards on the next page');
+          pagesInList = pageNumber;
           for (const card of cards) {
             add(extractProduct(card, pageNumber, settings));
             if (products.size >= settings.sortCount) break;
@@ -526,10 +537,11 @@
     const rateAllowed = settings.sortMissing === 'rate-first' && state.autoScoreSearch;
     if (rateAllowed && noScore().length && token === run) {
       const asins = noScore();
+      const budget = () => S().autoFetchCap() * pagesInList;
       const rated = await rateByProductPage(asins, token, (done, total, got) => {
         for (const [a, s] of got) scores.set(a, s);
         publish(token, list(), true, t('sortRatingMore', 'Rating listings without a score: $1 of $2…', done, total));
-      });
+      }, budget);
       for (const [a, s] of rated.scores) scores.set(a, s);
       stopped = rated.stopped;
       // Tiles the badge queue finished meanwhile.
@@ -609,7 +621,7 @@
   // A setting that changes which options exist (price per ounce on or off).
   function refresh() { if (mounted) install(); }
 
-  const api = { mount, unmount, refresh, isSearchPage, extractProduct, knownScores, findNextPage, sortSelects,
+  const api = { mount, unmount, refresh, isSearchPage, extractProduct, knownScores, findNextPage, sortSelects, rateByProductPage,
     ratingValue, reviewCount, whyOf, VALUE, MARK, choose, get runId() { return runId; } };
   root.AIR.sort = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

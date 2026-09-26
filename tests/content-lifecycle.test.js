@@ -551,3 +551,93 @@ test('a score from a saved reading survives the next Amazon page update', () => 
   assert.equal(w.rendered.length, renders, 'not re-rendered either');
   assert.equal(removed.length, removals, 'the saved score is not deleted by a later update');
 });
+
+// ---------------------------------------------------------------- one request queue (search.js, sort.js)
+// The badges and the sorted list share one queue for Amazon product pages: one request per product,
+// the same three slots, one throttle pause and one per-results-page budget.
+function sortSetup() {
+  const w = cacheSetup({ sharing: false });
+  w.context.location.pathname = '/s';
+  w.context.location.search = '?k=oats';
+  w.context.location.href = 'https://www.amazon.com/s?k=oats';
+  vm.runInContext(fs.readFileSync(require.resolve('../src/content/sort.js'), 'utf8'), w.context);
+  w.S = w.context.AIR.search;
+  w.sort = w.context.AIR.sort;
+  // Run the queue's waits (the sandbox collects timers instead of running them).
+  // A collected timer runs at once, so each run also lets the 250 ms gap between starts pass.
+  const tick = () => { const f = w.timers.shift(); if (f) { w.S.queue.lastStart = 0; f(); } };
+  w.flush = async () => { for (let i = 0; i < 50; i++) { await new Promise(r => setImmediate(r)); tick(); } };
+  // Keep running timers, answering new requests with `reply`, until `promise` settles.
+  w.until = async (promise, reply = ok) => {
+    let done = false;
+    promise.then(() => { done = true; }, () => { done = true; });
+    for (let i = 0; i < 400 && !done; i++) {
+      await new Promise(r => setImmediate(r));
+      for (const f of w.fetches) if (!f.answered) { f.answered = true; f.resolve(reply); }
+      tick();
+    }
+    assert.ok(done, 'settled');
+    return promise;
+  };
+  return w;
+}
+const ok = { ok: true, text: async () => '<html></html>' };
+
+test('a product the badges are already requesting is not requested again for the sorted list', async () => {
+  const w = sortSetup();
+  const tile = tileFor(w, 'B000000001');
+  const badge = w.S.scoreTile(tile, 'B000000001', w.S.queue.epoch, w.context.location.href);
+  assert.equal(w.fetches.length, 1);
+  const rating = w.sort.rateByProductPage(['B000000001'], 0, () => {}, () => 60);
+  await w.flush();
+  assert.equal(w.fetches.length, 1, 'joined the request in flight');
+  w.fetches[0].resolve(ok);
+  await badge;
+  const { scores } = await rating;
+  assert.equal(scores.get('B000000001').score, 90);
+  assert.equal(w.writes.filter(x => x['p:amazon.com:B000000001']).length, 1, 'recorded once');
+  // And a later badge for the same product reuses the finished reading.
+  const again = tileFor(w, 'B000000001');
+  await w.S.scoreTile(again, 'B000000001', w.S.queue.epoch, w.context.location.href);
+  assert.equal(w.fetches.length, 1);
+});
+
+test('the sorted list and the badges share three request slots', async () => {
+  const w = sortSetup();
+  for (const a of ['B000000001', 'B000000002', 'B000000003']) w.S.scoreTile(tileFor(w, a), a, w.S.queue.epoch, w.context.location.href);
+  w.S.queue.active = 3;   // what pump() holds while those three run
+  const rating = w.sort.rateByProductPage(['B000000004'], 0, () => {}, () => 60);
+  await w.flush();
+  assert.equal(w.fetches.length, 3, 'no fourth request while three are in flight');
+  w.S.releaseSlot();
+  await w.flush();
+  assert.equal(w.fetches.length, 4);
+  w.fetches.forEach(f => f.resolve(ok));
+  await rating;
+});
+
+test('Amazon refusing the badges pauses the sorted list too, and the reverse', async () => {
+  const w = sortSetup();
+  w.S.pauseForThrottle();
+  const { stopped } = await w.sort.rateByProductPage(['B000000001', 'B000000002'], 0, () => {}, () => 60);
+  assert.equal(w.fetches.length, 0);
+  assert.match(stopped, /stopped answering/);
+
+  const r = sortSetup();
+  const asins = Array.from({ length: r.S.TILE_FAIL_LIMIT + 2 }, (_, i) => `B00000001${i}`);
+  const result = await r.until(r.sort.rateByProductPage(asins, 0, () => {}, () => 60),
+    { ok: false, status: 503, text: async () => '' });
+  assert.equal(r.S.queue.throttled, true, "the sorted list's refusals pause the badges");
+  assert.equal(r.fetches.length, r.S.TILE_FAIL_LIMIT, 'no request after the pause');
+  assert.match(result.stopped, /stopped answering/);
+});
+
+test("the sorted list's product pages count toward the per-results-page budget", async () => {
+  const w = sortSetup();
+  const cap = w.S.MAX_AUTO_FETCHES;
+  w.S.queue.fetches = cap - 1;   // the badges already spent all but one on this page
+  const { stopped } = await w.until(w.sort.rateByProductPage(['B000000001', 'B000000002', 'B000000003'], 0, () => {}, () => cap));
+  assert.equal(w.fetches.length, 1);
+  assert.equal(w.S.queue.fetches, cap);
+  assert.match(stopped, new RegExp(`at ${cap} product pages`));
+});
