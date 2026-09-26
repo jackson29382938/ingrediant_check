@@ -42,6 +42,11 @@ readings for 90 and 60 days. *Fresher* re-reads after 7 days and ignores shared 
 days. *Most up to date* re-reads after 1 day and never uses shared rows. Shared rows are never used
 past 30 days, whatever the step, because the worker drops them first.
 
+The twice-daily housekeeping sweep (`sweepCache` in `src/background.js`) deletes this computer's `s:`
+and `p:` entries once they pass the current step's age, so a step's age is also how long they are
+kept. Moving to a fresher step therefore deletes older readings at the next sweep; moving back does
+not restore them. Open Food Facts records (`off:`) keep their own 30 days at every step.
+
 - A newer scan replaces the row straight away, even before it is stale, and resets `pulls`.
 - An older scan never overwrites a newer row.
 - A pull counts only when its `scanned_at` still matches the row, so a view of an old scan never

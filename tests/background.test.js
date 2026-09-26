@@ -53,6 +53,7 @@ function worker(initial = {}, fetcher, { alarms, endpoint = ENDPOINT } = {}) {
   context.AIR.db.prefs.ENDPOINT = endpoint;
   vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/ocr-text.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/product-cache.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/speed.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(require.resolve('../src/worker/messages.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(require.resolve('../src/worker/sheet-store.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(require.resolve('../src/background.js'), 'utf8'), context);
@@ -426,4 +427,29 @@ test('the sender rule does not stop the alarm flush or a full batch', async () =
   for (let i = 0; i < 12; i++) await w.send({ type: 'diagnostic', record: { id: i } }, amazonTab);
   assert.equal(bodies.filter(b => b.kind === 'diagnostics').length, 2);
   assert.equal(w.data.diagQueue.length, 0);
+});
+
+test('the housekeeping sweep keeps scores and readings as long as the speed setting says', async () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const ages = { fastest: 90, fast: 60, balanced: 30, fresh: 7, freshest: 1 };
+  for (const [speedMode, days] of Object.entries(ages)) {
+    const before = { t: now - (days - 0.5) * DAY };
+    const after = { t: now - (days + 0.5) * DAY };
+    const w = worker({
+      speedMode,
+      's:amazon.com:B000000001': before, 'p:amazon.com:B000000001': before,
+      's:amazon.com:B000000002': after, 'p:amazon.com:B000000002': after,
+      // Open Food Facts records keep their own month whatever the speed.
+      'off:0000000000017': { t: now - 29 * DAY }, 'off:0000000000024': { t: now - 31 * DAY },
+    });
+    await w.call(`sweepCache(${now})`);
+    const kept = Object.keys(w.data).filter(k => k !== 'speedMode').sort();
+    assert.deepEqual(kept, ['off:0000000000017', 'p:amazon.com:B000000001', 's:amazon.com:B000000001'],
+      `${speedMode}: keeps ${days} days`);
+  }
+  // No speed saved yet: Balanced, 30 days.
+  const w = worker({ 's:amazon.com:B000000001': { t: now - 45 * DAY }, 'p:amazon.com:B000000002': { t: now - 20 * DAY } });
+  await w.call(`sweepCache(${now})`);
+  assert.deepEqual(Object.keys(w.data), ['p:amazon.com:B000000002']);
 });

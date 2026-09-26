@@ -9,7 +9,7 @@
 if (typeof importScripts === 'function') {
   importScripts('engine/db/_module.js', 'engine/db/allergens.js', 'engine/categories.js',
     'engine/db/ingestible.js', 'engine/db/prefs.js',
-    'engine/db/ocr-text.js', 'engine/db/product-cache.js', 'engine/db/sorted-results.js',
+    'engine/db/ocr-text.js', 'engine/db/product-cache.js', 'engine/db/sorted-results.js', 'engine/db/speed.js',
     'engine/db/activity.js', 'worker/messages.js', 'worker/sheet-store.js');
 }
 
@@ -343,12 +343,22 @@ chrome.runtime.onInstalled.addListener(details => {
   }
 });
 
-async function sweepCache() {
+// How long this computer keeps its own readings. Scores (s:) and product readings (p:) follow the
+// speed setting (AIR.db.speed maxAgeDays, 1 to 90 days): a fixed 30 days here used to delete what
+// "Fastest" and "Faster" promised to keep. Open Food Facts records (off:) keep their own month.
+function sweepAges(speedMode) {
+  const speed = self.AIR && self.AIR.db && self.AIR.db.speed;
+  const readings = speed ? speed.profile(speedMode).maxAgeMs : TTL_MS;
+  return { s: readings, p: readings, off: TTL_MS };
+}
+
+async function sweepCache(now = Date.now()) {
   const all = await chrome.storage.local.get(null);
+  const ages = sweepAges(all.speedMode);
   // s: weighted scores, p: product data (docs/CACHE.md), off: Open Food Facts records.
   const entries = Object.entries(all).filter(([k]) => /^(s|p|off):/.test(k));
   const stale = entries
-    .filter(([, v]) => v && v.t && Date.now() - v.t > TTL_MS)
+    .filter(([k, v]) => v && v.t && now - v.t > ages[k.slice(0, k.indexOf(':'))])
     .map(([k]) => k);
   const staleSet = new Set(stale);   // `stale.includes` inside the filter below was O(n²) at 5k+ keys
   // Hard cap as well as a TTL: a heavy auto-scoring session can add thousands of fresh entries
@@ -815,5 +825,5 @@ function handleSharedDbMessage(msg, reply) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { indexRows, lookupRecord, sweepCache, isOpenFoodFactsFood, batchIdFor, revisionOf, ensureHousekeepingAlarm, allowMessage, isOwnExtension, isAmazonTabSender, isRetailerTabSender, isOptionsPageSender, isOffscreenSender, allowedOcrUrls, openSortedPanel, updateSortedResults, MAX_SHEET_BYTES, MAX_SHEET_ROWS };
+  module.exports = { indexRows, lookupRecord, sweepCache, sweepAges, isOpenFoodFactsFood, batchIdFor, revisionOf, ensureHousekeepingAlarm, allowMessage, isOwnExtension, isAmazonTabSender, isRetailerTabSender, isOptionsPageSender, isOffscreenSender, allowedOcrUrls, openSortedPanel, updateSortedResults, MAX_SHEET_BYTES, MAX_SHEET_ROWS };
 }
