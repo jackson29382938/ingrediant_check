@@ -137,7 +137,11 @@ test('the same chocolate scores the same in five languages', () => {
 // ---------------------------------------------------------------- then: parser and cap rows
 test('decimal percentages and "contains less than" do not create junk entries', () => {
   assert.deepEqual(engine.parse('Water, contains 2.5% or less of: salt, vitamin b12, sodium benzoate (0.1%)'),
-    ['water', 'salt', 'vitamin b12', 'sodium benzoate', '0.1%']);
+    ['water', 'salt', 'vitamin b12', 'sodium benzoate']);
+  // EU quantity declarations stay with their ingredient, decimal comma included, and are not left
+  // on the entry for the rules to trip over.
+  assert.deepEqual(engine.parse('Zucker 45 %, Haselnüsse min. 13%, azúcar 8,5%, E330,E331'),
+    ['zucker', 'haselnüsse', 'azúcar', 'e330', 'e331']);
   assert.deepEqual(engine.parse('Chicken stock, contains less than 2% of salt, yeast extract'),
     ['chicken stock', 'salt', 'yeast extract']);
 });

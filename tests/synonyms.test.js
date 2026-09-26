@@ -254,3 +254,12 @@ test('Open Food Facts allergen markup does not hide rules or allergens', () => {
   const soy = engine.score({ ingredients_text: 'sucre, lécithines de _soja_' }, { allergens: ['soy'] });
   assert.ok(JSON.stringify(soy).includes('"soy"'), 'the soy flag is raised');
 });
+
+test('an ingredient declared with its share is charged like the bare ingredient', () => {
+  // "sugar 20%" escaped every rule anchored at the end of the entry, and "azúcar 8,5%" was split at
+  // its decimal comma into "azúcar 8" and "5%".
+  for (const [bare, declared] of [['sugar', 'sugar 20%'], ['Zucker', 'Zucker 45 %'], ['azúcar', 'azúcar 8,5%'],
+    ['azúcar de caña', 'azúcar de caña 8,5%'], ['glucose syrup', 'glucose syrup 5%'], ['dextrose', 'dextrose 2.5%']]) {
+    assert.deepEqual(reasons(score(`oats, ${declared}`)), reasons(score(`oats, ${bare}`)), declared);
+  }
+});

@@ -366,11 +366,18 @@ function recognitionCoverage(list) {
 
 // ---------------------------------------------------------------- parsing
 // "İ".toLowerCase() is "i" plus a combining dot, which no rule can match: "İnvert şeker" read as nothing.
-const tidy = s => s.replace(/^[\s*•\-–:]+/, '').replace(/\s+/g, ' ').trim().toLowerCase().replace(/i\u0307/g, 'i');
+// A trailing quantity ("sugar 20%", "Zucker 45 %", "hazelnuts min. 13%") is how EU labels declare
+// the share of an ingredient, and every rule anchored at the end of the entry failed on it: the
+// sugar in "sugar 20%" was charged nothing. The share is dropped from the entry the rules see.
+const TRAILING_SHARE = /\s*(?:\b(?:min(?:imum)?|max(?:imum)?|ca|approx)\.?\s*|<\s*|>\s*)?\d+(?:[.,]\d+)?\s*%$/i;
+const tidy = s => s.replace(/^[\s*•\-–:]+/, '').replace(/\s+/g, ' ').trim().toLowerCase().replace(/i\u0307/g, 'i')
+  .replace(TRAILING_SHARE, '').trim();
 const usable = s => s.length > 1 && s.length < 80;
 
 // Split on commas at the TOP level only, leaving parenthesised sub-lists attached to their parent.
 // A full stop ends an entry only when it ends a sentence: "2.5%" and "vitamin b12." must not split.
+// "Haselnüsse min. 13%": the full stop after min/max/ca before a number is an abbreviation.
+const MIN_SHARE = /(?:^|[^a-z])(?:min|max|ca|approx)$/i;
 function splitTopLevel(text) {
   const parts = [];
   let depth = 0, buf = '';
@@ -378,7 +385,11 @@ function splitTopLevel(text) {
     const ch = text[i];
     if (ch === '(') { depth++; buf += ch; }
     else if (ch === ')') { depth = Math.max(0, depth - 1); buf += ch; }
-    else if (depth === 0 && (ch === ',' || ch === ';' || (ch === '.' && !/\d/.test(text[i + 1] || '')))) { parts.push(buf); buf = ''; }
+    // A comma between two digits is a decimal ("sugar 8,5%"), not the end of an entry.
+    else if (depth === 0 && ((ch === ',' && !(/\d/.test(text[i - 1] || '') && /\d/.test(text[i + 1] || '')))
+      || ch === ';' || (ch === '.' && !/\d/.test(text[i + 1] || '') && !(MIN_SHARE.test(buf) && /^\.\s?\d/.test(text.slice(i, i + 3)))))) {
+      parts.push(buf); buf = '';
+    }
     else buf += ch;
   }
   if (buf.trim()) parts.push(buf);
@@ -395,7 +406,7 @@ function splitTopLevel(text) {
 // a better score on everything downstream by disclosing more.
 function expandEntry(part) {
   const pieces = [part.replace(/\([^)]*\)/g, ' ')];
-  for (const m of part.matchAll(/\(([^)]*)\)/g)) pieces.push(...m[1].split(/[,;]/));
+  for (const m of part.matchAll(/\(([^)]*)\)/g)) pieces.push(...m[1].split(/;|(?<!\d),|,(?!\d)/));
   return pieces.map(tidy).filter(usable);
 }
 
