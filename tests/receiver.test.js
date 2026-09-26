@@ -62,7 +62,7 @@ function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true } = 
   });
   vm.runInContext(fs.readFileSync(require.resolve('../docs/apps-script.gs'), 'utf8').replace(
     "var OAUTH_CLIENT_ID = '';", `var OAUTH_CLIENT_ID = ${JSON.stringify(clientId)};`), c);
-  return { tabs, order, post: body => c.doPost({ postData: { contents: JSON.stringify(body) } }),
+  return { context: c, tabs, order, post: body => c.doPost({ postData: { contents: JSON.stringify(body) } }),
     get: parameter => c.doGet({ parameter }),
     sheet: name => { const sh = newSheet(); tabs.set(name, sh); order.push(name); return sh; },
     failNext: () => { failFlush = true; }, setLocked: v => { locked = v; },
@@ -198,4 +198,20 @@ test('accounts: a verified token opens only its own row, keyed by a hash, never 
   assert.equal(r.post({ kind: 'account', token: 'a'.repeat(30), payload: { weights: {} } }).ok, false);
   assert.equal(receiver({ clientId: '', tokens }).post({ kind: 'accountGet', token: 'a'.repeat(30) }).ok, false,
     'accounts stay off until a client id is configured');
+});
+
+test('each request logs one line for load measurement, with no payload in it', () => {
+  const lines = [];
+  const r = receiver();
+  r.context.console = { log: line => lines.push(JSON.parse(line)) };
+  r.post({ kind: 'products', upserts: [product()] });
+  r.post({ kind: 'lookup', keys: [KEY, 'amazon.com:B000MISSING'] });
+  r.setLocked(true);
+  r.post(batch(0));
+  r.setLocked(false);
+  r.get({ kind: 'provenance' });
+  assert.deepEqual(lines.map(l => [l.kind, l.items, l.ok, l.busy]),
+    [['products', 1, true, false], ['lookup', 2, true, false], ['diagnostics', 12, false, true], ['get:provenance', 1, true, false]]);
+  assert.ok(lines.every(l => Number.isFinite(l.ms) && l.ic === 'request'));
+  assert.ok(!JSON.stringify(lines).includes('Organic rolled oats'), 'no product data in the log');
 });

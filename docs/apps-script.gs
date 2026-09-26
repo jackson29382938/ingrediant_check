@@ -51,10 +51,37 @@ function productsOpen() {
   return PropertiesService.getScriptProperties().getProperty('PRODUCTS_OPEN') === 'true';
 }
 
+// One structured line per request, for measuring load during a pilot (docs/SETTINGS-SYNC.md,
+// "Measuring load"): Apps Script > Executions shows them, and Cloud Logging can chart them. No
+// product, token or payload is logged: only the kind, how many items, how long, and the outcome.
+var lastReply = null;   // what json() last answered, for logRequest; reset per request
+function logRequest(kind, items, started) {
+  if (typeof console === 'undefined' || !console.log) return;
+  var out = lastReply || {};
+  console.log(JSON.stringify({ ic: 'request', kind: kind, items: items, ms: Date.now() - started,
+    ok: out.ok === true, busy: /busy/.test(String(out.error || '')), closed: out.closed === true || /closed/.test(String(out.error || '')) }));
+}
+function itemsOf(body) {
+  if (!body) return 0;
+  if (Array.isArray(body.keys)) return body.keys.length;
+  if (Array.isArray(body.rows)) return body.rows.length;
+  return (Array.isArray(body.upserts) ? body.upserts.length : 0) + (Array.isArray(body.pulls) ? body.pulls.length : 0) || 1;
+}
+
 function doPost(e) {
+  var started = Date.now();
+  var body = null;
+  lastReply = null;
+  var result = handlePost(e, function (b) { body = b; });
+  logRequest(body && body.kind ? String(body.kind).slice(0, 20) : 'invalid', itemsOf(body), started);
+  return result;
+}
+
+function handlePost(e, seen) {
   var body;
   try { body = JSON.parse(e.postData.contents); }
   catch (err) { return json({ ok: false, error: 'invalid json' }); }
+  seen(body);
   // Reads take no lock: they must not queue behind a batch write.
   try {
     if (body.kind === 'lookup') return lookupProducts(body.keys);
@@ -80,6 +107,14 @@ function doPost(e) {
 }
 
 function doGet(e) {
+  var started = Date.now();
+  lastReply = null;
+  var result = handleGet(e);
+  logRequest('get:' + String((e && e.parameter && e.parameter.kind) || 'status').slice(0, 20), 1, started);
+  return result;
+}
+
+function handleGet(e) {
   var kind = e && e.parameter && e.parameter.kind;
   if (kind === 'provenance') {
     try {
@@ -334,6 +369,7 @@ function sheetFor(name, columns) {
 }
 
 function json(obj) {
+  lastReply = obj;
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
 }

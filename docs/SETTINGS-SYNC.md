@@ -81,3 +81,25 @@ Every row, on both sides, is re-validated: products by `sanitize()` (field bound
 no future timestamps, no pasted lists), settings by `parseBackup()` (unknown ids dropped, weights
 clamped to the slider range). A hand-edited cell or a crafted POST cannot widen what the extension
 will trust.
+
+## Measuring load
+
+The script takes the lock and reads (and, for product batches, rewrites) the whole tab on every
+write. That is fine for a few readers; whether it holds for many is a measurement, not a guess.
+Every request logs one line — `{"ic":"request","kind":…,"items":…,"ms":…,"ok":…,"busy":…,"closed":…}` —
+with no product, token or payload in it. **Apps Script → Executions** lists them; linking the
+project to a Google Cloud project lets Cloud Logging chart them.
+
+During a pilot, watch per day:
+
+| Signal | Where | Act when |
+| --- | --- | --- |
+| Requests per kind | count of lines by `kind` | Approaching the Apps Script quotas for the owning account (executions and runtime per day) |
+| Write latency | `ms` of `products` and `diagnostics` | 95th percentile above ~5 s: writers are queuing on the lock |
+| Refused as busy | share of lines with `busy: true` | Above ~1%: the 15 s lock wait is not enough |
+| Tab size | rows on `products` and `diagnostics` | Past ~20,000 rows: each write rereads too much |
+
+What to change, cheapest first: prune stale `products` rows (older than 30 days, or at 100 pulls);
+write single product rows in place (TextFinder on the key column, one `setValues`) instead of
+rewriting the tab; keep a key→row map in CacheService for lookups; and only if those are not
+enough, move product rows off Sheets.
