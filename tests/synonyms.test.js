@@ -374,3 +374,22 @@ test('cane sugar, leading shares, headings left in the list and fat levels, from
     assert.equal(b.score, a.score, `${other} vs ${en}`);
   }
 });
+
+test('single foods, fibre isolates and processing markers read the same in every language (NOVA parity)', () => {
+  // From comparing NOVA classes on bilingual Open Food Facts records: "amandes" and "flocons d'avoine"
+  // were NOVA 2 at 90 where "almonds" and "oats" are NOVA 1 at 96; chicory and corn fibre isolates
+  // were not the NOVA 4 marker they are in English; Swedish "arom" matched inside Spanish
+  // "aromáticas"; and English "skimmed-milk powder" (with a hyphen) was not fat-reduced dairy.
+  const pairs = [
+    ['100 % oats', "100% Flocons d'avoine"], ['almonds', 'amandes'], ['water', 'eau'], ['rice', 'riz'], ['lentils', 'lentilles'],
+    ['water, chicory root fiber', 'water, chicoreivezel'], ['water, soluble corn fiber', 'water, fibra solubile di mais'],
+    ['water, chicory root fiber', 'water, Zichorienwurzelfasern'], ['water, skim milk powder', 'water, skimmed-milk powder'],
+  ];
+  for (const [en, other] of pairs) {
+    const a = score(en), b = score(other);
+    assert.deepEqual(reasons(b).sort(), reasons(a).sort(), `${other} vs ${en}`);
+    assert.equal(b.score, a.score, `${other} vs ${en}`);
+    assert.equal(b.nova, a.nova, `${other} NOVA`);
+  }
+  assert.deepEqual(reasons(score('sal, extractos de hierba aromáticas')), [], '"aromáticas" is not a flavouring');
+});

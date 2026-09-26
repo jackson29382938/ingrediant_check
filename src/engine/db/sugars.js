@@ -92,7 +92,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /^allulose$/i,               pts: 8,  why: 'Allulose' },
     { m: /^(steviol glycosides?|stevia( leaf extract)?|reb[- ]?[am]|e[- ]?960[a-d]?)$/i, pts: 8, why: 'Stevia extract — refined, not the leaf' },
     { m: /^monk fruit( extract| juice concentrate)?$/i, pts: 6, why: 'Monk fruit extract' },
-    { m: /^(soluble )?(corn|tapioca|chicory) (fiber|root fiber)$/i, pts: 9, why: 'Isolated fiber syrup' },
+    { m: /^(soluble )?(corn|tapioca|chicory) (fiber|root fiber)$|^(?:fibres? (?:solubles? )?de (?:chicor[ée]e|ma[ïi]s)|fibra (?:solubile )?di (?:cicoria|mais)|fibra (?:soluble )?de (?:achicoria|ma[ií]z)|fibra (?:sol[úu]vel )?de (?:chic[óo]ria|milho)|zichorienwurzelfasern?|zichorienfasern?|chicoreivezels?|cichoreivezels?|ma[ïi]svezels?|oplosbare ma[ïi]svezels?|cikoriafiber|b[łl]onnik z cykorii|hindiba k[öo]k[üu] lifi)$/i, pts: 9, why: 'Isolated fiber syrup' },
     { m: /^(?:inulin[ae]?|inuline|in[üu]lin)$/i,                 pts: 6,  why: 'Isolated inulin' },
     { m: /^(?:polydextrose|e[- ]?1200)$/i,           pts: 12, why: 'Polydextrose' },
   ];

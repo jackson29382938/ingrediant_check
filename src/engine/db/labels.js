@@ -53,6 +53,13 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     /^(organic )?(spinach|kale|broccoli|carrots?|onions?|garlic|tomatoes?|potatoes?|sweet potatoes?)$/i,
     /^(organic )?(rice|quinoa|oats|buckwheat)$/i,
     /^(black |white |cayenne )?pepper$/i,
+    // The same single foods in each label language. Without these "amandes" or "flocons d'avoine"
+    // scored 90 as NOVA 2 where "almonds" and "oats" score 96 as NOVA 1.
+    /^(?:bio |biologique |ecol[óo]gic[oa] |organic |[öo]ko |eko )?(?:eau|agua|acqua|wasser|vatten|woda|su|[áa]gua|eau min[ée]rale naturelle|agua mineral natural|acqua minerale naturale|nat[üu]rliches mineralwasser|natuurlijk mineraalwater)$/i,
+    /^(?:flocons d['’] ?avoine(?: compl[èe]te)?|avoine|copos de avena(?: integral)?|avena|fiocchi d['’] ?avena(?: integrale)?|haferflocken|hafer|havervlokken|haver|havregryn|havre|p[łl]atki owsiane|owies|yulaf(?: ezmesi)?|flocos de aveia|aveia)$/i,
+    /^(?:riz(?: complet)?|arroz(?: integral)?|riso(?: integrale)?|reis|vollkornreis|rijst|ris|fullkornsris|ry[żz]|pirin[çc])$/i,
+    /^(?:amandes?|almendras?|mandorle|mandeln|amandelen|mandlar|migda[łl]y|badem|am[êe]ndoas|noisettes|avellanas|nocciole|haseln[üu]sse|hazelnoten|hasseln[öo]tter|orzechy laskowe|f[ıi]nd[ıi]k|avel[ãa]s|noix|nueces|noci|waln[üu]sse|walnoten|valn[öo]tter|orzechy w[łl]oskie|ceviz|nozes|noix de cajou|anacardos|anacardi|cashewkerne|cashewnoten|cashewn[öo]tter|nerkowce|kaju|castanhas? de caju)$/i,
+    /^(?:lentilles|lentejas|lenticchie|linsen|linzen|linser|soczewica|mercimek|lentilhas|pois chiches|garbanzos|ceci|kichererbsen|kikkererwten|kik[äa]rtor|ciecierzyca|nohut|gr[ãa]o[- ]de[- ]bico)$/i,
     /^(cinnamon|turmeric|ginger|paprika|cumin|coriander|oregano|basil|thyme|rosemary|garlic powder|onion powder)$/i,
   ];
 
@@ -72,7 +79,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     // "part-skim mozzarella cheese", "reduced fat sharp cheddar cheese". "1% milk" never matched: `\b` cannot
     // follow a "%". UK labels say "skimmed" and
     // "semi-skimmed", which read as full fat.
-    { pts: 6, why: 'Fat-reduced dairy', cat: 'reducedFatDairy', m: new RegExp(/\b(non[- ]?fat|fat[- ]?free|skim(?:med)?|semi[- ]?skimmed|low[- ]?fat|lowfat|reduced[- ]?fat|part[- ]?skim|[12](?=%))\b%?(?:\s+\w+){0,2}\s+(milk|dairy|yogh?urt|cheese|kefir|cream|buttermilk|ricotta|cheddar|mozzarella)\b/.source
+    { pts: 6, why: 'Fat-reduced dairy', cat: 'reducedFatDairy', m: new RegExp(/\b(non[- ]?fat|fat[- ]?free|skim(?:med)?|semi[- ]?skimmed|low[- ]?fat|lowfat|reduced[- ]?fat|part[- ]?skim|[12](?=%))\b%?(?:[\s-]+\w+){0,2}[\s-]+(milk|dairy|yogh?urt|cheese|kefir|cream|buttermilk|ricotta|cheddar|mozzarella)\b/.source
       // The same in each store language: Magermilch, lait écrémé, leche desnatada, latte scremato, magere melk,
       // leite desnatado, skummjölk, mleko odtłuszczone, yağsız süt.
       + '|\\b(?:mager|entrahmt)\\w*(?:milch|joghurt|quark)|\\bmagermilch|\\blait (?:demi[- ]?)?[ée]cr[ée]m[ée]|\\bleche (?:semi)?(?:desnatada|descremada)'
