@@ -56,7 +56,8 @@ test('Turkish allergen and diet words are flagged; coconut, almond milk and vege
   };
   for (const [id, words] of Object.entries(TR)) for (const w of words) assert.ok(has(w, id), `${w} → ${id}`);
   for (const w of ['hindistan cevizi sütü', 'badem sütü', 'bitkisel krema', 'kakao yağı']) assert.ok(!has(w, 'milk'), w);
-  for (const w of ['hindistan cevizi', 'balkabağı', 'yulaf ezmesi']) assert.deepEqual(flags(w), [], w);
+  for (const w of ['hindistan cevizi', 'balkabağı']) assert.deepEqual(flags(w), [], w);
+  assert.deepEqual(flags('yulaf ezmesi'), ['keto'], 'oat flakes: only the keto conflict');
 });
 
 test('plant milks and butters, lactic acid and look-alike words are not', () => {
@@ -69,4 +70,20 @@ test('plant milks and butters, lactic acid and look-alike words are not', () => 
   assert.ok(!has('jordnötter', 'treeNut'));
   for (const w of ['ragout', 'rundkornreis', 'veterinary']) assert.ok(!has(w, 'wheat'), w);
   for (const w of ['sel gris', 'rundkornreis', 'caramel', 'melon']) assert.deepEqual(flags(w), [], w);
+});
+
+test('keto, corn and nightshade read every label language; nut flours and sweet potato stay clear', () => {
+  // Found by comparing products whose Open Food Facts record has the list in English and another
+  // language: keto conflicted on 212 French lists' English twins and on none of the French lists.
+  const FLAGGED = {
+    keto: ['sucre', 'Zucker', 'farine de blé', 'Weizenmehl', 'harina de trigo', 'sirop de glucose', 'riz', 'patatas', 'miel', 'Hafer',
+      'tarwebloem', 'vetemjöl', 'mąka pszenna', 'buğday unu', 'açúcar', 'zucchero'],
+    corn: ['maïs', 'semoule de maïs', 'maíz', 'Maisstärke', 'milho', 'kukurydza', 'mısır'],
+    nightshade: ['tomates', 'Tomaten', 'pomodori', 'pomme de terre', 'patate', 'Kartoffeln', 'aardappelen', 'poivron', 'pimiento', 'domates'],
+    soy: ['soję', 'soi'],
+  };
+  for (const [id, words] of Object.entries(FLAGGED)) for (const w of words) assert.ok(has(w, id), `${w} → ${id}`);
+  for (const w of ["farine d'amandes", 'harina de almendra', 'Mandelmehl', 'kokosmeel', 'mandelmjöl']) assert.ok(!has(w, 'keto'), w);
+  for (const w of ['maison']) assert.ok(!has(w, 'corn'), w);
+  for (const w of ['patate douce', 'karabiber']) assert.ok(!has(w, 'nightshade'), w);
 });

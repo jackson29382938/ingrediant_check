@@ -101,7 +101,7 @@ const ALLERGENS = [
     // tubers.
     m: new RegExp(/\b(tree ?nuts?|(?<!tiger\s)nuts?\b|mixed nuts|frutos secos|frutos de c[áa]scara|frutta a guscio|fruits? [àa] coques?|schalenfr[üu]chte|n[üu]sse\b|almond|cashew|walnut|pecan|pistachio|hazelnut|macadamia|brazil nut|pine nut|praline|marzipan|gianduja|pesto|nougat|frangipane|almendra|anacardo|avellana|nuez(?!\s+moscada)|nueces|pistacho|amande|cajou|noisette|noix(?!\s+de\s+(?:coco|muscade))|pistache|mandel|haseln[üu]ss|waln[üu]ss|cashewkern|pistazie|mandorl|nocciol|noce(?!\s+(?:moscata|di\s+cocco))|noci|pistacchi)\w*/.source + '|' + L + '(?:n[öo]tter|n[öo]tkr[äa]m|hasseln[öo]t' + W + '|valn[öo]t' + W + '|cashewn[öo]t' + W + '|pekann[öo]t' + W + '|paran[öo]t' + W + '|mandl(?:ar|or)?' + W + '|mandelmassa|pistasch' + W + '|orzech' + W + '|migda[łl]' + W + '|nerkowc' + W + '|pistacj' + W + '|noten|hazelno' + W + '|walno' + W + '|cashewno' + W + '|pecanno' + W + '|am[êe]ndoas?|avel[ãa]s?|castanhas?(?: de caju| do par[áa])?|noz|nozes|pistaches?|f[ıi]nd[ıi]k' + W + '|badem' + W + '|(?<!hindistan\\s)ceviz' + W + '|kaju|antep f[ıi]st[ıi][ğg][ıi]|[şs]am f[ıi]st[ıi][ğg][ıi]|f[ıi]st[ıi]k' + W + '|kabuklu yemi[şs]' + W + '|sert kabuklu meyve' + W + '|makadamya|pikan)' + R, 'i') },
   { id: 'soy', label: 'Soy',
-    m: new RegExp(/\b(soy|soya|soybean|soja|soia|tofu|tempeh|edamame|miso|tamari|shoyu|natto|textured vegetable protein|tvp)\w*/.source + '|' + L + '(?:sojow' + W + '|sojab[öo]n' + W + '|sojabon' + W + '|soya' + W + ')' + R, 'i') },
+    m: new RegExp(/\b(soy|soya|soybean|soja|soia|tofu|tempeh|edamame|miso|tamari|shoyu|natto|textured vegetable protein|tvp)\w*/.source + '|' + L + '(?:sojow' + W + '|sojab[öo]n' + W + '|sojabon' + W + '|soya' + W + '|soj[ęeiy]|soi)' + R, 'i') },
   { id: 'wheat', label: 'Wheat / gluten', m: new RegExp(GLUTEN, 'i') },
   { id: 'fish', label: 'Fish',
     m: new RegExp(/\b(fish|salmon|tuna|cod|halibut|tilapia|anchov\w+|sardines?|mackerel|herring|pollock|haddock|worcestershire|pescado|at[úu]n|salm[óo]n|anchoas?|bacalao|poisson|thon|saumon|morue|fisch\w*|thunfisch\w*|lachs\w*|sardellen|pesce|tonno|salmone|acciughe|merluzzo|surimi|bonito|katsuobushi|dashi|caviar|roe)\b/.source + '|' + L + '(?:fisk' + W + '|lax|tonfisk|sill|torsk|ansjovis|makrill|ryb(?:a|y|n' + W + ')|[łl]oso[śs]' + W + '|tu[ńn]czyk' + W + '|[śs]led[źz]' + W + '|dorsz' + W + '|sardynk' + W + '|makrel' + W + '|vis|zalm|tonijn|haring|kabeljauw|makreel|peixes?|atum|salm[ãa]o|bacalhau|sardinhas?|anchovas?|bal[ıi]k' + W + '|ton bal[ıi][ğg][ıi]|somon|hamsi|sardalya|uskumru|morina|levrek|[çc]ipura)' + R, 'i') },
@@ -120,10 +120,15 @@ const ALLERGENS = [
     m: new RegExp(/\b(lupin|lupine|lupini|altramuz|lupino)\w*/.source + '|' + L + '(?:[łl]ubin' + W + '|tremo[çc]o' + W + '|ac[ıi] bakla)' + R, 'i') },
   // "Corned beef" is beef; popcorn is corn; a Cornish hen is a chicken.
   { id: 'corn', label: 'Corn',
-    m: /\b(corn(?!ed\b|ish\b)|popcorn|maize|masa|hominy|dextrose|maltodextrin|cornstarch)\w*/i },
+    m: new RegExp(/\b(corn(?!ed\b|ish\b)|popcorn|maize|masa|hominy|dextrose|maltodextrin|cornstarch)\w*/.source
+      // in each label language
+      + '|' + L + '(?:ma[ïi]s(?:gries|grie[ßs]|zetmeel|meel|mehl|st[äa]rke|olie|[öo]l|k[öo]rner|kolben|vezel|keim[öo]l)?|ma[ií]z|milho|majs' + W + '|kukurydz' + W + '|m[ıi]s[ıi]r|dextros[ae]?|dekstroz[a]?|destrosio|maltodextrin[ae]?|maltodekstryn[ay]|maltodekstrin)' + R, 'i') },
   // Sweet potato is a morning glory, not a nightshade.
   { id: 'nightshade', label: 'Nightshades',
-    m: /\b(tomato|(?<!\bsweet\s)potato|eggplant|aubergine|bell pepper|paprika|cayenne|chili|chilli|pimento|goji)\w*/i },
+    m: new RegExp(/\b(tomato|(?<!\bsweet\s)potato|eggplant|aubergine|bell pepper|paprika|cayenne|chili|chilli|pimento|goji)\w*/.source
+      // in each label language; sweet potato (patate douce, batata) is not a nightshade
+      + '|' + L + '(?:tomat' + W + '|pomodor' + W + '|pomidor' + W + '|domates|pommes? de terre|patat[ae]s?(?!\\s+(?:douces?|dolci|dulces?))|kartoffel' + W
+      + '|aardappel' + W + '|potatis|ziemniak' + W + '|aubergines?|berenjenas?|melanzan[ae]|poivrons?|pimientos?|peperon[ei]|paprik' + W + '|piment' + W + '|patl[ıi]can|biber)' + R, 'i') },
 ];
 
 // Diet compatibility. `conflict` matching means the product is NOT compatible.
@@ -168,7 +173,15 @@ const DIETS = [
   { id: 'dairyFree', label: 'Dairy-free', conflict: new RegExp(DAIRY, 'i') },
   // Oils carry no carbohydrate whatever grain they were pressed from.
   { id: 'keto', label: 'Keto-friendly',
-    conflict: /\b(sugar|(?<!\b(?:almond|coconut|flax|flaxseed|hazelnut|walnut|pecan|sunflower|lupin|psyllium|sesame|peanut)\s)flour|(?<!\bcauliflower\s)rice(?!\s+bran\s+oil)|potato|corn syrup|maltodextrin|dextrose|honey|molasses|oats|wheat)\w*/i },
+    conflict: new RegExp(/\b(sugar|(?<!\b(?:almond|coconut|flax|flaxseed|hazelnut|walnut|pecan|sunflower|lupin|psyllium|sesame|peanut)\s)flour|(?<!\bcauliflower\s)rice(?!\s+bran\s+oil)|potato|corn syrup|maltodextrin|dextrose|honey|molasses|oats|wheat)\w*/.source
+      // The same in each label language: sugars and syrups, flours (not nut or coconut flour), rice,
+      // potato, honey, oats and the gluten grains. Before this only English lists could conflict.
+      + '|' + L + '(?:sucre|az[uú]car|a[çc][úu]car|zucchero|zucker' + W + '|suiker|socker|cukier|[şs]eker|glu[ck]os' + W + '|glikoz|dextros[ae]?|dekstroz|fru[ck]tos' + W
+      + '|sirop|jarabe|sciroppo|sirup|stroop|sirap|syrop|[şs]urub[u]?|xarope|maltodextrin[ae]?|maltodekstryn[ay]|m[ée]lasse|melaza|melassa'
+      + '|farine(?!\\s+d[e\'’]\\s*(?:amandes?|coco|noisettes?))|harina(?!\\s+de\\s+(?:almendras?|coco))|farina(?!\\s+di\\s+(?:mandorle|cocco|nocciole))|farinha(?!\\s+de\\s+(?:am[êe]ndoa|coco))'
+      + '|m[ąa]ka(?!\\s+(?:migda|kokos))|riz|arroz|riso|reis|rijst|ris|ry[żz]|pirin[çc]|pommes? de terre|patat[ae]s?|kartoffel' + W + '|aardappel' + W + '|potatis|ziemniak' + W + '|batatas?'
+      + '|miel|honig|miele|honing|honung|mi[óo]d|miodu|bal|mel|avoine|avena|hafer' + W + '|haver' + W + '|havre' + W + '|owies|owsian' + W + '|yulaf|aveia)' + R
+      + '|(?<!mandel|kokos|lein|nuss|erdnuss)mehl|(?<!amandel|kokos|noten)(?:bloem|meel)\\b|(?<!mandel|kokos)mj[öo]l|\\bunu\\b(?<!badem unu)|' + GLUTEN, 'i') },
   { id: 'porkFree', label: 'Pork-free',
     conflict: /\b(pork|bacon|lard|gelatin|prosciutto|pancetta|chorizo|schweine\w*|cerdo|porc(?!ini)|maiale|jam[óo]n|jambon|speck|schinken|fl[äa]sk|griskött|skinka|wieprzow|smalec|boczek|szynk|varken|reuzel|porco|toucinho|banha|presunto|domuz|jelatin)\w*|\bham\b|(?<![a-zà-ÿœ\u0100-\u017f])(?:[żz]elatyn|spek\b)/i },
 ];

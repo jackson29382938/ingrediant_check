@@ -186,8 +186,13 @@ Flags never move the score, and a missing flag looks exactly like "clear", so th
   butters in those languages (kokosmjölk, masło kakaowe, cacaoboter, manteiga de cacau) and lactic
   acid (mjölksyra, melkzuur, Milchsäure, which also flagged as milk before) stay clear. Foreign fish
   and shellfish words now conflict with vegetarian as well as flagging the allergen.
+- **Keto, corn and nightshades in every label language** (2026-09-26, from comparing products whose
+  Open Food Facts record has the list in English and another language). Keto had conflicted only
+  with English words, so it cleared nearly every non-English list with sugar or flour; corn and
+  nightshades likewise. Nut and coconut flours, `maison` and sweet potato stay clear. Five corpus
+  entries in German and Spanish gain the keto or corn flag their English twins would have.
 
-Every flag change is checked against all 58 corpus entries (51 products and 7 defects): none of them changes its flags. What is
+Every flag change is checked against all 58 corpus entries (51 products and 7 defects): none of them changes its flags, except the five keto and corn flags noted above. What is
 **not** proven: that a real label never words an allergen some other way. The panel says so next to
 the flags, and the probe lists above are where a new miss belongs.
 
