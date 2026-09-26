@@ -173,3 +173,16 @@ test('placeholder words inside a real list do not refuse the list; a placeholder
     'Please check the label, may vary.',
   ]) assert.equal(extract.looksLikeIngredients(text), false, text);
 });
+
+test('English heading variants sellers write find the list; the heading alone is not a list', () => {
+  const doc = text => ({ title: 'x', querySelectorAll: () => [],
+    querySelector: sel => (/important-information/.test(sel) ? { innerText: text, textContent: text, querySelector: () => null, querySelectorAll: () => [] } : null) });
+  for (const heading of ['Ingredient List:', 'Ingredients List:', 'List of Ingredients:', 'Full Ingredients:', 'Ingredient Statement:', 'Ingredients (by weight):']) {
+    for (const text of [`Product details\n${heading} water, cane sugar, oats, salt\nDirections\nEat.`, `Product details\n${heading}\nwater, cane sugar, oats, salt\nDirections\nEat.`]) {
+      const data = extract.extract(doc(text), { foodOnly: false });
+      assert.equal(data.ok && data.text, 'water, cane sugar, oats, salt', JSON.stringify(text));
+    }
+  }
+  for (const text of ['Ingredient List', 'Ingredients List:', 'Full Ingredients', 'Ingredients']) assert.equal(extract.looksLikeIngredients(text), false, text);
+  assert.equal(extract.extract(doc('Made with: love, care, oats'), { foodOnly: false }).ok, false, '"Made with" is marketing');
+});

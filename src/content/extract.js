@@ -19,7 +19,10 @@
   // used to walk past a perfectly readable list on amazon.de / .es / .fr / .it.
   // Swedish Ingredienser / Turkish İçindekiler were missing; JP 原材料 is already here.
   // JP/AR stores still decline scoring via coverage + skipped English OCR (see ocrReadyForHost).
-  const INGREDIENT_HEADING = /^\s*(?:ingredients?|ingredientes|ingredi[eë]nten|ingr[eé]dients?|zutaten|ingredienti|sk[łl]adniki|ingredienser|[iİ][çc]indekiler|原材料)\s*:?\s*$/i;
+  // English headings sellers write in their own description blocks: "Ingredient List", "Ingredients
+  // List", "List of Ingredients", "Full Ingredients", "Ingredient Statement", "Ingredients (by weight)".
+  const EN_HEADING = '(?:(?:full|complete)\\s+)?ingredients?(?:\\s+(?:list|statement))?(?:\\s*\\([^)\\n]{1,20}\\))?|list of ingredients';
+  const INGREDIENT_HEADING = new RegExp('^\\s*(?:' + EN_HEADING + '|ingredientes|ingredi[eë]nten|ingr[eé]dients?|zutaten|ingredienti|sk[łl]adniki|ingredienser|[iİ][çc]indekiler|原材料)\\s*:?\\s*$', 'i');
   const MIN_LEN = 4;
   // Rejecting rather than truncating is deliberate: the tail of a list is exactly where the
   // additives live, so a truncated list would score clean for the wrong reason. But 3000 was tight
@@ -88,7 +91,7 @@
   function looksLikeIngredients(text, title) {
     const t = stripBoilerplate(text);
     if (t.length < MIN_LEN || t.length > MAX_LEN) return false;
-    if (/^(ingredients?|ingredientes|ingredi[eë]nten|ingr[eé]dients?|zutaten|ingredienti|sk[łl]adniki|ingredienser|[iİ][çc]indekiler|原材料|nutrition facts|directions|legal disclaimer)\s*:?\s*$/i.test(t)) return false;
+    if (INGREDIENT_HEADING.test(t) || /^(nutrition facts|directions|legal disclaimer)\s*:?\s*$/i.test(t)) return false;
     if (/\b(we believe|our story|customer|review|shipping|guarantee|click here)\b/i.test(t)) return false;
 
     const parts = t.split(/[,;]/).map(p => p.trim()).filter(Boolean);
@@ -198,9 +201,9 @@
   // Stop at a known next-section heading or end of text — NOT at the first blank line. Consecutive
   // <p> elements render as a blank line in innerText, so the old blank-line terminator cut lists in
   // half whenever Amazon split them across paragraphs.
-  const LINE_BLOCK = /(?:^|\n)[ \t]*(?:Ingredients?|Ingredientes|Ingrediënten|Ingrédients|Zutaten|Ingredienti|Składniki|Ingredienser|[İI]çindekiler|Icindekiler|原材料)[ \t]*:?[ \t]*\n+([\s\S]{4,6000}?)(?=\n[ \t]*(?:Directions|Legal Disclaimer|Safety Information|Allergen Information|Warnings?|Storage|Nutrition Facts|Product Description|About this item|Información nutricional|Nährwert|Valeurs nutritionnelles|Valori nutrizionali|Voedingswaarde|Wartość odżywcza|Näringsvärde|Besin değerleri|栄養成分)(?:\b|$)|$)/i;
+  const LINE_BLOCK = /(?:^|\n)[ \t]*(?:(?:(?:Full|Complete)\s+)?Ingredients?(?:\s+(?:List|Statement))?(?:\s*\([^)\n]{1,20}\))?|List of Ingredients|Ingredientes|Ingrediënten|Ingrédients|Zutaten|Ingredienti|Składniki|Ingredienser|[İI]çindekiler|Icindekiler|原材料)[ \t]*:?[ \t]*\n+([\s\S]{4,6000}?)(?=\n[ \t]*(?:Directions|Legal Disclaimer|Safety Information|Allergen Information|Warnings?|Storage|Nutrition Facts|Product Description|About this item|Información nutricional|Nährwert|Valeurs nutritionnelles|Valori nutrizionali|Voedingswaarde|Wartość odżywcza|Näringsvärde|Besin değerleri|栄養成分)(?:\b|$)|$)/i;
   // Same-line form used on a lot of detail-bullet pages: "Ingredients: water, sugar, salt".
-  const LINE_INLINE = /(?:^|\n)[ \t]*(?:Ingredients?|Ingredientes|Ingrediënten|Ingrédients|Zutaten|Ingredienti|Składniki|Ingredienser|[İI]çindekiler|Icindekiler|原材料)\s*:\s*([^\n]{8,6000})/i;
+  const LINE_INLINE = /(?:^|\n)[ \t]*(?:(?:(?:Full|Complete)\s+)?Ingredients?(?:\s+(?:List|Statement))?(?:\s*\([^)\n]{1,20}\))?|List of Ingredients|Ingredientes|Ingrediënten|Ingrédients|Zutaten|Ingredienti|Składniki|Ingredienser|[İI]çindekiler|Icindekiler|原材料)\s*:\s*([^\n]{8,6000})/i;
 
   function tier3(doc, title) {
     const regions = ['#important-information', '#productDetails_feature_div', '#detailBullets_feature_div', '#aplus'];
