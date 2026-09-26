@@ -1,10 +1,12 @@
 name: test
 
 on:
-  # Branch pushes are covered by their pull request; main runs on every push.
+  # Branch pushes are covered by their pull request; main runs on every push. Any branch can be run
+  # by hand from the Actions tab (Run workflow), without opening a pull request.
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   test:
