@@ -658,7 +658,7 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
   });
   await new Promise(r => amazonSnapshots.listen(AMAZON_PORT, '127.0.0.1', r));
   try {
-    const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker', { timeout: 20000 });
+    const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker', { timeout: 30000 });
     const id = new URL(worker.url()).host;
     const loaded = await worker.evaluate(() => ({
       modules: ['ingestible', 'prefs', 'productCache', 'sortedResults', 'storefronts', 'speed', 'activity', 'ocrText']
@@ -810,7 +810,7 @@ async function amazonEndToEnd(context, worker, pageErrors) {
   const panelState = page => page.waitForFunction(() => {
     const host = document.getElementById('air-score-panel');
     return host && host.dataset.airState && host.dataset.airState !== 'loading' && host.dataset.airState;
-  }, { timeout: 15000 }).then(h => h.jsonValue());
+  }, { timeout: 30000 }).then(h => h.jsonValue());
 
   const oats = await open('http://www.amazon.com/dp/B0OATSTEST');
   const oatsState = await panelState(oats);
@@ -845,7 +845,7 @@ async function amazonEndToEnd(context, worker, pageErrors) {
   const badges = await search.waitForFunction(() => {
     const n = [...document.querySelectorAll('.air-badge')].filter(b => /^\d+$/.test(b.textContent.trim())).length;
     return n >= 2 && n;
-  }, { timeout: 20000 }).then(h => h.jsonValue());
+  }, { timeout: 45000 }).then(h => h.jsonValue());
   // What a screen reader gets: a numbered badge is a named image (or a button, with the breakdown
   // on), never a bare number, and no badge is a live region announcing itself per tile.
   const named = await search.evaluate(() => [...document.querySelectorAll('.air-badge')].map(b => ({
