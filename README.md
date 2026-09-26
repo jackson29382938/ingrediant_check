@@ -64,6 +64,10 @@ npm run pack             # optional: zip a clean extension package under dist/
 npm run harness          # http://127.0.0.1:8731 — panel, OCR, lifecycle
 ```
 
+`npm run harness:ci` drives those pages in headless Chromium and fails on any page error, `[AIR]` line or
+console error, even when a page's own checks pass. Set `HARNESS_CHROME` to a Chromium executable to
+use it instead of the one Playwright downloads.
+
 CI runs `npm test` and `npm run preflight` on Node 20 and 22, `npm run lint` (pinned ESLint, no warnings allowed), and a Playwright job on the local panel and lifecycle harnesses (`npm run harness:ci`). That job never talks to Amazon. It runs on pull requests and on pushes to `main`.
 
 | Harness | URL |

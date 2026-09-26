@@ -70,7 +70,26 @@ async function run() {
     process.exit(1);
   }
   const server = await startServer();
-  const browser = await pw.chromium.launch({ headless: true });
+  // HARNESS_CHROME: a Chromium to use instead of the one Playwright downloaded (a machine with a
+  // preinstalled browser whose build differs from this Playwright's).
+  const executablePath = process.env.HARNESS_CHROME || undefined;
+  const browser = await pw.chromium.launch({ headless: true, ...(executablePath ? { executablePath } : {}) });
+  // Every page is watched: an uncaught error, an [AIR] line (the content scripts' catch-all logging)
+  // or a console error fails the run at the end, even when the page's own checks passed. A resource
+  // that fails to load is not counted: the harness serves no Amazon images.
+  const pageErrors = [];
+  const openPage = browser.newPage.bind(browser);
+  browser.newPage = async (...args) => {
+    const page = await openPage(...args);
+    const where = () => page.url().replace(/^https?:\/\/[^/]+/, '') || '(blank)';
+    page.on('pageerror', err => pageErrors.push(`${where()}: uncaught ${err.message}`));
+    page.on('console', message => {
+      const text = message.text();
+      if (/^Failed to load resource/.test(text)) return;
+      if (text.includes('[AIR]') || message.type() === 'error') pageErrors.push(`${where()}: ${text}`);
+    });
+    return page;
+  };
   const base = `http://127.0.0.1:${PORT}`;
   try {
     await withPage(browser, `${base}/`, async page => {
@@ -573,7 +592,10 @@ async function run() {
     await browser.close();
     await new Promise(r => server.close(r));
   }
-  console.log('\nharness CI passed (no Amazon network)');
+  if (pageErrors.length) {
+    throw new Error(`pages logged errors:\n  ${[...new Set(pageErrors)].join('\n  ')}`);
+  }
+  console.log('\nharness CI passed (no Amazon network, no page errors)');
 }
 
 run().catch(err => {

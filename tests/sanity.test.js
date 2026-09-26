@@ -168,6 +168,21 @@ check('OCR internals are not web-accessible', () => {
   assert.ok(/wasm-unsafe-eval/.test(csp), 'wasm-unsafe-eval is required to compile the OCR engine');
 });
 
+check('a harness page that runs main.js loads every Amazon content script, in manifest order', () => {
+  // harness-lifecycle.html once loaded 21 of the 28 and threw "[AIR] … reading 'fromScan'" on every
+  // run while reporting success. harness.html and harness-ocr.html load only the engine / OCR parts
+  // and never main.js, so they are not held to this.
+  const pages = fs.readdirSync(path.join(root, 'tests')).filter(f => f.endsWith('.html'));
+  let checked = 0;
+  for (const file of pages) {
+    const srcs = [...read(`tests/${file}`).matchAll(/<script src="\/?(src\/[^"]+)"/g)].map(m => m[1]);
+    if (!srcs.includes('src/content/main.js')) continue;
+    checked++;
+    assert.deepEqual(srcs.filter(f => declared.includes(f)), declared, `${file} loads a different set or order`);
+  }
+  assert.ok(checked >= 2, `only ${checked} harness pages run main.js; the scan is broken`);
+});
+
 check('identity is requested exactly when Google sign-in is configured', () => {
   // prefs.js OAUTH_CLIENT_ID empty hides sign-in; an unused permission is a store-review rejection.
   const clientId = read('src/engine/db/prefs.js').match(/const OAUTH_CLIENT_ID = '([^']*)';/)[1];
