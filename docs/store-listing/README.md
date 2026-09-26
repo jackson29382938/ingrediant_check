@@ -17,6 +17,12 @@ Host permissions cover many Amazon storefronts. Scoring quality does **not**.
 | **SE / PL / TR** | Headings extract; no synonym pack, so most lists are declined as unreadable. A list the gate lets through is scored on its E-numbers |
 | **JP / AE / SA** | Declined. Photo OCR is off (English Tesseract misreads those scripts); paste still works |
 
+**Sort by score / price per ounce** is on for amazon.com, .co.uk, .ie, .ca, .com.au, .sg and .in only,
+and is a preview until the VERIFY.md §7 steps pass on live Amazon ([STORES.md](../STORES.md)). Do not
+list it as a feature of every store. **Sharing product readings with other computers** is off by
+default and experimental ([CACHE.md](../CACHE.md), *Trust*); describe the shared database as the
+certification tables unless that changes.
+
 Do **not** claim “works equally on all Amazon grocery stores”, and do not claim a language works on
 the strength of the synonym tests. Prefer: *Best on English US/UK/CA/AU labels. Some support for
 German, French, Spanish, Italian, Portuguese and Dutch labels. Other stores may decline to score.*
