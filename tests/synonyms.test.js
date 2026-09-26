@@ -340,3 +340,21 @@ test('words from real labels in every store language score like their English tw
     assert.equal(b.score, a.score, `${other} vs ${en}`);
   }
 });
+
+test('bracketed sources, square brackets and marked-up compounds from real labels read like English', () => {
+  // Found by comparing products whose Open Food Facts record carries the list in English and another
+  // language: the other language scored well above English on each of these.
+  const pairs = [
+    ['sunflower oil', 'olio di semi di girasole'], ['soybean oil', 'olio di semi di soia'], ['vegetable oil', 'olio di semi vari'],
+    ['wheat flour', 'farine de froment'], ['wheat flour', 'tarwebloem'], ['wheat flour', '_tarwe_bloem'],
+    ['emulsifier (soy lecithin)', 'émulsifiants : lécithines [SOJA]'], ['emulsifier (sunflower lecithin)', 'emulgator: lecithinen (zonnebloem)'],
+    ['emulsifier (sunflower lecithin)', 'emulgator: lecytyny (ze słonecznika)'], ['soy lecithin', 'lecithin (soy)'],
+    ['potassium sorbate', 'sorbato potásico'], ['rapeseed oil', 'aceite de nabina'], ['sunflower oil', 'aceite refinado de girasol'],
+    ['durum semolina', 'Hartweizengrieß'],
+  ];
+  for (const [en, other] of pairs) {
+    const a = score(`water, ${en}`), b = score(`water, ${other}`);
+    assert.deepEqual(reasons(b).sort(), reasons(a).sort(), `${other} vs ${en}`);
+    assert.equal(b.score, a.score, `${other} vs ${en}`);
+  }
+});

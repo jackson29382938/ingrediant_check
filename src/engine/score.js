@@ -422,7 +422,7 @@ function splitTopLevel(text) {
 // EU labels name an additive after its job with a colon: "emulsifier: lecithins", "acidity regulator:
 // sodium citrates". Rules anchored at the start of the entry never saw the additive, so the colon form
 // is read as the parenthetical form it means: "emulsifier (lecithins)".
-const FUNCTION_HEAD = /^([^:()]{3,40}):([^()]+)$/;
+const FUNCTION_HEAD = /^([^:()]{3,40}):(.+)$/;
 const SWEETENER_WORD = /^(?:sweeteners?|edulcorantes?|[ée]dulcorants?|s[üu][ßs]ungsmittel|dolcificanti|zoetstoff(?:en)?|s[öo]tningsmedel|substancje s[łl]odz[ąa]ce|tatland[ıi]r[ıi]c[ıi](?:lar)?|substancja s[łl]odz[ąa]ca)$/i;
 function colonAsParenthesis(part) {
   // Only a short head before the colon can be a function word. Checked before the pattern runs, and
@@ -432,11 +432,30 @@ function colonAsParenthesis(part) {
   const m = part.trim().match(FUNCTION_HEAD);
   if (!m) return part;
   const head = tidy(m[1]);
-  return add.UNNAMED.some(r => r.m.test(head)) || SWEETENER_WORD.test(head) ? `${m[1]} (${m[2]})` : part;
+  if (!(add.UNNAMED.some(r => r.m.test(head)) || SWEETENER_WORD.test(head))) return part;
+  // "emulsifier: lecithins (soy)" names the additive with its own parenthetical; the job word adds
+  // nothing then, and nesting it would lose the source.
+  return m[2].includes('(') ? m[2] : `${m[1]} (${m[2]})`;
+}
+
+// "lécithines (soja)", "lecithinen (zonnebloem)", "lecytyny (ze słonecznika)": the source of a lecithin
+// in brackets, where English writes "soy lecithin". Read as the English form so the source rule applies.
+const LECITHIN_HEAD = /^(?:lecithins?|l[ée]cithines?|lecitin[ae]s?|lecithine?n?|lecytyn[ay]?|lesitin|lecitin(?:er)?)$/i;
+const LECITHIN_SOURCE = [
+  [/^(?:from )?(?:soy|soya|soja|soia|soi|sojowa|sojy|z soi)$/i, 'soy lecithin'],
+  [/^(?:from )?(?:sunflower|tournesol|girasol|girasole|girassol|zonnebloem|sonnenblumen?|solros|ze s[łl]onecznika|s[łl]onecznikowa|ay[çc][ıi][çc]ek)$/i, 'sunflower lecithin'],
+];
+function lecithinWithSource(part) {
+  // Cheap checks first, and no free whitespace in the pattern: long runs of spaces must not backtrack.
+  if (part.length > 120 || !/lec|l[ée]c|les/i.test(part) || !part.includes('(')) return part;
+  const m = part.trim().match(/^([^()]+)\(([^()]+)\)$/);
+  if (!m || !LECITHIN_HEAD.test(tidy(m[1]))) return part;
+  const hit = LECITHIN_SOURCE.find(([re]) => re.test(tidy(m[2])));
+  return hit ? hit[1] : part;
 }
 
 function expandEntry(raw) {
-  const part = colonAsParenthesis(raw);
+  const part = lecithinWithSource(colonAsParenthesis(raw));
   const pieces = [part.replace(/\([^)]*\)/g, ' ')];
   for (const m of part.matchAll(/\(([^)]*)\)/g)) pieces.push(...m[1].split(/;|(?<!\d),|,(?!\d)/));
   return pieces.map(tidy).filter(usable);
@@ -535,8 +554,10 @@ function score(product, options = {}) {
   const w_ = id => (id in W ? W[id] : 1);
   // Open Food Facts marks allergens as _WHEAT_ / _SOJA_. An underscore is a word character, so every
   // `\b` rule failed on them: "_wheat_ flour" escaped the flour charge, and "lécithines de _soja_"
-  // raised no soy warning. No label prints an underscore, so all of them go.
-  const rawTxt = String(product.ingredients_text || '').replace(/_+/g, ' ');
+  // raised no soy warning. No label prints an underscore, so all of them go, without a space, because
+  // they also mark part of a word ("_tarwe_bloem"). Square and curly brackets ("lécithines [SOJA]")
+  // are read as the parentheses they stand for.
+  const rawTxt = String(product.ingredients_text || '').replace(/_+/g, '').replace(/[[{]/g, '(').replace(/[\]}]/g, ')');
   // Parse the list as written, then drop only the entries that are themselves denials. The
   // scoring surface is rebuilt from what survives, so caps and penalties see the real ingredients
   // and never see "no artificial colors". See DENIAL_ENTRY above for why this replaced running
