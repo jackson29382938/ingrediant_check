@@ -184,3 +184,22 @@ test('ratings and review counts read in each store\'s wording', () => {
   assert.equal(sort.reviewCount('1K+', 'www.amazon.com'), 1000);
   assert.equal(sort.reviewCount('2,310 ratings', 'www.amazon.com'), 2310);
 });
+
+test('price and size parsing stays linear on long runs of digits', () => {
+  // "\d*\.?\d+" in the size pattern split a digit run every possible way from every position:
+  // 6,000 digits took 226 seconds. Each input here must take well under a second.
+  const budget = (label, f) => {
+    const start = process.hrtime.bigint();
+    f();
+    const ms = Number(process.hrtime.bigint() - start) / 1e6;
+    assert.ok(ms < 1000, `${label} took ${ms.toFixed(0)} ms`);
+  };
+  for (const text of ['1'.repeat(6000), '1 '.repeat(3000) + 'g', '1.2,3.4,'.repeat(750), '1 '.repeat(3000) + '€']) {
+    budget(`unitPriceFor ${JSON.stringify(text.slice(0, 8))}…`, () => U.unitPriceFor({ title: text.slice(0, 400), text, listingPrice: 5 }, { unitMissing: 'infer-more' }, 'www.amazon.de'));
+    budget(`parsePrice ${JSON.stringify(text.slice(0, 8))}…`, () => R.parseMoney(text, 'www.amazon.de'));
+  }
+  // And the anchored patterns still read what they did.
+  assert.equal(U.parseWeightToOunces('Mints .5 oz'), 0.5);
+  near(U.parseDisplayedUnitPrice('$3.49 (38.1¢/Ounce)'), 0.381);
+  assert.equal(R.parseMoney('Preis: 4,99 €', 'www.amazon.de'), 4.99);
+});

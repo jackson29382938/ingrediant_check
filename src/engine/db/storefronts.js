@@ -82,7 +82,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   const escape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const MARK = CURRENCY_MARKS.map(escape).join('|');
   // A price with its mark before or after the number: "$4.99", "£4.99", "4,99 €", "R$ 4,99", "₹1,299".
-  const PRICE = `(?:(?:${MARK})\\s*(\\d[\\d.,\\u00a0\\u202f ]*\\d|\\d)|(\\d[\\d.,\\u00a0\\u202f ]*\\d|\\d)\\s*(?:${MARK}))`;
+  // A price is at most 20 characters, and one after its number starts only where a number starts:
+  // unbounded, each digit of a long run began a new attempt over the rest of it.
+  const PRICE = `(?:(?:${MARK})\\s*(\\d[\\d.,\\u00a0\\u202f ]{0,18}\\d|\\d)|(?<![\\d.,])(\\d[\\d.,\\u00a0\\u202f ]{0,18}\\d|\\d)\\s*(?:${MARK}))`;
 
   // The first price in `text` as this store writes it, or null.
   function parsePrice(text, hostOrUrl) {

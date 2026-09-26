@@ -57,7 +57,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
     const normalized = String(text || '').replace(/\u00a0/g, ' ');
     const { decimal } = SF().storefront(store);
     const qty = decimal === ',' ? '(\\d+(?:[.,]\\d+)?)' : '(\\d+(?:\\.\\d+)?)';
-    const pattern = new RegExp(`(?:${SF().PRICE}|(\\d+(?:[.,]\\d+)?)\\s*\u00a2)\\s*(?:\\/|per\\s+)\\s*${qty}?\\s*(${UNIT})(?![a-z])`, 'i');
+    const pattern = new RegExp(`(?:${SF().PRICE}|(?<![\\d.,])(\\d+(?:[.,]\\d+)?)\\s*\u00a2)\\s*(?:\\/|per\\s+)\\s*${qty}?\\s*(${UNIT})(?![a-z])`, 'i');
     const match = normalized.match(pattern);
     if (!match) return null;
     const info = unitInfo(match[5]);
@@ -79,7 +79,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
       ? lower.replace(/(\d),(\d)/g, '$1.$2')
       : lower.replace(/,/g, '');
     const found = [];
-    for (const match of source.matchAll(new RegExp(`(\\d*\\.?\\d+)[\\s-]*(${UNIT})\\.?(?![a-z])`, 'g'))) {
+    // One way to read each number, starting only where a number starts: the ported "\d*\.?\d+" could
+    // split a run of digits in every possible way from every position, and took minutes on a long one.
+    for (const match of source.matchAll(new RegExp(`(?<![\\d.])(\\d+(?:\\.\\d+)?|\\.\\d+)[\\s-]*(${UNIT})\\.?(?![a-z])`, 'g'))) {
       if (NUTRIENT_AFTER.test(source.slice(match.index + match[0].length))) continue;
       const info = unitInfo(match[2]);
       const ounces = Number(match[1]) * (info ? info.oz : 0);
