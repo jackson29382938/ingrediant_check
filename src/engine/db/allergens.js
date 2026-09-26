@@ -22,7 +22,8 @@ const NOT_DAIRY_BEFORE = '(?<!\\b(?:peanut|almond|cashew|sunflower|seed|nut|coco
 const PLANT_ES = '(?!\\s+de\\s+(?:coco|almendras?|avena|soja|arroz|anacardos?|avellanas?|cacao|cacahuete|man[ií]|karit[ée]))';
 const PLANT_FR = '(?!\\s+(?:de\\s+(?:coco|soja|riz|cacao|karit[ée]|cacahu[èe]tes?)|d[\'’](?:amandes?|avoine|noisettes?|arachide)))';
 const PLANT_IT = '(?!\\s+di\\s+(?:cocco|mandorl[ae]|avena|soia|riso|nocciol[ae]|cacao|arachidi|karit[ée]))';
-const DAIRY = NOT_DAIRY_BEFORE + '\\b(?:milk|butter|cream)\\b(?!\\s*(?:of\\s+tartar|flavou?r))'
+// "Milk thistle" and "milkweed" are plants; "cream of tartar" is a salt of tartaric acid.
+const DAIRY = NOT_DAIRY_BEFORE + '\\b(?:milk|butter|cream)\\b(?!\\s*(?:of\\s+tartar|flavou?r|thistle|weed))'
   + '|\\b(?:dairy|cheese|yogh?urt|whey|casein(?:ate)?|lactose|ghee|kefir|custard|buttermilk|lactalbumin|lactoglobulin|paneer|quark)\\b'
   // es
   + '|\\b(?:leche|nata|mantequilla)' + PLANT_ES + '\\b|\\b(?:queso|suero(?: de leche)?|lactosa|case[ií]na|yogur|requesón|cuajada)\\b'
@@ -61,7 +62,7 @@ const ALLERGENS = [
   { id: 'fish', label: 'Fish',
     m: /\b(fish|salmon|tuna|cod|halibut|tilapia|anchov\w+|sardines?|mackerel|herring|pollock|haddock|worcestershire|pescado|at[úu]n|salm[óo]n|anchoas?|bacalao|poisson|thon|saumon|morue|fisch\w*|thunfisch\w*|lachs\w*|sardellen|pesce|tonno|salmone|acciughe|merluzzo)\b/i },
   { id: 'shellfish', label: 'Shellfish',
-    m: /\b(shrimp|prawn|crab(?!apple)|lobster|crayfish|langoustine|clam|mussel|oyster|scallop|squid|calamari|octopus|krill|crustacean|mollusc|mollusk|camar[óo]n|camarones|gambas?|langosta|cangrejo|mejill[óo]n|almeja|calamar|crust[áa]ceo|molusco|crevettes?|crabe|homard|moules?|hu[îi]tres?|crustac[ée]s?|mollusques?|garnelen?|krabben?|hummer|muscheln?|krebstier|weichtier|gamber|granchio|aragosta|cozze|vongole|crostacei|molluschi)\w*/i },
+    m: /\b(shrimp|prawn|crab(?!\s*-?\s*apples?)|lobster|crayfish|langoustine|clam|mussel|oyster|scallop|squid|calamari|octopus|krill|crustacean|mollusc|mollusk|camar[óo]n|camarones|gambas?|langosta|cangrejo|mejill[óo]n|almeja|calamar|crust[áa]ceo|molusco|crevettes?|crabe|homard|moules?|hu[îi]tres?|crustac[ée]s?|mollusques?|garnelen?|krabben?|hummer|muscheln?|krebstier|weichtier|gamber|granchio|aragosta|cozze|vongole|crostacei|molluschi)\w*/i },
   { id: 'sesame', label: 'Sesame',
     m: /\b(sesame|tahini|benne|gingelly|s[ée]samo|s[ée]same|sesam)\w*/i },
   { id: 'sulfite', label: 'Sulfites',
@@ -90,7 +91,7 @@ const ALLERGENS = [
 const MEAT = '\\b(?:beef|pork|chicken|turkey|lamb|mutton|veal|venison|bison|duck|quail|rabbit|bacon|sausage|salami|pepperoni|chorizo|prosciutto|pancetta|bresaola|gelatine?|lard|tallow|suet|poultry)\\w*'
   + '|\\b(?:ham|goose|meats?)\\b(?<!(?:coconut|nut|crab) meats?)'
   + '|(?<!\\b(?:vegetable|veggie|vegetal|mushroom|miso|kombu|dashi)\\s)\\b(?:broth|bouillon|stock)\\b';
-const SEA = '\\b(?:fish|shellfish|salmon|tuna|cod|anchov|sardine|mackerel|herring|tilapia|shrimp|prawn|lobster|crayfish|clam|mussel|oyster|scallop|squid|calamari|octopus|krill|worcestershire|isinglass)\\w*|\\bcrab(?:s|meat)?\\b';
+const SEA = '\\b(?:fish|shellfish|salmon|tuna|cod|anchov|sardine|mackerel|herring|tilapia|shrimp|prawn|lobster|crayfish|clam|mussel|oyster|scallop|squid|calamari|octopus|krill|worcestershire|isinglass)\\w*|\\bcrab(?:s|meat)?\\b(?!\\s*-?\\s*apples?)';
 const NOT_VEGETARIAN = MEAT + '|' + SEA + '|(?<!\\b(?:microbial|vegetable|vegetarian|non-animal)\\s)\\brennet\\b|\\b(?:carmine|cochineal|e[- ]?120|e[- ]?441|e[- ]?904)\\b';
 const NOT_VEGAN = NOT_VEGETARIAN + '|' + DAIRY + '|' + EGG + '|\\b(?:honey|royal jelly|beeswax|shellac|lanolin|e[- ]?901|e[- ]?913)\\b';
 const DIETS = [

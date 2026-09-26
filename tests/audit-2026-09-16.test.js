@@ -257,3 +257,15 @@ test('hover and auto-score arm only on results pages', () => {
   assert.deepEqual(arm('/dp/B000000001', ''), { hover: 0, auto: 0 }, 'a product page armed its carousels');
   assert.deepEqual(arm('/s', '?k=oats'), { hover: 3, auto: 3 }, 'a results page did not arm');
 });
+
+test('milk thistle and crab apple are plants, not milk or shellfish; real milk and crab still flag', () => {
+  const all = allergens.ALLERGENS.map(a => a.id);
+  const diets = allergens.DIETS.map(d => d.id);
+  const labels = text => engine.score({ ingredients_text: text }, { allergens: all, diets }).flags.map(f => f.label);
+  for (const text of ['milk thistle extract', 'crab apple', 'crab-apple jelly', 'crabapples']) {
+    assert.deepEqual(labels(text), [], text);
+  }
+  assert.ok(labels('whole milk').includes('Milk'));
+  assert.ok(labels('crab meat').includes('Shellfish'));
+  assert.ok(labels('king crab legs').includes('Not vegetarian'));
+});
