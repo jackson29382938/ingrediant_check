@@ -122,7 +122,7 @@ const ALLERGENS = [
   { id: 'corn', label: 'Corn',
     m: new RegExp(/\b(corn(?!ed\b|ish\b)|popcorn|maize|masa|hominy|dextrose|maltodextrin|cornstarch)\w*/.source
       // in each label language
-      + '|' + L + '(?:ma[ïi]s(?:gries|grie[ßs]|zetmeel|meel|mehl|st[äa]rke|olie|[öo]l|k[öo]rner|kolben|vezel|keim[öo]l)?|ma[ií]z|milho|majs' + W + '|kukurydz' + W + '|m[ıi]s[ıi]r|dextros[ae]?|dekstroz[a]?|destrosio|maltodextrin[ae]?|maltodekstryn[ay]|maltodekstrin)' + R, 'i') },
+      + '|' + L + '(?:ma[ïi]s(?:gries|grie[ßs]|zetmeel|meel|mehl|st[äa]rke|olie|[öo]l|k[öo]rner|kolben|vezel|keim[öo]l|maltodextrin[ae]?|glukose\\w*|glucose\\w*|siroop|sirup)?|ma[ií]z|milho|majs' + W + '|kukurydz' + W + '|m[ıi]s[ıi]r|dextros[ae]?|dekstroz[a]?|destrosio|maltodextrin[ae]?|maltodekstryn[ay]|maltodekstrin)' + R, 'i') },
   // Sweet potato is a morning glory, not a nightshade.
   { id: 'nightshade', label: 'Nightshades',
     m: new RegExp(/\b(tomato|(?<!\bsweet\s)potato|eggplant|aubergine|bell pepper|paprika|cayenne|chili|chilli|pimento|goji)\w*/.source
@@ -181,7 +181,7 @@ const DIETS = [
       + '|farine(?!\\s+d[e\'’]\\s*(?:amandes?|coco|noisettes?))|harina(?!\\s+de\\s+(?:almendras?|coco))|farina(?!\\s+di\\s+(?:mandorle|cocco|nocciole))|farinha(?!\\s+de\\s+(?:am[êe]ndoa|coco))'
       + '|m[ąa]ka(?!\\s+(?:migda|kokos))|riz|arroz|riso|reis|rijst|ris|ry[żz]|pirin[çc]|pommes? de terre|patat[ae]s?|kartoffel' + W + '|aardappel' + W + '|potatis|ziemniak' + W + '|batatas?'
       + '|miel|honig|miele|honing|honung|mi[óo]d|miodu|bal|mel|avoine|avena|hafer' + W + '|haver' + W + '|havre' + W + '|owies|owsian' + W + '|yulaf|aveia)' + R
-      + '|(?<!mandel|kokos|lein|nuss|erdnuss)mehl|(?<!amandel|kokos|noten)(?:bloem|meel)\\b|(?<!mandel|kokos)mj[öo]l|\\bunu\\b(?<!badem unu)|' + GLUTEN, 'i') },
+      + '|(?<!mandel|kokos|lein|nuss|erdnuss)mehl|\\w(?:siroop|sirup|stroop|sirap)|(?<!amandel|kokos|noten)(?:bloem|meel)\\b|(?<!mandel|kokos)mj[öo]l|\\bunu\\b(?<!badem unu)|' + GLUTEN, 'i') },
   { id: 'porkFree', label: 'Pork-free',
     conflict: /\b(pork|bacon|lard|gelatin|prosciutto|pancetta|chorizo|schweine\w*|cerdo|porc(?!ini)|maiale|jam[óo]n|jambon|speck|schinken|fl[äa]sk|griskött|skinka|wieprzow|smalec|boczek|szynk|varken|reuzel|porco|toucinho|banha|presunto|domuz|jelatin)\w*|\bham\b|(?<![a-zà-ÿœ\u0100-\u017f])(?:[żz]elatyn|spek\b)/i },
 ];

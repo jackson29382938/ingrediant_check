@@ -81,8 +81,12 @@ test('keto, corn and nightshade read every label language; nut flours and sweet 
     corn: ['maïs', 'semoule de maïs', 'maíz', 'Maisstärke', 'milho', 'kukurydza', 'mısır'],
     nightshade: ['tomates', 'Tomaten', 'pomodori', 'pomme de terre', 'patate', 'Kartoffeln', 'aardappelen', 'poivron', 'pimiento', 'domates'],
     soy: ['soję', 'soi'],
+    // compounds: maize maltodextrin, maple syrup
+    compound: [['maïsmaltodextrine', 'corn'], ['Ahornsiroop', 'keto'], ['Ahornsirup', 'keto']],
   };
-  for (const [id, words] of Object.entries(FLAGGED)) for (const w of words) assert.ok(has(w, id), `${w} → ${id}`);
+  for (const [id, words] of Object.entries(FLAGGED)) {
+    for (const w of words) Array.isArray(w) ? assert.ok(has(w[0], w[1]), `${w[0]} → ${w[1]}`) : assert.ok(has(w, id), `${w} → ${id}`);
+  }
   for (const w of ["farine d'amandes", 'harina de almendra', 'Mandelmehl', 'kokosmeel', 'mandelmjöl']) assert.ok(!has(w, 'keto'), w);
   for (const w of ['maison']) assert.ok(!has(w, 'corn'), w);
   for (const w of ['patate douce', 'karabiber']) assert.ok(!has(w, 'nightshade'), w);
