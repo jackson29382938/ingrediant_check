@@ -391,9 +391,8 @@ function paintPageScore() {
 
 // Scores (s:), the product data behind them (p:) and barcode records (off:). Clearing only the
 // scores would rebuild them instantly from p:, which is not what "clear" means here.
-function cacheKeys(all) {
-  return Object.keys(all || {}).filter(key => /^(s|p|off):/.test(key));
-}
+// Cached entries (s: scores, p: product readings, off: Open Food Facts), by key only.
+const cacheKeys = async () => (await CACHE.storedKeys(chrome.storage.local)).filter(CACHE.isCacheKey);
 
 function compareLabel(hit) {
   const name = (hit.name || hit.asin || '').replace(/\s+/g, ' ').trim();
@@ -444,7 +443,11 @@ function paintCompare() {
   if (!block || !empty || !pick || !grid || !selA || !selB) return;
   let version = '';
   try { version = chrome.runtime.getManifest().version; } catch (e) { /* ignore */ }
-  chrome.storage.local.get(null, all => {
+  // Only the saved scores and the settings they are checked against, not the product readings.
+  (async () => {
+    const scoreKeys = (await CACHE.storedKeys(chrome.storage.local)).filter(k => k.startsWith('s:'));
+    const all = await chrome.storage.local.get([...scoreKeys, 'weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts',
+      'sheetIndexRev', 'producerIndexRev', 'compareA', 'compareB']);
     const prefs = {
       weights: all.weights, foodOnly: all.foodOnly, ocrLabels: all.ocrLabels,
       useOpenFoodFacts: all.useOpenFoodFacts,
@@ -475,7 +478,7 @@ function paintCompare() {
     grid.textContent = '';
     grid.append(paintCompareCard(hitA), paintCompareCard(hitB));
     if (aKey !== all.compareA || bKey !== all.compareB) persist({ compareA: aKey, compareB: bKey });
-  });
+  })().catch(() => { block.hidden = true; });
 }
 
 function wireCompare() {
@@ -492,13 +495,13 @@ function wireCompare() {
 function paintCacheCount() {
   const btn = document.getElementById('clear');
   if (!btn) return;
-  chrome.storage.local.get(null, all => {
-    const n = cacheKeys(all).filter(k => !k.startsWith('p:')).length;
-    btn.disabled = cacheKeys(all).length === 0;
+  cacheKeys().then(keys => {
+    const n = keys.filter(k => !k.startsWith('p:')).length;
+    btn.disabled = keys.length === 0;
     btn.textContent = n
       ? msg('popupClearN', `Clear ${n} cached scores`, n)
       : msg('popupClear', 'Clear cached scores');
-  });
+  }, () => {});
 }
 
 function paintWhy(on) {
@@ -590,8 +593,7 @@ document.getElementById('toggleWhy').addEventListener('click', () => {
 document.getElementById('clear').addEventListener('click', async event => {
   event.preventDefault();
   try {
-    const all = await chrome.storage.local.get(null);
-    const keys = cacheKeys(all);
+    const keys = await cacheKeys();
     await chrome.storage.local.remove(keys);
     const n = keys.filter(k => !k.startsWith('p:')).length;
     const cleared = chrome.i18n && chrome.i18n.getMessage('popupCleared', [String(n)]);

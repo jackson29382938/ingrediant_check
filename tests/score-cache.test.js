@@ -77,3 +77,15 @@ test('fingerprints track weights, food gate, provenance revisions; OCR/OFF only 
     cache.fingerprint({}, 'open-food-facts'));
   assert.equal(cache.fingerprint({ ocrLabels: true }, 'page'), cache.fingerprint({}, 'page'));
 });
+
+test('storedKeys lists keys without reading values when Chrome can, and falls back when it cannot', async () => {
+  let fullReads = 0;
+  const data = { 's:amazon.com:B000000001': { score: 1 }, 'p:amazon.com:B000000001': { data: 'x'.repeat(6000) }, weights: {} };
+  const modern = { getKeys: async () => Object.keys(data), get: async () => { fullReads++; return data; } };
+  assert.deepEqual((await cache.storedKeys(modern)).sort(), Object.keys(data).sort());
+  assert.equal(fullReads, 0, 'getKeys, not get(null)');
+  const older = { get: async keys => { assert.equal(keys, null); fullReads++; return data; } };
+  assert.deepEqual((await cache.storedKeys(older)).sort(), Object.keys(data).sort());
+  assert.equal(fullReads, 1);
+  assert.deepEqual(Object.keys(data).filter(cache.isCacheKey).sort(), ['p:amazon.com:B000000001', 's:amazon.com:B000000001']);
+});

@@ -67,8 +67,17 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
     return out;
   }
 
+  // Every key in a storage area, without reading the values: Chrome 130+ has getKeys(); older ones
+  // (the manifest allows 116) read everything once. get(null) loads every saved product reading,
+  // up to 10,000 of them with their ingredient text, just to count or list them.
+  async function storedKeys(area) {
+    if (area && typeof area.getKeys === 'function') return area.getKeys();
+    return Object.keys((await area.get(null)) || {});
+  }
+  const isCacheKey = k => /^(s|p|off):/.test(k);
+
   const api = AIRmodule('scoreCache', {
-    key, fingerprint, valid, parseKey, listScores, SCHEMA, TTL_MS, normalizeStore,
+    key, fingerprint, valid, parseKey, listScores, SCHEMA, TTL_MS, normalizeStore, storedKeys, isCacheKey,
   });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();

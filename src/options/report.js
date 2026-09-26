@@ -105,7 +105,13 @@
         $('shotNone').textContent = t('reportShotNotStore', 'No screenshot was taken: the tab you were on was not an Amazon or Target page, so it was left alone. You can add one below, or paste an image with Ctrl/Cmd+V.');
       }
     } catch (e) { /* session storage unavailable */ }
-    try { ctx.settings = await chrome.storage.local.get(null); } catch (e) { ctx.settings = {}; }
+    // The settings, and the cached entries by key only (report-data.js counts them).
+    try {
+      const keys = await AIR.db.scoreCache.storedKeys(chrome.storage.local);
+      const cached = keys.filter(AIR.db.scoreCache.isCacheKey);
+      ctx.settings = { ...(await chrome.storage.local.get(keys.filter(k => !AIR.db.scoreCache.isCacheKey(k)))),
+        ...Object.fromEntries(cached.map(k => [k, true])) };
+    } catch (e) { ctx.settings = {}; }
     paint();
   })();
 })();
