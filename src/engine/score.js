@@ -380,7 +380,10 @@ function expandEntry(part) {
 
 // [{ ing, pos }] where pos is the TOP-LEVEL position, shared by an ingredient's own sub-list.
 function parseEntries(text) {
-  const flat = joinStrains(text.replace(/\b((?:contains )?(?:less than \d+(?:\.\d+)?% of|\d+(?:\.\d+)?% or less of)|and\/or)\b/gi, ','));
+  // "FD&C Red No. 40" and "Red #40" are how US labels print dyes. The full stop after "No" ended the
+  // entry ("fd&c red no" / "40"), so the dye went unread; both now read as "no 40".
+  const numbered = text.replace(/\bno\.\s*(?=\d)/gi, 'no ').replace(/#\s*(?=\d)/g, 'no ');
+  const flat = joinStrains(numbered.replace(/\b((?:contains )?(?:less than \d+(?:\.\d+)?% of|\d+(?:\.\d+)?% or less of)|and\/or)\b/gi, ','));
   const out = [];
   let pos = -1, strainRun = false;
   for (const part of splitTopLevel(flat)) {

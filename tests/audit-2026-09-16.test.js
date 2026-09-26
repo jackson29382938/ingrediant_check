@@ -320,3 +320,16 @@ test('animal ingredients in every label language conflict with vegetarian and ve
   }
   assert.deepEqual(labels('vitamin d3 (from lichen)', 'vegan'), []);
 });
+
+test('additives in the spellings US labels print: "FD&C Red No. 40", "#40", spelled-out TBHQ, bromated flour, propylparaben', () => {
+  const capped = text => engine.score({ ingredients_text: `whole grain oats, water, salt, ${text}` }, {}).score;
+  for (const text of ['FD&C Red No. 40', 'FD&C Red #40', 'Red No.40', 'FD&C Yellow No. 5']) assert.equal(capped(text), 18, text);
+  assert.equal(capped('tertiary butylhydroquinone'), 45);
+  assert.equal(capped('propylparaben'), 45);
+  assert.equal(capped('bromated flour'), 15);
+  // A full stop still ends an entry elsewhere, and decimals still do not split.
+  const oats = engine.score({ ingredients_text: 'whole grain oats, water, salt' }, {}).score;
+  for (const text of ['vitamin B12.', '2.5% salt', 'no. 2 grade corn']) {
+    assert.equal(engine.score({ ingredients_text: `whole grain oats, water, salt, ${text}` }, {}).score, oats, text);
+  }
+});
