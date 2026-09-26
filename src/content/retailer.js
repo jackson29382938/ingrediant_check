@@ -155,9 +155,14 @@
       b.className = BADGE_CLASS;
       anchor.insertBefore(b, anchor.firstChild);
     }
+    const text = String(hit.score);
+    const title = `Ingredient Check: ${hit.score}/100 — ${hit.verdict}`;
+    // Setting the same text again still replaces the text node, which the page watcher sees as a
+    // change: it ran another pass 400 ms later, which repainted, for as long as the tab stayed open.
+    if (b.textContent === text && b.title === title) return;
     const c = P.BAND_COLOR(hit.score);
-    b.textContent = String(hit.score);
-    b.title = `Ingredient Check: ${hit.score}/100 — ${hit.verdict}`;
+    b.textContent = text;
+    b.title = title;
     // aria-label on a plain span is ignored; as an image the label is the badge's name (search.js too).
     b.setAttribute('aria-label', b.title);
     b.setAttribute('role', 'img');

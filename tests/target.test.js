@@ -161,10 +161,11 @@ function runner(file, url, stored = {}) {
     },
   };
   sandbox.self = sandbox;
+  sandbox.module = { exports: {} };
   vm.createContext(sandbox);
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'src', 'content', 'retailer.js'), 'utf8'), sandbox);
   return { get host() { return host; }, writes, messages, fetches, timers, clicks, shadow, data, page,
-    pass: () => vm.runInContext('AIR.__pass && AIR.__pass()', sandbox), sandbox };
+    pass: () => sandbox.module.exports.pass(), sandbox };
 }
 
 test('runner: a Target product page is scored locally, cached for this computer, and never fetched', () => {
@@ -223,6 +224,16 @@ test('runner: search badges come only from this computer\'s cache; nothing is re
   assert.match(painted[0].inserted[0].attrs['aria-label'], new RegExp(`${oats.score}/100`));
   assert.equal(w.fetches.length, 0);
   assert.equal(w.messages.length, 0);
+
+  // A second pass over an unchanged badge must not touch it: a rewrite is a DOM change, and the
+  // page watcher answers every change with another pass.
+  const badge = painted[0].inserted[0];
+  let rewrites = 0;
+  let text = badge.textContent;
+  Object.defineProperty(badge, 'textContent', { get: () => text, set: v => { rewrites++; text = v; } });
+  painted[0].querySelector = sel => (sel === '.air-badge' ? badge : null);
+  w.pass();
+  assert.equal(rewrites, 0, 'an unchanged badge is left alone');
 
   const shampoo = runner('target-s-oats.html', 'https://www.target.com/s?searchTerm=shampoo', { 's:target.com:79364857': entry });
   assert.equal([...shampoo.page.querySelectorAll('h3')].filter(h => h.inserted).length, 0, 'a non-food search stands down');
