@@ -134,7 +134,7 @@ function runner(file, url, stored = {}) {
     document: {
       querySelector: s => page.querySelector(s), querySelectorAll: s => page.querySelectorAll(s),
       getElementById: id => (id === 'air-score-panel' ? host : null),
-      createElement: tag => ({ tagName: tag, style: {}, dataset: {}, setAttribute() {}, querySelector: () => null,
+      createElement: tag => ({ tagName: tag, style: {}, dataset: {}, attrs: {}, setAttribute(k, v) { this.attrs[k] = String(v); }, querySelector: () => null,
         remove() { if (host === this) host = null; } }),
       body: {}, documentElement: {}, title: page.title, URL: url,
     },
@@ -219,6 +219,8 @@ test('runner: search badges come only from this computer\'s cache; nothing is re
   const painted = [...w.page.querySelectorAll('h3')].filter(h => h.inserted && h.inserted.length);
   assert.equal(painted.length, 1, 'only the product opened before gets a badge');
   assert.equal(painted[0].inserted[0].textContent, String(oats.score));
+  assert.equal(painted[0].inserted[0].attrs.role, 'img', 'named for screen readers, not a bare number');
+  assert.match(painted[0].inserted[0].attrs['aria-label'], new RegExp(`${oats.score}/100`));
   assert.equal(w.fetches.length, 0);
   assert.equal(w.messages.length, 0);
 

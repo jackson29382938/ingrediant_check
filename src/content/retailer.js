@@ -158,7 +158,9 @@
     const c = P.BAND_COLOR(hit.score);
     b.textContent = String(hit.score);
     b.title = `Ingredient Check: ${hit.score}/100 — ${hit.verdict}`;
+    // aria-label on a plain span is ignored; as an image the label is the badge's name (search.js too).
     b.setAttribute('aria-label', b.title);
+    b.setAttribute('role', 'img');
     b.style.cssText = `display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;`
       + `padding:0 6px;margin-right:8px;border-radius:999px;font:700 12px/1 sans-serif;vertical-align:middle;`
       + `box-sizing:border-box;color:${c.fg};background:${c.bg};border:2px solid ${c.ring};`;
