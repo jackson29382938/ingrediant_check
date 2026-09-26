@@ -289,7 +289,7 @@ const COMMON_PANEL = new RegExp('\\b(?:' + [
   // still carried a "50% recognised" warning.
   'acqua|sale|latte|farina|olio|succo|riso|mais|soia|lievito|amido|burro|panna|formaggio|uova|miele|nocciole|mandorle',
   '\\w*(?:milch|zucker|butter|mehl|pulver|st[äa]rke|sirup|saft|salz|wasser|sahne|k[äa]se|joghurt|schokolade|kakao|mandeln|n[üu]sse|haselnuss|erdnuss)\\w*',
-  'emulgator(?:en)?|emulsionante|[ée]mulsifiant|emulsionanti|conservante|conservateur|konservierungsstoff|colorante|colorant|farbstoff|s[äa]uerungsmittel|acidulant|acidificante|correcteur',
+  'emulgator(?:en)?|emulsionantes?|emulgentes?|[ée]mulsifiants?|emulsionanti|conservante|conservateur|konservierungsstoff|colorante|colorant|farbstoff|s[äa]uerungsmittel|acidulant|acidificante|correcteur',
   // Colours from food, which no rule charges. Without them "Annatto (color)" read as an unnamed
   // colour next to an unrecognised word, and "beta carotene" lowered coverage on a clean list.
   'annatto|carotenes?|carotenoids?|beet(?:root)? (?:juice|powder|red)|anthocyanins?|lycopene|curcumin|chlorophyll(?:in)?|carmine|cochineal|riboflavin|lutein|paprika (?:extract|oleoresin)|spirulina extract|caramel',
@@ -477,6 +477,13 @@ const NUTRITION = [
     calc: v => Math.min(10, Math.max(0, v * 0.3)), unit: 'g', sign: +1 },
 ];
 
+// Cross-contact statements in each store language. Matched against a whole entry.
+const MAY_CONTAIN = new RegExp('^(?:(?:this product )?(?:may|can) (?:also )?contain|(?:may )?contains? traces?|traces? of'
+  + '|(?:produced|made|manufactured|packed) (?:in a (?:factory|facility)|on (?:equipment|a line))'
+  + '|peut contenir|traces? (?:[ée]ventuelles? )?d[e\'’]|kann (?:spuren|.*enthalten)|enth[äa]lt spuren|puede contener|trazas de'
+  + '|pu[òo] contenere|tracce di|pode conter|vest[íi]gios de|kan (?:sporen|innehålla|spår)|mo[żz]e zawiera[ćc]'
+  + '|.*\\bi[çc]erebilir|eser miktarda)', 'i');
+
 // ---------------------------------------------------------------- scoring
 // options: { weights, allergens, diets, avoidList }
 function score(product, options = {}) {
@@ -490,7 +497,11 @@ function score(product, options = {}) {
   // scoring surface is rebuilt from what survives, so caps and penalties see the real ingredients
   // and never see "no artificial colors". See DENIAL_ENTRY above for why this replaced running
   // stripNegations() over the list.
-  const entries = parseEntries(rawTxt).filter(e => !isDenialEntry(e.ing));
+  // A "may contain" statement is a cross-contact warning, not an ingredient: "may contain traces of
+  // wheat" was charged as wheat. It still feeds the allergen flags below, and nothing else.
+  const parsed = parseEntries(rawTxt);
+  const mayContain = parsed.filter(e => MAY_CONTAIN.test(e.ing)).map(e => e.ing);
+  const entries = parsed.filter(e => !isDenialEntry(e.ing) && !MAY_CONTAIN.test(e.ing));
   // Close the gaps left by dropped claim entries, so a leading "no artificial colors" does not
   // leave the real first ingredient sitting at position 1.
   const dense = new Map();
@@ -842,7 +853,7 @@ function score(product, options = {}) {
   // Flags never move the score. "Does this contain dairy" is a different question from "is this a
   // good product", and answering both with one number helps nobody.
   const flags = db.allergens
-    ? [...db.allergens.detect(list, options.allergens || [], options.diets || []),
+    ? [...db.allergens.detect([...list, ...mayContain], options.allergens || [], options.diets || []),
        ...db.allergens.matchAvoidList(list, options.avoidList || [])]
     : [];
 

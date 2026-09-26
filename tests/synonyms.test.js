@@ -263,3 +263,16 @@ test('an ingredient declared with its share is charged like the bare ingredient'
     assert.deepEqual(reasons(score(`oats, ${declared}`)), reasons(score(`oats, ${bare}`)), declared);
   }
 });
+
+test('a "may contain" statement warns but is not scored, in every store language', () => {
+  const oats = score('oats');
+  for (const text of ['may contain traces of wheat', 'May contain milk', 'traces of nuts', 'peut contenir des traces de blé',
+    'kann Spuren von Weizen enthalten', 'kann Schalenfrüchte enthalten', 'puede contener trazas de trigo',
+    'può contenere tracce di frumento', 'pode conter vestígios de trigo', 'kan sporen van tarwe bevatten',
+    'kan innehålla spår av vete', 'może zawierać pszenicę', 'buğday içerebilir']) {
+    const r = engine.score({ ingredients_text: `oats, ${text}` }, { allergens: ['wheat', 'milk', 'treeNut'] });
+    assert.equal(r.score, oats.score, text);
+    assert.deepEqual(reasons(r), [], text);
+    assert.ok(JSON.stringify(r).includes('"kind":"allergen"'), `${text}: the warning stays`);
+  }
+});
