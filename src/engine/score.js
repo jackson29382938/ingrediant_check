@@ -404,7 +404,20 @@ function splitTopLevel(text) {
 // charged sugar 13 points at position 1; spelling out the flour's own six sub-ingredients pushed
 // sugar to position 7, where the weight drops to 0.5, and the same sugar cost 5. A manufacturer got
 // a better score on everything downstream by disclosing more.
-function expandEntry(part) {
+// EU labels name an additive after its job with a colon: "emulsifier: lecithins", "acidity regulator:
+// sodium citrates". Rules anchored at the start of the entry never saw the additive, so the colon form
+// is read as the parenthetical form it means: "emulsifier (lecithins)".
+const FUNCTION_HEAD = /^\s*([^:()]{3,40}?)\s*:\s*([^()]+)$/;
+const SWEETENER_WORD = /^(?:sweeteners?|edulcorantes?|[ée]dulcorants?|s[üu][ßs]ungsmittel|dolcificanti|zoetstoff(?:en)?|s[öo]tningsmedel|substancje s[łl]odz[ąa]ce|tatland[ıi]r[ıi]c[ıi](?:lar)?)$/i;
+function colonAsParenthesis(part) {
+  const m = part.match(FUNCTION_HEAD);
+  if (!m) return part;
+  const head = tidy(m[1]);
+  return add.UNNAMED.some(r => r.m.test(head)) || SWEETENER_WORD.test(head) ? `${m[1]} (${m[2]})` : part;
+}
+
+function expandEntry(raw) {
+  const part = colonAsParenthesis(raw);
   const pieces = [part.replace(/\([^)]*\)/g, ' ')];
   for (const m of part.matchAll(/\(([^)]*)\)/g)) pieces.push(...m[1].split(/;|(?<!\d),|,(?!\d)/));
   return pieces.map(tidy).filter(usable);

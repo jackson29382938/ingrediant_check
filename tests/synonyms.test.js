@@ -276,3 +276,13 @@ test('a "may contain" statement warns but is not scored, in every store language
     assert.ok(JSON.stringify(r).includes('"kind":"allergen"'), `${text}: the warning stays`);
   }
 });
+
+test('"function: additive" reads like "function (additive)"', () => {
+  // "emulsifier: lecithins" left the lecithin unread, because the rule is anchored to the whole entry.
+  for (const [paren, colon] of [['emulsifier (lecithins)', 'emulsifier: lecithins'], ['sweeteners (sucralose)', 'sweeteners: sucralose'],
+    ['Säureregulator (Natriumcitrate)', 'Säureregulator: Natriumcitrate'], ['emulsionantes (lecitinas de soja)', 'emulsionantes: lecitinas de soja']]) {
+    assert.deepEqual(reasons(score(`water, ${colon}`)).sort(), reasons(score(`water, ${paren}`)).sort(), colon);
+    assert.equal(score(`water, ${colon}`).score, score(`water, ${paren}`).score, colon);
+  }
+  assert.deepEqual(engine.parse('Céréale 50 %: blé, sucre'), ['céréale 50 %: blé', 'sucre'], 'only function words are rewritten');
+});
