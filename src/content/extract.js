@@ -35,7 +35,7 @@
   // unrecognised text is a high score (nothing matches, so nothing is penalised), which meant
   // "See label for ingredients." rendered as 94/100 Excellent and "Product of USA, Keep
   // refrigerated, Best by date on package" as 96/100 NOVA 1. Both were confidently wrong.
-  const PLACEHOLDER = /\b(see (the )?(label|package|packaging|product)|refer to (the )?(label|package)|listed on (the )?(label|package)|information (is )?unavailable|not available|varies by|may vary|check (the )?(label|package)|see (the )?(nutrition|ingredients?) (panel|facts|label|information)|see (the )?(back|side|bottom) of|photo|image)\b/i;
+  const PLACEHOLDER = /\b(see (the |each |individual |product )?(label|package|packaging|product)s?|refer to (the )?(label|package)|listed on (the )?(label|package)|information (is )?unavailable|not available|var(?:y|ies) by|may vary|check (the )?(label|package)|see (the )?(nutrition|ingredients?) (panel|facts|label|information)|see (the )?(back|side|bottom) of|photo|image)\b/i;
   const NON_INGREDIENT = /\b(product of|distributed by|manufactured (by|for)|keep (refrigerated|frozen|cool)|best (by|before)|use by|sell by|store in|net wt|serving size|calories|made in|packed (in|by)|questions\??|call \d|www\.|http)/i;
 
   // Amazon's ingredients field is sometimes populated with the product NAME plus its pack specs.
@@ -88,11 +88,17 @@
   function looksLikeIngredients(text, title) {
     const t = stripBoilerplate(text);
     if (t.length < MIN_LEN || t.length > MAX_LEN) return false;
-    if (PLACEHOLDER.test(t)) return false;
     if (/^(ingredients?|ingredientes|ingredi[eë]nten|ingr[eé]dients?|zutaten|ingredienti|sk[łl]adniki|ingredienser|[iİ][çc]indekiler|原材料|nutrition facts|directions|legal disclaimer)\s*:?\s*$/i.test(t)) return false;
     if (/\b(we believe|our story|customer|review|shipping|guarantee|click here)\b/i.test(t)) return false;
 
     const parts = t.split(/[,;]/).map(p => p.trim()).filter(Boolean);
+    // "See label for ingredients" instead of a list is refused. The same words inside a real list —
+    // "Vegetable oil (one or more of: canola, sunflower; may vary), potatoes, salt" — used to refuse
+    // the whole list too; they count only when there is no list around them.
+    if (PLACEHOLDER.test(t)) {
+      const flagged = parts.filter(p => PLACEHOLDER.test(p)).length;
+      if (parts.length < 3 || flagged / parts.length >= 0.34) return false;
+    }
     const commas = parts.length - 1;
     if (commas === 0) {
       // Whole foods are often a single phrase: "Whole Milk", "Organic extra virgin olive oil".

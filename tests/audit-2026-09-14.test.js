@@ -160,3 +160,16 @@ test('nutrition values parse with decimal commas and added sugar reads its own r
   const de = extract.nutritionFacts(doc('Nährwertangaben Portion 30 g Energie 450 kcal gesättigte Fettsäuren 2,5 g Zucker 12,5 g Ballaststoffe 3,1 g Eiweiß 8,2 g Natrium 120 mg'));
   assert.deepEqual([de.saturatedFat, de.sugar, de.fibre, de.protein, de.sodium], [2.5, 12.5, 3.1, 8.2, 120]);
 });
+
+test('placeholder words inside a real list do not refuse the list; a placeholder instead of one still does', () => {
+  for (const text of [
+    'Vegetable oil (contains one or more of the following: canola, sunflower, soybean oil; may vary), potatoes, salt.',
+    'Sugar, corn syrup, cocoa, palm oil, salt, see back of pack for allergens.',
+  ]) assert.equal(extract.looksLikeIngredients(text), true, text);
+  for (const text of [
+    'See label for ingredients.',
+    'See label for ingredients. Contains milk, soy.',
+    'Ingredients vary by flavor, see individual package, contains milk.',
+    'Please check the label, may vary.',
+  ]) assert.equal(extract.looksLikeIngredients(text), false, text);
+});
