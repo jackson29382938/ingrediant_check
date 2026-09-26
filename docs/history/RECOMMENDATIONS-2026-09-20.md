@@ -1,5 +1,11 @@
 # Ingredient Check — recommendations after P0–P2
 
+> **Superseded snapshot.** This page records the extension as it was when it was written. Its
+> permission advice is out of date: the extension now needs `activeTab`, `sidePanel` and
+> `unlimitedStorage`, and requests `identity` only if Google sign-in is turned on. Do not restore
+> what this page says about permissions. The current truth is [`manifest.json`](../../manifest.json)
+> and [`PRIVACY.md`](../PRIVACY.md).
+
 Read of `main` at `fddcaf7` (v1.0.2), after PRs **#1–#4**. This is a new look at *what is left*, not a recap of the closed backlog in [IMPROVEMENTS.md](IMPROVEMENTS.md).
 
 Do not start a rewrite. Do not rename the GitHub repo. Do not change scoring rules or `RULES_REVISION` unless you have decided a product question and are ready to retire the cache.

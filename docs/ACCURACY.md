@@ -62,7 +62,7 @@ gate, and it scored 49 against 31 for its English twin. `tests/languages.test.js
 goals change was merged. The rule now also skips the Turkish, French, Spanish, Italian and Polish
 spellings of lecithin, and Turkish `yağ` (oil). `RULES_REVISION` became `2026-09-25`. The evidence is
 a synthetic twin and the rule's own stated intent. No real Turkish label was checked. No default
-score changed in the corpus under any goal (58 products × 21 settings compared).
+score changed in the corpus under any goal (58 corpus entries, 51 products and 7 defects, × 21 settings compared).
 
 **Whole-milk kefir scored as fat-reduced (reported 2026-09-25, fixed).** Lifeway Organic Plain
 Kefir (amazon.com `B0DX45213W`) lists *pasteurized organic milk, organic nonfat milk, pectin…*: whole
@@ -73,7 +73,7 @@ the list (ingredients are listed by weight) or the title says whole milk / full 
 says so. Now 88 by default and 76 under Weight loss; the same kefir made with lowfat milk still ranks
 above it for weight loss. Plant milks and milk fractions (protein, whey, nonfat dry milk) ahead of
 the nonfat milk do not count as full-fat dairy. The label was read from the owner's screenshot of the
-listing, not captured by the extension. No corpus product changed (3 of 58 contain fat-reduced dairy;
+listing, not captured by the extension. No corpus entry changed (3 of the 58 entries contain fat-reduced dairy;
 none has full-fat dairy ahead of it). `RULES_REVISION` became `2026-09-25.1`.
 
 ## Automated evidence and live observations
@@ -151,7 +151,7 @@ Flags never move the score, and a missing flag looks exactly like "clear", so th
   acid (mjölksyra, melkzuur, Milchsäure, which also flagged as milk before) stay clear. Foreign fish
   and shellfish words now conflict with vegetarian as well as flagging the allergen.
 
-Every flag change is checked against all 58 corpus labels: none of them changes its flags. What is
+Every flag change is checked against all 58 corpus entries (51 products and 7 defects): none of them changes its flags. What is
 **not** proven: that a real label never words an allergen some other way. The panel says so next to
 the flags, and the probe lists above are where a new miss belongs.
 

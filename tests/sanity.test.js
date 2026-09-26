@@ -274,6 +274,27 @@ check('every data-i18n key in the settings page exists', () => {
   assert.strictEqual(missing.length, 0, `missing from messages.json: ${missing.join(', ')}`);
 });
 
+check('every extension page translates its aria labels and placeholders, and every locale has the keys', () => {
+  // The popup's preset tabs and compare pickers kept a hardcoded English aria-label with no
+  // data-i18n-aria, so a German screen reader heard English there; nothing checked for it.
+  const fs = require('fs');
+  const locales = fs.readdirSync(path.join(__dirname, '..', '_locales'))
+    .map(l => [l, new Set(Object.keys(JSON.parse(read(`_locales/${l}/messages.json`))))]);
+  for (const page of ['popup', 'options', 'welcome', 'report', 'sidepanel', 'sorted']) {
+    const raw = read(`src/options/${page}.html`);
+    for (const tag of raw.match(/<[^>]*\s(?:aria-label|placeholder)="[^"]*"[^>]*>/g) || []) {
+      if (/\saria-label="/.test(tag)) assert.ok(/data-i18n-aria="/.test(tag), `${page}.html: untranslated aria-label in ${tag.slice(0, 80)}`);
+      // A URL placeholder (https://www.example.com) reads the same in every language.
+      if (/\splaceholder="(?!https?:)/.test(tag)) assert.ok(/data-i18n-placeholder="/.test(tag), `${page}.html: untranslated placeholder in ${tag.slice(0, 80)}`);
+    }
+    const used = [...raw.matchAll(/data-i18n(?:-placeholder|-aria)?="([A-Za-z0-9_]+)"/g)].map(m => m[1]);
+    for (const [lang, set] of locales) {
+      const missing = [...new Set(used)].filter(k => !set.has(k));
+      assert.strictEqual(missing.length, 0, `${page}.html keys missing from _locales/${lang}: ${missing.join(', ')}`);
+    }
+  }
+});
+
 check('every msg() key in settings.js exists', () => {
   const raw = read('src/options/settings.js');
   const used = [...raw.matchAll(/\bmsg\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]);

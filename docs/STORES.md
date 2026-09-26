@@ -131,6 +131,12 @@ Then register it: a `content_scripts` entry in `manifest.json` (engine files, `p
 `retailer.js`), the host in `RETAILER_HOST` in `src/worker/messages.js`, a row in
 `src/stores/registry.js` and in the table above. `tests/stores.test.js` checks that they agree.
 
+Amazon's own content-script matches (one pattern per host and path shape, several hundred in all)
+are not edited by hand. `AMAZON_HOSTS` and `PATH_PATTERNS` in `scripts/content-matches.mjs` are the
+source; `npm run preflight` fails when `manifest.json` differs from what they produce. Edit those
+lists, run `node scripts/content-matches.mjs --write` to put the result into the manifest, then run
+preflight.
+
 For each store:
 
 - Read only what a signed-out visitor sees. Never get past a CAPTCHA, a login, a bot check or any

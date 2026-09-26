@@ -447,7 +447,7 @@
     "message": "Alles auf Standard zurücksetzen"
   },
   "optCustomWeights": {
-    "message": "Custom weights."
+    "message": "Eigene Gewichtung — die Regler passen zu keinem Ausgangspunkt mehr. Wähle eine Karte, um zurückzusetzen, oder stelle weiter fein ein."
   },
   "optSaved": {
     "message": "Gespeichert"
@@ -1319,5 +1319,20 @@
   },
   "optPresetCatsAria": {
     "message": "Kategorien dieses Ausgangspunkts"
+  },
+  "popupCompareAAria": {
+    "message": "Erste zwischengespeicherte Bewertung"
+  },
+  "popupCompareBAria": {
+    "message": "Zweite zwischengespeicherte Bewertung"
+  },
+  "welAvoidPh": {
+    "message": "z. B. Palmöl"
+  },
+  "repTitlePh": {
+    "message": "z. B. Die Seitenleiste zeigt für Kefir keinen Preis pro Unze"
+  },
+  "repStepsPh": {
+    "message": "1. Bei Amazon nach Kefir gesucht\n2. Im Menü „Sortieren nach“ Preis pro Unze gewählt\n3. …"
   }
 }

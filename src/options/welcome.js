@@ -18,6 +18,14 @@ for (const el of document.querySelectorAll('[data-i18n]')) {
   const text = msg(el.dataset.i18n, '');
   if (text) el.textContent = text;
 }
+for (const el of document.querySelectorAll('[data-i18n-aria]')) {
+  const text = msg(el.dataset.i18nAria, '');
+  if (text) el.setAttribute('aria-label', text);
+}
+for (const el of document.querySelectorAll('[data-i18n-placeholder]')) {
+  const text = msg(el.dataset.i18nPlaceholder, '');
+  if (text) el.setAttribute('placeholder', text);
+}
 
 const picked = { goals: [], allergens: [], diets: [], avoid: [] };
 let startGoals = [], startWeights = null, step = 1;

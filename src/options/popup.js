@@ -40,6 +40,10 @@ function persist(values, done) {
     const msg = chrome.i18n.getMessage(el.dataset.i18n);
     if (msg) el.textContent = msg;
   }
+  for (const el of document.querySelectorAll('[data-i18n-aria]')) {
+    const msg = chrome.i18n.getMessage(el.dataset.i18nAria);
+    if (msg) el.setAttribute('aria-label', msg);
+  }
 })();
 
 // Off is a pause. The sub-toggles are disabled so they cannot be changed into a state that is not

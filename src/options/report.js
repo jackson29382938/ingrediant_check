@@ -13,6 +13,10 @@
       const text = t(el.dataset.i18n, '');
       if (text) el.textContent = text;
     }
+    for (const el of document.querySelectorAll('[data-i18n-placeholder]')) {
+      const text = t(el.dataset.i18nPlaceholder, '');
+      if (text) el.setAttribute('placeholder', text);
+    }
   })();
 
   const form = () => ({

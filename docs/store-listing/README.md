@@ -44,6 +44,15 @@ Suggested screenshot set (capture live, or from `npm run harness` + popup):
 4. Settings weights / presets.
 5. Search badges on a grocery `/s` page.
 
+Surfaces added in 1.1.0, worth a shot each if the five above leave room (or for the promo tiles):
+
+- The ranked list in Chrome's side panel, opened from an Ingredient Check option in Amazon's *Sort by*
+  menu (on a store where sorting is shown).
+- The goals step of the setup page (`welcome.html`), which opens on install.
+- The "why" breakdown card that opens from a search badge (hover, focus or click).
+- A Target product page, marked as a preview in the popup and in [`docs/STORES.md`](../STORES.md).
+- **Report a problem or suggest an improvement**, with its screenshot preview.
+
 ## Listing fields
 
 - **Name:** Ingredient Check  

@@ -1319,5 +1319,20 @@
   },
   "reportShotNotStore": {
     "message": "No screenshot was taken: the tab you were on was not an Amazon or Target page, so it was left alone. You can add one below, or paste an image with Ctrl/Cmd+V."
+  },
+  "popupCompareAAria": {
+    "message": "First cached score"
+  },
+  "popupCompareBAria": {
+    "message": "Second cached score"
+  },
+  "welAvoidPh": {
+    "message": "e.g. palm oil"
+  },
+  "repTitlePh": {
+    "message": "e.g. Side panel shows no price per ounce for kefir"
+  },
+  "repStepsPh": {
+    "message": "1. Searched Amazon for kefir\n2. Chose Price per ounce in Amazon's Sort by menu\n3. …"
   }
 }

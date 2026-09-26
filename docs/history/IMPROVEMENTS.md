@@ -1,5 +1,11 @@
 # Ingredient Check — improvement plan
 
+> **Superseded snapshot.** This page records the extension as it was when it was written. Its
+> permission advice is out of date: the extension now needs `activeTab`, `sidePanel` and
+> `unlimitedStorage`, and requests `identity` only if Google sign-in is turned on. Do not restore
+> what this page says about permissions. The current truth is [`manifest.json`](../../manifest.json)
+> and [`PRIVACY.md`](../PRIVACY.md).
+
 Read of `main` at `60cc287` (v1.0.2). Claims below are from the code, not from the README.
 Earlier audits (`docs/AUDIT-*.md`) already landed most rulebase and worker fixes; this is what is still worth doing, in order.
 

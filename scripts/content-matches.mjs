@@ -39,3 +39,18 @@ export function buildContentMatches(hosts = AMAZON_HOSTS, paths = PATH_PATTERNS)
   }
   return out;
 }
+
+// `node scripts/content-matches.mjs --write` puts the generated list into every Amazon
+// content_scripts entry of manifest.json, so the several hundred patterns are never edited by hand.
+if (import.meta.url === `file://${process.argv[1]}` && process.argv.includes('--write')) {
+  const fs = await import('node:fs');
+  const url = new URL('../manifest.json', import.meta.url);
+  const manifest = JSON.parse(fs.readFileSync(url, 'utf8'));
+  const matches = buildContentMatches();
+  let entries = 0;
+  for (const cs of manifest.content_scripts || []) {
+    if ((cs.matches || []).some(m => /amazon\./.test(m))) { cs.matches = matches; entries++; }
+  }
+  fs.writeFileSync(url, JSON.stringify(manifest, null, 2) + '\n');
+  console.log(`wrote ${matches.length} matches into ${entries} Amazon content_scripts entr${entries === 1 ? 'y' : 'ies'}`);
+}
