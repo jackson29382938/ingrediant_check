@@ -75,7 +75,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
       // The same in each store language: Magermilch, lait écrémé, leche desnatada, latte scremato, magere melk,
       // leite desnatado, skummjölk, mleko odtłuszczone, yağsız süt.
       + '|\\b(?:mager|entrahmt)\\w*(?:milch|joghurt|quark)|\\bmagermilch|\\blait (?:demi[- ]?)?[ée]cr[ée]m[ée]|\\bleche (?:semi)?(?:desnatada|descremada)'
-      + '|\\blatte (?:parzialmente )?scremato|\\bmagere (?:melk|yoghurt|kwark)|\\bleite (?:semi)?desnatado|\\bskummj[öo]lk|\\bl[äa]ttmj[öo]lk'
+      + '|\\blatte (?:parzialmente )?scremato|\\bmagere (?:melk|yoghurt|kwark)|\\bleite (?:semi)?desnatado|\\bleite magro|\\bskummj[öo]lk|\\bl[äa]ttmj[öo]lk'
       + '|\\bmlek[oa] (?:odt[łl]uszczon\\w*|chude)|\\bya[ğg]s[ıi]z s[üu]t|\\by[aâ]r[ıi]m ya[ğg]l[ıi] s[üu]t', 'i') },
   ];
 

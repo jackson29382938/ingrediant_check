@@ -369,8 +369,10 @@ function recognitionCoverage(list) {
 // A trailing quantity ("sugar 20%", "Zucker 45 %", "hazelnuts min. 13%") is how EU labels declare
 // the share of an ingredient, and every rule anchored at the end of the entry failed on it: the
 // sugar in "sugar 20%" was charged nothing. The share is dropped from the entry the rules see.
-const TRAILING_SHARE = /\s*(?:\b(?:min(?:imum)?|max(?:imum)?|ca|approx)\.?\s*|<\s*|>\s*)?\d+(?:[.,]\d+)?\s*%$/i;
-const tidy = s => s.replace(/^[\s*•\-–:]+/, '').replace(/\s+/g, ' ').trim().toLowerCase().replace(/i\u0307/g, 'i')
+const TRAILING_SHARE = /\s*(?:\b(?:min(?:imum)?|max(?:imum)?|ca|approx)\.?\s*|<\s*|>\s*)?(?:\d+(?:[.,]\d+)?\s*%|%\s*\d+(?:[.,]\d+)?)$/i;
+// Organic and footnote markers ("sucre*", "cane sugar #", "lait°") hid the ingredient from anchored rules.
+const MARKERS = /[*°¹²³†‡#]+/g;
+const tidy = s => s.replace(MARKERS, ' ').replace(/^[\s*•\-–:]+/, '').replace(/\s+/g, ' ').trim().toLowerCase().replace(/i\u0307/g, 'i')
   .replace(TRAILING_SHARE, '').trim();
 const usable = s => s.length > 1 && s.length < 80;
 
@@ -408,7 +410,7 @@ function splitTopLevel(text) {
 // sodium citrates". Rules anchored at the start of the entry never saw the additive, so the colon form
 // is read as the parenthetical form it means: "emulsifier (lecithins)".
 const FUNCTION_HEAD = /^\s*([^:()]{3,40}?)\s*:\s*([^()]+)$/;
-const SWEETENER_WORD = /^(?:sweeteners?|edulcorantes?|[ée]dulcorants?|s[üu][ßs]ungsmittel|dolcificanti|zoetstoff(?:en)?|s[öo]tningsmedel|substancje s[łl]odz[ąa]ce|tatland[ıi]r[ıi]c[ıi](?:lar)?)$/i;
+const SWEETENER_WORD = /^(?:sweeteners?|edulcorantes?|[ée]dulcorants?|s[üu][ßs]ungsmittel|dolcificanti|zoetstoff(?:en)?|s[öo]tningsmedel|substancje s[łl]odz[ąa]ce|tatland[ıi]r[ıi]c[ıi](?:lar)?|substancja s[łl]odz[ąa]ca)$/i;
 function colonAsParenthesis(part) {
   const m = part.match(FUNCTION_HEAD);
   if (!m) return part;

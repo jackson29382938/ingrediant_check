@@ -306,3 +306,37 @@ test('plural oils, flavour plurals, fortification and accented spellings read li
     assert.equal(b.score, a.score, `${other} vs ${en}`);
   }
 });
+
+// Found unread on real Open Food Facts labels (about 650 labels in ten languages, 2026-09-26), each
+// against its English twin. Includes the organic and footnote markers ("sucre*", "cane sugar #") and
+// the Turkish "%13" share, which hid an ingredient from rules anchored to the end of the entry.
+const REAL_LABEL_PAIRS = [
+  ['glucose-fructose syrup', 'glucose-fructosestroop'], ['rapeseed oil', 'koolzaadolie'], ['xanthan gum', 'xanthaangom'],
+  ['locust bean gum', 'johannesbroodpitmeel'], ['brown sugar', 'bruine suiker'], ['acidity regulator', 'zuurteregelaar'],
+  ['acidity regulator', 'zuurteregelaars'], ['barley malt extract', 'gerstemoutextract'], ['wheat starch', 'tarwezetmeel'],
+  ['rice flour', 'rijstbloem'], ['malic acid', 'appelzuur'], ['disodium diphosphate', 'difosfaten'], ['tricalcium phosphate', 'tricalciumfosfaat'],
+  ['citric acid', 'Zitronensäure'], ['barley malt extract', 'Gerstenmalzextrakt'], ['wheat bran', 'Weizenkleie'], ['rapeseed', 'Raps'],
+  ['tricalcium phosphate', 'Tricalciumphosphat'], ['disodium diphosphate', 'Dinatriumdiphosphat'], ['malic acid', 'Äpfelsäure'],
+  ['phosphoric acid', 'ácido fosfórico'], ['tricalcium phosphate', 'fosfato tricálcico'], ['disodium diphosphate', 'difosfato disódico'],
+  ['inulin', 'inulina'], ['malic acid', 'ácido málico'],
+  ['phosphoric acid', 'acide phosphorique'], ['tricalcium phosphate', 'phosphate tricalcique'], ['malic acid', 'acide malique'],
+  ['phosphoric acid', 'acido fosforico'], ['monosodium glutamate', 'glutammato monosodico'], ['disodium guanylate', 'guanilato disodico'],
+  ['disodium inosinate', 'inosinato disodico'], ['malic acid', 'acido malico'], ['tricalcium phosphate', 'fosfato tricalcico'],
+  ['isomalt', 'isomalte'], ['skim milk powder', 'leite magro em pó'],
+  ['sunflower oil', 'solrosfröolja'], ['carrageenan', 'karragenan'], ['lactic acid', 'mjölksyra'], ['tricalcium phosphate', 'trikalciumfosfat'],
+  ['sucralose', 'substancja słodząca: sukraloza'], ['cyclamate', 'cyklaminiany'], ['acidity regulator', 'środek zakwaszający'],
+  ['brown sugar', 'brązowy cukier trzcinowy'], ['ascorbic acid', 'kwas askorbinowy'], ['locust bean gum', 'mączka chleba świętojańskiego'],
+  ['acesulfame k', 'asesülfam k'], ['mono- and diglycerides of fatty acids', 'yağ asitlerinin mono ve digliseritleri'],
+  ['gellan gum', 'jellan gam'], ['guar gum', 'guar gam'], ['ascorbic acid', 'askorbik asit'], ['lactic acid', 'laktik asit'],
+  ['glycerol esters of wood rosin', 'ağaç reçinesinin gliserol esterleri'], ['tricalcium phosphate', 'trikalsiyum fosfat'],
+  ['disodium diphosphate', 'disodyum difosfat'], ['inulin', 'inülin'], ['rapeseed', 'kanola'], ['caramel', 'karamel'], ['gum arabic', 'akasya gamı'],
+  ['sugar', 'sugar*'], ['cane sugar', 'cane sugar #'], ['sugar', 'sucre*'], ['sugar', 'cukier trzcinowy*'], ['hazelnuts 13%', 'hazelnuts %13'],
+];
+
+test('words from real labels in every store language score like their English twins', () => {
+  for (const [en, other] of REAL_LABEL_PAIRS) {
+    const a = score(`water, ${en}`), b = score(`water, ${other}`);
+    assert.deepEqual(reasons(b).sort(), reasons(a).sort(), `${other} vs ${en}`);
+    assert.equal(b.score, a.score, `${other} vs ${en}`);
+  }
+});
