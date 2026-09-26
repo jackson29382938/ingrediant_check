@@ -622,8 +622,10 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'ic-smoke-'));
   const context = await pw.chromium.launchPersistentContext(profile, {
     headless: true, ...(executablePath ? { executablePath } : { channel: 'chromium' }),
-    args: [`--disable-extensions-except=${root}`, `--load-extension=${root}`, '--headless=new'],
+    args: [`--disable-extensions-except=${root}`, `--load-extension=${root}`, '--headless=new',
+      `--host-resolver-rules=MAP www.amazon.com 127.0.0.1:${AMAZON_PORT}, MAP * ~NOTFOUND`],
   });
+  await new Promise(r => amazonSnapshots.listen(AMAZON_PORT, '127.0.0.1', r));
   try {
     const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker', { timeout: 20000 });
     const id = new URL(worker.url()).host;
@@ -647,10 +649,66 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
       await page.close();
     }
     console.log(`  ok  extension → service worker started with every module; ${pages.length} pages open without errors`);
+    await amazonEndToEnd(context, worker, pageErrors);
   } finally {
     await context.close();
     fs.rmSync(profile, { recursive: true, force: true });
+    await new Promise(r => amazonSnapshots.close(r));
   }
+}
+
+// The real content scripts on saved Amazon markup (tests/pages/): Chromium sends www.amazon.com to a
+// local server and every other host nowhere (--host-resolver-rules in extensionSmoke), and the
+// manifest matches http:// Amazon URLs too. Every /dp/ page is the oats snapshot except the shampoo.
+const AMAZON_PORT = PORT + 1;
+const SHAMPOO = 'B00SHAMPOO';
+const amazonSnapshots = createServer((req, res) => {
+  const url = new URL(req.url, 'http://www.amazon.com');
+  const file = url.pathname === '/s' ? 'us-s-grocery.html'
+    : url.pathname === `/dp/${SHAMPOO}` ? 'us-dp-shampoo.html'
+      : /^\/dp\/[A-Z0-9]{10}$/.test(url.pathname) ? 'us-dp-oats.html' : '';
+  if (!file) { res.writeHead(404); res.end(); return; }
+  res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+  res.end(fs.readFileSync(path.join(root, 'tests', 'pages', file)));
+});
+
+async function amazonEndToEnd(context, worker, pageErrors) {
+  const open = async url => {
+    const page = await context.newPage();
+    page.on('pageerror', err => pageErrors.push(`${url}: uncaught ${err.message}`));
+    page.on('console', message => { if (message.text().includes('[AIR]')) pageErrors.push(`${url}: ${message.text()}`); });
+    await page.goto(url, { waitUntil: 'load', timeout: 20000 });
+    return page;
+  };
+  const panelState = page => page.waitForFunction(() => {
+    const host = document.getElementById('air-score-panel');
+    return host && host.dataset.airState && host.dataset.airState !== 'loading' && host.dataset.airState;
+  }, { timeout: 15000 }).then(h => h.jsonValue());
+
+  const oats = await open('http://www.amazon.com/dp/B0OATSTEST');
+  const oatsState = await panelState(oats);
+  if (oatsState !== 'scored') throw new Error(`real content script on the oats page: ${oatsState}`);
+  const badge = await worker.evaluate(async () => {
+    const [tab] = await chrome.tabs.query({ url: '*://www.amazon.com/dp/B0OATSTEST' });
+    return chrome.action.getBadgeText({ tabId: tab.id });
+  });
+  if (!/^\d+$/.test(badge)) throw new Error(`toolbar badge on the oats page: "${badge}"`);
+  await oats.close();
+
+  const shampoo = await open(`http://www.amazon.com/dp/${SHAMPOO}`);
+  const shampooState = await panelState(shampoo);
+  if (shampooState !== 'not-food') throw new Error(`real content script on the shampoo page: ${shampooState}`);
+  await shampoo.close();
+
+  // "Rate every search result" is on by default: the badge queue requests each tile's product page.
+  const search = await open('http://www.amazon.com/s?k=rolled+oats');
+  await search.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  const badges = await search.waitForFunction(() => {
+    const n = [...document.querySelectorAll('.air-badge')].filter(b => /^\d+$/.test(b.textContent.trim())).length;
+    return n >= 2 && n;
+  }, { timeout: 20000 }).then(h => h.jsonValue());
+  await search.close();
+  console.log(`  ok  extension on saved Amazon pages → oats scored (toolbar ${badge}), shampoo not food, ${badges} results rated through the badge queue`);
 }
 
 run().catch(err => {
