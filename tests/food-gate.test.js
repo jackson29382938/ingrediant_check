@@ -223,6 +223,10 @@ check('line-sweep heading matches localised labels', () => {
   assert.ok(extract.LINE_BLOCK.test('Ingredientes\nagua, azucar, sal, aceite vegetal\nInformación nutricional'));
   assert.ok(extract.LINE_BLOCK.test('Ingrediënten\nwater, suiker, zout\nVoedingswaarde'));
   assert.ok(extract.LINE_BLOCK.test('Składniki\nwoda, cukier, sól\nWartość odżywcza'));
+  assert.ok(extract.LINE_BLOCK.test('Skład\nwoda, cukier, sól\nWartość odżywcza'));
+  assert.equal(extract.LINE_INLINE.exec('Skład: mąka pszenna, cukier, olej rzepakowy')[1], 'mąka pszenna, cukier, olej rzepakowy');
+  assert.equal(extract.LINE_BLOCK.exec('Ingredientes\nfarinha de trigo, açúcar, sal\nInformação nutricional\nValor energético 120 kcal')[1].trim(),
+    'farinha de trigo, açúcar, sal', 'the Portuguese nutrition heading ends the list');
 });
 
 check('inline Ingredients: lists extract from detail bullets', () => {

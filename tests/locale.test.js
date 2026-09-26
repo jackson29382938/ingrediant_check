@@ -16,7 +16,7 @@ const check = (name, fn) => {
 };
 
 console.log('ingredient headings');
-for (const heading of ['Ingredients', 'Ingredienser', 'İçindekiler', 'Icindekiler', '原材料']) {
+for (const heading of ['Ingredients', 'Ingredienser', 'İçindekiler', 'Icindekiler', '原材料', 'Skład', 'Składniki']) {
   check(`recognises "${heading}"`, () => {
     assert.ok(extract.INGREDIENT_HEADING.test(heading), `missed ${heading}`);
     assert.ok(extract.INGREDIENT_HEADING.test(heading + ':'), `missed ${heading}:`);
