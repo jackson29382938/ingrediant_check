@@ -117,6 +117,27 @@ async function run() {
       await page.click('button[data-fx="none"]');
       await page.waitForFunction(() => /extract failed/i.test(document.getElementById('verdict')?.textContent || ''), { timeout: 8000 });
       console.log('  ok  panel none → paste / failure');
+
+      // Every panel state, rendered into the page so the contrast check can read it (on Amazon it
+      // sits in a closed shadow root). Disabled controls are exempt, as WCAG allows.
+      await page.evaluate(() => {
+        const box = document.createElement('div');
+        box.id = 'contrast-panels';
+        const result = AIR.engine.score({ name: 'Cereal', ingredients_text: 'sugar, corn, red 40, natural flavors, bht, milk',
+          labels: 'USDA Organic' }, { allergens: ['milk'] });
+        box.innerHTML = [
+          AIR.panel.render(result, { title: 'Cereal', confidence: 0.6, via: 'label-ocr' }),
+          AIR.panel.renderFailure({ title: 'Kefir', ocrAttempted: true, lowCoverage: true }),
+          AIR.panel.renderNotFood({ title: 'Shampoo', ingestible: { ok: false, reason: 'Beauty', negatives: ['shampoo'] } }),
+          AIR.panel.renderLoading({ title: 'Oats', ocr: true, slow: true }),
+          AIR.panel.renderBreakdown(result, { asin: 'B000000001', score: result.score, verdict: result.verdict, detail: 'full' }),
+        ].join('');
+        box.querySelectorAll('[hidden]').forEach(el => { el.hidden = false; });
+        document.body.append(box);
+      });
+      const panelContrast = await page.evaluate(contrastProblems, '#contrast-panels');
+      if (panelContrast.length) throw new Error(`panel contrast:\n  ${panelContrast.join('\n  ')}`);
+      console.log('  ok  panel → every state meets text contrast');
     });
 
     await withPage(browser, `${base}/tests/harness-lifecycle.html`, async page => {
@@ -706,7 +727,7 @@ async function checkTabs(page, name) {
 
 // Runs in the page. Visible text below WCAG AA contrast against the nearest opaque background behind
 // it: 4.5:1, or 3:1 for large text. Disabled and paused controls are exempt, as WCAG allows.
-function contrastProblems() {
+function contrastProblems(scope = 'body') {
   const parse = c => {
     const m = String(c).match(/rgba?\(([^)]+)\)/);
     if (!m) return null;
@@ -721,7 +742,7 @@ function contrastProblems() {
     return { r: 255, g: 255, b: 255, a: 1 };
   };
   const out = new Set();
-  for (const el of document.querySelectorAll('body *')) {
+  for (const el of document.querySelectorAll(`${scope} *`)) {
     if (!(el.offsetWidth || el.offsetHeight)) continue;
     if (![...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) continue;
     const cs = getComputedStyle(el);
