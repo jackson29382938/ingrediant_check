@@ -80,10 +80,12 @@ function imageCandidates(doc, limit = 8) {
   return out;
 }
 
-// The block a label prints under Ingredients / Zutaten / Ingredientes / …. Same heading set as
+// The block a label prints under Ingredients / Zutaten / Ingredientes / …. Polish "Skład" only with
+// its colon: bare, it starts "składowania" (storage). Same heading set as
 // extract.js. Longer locale forms come before English `ingredients?` so INGREDIENTES is not
-// truncated to INGREDIENTE + leftover "S:".
-const BLOCK = /(?:ingredientes|ingredi[eë]nten|ingr[eé]dients?|zutaten|ingredienti|sk[łl]adniki|ingredienser|[iİ][çc]indekiler|原材料|ingredients?)\s*[:.-]?\s*([\s\S]{8,6000}?)(?=\s*(?:ALLERGEN|CONTAINS\s*:|MAY\s+CONTAIN|DISTRIBUTED|MANUFACTURED|PRODUCED\s+(?:BY|FOR)|PACKED\s+(?:BY|FOR)|KEEP\s+(?:REFRIGERATED|FROZEN)|REFRIGERATE|NUTRITION|N[ÄA]HRWERT|VALEURS\s+NUTRITIONNELLES|BEST\s+(?:BY|BEFORE)|QUESTIONS|WWW\.|HTTP|$))/i;
+// truncated to INGREDIENTE + leftover "S:", nor INGREDIENTI to INGREDIENT + "I:". Turkish puts the
+// allergen before "içerebilir" (may contain), so the list ends at the sentence that says it.
+const BLOCK = /(?:ingredientes|ingredienti|ingredi[eë]nten|ingr[eé]dients?|zutaten|sk[łl]adniki|sk[łl]ad(?=\s*:)|ingredienser|[iİ][çc]indekiler|原材料|ingredients?)\s*[:.-]?\s*([\s\S]{8,6000}?)(?=\s*(?:ALLERGEN|CONTAINS\s*:|MAY\s+CONTAIN|DISTRIBUTED|MANUFACTURED|PRODUCED\s+(?:BY|FOR)|PACKED\s+(?:BY|FOR)|KEEP\s+(?:REFRIGERATED|FROZEN)|REFRIGERATE|NUTRITION|N[ÄA]HRWERT|VALEURS\s+NUTRITIONNELLES|BEST\s+(?:BY|BEFORE)|QUESTIONS|WWW\.|HTTP|KANN\s+SPUREN|PEUT\s+CONTENIR|[ÀA]\s+CONSERVER|PUEDE\s+CONTENER|INFORMACI[ÓO]N\s+NUTRICIONAL|PU[ÒO]\s+CONTENERE|VALORI\s+NUTRIZIONALI|CONSERVARE|KAN\s+SPOREN|BEWAREN|VOEDINGSWAARDE|PODE\s+CONTER|INFORMA[ÇC][ÃA]O\s+NUTRICIONAL|KAN\s+INNEH[ÅA]LLA|F[ÖO]RVARA|N[ÄA]RINGSV[ÄA]RDE|MO[ŻZ]E\s+ZAWIERA|PRZECHOWYWA|WARTO[ŚS][ĆC]\s+OD[ŻZ]YWCZA|\.\s+[^.,]{1,40}?\s+[İI][ÇC]EREB[İI]L[İI]R|BES[İI]N\s+DE[ĞG]ERLER|SER[İI]N\s+VE|$))/i;
 
 // OCR noise that is safe to remove: it never carries meaning, and leaving it in only lowers the
 // recognition coverage the engine measures. Nothing here rewrites a WORD into another word —

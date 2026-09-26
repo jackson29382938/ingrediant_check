@@ -228,5 +228,20 @@ check('the Lifeway label scores the same from OCR as from Open Food Facts', () =
   assert.ok(fromOcr.score < 40, `OCR route scored ${fromOcr.score}; the blurb scored 86`);
 });
 
+check('label photos in every store language end the list where the label does', () => {
+  const cases = [
+    ['SKŁAD: mąka pszenna, cukier, olej rzepakowy, sól, drożdże. Przechowywać w suchym miejscu', 'mąka pszenna, cukier, olej rzepakowy, sól, drożdże'],
+    ['Ingredienser: vetemjöl, socker, rapsolja, salt. Kan innehålla spår av nötter. Förvaras torrt', 'vetemjöl, socker, rapsolja, salt'],
+    ['İçindekiler: buğday unu, şeker, ayçiçek yağı, tuz. Fındık içerebilir. Serin ve kuru yerde saklayınız', 'buğday unu, şeker, ayçiçek yağı, tuz'],
+    // "Ingredienti" used to lose its "i" to the French/English heading and start the list with "i:".
+    ['Ingredienti: farina di grano tenero, zucchero, olio di girasole, sale. Può contenere tracce di latte', 'farina di grano tenero, zucchero, olio di girasole, sale'],
+    ['Ingrédients : farine de blé, sucre, conservateur : sorbate de potassium. Peut contenir des traces de lait', 'farine de blé, sucre, conservateur : sorbate de potassium'],
+    ['Ingrediënten: tarwebloem, suiker, zout. Kan sporen van noten bevatten', 'tarwebloem, suiker, zout'],
+  ];
+  for (const [text, want] of cases) assert.strictEqual(ocr.ingredientsFromOcr(text), want, text.slice(0, 20));
+  assert.strictEqual(ocr.ingredientsFromOcr('Warunki składowania w suchym i chłodnym miejscu, chronić przed światłem'), null,
+    '"składowania" (storage) is not the Skład heading');
+});
+
 if (failed) { console.error('\n' + failed + ' failed'); process.exit(1); }
 console.log('\nall passed');
