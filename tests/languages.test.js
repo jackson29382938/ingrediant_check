@@ -5,11 +5,12 @@
 // (tests/corpus.json `_comment`). docs/ACCURACY.md reports the same table; it must not claim more
 // than this file can see.
 //
-// Second, pin the behaviour on storefronts whose language has no synonym pack (amazon.se, .pl,
-// .com.tr, .co.jp). The rulebase cannot read those lists, and the coverage gate in
-// src/content/page.js is the only thing standing between them and a confident wrong number. The
+// Second, pin the behaviour on storefronts whose language has no synonym pack (amazon.com.tr,
+// .co.jp). The rulebase cannot read those lists, and the coverage gate in src/content/page.js is the
+// only thing standing between them and a confident wrong number. Swedish and Polish had no pack
+// either until 2026-09-26; their twins now score exactly like English (tests/synonyms.test.js). The
 // twins below are SYNTHETIC translations of English lists, not captured labels: they prove the gate
-// declines, not that the language is supported.
+// declines, or the words map, not that real labels score well.
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
@@ -75,7 +76,7 @@ test('the coverage gate stays where the corpus was calibrated', () => {
     'tests/corpus.test.js checks coverage against a different gate than the content script');
 });
 
-// English list first, then synthetic translations into storefront languages with no synonym pack.
+// English list first, then synthetic translations into storefront languages.
 const TWINS = {
   chips: {
     en: 'Potatoes, sunflower oil, salt, flavour enhancer (E621), dextrose',
@@ -127,22 +128,26 @@ test('a list in an unsupported language is declined, or scored like its English 
   }
 });
 
-test('Swedish chips stay declined: the sunflower-oil cap is invisible in Swedish', () => {
-  // Measured near miss. "solrosolja" matches no oil rule, so the list reads as 33% recognised, one
-  // point under the gate, and if it were shown it would score 46 against the capped 25 of its
-  // English twin. One more recognised word, or a slightly lower gate, and that number is shown.
-  const sv = score(TWINS.chips.sv), en = score(TWINS.chips.en);
-  assert.ok(declined(sv), `sv chips cleared the gate at ${sv.coverage}`);
-  assert.ok(en.cap && !sv.cap, 'the Swedish list now caps: add it as a supported twin instead');
-  assert.ok(sv.score - en.score > 15, 'the gap this test guards has closed; revisit the note above');
+test('Swedish and Polish twins are read and score exactly like English', () => {
+  // The Swedish chips were the measured near miss: "solrosolja" matched no oil rule, the list read as
+  // 33% recognised, one point under the gate, and it would have scored 46 against the capped 25 of
+  // its English twin. With the Swedish and Polish words mapped, every twin clears the gate and gets
+  // the English score and cap.
+  for (const [name, byLang] of Object.entries(TWINS)) {
+    const en = score(byLang.en);
+    for (const lang of ['sv', 'pl']) {
+      if (!byLang[lang]) continue;
+      const r = score(byLang[lang]);
+      assert.ok(!declined(r), `${name}/${lang} declined at ${r.coverage}`);
+      assert.equal(r.score, en.score, `${name}/${lang}`);
+      assert.equal(r.cap, en.cap, `${name}/${lang} cap`);
+    }
+  }
 });
 
 test('clean lists in unsupported languages are declined rather than called clean', () => {
-  // Nothing on a Swedish or Polish muesli matches a rule, so unrecognised text would otherwise
-  // read as a clean list. Declining is the honest answer until a language pack exists.
-  for (const lang of ['sv', 'pl']) {
-    const r = score(TWINS.muesli[lang]);
-    assert.ok(declined(r), `muesli/${lang} scored ${r.score} at ${r.coverage} coverage`);
-  }
+  // Nothing on a Japanese list matches a rule, so unrecognised text would otherwise read as a clean
+  // list. Declining is the honest answer until a language pack exists.
   assert.ok(declined(score(TWINS.candy.ja)), 'a Japanese list must be declined');
+  assert.ok(declined(score('Patates, ayçiçek yağı, tuz')), 'a Turkish list with no code must be declined');
 });

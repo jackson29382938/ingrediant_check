@@ -293,10 +293,24 @@ const COMMON_PANEL = new RegExp('\\b(?:' + [
   // Colours from food, which no rule charges. Without them "Annatto (color)" read as an unnamed
   // colour next to an unrecognised word, and "beta carotene" lowered coverage on a clean list.
   'annatto|carotenes?|carotenoids?|beet(?:root)? (?:juice|powder|red)|anthocyanins?|lycopene|curcumin|chlorophyll(?:in)?|carmine|cochineal|riboflavin|lutein|paprika (?:extract|oleoresin)|spirulina extract|caramel',
+  // Swedish and Polish staples. Words that begin with a letter outside ASCII (äpple, śmietanka,
+  // łosoś) follow the list, with explicit boundaries, because `\\b` cannot see those letters. Generic
+  // words (olja, olej, mjöl, mąka, syra, kwas) are left out on purpose: "olej bawełniany" or "kwas
+  // sorbowy" would then count as read while no rule charged them.
+  'vatten|woda|havre|havregryn|havremj[öo]l|owies|owsiane|p[łl]atki|kakao|kulturer|kultury|bakterie|mleko|mleka|mleczn\\w*|dro[żz]d[żz]e|j[äa]st',
+  'potatis|ziemniaki|ziemniaczan\\w*|tomater|tomatpur[ée]|pomidory|pomidorow\\w*|vitl[öo]k|czosnek|cebula|basilika|bazylia|oregano|persilja|pietruszka|peppar|pieprz|kanel|cynamon|ingef[äa]ra|imbir|paprika|papryka|kryddor|przyprawy',
+  'russin|rodzynki|hasseln[öo]tter|mandlar|orzechy|migda[łl]y|solrosfr[öo]n|pumpafr[öo]n|nasiona|pestki|sesamfr[öo]n|sezam|jab[łl]ka|jab[łl]ko|jordgubbar|truskawki|hallon|maliny|bl[åa]b[äa]r|jagody|citron|cytryna|banan|banany|apelsin|pomara[ńn]cz\\w*',
+  'gr[äa]dde|mj[öo]lk|skummj[öo]lk|helmj[öo]lk|mj[öo]lkpulver|\\w*mj[öo]lkspulver|ost|ser|mas[łl]o|jogurt|yoghurt|smetana|vassle|serwatka|jaja|jajka|honung|mi[óo]d|kakaosm[öo]r|kakaomassa|miazga kakaowa|t[łl]uszcz kakaowy',
+  'pektin|pektyna|pektyny|koffein|kofeina|kolsyra|kolsyrat|gazowana|natriumbikarbonat|natriumv[äa]tekarbonat|bakpulver|wodorow[ęe]glan sodu|proszek do pieczenia|substancj[ae] spulchniaj[ąa]c[ae]|spulchniacz|j[äa]stpulver',
+  'ris|ry[żz]|majs|kukurydza|kli|otr[ęe]by|b[öo]nor|fasola|linser|soczewica|kik[äa]rtor|ciecierzyca|groch|soja',
+  'kyckling|kurczak|n[öo]tk[öo]tt|wo[łl]owina|fl[äa]sk|wieprzowina|lax|fisk|ryba|r[äa]kor|krewetki',
+  'palmolja|olej palmowy|kokosolja|olej kokosowy|olivolja|oliwa z oliwek|sm[öo]r',
+  'emulgeringsmedel|stabiliseringsmedel|f[äa]rg[äa]mne|barwnik|surhetsreglerande medel|regulator kwasowo[śs]ci|smakf[öo]rst[äa]rkare|wzmacniacz smaku|konserveringsmedel|konserwant',
   // Benign E-numbers, so an EU list written in codes is still recognised as a list. Every E-number
   // that a rule charges is recognised through that rule; these are the ones nothing charges.
   'e[- ]?(?:100|120|14[01]|16[0-3][a-i]?|262|32[5-7]|33[1-3]|40[1-6]|440|50[0-4]|50[89]|524|57[45]|901|903|941|948)',
-].join('|') + ')\\b', 'i');
+].join('|') + ')\\b'
+  + '|(?<![a-zà-ÿ\\u0100-\\u017f])(?:ägg|äggula|äggvita|äpple|äpplen|ärtor|ärter|[śs]mietan[a-zà-ÿ\\u0100-\\u017f]*|łoso[śs]|żyto)(?![a-zà-ÿ\\u0100-\\u017f])', 'i');
 
 // Marketing qualifiers in front of an ingredient carry no scoring information, but most sugar and
 // sweetener rules are anchored at the start of the entry — so "organic agave nectar" matched nothing

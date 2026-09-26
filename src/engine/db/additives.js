@@ -71,24 +71,27 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
 
   // ---------------------------------------------------------------- flavour & glutamates
   const FLAVOURS = [
-    { m: /\bartificial (and natural )?flavou?rs?\b/i,     pts: 18, why: 'Artificial flavour' },
-    { m: /\bnatural (and artificial )?flavou?rs?\b/i,     pts: 15, cat: 'naturalFlavour', why: '"Natural flavors" — an undisclosed proprietary blend, not a food' },
-    { m: /\bnatural [a-z]+ flavou?rs?\b/i,                pts: 15, cat: 'naturalFlavour', why: '"Natural flavor" — undisclosed proprietary flavour compound' },
+    { m: /\bartificial (and natural )?flavou?r(?:ing)?s?\b/i,     pts: 18, why: 'Artificial flavour' },
+    { m: /\bnatural (and artificial )?flavou?r(?:ing)?s?\b/i,     pts: 15, cat: 'naturalFlavour', why: '"Natural flavors" — an undisclosed proprietary blend, not a food' },
+    { m: /\bnatural [a-z]+ flavou?r(?:ing)?s?\b/i,                pts: 15, cat: 'naturalFlavour', why: '"Natural flavor" — undisclosed proprietary flavour compound' },
   // Mirror of the natural-flavour catch-all. Without it "artificial butter flavor" and
   // "artificial vanilla flavor" slipped past every flavour rule entirely.
-  { m: /\bartificial [a-z]+ flavou?rs?\b/i,             pts: 18, why: 'Artificial flavour compound' },
-    // Bare "flavor" / "flavors" is the same undisclosed blend without the adjective.
-    { m: /\bflavou?ring\b|^flavou?rs?$|\bsaborizantes?\b|\baromatizantes?\b|\bsabor (?:natural|artificial|id[ée]ntico al natural)\b/i, pts: 12, why: 'Unspecified flavouring' },
-    // The same undisclosed blend on Spanish, French, German, Italian, Portuguese and Dutch panels.
+  { m: /\bartificial [a-z]+ flavou?r(?:ing)?s?\b/i,             pts: 18, why: 'Artificial flavour compound' },
+    // Bare "flavor" / "flavors" is the same undisclosed blend without the adjective. UK labels print
+    // "flavourings", which matched no rule at all, and "natural flavourings" neither.
+    { m: /(?<!\b(?:natural|artificial)(?: and (?:natural|artificial))?(?: [a-z]+)? |\bsmoke )\bflavou?rings?\b|^flavou?rs?$|\bsaborizantes?\b|\baromatizantes?\b|\bsabor (?:natural|artificial|id[ée]ntico al natural)\b/i, pts: 12, why: 'Unspecified flavouring' },
+    // The same undisclosed blend on Spanish, French, German, Italian, Portuguese, Dutch, Swedish and
+    // Polish panels. A qualifier in front ("natürliches Aroma", "naturliga aromer", "naturalny
+    // aromat") is charged once, as natural or artificial: the bare-word rule used to charge it again.
     // Same `why` as the English rules on purpose: a bilingual label lists "natural flavour /
     // arôme naturel" and must be charged once, and `seen` de-duplicates by reason.
-    { m: /\b(?:aromas?|ar[ôo]mes?|aromen|aromi)\s+(?:artificial(?:es)?|artificiels?|k[üu]nstlich\w*|artificial[ei]|kunstmatig\w*)\b|\bk[üu]nstliche[sn]?\s+aroma\b|\bkunstmatig(?:e)?\s+aroma\b/i, pts: 18, why: 'Artificial flavour' },
-    { m: /\b(?:aromas?|ar[ôo]mes?|aromen|aromi)\s+(?:natural(?:es)?|naturels?|naturali|natuurlijk\w*)\b|\bnat[üu]rliche[sn]?\s+aroma\b|\bnatuurlijk(?:e)?\s+aroma\b/i, pts: 15, cat: 'naturalFlavour', why: '"Natural flavors" — an undisclosed proprietary blend, not a food' },
-    { m: /\b(?:aromas?|ar[ôo]mes?|aromen|aromi)\b(?!\s+(?:natural|naturel|artificial|artificiel|k[üu]nstlich|kunstmatig|natuurlijk))/i, pts: 12, why: 'Unspecified flavouring' },
-    { m: /\bmonosodium glutamate\b|\bmsg\b|\be[- ]?62[0-5]\b|\bglutamic acid\b|\b(?:mono)?potassium glutamate\b|\bcalcium diglutamate\b|\bglutamato monos[óo]dico\b|\bglutamate monosodique\b|\bglutamato monoss[óo]dico\b/i, pts: 16, why: 'MSG' },
-    { m: /\b(autolyzed )?yeast extract\b|\bextracto de levadura\b|\bextrait de levure\b|\bhefeextrakt\b|\bestratto di lievito\b|\bextrato de levedura\b|\bgistextract\b/i, pts: 14, why: 'Yeast extract — MSG under another name' },
+    { m: /\b(?:aromas?|ar[ôo]mes?|aromen|aromi|aromat(?:y)?)\s+(?:artificial(?:es)?|artificiels?|k[üu]nstlich\w*|artificial[ei]|kunstmatig\w*|sztuczn\w*)\b|\bk[üu]nstliche[sn]?\s+aroma\b|\bkunstmatig(?:e)?\s+aroma\b|\bkonstgjorda?\s+arom(?:er)?\b|\bsztuczn[ey]\s+aromat(?:y)?\b/i, pts: 18, why: 'Artificial flavour' },
+    { m: /\b(?:aromas?|ar[ôo]mes?|aromen|aromi|aromat(?:y)?)\s+(?:natural(?:es)?|naturels?|naturali|naturale|natuurlijk\w*|naturaln\w*)\b|\bnat[üu]rliche[sn]?\s+aroma\b|\bnatuurlijk(?:e)?\s+aroma\b|\bnaturliga?\s+arom(?:er)?\b|\bnaturaln[ey]\s+aromat(?:y)?\b/i, pts: 15, cat: 'naturalFlavour', why: '"Natural flavors" — an undisclosed proprietary blend, not a food' },
+    { m: /(?<!\b(?:nat[üu]rliche[sn]?|natuurlijke?|naturliga?|naturaln[ey]|k[üu]nstliche[sn]?|kunstmatige?|konstgjorda?|sztuczn[ey])\s+)\b(?:aromas?|ar[ôo]mes?|aromen|aromi|arom|aromer|aromat|aromaty)\b(?!\s+(?:natural|naturel|artificial|artificiel|k[üu]nstlich|kunstmatig|natuurlijk|naturaln|sztuczn))/i, pts: 12, why: 'Unspecified flavouring' },
+    { m: /\bmonosodium glutamate\b|\bmsg\b|\be[- ]?62[0-5]\b|\bglutamic acid\b|\b(?:mono)?potassium glutamate\b|\bcalcium diglutamate\b|\bglutamato monos[óo]dico\b|\bglutamate monosodique\b|\bglutamato monoss[óo]dico\b|\bmononatriumglutamat\b|\bglutaminian (?:mono)?sodu\b/i, pts: 16, why: 'MSG' },
+    { m: /\b(autolyzed )?yeast extract\b|\bextracto de levadura\b|\bextrait de levure\b|\bhefeextrakt\b|\bestratto di lievito\b|\bextrato de levedura\b|\bgistextract\b|\bj[äa]stextrakt\b|\bekstrakt (?:z )?dro[żz]d[żz]\w*/i, pts: 14, why: 'Yeast extract — MSG under another name' },
     { m: /\bdisodium (inosinate|guanylate|5'?[- ]?ribonucleotides?)\b|\b(?:di)?potassium (inosinate|guanylate)\b|\be[- ]?6(?:2[6-9]|3[0-5])\b/i, pts: 12, why: 'Ribonucleotide flavour enhancer' },
-    { m: /\bvanillin\b|\bvainillina\b|\bvanilline\b|\bvanillina\b|\bvaniline\b|\bvanilina\b/i, pts: 10, why: 'Vanillin — synthetic vanilla' },
+    { m: /\bvanillin\b|\bvainillina\b|\bvanilline\b|\bvanillina\b|\bvaniline\b|\bvanilina\b|\bwanilina\b/i, pts: 10, why: 'Vanillin — synthetic vanilla' },
     { m: /\bethyl vanillin\b/i,                           pts: 12, why: 'Ethyl vanillin' },
     // "natural smoke flavor" is charged once, by the natural-flavour rule above.
     { m: /(?<!natural |artificial )\bsmoke flavou?r(ing)?\b/i, pts: 8,  why: 'Liquid smoke flavouring' },
@@ -108,19 +111,19 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\b(carboxymethyl ?)?cellulose gum\b|\be[- ]?46[6-9]\b/i, pts: 12, why: 'Cellulose gum' },
     { m: /\bmicrocrystalline cellulose\b|\be[- ]?460\b/i,            pts: 10, why: 'Microcrystalline cellulose — wood pulp filler' },
     { m: /\bpowdered cellulose\b/i,                    pts: 10, why: 'Powdered cellulose' },
-    { m: /\bxanthan gum\b|\bgoma xantana\b|\bgomme xanthane\b|\bxanthan\b|\be[- ]?415\b/i,                  pts: 9,  why: 'Xanthan gum' },
+    { m: /\bxanthan gum\b|\bgoma xantana\b|\bgomme xanthane\b|\bxanthan\b|\bxantangummi\b|\bguma ksantanowa\b|\be[- ]?415\b/i,                  pts: 9,  why: 'Xanthan gum' },
     { m: /\bguar gum\b|\bgoma guar\b|\bgomme (de )?guar\b|\bguarkernmehl\b|\be[- ]?412\b/i,                     pts: 8,  why: 'Guar gum' },
     { m: /\bgellan gum\b|\bgoma gellan\b|\bgomme gellane\b|\bgellangummi\b|\bgomma gellan\b|\bgoma gelana\b|\bgellangom\b|\be[- ]?418\b/i, pts: 9,  why: 'Gellan gum' },
     { m: /\blocust bean gum\b|\bcarob (bean )?gum\b|\bjohannisbrotkernmehl\b|\bgoma (?:garrof[íi]n|de algarrobo)\b|\bgomme (?:de )?caroube\b|\bfarina di carrube\b|\be[- ]?410\b/i, pts: 7,  why: 'Locust bean gum' },
     { m: /\btara gum\b|\be[- ]?417\b/i,                              pts: 8,  why: 'Tara gum' },
     { m: /\bacacia gum\b|\bgum acacia\b|\bgum arabic\b|\bgoma ar[áa]biga\b|\bgomme arabique\b|\bgummi arabicum\b|\bgomma arabica\b|\bgoma ar[áa]bica\b|\barabische gom\b|\be[- ]?414\b/i, pts: 5,  why: 'Gum arabic' },
-    { m: /\bsoy lecithin\b|\blecitina de soja\b|\bl[ée]cithine de soja\b|\bsojalecithin\b|\blecitina di soia\b|\bsojalecithine\b/i, pts: 9,  why: 'Soy lecithin — hexane-extracted emulsifier' },
-    { m: /\bsunflower lecithin\b|\blecitina de girasol\b|\bl[ée]cithine de tournesol\b|\bsonnenblumenlecithin\b|\blecitina di girasole\b|\blecitina de girassol\b|\bzonnebloemlecithine\b/i, pts: 4,  why: 'Sunflower lecithin' },
+    { m: /\bsoy lecithin\b|\blecitina de soja\b|\bl[ée]cithine de soja\b|\bsojalecithin\b|\blecitina di soia\b|\bsojalecithine\b|\bsojalecitin\b|\blecytyn[ay]? sojow[ae]\b|\bsojowa lecytyna\b/i, pts: 9,  why: 'Soy lecithin — hexane-extracted emulsifier' },
+    { m: /\bsunflower lecithin\b|\blecitina de girasol\b|\bl[ée]cithine de tournesol\b|\bsonnenblumenlecithin\b|\blecitina di girasole\b|\blecitina de girassol\b|\bzonnebloemlecithine\b|\bsolroslecitin\b|\blecytyn[ay]? s[łl]onecznikow[ae]\b/i, pts: 4,  why: 'Sunflower lecithin' },
     // "Lecithin" with no source, or E322 — which is most EU chocolate. Between the two lecithins
     // above, because the source is exactly what the label declined to say.
-    { m: /^(?:lecithins?|lecitin[ae]s?|l[ée]cithines?|lecithine?)$|\be[- ]?322\b/i, pts: 7,  why: 'Lecithin — emulsifier, source not stated' },
-    { m: /\bmodified (food |corn |potato |tapioca |wheat )?starch\b|\be[- ]?14[0-5]\d\b|\balmid[óo]n modificado\b|\bamidon modifi[ée]\b|\bmodifizierte st[äa]rke\b|\bamido modificato\b|\bamido modificado\b|\bgemodificeerd zetmeel\b/i, pts: 14, why: 'Modified starch — chemically altered' },
-    { m: /\bmaltod[eé]xtrin[ae]?\b|\bmaltodestrina\b|\bmaltodextrine\b/i,  pts: 18, why: 'Maltodextrin — raises blood sugar faster than table sugar' },
+    { m: /^(?:lecithins?|lecitin[ae]s?|l[ée]cithines?|lecithine?|lecitin(?:er)?|lecytyn[ay]?)$|\be[- ]?322\b/i, pts: 7,  why: 'Lecithin — emulsifier, source not stated' },
+    { m: /\bmodified (food |corn |potato |tapioca |wheat )?starch\b|\be[- ]?14[0-5]\d\b|\balmid[óo]n modificado\b|\bamidon modifi[ée]\b|\bmodifizierte st[äa]rke\b|\bamido modificato\b|\bamido modificado\b|\bgemodificeerd zetmeel\b|\bmodifierad (?:majs|potatis|vete|tapioka)?st[äa]rkelse\b|\bskrobia (?:kukurydziana |ziemniaczana |pszenna |tapiokowa )?modyfikowana\b|\bmodyfikowana skrobia\b/i, pts: 14, why: 'Modified starch — chemically altered' },
+    { m: /\bmaltod[eé]xtrin[ae]?\b|\bmaltodestrina\b|\bmaltodextrine\b|\bmaltodekstryna\b/i,  pts: 18, why: 'Maltodextrin — raises blood sugar faster than table sugar' },
     { m: /\bcarboxymethyl\b/i,                         pts: 11, why: 'Carboxymethyl derivative' },
     { m: /\bpropylene glycol\b|\be[- ]?1520\b/i,                      pts: 14, why: 'Propylene glycol' },
     { m: /\bglycerin(e)?\b|\bglycerol\b|\bglicerina\b|\bglyc[ée]rine\b|\bglicerolo\b|\bglycerine\b|\be[- ]?422\b/i, pts: 6,  why: 'Glycerin humectant' },
@@ -128,11 +131,11 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
 
   // ---------------------------------------------------------------- preservatives
   const PRESERVATIVES = [
-    { m: /\b(sodium|potassium) (nitrite|nitrate)\b|\be[- ]?25[0-2]\b|\be[- ]?249\b|\bnitrito de sodio\b|\bnitrite de sodium\b|\bnatriumnitrit\b|\bnitrito di sodio\b|\bnitrito de s[óo]dio\b|\bnatriumnitriet\b/i, pts: 16, why: 'Synthetic nitrite — forms nitrosamines when heated' },
-    { m: /\b(sodium|potassium|calcium) benzoate\b|\bbenzoic acid\b|\be[- ]?21[0-3]\b|\bbenzoato de sodio\b|\bbenzoate de sodium\b|\bnatriumbenzoat\b|\bbenzoato di sodio\b|\bbenzoato de s[óo]dio\b|\bnatriumbenzoaat\b/i, pts: 13, why: 'Sodium benzoate' },
-    { m: /\b(potassium|calcium|sodium) sorbate\b|\be[- ]?20[1-3]\b|\bsorbato de potasio\b|\bsorbate de potassium\b|\bkaliumsorbat\b|\bsorbato di potassio\b|\bsorbato de pot[áa]ssio\b|\bkaliumsorbaat\b/i, pts: 11, why: 'Potassium sorbate' },
-    { m: /\bsorbic acid\b|(?:^|[^a-z])[aá]cido s[oó]rbico(?:$|[^a-z])|\bacide sorbique\b|\bsorbins[äa]ure\b|\bsorbinezuur\b|\be[- ]?200\b/i, pts: 10, why: 'Sorbic acid' },
-    { m: /\bcalcium propionate\b|\bpropionato de calcio\b|\bpropionate de calcium\b|\bcalciumpropionat\b|\bpropionato di calcio\b|\bpropionato de c[áa]lcio\b|\bcalciumpropionaat\b|\be[- ]?282\b/i, pts: 12, why: 'Calcium propionate' },
+    { m: /\b(sodium|potassium) (nitrite|nitrate)\b|\be[- ]?25[0-2]\b|\be[- ]?249\b|\bnitrito de sodio\b|\bnitrite de sodium\b|\bnatriumnitrit\b|\bnitrito di sodio\b|\bnitrito de s[óo]dio\b|\bnatriumnitriet\b|\bazotyn sodu\b/i, pts: 16, why: 'Synthetic nitrite — forms nitrosamines when heated' },
+    { m: /\b(sodium|potassium|calcium) benzoate\b|\bbenzoic acid\b|\be[- ]?21[0-3]\b|\bbenzoato de sodio\b|\bbenzoate de sodium\b|\bnatriumbenzoat\b|\bbenzoato di sodio\b|\bbenzoato de s[óo]dio\b|\bnatriumbenzoaat\b|\bnatriumbensoat\b|\bbensoesyra\b|\bbenzoesan sodu\b|\bkwas benzoesowy\b/i, pts: 13, why: 'Sodium benzoate' },
+    { m: /\b(potassium|calcium|sodium) sorbate\b|\be[- ]?20[1-3]\b|\bsorbato de potasio\b|\bsorbate de potassium\b|\bkaliumsorbat\b|\bsorbato di potassio\b|\bsorbato de pot[áa]ssio\b|\bkaliumsorbaat\b|\bsorbinian potasu\b/i, pts: 11, why: 'Potassium sorbate' },
+    { m: /\bsorbic acid\b|(?:^|[^a-z])[aá]cido s[oó]rbico(?:$|[^a-z])|\bacide sorbique\b|\bsorbins[äa]ure\b|\bsorbinezuur\b|\bsorbinsyra\b|\bkwas sorbowy\b|\be[- ]?200\b/i, pts: 10, why: 'Sorbic acid' },
+    { m: /\bcalcium propionate\b|\bpropionato de calcio\b|\bpropionate de calcium\b|\bcalciumpropionat\b|\bpropionato di calcio\b|\bpropionato de c[áa]lcio\b|\bcalciumpropionaat\b|\bkalciumpropionat\b|\bpropionian wapnia\b|\be[- ]?282\b/i, pts: 12, why: 'Calcium propionate' },
     { m: /\b(sodium|potassium) propionate\b|\bpropionic acid\b|\bsodium diacetate\b|\be[- ]?28[013]\b/i,          pts: 11, why: 'Sodium propionate' },
     { m: /\b(disodium |calcium (disodium )?)?edta\b|\be[- ]?38[56]\b/i,              pts: 14, why: 'EDTA — a chelating agent' },
     { m: /\bsulfur dioxide\b|\bsul(?:ph|f)ites?\b|\bsulfitos?\b|\bsolfiti\b|\bschwefeldioxid\b|\bsodium (bi|meta)?sul(?:ph|f)ite\b|\be[- ]?22[0-8]\b/i, pts: 12, why: 'Sulfites' },
@@ -144,8 +147,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
 
   // ---------------------------------------------------------------- acids, anticaking, misc aids
   const PROCESSING = [
-    { m: /\bphosphoric acid\b|\be[- ]?338\b/i,               pts: 14, why: 'Phosphoric acid — leaches calcium from bone' },
-    { m: /\bcitric acid\b|(?:^|[^a-z])[aá]cido c[ií]trico(?:$|[^a-z])|\bacide citrique\b|\bcitronens[äa]ure\b|\bcitroenzuur\b|\be[- ]?330\b/i, exemptIf: /\bfrom (lemons?|limes?|citrus|fruit)\b/i, pts: 5,  why: 'Industrial citric acid — usually mould-fermented, not citrus' },
+    { m: /\bphosphoric acid\b|\bfosforsyra\b|\bkwas (?:orto)?fosforowy\b|\be[- ]?338\b/i,               pts: 14, why: 'Phosphoric acid — leaches calcium from bone' },
+    { m: /\bcitric acid\b|(?:^|[^a-z])[aá]cido c[ií]trico(?:$|[^a-z])|\bacide citrique\b|\bcitronens[äa]ure\b|\bcitroenzuur\b|\bcitronsyra\b|\bkwas cytrynowy\b|\be[- ]?330\b/i, exemptIf: /\bfrom (lemons?|limes?|citrus|fruit)\b/i, pts: 5,  why: 'Industrial citric acid — usually mould-fermented, not citrus' },
     { m: /\bmalic acid\b|\be[- ]?296\b/i,                             pts: 5,  why: 'Malic acid' },
     { m: /\bfumaric acid\b|\be[- ]?297\b/i,                           pts: 6,  why: 'Fumaric acid' },
     { m: /\blactic acid\b|(?:^|[^a-z])[aá]cido (?:l[aá]ctico|lattico)(?:$|[^a-z])|\bacide lactique\b|\bmilchs[äa]ure\b|\bmelkzuur\b|\be[- ]?270\b/i, pts: 5,  why: 'Industrial lactic acid' },
@@ -180,12 +183,12 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // its sugar. Anchored to the whole entry, so "conservante: sorbato de potasio" is charged once,
   // for the sorbate, by its own rule.
   const UNNAMED = [
-    { m: /^(?:preservatives?|conservad?or(?:es)?|conservantes?|conservateurs?|konservierungsstoffe?|conservanti|conserveermiddel(?:en)?|preservatives? added)$/i, pts: 10, why: 'Unnamed preservative' },
-    { m: /^(?:colou?rs?(?: added)?|artificial colou?r added|colorantes?|colorants?|farbstoffe?|coloranti|kleurstoffen?|color natural|colorante natural)$/i, pts: 8, why: 'Unnamed colour' },
-    { m: /^(?:emulsifiers?|emulsionantes?|[ée]mulsifiants?|emulgator(?:en)?|emulsionanti|emulgatoren)$/i, pts: 8, why: 'Unnamed emulsifier' },
-    { m: /^(?:stabili[sz]ers?|estabilizantes?|stabilisants?|stabilisator(?:en)?|stabilizzanti|thickeners?|espesantes?|[ée]paississants?|verdickungsmittel|addensanti|verdikkingsmiddelen?|stabilisatoren)$/i, pts: 6, why: 'Unnamed stabiliser or thickener' },
-    { m: /^(?:acidity regulators?|acidulants?|acidulantes?|acidifiants?|s[äa]uerungsmittel|s[äa]ureregulator(?:en)?|acidificanti|correttore di acidit[àa]|regulador de acidez|aciditeitsregelaar(?:s)?)$/i, pts: 4, why: 'Unnamed acidity regulator' },
-    { m: /^(?:antioxidants?|antioxidantes?|antioxydants?|antioxidationsmittel|antiossidanti|antioxidanten)$/i, pts: 4, why: 'Unnamed antioxidant' },
+    { m: /^(?:preservatives?|conservad?or(?:es)?|conservantes?|conservateurs?|konservierungsstoffe?|conservanti|conserveermiddel(?:en)?|preservatives? added|konserveringsmedel|konserwant(?:y)?|substancj[ae] konserwując[ae])$/i, pts: 10, why: 'Unnamed preservative' },
+    { m: /^(?:colou?rs?(?: added)?|artificial colou?r added|colorantes?|colorants?|farbstoffe?|coloranti|kleurstoffen?|color natural|colorante natural|f[äa]rg[äa]mne(?:n)?|barwnik(?:i)?)$/i, pts: 8, why: 'Unnamed colour' },
+    { m: /^(?:emulsifiers?|emulsionantes?|[ée]mulsifiants?|emulgator(?:en)?|emulsionanti|emulgatoren|emulgeringsmedel|emulgatory)$/i, pts: 8, why: 'Unnamed emulsifier' },
+    { m: /^(?:stabili[sz]ers?|estabilizantes?|stabilisants?|stabilisator(?:en)?|stabilizzanti|thickeners?|espesantes?|[ée]paississants?|verdickungsmittel|addensanti|verdikkingsmiddelen?|stabilisatoren|stabiliseringsmedel|f[öo]rtjockningsmedel|stabilizator(?:y)?|substancj[ae] zag[ęe]szczając[ae]|zag[ęe]stnik(?:i)?)$/i, pts: 6, why: 'Unnamed stabiliser or thickener' },
+    { m: /^(?:acidity regulators?|acidulants?|acidulantes?|acidifiants?|s[äa]uerungsmittel|s[äa]ureregulator(?:en)?|acidificanti|correttore di acidit[àa]|regulador de acidez|aciditeitsregelaar(?:s)?|surhetsreglerande medel|regulator(?:y)? kwasowo[śs]ci)$/i, pts: 4, why: 'Unnamed acidity regulator' },
+    { m: /^(?:antioxidants?|antioxidantes?|antioxydants?|antioxidationsmittel|antiossidanti|antioxidanten|antioxidationsmedel|przeciwutleniacz(?:e)?)$/i, pts: 4, why: 'Unnamed antioxidant' },
   ];
 
   // ---------------------------------------------------------------- synthetic fortification
@@ -211,15 +214,15 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   const GRAINS = [
     { m: /\benriched (wheat |bleached |unbleached )?flour\b/i, pts: 15, why: 'Enriched flour — stripped, then synthetically re-dosed' },
     { m: /\b(bleached|refined|white) flour\b/i,     pts: 14, why: 'Refined white flour' },
-    { m: /\bwheat flour\b|\bharina(?:\s+integral)?\s+de\s+trigo\b|\bfarine(?:\s+(?:compl[èe]te|int[ée]grale))?\s+de\s+bl[ée](?:$|[^a-z])|\b(?:vollkorn)?weizenmehl\b|\bvollkornweizenmehl\b|\bfarina(?:\s+integrale)?\s+di\s+(?:grano|frumento)\b|\bfarinha(?:\s+integral)?\s+de\s+trigo\b|\b(?:volkoren)?tarwemeel\b/i, pts: 12, why: 'Wheat flour' },
-    { m: /\bwheat\b|\btrigo\b|\bbl[ée](?:$|[^a-z])|\bweizen\b|\bfrumento\b|\btarwe\b/i, pts: 9,  why: 'Wheat', gluten: true },
-    { m: /\bbarley\b|\bcebada\b|\borge\b|\bgerste\b|\borzo\b|\bcevada\b|\bgerst\b/i, pts: 8,  why: 'Barley', gluten: true },
-    { m: /\brye\b|\bcenteno\b|\bseigle\b|\broggen\b|\bsegale\b|\bcenteio\b|\brogge\b/i, pts: 8,  why: 'Rye', gluten: true },
+    { m: /\bwheat flour\b|\bharina(?:\s+integral)?\s+de\s+trigo\b|\bfarine(?:\s+(?:compl[èe]te|int[ée]grale))?\s+de\s+bl[ée](?:$|[^a-z])|\b(?:vollkorn)?weizenmehl\b|\bvollkornweizenmehl\b|\bfarina(?:\s+integrale)?\s+di\s+(?:grano|frumento)\b|\bfarinha(?:\s+integral)?\s+de\s+trigo\b|\b(?:volkoren)?tarwemeel\b|\bvetemj[öo]l\b|\bm[ąa]ka\s+pszenna(?:\s+pe[łl]noziarnista)?\b|\bpszenna\s+m[ąa]ka\b/i, pts: 12, why: 'Wheat flour' },
+    { m: /\bwheat\b|\btrigo\b|\bbl[ée](?:$|[^a-z])|\bweizen\b|\bfrumento\b|\btarwe\b|\bvete(?:mj[öo]l)?\b|\bpszen(?:ica|icy|n[aey])\b/i, pts: 9,  why: 'Wheat', gluten: true },
+    { m: /\bbarley\b|\bcebada\b|\borge\b|\bgerste\b|\borzo\b|\bcevada\b|\bgerst\b|\bkornmalt\b|\bj[ęe]czmie[ńn](?![a-z\u0100-\u017f])|\bj[ęe]czmienn[aey]\b/i, pts: 8,  why: 'Barley', gluten: true },
+    { m: /\brye\b|\bcenteno\b|\bseigle\b|\broggen\b|\bsegale\b|\bcenteio\b|\brogge\b|\br[åa]gmj[öo]l\b|(?:^|[^a-z])[żz]yt(?:o|nia|ni)\b/i, pts: 8,  why: 'Rye', gluten: true },
     { m: /\bsemolina\b|\bdurum\b|\bs[ée]mola\b|\bsemoule\b|\b(?:hartweizen)?grie[ßs]\b|\bs[ée]mola\b|\bgriesmeel\b/i, pts: 10, why: 'Durum semolina', gluten: true },
     { m: /\bspelt\b/i,                              pts: 5,  why: 'Spelt', gluten: true },
     { m: /\btriticale\b/i,                          pts: 8,  why: 'Triticale', gluten: true },
     { m: /\bmalted barley( flour)?\b/i,             pts: 8,  why: 'Malted barley', gluten: true },
-    { m: /\bcorn ?(flour|meal|starch|masa)\b|\bcornstarch\b|\bcornmeal\b|\balmid[óo]n de ma[ií]z\b|\bamidon de ma[ïi]s\b|\bmaisst[äa]rke\b|\bamido di mais\b|\bamido de milho\b|\bma[iï]szetmeel\b/i, pts: 7,  why: 'Corn flour or starch' },
+    { m: /\bcorn ?(flour|meal|starch|masa)\b|\bcornstarch\b|\bcornmeal\b|\balmid[óo]n de ma[ií]z\b|\bamidon de ma[ïi]s\b|\bmaisst[äa]rke\b|\bamido di mais\b|\bamido de milho\b|\bma[iï]szetmeel\b|\bmajsst[äa]rkelse\b|\bmajsmj[öo]l\b|\bskrobia kukurydziana\b|\bm[ąa]ka kukurydziana\b/i, pts: 7,  why: 'Corn flour or starch' },
     { m: /\boat (flour|fiber)\b/i,                  pts: 5,  why: 'Oat flour' },
     { m: /\brice flour\b/i,                         pts: 6,  why: 'Rice flour' },
     { m: /\bsoy(bean)? (flour|grits)\b/i,           pts: 12, why: 'Soy flour' },
