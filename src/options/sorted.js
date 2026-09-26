@@ -213,7 +213,7 @@
       input.addEventListener('input', () => {
         weights = R.sanitizeWeights({ ...weights, [f]: Number(input.value) }, { unitEnabled: unitEnabled() });
         paintSliders();
-        renderList();
+        scheduleRender();
         saveWeights();
       });
       row.append(name, input, value);
@@ -330,7 +330,10 @@
     return score;
   }
 
-  function makeProduct({ product, match, missing }, index, multi) {
+  // One listing's DOM, built once and kept while the listing is unchanged (views below): re-ranking
+  // 500 listings used to rebuild every one of them, about half a second per slider step. Only the
+  // rank, the match number and the missing-values line change with the priorities.
+  function makeProduct(product) {
     const article = node('article', product.image ? 'product' : 'product no-image');
     if (product.image) {
       const image = node('img', 'product-image');
@@ -342,7 +345,8 @@
     }
     const content = node('div', 'product-content');
     const heading = node('h2');
-    heading.append(node('span', 'rank', `${index + 1}.`), ' ');
+    const rank = node('span', 'rank', '');
+    heading.append(rank, ' ');
     if (product.url) {
       const link = node('a', '', product.title || 'Amazon listing');
       link.href = product.url;
@@ -370,7 +374,8 @@
     if (product.listingPrice != null) facts.append(node('span', 'fact', money(product.listingPrice)));
     if (product.ratingValue != null) facts.append(node('span', 'fact', `★ ${product.ratingValue.toLocaleString(store().locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`));
     if (product.reviewCount != null) facts.append(node('span', 'fact', t('sortedReviews', '$1 reviews', count.format(product.reviewCount))));
-    if (multi) facts.append(node('span', 'fact match', t('sortedMatch', 'Match $1', match)));
+    const match = node('span', 'fact match', '');
+    facts.append(match);
     content.append(facts);
 
     const meta = node('div', 'product-meta');
@@ -378,7 +383,8 @@
     if (product.sponsored) meta.append(node('span', '', t('sortedSponsored', 'Sponsored')));
     meta.append(node('span', '', product.pageNumber > 1
       ? t('sortedResultPage', 'Amazon page $1', product.pageNumber) : t('sortedResultFirst', 'Amazon page 1')));
-    if (missing.length) meta.append(node('span', 'missing', missing.map(f => MISSING_TEXT[f]()).join(', ')));
+    const missing = node('span', 'missing', '');
+    meta.append(missing);
     content.append(meta);
 
     if (typeof product.score === 'number') {
@@ -388,7 +394,28 @@
       content.append(details);
     }
     article.append(content);
-    return article;
+    return { article, rank, match, missing };
+  }
+
+  // key -> { sig, article, rank, match, missing }. A listing whose data, store or price-per-ounce
+  // setting changed is built again; the rest are moved.
+  const views = new Map();
+  function viewFor(product) {
+    const key = product.asin || product.url;
+    const sig = `${unitEnabled()}|${store().key}|${JSON.stringify(product)}`;
+    const held = views.get(key);
+    if (held && held.sig === sig) return held;
+    const view = { ...makeProduct(product), sig };
+    views.set(key, view);
+    return view;
+  }
+
+  // Slider drags fire many input events: draw at most once a frame.
+  let frame = 0;
+  function scheduleRender() {
+    if (frame) return;
+    const draw = () => { frame = 0; renderList(); };
+    frame = typeof requestAnimationFrame === 'function' ? requestAnimationFrame(draw) : setTimeout(draw, 16);
   }
 
   function renderList() {
@@ -401,11 +428,12 @@
     if (!loading) ui.stop.disabled = false;
     ui.status.textContent = R.sanitizeStatus(saved && saved.status);
     root.setAttribute('aria-busy', String(loading));
-    ui.list.textContent = '';
     ui.empty.textContent = '';
     ui.empty.hidden = items.length > 0;
     clearTimeout(ui.stallTimer);
     if (!items.length) {
+      ui.list.textContent = '';
+      views.clear();
       ui.subtitle.textContent = '';
       const status = R.sanitizeStatus(saved && saved.status);
       ui.empty.append(node('h2', '', loading ? t('sortedReading', 'Reading Amazon listings…')
@@ -430,9 +458,27 @@
     ui.subtitle.textContent = loading
       ? t('sortedSubtitleLoading', '$1 listings so far · still loading', items.length)
       : t('sortedSubtitleDone', '$1 listings · scored on your computer with your settings', items.length);
-    const frag = document.createDocumentFragment();
-    ranked.forEach((entry, index) => frag.append(makeProduct(entry, index, multi)));
-    ui.list.append(frag);
+    const shown = new Set();
+    // In place: a listing already in the right position is not touched, and the others are moved,
+    // not rebuilt. Detaching and re-attaching all 500 cost more than everything else put together.
+    let at = ui.list.firstElementChild;
+    ranked.forEach(({ product, match, missing }, index) => {
+      const view = viewFor(product);
+      shown.add(product.asin || product.url);
+      const rankText = `${index + 1}.`;
+      if (view.rank.textContent !== rankText) view.rank.textContent = rankText;
+      const matchText = multi ? t('sortedMatch', 'Match $1', match) : '';
+      if (view.match.textContent !== matchText) view.match.textContent = matchText;
+      view.match.hidden = !multi;
+      const missingText = missing.map(f => MISSING_TEXT[f]()).join(', ');
+      if (view.missing.textContent !== missingText) view.missing.textContent = missingText;
+      view.missing.hidden = !missing.length;
+      if (at === view.article) at = at.nextElementSibling;
+      else ui.list.insertBefore(view.article, at);
+    });
+    // Whatever is left after the last ranked listing is gone from the list.
+    while (at) { const next = at.nextElementSibling; at.remove(); at = next; }
+    for (const key of [...views.keys()]) if (!shown.has(key)) views.delete(key);
   }
 
   async function load() {
@@ -453,7 +499,7 @@
       if (changes.sortWeights && JSON.stringify(changes.sortWeights.newValue) !== lastSaved) {
         weights = R.sanitizeWeights(changes.sortWeights.newValue, { unitEnabled: unitEnabled() });
       }
-      if (changes.sortedResults || changes.sortWeights) { paintSliders(); renderList(); }
+      if (changes.sortedResults || changes.sortWeights) { paintSliders(); scheduleRender(); }
     });
   } catch (e) { /* not an extension page */ }
   load().catch(() => renderList());

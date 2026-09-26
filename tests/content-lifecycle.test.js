@@ -653,3 +653,14 @@ test('one product page view asks Open Food Facts once, however often Amazon upda
   for (let i = 0; i < 5; i++) w.h.scoreCurrentPage();   // Amazon's page updates while the answer is coming
   assert.equal(barcode(), 1, 'no second lookup for the same barcode');
 });
+
+test('changing the speed setting reworks the badges already on the page', () => {
+  const w = setup();
+  w.context.AIR.db.speed = require('../src/engine/db/speed.js');
+  w.h.queue.fetches = 7;
+  w.h.queue.seen.add('B000000001');
+  w.change({ speedMode: { oldValue: 'balanced', newValue: 'fastest' } });
+  assert.equal(w.h.state.speedMode, 'fastest');
+  assert.equal(w.h.queue.seen.size, 0, 'tiles are resolved again under the new ages');
+  assert.equal(w.h.queue.fetches, 0, 'and the new budget starts from zero');
+});

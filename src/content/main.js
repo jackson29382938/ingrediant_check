@@ -264,7 +264,13 @@
         if (state.enabled) { wake(); armAutoScorePass(); }
       });
     }
-    if (changes.speedMode) state.speedMode = speedModeOf(changes.speedMode.newValue);
+    // A new speed changes which saved scores are fresh enough and how many pages may be requested:
+    // badges already on the page are worked out again under it, as for a weight change.
+    if (changes.speedMode) {
+      state.speedMode = speedModeOf(changes.speedMode.newValue);
+      resetListState();
+      if (state.enabled && state.badges) { wake(); armAutoScorePass(); }
+    }
     if (changes.unitPrice) {
       state.unitPrice = AIR.db.prefs.sanitizeToggles({ unitPrice: changes.unitPrice.newValue }).unitPrice;
       AIR.sort?.refresh();
