@@ -283,10 +283,16 @@
   }
 
   // Hovering or focusing a score shows why, in one shared pop-up.
+  // The pop-up stays while the pointer moves from the score onto it, so its reasons can be read and
+  // scrolled (WCAG 1.4.13, content on hover must be hoverable); Escape or leaving both closes it.
   let pop = null;
+  let hideTimer = 0;
+  function leaveSoon() { clearTimeout(hideTimer); hideTimer = setTimeout(hideWhy, 150); }
   function showWhy(chip, product) {
     hideWhy();
     pop = node('div', 'why-pop');
+    pop.addEventListener('mouseenter', () => clearTimeout(hideTimer));
+    pop.addEventListener('mouseleave', leaveSoon);
     pop.setAttribute('role', 'tooltip');
     pop.id = 'why-pop';
     pop.append(node('p', 'why-pop-head', t('sortedWhyHead', 'Why it scored $1', product.score)), whyList(product.why));
@@ -301,6 +307,7 @@
     else pop.style.top = `${r.top - 6 - pop.offsetHeight + scrollY}px`;
   }
   function hideWhy() {
+    clearTimeout(hideTimer);
     if (pop) pop.remove();
     pop = null;
     document.querySelectorAll('[aria-describedby="why-pop"]').forEach(el => el.removeAttribute('aria-describedby'));
@@ -320,7 +327,7 @@
       chip.setAttribute('aria-label', t('sortedWhyHead', 'Why it scored $1', product.score));
       chip.addEventListener('mouseenter', () => showWhy(chip, product));
       chip.addEventListener('focus', () => showWhy(chip, product));
-      chip.addEventListener('mouseleave', hideWhy);
+      chip.addEventListener('mouseleave', leaveSoon);
       chip.addEventListener('blur', hideWhy);
       score.append(chip, node('span', 'score-verdict', product.verdict || ''));
     } else {

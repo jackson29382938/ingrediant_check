@@ -448,13 +448,24 @@ async function run() {
         const bare = [...document.querySelectorAll('.product')].find(a => /B0SORT0006/.test(a.querySelector('h2 a')?.href || ''));
         return { summary, rows, bare: bare.querySelector('.why-details .why-none')?.textContent || '', listingDetails: /Listing details/.test(document.body.textContent) };
       });
+      // Tall enough that the listing and its pop-up both fit: any scroll closes the pop-up, by design.
+      const shape = listPage.viewportSize();
+      await listPage.setViewportSize({ width: shape ? shape.width : 1280, height: 2400 });
       await listPage.hover('.product:has(a[href$="B0SORT0003"]) .score-chip');
       const popText = await listPage.evaluate(() => document.querySelector('.why-pop')?.textContent || '');
+      // Moving onto the pop-up keeps it open, so its reasons can be read (WCAG 1.4.13); leaving closes it.
+      // mouse.move rather than hover(): hover() scrolls first, and a scroll closes the pop-up by design.
+      const popBox = await listPage.locator('.why-pop').boundingBox();
+      if (popBox) await listPage.mouse.move(popBox.x + popBox.width / 2, popBox.y + Math.min(20, popBox.height / 2), { steps: 4 });
+      await listPage.waitForTimeout(300);
+      const popStays = await listPage.evaluate(() => !!document.querySelector('.why-pop'));
       await listPage.mouse.move(0, 0);
+      await listPage.waitForTimeout(300);
       const popGone = await listPage.evaluate(() => !document.querySelector('.why-pop'));
+      if (shape) await listPage.setViewportSize(shape);
       if (whyView.summary !== 'Why it scored 90' || !whyView.rows.some(r => /^\+\d+.*organic/i.test(r)) || !/not kept/.test(whyView.bare)
-        || whyView.listingDetails || !/Why it scored 90/.test(popText) || !/organic/i.test(popText) || !popGone) {
-        throw new Error(`why it scored: ${JSON.stringify({ ...whyView, popText, popGone })}`);
+        || whyView.listingDetails || !/Why it scored 90/.test(popText) || !/organic/i.test(popText) || !popStays || !popGone) {
+        throw new Error(`why it scored: ${JSON.stringify({ ...whyView, popText, popStays, popGone })}`);
       }
       const health = await read();
       if (health.chips.join() !== '99,95,90,72,40,40,–,–,–' || health.unsafe || health.evilImg || health.title !== 'Healthiest first'
