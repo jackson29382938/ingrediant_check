@@ -5,6 +5,18 @@
   root.AIR = root.AIR || {};
   const P = () => root.AIR.page;
 
+  // Engine input for ingredients read from somewhere other than the page text (the label photo, a
+  // barcode lookup): the page still supplies the title, labels, certifications and nutrition
+  // numbers. The photo and barcode paths used to leave the nutrition out, so a reader's sodium or
+  // sugar dial never applied to those products, and the saved reading had no numbers either.
+  function pageInput(data, over) {
+    return {
+      name: data.title, labels: data.labels, certifications: data.certifications,
+      nutrition: data.nutrition ? { ...data.nutrition } : undefined,
+      ...over,
+    };
+  }
+
   function mountPoint() {
     return document.querySelector('#nutritionalInfoAndIngredients_feature_div')
       || document.querySelector('#important-information')
@@ -223,11 +235,11 @@
           showFailure(host, { ...data, lookupAttempted: true }, key);
           return;
         }
-        const input = {
+        const input = pageInput(data, {
           name: fallback.name || data.title,
           labels: `${data.labels || ''} ${fallback.labels || ''}`,
           ingredients_text: fallback.ingredients_text,
-        };
+        });
         const result = root.AIR.engine.score(input, state.prefs);
         presentResult(host, data, key, result, {
           input,
@@ -322,7 +334,7 @@
           const best = res && res.ok && root.AIR.db.ocrText.bestBlock(res.results,
             t => root.AIR.extract.looksLikeIngredients(t, data.title));
           if (!best) return;
-          offer({ name: data.title, labels: data.labels, certifications: data.certifications, ingredients_text: best.text },
+          offer(pageInput(data, { ingredients_text: best.text }),
             { title: data.title, confidence: 0.7, via: 'label-ocr', text: best.text, textSig: best.text.slice(0, 320), ocrAttempted: true });
         });
       } catch (e) { /* messaging unavailable */ }
@@ -332,7 +344,7 @@
       chrome.runtime.sendMessage({ type: 'lookupBarcode', code: data.upc, foodOnly: state.foodOnly }, fallback => {
         void chrome.runtime.lastError;
         const text = fallback && fallback.ingredients_text;
-        const used = text && offer({ name: fallback.name || data.title, labels: `${data.labels || ''} ${fallback.labels || ''}`, ingredients_text: text },
+        const used = text && offer(pageInput(data, { name: fallback.name || data.title, labels: `${data.labels || ''} ${fallback.labels || ''}`, ingredients_text: text }),
           { title: data.title || fallback.name, confidence: 0.55, via: 'open-food-facts', text, textSig: text.slice(0, 320), cacheName: data.title || fallback.name });
         if (!used) photo();
       });
@@ -419,10 +431,7 @@
         const best = res && res.ok && root.AIR.db.ocrText.bestBlock(res.results,
           t => root.AIR.extract.looksLikeIngredients(t, data.title));
         if (!best) { giveUp({}); return; }
-        const input = {
-          name: data.title, labels: data.labels, certifications: data.certifications,
-          ingredients_text: best.text,
-        };
+        const input = pageInput(data, { ingredients_text: best.text });
         const result = root.AIR.engine.score(input, state.prefs);
         presentResult(host, data, key, result, {
           input,

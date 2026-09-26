@@ -676,3 +676,23 @@ test('a failed product-page request is not held: the next caller asks again', as
   w.fetches[1].resolve(ok);
   assert.equal((await second).outcome, 'scored');
 });
+
+test('a list read from the label photo keeps the nutrition numbers the page published', () => {
+  const w = cacheSetup({ sharing: false });
+  w.h.state.ocrLabels = true;
+  w.context.AIR.extract.extract = () => ({ ok: false, title: 'Soup', asin: 'B000000001', nutrition: { sodium: 900, servingGrams: 245 } });
+  w.context.AIR.extract.looksLikeIngredients = () => true;
+  w.context.AIR.db.ocrText = { imageCandidates: () => ['https://m.media-amazon.com/images/I/label._SL1600_.jpg'],
+    bestBlock: results => (results && results[0] ? { text: results[0] } : null) };
+  const send = w.context.chrome.runtime.sendMessage;
+  w.context.chrome.runtime.sendMessage = (m, cb) => {
+    if (m.type === 'ocrLabels') { cb({ ok: true, results: ['water, chicken, salt'] }); return; }
+    send(m, cb);
+  };
+  w.h.scoreCurrentPage();
+  const input = w.rendered.at(-1).input;
+  assert.equal(input.ingredients_text, 'water, chicken, salt');
+  assert.equal(input.nutrition.sodium, 900);
+  const kept = w.writes.map(x => x['p:amazon.com:B000000001']).filter(Boolean).at(-1);
+  assert.equal(kept.data.nutrition.sodium, 900, 'the saved reading keeps them too');
+});
