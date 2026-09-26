@@ -84,6 +84,7 @@ function renderPresetCategories(weights, goalIds) {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'preset-cat';
+    b.id = `preset-cat-${cat.id}`;
     b.dataset.category = cat.id;
     b.setAttribute('role', 'tab');
     b.setAttribute('aria-selected', String(cat.id === popupPresetCategory));
@@ -96,6 +97,7 @@ function renderPresetCategories(weights, goalIds) {
     });
     host.appendChild(b);
   }
+  paintTabs(host, document.getElementById('presets'));
 }
 
 let popupGoals = [];

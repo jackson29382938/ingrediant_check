@@ -648,15 +648,39 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
       await page.waitForTimeout(300);   // let storage callbacks run
       const a11y = await page.evaluate(accessibilityProblems);
       for (const problem of a11y) pageErrors.push(`extension ${name}: ${problem}`);
+      if (name === 'popup.html' || name === 'options.html') await checkTabs(page, name);
       await page.close();
     }
-    console.log(`  ok  extension → service worker started with every module; ${pages.length} pages open without errors or unnamed controls`);
+    console.log(`  ok  extension → service worker started with every module; ${pages.length} pages open without errors or unnamed controls; goal tabs work by keyboard`);
     await amazonEndToEnd(context, worker, pageErrors);
   } finally {
     await context.close();
     fs.rmSync(profile, { recursive: true, force: true });
     await new Promise(r => amazonSnapshots.close(r));
   }
+}
+
+// The goal-category tabs, by keyboard: one tab stop, and ArrowRight / End move focus and selection.
+async function checkTabs(page, name) {
+  const state = () => page.evaluate(() => {
+    const tabs = [...document.querySelectorAll('#presetCats [role="tab"]')];
+    return { n: tabs.length, stops: tabs.filter(t => t.tabIndex === 0).length,
+      selected: tabs.findIndex(t => t.getAttribute('aria-selected') === 'true'),
+      focused: tabs.indexOf(document.activeElement),
+      controls: tabs.every(t => t.getAttribute('aria-controls') === 'presets'),
+      labelled: document.getElementById('presets').getAttribute('aria-labelledby') };
+  });
+  await page.waitForFunction(() => document.querySelectorAll('#presetCats [role="tab"]').length > 1, { timeout: 5000 });
+  const before = await state();
+  if (before.stops !== 1 || !before.controls || !before.labelled) throw new Error(`${name} tabs: ${JSON.stringify(before)}`);
+  await page.focus('#presetCats [role="tab"][tabindex="0"]');
+  await page.keyboard.press('ArrowRight');
+  const moved = await state();
+  const expect = (before.selected + 1) % before.n;
+  if (moved.selected !== expect || moved.focused !== expect || moved.stops !== 1) throw new Error(`${name} ArrowRight: ${JSON.stringify(moved)}`);
+  await page.keyboard.press('End');
+  const end = await state();
+  if (end.selected !== end.n - 1 || end.focused !== end.n - 1) throw new Error(`${name} End: ${JSON.stringify(end)}`);
 }
 
 // Runs in the page. What a screen reader cannot name, or a document cannot be navigated by: a visible

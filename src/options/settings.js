@@ -239,6 +239,7 @@ function renderPresetCategories() {
     });
     host.appendChild(b);
   }
+  paintTabs(host, document.getElementById('presets'));
   const blurb = document.getElementById('presetCatBlurb');
   const active = presetCategories().find(c => c.id === presetCategory);
   if (blurb) blurb.textContent = (active && active.blurb) || '';

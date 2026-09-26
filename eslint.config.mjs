@@ -67,6 +67,11 @@ export default [
   },
   {
     files: ['src/options/settings.js'],
-    languageOptions: { globals: { wireDatabase: 'readonly' } },
+    languageOptions: { globals: { wireDatabase: 'readonly', paintTabs: 'readonly' } },
+  },
+  {
+    // tabs.js is a classic script loaded before popup.js on the popup.
+    files: ['src/options/popup.js'],
+    languageOptions: { globals: { paintTabs: 'readonly' } },
   },
 ];
