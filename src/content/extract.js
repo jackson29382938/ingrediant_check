@@ -255,15 +255,15 @@
     return parseFloat(s.replace(',', '.'));
   };
   const NUTRIENTS = [
-    ['sodium',       new RegExp('\\b(?:sodium|natrium|sodio)\\b[^0-9]{0,20}' + NUM + '\\s*mg', 'i')],
-    ['saturatedFat', new RegExp('\\b(?:saturated fat|ges[äa]ttigte fetts[äa]uren|acides gras satur[eé]s|grasas saturadas|grassi saturi)\\b[^0-9]{0,20}' + NUM + '\\s*g', 'i')],
+    ['sodium',       new RegExp('\\b(?:sodium|natrium|sodio|s[oó]dio|s[oó]d)\\b[^0-9]{0,20}' + NUM + '\\s*mg', 'i')],
+    ['saturatedFat', new RegExp('\\b(?:saturated fat|ges[äa]ttigte fetts[äa]uren|acides gras satur[eé]s|grasas saturadas|grassi saturi|gorduras saturadas|verzadigde vetzuren|m[äa]ttat fett|m[äa]ttade fettsyror|nasycone kwasy t[łl]uszczowe|kwasy t[łl]uszczowe nasycone)\\b[^0-9]{0,20}' + NUM + '\\s*g', 'i')],
     ['transFat',     new RegExp('\\btrans fat\\b[^0-9]{0,20}' + NUM + '\\s*g', 'i')],
-    ['sugar',        new RegExp('\\b(?:total sugars?|sugars?|zucker|az[uú]cares?|sucres?|zuccheri)\\b[^0-9]{0,20}' + NUM + '\\s*g', 'i')],
+    ['sugar',        new RegExp('\\b(?:total sugars?|sugars?|zucker|az[uú]cares?|a[çc][uú]cares|sucres?|zuccheri|suikers?|socker(?:arter)?|cukry)\\b[^0-9]{0,20}' + NUM + '\\s*g', 'i')],
     // "Includes 10g Added Sugars" puts the number first; the label-first form must not run past the
     // end of the line, or it reads the next row's protein grams as added sugar.
     ['addedSugar',   new RegExp('\\badded sugars?\\b[^0-9\\n]{0,20}' + NUM + '\\s*g|\\bincludes\\s+' + NUM + '\\s*g\\s+added sugars?', 'i')],
-    ['fibre',        new RegExp('\\b(?:dietary fib(?:er|re)|fib(?:er|re)|ballaststoffe|fibra(?:s)?(?: alimentaria| alimentar)?|fibres? alimentaires?)\\b[^0-9]{0,20}' + NUM + '\\s*g', 'i')],
-    ['protein',      new RegExp('\\b(?:protein|eiweiss|prot[eé]ines?|prote[ií]nas?)\\b[^0-9]{0,20}' + NUM + '\\s*g|eiwei[sß][^0-9a-z]{0,20}' + NUM + '\\s*g', 'i')],
+    ['fibre',        new RegExp('\\b(?:dietary fib(?:er|re)|fib(?:er|re)|ballaststoffe|fibra(?:s)?(?: alimentaria| alimentar)?|fibres? alimentaires?|(?:voedings)?vezels?|kostfiber|b[łl]onnik)\\b[^0-9]{0,20}' + NUM + '\\s*g', 'i')],
+    ['protein',      new RegExp('\\b(?:protein|eiweiss|prot[eé]ines?|prote[ií]nas?|eiwitten|bia[łl]ko)\\b[^0-9]{0,20}' + NUM + '\\s*g|eiwei[sß][^0-9a-z]{0,20}' + NUM + '\\s*g', 'i')],
     ['calories',     new RegExp('\\b(?:calories|energie|energ[ií]a|énergie)\\b[^0-9]{0,20}' + NUM, 'i')],
   ];
 
@@ -280,7 +280,7 @@
     [/^(total )?fat$/i, 'fat'], [/^saturated( fat)?$/i, 'saturatedFat'],
     [/^trans( fat)?$/i, 'transFat'], [/^(total )?carb(ohydrate)?s?$/i, 'carbs'],
   ];
-  const PER_100 = /\b(?:per|je|pro|pour|por|para|ogni|in)\s+100\s*(?:g|ml)\b/i;
+  const PER_100 = /\b(?:per|je|pro|pour|por|para|ogni|in|w)\s+100\s*(?:g|ml)\b/i;
   const VALUE_CELL = /^(\d+(?:[.,]\d+)?)\s*(mg|mcg|g|kcal)?$/i;
 
   function nutritionSummaryTable(doc) {
@@ -334,7 +334,7 @@
       const el = doc.querySelector(sel);
       if (!el) continue;
       const text = clean(el.innerText);
-      if (!/\bcalories\b|\bnutrition facts\b|\bserving size\b|\bn[äa]hrwert|\benergie\b|\bvaleurs nutritionnelles\b|\binformaci[oó]n nutricional\b|\bvalori nutrizionali\b|\bvoedingswaarde\b/i.test(text)) continue;
+      if (!/\bcalories\b|\bnutrition facts\b|\bserving size\b|\bn[äa]hrwert|\benergie\b|\bvaleurs nutritionnelles\b|\binformaci[oó]n nutricional\b|\bvalori nutrizionali\b|\bvoedingswaarde|\bn[äa]ringsv[äa]rde|\binforma[çc][ãa]o nutricional\b|\bwarto[śs][ćc] od[żz]ywcza|\bkcal\b/i.test(text)) continue;
       const out = {};
       for (const [key, re] of NUTRIENTS) {
         const m = text.match(re);
@@ -344,12 +344,12 @@
       }
       // EU panels give energy as "1580 kJ / 377 kcal": the kilocalories are the calories, not the
       // first number after "Energie".
-      const kcal = text.match(new RegExp(NUM + '\\s*kcal\\b', 'i'));
+      const kcal = text.match(new RegExp('(?<![\\d.,])' + NUM + '\\s*kcal\\b', 'i'));
       if (kcal && Number.isFinite(toNumber(kcal[1]))) out.calories = toNumber(kcal[1]);
       // EU panels declare salt, not sodium; by EU definition salt = sodium × 2.5, so 1 g of salt is
       // 400 mg of sodium. Without this the sodium dial never applied on an EU label.
       if (out.sodium == null) {
-        const salt = text.match(new RegExp('\\b(?:salt|salz|sel|sale|sal)\\b[^0-9\\n]{0,20}' + NUM + '\\s*g\\b', 'i'));
+        const salt = text.match(new RegExp('\\b(?:salt|salz|sel|sale|sal|zout|s[óo]l)\\b[^0-9\\n]{0,20}' + NUM + '\\s*g\\b', 'i'));
         const grams = salt && toNumber(salt[1]);
         if (Number.isFinite(grams)) out.sodium = Math.round(grams * 400);
       }

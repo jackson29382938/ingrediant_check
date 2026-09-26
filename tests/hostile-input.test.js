@@ -18,7 +18,7 @@ const R = require('../src/engine/db/sorted-results.js');
 
 const LENGTH = 6000;   // extract.js MAX_LEN, the longest list anything is handed
 const PIECES = ['1', '1,', '1.', ' ', ',', 'a', 'oil ', '(', 'ingredients\n', 'Ingredients: ', 'contains ',
-  '-', '%', '\n', 'natural ', 'x ', '1 ', '€', 'fl oz '];
+  '-', '%', '\n', 'natural ', 'x ', '1 ', '€', 'fl oz ', 'kcal ', 'salt '];
 const INPUTS = PIECES.map(p => p.repeat(Math.ceil(LENGTH / p.length)).slice(0, LENGTH) + '!');
 // A few fixed shuffles of the same pieces (deterministic, so a failure reproduces).
 let seed = 7;
@@ -34,6 +34,9 @@ const PATHS = {
   'engine.score': t => engine.score({ ingredients_text: t, name: t.slice(0, 300), labels: t.slice(0, 1000) },
     { allergens: ['milk', 'soy'], diets: ['vegan'], avoidList: ['red 40'] }),
   'extract.looksLikeIngredients': t => extract.looksLikeIngredients(t, t.slice(0, 200)),
+  // The panel parser only reads text under a nutrition heading, so give it one.
+  'extract.nutritionFacts': t => extract.nutritionFacts({ querySelector: sel => (/nic-nutrition/.test(sel)
+    ? { innerText: 'Nutrition Facts kcal ' + t } : null) }),
   'extract.extract (text sweeps)': t => extract.extract(doc(t), { foodOnly: false }),
   'allergens.detect': t => allergens.detect([t, ...t.split(',')], allergens.ALLERGENS.map(a => a.id), allergens.DIETS.map(d => d.id)),
   'ingestible.looksNonFoodFromTitle': t => ingestible.looksNonFoodFromTitle(t.slice(0, 400)),

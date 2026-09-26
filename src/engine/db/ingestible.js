@@ -25,7 +25,7 @@ const STRONG_POSITIVE = [
     // Amazon's international stores print the same panel under local names. Without these the
     // food gate scores 0 outside the US and every product is judged not-food, which would make
     // enabling those domains worse than not supporting them.
-    test: (doc, text) => /\bnutrition(al)? (facts|information)\b|\bn[äa]hrwert(angaben|e)?\b|\bvaleurs nutritionnelles\b|\binformaci[óo]n nutricional\b|\bvalori nutrizionali\b|\binforma[çc][ãa]o nutricional\b|\bvoedingswaarde\b|\bn[äa]ringsv[äa]rde\b|栄養成分/i.test(text) },
+    test: (doc, text) => /\bnutrition(al)? (facts|information)\b|\bn[äa]hrwert(angaben|e)?\b|\bvaleurs nutritionnelles\b|\binformaci[óo]n nutricional\b|\bvalori nutrizionali\b|\binforma[çc][ãa]o nutricional\b|\bvoedingswaarde\b|\bn[äa]ringsv[äa]rde\b|\bwarto[śs][ćc] od[żz]ywcza\b|栄養成分/i.test(text) },
   { id: 'supplementPanel', pts: 5, why: 'Supplement Facts panel',
     test: (doc, text) => /\bsupplement facts\b/i.test(text) },
   { id: 'servingSize', pts: 3, why: 'Serving size and servings per container',

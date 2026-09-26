@@ -127,5 +127,20 @@ check('an EU panel declared per 100 g is scored and labelled per 100g', () => {
     'a declared serving still wins');
 });
 
+check('Dutch, Swedish, Polish and Portuguese panels are readable', () => {
+  const panels = {
+    nl: 'Voedingswaarde per 100 g Energie 1580 kJ / 377 kcal Verzadigde vetzuren 1,2 g Suikers 22 g Vezels 6 g Eiwitten 9 g Zout 0,5 g',
+    se: 'Näringsvärde per 100 g Energi 1580 kJ / 377 kcal Mättat fett 1,2 g Sockerarter 22 g Kostfiber 6 g Protein 9 g Salt 0,5 g',
+    pl: 'Wartość odżywcza w 100 g Wartość energetyczna 1580 kJ / 377 kcal Kwasy tłuszczowe nasycone 1,2 g Cukry 22 g Błonnik 6 g Białko 9 g Sól 0,5 g',
+  };
+  for (const [lang, text] of Object.entries(panels)) {
+    const out = parsePanel(text);
+    assert.deepStrictEqual({ ...out }, { saturatedFat: 1.2, sugar: 22, fibre: 6, protein: 9, calories: 377, sodium: 200, servingGrams: 100 }, lang);
+  }
+  const br = parsePanel('Informação nutricional Porção 30 g Valor energético 120 kcal Açúcares 6 g Proteínas 3 g Sódio 45 mg');
+  assert.strictEqual(br.sugar, 6);
+  assert.strictEqual(br.sodium, 45);
+});
+
 if (failed) { console.error('\n' + failed + ' failed'); process.exit(1); }
 console.log('\nall passed');
