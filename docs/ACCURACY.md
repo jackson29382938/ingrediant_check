@@ -126,6 +126,42 @@ recognised is declined rather than scored. `tests/languages.test.js` fails if th
 if `tests/corpus.test.js` calibrates against a different value. Do not lower it to make more
 products score. The Swedish case above shows what a lower gate would put on the page.
 
+## Real labels from Open Food Facts (2026-09-26)
+
+About 650 real ingredient lists, the most-scanned products with a list in the store's language
+(`world.openfoodfacts.org` search API, one pull per language), were scored to find words no rule
+reads. This is real label text, but transcribed by Open Food Facts contributors, not read off Amazon
+by the extension, so none of it is in the corpus and none of it counts as a live capture.
+
+What it found, and what changed:
+
+- **Parsing gaps that moved scores.** A declared share ("sugar 20%", "Zucker 45 %", Turkish "%13"),
+  a decimal comma ("azúcar 8,5%"), an organic or footnote marker ("sucre*"), the EU colon form
+  ("emulsifier: lecithins") and Open Food Facts' own allergen markup (`_WHEAT_`) each hid an
+  ingredient from its rule. "May contain traces of wheat" was charged as wheat.
+- **64 words English already charges**, missing in other languages (Dutch glucose-fructose syrup and
+  rapeseed oil, German citric acid, phosphoric acid in three languages, Italian MSG, and others),
+  pinned as twins in `tests/synonyms.test.js`.
+- **Coverage.** Real lists were declined as unreadable because everyday words (água, zout, sól,
+  Kohlensäure, poudres à lever, vitamins, nuts) matched nothing. Declined lists, before and after:
+
+  | Language | Lists | Declined before | Declined after |
+  |---|---|---|---|
+  | French | 97 | 16 | 4 |
+  | German | 60 | 6 | 2 |
+  | Spanish | 54 | 11 | 1 |
+  | Italian | 51 | 7 | 1 |
+  | Portuguese | 58 | 18 | 2 |
+  | Dutch | 41 | 21 | 5 |
+  | Swedish | 58 | 4 | 1 |
+  | Polish | 59 | 9 | 2 |
+  | Turkish | 61 | 8 | 5 |
+  | English (UK) | 92 | 2 | 2 |
+
+  These are the same lists the words were taken from, so the "after" column is an upper bound on
+  how well unseen labels will do. Nothing added for coverage is charged; words that would open the
+  gate for a non-food list (a bare "sodium", "sweetener" or "acid") were left out on purpose.
+
 ## Allergen and diet flags
 
 Flags never move the score, and a missing flag looks exactly like "clear", so the rule in

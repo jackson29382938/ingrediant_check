@@ -151,3 +151,31 @@ test('clean lists in unsupported languages are declined rather than called clean
   assert.ok(declined(score(TWINS.candy.ja)), 'a Japanese list must be declined');
   assert.ok(declined(score('じゃがいも、植物油、食塩')), 'a Japanese list with no code must be declined');
 });
+
+test('everyday words from real labels are read in every store language, and notes are not ingredients', () => {
+  // Scoring about 650 real Open Food Facts labels (2026-09-26) found real lists declined for words
+  // like água, zout, sól, Kohlensäure and "poudres à lever". These lists use those words; each must
+  // clear the gate. Label notes (organic footnotes, "sans gluten", "packaged in a protective
+  // atmosphere") are set aside rather than read as unrecognised ingredients.
+  const lists = {
+    pt: 'Água, leite, açúcar, cacau magro em pó, levedantes (hidrogenocarbonato de sódio), sal marinho',
+    nl: 'Tarwebloem, suiker, cacaomassa, cacaoboter, melk, zout, rijsmiddel (natriumcarbonaten), vanille',
+    pl: 'Mąka pszenna, cukier, sól, dwutlenek węgla, tłuszcz palmowy, ekstrakt z wanilii',
+    fr: 'Farine de blé, sucre, noisettes, poudres à lever (carbonates de sodium), ail, basilic, *ingrédients issus de l’agriculture biologique',
+    de: 'Wasser, Kohlensäure, Zucker, Zitronensäure, Knoblauch, Basilikum, Speisesalz',
+    es: 'Copos de avena, almendras, avellanas, gasificantes (bicarbonato sódico), sal marina, sin gluten',
+    it: 'Farina di frumento, cipolla, basilico, anidride carbonica, pomodoro, sale marino',
+    sv: 'Tomatpuré, lök, vitlök, havssalt, ättika, kryddextrakt',
+    tr: 'Buğday unu, şeker, palm yağı, deniz tuzu, sodyum hidrojen karbonat, karbondioksit',
+    en: 'Wheat flour, sugar, palm oil, raising agents (sodium hydrogen carbonate), carbon dioxide, packaged in a protective atmosphere',
+  };
+  for (const [lang, text] of Object.entries(lists)) {
+    const r = score(text);
+    assert.ok(!declined(r), `${lang} declined at ${Math.round(r.coverage * 100)}%: ${text}`);
+  }
+  assert.equal(score('Oats, sans gluten').parsed, 1, 'a note is not an entry');
+  assert.equal(score('Oats, packaged in a protective atmosphere').parsed, 1);
+  // Bare words that would open the gate for non-food lists stay unread: "sodium" alone matched
+  // "sodium laureth sulfate".
+  assert.ok(declined(score('Aqua, Sodium Laureth Sulfate, Cocamidopropyl Betaine, Glycerin, Parfum, Sodium Chloride, Citric Acid')));
+});

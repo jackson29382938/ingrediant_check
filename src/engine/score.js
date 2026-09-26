@@ -308,7 +308,7 @@ const COMMON_PANEL = new RegExp('\\b(?:' + [
   'emulgeringsmedel|stabiliseringsmedel|f[äa]rg[äa]mne|barwnik|surhetsreglerande medel|regulator kwasowo[śs]ci|smakf[öo]rst[äa]rkare|wzmacniacz smaku|konserveringsmedel|konserwant',
   // Benign E-numbers, so an EU list written in codes is still recognised as a list. Every E-number
   // that a rule charges is recognised through that rule; these are the ones nothing charges.
-  'e[- ]?(?:100|120|14[01]|16[0-3][a-i]?|262|32[5-7]|33[1-3]|40[1-6]|440|50[0-4]|50[89]|524|57[45]|901|903|941|948)',
+  'e[- ]?(?:100|120|14[01]|16[0-3][a-i]?|262|32[5-7]|33[1-3]|40[1-6]|440a?|50[0-4](?:i{1,3})?|50[89]|524|57[45]|901|903|941|948)',
 ].join('|') + ')\\b'
   + '|(?<![a-zà-ÿ\\u0100-\\u017f])(?:ägg|äggula|äggvita|äpple|äpplen|ärtor|ärter|[śs]mietan[a-zà-ÿ\\u0100-\\u017f]*|łoso[śs]|żyto'
   // Turkish staples: most end or begin in ı, ş, ğ, ç or ü, so they take the same boundaries.
@@ -316,6 +316,19 @@ const COMMON_PANEL = new RegExp('\\b(?:' + [
   + '|patates|domates|sar[ıi]msak|so[ğg]an|fesle[ğg]en|kekik|biber|kuru [üu]z[üu]m|[üu]z[üu]m|f[ıi]nd[ıi]k|badem|ceviz|ay[çc][ıi][çc]e[ğg]i [çc]ekirde[ğg]i|elma|[çc]ilek|limon|portakal|muz'
   + '|pirin[çc]|m[ıi]s[ıi]r|nohut|mercimek|fasulye|bezelye|yulaf|yulaf ezmesi|tavuk|tavuk eti|s[ıi][ğg][ıi]r eti|dana eti|bal[ıi]k|baharat(?:lar)?|pektin|kafein|karbonatl[ıi] su|maden suyu'
   + '|kabart[ıi]c[ıi](?:lar)?|kabartma tozu|sodyum bikarbonat|lezzet artt?[ıi]r[ıi]c[ıi]|palm ya[ğg][ıi]|zeytinya[ğg][ıi]|hindistan cevizi ya[ğg][ıi]|aroma verici(?:ler)?'
+  // Everyday words from real labels (Open Food Facts, 2026-09-26), per language, that matched no rule and
+  // left real lists declined: nothing here is charged; it only lets the list be read.
+  + '|b(?:1|2|3|5|6|7|9|12)|d[23]|vitamin[aeos]?|vitamine[ns]?|vitaminer|vitaminler|witaminy|tocopher\\w*|tocoferol\\w*|tokoferol\\w*|tokoferoller|beta[- ]?karoten|beta[- ]?caroten[eo]?|palm|palme|palma|palmiste|palmkern|shea|karit[ée]' // any
+  + '|sodium citrates?|trisodium citrate|calcium citrate|carbon dioxide|carbonic acid|sodium acid carbonate|sodium hydrogen carbonate|ammonium hydrogen carbonate|(?:sodium|ammonium) carbonates?|raising agents?|baking powders?|oligofructose|sultanas|cranberries|humectant|cocoa mass|sunflower|rapeseed|glazing agent|flour treatment agent|anti-?caking agent|firming agent|gelling agent|carnauba wax|beeswax|palm fat|vegetable fats?' // en
+  + '|poudres? [àa] lever|carbonates? (?:acides? )?d[e\'’] ?(?:sodium|ammonium)|bicarbonates?|noisettes?|cr[èe]me(?: fra[îi]che)?|magn[ée]sium|extrait de vanille|vanille|ferments? lact?iques?|vinaigre(?: de vin| d[\'’]alcool)?|ail|noix de cajou|noix|levain|levures?|pr[ée]sure(?: halal)?|fromage blanc|perm[ée]at de lactos[ée]rum|lactos[ée]rum(?: en poudre)?|basilic|raisins secs|flocons d[\'’]avoine(?: compl[èe]te)?|avoine|dattes|amandes?|citrates? de sodium|pectines?|huile de palme|graisses? v[ée]g[ée]tales?|mati[èe]re grasse\\w*|sirop d[\'’][ée]rable' // fr
+  + '|kohlens[äa]ure|natriumcitrate?|trinatriumcitrat|cashewkerne|basilikum|vanilleextrakt|vanille|tomaten\\w*|sojabohnen|calciumcarbonat|knoblauch|backtriebmittel|eier|walnusskerne|haselnusskerne|sonnenblumen?|pektine?|tricalciumcitrat|tocopherolhaltige extrakte|datteln|weinessig|branntweinessig|essig|traubenmost|kichererbsen|hafer|haferflocken|gew[üu]rze|kartoffel\\w*|zitronen\\w*|lysozym|palm[öo]l|pflanzliche fette|speisesalz|meersalz|jodsalz|natriumhydrogencarbonat|ammoniumhydrogencarbonat|natriumcarbonate|ammoniumcarbonate' // de
+  + '|avellanas|gasificantes?|calcio|carbonatos? [áa]cidos? de (?:sodio|amonio)|bicarbonato s[óo]dico(?: y am[óo]nico)?|almendras?(?: tostadas)?|extracto rico en tocoferoles|vitaminas?|manteca de palma|grasas? de palma|grasas? vegetales|copos de avena(?: integral)?|avena(?: integral)?|cacahuetes|oligofructosa|citratos? de sodio|citrato tric[áa]lcico|pectinas?|nata|hierro|yoduro de potasio|fibra de guisante|carbonato de calcio|cafe[íi]na|anacardos|pecanas|pacanas|nueces(?: de brasil)?|sal marina' // es
+  + '|anidride carbonica|cipoll[ae]|carbonato acido di (?:sodio|ammonio)|vaniglia|semi di sesamo|noci(?: di acagi[ùu]| del brasile| sgusciate)?|pistacchi|fiocchi d[\'’] ?avena|avena|polpa di pomodoro|concentrato di pomodoro|pomodor[io]|peperoni(?: rossi)?|crusca|germe|anacardi|basilico|patate(?: disidratate)?|caffeina|girasole|olio di palma|grassi vegetali|sale marino|aceto' // it
+  + '|[áa]gua|leite(?: de vaca)?(?: pasteurizado)?|levedantes?(?: qu[íi]micos)?|hidrogenocarbonato de (?:s[óo]dio|am[óo]nio)|carbonatos? de (?:s[óo]dio|c[áa]lcio|magn[ée]sio)|extr[ae]c?to rico em tocofer[óo]is|cacau(?: magro)?(?: em p[óo])?|manteiga de cacau|vitaminas?|citrato tric[áa]lcico|pectinas|citratos de s[óo]dio|[óo]leo de palma|flocos de aveia|aveia|milho|di[óo]xido de carbono|gorduras? vegeta(?:l|is)|gordura de palma|tomate|vinagre(?: de [áa]lcool)?|nata|fermentos?(?: vivos)?(?: de iogurte)?|ferro|[áa]cido pantot[ée]nico|ovos|cebola|am[êe]ndoas?|miolo de am[êe]ndoa|amendoins|sementes de s[ée]samo|fibras? vegeta(?:l|is)|fibra de ervilha|cafe[íi]na|avel[ãa]s|sal marinho' // pt
+  + '|zout|zeezout|cacaomassa|cacaoboter|magere cacaopoeder|cacaopoeder|melk|pectinen?|natriumcitraten?|vanille|tricalciumcitraat|calciumcitraten|sojabonen|palmolie|bulgaricus|amandel(?:en)?|calciumcarbonaat|ijzer|wortelextract|eieren|plantaardige vetten|mangopit|geleermiddel|rijsmiddel(?:en)?|ammoniumcarbonaten|natriumcarbonaten|hazelnoten|weipoeder|haver|maïsvezel|walnoten|granen|gist|azijn' // nl
+  + '|havssalt|ystenzym|tomatpur[ée]|koncentrerad tomatpur[ée]|tomatkoncentrat|[äa]ttika|vin[äa]ger|sojab[öo]nor|natriumkarbonater|jordn[öo]tter|kryddextrakt|[öo]rtextrakt|krydd- och [öo]rtextrakt|paprikaextrakt|l[öo]k|mandel|laktos|yoghurtkultur|chilipeppar|syrakulturer|syrningskultur|bakteriekultur|majsk[äa]rnor|hela majsk[äa]rnor|durumvete|kik[äa]rter|mor[öo]tter|[öo]rtkryddor|mj[öo]lkprotein|trinatriumcitrat|laktasenzym|vassleprodukt|snabbkaffe\\w*|kaffe|kokosfett|mj[öo]lkfett|apelsinjuice\\w*|citronjuice\\w*' // sv
+  + '|s[óo]l(?: morska)?|dwutlenek w[ęe]gla|cytryniany sodu|orzeszki (?:ziemne|arachidowe)(?: pra[żz]one)?|pra[żz]one orzeszki arachidowe|gorczyc[ęa]|nap[óo]j sojowy|ekstrakt z wanilii|wyci[ąa]g z rozmarynu|s[łl]onecznik\\w*|miazga z orzech[óo]w laskowych|syrop klonowy|ocet(?: spirytusowy)?|ekstrakty? przypraw(?: i zi[óo][łl])?|przyprawy?|permeat serwatki|t[łl]uszcz palmowy|t[łl]uszcze ro[śs]linne|czekolada\\w*|t[łl]uszcz kakaowy|wodorow[ęe]glan (?:amonu|sodu)|p[łl]atki owsiane|pe[łl]noziarnist\\w* p[łl]atk\\w* owsian\\w*|kukurydz\\w*|ziarna kukurydzy|skrobia z manioku|kokos\\w*|migda[łl]\\w*|soj[ęa]|ziarna soi' // pl
+  + '|karbondioksit|sodyum hidrojen karbonat|amonyum (?:hidrojen karbonat|bikarbonat)|ay[çc][ıi][çc]ek|deniz tuzu|yer f[ıi]st[ıi][ğg][ıi]|peynir ?alt[ıi] suyu tozu|poligliserol polirisin?oleat|pamuk|sirke|ni[şs]asta|sodyum metabis[üu]lfit|sodyum sitrat|sodyum asit pirofosfat|hindiba k[öo]k[üu] lifi|hindistan cevizi (?:s[üu]t[üu]|kremas[ıi])|un i[şs]lem maddesi|nem verici|s[ıi][ğg][ıi]r jelatini|parlatma maddesi|karnauba mumu|kalsiyum karbonat|tam ya[ğg]l[ıi] s[üu]t ?tozu|asitli[ğg]i d[üu]zenleyici(?:ler)?' // tr
   + ')(?![a-zà-ÿ\\u0100-\\u017f])', 'i');
 
 // Marketing qualifiers in front of an ingredient carry no scoring information, but most sugar and
@@ -498,6 +511,18 @@ const MAY_CONTAIN = new RegExp('^(?:(?:this product )?(?:may|can) (?:also )?cont
   + '|peut contenir|traces? (?:[ée]ventuelles? )?d[e\'’]|kann (?:spuren|.*enthalten)|enth[äa]lt spuren|puede contener|trazas de'
   + '|pu[òo] contenere|tracce di|pode conter|vest[íi]gios de|kan (?:sporen|innehålla|spår)|mo[żz]e zawiera[ćc]'
   + '|.*\\bi[çc]erebilir|eser miktarda)', 'i');
+// Notes printed inside the list that are not ingredients: organic footnotes, "gluten free", "contains a
+// source of phenylalanine", "packaged in a protective atmosphere". Like a "may contain" statement they
+// were read as unrecognised ingredients and pulled real lists under the coverage gate.
+const LABEL_NOTE = new RegExp('^(?:(?:\\*\\s*)?(?:(?:certified )?organic ingredients?|ingr[ée]dients? (?:issus? de|biologiques?|bio\\b)|.*\\bagriculture biologique'
+  + '|ingredienti? (?:da|biologic)|.*agricultura (?:biol[óo]gica|ecol[óo]gica)|.*\\bkontrolliert biologische|.*\\bekologiczn|.*\\bekologisk|.*\\bbiologische landbouw'
+  + '|.*commerce [ée]quitable|.*fair ?trade|rainforest alliance)'
+  + '|(?:gluten[- ]free|sans gluten|glutenfrei|sin gluten|senza glutine|sem gl[úu]ten|glutenvrij|glutenfri|bezglutenow|glutensiz)$'
+  + '|contains? a source of phenylalanine|contient une source de ph[ée]nylalanine|enth[äa]lt eine phenylalaninquelle|contiene una fuente de fenilalanina'
+  + '|contiene una fonte di fenilalanina|cont[ée]m uma fonte de fenilalanina|bevat een bron van fenylalanine|inneh[åa]ller en fenylalaninkälla|zawiera [źz]r[óo]d[łl]o fenyloalaniny|fenilalanin kayna[ğg][ıi]'
+  + '|packaged in a protective atmosphere|conditionn[ée] sous atmosph[èe]re protectrice|unter schutzatmosph[äa]re verpackt|envasado en atm[óo]sfera protectora'
+  + '|confezionato in atmosfera protettiva|embalado em atmosfera protetora|verpakt onder beschermende atmosfeer|f[öo]rpackad i skyddande atmosf[äa]r|pakowano w atmosferze ochronnej|koruyucu atmosferde paketlenmi[şs]tir'
+  + '|contient (?:de l[\'’])?alcool|gluten i[çc]erir)', 'i');
 
 // ---------------------------------------------------------------- scoring
 // options: { weights, allergens, diets, avoidList }
@@ -515,8 +540,9 @@ function score(product, options = {}) {
   // A "may contain" statement is a cross-contact warning, not an ingredient: "may contain traces of
   // wheat" was charged as wheat. It still feeds the allergen flags below, and nothing else.
   const parsed = parseEntries(rawTxt);
-  const mayContain = parsed.filter(e => MAY_CONTAIN.test(e.ing)).map(e => e.ing);
-  const entries = parsed.filter(e => !isDenialEntry(e.ing) && !MAY_CONTAIN.test(e.ing));
+  const aside = e => MAY_CONTAIN.test(e.ing) || LABEL_NOTE.test(e.ing);
+  const mayContain = parsed.filter(aside).map(e => e.ing);
+  const entries = parsed.filter(e => !isDenialEntry(e.ing) && !aside(e));
   // Close the gaps left by dropped claim entries, so a leading "no artificial colors" does not
   // leave the real first ingredient sitting at position 1.
   const dense = new Map();
