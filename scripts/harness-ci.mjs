@@ -646,15 +646,44 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
       });
       await page.goto(`chrome-extension://${id}/src/options/${name}`, { waitUntil: 'load', timeout: 20000 });
       await page.waitForTimeout(300);   // let storage callbacks run
+      const a11y = await page.evaluate(accessibilityProblems);
+      for (const problem of a11y) pageErrors.push(`extension ${name}: ${problem}`);
       await page.close();
     }
-    console.log(`  ok  extension → service worker started with every module; ${pages.length} pages open without errors`);
+    console.log(`  ok  extension → service worker started with every module; ${pages.length} pages open without errors or unnamed controls`);
     await amazonEndToEnd(context, worker, pageErrors);
   } finally {
     await context.close();
     fs.rmSync(profile, { recursive: true, force: true });
     await new Promise(r => amazonSnapshots.close(r));
   }
+}
+
+// Runs in the page. What a screen reader cannot name, or a document cannot be navigated by: a visible
+// form control with no label (a placeholder is not one), a visible button or link with no name, an
+// image with no alt, a document with no lang, and ids used twice.
+function accessibilityProblems() {
+  const out = [];
+  const visible = el => !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length) && getComputedStyle(el).visibility !== 'hidden';
+  const labelOf = el => {
+    if ((el.getAttribute('aria-label') || '').trim()) return true;
+    const by = el.getAttribute('aria-labelledby');
+    if (by && by.split(/\s+/).some(i => (document.getElementById(i)?.textContent || '').trim())) return true;
+    if (el.id && (document.querySelector(`label[for="${CSS.escape(el.id)}"]`)?.textContent || '').trim()) return true;
+    return !!((el.closest('label')?.textContent || '').trim() || el.title);
+  };
+  for (const el of document.querySelectorAll('input:not([type=hidden]), select, textarea')) {
+    if (visible(el) && !labelOf(el)) out.push(`unlabelled ${el.tagName.toLowerCase()}#${el.id || '?'}`);
+  }
+  for (const el of document.querySelectorAll('button, [role=button], a[href]')) {
+    if (visible(el) && !(el.getAttribute('aria-label') || el.textContent || el.title || '').trim()) out.push(`nameless ${el.tagName.toLowerCase()}#${el.id || '?'}`);
+  }
+  for (const img of document.querySelectorAll('img')) if (!img.hasAttribute('alt')) out.push(`img without alt ${img.getAttribute('src')}`);
+  if (!document.documentElement.lang) out.push('no lang on <html>');
+  const seen = new Map();
+  for (const el of document.querySelectorAll('[id]')) seen.set(el.id, (seen.get(el.id) || 0) + 1);
+  for (const [dup, n] of seen) if (n > 1) out.push(`id "${dup}" used ${n} times`);
+  return out;
 }
 
 // The real content scripts on saved Amazon markup (tests/pages/): Chromium sends www.amazon.com to a

@@ -404,11 +404,11 @@
   </section>
 
   <section id="sec-avoid">
-    <h2 data-i18n="optAvoidH">Your own avoid list</h2>
-    <p class="note" style="margin: -6px 0 10px" data-i18n="optNoteAvoid">
+    <h2 id="avoidHeading" data-i18n="optAvoidH">Your own avoid list</h2>
+    <p class="note" id="avoidNote" style="margin: -6px 0 10px" data-i18n="optNoteAvoid">
       One ingredient or phrase per line. Anything matching gets flagged on the panel.
     </p>
-    <textarea id="avoidList" data-i18n-placeholder="optAvoidPh" placeholder="carrageenan&#10;red 40&#10;natural flavors"></textarea>
+    <textarea id="avoidList" aria-labelledby="avoidHeading" aria-describedby="avoidNote avoidCount" data-i18n-placeholder="optAvoidPh" placeholder="carrageenan&#10;red 40&#10;natural flavors"></textarea>
     <p class="note" id="avoidCount" style="margin: 6px 0 0"></p>
     <p class="note" style="margin: 8px 0 6px" data-i18n="optNoteAvoidHint">Add a common one:</p>
     <div class="chips" id="avoidHints"></div>
