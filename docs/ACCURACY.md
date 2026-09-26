@@ -117,6 +117,29 @@ recognised is declined rather than scored. `tests/languages.test.js` fails if th
 if `tests/corpus.test.js` calibrates against a different value. Do not lower it to make more
 products score. The Swedish case above shows what a lower gate would put on the page.
 
+## Allergen and diet flags
+
+Flags never move the score, and a missing flag looks exactly like "clear", so the rule in
+`src/engine/db/allergens.js` is to flag borderline terms rather than miss them. What the tests hold
+(`tests/audit-2026-09-16.test.js`):
+
+- **The declaration words themselves**: "Contains: tree nuts", "shellfish", UK "nuts", and the generic
+  words in Spanish, Italian, French and German (frutos secos, frutta a guscio, fruits à coque,
+  Schalenfrüchte, Nüsse).
+- **Allergens named only by the food**: cheeses, curds, butterfat, half-and-half (milk); aioli,
+  eggnog, German egg compounds (egg); graham, panko, breadcrumbs, shortbread (wheat); natto, TVP
+  (soy); surimi, bonito, caviar, roe, dashi (fish); pesto, nougat, frangipane (tree nuts); halva,
+  gomasio, za'atar (sesame); metabisulfite salts (sulfites); dijon (mustard).
+- **Animal ingredients in each language** for the vegetarian and vegan checks, plus collagen, pepsin,
+  confectioner's glaze and L-cysteine.
+- **Look-alikes that must stay clear**: peanut butter, cocoa butter and coconut milk (dairy), milk
+  thistle, crab apple, bean curd, breadfruit, tiger nuts, nutmeg, lemon rind, porcini, "vitamin D3
+  (from lichen)".
+
+Every flag change is checked against all 58 corpus labels: none of them changes its flags. What is
+**not** proven: that a real label never words an allergen some other way. The panel says so next to
+the flags, and the probe lists above are where a new miss belongs.
+
 ## Adding real evidence
 
 1. Turn on **Send scoring diagnostics**, or copy the text from the panel.
