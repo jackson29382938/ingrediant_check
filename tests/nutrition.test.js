@@ -101,5 +101,20 @@ check('a panel with only one readable field is discarded', () => {
   assert.strictEqual(parsePanel('Nutrition Facts Calories 120'), null);
 });
 
+console.log('\nnumber formats');
+check('a US thousands comma is a thousands separator, a decimal comma still a decimal', () => {
+  assert.strictEqual(parsePanel('Nutrition Facts Calories 150 Sodium 1,200mg Protein 8g').sodium, 1200);
+  assert.strictEqual(parsePanel('Nährwerte je 100 g Energie 180 Zucker 12,5 g Eiweiß 4 g').sugar, 12.5);
+});
+check('an EU "kJ / kcal" energy line reads the kcal, not the kilojoules', () => {
+  const out = parsePanel('Nährwerte je 100 g Energie 1.580 kJ / 377 kcal Zucker 12 g Eiweiß 4 g Salz 0,02 g');
+  assert.strictEqual(out.calories, 377);
+  assert.strictEqual(out.sodium, 8, 'salt 0.02 g is 8 mg sodium');
+});
+check('EU salt stands in for sodium only when no sodium is given', () => {
+  assert.strictEqual(parsePanel('Valeurs nutritionnelles Sucres 12 g Sel 1,5 g').sodium, 600);
+  assert.strictEqual(parsePanel('Nutrition Facts Sodium 150mg Salt 0.4g Protein 3g').sodium, 150);
+});
+
 if (failed) { console.error('\n' + failed + ' failed'); process.exit(1); }
 console.log('\nall passed');

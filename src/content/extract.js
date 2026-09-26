@@ -246,7 +246,14 @@
   // point-only pattern silently read nothing there, so the nutrition categories were inert on
   // fifteen of the twenty-one stores. Values go through toNumber(), never parseFloat() directly.
   const NUM = '(\\d+(?:[.,]\\d+)?)';
-  const toNumber = v => parseFloat(String(v == null ? '' : v).replace(',', '.'));
+  // A group of exactly three digits after the separator is thousands, whichever mark: "1,200mg" of
+  // sodium on a US label is 1200, not 1.2, and "1.580 kJ" is 1580. Otherwise a comma is a decimal
+  // mark ("12,5 g").
+  const toNumber = v => {
+    const s = String(v == null ? '' : v);
+    if (/^\d{1,3}(?:[.,]\d{3})+$/.test(s)) return Number(s.replace(/[.,]/g, ''));
+    return parseFloat(s.replace(',', '.'));
+  };
   const NUTRIENTS = [
     ['sodium',       new RegExp('\\b(?:sodium|natrium|sodio)\\b[^0-9]{0,20}' + NUM + '\\s*mg', 'i')],
     ['saturatedFat', new RegExp('\\b(?:saturated fat|ges[äa]ttigte fetts[äa]uren|acides gras satur[eé]s|grasas saturadas|grassi saturi)\\b[^0-9]{0,20}' + NUM + '\\s*g', 'i')],
@@ -333,6 +340,17 @@
         if (!m) continue;
         const v = toNumber(m.slice(1).find(g => g != null && g !== ''));
         if (isFinite(v)) out[key] = v;
+      }
+      // EU panels give energy as "1580 kJ / 377 kcal": the kilocalories are the calories, not the
+      // first number after "Energie".
+      const kcal = text.match(new RegExp(NUM + '\\s*kcal\\b', 'i'));
+      if (kcal && Number.isFinite(toNumber(kcal[1]))) out.calories = toNumber(kcal[1]);
+      // EU panels declare salt, not sodium; by EU definition salt = sodium × 2.5, so 1 g of salt is
+      // 400 mg of sodium. Without this the sodium dial never applied on an EU label.
+      if (out.sodium == null) {
+        const salt = text.match(new RegExp('\\b(?:salt|salz|sel|sale|sal)\\b[^0-9\\n]{0,20}' + NUM + '\\s*g\\b', 'i'));
+        const grams = salt && toNumber(salt[1]);
+        if (Number.isFinite(grams)) out.sodium = Math.round(grams * 400);
       }
       // Stop at the next panel field. An unbounded 40-character window ran straight past the end
       // of the size declaration and into the rows below it, so "Serving size 1 slice Calories 80
