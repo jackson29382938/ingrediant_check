@@ -51,11 +51,14 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
   }
 
   // maxAgeMs: the speed setting's age limit, as for valid().
+  // Amazon only while other stores are previews: the popup's compare view is the only caller, and
+  // a 10-digit Target id would otherwise pass parseKey and sit beside Amazon products unlabelled.
+  const AMAZON_STORE = /^amazon\.[a-z.]+$/;
   function listScores(all, { version, prefs, maxAgeMs = TTL_MS } = {}, now = Date.now()) {
     const out = [];
     for (const [cacheKey, hit] of Object.entries(all || {})) {
       const parsed = parseKey(cacheKey);
-      if (!parsed || !hit) continue;
+      if (!parsed || !hit || !AMAZON_STORE.test(parsed.store)) continue;
       if (!valid(hit, { store: parsed.store, asin: parsed.asin, version, prefs, maxAgeMs }, now)) continue;
       out.push({
         key: cacheKey, store: hit.store, asin: hit.asin,

@@ -61,7 +61,8 @@ API. Both are brittle, and both are the kind of automated traffic Target challen
   the paste box.
 - What a supplement's label looks like once opened was not seen: Target's bot check stopped the
   inspection before that page could be opened.
-- The popup's compare view lists Amazon scores only.
+- The popup's compare view lists Amazon scores only: `listScores` in `score-cache.js` filters to
+  Amazon stores explicitly, so even a Target id that happens to be ten digits long stays out.
 
 **Live check, 2026-09-25.** Chromium 141 with the unpacked extension, fresh profile, signed out, on
 live www.target.com:
