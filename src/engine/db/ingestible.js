@@ -46,6 +46,46 @@ const WEAK_POSITIVE = [
 ];
 
 // ---------------------------------------------------------------- negative evidence
+// The same non-food products in each store's own language. `\b` cannot see a leading or trailing
+// "ü", "ş" or "ú", so these take explicit boundaries. Only the product words: "pasta" alone is food,
+// "pasta de dientes" is not; "mama" is a Turkish baby food, "köpek maması" is dog food.
+const LB = '(?<![a-zà-ÿ\\u0100-\\u017f])';
+const RB = '(?![a-zà-ÿ\\u0100-\\u017f])';
+const words = list => new RegExp(LB + '(?:' + list.join('|') + ')' + RB, 'i');
+const COSMETIC_WORDS = words([
+  'zahnpasta', 'zahncreme', 'duschgel', 'duschbad', 'haarsp[üu]lung', 'sonnencreme',   // de
+  'dentifrice', 'shampooing', 'gel douche', 'cr[èe]me solaire',                         // fr
+  'champ[úu]', 'pasta de dientes', 'dent[íi]frico', 'gel de (?:ducha|ba[ñn]o)', 'protector solar', // es
+  'dentifricio', 'bagnoschiuma', 'balsamo per capelli',                                 // it
+  'tandpasta', 'douchegel', 'zonnebrandcr[èe]me',                                      // nl
+  'creme dental', 'pasta de dente', 'sabonete', 'protetor solar',                       // pt
+  'tandkr[äa]m', 'schampo', 'duschtv[åa]l', 'solkr[äa]m',                               // sv
+  'pasta do z[ęe]b[óo]w', 'szampon', '[żz]el pod prysznic', 'krem do opalania',          // pl
+  'di[şs] macunu', '[şs]ampuan', 'du[şs] jeli', 'g[üu]ne[şs] kremi',                    // tr
+]);
+const HOUSEHOLD_WORDS = words([
+  'waschmittel', 'sp[üu]lmittel', 'weichsp[üu]ler', 'allzweckreiniger',
+  'lessive', 'liquide vaisselle', 'adoucissant', 'nettoyant',
+  'detergente', 'lavavajillas', 'suavizante', 'lej[íi]a',
+  'detersivo', 'ammorbidente', 'candeggina',
+  'wasmiddel', 'afwasmiddel', 'wasverzachter',
+  'amaciante', '[áa]gua sanit[áa]ria',
+  'tv[äa]ttmedel', 'diskmedel', 'sk[öo]ljmedel',
+  'proszek do prania', 'p[łl]yn do (?:naczy[ńn]|p[łl]ukania)',
+  'deterjan[ıi]?', 'yumu[şs]at[ıi]c[ıi]', '[çc]ama[şs][ıi]r suyu',
+]);
+const PET_WORDS = words([
+  'hundefutter', 'katzenfutter', 'hundesnacks?',
+  'nourriture pour (?:chiens?|chats?)', 'croquettes (?:pour )?(?:chiens?|chats?)',
+  'comida para (?:perros?|gatos?)', 'pienso (?:para )?(?:perros?|gatos?)',
+  'cibo per (?:cani|gatti)', 'crocchette per (?:cani|gatti)',
+  'hondenvoer', 'kattenvoer', 'hondensnacks?',
+  'ra[çc][ãa]o (?:para )?(?:c[ãa]es|gatos|cachorros?)',
+  'hundmat', 'kattmat', 'hundgodis',
+  'karma dla (?:ps[aó]w?|kot[aó]w?|kota)',
+  'k[öo]pek mamas[ıi]', 'kedi mamas[ıi]',
+]);
+
 // These outrank positives. A shampoo bottle can mention "nourishing" and "extract" all day.
 const HARD_NEGATIVE = [
   { id: 'externalUse', pts: 20, why: 'Labelled "for external use only"',
@@ -56,15 +96,15 @@ const HARD_NEGATIVE = [
     test: (doc, text) => /\b(clothing, shoes & jewelry|shoes & (bags|jewelry)|toys & games|electronics|cell phones & accessories|tools & home improvement|automotive|books|video games|musical instruments|office products|patio, lawn & garden|sports & outdoors|arts, crafts & sewing|industrial & scientific|appliances|luggage|beauty & personal care|beauty and personal care|luxury beauty|premium beauty|fashion|garden & outdoors|home & kitchen)\b/i.test(text)
       || /\b(bekleidung|schuhe & handtaschen|elektronik|spielzeug|b[üu]cher|baumarkt|auto & motorrad|k[üu]che & haushalt|beleuchtung|schmuck|v[êe]tements|chaussures|informatique|livres|bricolage|jardin|jeux et jouets|beaut[ée] et parfum|ropa|zapatos|electr[óo]nica|libros|juguetes|bricolaje|belleza|abbigliamento|scarpe|elettronica|libri|giocattoli|bellezza|kleding|schoenen|elektronica|speelgoed|odzie[żz]|elektronika|zabawki)\b/i.test(text) },
   { id: 'cosmetic', pts: 12, why: 'Cosmetic or topical personal-care product',
-    test: (doc, text, title) => /\b(shampoo|conditioner|body wash|body lotion|face cream|moisturi[sz]er|serum|deodorant|antiperspirant|sunscreen|sunblock|makeup|foundation|mascara|lipstick|lip gloss|nail polish|perfume|cologne|shaving|aftershave|toothpaste|mouthwash|soaps?|hand sanitizer|hair (dye|colou?r|spray|gel|mask)|face mask|exfoliant|cleanser|toner)\b/i.test(title) },
+    test: (doc, text, title) => /\b(shampoo|conditioner|body wash|body lotion|face cream|moisturi[sz]er|serum|deodorant|antiperspirant|sunscreen|sunblock|makeup|foundation|mascara|lipstick|lip gloss|nail polish|perfume|cologne|shaving|aftershave|toothpaste|mouthwash|soaps?|hand sanitizer|hair (dye|colou?r|spray|gel|mask)|face mask|exfoliant|cleanser|toner)\b/i.test(title) || COSMETIC_WORDS.test(title) },
   { id: 'household', pts: 12, why: 'Cleaning or household chemical product',
-    test: (doc, text, title) => /\b(laundry detergent|dish(washer)? (soap|detergent)|all[- ]purpose cleaner|disinfectant|bleach|fabric softener|air freshener|toilet|drain cleaner|degreaser|glass cleaner|floor cleaner|insect(icide)? (spray|killer)|pesticide|motor oil|antifreeze)\b/i.test(title) },
+    test: (doc, text, title) => /\b(laundry detergent|dish(washer)? (soap|detergent)|all[- ]purpose cleaner|disinfectant|bleach|fabric softener|air freshener|toilet|drain cleaner|degreaser|glass cleaner|floor cleaner|insect(icide)? (spray|killer)|pesticide|motor oil|antifreeze)\b/i.test(title) || HOUSEHOLD_WORDS.test(title) },
   { id: 'medicine', pts: 12, why: 'Over-the-counter medicine',
     test: (doc, text, title) => /\b(pain reliever|cough (syrup|drops)|cold (and|&) flu|ibuprofen|acetaminophen|antacid|laxative|nasal spray|eye drops|first aid kit)\b/i.test(title) },
   { id: 'essentialOil', pts: 12, why: 'Essential oil or fragrance oil — not a food',
     test: (doc, text, title) => /\b(essential oil|fragrance oil|diffuser oil)\b/i.test(title) },
   { id: 'petFood', pts: 10, why: 'Pet food — scored by rules written for human diets',
-    test: (doc, text, title) => /\b(dog|cat|puppy|kitten|pet|canine|feline|bird|reptile|ferret|hamster) (food|treats?|chews?|kibble|formula|supplement)\b|\bpet supplies\b/i.test(title + ' ' + text) },
+    test: (doc, text, title) => /\b(dog|cat|puppy|kitten|pet|canine|feline|bird|reptile|ferret|hamster) (food|treats?|chews?|kibble|formula|supplement)\b|\bpet supplies\b/i.test(title + ' ' + text) || PET_WORDS.test(title + ' ' + text) },
   { id: 'equipment', pts: 12, why: 'Equipment or kitchenware rather than something you eat',
     test: (doc, text, title) => /\b(blenders?|cookware|skillets?|frying pans?|sauce pans?|stock pots?|dutch ovens?|instant pots?|pressure cookers?|chef'?s? knives|steak knives|cutting boards?|food storage|storage containers?|bottle openers?|utensils?|travel mugs?|dinner plates?|bowl sets?|thermos|lunch box(es)?|air fryers?|stand mixers?|food processors?|electric (grill|smoker|kettle)s?|gas grills?|pellet (grill|smoker)s?)\b/i.test(title) },
   // "cap", "hat" and "watch" only count with an apparel word beside them: a bare `cap` made ketchup

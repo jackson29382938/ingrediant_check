@@ -323,6 +323,19 @@ check('sugar weight setting changes the score', () => {
   assert.ok(on.score < off.score, `expected sugar weight to lower score (${on.score} vs ${off.score})`);
 });
 
+check('non-food searches and titles in every store language stand down; foods in those languages do not', () => {
+  // The cosmetic, cleaning and pet-food words were English only, so "Zahnpasta", "tandkräm" or
+  // "köpek maması" swept every result tile and fetched its product page.
+  const nonFood = ['Zahnpasta', 'Hundefutter', 'Waschmittel', 'champú', 'pasta de dientes', 'dentifrice', 'croquettes chien',
+    'detersivo', 'crocchette per gatti', 'tandpasta', 'kattenvoer', 'creme dental', 'ração para cães', 'tandkräm', 'hundmat',
+    'tvättmedel', 'szampon', 'pasta do zębów', 'karma dla psa', 'płyn do naczyń', 'şampuan', 'diş macunu', 'köpek maması',
+    'bulaşık deterjanı'];
+  for (const q of nonFood) assert.strictEqual(ingestible.assessSearch({ query: q }).ok, false, q);
+  const food = ['choklad', 'czekolada', 'çikolata', 'pasta', 'pasta di semola', 'crema di nocciole', 'bebek maması',
+    'Hundeknochen Brühe', 'café', 'herbata', 'müsli', 'karma'];
+  for (const q of food) assert.strictEqual(ingestible.assessSearch({ query: q }).ok, true, q);
+});
+
 if (failed) {
   console.error('\n' + failed + ' failed');
   process.exit(1);
