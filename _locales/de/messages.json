@@ -1277,5 +1277,29 @@
   },
   "sortPageTimeout": {
     "message": "Amazon hat zu lange gebraucht, die nächste Ergebnisseite zu senden"
+  },
+  "sortMenuUnitMetric": {
+    "message": "Preis pro 100 g: aufsteigend"
+  },
+  "sortedFactorUnitMetric": {
+    "message": "Preis pro 100 g"
+  },
+  "sortedPresetUnitMetric": {
+    "message": "Am günstigsten pro 100 g"
+  },
+  "sortedTitleUnitMetric": {
+    "message": "Niedrigster Preis pro 100 g zuerst"
+  },
+  "sortedMissingUnitMetric": {
+    "message": "kein Preis pro 100 g"
+  },
+  "sortedNoUnitMetric": {
+    "message": "Kein Preis pro 100 g"
+  },
+  "sortedPer100g": {
+    "message": "$1/100 g"
+  },
+  "sortedPer100ml": {
+    "message": "$1/100 ml"
   }
 }

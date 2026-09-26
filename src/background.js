@@ -10,7 +10,8 @@
 if (typeof importScripts === 'function') {
   importScripts('engine/db/_module.js', 'engine/db/allergens.js', 'engine/categories.js',
     'engine/db/ingestible.js', 'engine/db/prefs.js',
-    'engine/db/ocr-text.js', 'engine/db/product-cache.js', 'engine/db/sorted-results.js', 'engine/db/speed.js',
+    'engine/db/ocr-text.js', 'engine/db/product-cache.js', 'engine/db/storefronts.js', 'engine/db/sorted-results.js',
+    'engine/db/speed.js',
     'engine/db/activity.js', 'worker/messages.js', 'worker/sheet-store.js');
 }
 

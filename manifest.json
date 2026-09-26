@@ -749,6 +749,7 @@
         "src/engine/db/revision.js",
         "src/engine/db/score-cache.js",
         "src/engine/db/product-cache.js",
+        "src/engine/db/storefronts.js",
         "src/engine/db/sorted-results.js",
         "src/engine/db/unit-price.js",
         "src/engine/db/speed.js",

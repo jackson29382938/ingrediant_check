@@ -26,6 +26,8 @@
   const S = () => root.AIR.search;
   const R = () => root.AIR.db.sortedResults;
   const U = () => root.AIR.db.unitPrice;
+  const SF = () => root.AIR.db.storefronts;
+  const metric = () => SF().storefront(location.hostname).units === 'metric';
 
   const CARD = '[data-component-type="s-search-result"][data-asin], .s-result-item[data-asin]';
   const VALUE = { health: 'ingredient-check-score', unitPrice: 'ingredient-check-price-per-ounce' };
@@ -67,14 +69,19 @@
   // ------------------------------------------------------------------ the menu
   const labels = () => ({
     health: t('sortMenuScore', 'Ingredient Check score: High to Low'),
-    unitPrice: t('sortMenuUnit', 'Price per ounce: Low to High'),
+    unitPrice: metric() ? t('sortMenuUnitMetric', 'Price per 100 g: Low to High') : t('sortMenuUnit', 'Price per ounce: Low to High'),
   });
   const modes = () => (P().state.unitPrice === false ? ['health'] : ['unitPrice', 'health']);
   const modeOfValue = value => Object.keys(VALUE).find(mode => VALUE[mode] === value) || null;
 
+  // Amazon's sort menu, found by its option values ("relevanceblender", "price-asc-rank", …), which do
+  // not change with the store's language; the English labels are a fallback for a menu without them.
+  const AMAZON_SORT_VALUES = /^(?:relevanceblender|featured-rank|price-asc-rank|price-desc-rank|review-rank|date-desc-rank|exact-aware-popularity-rank)$/;
+  const LOW_TO_HIGH = option => option.value === 'price-asc-rank' || /price\s*:\s*low\s*to\s*high/i.test(option.textContent);
   function sortSelects(doc = document) {
     return [...doc.querySelectorAll('select#s-result-sort-select, select[id*="sort-select"], select[data-action*="sort"]')]
-      .filter(select => [...select.options].some(option => /featured|price\s*:\s*low\s*to\s*high/i.test(option.textContent)));
+      .filter(select => [...select.options].some(option => AMAZON_SORT_VALUES.test(option.value)
+        || /featured|price\s*:\s*low\s*to\s*high/i.test(option.textContent)));
   }
 
   // Our options in the <select>: price per ounce after "Price: Low to High", the score at the end.
@@ -88,7 +95,7 @@
       if (existing) { if (existing.textContent !== names[mode]) existing.textContent = names[mode]; continue; }
       const option = new Option(names[mode], VALUE[mode]);
       option.setAttribute(MARK, mode);
-      const lowToHigh = [...select.options].find(item => /price\s*:\s*low\s*to\s*high/i.test(item.textContent));
+      const lowToHigh = [...select.options].find(LOW_TO_HIGH);
       if (mode === 'unitPrice' && lowToHigh) select.insertBefore(option, lowToHigh.nextSibling);
       else select.append(option);
     }
@@ -122,7 +129,8 @@
         a.setAttribute('data-value', JSON.stringify({ stringVal: VALUE[mode] }));
         a.id = `${select.id}_air_${mode}`;
         if (mode === 'unitPrice') {
-          const after = [...list.querySelectorAll('a')].find(item => /price\s*:\s*low\s*to\s*high/i.test(item.textContent))?.closest('li');
+          const after = [...list.querySelectorAll('a')].find(item => dataValue(item) === 'price-asc-rank'
+            || /price\s*:\s*low\s*to\s*high/i.test(item.textContent))?.closest('li');
           if (after) { after.after(li); continue; }
         }
         list.append(li);
@@ -250,25 +258,39 @@
     return cards.filter(card => { for (let a = card.parentElement; a; a = a.parentElement) if (set.has(a)) return false; return true; });
   }
 
+  // The listing's price. Amazon splits it into whole and fraction parts; reading those needs no guess
+  // about which of "," and "." is the decimal mark. The screen-reader text is the fallback, read the
+  // way this store writes prices (storefronts.js).
   function getPrice(card) {
-    for (const node of card.querySelectorAll('.a-price:not(.a-text-price) .a-offscreen')) {
-      if (node.closest('.a-text-price')) continue;
-      const value = R().parseMoney(node.textContent);
+    for (const price of card.querySelectorAll('.a-price:not(.a-text-price)')) {
+      if (price.closest('.a-text-price')) continue;
+      const whole = (price.querySelector('.a-price-whole')?.textContent || '').replace(/\D/g, '');
+      const fraction = (price.querySelector('.a-price-fraction')?.textContent || '').replace(/\D/g, '');
+      if (whole) return Number(fraction ? `${whole}.${fraction}` : whole);
+      const value = R().parseMoney(price.querySelector('.a-offscreen')?.textContent, location.hostname);
       if (value != null) return value;
     }
     return null;
   }
 
-  // "4.6 out of 5 stars" -> 4.6; "(12,345)", "12.3K", "1K+" -> a count.
+  // "4.6 out of 5 stars", "4,6 von 5 Sternen", "4,6 sur 5 étoiles", "5つ星のうち4.6" -> 4.6.
   function ratingValue(text) {
-    const m = String(text || '').match(/(\d(?:\.\d)?)\s*out of\s*5/i);
-    return m ? Number(m[1]) : null;
+    const s = String(text || '');
+    const jp = s.match(/5つ星のうち\s*(\d(?:[.,]\d)?)/);
+    const m = jp || s.match(/(\d(?:[.,]\d)?)\s*(?:out of|von|sur|de|su|van|av|z|na|üzerinden|من)\s*5\b/i);
+    return m ? Number(m[1].replace(',', '.')) : null;
   }
-  function reviewCount(text) {
-    const m = String(text || '').replace(/,/g, '').match(/(\d+(?:\.\d+)?)\s*([KkMm])?/);
-    if (!m) return null;
-    const n = Number(m[1]) * (/k/i.test(m[2] || '') ? 1000 : /m/i.test(m[2] || '') ? 1e6 : 1);
-    return Number.isFinite(n) ? Math.round(n) : null;
+  // "(12,345)", "12.3K", "1K+" -> a count; "(12.345)" on a comma-decimal store is twelve thousand.
+  function reviewCount(text, store) {
+    const decimal = SF() ? SF().storefront(store).decimal : '.';
+    const raw = String(text || '');
+    const abbreviated = raw.match(/(\d+(?:[.,]\d+)?)\s*([KkMm])\b/);
+    if (abbreviated) {
+      const n = Number(abbreviated[1].replace(',', '.')) * (/k/i.test(abbreviated[2]) ? 1000 : 1e6);
+      return Number.isFinite(n) ? Math.round(n) : null;
+    }
+    const n = SF() ? SF().parseNumber(raw, decimal) : Number((raw.replace(/,/g, '').match(/\d+/) || [])[0]);
+    return Number.isFinite(n) && n != null ? Math.round(n) : null;
   }
 
   // The listing as the sorted list shows it. The score is added by withScores().
@@ -296,7 +318,7 @@
     const reviewsLabel = reviewsNode?.getAttribute('aria-label') || '';
     const reviews = (/\d/.test(reviewsLabel) ? reviewsLabel : (reviewsNode?.innerText || reviewsNode?.textContent || '')).trim();
     const unit = settings.unitPrice === false ? { unitPrice: null, unitSource: 'none', unitKind: '' }
-      : U().unitPriceFor({ title, text, listingPrice }, settings);
+      : U().unitPriceFor({ title, text, listingPrice }, settings, location.hostname);
     const asin = card.dataset.asin || '';
     return {
       asin,
@@ -310,7 +332,7 @@
       rating,
       ratingValue: ratingValue(rating),
       reviews,
-      reviewCount: reviewCount(reviews),
+      reviewCount: reviewCount(reviews, location.hostname),
       bought: text.match(/\b[\d,.]+\s*(?:K\+?\s*)?bought in past month\b/i)?.[0] || '',
       sponsored: /\bsponsored\b/i.test(text.slice(0, 200)),
       pageNumber,
@@ -580,9 +602,11 @@
 
   // ------------------------------------------------------------------ lifecycle
   // Called by main.js on a food results page while Ingredient Check is on. Idempotent.
+  // Only on stores whose menus and listings the tests cover (storefronts.js `sort`).
+  const storeSupported = () => !SF() || SF().sortEnabled(location.hostname);
   function mount() {
     const { state } = P();
-    if (!state.enabled || !isSearchPage()) return;
+    if (!state.enabled || !isSearchPage() || !storeSupported()) return;
     if (!listening) {
       listening = true;
       window.addEventListener('pointerdown', onMenuPointer, true);
@@ -622,7 +646,7 @@
   function refresh() { if (mounted) install(); }
 
   const api = { mount, unmount, refresh, isSearchPage, extractProduct, knownScores, findNextPage, sortSelects, rateByProductPage,
-    ratingValue, reviewCount, whyOf, VALUE, MARK, choose, get runId() { return runId; } };
+    ratingValue, reviewCount, getPrice, storeSupported, whyOf, VALUE, MARK, choose, get runId() { return runId; } };
   root.AIR.sort = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

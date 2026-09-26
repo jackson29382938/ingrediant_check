@@ -12,7 +12,7 @@
 // hosts. The results page renders with textContent only, so this is defence in depth, not the only
 // line.
 
-if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./_module.js');
+if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('./_module.js'); require('./storefronts.js'); }
 
 (function () {
   const MAX_RESULTS = 500;
@@ -39,11 +39,10 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
       .map(({ product }) => product);
   }
 
-  // "$1,234.56" -> 1234.56. Only the first amount; null when there is none.
-  function parseMoney(text) {
-    const normalized = String(text || '').replace(/\u00a0/g, ' ');
-    const match = normalized.match(/\$\s*([0-9]+(?:,[0-9]{3})*(?:\.\d{1,2})?)/);
-    return match ? Number(match[1].replace(/,/g, '')) : null;
+  // The first price in `text`, read the way `store` writes prices (AIR.db.storefronts): "$1,234.56"
+  // -> 1234.56 on amazon.com, "1.234,56 €" -> 1234.56 on amazon.de. null when there is none.
+  function parseMoney(text, store) {
+    return AIR.db.storefronts.parsePrice(text, store);
   }
 
   // The sort settings, bounded. `sortMissing`: 'rate-first' rates listings without a score before

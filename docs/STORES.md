@@ -18,6 +18,22 @@ that check is not complete yet.
 | Walmart | planned | no | — | **blocked** 2026-09-25 | Every page answered with Walmart's "Robot or human?" challenge. Not implemented. |
 | Costco | planned | no | — | **blocked** 2026-09-25 | Product and search pages would not render (bot management script blocked, page scripts 404). Not implemented. |
 
+## Amazon: sorting by store
+
+The Ingredient Check options in Amazon's *Sort by* menu, and the side-panel list they open, depend on
+how each store writes prices and sizes (`src/engine/db/storefronts.js`, `tests/storefronts.test.js`).
+
+| Stores | Sort options | Prices shown | Price per |
+|---|---|---|---|
+| amazon.com | on (preview: checked on a stand-in menu, not live) | US dollars | ounce / fluid ounce |
+| .co.uk, .ie, .ca, .com.au, .sg, .in | on (preview: fixtures only) | £, €, C$, A$, S$, ₹ | 100 g / 100 ml |
+| .de, .fr, .es, .it, .nl, .com.be, .se, .pl, .com.tr, .com.br, .com.mx, .co.jp, .ae, .sa | **off** | — | — |
+
+The stores marked off parse prices, unit prices and sizes correctly in the tests, and the menu is
+found by its option values in any language, but nobody has looked at their live listings (ratings,
+review counts, price markup). Switch one on in `storefronts.js` after the VERIFY.md §7 steps pass
+there.
+
 ## Target
 
 **What it does.** On a Target product page (`/p/…/-/A-<TCIN>`) it reads the title, the breadcrumbs

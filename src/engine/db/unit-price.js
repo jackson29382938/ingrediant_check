@@ -5,10 +5,12 @@
 // "$0.25/Fl Oz") wins. Without one, the price per ounce can be worked out from the listed price and a
 // package weight in the title, but only when the weight is unambiguous: repeated equivalent weights
 // ("39 oz (2.4 lb)") are one size, a count ("100 Count, 7 oz") may be per item and is left alone, and
-// a pack multiplier ("Pack of 6") is applied. Fluid ounces are treated as ounces, as the Cost Sorter
-// does. Conditional coupons and subscription discounts are not included: the listed price is used.
+// a pack multiplier ("Pack of 6") is applied. Conditional coupons and subscription discounts are not
+// included: the listed price is used. Prices and sizes are read the way each storefront writes them
+// (storefronts.js); internally every unit price is per ounce (or fluid ounce), and displayUnit() turns
+// it into per 100 g / 100 ml for metric stores.
 
-if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./_module.js');
+if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('./_module.js'); require('./storefronts.js'); }
 
 (function () {
   const OUNCES_PER_POUND = 16;
@@ -23,15 +25,16 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     [/^(?:ounces?|oz)$/, 1, 'weight'],
     [/^(?:pounds?|lbs?)$/, OUNCES_PER_POUND, 'weight'],
     [/^(?:kilograms?|kgs?)$/, OUNCES_PER_KILOGRAM, 'weight'],
-    [/^(?:grams?|g)$/, OUNCES_PER_GRAM, 'weight'],
+    [/^(?:grams?|gramm|g)$/, OUNCES_PER_GRAM, 'weight'],
     [/^(?:ml|milliliters?|millilitres?)$/, FL_OZ_PER_ML, 'fluid'],
+    [/^(?:cl)$/, 10 * FL_OZ_PER_ML, 'fluid'],
     [/^(?:l|liters?|litres?)$/, 1000 * FL_OZ_PER_ML, 'fluid'],
     [/^(?:qt|quarts?)$/, 32, 'fluid'],
     [/^(?:pt|pints?)$/, 16, 'fluid'],
     [/^(?:gal|gallons?)$/, 128, 'fluid'],
   ];
-  const UNIT = 'fl\\.?\\s*oz|fluid\\s*ounces?|fl\\.?\\s*ounces?|fz|ounces?|oz|pounds?|lbs?|kilograms?|kgs?|grams?|g'
-    + '|milliliters?|millilitres?|ml|liters?|litres?|l|quarts?|qt|pints?|pt|gallons?|gal';
+  const UNIT = 'fl\\.?\\s*oz|fluid\\s*ounces?|fl\\.?\\s*ounces?|fz|ounces?|oz|pounds?|lbs?|kilograms?|kgs?|gramm|grams?|g'
+    + '|milliliters?|millilitres?|ml|cl|liters?|litres?|l|quarts?|qt|pints?|pt|gallons?|gal';
   // "10g Protein", "0g Added Sugar", "5 g of fiber": a nutrient amount, not the package size.
   const NUTRIENT_AFTER = /^\s*(?:of\s+)?(?:added\s+)?(?:protein|fat|carbs?|carbohydrates?|sugars?|fib(?:er|re)|net\s+carbs?|sodium|caffeine|collagen|probiotics?|prebiotics?|electrolytes?|creatine)\b/i;
   // What to do when Amazon shows no unit price (the Cost Sorter's "missing price" setting).
@@ -44,24 +47,37 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     return hit ? { oz: hit[1], kind: hit[2] } : null;
   }
 
-  // Amazon's displayed unit price: { perOz, kind } or null. Handles "$0.81/Ounce", "38.1¢/Ounce",
-  // "$4.99/Pound", "$1.25/100 g", "$0.25/Fl Oz", "$0.11/fluid ounce", "$0.16/FZ", "$0.30/100 ml".
-  function parseDisplayedUnit(text) {
-    const normalized = String(text || '').replace(/\u00a0/g, ' ').replace(/,/g, '');
-    const pattern = new RegExp(`(?:\\$\\s*(\\d+(?:\\.\\d+)?)|(\\d+(?:\\.\\d+)?)\\s*\u00a2)\\s*(?:\\/|per\\s+)\\s*(\\d+(?:\\.\\d+)?)?\\s*(${UNIT})(?![a-z])`, 'i');
+  const SF = () => AIR.db.storefronts;
+
+  // Amazon's displayed unit price: { perOz, kind } or null, read the way `store` writes prices
+  // (AIR.db.storefronts). Handles "$0.81/Ounce", "38.1¢/Ounce", "$4.99/Pound", "$1.25/100 g",
+  // "$0.25/Fl Oz", "$0.11/fluid ounce", "$0.16/FZ", "$0.30/100 ml", "£1.25/100 g", "9,98 €/kg",
+  // "R$ 4,99/kg", "₹49.90/100 g". Commas are never stripped: on a comma-decimal store "4,99" is 4.99.
+  function parseDisplayedUnit(text, store) {
+    const normalized = String(text || '').replace(/\u00a0/g, ' ');
+    const { decimal } = SF().storefront(store);
+    const qty = decimal === ',' ? '(\\d+(?:[.,]\\d+)?)' : '(\\d+(?:\\.\\d+)?)';
+    const pattern = new RegExp(`(?:${SF().PRICE}|(\\d+(?:[.,]\\d+)?)\\s*\u00a2)\\s*(?:\\/|per\\s+)\\s*${qty}?\\s*(${UNIT})(?![a-z])`, 'i');
     const match = normalized.match(pattern);
     if (!match) return null;
-    const info = unitInfo(match[4]);
+    const info = unitInfo(match[5]);
     if (!info) return null;
-    const price = match[1] != null ? Number(match[1]) : Number(match[2]) / 100;
-    const perOz = price / (Number(match[3] || 1) * info.oz);
+    const cents = match[3] != null ? SF().parseNumber(match[3], decimal) : null;
+    const price = cents != null ? cents / 100 : SF().parseNumber(match[1] || match[2], decimal);
+    const amount = match[4] != null ? SF().parseNumber(match[4], decimal) : 1;
+    const perOz = price / (amount * info.oz);
     return Number.isFinite(perOz) && perOz > 0 ? { perOz, kind: info.kind } : null;
   }
-  const parseDisplayedUnitPrice = text => (parseDisplayedUnit(text) || { perOz: null }).perOz;
+  const parseDisplayedUnitPrice = (text, store) => (parseDisplayedUnit(text, store) || { perOz: null }).perOz;
 
   // Package size: { ounces, kind } or null when it is missing or ambiguous.
-  function parseQuantity(text) {
-    const source = String(text || '').toLowerCase().replace(/,/g, '');
+  // On a comma-decimal store "1,5 kg" is one and a half kilograms; elsewhere a comma only groups
+  // thousands ("1,000 g").
+  function parseQuantity(text, store) {
+    const lower = String(text || '').toLowerCase();
+    const source = SF().storefront(store).decimal === ','
+      ? lower.replace(/(\d),(\d)/g, '$1.$2')
+      : lower.replace(/,/g, '');
     const found = [];
     for (const match of source.matchAll(new RegExp(`(\\d*\\.?\\d+)[\\s-]*(${UNIT})\\.?(?![a-z])`, 'g'))) {
       if (NUTRIENT_AFTER.test(source.slice(match.index + match[0].length))) continue;
@@ -89,7 +105,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     }
     return { ounces: representative * multiplier, kind };
   }
-  const parseWeightToOunces = text => { const q = parseQuantity(text); return q ? q.ounces : null; };
+  const parseWeightToOunces = (text, store) => { const q = parseQuantity(text, store); return q ? q.ounces : null; };
 
   function calculateUnitPrice(price, ounces) {
     if (!(price > 0) || !(ounces > 0)) return null;
@@ -103,19 +119,32 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
 
   // A search-result card's price per ounce: { unitPrice, unitSource, unitKind }. unitSource is
   // 'amazon', 'calculated' or 'none'; unitKind 'weight' or 'fluid' (per fluid ounce).
-  function unitPriceFor({ title = '', text = '', listingPrice = null } = {}, settings) {
+  // `store`: the storefront host (AIR.db.storefronts); amazon.com's formats when not given.
+  function unitPriceFor({ title = '', text = '', listingPrice = null } = {}, settings, store) {
     const { unitMissing } = sanitizeUnit(settings);
     const none = { unitPrice: null, unitSource: 'none', unitKind: '' };
-    const displayed = parseDisplayedUnit(text);
+    const displayed = parseDisplayedUnit(text, store);
     if (displayed) return { unitPrice: displayed.perOz, unitSource: 'amazon', unitKind: displayed.kind };
     if (unitMissing === 'displayed-only') return none;
-    const quantity = parseQuantity(unitMissing === 'infer-more' ? `${title} ${text}` : title);
+    const quantity = parseQuantity(unitMissing === 'infer-more' ? `${title} ${text}` : title, store);
     const calculated = quantity ? calculateUnitPrice(listingPrice, quantity.ounces) : null;
     return calculated != null ? { unitPrice: calculated, unitSource: 'calculated', unitKind: quantity.kind } : none;
   }
 
+  // What the list shows for a price per ounce: per ounce / fluid ounce on imperial stores, per 100 g /
+  // 100 ml on metric ones. -> { value, per } where per is 'oz', 'floz', '100g' or '100ml'.
+  const OUNCES_PER_100G = 100 * OUNCES_PER_GRAM;
+  const FL_OZ_PER_100ML = 100 * FL_OZ_PER_ML;
+  function displayUnit(perOz, kind, units) {
+    if (!(perOz > 0)) return null;
+    if (units === 'metric') {
+      return kind === 'fluid' ? { value: perOz * FL_OZ_PER_100ML, per: '100ml' } : { value: perOz * OUNCES_PER_100G, per: '100g' };
+    }
+    return { value: perOz, per: kind === 'fluid' ? 'floz' : 'oz' };
+  }
+
   const api = {
-    MISSING, UNIT_DEFAULTS, OUNCES_PER_POUND, OUNCES_PER_KILOGRAM,
+    MISSING, UNIT_DEFAULTS, OUNCES_PER_POUND, OUNCES_PER_KILOGRAM, displayUnit,
     parseDisplayedUnit, parseDisplayedUnitPrice, parseQuantity, parseWeightToOunces, calculateUnitPrice, sanitizeUnit, unitPriceFor,
   };
   const out = AIRmodule('unitPrice', api);

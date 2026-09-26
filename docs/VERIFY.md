@@ -83,10 +83,16 @@ the second. Non-food departments and queries stand the extension down entirely. 
 Needs a build with `ENDPOINT` set ([SETTINGS-SYNC.md](SETTINGS-SYNC.md)). Settings should show no
 red "not set up in this build" line under *Shared online database*.
 
+Product rows are opt-in on both ends ([CACHE.md](CACHE.md), *Trust*). First, with the redeployed
+script and **no** `PRODUCTS_OPEN` property: score a product with *Share product readings with other
+computers* off, then on. Nothing reaches the `products` tab either way, and a lookup answers
+`"closed": true`. The checks below need `PRODUCTS_OPEN` = `true` and the setting on in both profiles.
+
 - Score a product, wait 15 seconds, and a `products` tab appears on the sheet with one row.
 - On a second Chrome profile, search for the same product: its tile gets a badge with no Amazon
   request for it (DevTools → Network shows no `/dp/<asin>` fetch), and its row's `pulls` goes up.
 - Move a weight slider: badges change at once, with no `/dp/` fetches.
+- Untick **Share product readings with other computers**: no more `lookup` or `products` POSTs.
 - Untick **Use the shared online database**: nothing goes to `script.google.com` any more.
 
 For diagnostics, tick **Send scoring diagnostics**.
@@ -148,6 +154,14 @@ Reload the extension in `chrome://extensions` first, then open an Amazon grocery
 9. Settings → *Speed*: *Balanced* is selected. *Most up to date* rates results without asking the
    shared database; *Fastest* rates at most 20 per results page.
 10. Turn the master switch off: the options leave Amazon's menu.
+11. With *Rate every search result* on and hover scoring on, choose an option while badges are still
+    being rated: DevTools → Network never shows more than three `/dp/` requests at once, and never
+    the same ASIN twice.
+12. **amazon.co.uk** (search `porridge oats`): the option reads *Price per 100 g: Low to High*, and the
+    list shows prices in £ and per 100 g. Compare three listings' £/100 g with Amazon's own unit
+    price on the card.
+13. **amazon.de** (search `haferflocken`): no Ingredient Check options in the menu. Sorting there is
+    off until someone does step 12 on it and it is switched on in `storefronts.js`.
 
 ## 8. Worth a look while you are in there
 
@@ -315,7 +329,9 @@ was taken". **For the owner:** click the toolbar button on an Amazon page and tr
 - **Target in normal use.** Target's pages were read live, but behind its bot check ([STORES.md](STORES.md)).
 - **Walmart and Costco.** Not implemented; their bot checks blocked inspection.
 - **The sort-menu options on live Amazon.** Checked only on a stand-in for Amazon's menu; amazon.com
-  refused this machine's search pages on 2026-09-25 (§7 has the steps).
+  refused this machine's search pages on 2026-09-25 (§7 has the steps). Until then the README calls
+  sorting a preview. The UK, Ireland, Canada, Australia, Singapore and India prices and menus are
+  checked only against fixtures (`tests/storefronts.test.js`), not on the live stores.
 - **Amazon stores other than amazon.com.** They share code and markup with .com and the harness
   snapshots, but none was checked live one by one.
 - The nutritional model is specified and tested, not scientifically validated.

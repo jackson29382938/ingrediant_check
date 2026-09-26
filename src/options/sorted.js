@@ -13,8 +13,22 @@
   const { BAND_COLOR } = AIR.panel;
   const root = document.querySelector('#results-root');
   const isPanel = document.body.dataset.view === 'panel';
-  const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
-  const count = new Intl.NumberFormat('en-US');
+  // Prices in the currency and style of the store the list came from (storefronts.js), and a price per
+  // ounce as that store's shoppers read it: per ounce on amazon.com, per 100 g / 100 ml elsewhere.
+  const SF = AIR.db.storefronts;
+  const store = () => SF.storefront(saved && saved.sourceUrl);
+  const metric = () => store().units === 'metric';
+  const formatters = new Map();
+  const money = value => {
+    const { currency, locale } = store();
+    const key = `${locale}|${currency}`;
+    if (!formatters.has(key)) {
+      try { formatters.set(key, new Intl.NumberFormat(locale, { style: 'currency', currency })); }
+      catch (e) { formatters.set(key, new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })); }
+    }
+    return formatters.get(key).format(value);
+  };
+  const count = { format: n => new Intl.NumberFormat(store().locale).format(n) };
   const t = (key, fallback, ...subs) => {
     const args = subs.map(String);
     let text = '';
@@ -24,21 +38,21 @@
 
   const FACTOR_TEXT = {
     health: () => t('sortedFactorHealth', 'Health score'),
-    unitPrice: () => t('sortedFactorUnit', 'Price per ounce'),
+    unitPrice: () => (metric() ? t('sortedFactorUnitMetric', 'Price per 100 g') : t('sortedFactorUnit', 'Price per ounce')),
     price: () => t('sortedFactorPrice', 'Total price'),
     rating: () => t('sortedFactorRating', 'Customer rating'),
     reviews: () => t('sortedFactorReviews', 'Number of reviews'),
   };
   const PRESET_TEXT = {
     health: () => t('sortedPresetHealth', 'Healthiest'),
-    unitPrice: () => t('sortedPresetUnit', 'Cheapest per ounce'),
+    unitPrice: () => (metric() ? t('sortedPresetUnitMetric', 'Cheapest per 100 g') : t('sortedPresetUnit', 'Cheapest per ounce')),
     balanced: () => t('sortedPresetBalanced', 'Balanced'),
     price: () => t('sortedPresetPrice', 'Lowest price'),
     rating: () => t('sortedPresetRating', 'Best rated'),
   };
   const HEADING_TEXT = {
     health: () => t('sortedTitleHealth', 'Healthiest first'),
-    unitPrice: () => t('sortedTitleUnit', 'Lowest price per ounce first'),
+    unitPrice: () => (metric() ? t('sortedTitleUnitMetric', 'Lowest price per 100 g first') : t('sortedTitleUnit', 'Lowest price per ounce first')),
     balanced: () => t('sortedTitleBalanced', 'Balanced: health, price per ounce and rating'),
     price: () => t('sortedTitlePrice', 'Lowest price first'),
     rating: () => t('sortedTitleRating', 'Best rated first'),
@@ -52,7 +66,7 @@
   };
   const MISSING_TEXT = {
     health: () => t('sortedMissingHealth', 'no score'),
-    unitPrice: () => t('sortedMissingUnit', 'no price per ounce'),
+    unitPrice: () => (metric() ? t('sortedMissingUnitMetric', 'no price per 100 g') : t('sortedMissingUnit', 'no price per ounce')),
     price: () => t('sortedMissingPrice', 'no price'),
     rating: () => t('sortedMissingRating', 'no rating'),
     reviews: () => t('sortedMissingReviews', 'no reviews count'),
@@ -204,7 +218,7 @@
       });
       row.append(name, input, value);
       grid.append(row);
-      ui.sliders[f] = { row, input, value };
+      ui.sliders[f] = { row, input, value, name };
     }
     box.append(grid);
     box.append(node('p', 'priority-note', t('sortedPriorityNote',
@@ -216,6 +230,7 @@
     for (const f of R.FACTORS) {
       const s = ui.sliders[f];
       s.row.hidden = f === 'unitPrice' && !unitEnabled();
+      s.name.textContent = FACTOR_TEXT[f]();   // per ounce or per 100 g, once the list's store is known
       if (document.activeElement !== s.input) s.input.value = String(weights[f]);
       s.value.textContent = String(weights[f]);
     }
@@ -223,6 +238,7 @@
     for (const b of ui.presets.children) {
       b.setAttribute('aria-pressed', String(b.dataset.preset === active));
       b.hidden = b.dataset.preset === 'unitPrice' && !unitEnabled();
+      b.textContent = PRESET_TEXT[b.dataset.preset]();
     }
     ui.title.textContent = HEADING_TEXT[active]();
   }
@@ -339,16 +355,20 @@
 
     const facts = node('div', 'facts');
     if (unitEnabled()) {
-      const unit = node('span', 'fact unit', product.unitPrice != null
-        ? (product.unitKind === 'fluid' ? t('sortedPerFlOunce', '$1/fl oz', money.format(product.unitPrice))
-          : t('sortedPerOunce', '$1/oz', money.format(product.unitPrice)))
-        : t('sortedNoUnit', 'No price per ounce'));
+      const shown = AIR.db.unitPrice.displayUnit(product.unitPrice, product.unitKind, store().units);
+      const PER = {
+        oz: v => t('sortedPerOunce', '$1/oz', v), floz: v => t('sortedPerFlOunce', '$1/fl oz', v),
+        '100g': v => t('sortedPer100g', '$1/100 g', v), '100ml': v => t('sortedPer100ml', '$1/100 ml', v),
+      };
+      const unit = node('span', 'fact unit', shown
+        ? PER[shown.per](money(shown.value))
+        : metric() ? t('sortedNoUnitMetric', 'No price per 100 g') : t('sortedNoUnit', 'No price per ounce'));
       if (product.unitPrice != null) unit.title = product.unitSource === 'amazon'
         ? t('sortedUnitAmazon', 'Amazon’s unit price') : t('sortedUnitCalculated', 'Worked out from the listed price and package size');
       facts.append(unit);
     }
-    if (product.listingPrice != null) facts.append(node('span', 'fact', money.format(product.listingPrice)));
-    if (product.ratingValue != null) facts.append(node('span', 'fact', `★ ${product.ratingValue.toFixed(1)}`));
+    if (product.listingPrice != null) facts.append(node('span', 'fact', money(product.listingPrice)));
+    if (product.ratingValue != null) facts.append(node('span', 'fact', `★ ${product.ratingValue.toLocaleString(store().locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`));
     if (product.reviewCount != null) facts.append(node('span', 'fact', t('sortedReviews', '$1 reviews', count.format(product.reviewCount))));
     if (multi) facts.append(node('span', 'fact match', t('sortedMatch', 'Match $1', match)));
     content.append(facts);
