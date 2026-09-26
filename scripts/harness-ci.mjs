@@ -477,6 +477,14 @@ async function run() {
       await listPage.waitForFunction(() => window.__calls.some(c => c[0] === 'session.set'), { timeout: 3000 });
       const tabCalls = await listPage.evaluate(() => window.__calls);
       if (!tabCalls.some(c => c[0] === 'sidePanel.open' && c[1] === 1)) throw new Error(`open side panel: ${JSON.stringify(tabCalls)}`);
+      // The list with listings in it, in both colour schemes: every control named, text readable.
+      await listPage.evaluate(() => document.querySelectorAll('details').forEach(d => { d.open = true; }));
+      const listProblems = await listPage.evaluate(accessibilityProblems);
+      for (const colorScheme of ['light', 'dark']) {
+        await listPage.emulateMedia({ colorScheme });
+        listProblems.push(...(await listPage.evaluate(contrastProblems)).map(p => `${colorScheme}: ${p}`));
+      }
+      if (listProblems.length) throw new Error(`sorted list:\n  ${listProblems.join('\n  ')}`);
     } finally {
       await listPage.close();
     }
@@ -495,7 +503,7 @@ async function run() {
         || !calls.some(c => c[0] === 'tabs.update' && c[1] === 3 && c[2] === 'https://www.amazon.com/s?k=organic+oats' && c[3] === true)) {
         throw new Error(`panel calls: ${JSON.stringify(calls)}`);
       }
-      console.log('  ok  sorted list → priority bar re-ranks (health, price per ounce, a mix); "Why it scored" dropdown and hover pop-up; Open in new tab beside Back to Amazon search; unsafe link and image dropped');
+      console.log('  ok  sorted list → priority bar re-ranks (health, price per ounce, a mix); "Why it scored" dropdown and hover pop-up; Open in new tab beside Back to Amazon search; unsafe link and image dropped; named and readable in light and dark');
     } finally {
       await panelPage.close();
     }
