@@ -19,6 +19,12 @@
  * The URL ships inside the extension, so it is public. Every row is checked here and again by the
  * extension when read back, products only move forward in time, and account rows need a Google
  * token issued to OAUTH_CLIENT_ID. Nobody can open or edit the sheet itself.
+ *
+ * Product rows (lookup / products) are CLOSED until you open them. Anyone with the URL could write
+ * one, and a row's shape can be checked but not whether its ingredient text is true, so a closed
+ * receiver neither stores nor serves them. To open them, knowing that: Project Settings > Script
+ * Properties > add PRODUCTS_OPEN = true. The extension also keeps them off until each reader turns
+ * on "Share product readings with other computers" (docs/CACHE.md, "Trust").
  */
 
 // OAuth client id for the optional Google sign-in; the same value as OAUTH_CLIENT_ID in prefs.js.
@@ -39,6 +45,11 @@ var LOOKUP_MAX = 100;
 var DATA_MAX_CHARS = 12000;
 var ACCOUNT_COLUMNS = ['id', 'payload', 'ts'];
 var ACCOUNT_MAX_CHARS = 20000;
+
+// Script Properties, not code, so opening product rows needs no redeploy and no code edit.
+function productsOpen() {
+  return PropertiesService.getScriptProperties().getProperty('PRODUCTS_OPEN') === 'true';
+}
 
 function doPost(e) {
   var body;
@@ -102,9 +113,12 @@ function cleanProduct(raw) {
   if (store.length > 60 || !/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(store)) return null;
   if (!/^[A-Z0-9]{10}$/.test(asin) || ['ok', 'unreadable', 'not-food'].indexOf(status) === -1) return null;
   if (!data || data.length > DATA_MAX_CHARS) return null;
-  if (!isFinite(t) || t > Date.now() + 5 * 60 * 1000) return null;
+  var now = Date.now();
+  if (!isFinite(t) || t > now + 5 * 60 * 1000) return null;
+  // Never later than this receiver's own clock: a newer scan replaces a row, and a writer who could
+  // stamp a few minutes ahead would win every race for that product.
   return { key: store + ':' + asin, store: store, asin: asin, status: status, data: data,
-    scanned_at: new Date(t).toISOString(), pulls: 0 };
+    scanned_at: new Date(Math.min(t, now)).toISOString(), pulls: 0 };
 }
 
 // row index (0-based among data rows) by key, from the key column only.
@@ -120,6 +134,7 @@ function productIndex(sheet) {
 // thousands of products. Past that, keep a key->row map in CacheService or move off Sheets.
 function lookupProducts(keys) {
   if (!Array.isArray(keys) || keys.length > LOOKUP_MAX) throw new Error('invalid lookup');
+  if (!productsOpen()) return json({ ok: true, rows: [], closed: true });
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName('products');
   if (!sheet || sheet.getLastRow() < 2) return json({ ok: true, rows: [] });
@@ -145,6 +160,7 @@ function lookupProducts(keys) {
 // POST. Fine into the low tens of thousands of rows; past that, prune stale rows or switch to
 // per-row writes (TextFinder on the key column + setValues on the one row).
 function writeProducts(body) {
+  if (!productsOpen()) return json({ ok: false, error: 'products closed', tab: 'products' });
   var upserts = Array.isArray(body.upserts) ? body.upserts : [];
   var pulls = Array.isArray(body.pulls) ? body.pulls : [];
   if (upserts.length + pulls.length > PRODUCTS_MAX) throw new Error('invalid products batch');

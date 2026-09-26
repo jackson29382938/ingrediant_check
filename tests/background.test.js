@@ -283,10 +283,12 @@ test('an oversized or malformed provenance reply keeps the previous copy', async
   body = { ok: true, text: async () => JSON.stringify({ ok: true, provenance: 'nope', producers: [] }) };
   assert.equal((await w.call('loadProvenance(true)')).index.count, 1);
 });
+// Shared product readings are opt-in (prefs.js sharedProducts).
+const sharing = { sharedProducts: true };
 test('lookup: one request for all tiles, stale rows dropped, answers memoised', async () => {
   const posts = [];
   const old = new Date(Date.now() - 31 * 24 * 3600 * 1000).toISOString();
-  const w = worker({}, async (url, init) => {
+  const w = worker(sharing, async (url, init) => {
     const body = JSON.parse(init.body);
     posts.push(body);
     return { ok: true, json: async () => ({ ok: true, rows: [scan(1), scan(2, { scanned_at: old }), scan(3, { pulls: 100 }),
@@ -303,7 +305,7 @@ test('lookup: one request for all tiles, stale rows dropped, answers memoised', 
 });
 test('writes are batched: no POST per tile, one POST when the batch fills, no retry storm', async () => {
   const posts = [];
-  const w = worker({}, async (url, init) => {
+  const w = worker(sharing, async (url, init) => {
     posts.push(JSON.parse(init.body));
     return { ok: true, json: async () => ({ ok: true, wrote: 1, tab: 'products' }) };
   });
@@ -315,11 +317,11 @@ test('writes are batched: no POST per tile, one POST when the batch fills, no re
   assert.equal(posts[0].upserts.length, 25);
   assert.equal(typeof posts[0].upserts[0].data.text, 'string');
   assert.equal(w.data.productsQueue, undefined);
-  const down = worker({}, async () => { posts.push('down'); return { ok: false }; });
+  const down = worker(sharing, async () => { posts.push('down'); return { ok: false }; });
   for (let i = 0; i < 30; i++) await down.send({ type: 'productsQueue', upserts: [scan(i)] }, amazonTab);
   assert.equal(posts.filter(p => p === 'down').length, 1, 'a failed send must not retry on every tile');
   // An older deployment files unknown kinds as a contribution; that is not a delivery.
-  const old = worker({}, async () => ({ ok: true, json: async () => ({ ok: true, wrote: 1, tab: 'contributions' }) }));
+  const old = worker(sharing, async () => ({ ok: true, json: async () => ({ ok: true, wrote: 1, tab: 'contributions' }) }));
   for (let i = 0; i < 25; i++) await old.send({ type: 'productsQueue', upserts: [scan(i)] }, amazonTab);
   assert.equal(Object.keys(old.data.productsQueue.upserts).length, 25);
 });
@@ -452,4 +454,31 @@ test('the housekeeping sweep keeps scores and readings as long as the speed sett
   const w = worker({ 's:amazon.com:B000000001': { t: now - 45 * DAY }, 'p:amazon.com:B000000002': { t: now - 20 * DAY } });
   await w.call(`sweepCache(${now})`);
   assert.deepEqual(Object.keys(w.data), ['p:amazon.com:B000000002']);
+});
+
+test('shared product readings stay off until the reader turns them on', async () => {
+  const posts = [];
+  const fetcher = async (url, init) => { posts.push(JSON.parse(init.body)); return { ok: true, json: async () => ({ ok: true, rows: [], wrote: 1, tab: 'products' }) }; };
+  // Default, and an install that saved the old on-by-default sharedCache: no lookup, nothing queued.
+  for (const initial of [{}, { sharedCache: true }]) {
+    const w = worker(initial, fetcher);
+    assert.equal(JSON.stringify(await w.send({ type: 'productsLookup', store: 'amazon.com', asins: ['B00TEST001'] }, amazonTab)), '{"rows":{}}');
+    for (let i = 0; i < 30; i++) await w.send({ type: 'productsQueue', upserts: [scan(i)] }, amazonTab);
+    assert.equal(w.data.productsQueue, undefined);
+    await w.call('flushProducts()');
+  }
+  assert.equal(posts.length, 0);
+  // The certification tables still count as the shared database; switching it off wins over the opt-in.
+  const off = worker({ sharedProducts: true, sharedCache: false }, fetcher);
+  assert.equal(JSON.stringify(await off.send({ type: 'productsLookup', store: 'amazon.com', asins: ['B00TEST001'] }, amazonTab)), '{"rows":{}}');
+  assert.equal(posts.length, 0);
+});
+
+test('turning shared product readings off drops what was waiting to upload', async () => {
+  const w = worker({ sharedProducts: true }, async () => ({ ok: false }));
+  await w.send({ type: 'productsQueue', upserts: [scan(1)] }, amazonTab);
+  assert.ok(w.data.productsQueue);
+  w.change({ sharedProducts: { oldValue: true, newValue: false } });
+  await w.call('productsWork');
+  assert.equal(w.data.productsQueue, undefined);
 });

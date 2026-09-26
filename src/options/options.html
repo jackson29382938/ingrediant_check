@@ -416,22 +416,30 @@
   <section id="sec-database">
     <h2 data-i18n="optDatabaseH">Shared online database</h2>
     <p class="note" style="margin: -6px 0 12px">
-      A product read once — its ingredient text, title, bullets, certifications and nutrition
-      numbers, before any weighting — is kept on a shared, private spreadsheet, so no one has to
-      fetch it from Amazon again for a month. Every computer scores it under its own settings, so
-      your weights never leave this browser. Certifications for whole foods come from the same
-      place.
+      Certifications for whole foods (organic, grass-fed, origin) come from tables on a shared,
+      private spreadsheet that only the developer edits. Scoring stays on this computer and your
+      weights never leave this browser.
     </p>
     <p class="note" id="endpointStatus" hidden style="margin: -4px 0 12px; color:#a4161a"></p>
     <label class="chip" style="margin-bottom:10px">
       <input type="checkbox" id="sharedCache">
       <span data-i18n="optSharedCache">Use the shared online database</span>
     </label>
-    <p class="note" style="margin: 0 0 12px">Off keeps every lookup on this computer: scores still
-      work, products are just read from Amazon instead. What is sent: the store and product IDs on a
-      search page you are looking at (or of a product page with no ingredient text), and what was
-      read off products you scored. Never your settings,
+    <p class="note" style="margin: 0 0 12px">Off keeps every lookup on this computer. What is sent:
+      nothing but a request for the certification tables, a few times a day. Never your settings,
       and nothing about who you are.</p>
+    <label class="chip" style="margin-bottom:10px">
+      <input type="checkbox" id="sharedProducts">
+      <span data-i18n="optSharedProducts">Share product readings with other computers (experimental)</span>
+    </label>
+    <p class="note" style="margin: 0 0 12px" data-i18n="optSharedProductsD">Off by default. When on,
+      a product another computer already read (its ingredient text, title, bullets, certifications and
+      nutrition numbers, before any weighting) is reused instead of fetched from Amazon again, and what
+      this computer reads is uploaded for others. Anyone can upload a reading and nothing yet checks
+      that it is true, so a search badge or the sorted list could show a score for text that is not on
+      the label. A product page you open is always read from the page itself. What is sent: the store
+      and product IDs of search results this computer cannot answer, and what was read off products
+      you scored.</p>
     <label class="chip" style="margin-bottom:10px">
       <input type="checkbox" id="shareContributions">
       <span data-i18n="optShare">Send certifications I come across to the shared database</span>

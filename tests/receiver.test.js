@@ -3,7 +3,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 
-function receiver({ clientId = 'client-1', tokens = {} } = {}) {
+// productsOpen: the PRODUCTS_OPEN script property. The product tests below model an opened receiver.
+function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true } = {}) {
   const tabs = new Map();
   const order = [];
   let locked = false, failFlush = false, legacy = '{}';
@@ -53,7 +54,8 @@ function receiver({ clientId = 'client-1', tokens = {} } = {}) {
     } },
     Utilities: { DigestAlgorithm: { SHA_256: 'sha256' },
       computeDigest: (_alg, text) => [...require('node:crypto').createHash('sha256').update(text).digest()].map(b => (b << 24) >> 24) },
-    PropertiesService: { getScriptProperties: () => ({ getProperty: () => legacy,
+    PropertiesService: { getScriptProperties: () => ({
+      getProperty: key => (key === 'PRODUCTS_OPEN' ? (productsOpen ? 'true' : null) : legacy),
       setProperty() { throw new Error('dedup must not depend on property writes'); } }) },
     ContentService: { MimeType: { JSON: 'json' },
       createTextOutput: text => ({ setMimeType: () => JSON.parse(text) }) },
@@ -141,6 +143,30 @@ test('lookup returns only the rows asked for, parsed, without taking the write l
   assert.equal(res.rows[0].data.text, 'Organic rolled oats');
   assert.equal(res.rows[0].scanned_at, '2026-09-20T00:00:00.000Z');
   assert.equal(r.post({ kind: 'lookup', keys: Array(101).fill(KEY) }).ok, false);
+});
+test('products are closed until the owner opens them: nothing stored, nothing served', () => {
+  const r = receiver({ productsOpen: false });
+  const res = r.post({ kind: 'products', upserts: [product()] });
+  assert.equal(res.ok, false);
+  assert.equal(res.error, 'products closed');
+  assert.equal(r.tabs.has('products'), false);
+  // Rows written while it was open are not served once it is closed again.
+  const open = receiver();
+  open.post({ kind: 'products', upserts: [product()] });
+  const lookup = receiver({ productsOpen: false });
+  lookup.tabs.set('products', open.tabs.get('products'));
+  const got = lookup.post({ kind: 'lookup', keys: [KEY] });
+  assert.equal(got.ok, true);
+  assert.equal(got.closed, true);
+  assert.deepEqual(got.rows, []);
+});
+test('products: a scan stamped ahead of the receiver clock is stored at the receiver time', () => {
+  const r = receiver();
+  const ahead = new Date(Date.now() + 4 * 60 * 1000).toISOString();
+  assert.equal(r.post({ kind: 'products', upserts: [product({ scanned_at: ahead })] }).upserted, 1);
+  const stored = Date.parse(r.tabs.get('products').data[1][5].replace(/^'/, ''));
+  assert.ok(stored <= Date.now(), 'never later than now');
+  assert.ok(stored < Date.parse(ahead));
 });
 test('GET ?kind=provenance serves the first tab and the producers tab as text', () => {
   const r = receiver();

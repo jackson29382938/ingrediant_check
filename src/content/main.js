@@ -223,7 +223,7 @@
   }
 
   chrome.storage.local.get(['enabled', 'badges', 'hoverScore', 'autoScoreSearch', 'hoverBreakdown',
-    'breakdownDetail', 'breakdownDelayMs', 'foodOnly', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList', 'useOpenFoodFacts', 'sharedCache', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'unitPrice'], o => {
+    'breakdownDetail', 'breakdownDelayMs', 'foodOnly', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList', 'useOpenFoodFacts', 'sharedCache', 'sharedProducts', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'unitPrice'], o => {
     state.cacheOptions = { ...o };
     const toggles = AIR.db.prefs.sanitizeToggles(o);
     state.enabled = toggles.enabled;
@@ -253,7 +253,7 @@
 
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area && area !== 'local') return;
-    for (const key of ['weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sharedCache', 'sheetIndexRev', 'producerIndexRev']) {
+    for (const key of ['weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sharedCache', 'sharedProducts', 'sheetIndexRev', 'producerIndexRev']) {
       if (changes[key]) state.cacheOptions[key] = changes[key].newValue;
     }
     if (changes.weights || changes.allergens || changes.diets || changes.avoidList) {
@@ -316,7 +316,7 @@
       resetListState();
       if (state.enabled) { removePanel(); wake(); }
     }
-    if (changes.useOpenFoodFacts || changes.sharedCache || changes.sheetIndexRev || changes.producerIndexRev) {
+    if (changes.useOpenFoodFacts || changes.sharedCache || changes.sharedProducts || changes.sheetIndexRev || changes.producerIndexRev) {
       resetListState();
       removePanel();
       if (state.enabled) wake();

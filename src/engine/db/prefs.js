@@ -28,7 +28,8 @@ const TOGGLE_DEFAULTS = {
   badges: true,
   foodOnly: true,
   // Numbers on every results tile out of the box: product pages are fetched from Amazon a few at a
-  // time (at most 60 per page), and the shared cache answers most of them without a fetch.
+  // time (at most 60 per page); scores saved on this computer, and shared readings when the reader
+  // turned them on, answer the rest without a fetch.
   autoScoreSearch: true,
   hoverScore: false,
   // Hover or focus a score badge on a results page to see why it scored that way.
@@ -37,8 +38,14 @@ const TOGGLE_DEFAULTS = {
   useOpenFoodFacts: false,
   shareContributions: false,
   sendDiagnostics: false,
-  // Shared product cache and provenance reads. Off keeps every lookup on this computer.
+  // The shared online database: the owner-kept certification tables (provenance, producers). Off
+  // keeps every lookup on this computer.
   sharedCache: true,
+  // Product readings other people's computers uploaded to the shared database, and uploading this
+  // computer's. Off until the reader turns it on: anyone who has the endpoint can write a product
+  // row, and nothing yet shows that a row's ingredient text is true (docs/CACHE.md, "Trust"). A new
+  // key rather than a change to sharedCache, so installs that saved sharedCache: true are off too.
+  sharedProducts: false,
   // Price per ounce in the sorted list and "Price per ounce: Low to High" in Amazon's sort menu,
   // worked out on this computer from the results page (AIR.db.unitPrice). No extra requests.
   unitPrice: true,

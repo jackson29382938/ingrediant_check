@@ -676,7 +676,7 @@
     "message": "Scoring always happens on your computer. These decide what the extension may fetch. You can change them later in the toolbar popup."
   },
   "welSharedD": {
-    "message": "Reuses what others already read off a product, so it is not fetched from Amazon again. Never sends your settings or anything about you."
+    "message": "Certifications for whole foods (organic, grass-fed, origin) from tables the developer keeps. Never sends your settings or anything about you."
   },
   "welDoneH": {
     "message": "You're set"
@@ -1280,5 +1280,11 @@
   },
   "sortedWhyNone": {
     "message": "The reasons were not kept for this saved score. Open the product to see why."
+  },
+  "optSharedProducts": {
+    "message": "Share product readings with other computers (experimental)"
+  },
+  "optSharedProductsD": {
+    "message": "Off by default. When on, a product another computer already read (its ingredient text, title, bullets, certifications and nutrition numbers, before any weighting) is reused instead of fetched from Amazon again, and what this computer reads is uploaded for others. Anyone can upload a reading and nothing yet checks that it is true, so a search badge or the sorted list could show a score for text that is not on the label. A product page you open is always read from the page itself. What is sent: the store and product IDs of search results this computer cannot answer, and what was read off products you scored."
   }
 }

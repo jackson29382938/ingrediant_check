@@ -242,7 +242,7 @@
   // A saved reading of this product, from this computer (p:) or the shared products tab. Only an
   // 'ok' row with text helps here — an 'unreadable' row says what this page already said.
   function fromCache(host, data, key, next) {
-    const { state, storeHost, rememberProduct, freshLocal, sharedOk, speed } = P();
+    const { state, storeHost, rememberProduct, freshLocal, sharedOk, sharedProductsOn, speed } = P();
     const C = root.AIR.db.productCache;
     const requestId = ++state.requestId;
     const live = () => requestId === state.requestId && state.lastKey === key && host.isConnected;
@@ -271,7 +271,7 @@
       if (!live()) return;
       const local = C.sanitize(obj && obj[localKey]);
       if (local && local.status === 'ok' && freshLocal(local)) { use(local, false); return; }
-      if (!speed().sharedDays) { miss(); return; }
+      if (!speed().sharedDays || !sharedProductsOn()) { miss(); return; }
       try {
         chrome.runtime.sendMessage({ type: 'productsLookup', store: storeHost(), asins: [key] }, reply => {
           void chrome.runtime.lastError;

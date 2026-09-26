@@ -360,12 +360,12 @@
   }
 
   // Shared-database rows for listings this computer has not read, scored here under this reader's
-  // settings; counts one pull per row used, as the badges do. Skipped when the shared database is
-  // off or the speed setting says to read every product page yourself.
+  // settings; counts one pull per row used, as the badges do. Skipped unless shared product readings
+  // are on, and when the speed setting says to read every product page yourself.
   async function sharedScores(asins, token) {
-    const { storeHost, unreadable, state, cacheScore, rememberProduct, sharedOk, speed } = P();
+    const { storeHost, unreadable, state, cacheScore, rememberProduct, sharedOk, sharedProductsOn, speed } = P();
     const out = new Map();
-    if (!asins.length || state.cacheOptions?.sharedCache === false || !speed().sharedDays) return out;
+    if (!asins.length || !sharedProductsOn() || !speed().sharedDays) return out;
     const C = root.AIR.db.productCache;
     const pulls = [];
     for (let i = 0; i < asins.length && token === run; i += LOOKUP_BATCH) {

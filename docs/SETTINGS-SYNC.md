@@ -19,7 +19,7 @@ provenance, no diagnostics or contributions. The Chrome-account settings backup 
 | --- | --- | --- |
 | First sheet | You | Provenance: `asin`, `upc`, `brand`, `certifications`, `feed`, `origin`, `verified_by`, `notes` |
 | `producers` | You (optional) | Brands confirmed in a certifier's own directory: `brand`, `certifications`, … |
-| `products` | Script, first shared read | The product cache. See [CACHE.md](CACHE.md) |
+| `products` | Script, first shared write (only once product rows are opened) | The product cache. See [CACHE.md](CACHE.md) |
 | `accounts` | Script, first Google sign-in save | `id` (SHA-256 of the Google account id), `payload`, `ts` |
 | `diagnostics` | Script, first batch | See [DIAGNOSTICS.md](DIAGNOSTICS.md) |
 | `reports`, `contributions` | Script | "Looks wrong?" clicks and shared certifications |
@@ -39,6 +39,12 @@ read the allergens in it) and the `ratings_cache` tab are no longer used and can
    It must come from a **Web app** deployment. A **Library** deployment also gets an `AKfycb…` id,
    but its `/exec` URL answers `403 Access Denied` to everyone. Check in an incognito window: a
    working URL shows `{"ok":true,"service":"ingredient-check",…}`.
+
+Product rows (`lookup`, `products`) stay **closed** after this: the script neither stores nor serves
+them. Anyone who has the `/exec` URL can write a row, and nothing checks that its ingredient text is
+true ([CACHE.md](CACHE.md), *Trust*). To open them anyway, **Project Settings → Script Properties →
+Add** `PRODUCTS_OPEN` = `true`; delete the property to close them again. No redeploy is needed.
+Readers still have to turn on *Share product readings with other computers* in their own settings.
 
 After changing the script, **Deploy → Manage deployments → Edit → New version**. That keeps the
 same `/exec` URL; a *new deployment* would change it and every installed copy would lose the

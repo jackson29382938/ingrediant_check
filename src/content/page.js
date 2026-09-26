@@ -33,6 +33,9 @@
   });
   const freshLocal = row => !root.AIR.db.productCache.stale(row, Date.now(), speed().maxAgeMs);
   const sharedOk = row => !!row && (!root.AIR.db.speed || root.AIR.db.speed.sharedUsable(row.scanned_at, state.speedMode));
+  // Product readings from other computers, and uploading this one's: only when the reader turned
+  // them on (prefs.js sharedProducts). The worker checks again; this saves the message.
+  const sharedProductsOn = () => state.cacheOptions.sharedCache !== false && state.cacheOptions.sharedProducts === true;
 
   const MAX_EXTRACT_RETRIES = 8;
 
@@ -125,7 +128,7 @@
       // Pulls are the shared tab's business; on this computer only age decides a rescan.
       chrome.storage.local.set({ [C.localKey(row.store, row.asin)]: { ...row, pulls: 0, t: Date.parse(row.scanned_at) } })
         ?.catch?.(() => {});
-      if (share) chrome.runtime.sendMessage({ type: 'productsQueue', upserts: [row] }, () => void chrome.runtime.lastError);
+      if (share && sharedProductsOn()) chrome.runtime.sendMessage({ type: 'productsQueue', upserts: [row] }, () => void chrome.runtime.lastError);
     } catch (e) { /* context invalidated */ }
     return row;
   }
@@ -152,7 +155,7 @@
 
   const page = {
     HOST_ID, BADGE_ATTR, state, ENGINE_VERSION, CACHE,
-    cachePrefs, cacheKey, usableCache, freshLocal, sharedOk, speed, storeHost, ingredientSig,
+    cachePrefs, cacheKey, usableCache, freshLocal, sharedOk, sharedProductsOn, speed, storeHost, ingredientSig,
     MAX_EXTRACT_RETRIES, isProductPage, isListPage, isRelevantPage,
     MIN_COVERAGE, unreadable,
     sendDiagnostic, publishActionBadge, cacheScore, cache, rememberProduct, logAction,

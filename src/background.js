@@ -1,8 +1,9 @@
 // Service worker.
 //
 // Scoring is local. This worker holds the only network paths, and never fetches Amazon pages:
-//   - the shared online database (product cache, provenance) — one Apps Script endpoint, a build
-//     constant in prefs.js; on by default, off with `sharedCache`, inert while the constant is empty
+//   - the shared online database — one Apps Script endpoint, a build constant in prefs.js, inert while
+//     the constant is empty. Certification tables: on by default, off with `sharedCache`. Product
+//     readings from other computers (and uploading this one's): off until `sharedProducts` is on
 //   - Open Food Facts, contributions, diagnostics — each off until toggled
 //   - the settings backup (chrome.storage.sync) and the optional Google-account copy
 
@@ -47,6 +48,8 @@ chrome.storage.onChanged?.addListener((changes, area) => {
     // A paused content script can ignore a reply, but only the offscreen host can stop its CPU work.
     chrome.runtime.sendMessage({ target: 'ocr-offscreen', type: 'cancelOcr' }).catch(() => {});
   }
+  // Turning shared product readings off drops anything still waiting to upload.
+  if (changes.sharedProducts && changes.sharedProducts.newValue !== true) dropProductsQueue();
   noteBackupChange(changes);
 });
 
@@ -337,6 +340,9 @@ chrome.runtime.onStartup.addListener(() => sweepCache());
 chrome.runtime.onInstalled.addListener(details => {
   sweepCache();
   dropLegacy();
+  // An update from a build that uploaded product readings by default: nothing queued then leaves
+  // unless the reader has turned shared product readings on since.
+  chrome.storage.local.get('sharedProducts').then(o => { if (o.sharedProducts !== true) dropProductsQueue(); }, () => {});
   // A new install asks its setup questions (src/options/welcome.html); an update never does.
   if (details && details.reason === 'install' && chrome.tabs) {
     chrome.tabs.create({ url: chrome.runtime.getURL('src/options/welcome.html') });
@@ -607,11 +613,23 @@ function serializeProducts(work) {
   return result;
 }
 
+// Product readings from other computers: only when the reader turned them on (prefs.js
+// sharedProducts), as well as the shared database itself.
+async function sharedProductsEndpoint() {
+  const c = await chrome.storage.local.get(['enabled', 'sharedCache', 'sharedProducts']);
+  return c.sharedProducts === true ? sharedEndpoint(c) : '';
+}
+
+function dropProductsQueue() {
+  clearTimeout(productsTimer);
+  return serializeProducts(() => chrome.storage.local.remove([PRODUCTS_KEY]));
+}
+
 // -> { rows: { ASIN: row } } of fresh shared rows for this store.
 async function productsLookup(store, asins) {
   const C = self.AIR.db.productCache;
   const rows = {};
-  const url = await sharedEndpoint();
+  const url = await sharedProductsEndpoint();
   if (!url || !Array.isArray(asins)) return { rows };
   const now = Date.now();
   const ask = [];
@@ -646,7 +664,7 @@ async function productsLookup(store, asins) {
 
 function queueProducts(msg) {
   return serializeProducts(async () => {
-    if (!await sharedEndpoint()) return { ok: false, reason: 'not-enabled' };
+    if (!await sharedProductsEndpoint()) return { ok: false, reason: 'not-enabled' };
     const C = self.AIR.db.productCache;
     const conf = await chrome.storage.local.get(PRODUCTS_KEY);
     const queue = C.mergeQueue(conf[PRODUCTS_KEY], msg);
@@ -666,7 +684,7 @@ function flushProducts() {
 }
 
 async function sendProducts() {
-  const url = await sharedEndpoint();
+  const url = await sharedProductsEndpoint();
   if (!url) return { ok: false, reason: 'not-enabled' };
   const C = self.AIR.db.productCache;
   const conf = await chrome.storage.local.get(PRODUCTS_KEY);

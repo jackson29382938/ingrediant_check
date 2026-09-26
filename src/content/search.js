@@ -94,7 +94,7 @@
   // weight change lands here), then the shared products tab. Whatever is left goes to onMiss. One
   // storage read and at most one worker request per call, however many tiles.
   function resolveTiles(items, onMiss) {
-    const { state, cacheKey, usableCache, freshLocal, sharedOk, speed, storeHost, rememberProduct } = P();
+    const { state, cacheKey, usableCache, freshLocal, sharedOk, sharedProductsOn, speed, storeHost, rememberProduct } = P();
     const C = root.AIR.db.productCache;
     if (!items.length) return;
     const epoch = queue.epoch;
@@ -112,8 +112,9 @@
         misses.push(it);
       }
       if (!misses.length) return;
-      // "Most up to date" reads every product page itself instead of asking the shared database.
-      if (!speed().sharedDays) { if (onMiss) misses.forEach(onMiss); return; }
+      // "Most up to date" reads every product page itself instead of asking the shared database, and
+      // so does a reader who has not turned shared product readings on.
+      if (!speed().sharedDays || !sharedProductsOn()) { if (onMiss) misses.forEach(onMiss); return; }
       try {
         chrome.runtime.sendMessage({ type: 'productsLookup', store: storeHost(), asins: misses.map(m => m.asin) }, reply => {
           void chrome.runtime.lastError;

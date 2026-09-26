@@ -11,6 +11,10 @@ millisecond. So the cache stores **what was read**, not the score:
 Every computer scores that under its own settings. Two people with different weights share every
 row, a weight change rescores instantly instead of refetching, and a rule change needs no rescan.
 
+**Sharing rows between computers is off by default**, on both ends: see *Trust* below. Until a reader
+turns on *Share product readings with other computers* (`sharedProducts`), steps 3 of the lookup
+order and the upload are skipped, and this is a cache on one computer only.
+
 Code: [`product-cache.js`](../src/engine/db/product-cache.js) (row shape, bounds, stale rule —
 shared by the worker and the content scripts), [`background.js`](../src/background.js) (lookup,
 write queue), [`search.js`](../src/content/search.js) (tile resolution), and
@@ -29,6 +33,31 @@ The product page reads its own DOM first, which costs no request, and records wh
 Amazon published no ingredient text there, it asks this computer's `p:` entry and then the shared
 tab before spending an Open Food Facts lookup or seconds of label OCR — someone may already have
 read that label. Pasted lists and "Score anyway" overrides never leave the tab.
+
+## Trust
+
+A `products` row is written by whoever sends it. The endpoint ships inside the extension, so anyone
+can send one, and the receiver and the extension can check a row's shape and bounds but not whether
+its ingredient text is what is printed on the label. A made-up row would put a made-up score on a
+search badge and in the sorted list for everyone who reads it, until it went stale.
+
+So, until there is a way to establish who wrote a row (authenticated writers, or rows the owner
+reviews):
+
+- **The extension** reads and uploads product rows only when the reader turns on *Share product
+  readings with other computers* (Settings → *Shared online database*; `sharedProducts` in
+  `prefs.js`, off by default). It is a new key, so an install that saved the older on-by-default
+  `sharedCache: true` is off too, and an update drops anything still queued for upload. Turning it
+  off drops the queue as well. `sharedCache` now covers only the owner-kept certification tables.
+- **The receiver** stores and serves no product rows until the owner sets the script property
+  `PRODUCTS_OPEN` to `true` ([SETTINGS-SYNC.md](SETTINGS-SYNC.md)). A scan stamped ahead of the
+  receiver's clock is stored at the receiver's time, so a writer cannot win every race by stamping
+  its rows a few minutes ahead.
+- **A product page you open** is always read from the page itself. A shared row answers there only
+  when Amazon published no ingredient text, and only with the opt-in on.
+
+Counting pulls, a per-product rate limit, or waiting for two devices to agree do not fix this on
+their own: none of them knows who the writer is.
 
 ## Stale and rescan
 

@@ -4,7 +4,7 @@
 
 const ONLINE = !!PREFS.endpoint();
 // The toggles this section owns. They go online, so they live here beside what they send.
-const DB_KEYS = ['sharedCache', 'shareContributions', 'sendDiagnostics', 'settingsBackup'];
+const DB_KEYS = ['sharedCache', 'sharedProducts', 'shareContributions', 'sendDiagnostics', 'settingsBackup'];
 
 function say(id, text, kind) {
   const el = document.getElementById(id);

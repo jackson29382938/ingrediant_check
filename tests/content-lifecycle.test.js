@@ -274,10 +274,13 @@ test('manual scores are available to this tab but never stored as search scores'
 
 // ---------------------------------------------------------------- product cache (docs/CACHE.md)
 const PC = require('../src/engine/db/product-cache.js');
-function cacheSetup({ local = {}, shared = {} } = {}) {
+// These tests are about sharing, so shared product readings (an opt-in, prefs.js) are on unless a
+// test says otherwise.
+function cacheSetup({ local = {}, shared = {}, sharing = true } = {}) {
   const w = setup();
   const c = w.context;
   c.AIR.db.productCache = PC;
+  w.h.state.cacheOptions = sharing ? { sharedProducts: true } : {};
   w.lookups = [];
   c.chrome.storage.local.get = (keys, cb) => cb(Object.fromEntries([].concat(keys).filter(k => k in local).map(k => [k, local[k]])));
   c.chrome.storage.local.set = v => { w.writes.push(v); return Promise.resolve(); };
@@ -339,6 +342,23 @@ test('a live tile read is kept locally and queued for the shared cache', async (
   assert.equal(kept.data.text, 'oats');
   const up = w.messages.find(m => m.type === 'productsQueue' && m.upserts);
   assert.equal(up.upserts[0].key, 'amazon.com:B000000001');
+});
+
+test('without the opt-in, tiles and product pages never ask for or upload shared readings', async () => {
+  const w = cacheSetup({ shared: { B000000002: cachedRow('B000000002') }, sharing: false });
+  const missed = [];
+  w.context.AIR.search.resolveTiles([{ tile: tileFor(w, 'B000000002'), asin: 'B000000002' }], it => missed.push(it.asin));
+  assert.equal(w.lookups.length, 0, 'no shared lookup');
+  assert.deepEqual(missed, ['B000000002'], 'the tile is read from Amazon instead');
+  const run = w.h.scoreTile(w.tile, 'B000000001', w.h.queue.epoch, w.context.location.href);
+  w.fetches[0].resolve({ ok: true, text: async () => '<html></html>' });
+  await run;
+  assert.ok(w.writes.some(x => x['p:amazon.com:B000000001']), 'still kept on this computer');
+  assert.equal(w.messages.filter(m => m.type === 'productsQueue').length, 0, 'nothing uploaded');
+  const page = cacheSetup({ shared: { B000000001: cachedRow('B000000001') }, sharing: false });
+  page.context.AIR.extract.extract = () => ({ ok: false, title: 'Oats', asin: 'B000000001' });
+  page.h.scoreCurrentPage();
+  assert.equal(page.lookups.length, 0, 'an unreadable product page does not ask either');
 });
 
 test('an unreadable product page is answered by a saved reading before OCR or the paste box', () => {
