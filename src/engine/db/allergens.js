@@ -25,6 +25,10 @@ const PLANT_IT = '(?!\\s+di\\s+(?:cocco|mandorl[ae]|avena|soia|riso|nocciol[ae]|
 // "Milk thistle" and "milkweed" are plants; "cream of tartar" is a salt of tartaric acid.
 const DAIRY = NOT_DAIRY_BEFORE + '\\b(?:milk|butter|cream)\\b(?!\\s*(?:of\\s+tartar|flavou?r|thistle|weed))'
   + '|\\b(?:dairy|cheese|yogh?urt|whey|casein(?:ate)?|lactose|ghee|kefir|custard|buttermilk|lactalbumin|lactoglobulin|paneer|quark)\\b'
+  // Named cheeses, butterfat, curds ("bean curd" is tofu), half-and-half, skyr and labneh name no
+  // dairy word, and all were read as dairy-free.
+  + '|\\b(?:butterfat|skyr|labneh|mozzarella|parmesan|parmigiano|cheddar|feta|gouda|brie|camembert|provolone|romano|pecorino|gruy[èe]re|emmental|emmenthal|havarti|colby|monterey jack|halloumi|burrata|asiago|fontina)\\b'
+  + '|(?<!\\bbean\\s)\\bcurds?\\b|\\bhalf[- ]?(?:and|&)[- ]?half\\b'
   // es
   + '|\\b(?:leche|nata|mantequilla)' + PLANT_ES + '\\b|\\b(?:queso|suero(?: de leche)?|lactosa|case[ií]na|yogur|requesón|cuajada)\\b'
   // "crema" is Spanish and Italian; "crema de cacahuete" and "crema di nocciole" are spreads
@@ -40,38 +44,40 @@ const DAIRY = NOT_DAIRY_BEFORE + '\\b(?:milk|butter|cream)\\b(?!\\s*(?:of\\s+tar
 // explicit boundaries. L and R are those boundaries for the Latin-1 alphabet.
 const L = '(?<![a-zà-ÿœ])';
 const R = '(?![a-zà-ÿœ])';
-const EGG = L + '(?:eggs?|egg (?:white|yolk)s?|albumen|albumin|ovalbumin|lysozyme|mayonnaise|meringue|huevos?|(?:œ|oe)ufs?|uov[oa]|eier|eigelb|eiwei[sß]|vollei|ei)' + R;
+const EGG = L + '(?:eggs?|egg (?:white|yolk)s?|eggnog|aioli|albumen|albumin|ovalbumin|lysozyme|mayonnaise|meringue|huevos?|(?:œ|oe)ufs?|uov[oa]|eier|eigelb|eiwei[sß]|vollei|ei)' + R;
 
 // The wheat rule spells out its grains because `malt\w*` used to be here — and maltodextrin,
 // maltitol and maltose are not malt. A coeliac user saw "Wheat / gluten" on gluten-free products
 // with maltodextrin in them, which is most of the processed aisle.
 const GLUTEN = L + '(?:wheat|gluten|glutine|barley|rye|malt|malted|malt (?:extract|syrup|flour|vinegar|flavou?r)|semolina|durum|spelt|farro|kamut|einkorn|emmer|triticale|seitan|couscous|bulgur'
+  // Wheat products that do not say wheat. "Breadfruit" is a fruit (R stops it).
+  + '|graham|panko|farina|matzo|matzah|croutons?|bread(?:crumbs?)?|bread crumbs|shortbread'
   + '|trigo|cebada|centeno|espelta|s[ée]mola|bl[ée]|orge|seigle|[ée]peautre|froment|weizen\\w*|gerste\\w*|roggen\\w*|dinkel\\w*|grie[sß]|hartweizen\\w*|grano|frumento|orzo|segale)' + R;
 
 const ALLERGENS = [
   { id: 'milk', label: 'Milk', m: new RegExp(DAIRY, 'i') },
   { id: 'egg', label: 'Egg', m: new RegExp(EGG, 'i') },
   { id: 'peanut', label: 'Peanut',
-    m: new RegExp(L + '(?:peanuts?|groundnuts?|arachis|cacahuetes?|cacahuates?|man[ií]|arachides?|erdn[üu]ss\\w*|arachidi)' + R, 'i') },
+    m: new RegExp(L + '(?:peanuts?|groundnuts?|monkey ?nuts?|arachis|cacahuetes?|cacahuates?|man[ií]|arachides?|erdn[üu]ss\\w*|arachidi)' + R, 'i') },
   { id: 'treeNut', label: 'Tree nuts',
     // Nutmeg is "nuez moscada" / "noix de muscade" / "noce moscata", and coconut is "noix de coco".
-    m: /\b(almond|cashew|walnut|pecan|pistachio|hazelnut|macadamia|brazil nut|pine nut|praline|marzipan|gianduja|almendra|anacardo|avellana|nuez(?!\s+moscada)|nueces|pistacho|amande|cajou|noisette|noix(?!\s+de\s+(?:coco|muscade))|pistache|mandel|haseln[üu]ss|waln[üu]ss|cashewkern|pistazie|mandorl|nocciol|noce(?!\s+(?:moscata|di\s+cocco))|noci|pistacchi)\w*/i },
+    m: /\b(almond|cashew|walnut|pecan|pistachio|hazelnut|macadamia|brazil nut|pine nut|praline|marzipan|gianduja|pesto|nougat|frangipane|almendra|anacardo|avellana|nuez(?!\s+moscada)|nueces|pistacho|amande|cajou|noisette|noix(?!\s+de\s+(?:coco|muscade))|pistache|mandel|haseln[üu]ss|waln[üu]ss|cashewkern|pistazie|mandorl|nocciol|noce(?!\s+(?:moscata|di\s+cocco))|noci|pistacchi)\w*/i },
   { id: 'soy', label: 'Soy',
-    m: /\b(soy|soya|soybean|soja|soia|tofu|tempeh|edamame|miso|tamari|shoyu)\w*/i },
+    m: /\b(soy|soya|soybean|soja|soia|tofu|tempeh|edamame|miso|tamari|shoyu|natto|textured vegetable protein|tvp)\w*/i },
   { id: 'wheat', label: 'Wheat / gluten', m: new RegExp(GLUTEN, 'i') },
   { id: 'fish', label: 'Fish',
-    m: /\b(fish|salmon|tuna|cod|halibut|tilapia|anchov\w+|sardines?|mackerel|herring|pollock|haddock|worcestershire|pescado|at[úu]n|salm[óo]n|anchoas?|bacalao|poisson|thon|saumon|morue|fisch\w*|thunfisch\w*|lachs\w*|sardellen|pesce|tonno|salmone|acciughe|merluzzo)\b/i },
+    m: /\b(fish|salmon|tuna|cod|halibut|tilapia|anchov\w+|sardines?|mackerel|herring|pollock|haddock|worcestershire|pescado|at[úu]n|salm[óo]n|anchoas?|bacalao|poisson|thon|saumon|morue|fisch\w*|thunfisch\w*|lachs\w*|sardellen|pesce|tonno|salmone|acciughe|merluzzo|surimi|bonito|katsuobushi|dashi|caviar|roe)\b/i },
   { id: 'shellfish', label: 'Shellfish',
     m: /\b(shrimp|prawn|crab(?!\s*-?\s*apples?)|lobster|crayfish|langoustine|clam|mussel|oyster|scallop|squid|calamari|octopus|krill|crustacean|mollusc|mollusk|camar[óo]n|camarones|gambas?|langosta|cangrejo|mejill[óo]n|almeja|calamar|crust[áa]ceo|molusco|crevettes?|crabe|homard|moules?|hu[îi]tres?|crustac[ée]s?|mollusques?|garnelen?|krabben?|hummer|muscheln?|krebstier|weichtier|gamber|granchio|aragosta|cozze|vongole|crostacei|molluschi)\w*/i },
   { id: 'sesame', label: 'Sesame',
-    m: /\b(sesame|tahini|benne|gingelly|s[ée]samo|s[ée]same|sesam)\w*/i },
+    m: /\b(sesame|tahini|benne|gingelly|halva|halvah|halwa|gomasio|gomashio|za[\'’]?atar|s[ée]samo|s[ée]same|sesam)\w*/i },
   { id: 'sulfite', label: 'Sulfites',
-    m: /\b(sulfite|sulphite|sodium bisulfite|potassium metabisulfite|sulfur dioxide|sulphur dioxide|sulfitos?|sulfites?|sulfit|schwefeldioxid|solfiti|anidride solforosa|e[- ]?22[0-8])\w*/i },
+    m: /\b((?:meta)?bisul(?:f|ph)ites?|metabisul(?:f|ph)ites?|sulfite|sulphite|sodium bisulfite|potassium metabisulfite|sulfur dioxide|sulphur dioxide|sulfitos?|sulfites?|sulfit|schwefeldioxid|solfiti|anidride solforosa|e[- ]?22[0-8])\w*/i },
   // The EU's mandatory-declaration list has three allergens the US list does not.
   { id: 'celery', label: 'Celery',
     m: /\b(celery|celeriac|apio|c[ée]leri|sellerie|sedano)\w*/i },
   { id: 'mustard', label: 'Mustard',
-    m: /\b(mustard|mostaza|moutarde|senf|senape)\w*/i },
+    m: /\b(mustard|dijon|mostaza|moutarde|senf|senape)\w*/i },
   { id: 'lupin', label: 'Lupin',
     m: /\b(lupin|lupine|lupini|altramuz|lupino)\w*/i },
   // "Corned beef" is beef; popcorn is corn; a Cornish hen is a chicken.
@@ -91,7 +97,7 @@ const ALLERGENS = [
 const MEAT = '\\b(?:beef|pork|chicken|turkey|lamb|mutton|veal|venison|bison|duck|quail|rabbit|bacon|sausage|salami|pepperoni|chorizo|prosciutto|pancetta|bresaola|gelatine?|lard|tallow|suet|poultry)\\w*'
   + '|\\b(?:ham|goose|meats?)\\b(?<!(?:coconut|nut|crab) meats?)'
   + '|(?<!\\b(?:vegetable|veggie|vegetal|mushroom|miso|kombu|dashi)\\s)\\b(?:broth|bouillon|stock)\\b';
-const SEA = '\\b(?:fish|shellfish|salmon|tuna|cod|anchov|sardine|mackerel|herring|tilapia|shrimp|prawn|lobster|crayfish|clam|mussel|oyster|scallop|squid|calamari|octopus|krill|worcestershire|isinglass)\\w*|\\bcrab(?:s|meat)?\\b(?!\\s*-?\\s*apples?)';
+const SEA = '\\b(?:fish|shellfish|salmon|tuna|cod|anchov|sardine|mackerel|herring|tilapia|shrimp|prawn|lobster|crayfish|clam|mussel|oyster|scallop|squid|calamari|octopus|krill|worcestershire|isinglass|surimi|bonito|katsuobushi|dashi|caviar)\\w*|\\broe\\b|\\bcrab(?:s|meat)?\\b(?!\\s*-?\\s*apples?)';
 const NOT_VEGETARIAN = MEAT + '|' + SEA + '|(?<!\\b(?:microbial|vegetable|vegetarian|non-animal)\\s)\\brennet\\b|\\b(?:carmine|cochineal|e[- ]?120|e[- ]?441|e[- ]?904)\\b';
 const NOT_VEGAN = NOT_VEGETARIAN + '|' + DAIRY + '|' + EGG + '|\\b(?:honey|royal jelly|beeswax|shellac|lanolin|e[- ]?901|e[- ]?913)\\b';
 const DIETS = [

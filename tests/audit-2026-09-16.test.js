@@ -269,3 +269,26 @@ test('milk thistle and crab apple are plants, not milk or shellfish; real milk a
   assert.ok(labels('crab meat').includes('Shellfish'));
   assert.ok(labels('king crab legs').includes('Not vegetarian'));
 });
+
+test('allergens hidden in ingredient names are flagged (a missed flag looks like "clear")', () => {
+  const flagged = (id, text) => engine.score({ ingredients_text: text }, { allergens: [id] }).flags.some(f => f.id === id);
+  const expect = {
+    milk: ['curds', 'butterfat', 'mozzarella', 'parmesan', 'half and half', 'skyr', 'brie', 'feta'],
+    egg: ['aioli', 'eggnog'],
+    wheat: ['graham flour', 'panko', 'breadcrumbs', 'shortbread'],
+    soy: ['natto', 'textured vegetable protein'],
+    fish: ['surimi', 'bonito flakes', 'caviar', 'cod roe', 'dashi'],
+    treeNut: ['pesto', 'nougat', 'frangipane'],
+    peanut: ['monkey nuts'],
+    sesame: ['halva', 'gomasio', "za'atar"],
+    sulfite: ['sodium metabisulfite', 'potassium bisulfite'],
+    mustard: ['dijon'],
+  };
+  for (const [id, list] of Object.entries(expect)) for (const text of list) assert.ok(flagged(id, text), `${id}: ${text}`);
+  // …without flagging what only looks similar.
+  assert.equal(flagged('milk', 'bean curd'), false);
+  assert.equal(flagged('wheat', 'breadfruit'), false);
+  assert.equal(flagged('fish', 'Monroe county honey'), false);
+  const vegetarian = text => engine.score({ ingredients_text: text }, { diets: ['vegetarian'] }).flags.length > 0;
+  assert.ok(vegetarian('dashi'), 'fish stock is not vegetarian');
+});
