@@ -295,7 +295,7 @@ test('plural oils, flavour plurals, fortification and accented spellings read li
     ['natural flavors', 'natürliche Aromen'], ['natural flavors', 'aromas naturais'],
     ['folic acid', 'ácido fólico'], ['folic acid', 'acide folique'], ['folic acid', 'Folsäure'],
     ['niacin', 'niacina'], ['riboflavin', 'riboflavina'], ['cyanocobalamin', 'cianocobalamina'],
-    ['acesulfame k', 'acésulfame-K'], ['gellan gum', 'gomma di gellano'], ['sugar', 'zucchero grezzo di canna'],
+    ['acesulfame k', 'acésulfame-K'], ['gellan gum', 'gomma di gellano'], ['cane sugar', 'zucchero grezzo di canna'],
     ['high oleic sunflower oil', 'huile de tournesol oléique'], ['high oleic sunflower oil', 'óleo de girassol alto oleico'],
     ['colour', 'colouring'], ['stabiliser', 'stabilizzante'], ['stabiliser', 'estabilizadores'],
     ['acidity regulator', 'acidifier'], ['acidity regulator', 'correctores de acidez'], ['acidity regulator', 'reguladores de acidez'],
@@ -330,7 +330,7 @@ const REAL_LABEL_PAIRS = [
   ['gellan gum', 'jellan gam'], ['guar gum', 'guar gam'], ['ascorbic acid', 'askorbik asit'], ['lactic acid', 'laktik asit'],
   ['glycerol esters of wood rosin', 'ağaç reçinesinin gliserol esterleri'], ['tricalcium phosphate', 'trikalsiyum fosfat'],
   ['disodium diphosphate', 'disodyum difosfat'], ['inulin', 'inülin'], ['rapeseed', 'kanola'], ['caramel', 'karamel'], ['gum arabic', 'akasya gamı'],
-  ['sugar', 'sugar*'], ['cane sugar', 'cane sugar #'], ['sugar', 'sucre*'], ['sugar', 'cukier trzcinowy*'], ['hazelnuts 13%', 'hazelnuts %13'],
+  ['sugar', 'sugar*'], ['cane sugar', 'cane sugar #'], ['sugar', 'sucre*'], ['cane sugar', 'cukier trzcinowy*'], ['hazelnuts 13%', 'hazelnuts %13'],
 ];
 
 test('words from real labels in every store language score like their English twins', () => {
@@ -354,6 +354,22 @@ test('bracketed sources, square brackets and marked-up compounds from real label
   ];
   for (const [en, other] of pairs) {
     const a = score(`water, ${en}`), b = score(`water, ${other}`);
+    assert.deepEqual(reasons(b).sort(), reasons(a).sort(), `${other} vs ${en}`);
+    assert.equal(b.score, a.score, `${other} vs ${en}`);
+  }
+});
+
+test('cane sugar, leading shares, headings left in the list and fat levels, from real labels', () => {
+  const pairs = [
+    ['cane sugar', 'sucre de canne'], ['cane sugar', 'sucre de canne roux'], ['cane sugar', 'azúcar moreno de caña'],
+    ['cane sugar', 'zucchero di canna'], ['cane sugar', 'ruwe rietsuiker'], ['cane sugar', 'Rohrzucker'], ['cane sugar', 'açúcar de cana'],
+    ['sugar', '19,5% sucre'], ['sugar', 'Zutaten: Zucker'], ['wheat starch', 'amidon de blé'], ['calcium carbonate', 'carbonate de calcium'],
+    ['molasses', 'mélasse'], ['carrageenan', 'carraghénanes'], ['glucose-fructose syrup', 'Glukose-Fructose-Sirup'],
+    ['invert sugar syrup', 'Invertzuckersirup'], ['potassium phosphates', 'Kaliumphosphate'], ['potassium phosphates', 'fosfati di potassio'],
+    ['caramel', 'caramello'], ['skim milk', '1% milk'], ['skim milk', '2% milk'],
+  ];
+  for (const [en, other] of pairs) {
+    const a = score(`oats, ${en}`), b = score(`oats, ${other}`);
     assert.deepEqual(reasons(b).sort(), reasons(a).sort(), `${other} vs ${en}`);
     assert.equal(b.score, a.score, `${other} vs ${en}`);
   }

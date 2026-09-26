@@ -385,8 +385,13 @@ function recognitionCoverage(list) {
 const TRAILING_SHARE = /\s*(?:\b(?:min(?:imum)?|max(?:imum)?|ca|approx)\.?\s*|<\s*|>\s*)?(?:\d+(?:[.,]\d+)?\s*%|%\s*\d+(?:[.,]\d+)?)$/i;
 // Organic and footnote markers ("sucre*", "cane sugar #", "lait°") hid the ingredient from anchored rules.
 const MARKERS = /[*°¹²³†‡#]+/g;
+// The share in front ("19,5% sucre", "46% flocons d'avoine"), and an ingredient heading left inside
+// the text ("Zutaten: Zucker"), hid the ingredient from rules anchored at the start of the entry.
+// "1% milk" and "2% milk" are a fat level, not a share, and the fat-reduced dairy rule reads them.
+const LEADING_SHARE = /^(?:\d+(?:[.,]\d+)?\s*%|%\s*\d+(?:[.,]\d+)?)\s+(?=\D)(?!(?:\S+\s+){0,2}(?:milk|milkfat|dairy|yogh?urt|cheese|kefir|cream|buttermilk|chocolate milk)\b)/;
+const LEADING_HEADING = /^(?:ingredients?|zutaten|ingr[ée]dients|ingredientes|ingredienti|ingredi[ëe]nten|ingredienser|sk[łl]ad(?:niki)?|i[çc]indekiler)\s*:\s*/i;
 const tidy = s => s.replace(MARKERS, ' ').replace(/^[\s*•\-–:]+/, '').replace(/\s+/g, ' ').trim().toLowerCase().replace(/i\u0307/g, 'i')
-  .replace(TRAILING_SHARE, '').trim();
+  .replace(TRAILING_SHARE, '').trim().replace(LEADING_HEADING, '').replace(LEADING_SHARE, '');
 const usable = s => s.length > 1 && s.length < 80;
 
 // Split on commas at the TOP level only, leaving parenthesised sub-lists attached to their parent.

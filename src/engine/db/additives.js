@@ -39,7 +39,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\btitanium dioxide\b|\be[- ]?171\b|\bdi[óo]xido de titanio\b|\bdioxyde de titane\b/i, cat: 'colour', cap: 18, why: 'Titanium dioxide — banned as a food additive in the EU' },
     { m: /\bartificial colou?rs?\b|\bcolorantes?\s+artificiales?\b|\bcolorants?\s+artificiels?\b/i, cat: 'colour', cap: 20, why: 'Artificial colour' },
     { m: /\bcaramel colou?r(ing)?\b|\be[- ]?150[a-d]?\b|\bcolor(ante)? caramelo\b|\bcolorant caramel\b/i, cat: 'colour', cap: 30, why: 'Caramel colour' },
-    { m: /\bcarrageenan\b|\bkarragenan\b|\bcarrageen\b|\bkarrageen\b|\bcarragenano\b|\bkarragen\b|\bkaragenan\b|\be[- ]?407a?\b|\bcarragenina\b|\bcarragh[ée]nane\b/i, cat: 'carrageenan', cap: 40, why: 'Carrageenan — linked to gut inflammation' },
+    { m: /\bcarrageenan\b|\bcarragh[ée]nanes?\b|\bkarragenan\b|\bcarrageen\b|\bkarrageen\b|\bcarragenano\b|\bkarragen\b|\bkaragenan\b|\be[- ]?407a?\b|\bcarragenina\b|\bcarragh[ée]nane\b/i, cat: 'carrageenan', cap: 40, why: 'Carrageenan — linked to gut inflammation' },
     { m: /\b(bha|butylated hydroxyanisole|e[- ]?320)\b/i,            cat: 'strongPreservative', cap: 45, why: 'BHA preservative' },
     { m: /\b(bht|butylated hydroxytoluene|e[- ]?321)\b/i,            cat: 'strongPreservative', cap: 45, why: 'BHT preservative' },
     { m: /\b(tbhq|tert(?:iary)?[- ]?butyl ?hydroquinone|e[- ]?319)\b/i, cat: 'strongPreservative', cap: 45, why: 'TBHQ preservative' },
@@ -159,7 +159,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\bmagnesium stearate\b|\be[- ]?572\b/i,                     pts: 7,  why: 'Magnesium stearate' },
     { m: /\btripotassium phosphate\b|\be[- ]?340\b/i,                 pts: 10, why: 'Tripotassium phosphate' },
     { m: /\bdipotassium phosphate\b/i,                  pts: 9,  why: 'Dipotassium phosphate' },
-    { m: /\b(disodium|trisodium|monocalcium|dicalcium|tricalcium|monosodium|monopotassium|calcium|sodium|potassium) phosphates?\b|\btri(?:calcium|kalcium|calcio|kalsiyum)[- ]?(?:fosfaat|phosphat|fosfat)\b|\b(?:fosfato tric[áa]lcico|phosphate tricalcique|fosforan tr[óo]jwapniowy)\b|\be[- ]?339\b|\be[- ]?341\b/i, pts: 9, why: 'Phosphate additive' },
+    { m: /\b(disodium|trisodium|monocalcium|dicalcium|tricalcium|monosodium|monopotassium|calcium|sodium|potassium) phosphates?\b|\btri(?:calcium|kalcium|calcio|kalsiyum)[- ]?(?:fosfaat|phosphat|fosfat)\b|\b(?:di|tri|mono)?(?:kalium|natrium|calcium|kalcium)(?:phosphate?|fosfaat|fosfat)\b|\bfosfat[io]s? d[ie] (?:potassio|sodio|calcio|pot[áa]ssio|s[óo]dio|c[áa]lcio)\b|\bfosfatos? (?:di|tri|mono)?(?:pot[áa]sicos?|s[óo]dicos?|c[áa]lcicos?)\b|\bphosphates? (?:de |d['’] ?)(?:potassium|sodium|calcium)\b|\b(?:fosfato tric[áa]lcico|phosphate tricalcique|fosforan tr[óo]jwapniowy)\b|\be[- ]?339\b|\be[- ]?341\b/i, pts: 9, why: 'Phosphate additive' },
     { m: /\bsodium alumini?um (phosphate|sulfate)\b|\be[- ]?541\b/i,    pts: 13, why: 'Sodium aluminium phosphate' },
     { m: /\bcalcium sulph?ate\b|\be[- ]?516\b/i,                        pts: 6,  why: 'Calcium sulfate' },
     { m: /\bammonium (chloride|sulph?ate)\b|\be[- ]?510\b/i,            pts: 8,  why: 'Ammonium salt dough conditioner' },
@@ -201,7 +201,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\bcyanocobalamine?\b|\bcianocobalamina\b|\bcyjanokobalamina\b|\bsiyanokobalamin\b/i,                 pts: 7,  why: 'Cyanocobalamin — the synthetic B12 form' },
     { m: /\bzinc oxide\b/i,                     pts: 8,  why: 'Zinc oxide fortification' },
     { m: /\bniacinamide?\b|\bniacin[ae]?\b|\bnicotinamide?\b|\bnicotinamida\b|\bnikotynamid\b|\bniasin\b/i,         pts: 7,  why: 'Synthetic niacin' },
-    { m: /\bcalcium carbonate\b|\be[- ]?170\b/i,              pts: 5,  why: 'Calcium carbonate fortification' },
+    { m: /\bcalcium carbonate\b|\bcarbonate de calcium\b|\bcarbonato de c[áa]lcio\b|\bcarbonato di calcio\b|\bcalciumcarbona(?:at|t)\b|\bkalciumkarbonat\b|\bw[ęe]glan wapnia\b|\bkalsiyum karbonat\b|\be[- ]?170\b/i,              pts: 5,  why: 'Calcium carbonate fortification' },
     { m: /\b(sodium|calcium) ascorbate\b|\bascorbic acid\b|\bascorbyl palmitate\b|(?:^|[^a-z])[aá]cido asc[oó]rbico(?:$|[^a-z])|\bacide ascorbique\b|\bascorbins[äa]ure\b|\bascorbinezuur\b|\bkwas askorbinowy\b|\baskorbik asit\b|\baskorbinsyra\b|\be[- ]?30[0-4]\b/i, pts: 5, why: 'Synthetic vitamin C' },
     { m: /\bvitamin a (palmitate|acetate)\b/i,  pts: 7,  why: 'Synthetic vitamin A' },
     { m: /\bd[- ]?alpha[- ]?tocopher(ol|yl)\b|\bmixed tocopherols\b|\btocopherols?\b|\be[- ]?30[6-9]\b/i, pts: 3, why: 'Tocopherol antioxidant' },
@@ -230,7 +230,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\blentil flour\b/i,                       pts: 5,  why: 'Lentil flour' },
     { m: /\bpotato (starch|flour)\b/i,              pts: 5,  why: 'Potato starch' },
     { m: /\btapioca (starch|flour)\b/i,             pts: 4,  why: 'Tapioca starch' },
-    { m: /\bwheat (bran|germ|starch)\b|\btarwe(?:zetmeel|zemelen|kiemen)\b|\bweizen(?:st[äa]rke|kleie|keime)\b|\b(?:almid[óo]n|salvado|germen) de trigo\b|\b(?:amidon|son|germe) de bl[ée]\b|\b(?:amido|crusca|germe) di (?:frumento|grano)\b|\b(?:amido|farelo|g[ée]rmen) de trigo\b|\bvete(?:st[äa]rkelse|kli|groddar)\b|\bskrobia pszenna\b|\botr[ęe]by pszenne\b|\bbu[ğg]day (?:ni[şs]astas[ıi]|kepe[ğg]i)(?![a-zà-ÿ\u0100-\u017f])/i,           pts: 7,  why: 'Wheat fraction', gluten: true },
+    { m: /\bwheat (bran|germ|starch)\b|\btarwe(?:zetmeel|zemelen|kiemen)\b|\bweizen(?:st[äa]rke|kleie|keime)\b|\b(?:almid[óo]n|salvado|germen) de trigo\b|\b(?:amidon|son|germe) de bl[ée](?![a-z])|\b(?:amido|crusca|germe) di (?:frumento|grano)\b|\b(?:amido|farelo|g[ée]rmen) de trigo\b|\bvete(?:st[äa]rkelse|kli|groddar)\b|\bskrobia pszenna\b|\botr[ęe]by pszenne\b|\bbu[ğg]day (?:ni[şs]astas[ıi]|kepe[ğg]i)(?![a-zà-ÿ\u0100-\u017f])/i,           pts: 7,  why: 'Wheat fraction', gluten: true },
   ];
 
   // Traditional preparation (sourdough, sprouting, soaking) removes the grain penalty.
