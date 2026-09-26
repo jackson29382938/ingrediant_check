@@ -658,6 +658,11 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
       await page.waitForTimeout(300);   // let storage callbacks run
       const a11y = await page.evaluate(accessibilityProblems);
       for (const problem of a11y) pageErrors.push(`extension ${name}: ${problem}`);
+      for (const colorScheme of ['light', 'dark']) {
+        await page.emulateMedia({ colorScheme });
+        for (const problem of await page.evaluate(contrastProblems)) pageErrors.push(`extension ${name} (${colorScheme}): ${problem}`);
+      }
+      await page.emulateMedia({ colorScheme: 'light' });
       if (name === 'popup.html' || name === 'options.html') await checkTabs(page, name);
       if (name === 'welcome.html') {
         await page.click('#next');
@@ -667,7 +672,7 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
       }
       await page.close();
     }
-    console.log(`  ok  extension → service worker started with every module; ${pages.length} pages open without errors or unnamed controls; goal tabs work by keyboard`);
+    console.log(`  ok  extension → service worker started with every module; ${pages.length} pages open without errors, unnamed controls or low contrast (light and dark); goal tabs work by keyboard`);
     await amazonEndToEnd(context, worker, pageErrors);
   } finally {
     await context.close();
@@ -697,6 +702,38 @@ async function checkTabs(page, name) {
   await page.keyboard.press('End');
   const end = await state();
   if (end.selected !== end.n - 1 || end.focused !== end.n - 1) throw new Error(`${name} End: ${JSON.stringify(end)}`);
+}
+
+// Runs in the page. Visible text below WCAG AA contrast against the nearest opaque background behind
+// it: 4.5:1, or 3:1 for large text. Disabled and paused controls are exempt, as WCAG allows.
+function contrastProblems() {
+  const parse = c => {
+    const m = String(c).match(/rgba?\(([^)]+)\)/);
+    if (!m) return null;
+    const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number);
+    return { r: p[0], g: p[1], b: p[2], a: p[3] == null ? 1 : p[3] };
+  };
+  const lum = ({ r, g, b }) => [r, g, b].map(v => v / 255)
+    .map(v => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4))
+    .reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
+  const behind = el => {
+    for (let e = el; e; e = e.parentElement) { const c = parse(getComputedStyle(e).backgroundColor); if (c && c.a > 0.5) return c; }
+    return { r: 255, g: 255, b: 255, a: 1 };
+  };
+  const out = new Set();
+  for (const el of document.querySelectorAll('body *')) {
+    if (!(el.offsetWidth || el.offsetHeight)) continue;
+    if (![...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) continue;
+    const cs = getComputedStyle(el);
+    if (cs.visibility === 'hidden' || Number(cs.opacity) < 0.6) continue;
+    if (el.closest(':disabled, .disabled, [aria-disabled="true"], .paused')) continue;
+    const [hi, lo] = [lum(parse(cs.color)), lum(behind(el))].sort((a, b) => b - a);
+    const ratio = (hi + 0.05) / (lo + 0.05);
+    const size = parseFloat(cs.fontSize);
+    const need = size >= 24 || (Number(cs.fontWeight) >= 700 && size >= 18.66) ? 3 : 4.5;
+    if (ratio < need) out.add(`contrast ${ratio.toFixed(2)}:1 for "${el.textContent.trim().slice(0, 40)}" (${cs.color})`);
+  }
+  return [...out];
 }
 
 // Runs in the page. What a screen reader cannot name, or a document cannot be navigated by: a visible
