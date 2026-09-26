@@ -4,6 +4,7 @@
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -606,10 +607,50 @@ async function run() {
     await browser.close();
     await new Promise(r => server.close(r));
   }
+  await extensionSmoke(pw, executablePath, pageErrors);
   if (pageErrors.length) {
     throw new Error(`pages logged errors:\n  ${[...new Set(pageErrors)].join('\n  ')}`);
   }
   console.log('\nharness CI passed (no Amazon network, no page errors)');
+}
+
+// The real extension, unpacked, in Chromium's new headless mode (Playwright's headless shell cannot
+// load extensions): the service worker must start with every importScripts module present, and each
+// extension page must open against the real chrome.* APIs without an error. Nothing here goes to
+// Amazon or the shared database: no page asks for it without a click.
+async function extensionSmoke(pw, executablePath, pageErrors) {
+  const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'ic-smoke-'));
+  const context = await pw.chromium.launchPersistentContext(profile, {
+    headless: true, ...(executablePath ? { executablePath } : { channel: 'chromium' }),
+    args: [`--disable-extensions-except=${root}`, `--load-extension=${root}`, '--headless=new'],
+  });
+  try {
+    const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker', { timeout: 20000 });
+    const id = new URL(worker.url()).host;
+    const loaded = await worker.evaluate(() => ({
+      modules: ['ingestible', 'prefs', 'productCache', 'sortedResults', 'storefronts', 'speed', 'activity', 'ocrText']
+        .filter(name => !(self.AIR && self.AIR.db && self.AIR.db[name])),
+      handlers: ['allowMessage', 'getSheetIndex', 'handleSharedDbMessage', 'sweepCache', 'lookupBarcode']
+        .filter(name => typeof self[name] !== 'function'),
+    }));
+    if (loaded.modules.length || loaded.handlers.length) throw new Error(`service worker is missing ${[...loaded.modules, ...loaded.handlers].join(', ')}`);
+    const pages = ['options.html', 'popup.html', 'welcome.html', 'report.html', 'sorted.html', 'sidepanel.html'];
+    for (const name of pages) {
+      const page = await context.newPage();
+      page.on('pageerror', err => pageErrors.push(`extension ${name}: uncaught ${err.message}`));
+      page.on('console', message => {
+        const text = message.text();
+        if (message.type() === 'error' && !/^Failed to load resource/.test(text)) pageErrors.push(`extension ${name}: ${text}`);
+      });
+      await page.goto(`chrome-extension://${id}/src/options/${name}`, { waitUntil: 'load', timeout: 20000 });
+      await page.waitForTimeout(300);   // let storage callbacks run
+      await page.close();
+    }
+    console.log(`  ok  extension → service worker started with every module; ${pages.length} pages open without errors`);
+  } finally {
+    await context.close();
+    fs.rmSync(profile, { recursive: true, force: true });
+  }
 }
 
 run().catch(err => {
