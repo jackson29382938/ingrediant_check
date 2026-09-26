@@ -13,6 +13,17 @@ function say(id, text, kind) {
   el.className = 'status' + (kind === 'error' ? ' error' : '');
 }
 
+// Shared product readings go through the shared database: with it off, or no database in this
+// build, the box would do nothing, so it is shown disabled (its saved value is kept).
+function paintSharedProducts() {
+  const main = document.getElementById('sharedCache');
+  const box = document.getElementById('sharedProducts');
+  if (!main || !box) return;
+  box.disabled = !ONLINE || !main.checked;
+  const chip = box.closest('label');
+  if (chip) chip.classList.toggle('disabled', box.disabled);
+}
+
 // Called by settings.js (startSettingsPage).
 /* exported wireDatabase */
 function wireDatabase() {
@@ -32,9 +43,11 @@ function wireDatabase() {
         if (!ok) return;
         flash(msg('optSaved', 'Saved'));
         if (id === 'sendDiagnostics') paintDiag();
+        if (id === 'sharedCache') paintSharedProducts();
       }));
     }
     paintDiag();
+    paintSharedProducts();
     wireBackup();
   });
 

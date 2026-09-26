@@ -585,6 +585,20 @@ async function run() {
       const disabled = await settingsPage.evaluate(() => [...document.querySelectorAll('input[name="unitMissing"]')].every(r => r.disabled));
       if (!disabled) throw new Error('unit price off should disable its choices');
       console.log('  ok  settings → price per ounce on, "clear weight", speed Balanced by default; each saves; off disables its choices');
+      // Shared product readings: off by default, and unusable while the shared database is off.
+      const sharing = () => settingsPage.evaluate(() => ({
+        on: document.getElementById('sharedProducts').checked,
+        disabled: document.getElementById('sharedProducts').disabled,
+      }));
+      const first = await sharing();
+      if (first.on || first.disabled) throw new Error(`shared readings should start off and usable: ${JSON.stringify(first)}`);
+      await settingsPage.click('#sharedCache');
+      await settingsPage.waitForFunction(() => window.__stored.sharedCache === false, { timeout: 5000 });
+      if (!(await sharing()).disabled) throw new Error('shared readings should be disabled while the shared database is off');
+      await settingsPage.click('#sharedCache');
+      await settingsPage.waitForFunction(() => window.__stored.sharedCache === true, { timeout: 5000 });
+      if ((await sharing()).disabled) throw new Error('shared readings should be usable again');
+      console.log('  ok  settings → shared product readings off by default; disabled while the shared database is off');
     } finally {
       await settingsPage.close();
     }
