@@ -310,7 +310,13 @@ const COMMON_PANEL = new RegExp('\\b(?:' + [
   // that a rule charges is recognised through that rule; these are the ones nothing charges.
   'e[- ]?(?:100|120|14[01]|16[0-3][a-i]?|262|32[5-7]|33[1-3]|40[1-6]|440|50[0-4]|50[89]|524|57[45]|901|903|941|948)',
 ].join('|') + ')\\b'
-  + '|(?<![a-zà-ÿ\\u0100-\\u017f])(?:ägg|äggula|äggvita|äpple|äpplen|ärtor|ärter|[śs]mietan[a-zà-ÿ\\u0100-\\u017f]*|łoso[śs]|żyto)(?![a-zà-ÿ\\u0100-\\u017f])', 'i');
+  + '|(?<![a-zà-ÿ\\u0100-\\u017f])(?:ägg|äggula|äggvita|äpple|äpplen|ärtor|ärter|[śs]mietan[a-zà-ÿ\\u0100-\\u017f]*|łoso[śs]|żyto'
+  // Turkish staples: most end or begin in ı, ş, ğ, ç or ü, so they take the same boundaries.
+  + '|su|tuz|maya|s[üu]t|s[üu]t tozu|ya[ğg]s[ıi]z s[üu]t tozu|tam ya[ğg]l[ıi] s[üu]t tozu|krema|tereya[ğg][ıi]|peynir|yo[ğg]urt|yo[ğg]urt k[üu]lt[üu]r[üu]|k[üu]lt[üu]r(?:[üu]|ler)?|yumurta|bal|kakao|kakao ya[ğg][ıi]|kakao k[üu]tlesi'
+  + '|patates|domates|sar[ıi]msak|so[ğg]an|fesle[ğg]en|kekik|biber|kuru [üu]z[üu]m|[üu]z[üu]m|f[ıi]nd[ıi]k|badem|ceviz|ay[çc][ıi][çc]e[ğg]i [çc]ekirde[ğg]i|elma|[çc]ilek|limon|portakal|muz'
+  + '|pirin[çc]|m[ıi]s[ıi]r|nohut|mercimek|fasulye|bezelye|yulaf|yulaf ezmesi|tavuk|tavuk eti|s[ıi][ğg][ıi]r eti|dana eti|bal[ıi]k|baharat(?:lar)?|pektin|kafein|karbonatl[ıi] su|maden suyu'
+  + '|kabart[ıi]c[ıi](?:lar)?|kabartma tozu|sodyum bikarbonat|lezzet artt?[ıi]r[ıi]c[ıi]|palm ya[ğg][ıi]|zeytinya[ğg][ıi]|hindistan cevizi ya[ğg][ıi]|aroma verici(?:ler)?'
+  + ')(?![a-zà-ÿ\\u0100-\\u017f])', 'i');
 
 // Marketing qualifiers in front of an ingredient carry no scoring information, but most sugar and
 // sweetener rules are anchored at the start of the entry — so "organic agave nectar" matched nothing
@@ -359,7 +365,8 @@ function recognitionCoverage(list) {
 }
 
 // ---------------------------------------------------------------- parsing
-const tidy = s => s.replace(/^[\s*•\-–:]+/, '').replace(/\s+/g, ' ').trim().toLowerCase();
+// "İ".toLowerCase() is "i" plus a combining dot, which no rule can match: "İnvert şeker" read as nothing.
+const tidy = s => s.replace(/^[\s*•\-–:]+/, '').replace(/\s+/g, ' ').trim().toLowerCase().replace(/i\u0307/g, 'i');
 const usable = s => s.length > 1 && s.length < 80;
 
 // Split on commas at the TOP level only, leaving parenthesised sub-lists attached to their parent.

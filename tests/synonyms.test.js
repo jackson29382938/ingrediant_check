@@ -177,6 +177,43 @@ test('Swedish and Polish oils, sugars and preservatives hit the English rules', 
   }
 });
 
+// Turkish (amazon.com.tr). Words end and begin in ı, ş, ğ, ç and ü, which `\b` cannot see, and "İ"
+// lower-cases to "i" plus a combining dot; both are covered here.
+const TR = {
+  chocolate: [SV_PL.chocolate[0], 'Şeker, kakao yağı, tam yağlı süt tozu, emülgatör (soya lesitini), aroma'],
+  chips: [SV_PL.chips[0], 'Patates, ayçiçek yağı, tuz, lezzet arttırıcı (E621), dekstroz'],
+  bread: [SV_PL.bread[0], 'Buğday unu, su, maya, tuz, şeker, soya yağı, kalsiyum propiyonat'],
+  candy: [SV_PL.candy[0], 'Şeker, glikoz şurubu, su, modifiye nişasta (E1422), asitlik düzenleyici (E330), renklendirici (E129), aroma'],
+  muesli: [SV_PL.muesli[0], 'Yulaf ezmesi, kuru üzüm, fındık, ayçiçeği çekirdeği, elma'],
+  biscuit: [SV_PL.biscuit[0], 'Buğday unu, şeker, ayçiçek yağı, glikoz şurubu, kabartıcı (sodyum bikarbonat), tuz, aroma verici'],
+  spread: [SV_PL.spread[0], 'Şeker, palm yağı, fındık, yağsız süt tozu, kakao, emülgatör (lesitin), vanilin'],
+  soda: [SV_PL.soda[0], 'Karbonatlı su, şeker, renklendirici (karamel E150d), asit (fosforik asit), doğal aroma vericiler, kafein'],
+  sauce: [SV_PL.sauce[0], 'Domates, su, kanola yağı, şeker, modifiye mısır nişastası, tuz, sarımsak, soğan, fesleğen, sitrik asit, ksantan gam'],
+  yogurt: [SV_PL.yogurt[0], 'Süt, krema, şeker, çilek, modifiye nişasta, stabilizör (pektin), doğal aroma, yoğurt kültürü'],
+};
+
+test('Turkish twins match English reasons, score and NOVA', () => {
+  for (const [name, [en, tr]] of Object.entries(TR)) assertSameWhy(en, tr, `${name} tr`);
+});
+
+test('Turkish oils, sugars, preservatives and function words hit the English rules', () => {
+  const pairs = [
+    ['rapeseed oil', 'kolza yağı'], ['corn oil', 'mısır yağı'], ['cottonseed oil', 'pamuk yağı'], ['vegetable oil', 'bitkisel yağ'],
+    ['partially hydrogenated soybean oil', 'kısmen hidrojenize soya yağı'], ['hydrogenated vegetable oil', 'hidrojenize bitkisel yağ'],
+    ['margarine', 'margarin'], ['fructose', 'fruktoz'], ['invert sugar', 'İnvert şeker'], ['brown sugar', 'esmer şeker'],
+    ['glucose-fructose syrup', 'glikoz-fruktoz şurubu'], ['corn syrup', 'mısır şurubu'], ['potassium sorbate', 'potasyum sorbat'],
+    ['sodium benzoate', 'sodyum benzoat'], ['sorbic acid', 'sorbik asit'], ['maltodextrin', 'maltodekstrin'],
+    ['yeast extract', 'maya özü'], ['monosodium glutamate', 'monosodyum glutamat'], ['preservative', 'koruyucu'],
+    ['colour', 'renklendirici'], ['emulsifier', 'emülgatör'], ['thickener', 'kıvam arttırıcı'], ['thickener', 'kıvam artırıcı'],
+    ['artificial flavour', 'yapay aroma'], ['barley', 'arpa'], ['rye', 'çavdar'], ['corn starch', 'mısır nişastası'],
+  ];
+  for (const [en, tr] of pairs) {
+    assert.deepEqual(reasons(score(`water, ${tr}`)).sort(), reasons(score(`water, ${en}`)).sort(), `${tr} vs ${en}`);
+  }
+  // NBŞ (nişasta bazlı şeker) is the Turkish label name for glucose-fructose and high-fructose syrups.
+  assert.equal(score('water, nişasta bazlı şeker').score, score('water, high fructose corn syrup').score);
+});
+
 test('flavourings are charged once, in every spelling', () => {
   // UK "flavourings" and "natural flavourings" matched no rule; Italian "aroma naturale" neither; and a
   // qualifier in front ("natürliches Aroma") was charged twice, as natural and as unspecified.

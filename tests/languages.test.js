@@ -5,10 +5,10 @@
 // (tests/corpus.json `_comment`). docs/ACCURACY.md reports the same table; it must not claim more
 // than this file can see.
 //
-// Second, pin the behaviour on storefronts whose language has no synonym pack (amazon.com.tr,
-// .co.jp). The rulebase cannot read those lists, and the coverage gate in src/content/page.js is the
-// only thing standing between them and a confident wrong number. Swedish and Polish had no pack
-// either until 2026-09-26; their twins now score exactly like English (tests/synonyms.test.js). The
+// Second, pin the behaviour on storefronts whose language has no synonym pack (amazon.co.jp). The
+// rulebase cannot read those lists, and the coverage gate in src/content/page.js is the only thing
+// standing between them and a confident wrong number. Swedish, Polish and Turkish had no pack either
+// until 2026-09-26; their twins now score exactly like English (tests/synonyms.test.js). The
 // twins below are SYNTHETIC translations of English lists, not captured labels: they prove the gate
 // declines, or the words map, not that real labels score well.
 'use strict';
@@ -128,14 +128,14 @@ test('a list in an unsupported language is declined, or scored like its English 
   }
 });
 
-test('Swedish and Polish twins are read and score exactly like English', () => {
+test('Swedish, Polish and Turkish twins are read and score exactly like English', () => {
   // The Swedish chips were the measured near miss: "solrosolja" matched no oil rule, the list read as
   // 33% recognised, one point under the gate, and it would have scored 46 against the capped 25 of
   // its English twin. With the Swedish and Polish words mapped, every twin clears the gate and gets
   // the English score and cap.
   for (const [name, byLang] of Object.entries(TWINS)) {
     const en = score(byLang.en);
-    for (const lang of ['sv', 'pl']) {
+    for (const lang of ['sv', 'pl', 'tr']) {
       if (!byLang[lang]) continue;
       const r = score(byLang[lang]);
       assert.ok(!declined(r), `${name}/${lang} declined at ${r.coverage}`);
@@ -149,5 +149,5 @@ test('clean lists in unsupported languages are declined rather than called clean
   // Nothing on a Japanese list matches a rule, so unrecognised text would otherwise read as a clean
   // list. Declining is the honest answer until a language pack exists.
   assert.ok(declined(score(TWINS.candy.ja)), 'a Japanese list must be declined');
-  assert.ok(declined(score('Patates, ayçiçek yağı, tuz')), 'a Turkish list with no code must be declined');
+  assert.ok(declined(score('じゃがいも、植物油、食塩')), 'a Japanese list with no code must be declined');
 });

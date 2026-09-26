@@ -37,22 +37,23 @@ There are no `live-capture` entries in any language. Every non-English entry is 
 | English | .com, .co.uk, .ca, .com.au, .ie, .in, .sg, .ae, .sa | 40 representative + 11 synthetic corpus entries; the live checks in [history/LIVE-TEST-2026-09-05.md](history/LIVE-TEST-2026-09-05.md) | Strongest. Still no verbatim captures in the corpus. |
 | German, Spanish | .de, .es, .com.mx | Synthetic corpus entries (2 de, 4 es); translated twins in `tests/synonyms.test.js` | **Under-tested.** The synonym pack maps the common words onto English rules. No real German or Spanish label has been checked. |
 | French, Italian, Portuguese, Dutch | .fr, .it, .com.br, .nl, .com.be | Translated twins in `tests/synonyms.test.js` only | **Under-tested.** No corpus entries. The twins show the synonyms match the English rules, not that real labels score well. |
-| Swedish, Polish | .se, .pl | Ten translated twins each in `tests/synonyms.test.js` (since 2026-09-26), plus the twins in `tests/languages.test.js` | **Under-tested.** No corpus entries. Every twin gives the English reasons, score and NOVA class. Before 2026-09-26 there was no synonym pack, and a list that cleared the gate on a few recognised words could score far too well (a Swedish biscuit 80 against 25 in English). |
-| Turkish | .com.tr | Headings are recognised (`tests/pages.test.js`). Synthetic twins in `tests/languages.test.js` | **Not supported.** No synonym pack. Most lists are declined by the coverage gate. A list with several E-numbers can clear the gate. The E-numbers then set the score, and it matches the English twin. |
+| Swedish, Polish, Turkish | .se, .pl, .com.tr | Ten translated twins each in `tests/synonyms.test.js` (since 2026-09-26), plus the twins in `tests/languages.test.js` | **Under-tested.** No corpus entries. Every twin gives the English reasons, score and NOVA class. Before 2026-09-26 there was no synonym pack, and a list that cleared the gate on a few recognised words could score far too well (a Swedish biscuit 80 against 25 in English). |
 | Japanese, Arabic | .co.jp, .ae / .sa listings in Arabic | `原材料` heading; OCR turned off for these stores | **Not supported.** Declined. |
 
 **Swedish near miss (measured, fixed 2026-09-26).** Swedish chips (`Potatis, solrosolja, salt,
 smakförstärkare (E621), dextros`) read as 33% recognised, one point under the 34% gate. The rules
 didn't know `solrosolja` (sunflower oil), so the list missed the refined-oil cap: shown, it would
 have scored 46 against 25 for its English twin. Other Swedish lists did clear the gate that way. A
-biscuit list scored 80 against 25, and a hazelnut spread 55 against 36. The Swedish and Polish words
-for sugars, oils, flours, flavourings, lecithins, starches, acids, preservatives and function words
+biscuit list scored 80 against 25, and a hazelnut spread 55 against 36. The Swedish, Polish and
+Turkish words for sugars, oils, flours, flavourings, lecithins, starches, acids, preservatives and function words
 now map onto the English rules. Every twin scores exactly like English (`tests/languages.test.js`,
 `tests/synonyms.test.js`). The same change fixed three English and Romance gaps the twins exposed.
 UK "flavourings" and "natural flavourings" were charged nothing. Italian "aroma naturale" was charged
 nothing. German and Dutch "natürliches Aroma" were charged twice. One corpus product moved: chicken
 broth, 35 → 33, because "natural flavoring" is now charged as natural flavour (like "natural flavor")
-rather than as unspecified flavouring. `RULES_REVISION` became `2026-09-26.8`.
+rather than as unspecified flavouring. `RULES_REVISION` became `2026-09-26.8`, and `2026-09-26.9`
+when Turkish followed (its "İ" lower-cases to "i" plus a combining dot, which no rule could match, so
+entries are now normalised).
 
 **Turkish false positive (caught 2026-09-25, fixed).** The goals change added a legume rule that
 skipped "oil" and "lecithin" only in English. Turkish writes soy lecithin as `soya lesitini`, so it
@@ -143,7 +144,7 @@ Flags never move the score, and a missing flag looks exactly like "clear", so th
 - **Look-alikes that must stay clear**: peanut butter, cocoa butter and coconut milk (dairy), milk
   thistle, crab apple, bean curd, breadfruit, tiger nuts, nutmeg, lemon rind, porcini, "vitamin D3
   (from lichen)".
-- **Swedish, Polish, Dutch and Portuguese** (`tests/label-languages.test.js`): every allergen, the
+- **Swedish, Polish, Dutch, Portuguese and Turkish** (`tests/label-languages.test.js`): every allergen, the
   meat, fish and honey words for the diet checks, and pork for pork-free. Before 2026-09-26 a Swedish
   or Polish list raised only a soy flag, and a Dutch or Portuguese one missed milk. Plant milks and
   butters in those languages (kokosmjölk, masło kakaowe, cacaoboter, manteiga de cacau) and lactic

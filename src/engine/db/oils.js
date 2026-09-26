@@ -13,29 +13,29 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
 
   const HARD = [
     // Solvent-extracted, high-PUFA industrial oils. Any one of these caps the score.
-    { id: 'canola',      m: /\b(canola|rapeseed|colza)\s*(oil|seed oil)?\b|\braps[öo]l\b|\bolio\s+di\s+colza\b|\braps(?:fr[öo])?olja\b|\bolej\s+rzepakowy\b/i, why: 'Canola/rapeseed oil' },
+    { id: 'canola',      m: /\b(canola|rapeseed|colza)\s*(oil|seed oil)?\b|\braps[öo]l\b|\bolio\s+di\s+colza\b|\braps(?:fr[öo])?olja\b|\bolej\s+rzepakowy\b|\b(?:kanola|kolza)\s+ya[ğg][ıi](?![a-zà-ÿ\u0100-\u017f])/i, why: 'Canola/rapeseed oil' },
     // "High oleic" and "partially hydrogenated" variants have their own rules below, so the plain
     // rules step aside for them — one ingredient used to render two or three CAP rows.
-    { id: 'soybean',     m: /(?<!high[- ]oleic )\b(soybean|soya bean|soy)\s+oil\b|(?:^|[^A-Za-z])(aceite|huile|[óo]leo)\s+de\s+soja\b|\bolio\s+di\s+soia\b|\bsoja[öo]l\b|\bsojaolie\b|\bsojaolja\b|\bolej\s+sojowy\b/i, why: 'Soybean oil' },
-    { id: 'sunflower',   m: /(?<!high[- ]oleic )\bsunflower\s+oil\b|(?:^|[^A-Za-z])(aceite\s+de\s+girasol|huile\s+de\s+tournesol|sonnenblumen[öo]l|olio\s+di\s+girasole|[óo]leo\s+de\s+girassol|zonnebloemolie|solrosolja|olej\s+s[łl]onecznikowy)\b/i, why: 'Sunflower oil' },
-    { id: 'safflower',   m: /(?<!high[- ]oleic )\bsafflower\s+oil\b|\baceite\s+de\s+c[áa]rtamo\b|\bhuile\s+de\s+carthame\b|\bdistel[öo]l\b|\bolio\s+di\s+c[áa]rtamo\b|[óo]leo\s+de\s+c[áa]rtamo\b|\bsaffloerolie\b|\bsafflorolja\b|\bolej\s+(?:z\s+)?krokosz\w*/i, why: 'Safflower oil' },
-    { id: 'corn',        m: /\bcorn\s+oil\b|\b(aceite\s+de\s+ma[ií]z|huile\s+de\s+ma[ïi]s|olio\s+di\s+mais|mais(?:keim)?[öo]l|[óo]leo\s+de\s+milho|ma[iï]solie|majsolja|olej\s+kukurydziany)\b/i, why: 'Corn oil' },
-    { id: 'cottonseed',  m: /\bcottonseed\s+oil\b|\baceite\s+de\s+algod[oó]n\b|\bhuile\s+de\s+coton\b|\bbaumwollsaat[öo]l\b|\bolio\s+di\s+semi\s+di\s+cotone\b|[óo]leo\s+de\s+algod[aã]o\b|\bkatoenzaadolie\b|\bbomullsfr[öo]olja\b|\bolej\s+bawe[łl]niany\b/i, why: 'Cottonseed oil' },
-    { id: 'grapeseed',   m: /\bgrape\s?seed\s+oil\b|\baceite\s+de\s+(?:pepitas|semillas?)\s+de\s+uva\b|\bhuile\s+de\s+p[ée]pins\s+de\s+raisin\b|\btraubenkern[öo]l\b|\bolio\s+di\s+vinaccioli\b|[óo]leo\s+de\s+semente\s+de\s+uva\b|\bdruivenpitolie\b|\bdruvk[äa]rnsolja\b|\bolej\s+z\s+pestek\s+winogron\b/i, why: 'Grapeseed oil' },
+    { id: 'soybean',     m: /(?<!high[- ]oleic )\b(soybean|soya bean|soy)\s+oil\b|(?:^|[^A-Za-z])(aceite|huile|[óo]leo)\s+de\s+soja\b|\bolio\s+di\s+soia\b|\bsoja[öo]l\b|\bsojaolie\b|\bsojaolja\b|\bolej\s+sojowy\b|\bsoya\s+ya[ğg][ıi](?![a-zà-ÿ\u0100-\u017f])/i, why: 'Soybean oil' },
+    { id: 'sunflower',   m: /(?<!high[- ]oleic )\bsunflower\s+oil\b|(?:^|[^A-Za-z])(aceite\s+de\s+girasol|huile\s+de\s+tournesol|sonnenblumen[öo]l|olio\s+di\s+girasole|[óo]leo\s+de\s+girassol|zonnebloemolie|solrosolja|olej\s+s[łl]onecznikowy)\b|\bay[çc][ıi][çc]e(?:k|[ğg]i)\s+ya[ğg][ıi](?![a-zà-ÿ\u0100-\u017f])/i, why: 'Sunflower oil' },
+    { id: 'safflower',   m: /(?<!high[- ]oleic )\bsafflower\s+oil\b|\baceite\s+de\s+c[áa]rtamo\b|\bhuile\s+de\s+carthame\b|\bdistel[öo]l\b|\bolio\s+di\s+c[áa]rtamo\b|[óo]leo\s+de\s+c[áa]rtamo\b|\bsaffloerolie\b|\bsafflorolja\b|\bolej\s+(?:z\s+)?krokosz\w*|\baspir\s+ya[ğg][ıi](?![a-zà-ÿ\u0100-\u017f])/i, why: 'Safflower oil' },
+    { id: 'corn',        m: /\bcorn\s+oil\b|\b(aceite\s+de\s+ma[ií]z|huile\s+de\s+ma[ïi]s|olio\s+di\s+mais|mais(?:keim)?[öo]l|[óo]leo\s+de\s+milho|ma[iï]solie|majsolja|olej\s+kukurydziany)\b|\bm[ıi]s[ıi]r\s+(?:[öo]z[üu]\s+)?ya[ğg][ıi](?![a-zà-ÿ\u0100-\u017f])/i, why: 'Corn oil' },
+    { id: 'cottonseed',  m: /\bcottonseed\s+oil\b|\baceite\s+de\s+algod[oó]n\b|\bhuile\s+de\s+coton\b|\bbaumwollsaat[öo]l\b|\bolio\s+di\s+semi\s+di\s+cotone\b|[óo]leo\s+de\s+algod[aã]o\b|\bkatoenzaadolie\b|\bbomullsfr[öo]olja\b|\bolej\s+bawe[łl]niany\b|\bpamuk\s+(?:tohumu\s+|[çc]ekirde[ğg]i\s+)?ya[ğg][ıi](?![a-zà-ÿ\u0100-\u017f])/i, why: 'Cottonseed oil' },
+    { id: 'grapeseed',   m: /\bgrape\s?seed\s+oil\b|\baceite\s+de\s+(?:pepitas|semillas?)\s+de\s+uva\b|\bhuile\s+de\s+p[ée]pins\s+de\s+raisin\b|\btraubenkern[öo]l\b|\bolio\s+di\s+vinaccioli\b|[óo]leo\s+de\s+semente\s+de\s+uva\b|\bdruivenpitolie\b|\bdruvk[äa]rnsolja\b|\bolej\s+z\s+pestek\s+winogron\b|[üu]z[üu]m\s+[çc]ekirde[ğg]i\s+ya[ğg][ıi](?![a-zà-ÿ\u0100-\u017f])/i, why: 'Grapeseed oil' },
     { id: 'ricebran',    m: /\brice\s?bran\s+oil\b/i,                             why: 'Rice bran oil' },
-    { id: 'peanutoil',   m: /\bpeanut\s+oil\b|\baceite\s+de\s+(?:cacahuete|man[íi])(?:$|[^a-z])|\bhuile\s+d['’]arachide\b|\berdnuss[öo]l\b|\bolio\s+di\s+arachidi\b|[óo]leo\s+de\s+amendoim\b|\bpindaolie\b|\bjordn[öo]tsolja\b|\bolej\s+arachidowy\b/i, why: 'Peanut oil' },
+    { id: 'peanutoil',   m: /\bpeanut\s+oil\b|\baceite\s+de\s+(?:cacahuete|man[íi])(?:$|[^a-z])|\bhuile\s+d['’]arachide\b|\berdnuss[öo]l\b|\bolio\s+di\s+arachidi\b|[óo]leo\s+de\s+amendoim\b|\bpindaolie\b|\bjordn[öo]tsolja\b|\bolej\s+arachidowy\b|\byer\s+f[ıi]st[ıi][ğg][ıi]\s+ya[ğg][ıi](?![a-zà-ÿ\u0100-\u017f])/i, why: 'Peanut oil' },
     { id: 'sesameind',   m: /\brefined\s+sesame\s+oil\b/i,                         why: 'Refined sesame oil' },
-    { id: 'vegetable',   m: /\bvegetable\s+oil\b|(?:^|[^A-Za-z])(aceite\s+vegetal|huile\s+v[ée]g[ée]tale|pflanzen[öo]l|olio\s+vegetale|pflanzliche[sn]?\s+[öo]l|[óo]leo\s+vegetal|plantaardige\s+olie|vegetabilisk\s+olja|v[äa]xtolja|olej\s+ro[śs]linny|oleje\s+ro[śs]linne)\b/i, why: 'Unspecified "vegetable oil"' },
+    { id: 'vegetable',   m: /\bvegetable\s+oil\b|(?:^|[^A-Za-z])(aceite\s+vegetal|huile\s+v[ée]g[ée]tale|pflanzen[öo]l|olio\s+vegetale|pflanzliche[sn]?\s+[öo]l|[óo]leo\s+vegetal|plantaardige\s+olie|vegetabilisk\s+olja|v[äa]xtolja|olej\s+ro[śs]linny|oleje\s+ro[śs]linne)\b|\bbitkisel\s+ya[ğg](?:lar|[ıi])?(?![a-zà-ÿ\u0100-\u017f])/i, why: 'Unspecified "vegetable oil"' },
     { id: 'blend',       m: /\b(oil\s+blend|blend\s+of\s+\w+\s+oils?)\b/i,        why: 'Unspecified oil blend' },
     { id: 'shortening',  m: /\bshortening\b/i,                                    why: 'Vegetable shortening' },
-    { id: 'margarine',   m: /\bmargarine\b/i,                                     why: 'Margarine' },
+    { id: 'margarine',   m: /\bmargarine?\b/i,                                     why: 'Margarine' },
     { id: 'interester',  m: /\binte?re?sterified\b/i,                             why: 'Interesterified fat' },
-    { id: 'hydrogen',    m: /(?<!partially )\b(fully )?hydrogenated\b|(?<!parcialmente )\b(totalmente\s+)?hidrogenad[oa]\b|(?<!partiellement )\bhydrog[ée]n[ée]e?\b|\bgeh[äa]rtet\b|\bidrogenat[oi]\b|(?<!delvis )\bh[äa]rda[dt]e?\b|(?<!cz[ęe][śs]ciowo )\buwodornion[yae]?\b/i, why: 'Hydrogenated oil' },
+    { id: 'hydrogen',    m: /(?<!partially )\b(fully )?hydrogenated\b|(?<!parcialmente )\b(totalmente\s+)?hidrogenad[oa]\b|(?<!partiellement )\bhydrog[ée]n[ée]e?\b|\bgeh[äa]rtet\b|\bidrogenat[oi]\b|(?<!delvis )\bh[äa]rda[dt]e?\b|(?<!cz[ęe][śs]ciowo )\buwodornion[yae]?\b|(?<!k[ıi]smen )\bhidrojen(?:ize|e)\b/i, why: 'Hydrogenated oil' },
     { id: 'monoglyoil',  m: /\bhigh\s+oleic\s+(soybean|sunflower|safflower)\b/i,  why: 'High-oleic industrial seed oil' },
   ];
 
   // Artificial trans fat. Its own, far lower cap.
-  const TRANS = { m: /\bpartially\s+hydrogenated\b|\bparcialmente\s+hidrogenad[oa]\b|\bpartiellement\s+hydrog[ée]n[ée]e?\b|\bdelvis\s+h[äa]rda[dt]e?\b|\bcz[ęe][śs]ciowo\s+uwodornion[yae]?\b/i, why: 'Partially hydrogenated oil (artificial trans fat)', cap: 5 };
+  const TRANS = { m: /\bpartially\s+hydrogenated\b|\bparcialmente\s+hidrogenad[oa]\b|\bpartiellement\s+hydrog[ée]n[ée]e?\b|\bdelvis\s+h[äa]rda[dt]e?\b|\bcz[ęe][śs]ciowo\s+uwodornion[yae]?\b|\bk[ıi]smen\s+hidrojen(?:ize|e)\b/i, why: 'Partially hydrogenated oil (artificial trans fat)', cap: 5 };
 
   const TRADITIONAL = [
     { id: 'butter',   m: /(?<!peanut |almond |cashew |sunflower |seed |nut |cocoa |shea |apple |soy |coconut )\bbutter\b/i, why: 'Butter' },

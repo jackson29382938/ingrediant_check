@@ -43,6 +43,22 @@ test('allergen and diet words in Swedish, Polish, Dutch and Portuguese are flagg
   for (const [id, words] of Object.entries(FLAGGED)) for (const w of words) assert.ok(has(w, id), `${w} → ${id}`);
 });
 
+test('Turkish allergen and diet words are flagged; coconut, almond milk and vegetable cream are not', () => {
+  const TR = {
+    milk: ['süt', 'yağsız süt tozu', 'tereyağı', 'peynir altı suyu tozu', 'yoğurt', 'krema', 'laktoz', 'sütlü çikolata'],
+    egg: ['yumurta', 'yumurta sarısı'], peanut: ['yer fıstığı', 'fıstık'],
+    treeNut: ['fındık', 'badem', 'ceviz içi', 'antep fıstığı', 'kaju', 'fıstık', 'sert kabuklu meyveler'],
+    wheat: ['buğday unu', 'arpa', 'çavdar unu', 'irmik', 'glüten'], fish: ['balık', 'ton balığı', 'somon', 'hamsi'],
+    shellfish: ['karides', 'yengeç', 'midye'], sesame: ['susam', 'tahin'], sulfite: ['kükürt dioksit'],
+    celery: ['kereviz'], mustard: ['hardal'], lupin: ['acı bakla'],
+    vegetarian: ['sığır eti', 'tavuk', 'hindi eti', 'jelatin', 'sucuk', 'et suyu', 'ton balığı'],
+    vegan: ['bal', 'süt'], porkFree: ['domuz', 'jelatin'],
+  };
+  for (const [id, words] of Object.entries(TR)) for (const w of words) assert.ok(has(w, id), `${w} → ${id}`);
+  for (const w of ['hindistan cevizi sütü', 'badem sütü', 'bitkisel krema', 'kakao yağı']) assert.ok(!has(w, 'milk'), w);
+  for (const w of ['hindistan cevizi', 'balkabağı', 'yulaf ezmesi']) assert.deepEqual(flags(w), [], w);
+});
+
 test('plant milks and butters, lactic acid and look-alike words are not', () => {
   for (const w of ['kokosmjölk', 'havremjölk', 'kakaosmör', 'masło kakaowe', 'mleko kokosowe', 'kokosmelk', 'cacaoboter',
     'leite de coco', 'manteiga de cacau', 'mjölksyra', 'melkzuur', 'milchsäure', 'kwas mlekowy']) {
