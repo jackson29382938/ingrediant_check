@@ -1316,5 +1316,8 @@
   },
   "sortedPer100ml": {
     "message": "$1/100 ml"
+  },
+  "reportShotNotStore": {
+    "message": "No screenshot was taken: the tab you were on was not an Amazon or Target page, so it was left alone. You can add one below, or paste an image with Ctrl/Cmd+V."
   }
 }

@@ -68,7 +68,7 @@ Scoring is always local: the rules, your weights and every score are computed in
 | **Read label photos** | Fetch of the product image on `m.media-amazon.com` | The image is read **on your computer** (Tesseract). The pixels are not uploaded. |
 | **Open Food Facts fallback** | The **barcode only** | Open Food Facts, after Chrome grants the host. |
 | **Send certifications** / "Looks wrong?" | Product identifiers and certification text; a report adds what the score was | The Ingredient Check database. |
-| **Report a problem or suggest an improvement** (only when you attach the file and send the draft yourself) | Nothing from the extension. Your email app sends what you wrote, and the report file if you attach it: a screenshot of the tab you were on, that page's address (path and search term only), its score and the side panel list, your Ingredient Check settings, your recent clicks in the extension, and the extension and browser version. Every part is shown first and can be left out | The maintainer, by email from your address. See *Reporting a problem* below. |
+| **Report a problem or suggest an improvement** (only when you attach the file and send the draft yourself) | Nothing from the extension. Your email app sends what you wrote, and the report file if you attach it: a screenshot of the Amazon or Target tab you were on (no other tab is captured), that page's address (path and search term only), its score and the side panel list, your Ingredient Check settings, your recent clicks in the extension, and the extension and browser version. Every part is shown first and can be left out | The maintainer, by email from your address. See *Reporting a problem* below. |
 | **Request a store** (only when you open the draft and send it yourself) | Nothing from the extension. Your email app sends the store name and optional site address, if you press Send | The maintainer, by email from your address. See *Requesting a store* below. |
 | **Accuracy diagnostics** (off by default) | One row per scored product (ASIN, store, ingredient text, score, source) | The Ingredient Check database. That is a trace of products you scored — with auto-score on, of tiles that scrolled into view. |
 
@@ -80,10 +80,12 @@ There is no Ingredient Check account, no analytics SDK, and no third-party ad or
 
 ## Reporting a problem or suggesting an improvement
 
-The toolbar popup has **Report a problem or suggest an improvement**. Clicking it takes a screenshot
-of the tab you are on (Chrome allows this only right after you click the toolbar button, which is what
-the `activeTab` permission is for; it grants nothing on any other tab or at any other time) and opens
-a report page. That page shows everything that would be included:
+The toolbar popup has **Report a problem or suggest an improvement**. When the tab you are on is an
+Amazon or Target page, clicking it takes a screenshot of that tab (Chrome allows this only right after
+you click the toolbar button, which is what the `activeTab` permission is for; it grants nothing on any
+other tab or at any other time). On any other tab — your email, your bank — it takes no screenshot and
+notes no address; you can add an image yourself. Then it opens a report page. That page shows
+everything that would be included:
 
 - what you type: the kind of report, a title, what happened, what you clicked, what you expected
 - the screenshot (you can replace it, or add one by pasting)

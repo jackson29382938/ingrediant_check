@@ -566,15 +566,19 @@ document.getElementById('openStores').addEventListener('click', e => {
 // Report a problem or suggest an improvement. The screenshot is taken here, because Chrome allows
 // capturing the tab only right after the toolbar button was clicked (activeTab); the report page
 // then shows it, and the reader decides whether it goes out. Nothing is sent from here.
+// Only an Amazon or Target tab is captured, and only its address noted (AIR.stores.reportMayCapture):
+// the popup opens over whatever tab is in front, and that may be a bank or an email.
 document.getElementById('openReport').addEventListener('click', async e => {
   e.preventDefault();
-  const draft = { t: Date.now(), url: '', shot: '', pageScore: null };
+  const draft = { t: Date.now(), url: '', shot: '', pageScore: null, shotSkipped: '' };
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab) {
+    if (tab && AIR.stores && AIR.stores.reportMayCapture(tab.url)) {
       draft.url = tab.url || '';
       try { draft.shot = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'jpeg', quality: 70 }); } catch (err) { draft.shot = ''; }
       try { draft.pageScore = await chrome.tabs.sendMessage(tab.id, { type: 'currentPageScore' }); } catch (err) { draft.pageScore = null; }
+    } else if (tab) {
+      draft.shotSkipped = 'not-a-store';
     }
   } catch (err) { /* no tab access */ }
   try { await chrome.storage.session.set({ reportDraft: draft }); } catch (err) { /* the page still opens */ }

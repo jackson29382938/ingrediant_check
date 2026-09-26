@@ -1301,5 +1301,8 @@
   },
   "sortedPer100ml": {
     "message": "$1/100 ml"
+  },
+  "reportShotNotStore": {
+    "message": "Es wurde kein Screenshot aufgenommen: Der Tab, auf dem du warst, war keine Amazon- oder Target-Seite und wurde deshalb nicht angefasst. Du kannst unten einen hinzufügen oder ein Bild mit Strg/Cmd+V einfügen."
   }
 }

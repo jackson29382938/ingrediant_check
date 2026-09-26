@@ -40,7 +40,18 @@
     return STORES.find(s => s.name.toLowerCase() === n || s.id === n || s.domains.includes(bareHost(n))) || null;
   }
 
-  const api = { STORES, storeForHost, storeForName };
+  // May "Report a problem" take a screenshot of this tab, and note its address, without asking? Only
+  // on a store Ingredient Check runs on (supported or preview), over https. Any other tab (a bank, an
+  // email) starts the report with neither; the reader can add an image themselves.
+  function reportMayCapture(url) {
+    let u;
+    try { u = new URL(String(url || '')); } catch (e) { return false; }
+    if (u.protocol !== 'https:') return false;
+    const store = storeForHost(u.hostname);
+    return !!store && (store.status === 'supported' || store.status === 'preview');
+  }
+
+  const api = { STORES, storeForHost, storeForName, reportMayCapture };
   root.AIR = root.AIR || {};
   root.AIR.stores = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

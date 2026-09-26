@@ -101,6 +101,9 @@
       ctx.sorted = session.sortedResults || null;
       ctx.actions = session[AIR.db.activity.KEY] || [];
       if (draft.shot) screenshot = draft.shot;
+      if (draft.shotSkipped === 'not-a-store') {
+        $('shotNone').textContent = t('reportShotNotStore', 'No screenshot was taken: the tab you were on was not an Amazon or Target page, so it was left alone. You can add one below, or paste an image with Ctrl/Cmd+V.');
+      }
     } catch (e) { /* session storage unavailable */ }
     try { ctx.settings = await chrome.storage.local.get(null); } catch (e) { ctx.settings = {}; }
     paint();

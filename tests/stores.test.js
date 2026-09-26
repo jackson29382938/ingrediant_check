@@ -69,3 +69,22 @@ test('host lookup matches subdomains, not look-alikes', () => {
   assert.equal(stores.storeForName(' walmart ').id, 'walmart');
   assert.equal(stores.storeForName('Walmart Grocery'), null);
 });
+
+test('"Report a problem" captures only Amazon and Target tabs', () => {
+  for (const url of ['https://www.amazon.com/dp/B00LOAW7U6', 'https://www.amazon.co.uk/s?k=oats',
+    'https://smile.amazon.de/dp/B000000001', 'https://www.target.com/p/oats/-/A-79364857']) {
+    assert.equal(stores.reportMayCapture(url), true, url);
+  }
+  for (const url of ['https://mail.google.com/mail/u/0/', 'https://www.chase.com/', 'https://www.walmart.com/ip/1',
+    'http://www.amazon.com/dp/B00LOAW7U6', 'https://notamazon.com/', 'chrome://settings', 'file:///tmp/x.html', '', null]) {
+    assert.equal(stores.reportMayCapture(url), false, String(url));
+  }
+  // The popup asks before it captures, and records no address for any other tab.
+  const popup = fs.readFileSync(require.resolve('../src/options/popup.js'), 'utf8');
+  const handler = popup.slice(popup.indexOf("getElementById('openReport')"));
+  const gate = handler.indexOf('reportMayCapture(tab.url)');
+  assert.ok(gate > 0, 'the report handler checks the tab');
+  assert.ok(handler.indexOf('captureVisibleTab') > gate, 'capture happens only inside that check');
+  assert.ok(handler.indexOf('draft.url = tab.url') > gate, 'so does the address');
+  assert.ok(fs.readFileSync(require.resolve('../src/options/popup.html'), 'utf8').includes('../stores/registry.js'));
+});
