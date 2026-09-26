@@ -286,3 +286,23 @@ test('"function: additive" reads like "function (additive)"', () => {
   }
   assert.deepEqual(engine.parse('Céréale 50 %: blé, sucre'), ['céréale 50 %: blé', 'sucre'], 'only function words are rewritten');
 });
+
+test('plural oils, flavour plurals, fortification and accented spellings read like English', () => {
+  // Each pair was found unread on real Open Food Facts labels.
+  const pairs = [
+    ['vegetable oil', 'vegetable oils'], ['vegetable oil', 'huiles végétales'], ['vegetable oil', 'óleos vegetais'],
+    ['vegetable oil', 'aceites vegetales'], ['vegetable oil', 'pflanzliche Öle'], ['vegetable oil', 'oli vegetali'],
+    ['natural flavors', 'natürliche Aromen'], ['natural flavors', 'aromas naturais'],
+    ['folic acid', 'ácido fólico'], ['folic acid', 'acide folique'], ['folic acid', 'Folsäure'],
+    ['niacin', 'niacina'], ['riboflavin', 'riboflavina'], ['cyanocobalamin', 'cianocobalamina'],
+    ['acesulfame k', 'acésulfame-K'], ['gellan gum', 'gomma di gellano'], ['sugar', 'zucchero grezzo di canna'],
+    ['high oleic sunflower oil', 'huile de tournesol oléique'], ['high oleic sunflower oil', 'óleo de girassol alto oleico'],
+    ['colour', 'colouring'], ['stabiliser', 'stabilizzante'], ['stabiliser', 'estabilizadores'],
+    ['acidity regulator', 'acidifier'], ['acidity regulator', 'correctores de acidez'], ['acidity regulator', 'reguladores de acidez'],
+  ];
+  for (const [en, other] of pairs) {
+    const a = score(`water, ${en}`), b = score(`water, ${other}`);
+    assert.deepEqual(reasons(b).sort(), reasons(a).sort(), `${other} vs ${en}`);
+    assert.equal(b.score, a.score, `${other} vs ${en}`);
+  }
+});

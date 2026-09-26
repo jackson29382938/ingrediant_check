@@ -86,8 +86,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     // Same `why` as the English rules on purpose: a bilingual label lists "natural flavour /
     // arôme naturel" and must be charged once, and `seen` de-duplicates by reason.
     { m: /\b(?:aromas?|ar[ôo]mes?|aromen|aromi|aromat(?:y)?)\s+(?:artificial(?:es)?|artificiels?|k[üu]nstlich\w*|artificial[ei]|kunstmatig\w*|sztuczn\w*)\b|\bk[üu]nstliche[sn]?\s+aroma\b|\bkunstmatig(?:e)?\s+aroma\b|\bkonstgjorda?\s+arom(?:er)?\b|\bsztuczn[ey]\s+aromat(?:y)?\b|\byapay\s+aroma\b/i, pts: 18, why: 'Artificial flavour' },
-    { m: /\b(?:aromas?|ar[ôo]mes?|aromen|aromi|aromat(?:y)?)\s+(?:natural(?:es)?|naturels?|naturali|naturale|natuurlijk\w*|naturaln\w*)\b|\bnat[üu]rliche[sn]?\s+aroma\b|\bnatuurlijk(?:e)?\s+aroma\b|\bnaturliga?\s+arom(?:er)?\b|\bnaturaln[ey]\s+aromat(?:y)?\b|\bdo[ğg]al\s+aroma\b/i, pts: 15, cat: 'naturalFlavour', why: '"Natural flavors" — an undisclosed proprietary blend, not a food' },
-    { m: /(?<!\b(?:nat[üu]rliche[sn]?|natuurlijke?|naturliga?|naturaln[ey]|k[üu]nstliche[sn]?|kunstmatige?|konstgjorda?|sztuczn[ey]|do[ğg]al|yapay)\s+)\b(?:aromas?|ar[ôo]mes?|aromen|aromi|arom|aromer|aromat|aromaty)\b(?!\s+(?:natural|naturel|artificial|artificiel|k[üu]nstlich|kunstmatig|natuurlijk|naturaln|sztuczn))/i, pts: 12, why: 'Unspecified flavouring' },
+    { m: /\b(?:aromas?|ar[ôo]mes?|aromen|aromi|aromat(?:y)?)\s+(?:natural(?:es)?|naturels?|naturali|naturale|naturais|natuurlijk\w*|naturaln\w*)\b|\bnat[üu]rliche[sn]?\s+arom(?:a|en|as)\b|\bnatuurlijk(?:e)?\s+aroma\b|\bnaturliga?\s+arom(?:er)?\b|\bnaturaln[ey]\s+aromat(?:y)?\b|\bdo[ğg]al\s+aroma\b/i, pts: 15, cat: 'naturalFlavour', why: '"Natural flavors" — an undisclosed proprietary blend, not a food' },
+    { m: /(?<!\b(?:nat[üu]rliche[sn]?|natuurlijke?|naturliga?|naturaln[ey]|k[üu]nstliche[sn]?|kunstmatige?|konstgjorda?|sztuczn[ey]|do[ğg]al|yapay)\s+)\b(?:aromas?|ar[ôo]mes?|aromen|aromi|arom|aromer|aromat|aromaty)\b(?!\s+(?:natura|naturel|artificial|artificiel|k[üu]nstlich|kunstmatig|natuurlijk|naturaln|sztuczn))/i, pts: 12, why: 'Unspecified flavouring' },
     { m: /\bmonosodium glutamate\b|\bmsg\b|\be[- ]?62[0-5]\b|\bglutamic acid\b|\b(?:mono)?potassium glutamate\b|\bcalcium diglutamate\b|\bglutamato monos[óo]dico\b|\bglutamate monosodique\b|\bglutamato monoss[óo]dico\b|\bmononatriumglutamat\b|\bglutaminian (?:mono)?sodu\b|\bmonosodyum glutamat\b/i, pts: 16, why: 'MSG' },
     { m: /\b(autolyzed )?yeast extract\b|\bextracto de levadura\b|\bextrait de levure\b|\bhefeextrakt\b|\bestratto di lievito\b|\bextrato de levedura\b|\bgistextract\b|\bj[äa]stextrakt\b|\bekstrakt (?:z )?dro[żz]d[żz]\w*|\bmaya [öo]z[üu](?![a-zà-ÿ\u0100-\u017f])/i, pts: 14, why: 'Yeast extract — MSG under another name' },
     { m: /\bdisodium (inosinate|guanylate|5'?[- ]?ribonucleotides?)\b|\b(?:di)?potassium (inosinate|guanylate)\b|\be[- ]?6(?:2[6-9]|3[0-5])\b/i, pts: 12, why: 'Ribonucleotide flavour enhancer' },
@@ -113,7 +113,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\bpowdered cellulose\b/i,                    pts: 10, why: 'Powdered cellulose' },
     { m: /\bxanthan gum\b|\bgoma xantana\b|\bgomme xanthane\b|\bxanthan\b|\bxantangummi\b|\bguma ksantanowa\b|\bksantan gam[ıi]?(?![a-zà-ÿ\u0100-\u017f])|\be[- ]?415\b/i,                  pts: 9,  why: 'Xanthan gum' },
     { m: /\bguar gum\b|\bgoma guar\b|\bgomme (de )?guar\b|\bguarkernmehl\b|\be[- ]?412\b/i,                     pts: 8,  why: 'Guar gum' },
-    { m: /\bgellan gum\b|\bgoma gellan\b|\bgomme gellane\b|\bgellangummi\b|\bgomma gellan\b|\bgoma gelana\b|\bgellangom\b|\be[- ]?418\b/i, pts: 9,  why: 'Gellan gum' },
+    { m: /\bgellan gum\b|\bgoma gellan\b|\bgomme gellane\b|\bgellangummi\b|\bgomma (?:di )?gellano?\b|\bgoma gelana\b|\bgellangom\b|\bgellan\b|\be[- ]?418\b/i, pts: 9,  why: 'Gellan gum' },
     { m: /\blocust bean gum\b|\bcarob (bean )?gum\b|\bjohannisbrotkernmehl\b|\bgoma (?:garrof[íi]n|de algarrobo)\b|\bgomme (?:de )?caroube\b|\bfarina di carrube\b|\be[- ]?410\b/i, pts: 7,  why: 'Locust bean gum' },
     { m: /\btara gum\b|\be[- ]?417\b/i,                              pts: 8,  why: 'Tara gum' },
     { m: /\bacacia gum\b|\bgum acacia\b|\bgum arabic\b|\bgoma ar[áa]biga\b|\bgomme arabique\b|\bgummi arabicum\b|\bgomma arabica\b|\bgoma ar[áa]bica\b|\barabische gom\b|\be[- ]?414\b/i, pts: 5,  why: 'Gum arabic' },
@@ -184,23 +184,23 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // for the sorbate, by its own rule.
   const UNNAMED = [
     { m: /^(?:preservatives?|conservad?or(?:es)?|conservantes?|conservateurs?|konservierungsstoffe?|conservanti|conserveermiddel(?:en)?|preservatives? added|konserveringsmedel|konserwant(?:y)?|substancj[ae] konserwując[ae]|koruyucu(?:lar)?|koruyucu madde)$/i, pts: 10, why: 'Unnamed preservative' },
-    { m: /^(?:colou?rs?(?: added)?|artificial colou?r added|colorantes?|colorants?|farbstoffe?|coloranti|kleurstoffen?|color natural|colorante natural|f[äa]rg[äa]mne(?:n)?|barwnik(?:i)?|renklendirici(?:ler)?|renk maddesi)$/i, pts: 8, why: 'Unnamed colour' },
+    { m: /^(?:colou?rs?(?: added)?|colou?rings?|artificial colou?r added|colorantes?|colorants?|farbstoffe?|coloranti|kleurstoffen?|color natural|colorante natural|f[äa]rg[äa]mne(?:n)?|barwnik(?:i)?|renklendirici(?:ler)?|renk maddesi)$/i, pts: 8, why: 'Unnamed colour' },
     { m: /^(?:emulsifiers?|emulsionantes?|emulgentes?|[ée]mulsifiants?|emulgator(?:en)?|emulsionanti|emulgatoren|emulgeringsmedel|emulgatory|em[üu]lgat[öo]r(?:ler)?)$/i, pts: 8, why: 'Unnamed emulsifier' },
-    { m: /^(?:stabili[sz]ers?|estabilizantes?|stabilisants?|stabilisator(?:en)?|stabilizzanti|thickeners?|espesantes?|[ée]paississants?|verdickungsmittel|addensanti|verdikkingsmiddelen?|stabilisatoren|stabiliseringsmedel|f[öo]rtjockningsmedel|stabilizator(?:y)?|substancj[ae] zag[ęe]szczając[ae]|zag[ęe]stnik(?:i)?|stabiliz(?:at)?[öo]r(?:ler)?|k[ıi]vam (?:artt?[ıi]r[ıi]c[ıi](?:lar)?|verici(?:ler)?))$/i, pts: 6, why: 'Unnamed stabiliser or thickener' },
-    { m: /^(?:acidity regulators?|acidulants?|acidulantes?|acidifiants?|s[äa]uerungsmittel|s[äa]ureregulator(?:en)?|acidificanti|correttore di acidit[àa]|regulador de acidez|aciditeitsregelaar(?:s)?|surhetsreglerande medel|regulator(?:y)? kwasowo[śs]ci|asitlik d[üu]zenleyici(?:ler)?|asitlendirici)$/i, pts: 4, why: 'Unnamed acidity regulator' },
+    { m: /^(?:stabili[sz]ers?|estabilizantes?|stabilisants?|stabilisator(?:en)?|stabilizzant[ei]|estabilizador(?:es)?|thickeners?|espesantes?|[ée]paississants?|verdickungsmittel|addensanti|verdikkingsmiddelen?|stabilisatoren|stabiliseringsmedel|f[öo]rtjockningsmedel|stabilizator(?:y)?|substancj[ae] zag[ęe]szczając[ae]|zag[ęe]stnik(?:i)?|stabiliz(?:at)?[öo]r(?:ler)?|k[ıi]vam (?:artt?[ıi]r[ıi]c[ıi](?:lar)?|verici(?:ler)?))$/i, pts: 6, why: 'Unnamed stabiliser or thickener' },
+    { m: /^(?:acidity regulators?|acidifiers?|acidulants?|acidulantes?|acidifiants?|acidificantes?|correctore?s? de acidez|reguladore?s? de acidez|s[äa]uerungsmittel|s[äa]ureregulator(?:en)?|acidificanti|correttore di acidit[àa]|regulador de acidez|aciditeitsregelaar(?:s)?|surhetsreglerande medel|regulator(?:y)? kwasowo[śs]ci|asitlik d[üu]zenleyici(?:ler)?|asitlendirici)$/i, pts: 4, why: 'Unnamed acidity regulator' },
     { m: /^(?:antioxidants?|antioxidantes?|antioxydants?|antioxidationsmittel|antiossidanti|antioxidanten|antioxidationsmedel|przeciwutleniacz(?:e)?|antioksidan(?:lar)?)$/i, pts: 4, why: 'Unnamed antioxidant' },
   ];
 
   // ---------------------------------------------------------------- synthetic fortification
   const FORTIFICATION = [
-    { m: /\bthiamin(e)? mononitrate\b/i,        pts: 8,  why: 'Synthetic thiamine' },
-    { m: /\briboflavin\b|\be[- ]?101\b/i,                     pts: 7,  why: 'Synthetic riboflavin' },
-    { m: /\bfolic acid\b/i,                     pts: 9,  why: 'Folic acid — the synthetic form, not folate' },
+    { m: /\bthiamin(e)? mononitrate\b|\bthiamin(?:e)? hydrochloride\b|\bthiaminmononitrat\b|\bmononitrate de thiamine\b|\bmononitrato de tiamina\b|\btiamina mononitrato\b/i,        pts: 8,  why: 'Synthetic thiamine' },
+    { m: /\briboflavin[ae]?\b|\bribofla(?:vine|wina)\b|\be[- ]?101\b/i,                     pts: 7,  why: 'Synthetic riboflavin' },
+    { m: /\bfolic acid\b|(?:^|[^a-z])[áa]cido f[óo]lico\b|\bacide folique\b|\bfols[äa]ure\b|\bfoliumzuur\b|\bfolsyra\b|\bkwas foliowy\b|\bfolik asit\b/i,                     pts: 9,  why: 'Folic acid — the synthetic form, not folate' },
     { m: /\b(reduced iron|ferrous (sulfate|fumarate))\b/i, pts: 9, why: 'Elemental iron filings — the fortification form' },
-    { m: /\bpyridoxine hydrochloride\b/i,       pts: 7,  why: 'Synthetic B6' },
-    { m: /\bcyanocobalamin\b/i,                 pts: 7,  why: 'Cyanocobalamin — the synthetic B12 form' },
+    { m: /\bpyridoxine hydrochloride\b|\bchlorhydrate de pyridoxine\b|\bpyridoxinhydrochlorid\b|\bclorhidrato de piridoxina\b|\bpiridossina cloridrato\b|\bcloridrato de piridoxina\b/i,       pts: 7,  why: 'Synthetic B6' },
+    { m: /\bcyanocobalamine?\b|\bcianocobalamina\b|\bcyjanokobalamina\b|\bsiyanokobalamin\b/i,                 pts: 7,  why: 'Cyanocobalamin — the synthetic B12 form' },
     { m: /\bzinc oxide\b/i,                     pts: 8,  why: 'Zinc oxide fortification' },
-    { m: /\bniacinamide\b|\bniacin\b/i,         pts: 7,  why: 'Synthetic niacin' },
+    { m: /\bniacinamide?\b|\bniacin[ae]?\b|\bnicotinamide?\b|\bnicotinamida\b|\bnikotynamid\b|\bniasin\b/i,         pts: 7,  why: 'Synthetic niacin' },
     { m: /\bcalcium carbonate\b|\be[- ]?170\b/i,              pts: 5,  why: 'Calcium carbonate fortification' },
     { m: /\b(sodium|calcium) ascorbate\b|\bascorbic acid\b|\bascorbyl palmitate\b|(?:^|[^a-z])[aá]cido asc[oó]rbico(?:$|[^a-z])|\bacide ascorbique\b|\bascorbins[äa]ure\b|\bascorbinezuur\b|\be[- ]?30[0-4]\b/i, pts: 5, why: 'Synthetic vitamin C' },
     { m: /\bvitamin a (palmitate|acetate)\b/i,  pts: 7,  why: 'Synthetic vitamin A' },

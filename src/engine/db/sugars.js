@@ -39,7 +39,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /^(organic )?(raw |turbinado |demerara |muscovado |granulated |white |caster |icing |confectioners'? )?sugar$/i, pts: 14, why: 'Refined added sugar' },
     // Spanish, French, German, Italian, Portuguese, Dutch, Swedish and Polish — the stores whose
     // headings the extractor already reads.
-    { m: /^(az[uú]car|a[cç][uú]car|sucre|zucker|zucchero|suiker|rohrzucker|rohrohrzucker|socker|str[öo]socker|r[öo]rsocker|betsocker|cukier|[şs]eker|toz [şs]eker|kristal [şs]eker|rafine [şs]eker|pancar [şs]ekeri|kam[ıi][şs] [şs]ekeri)( blanc[oa]| refinad[oa]| de ca[ñn]a| blanc| raffin[ée]| de canne| di canna| bianco| grezzo| wit| trzcinowy| bia[łl]y| buraczany)?$/i, pts: 14, why: 'Refined added sugar' },
+    { m: /^(az[uú]car|a[cç][uú]car|sucre|zucker|zucchero|suiker|rohrzucker|rohrohrzucker|socker|str[öo]socker|r[öo]rsocker|betsocker|cukier|[şs]eker|toz [şs]eker|kristal [şs]eker|rafine [şs]eker|pancar [şs]ekeri|kam[ıi][şs] [şs]ekeri)( blanc[oa]| refinad[oa]| de ca[ñn]a| blanc| raffin[ée]| de canne| di canna| bianco| grezzo| grezzo di canna| integrale di canna| de ca[ñn]a integral| de canne roux| wit| trzcinowy| bia[łl]y| buraczany)?$/i, pts: 14, why: 'Refined added sugar' },
     { m: /^(evaporated |raw |organic )*cane (juice|sugar|syrup)$/i, pts: 14, why: 'Cane sugar' },
     { m: /^(brown sugar|az[uú]car moren[oa]|a[cç][uú]car mascav[oa]do|sucre (brun|roux)|brauner zucker|zucchero bruno|basterdsuiker|farinsocker|brunt socker|cukier br[ąa]zowy|esmer [şs]eker)$/i, pts: 14, why: 'Brown sugar' },
     { m: /^beet sugar$/i,                               pts: 14, why: 'Beet sugar' },
@@ -70,7 +70,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   const ARTIFICIAL = [
     { m: /\bsucralos[ae]\b|\bsplenda\b|\be[- ]?955\b/i,       cap: 22, why: 'Sucralose' },
     { m: /\baspartam[eo]?\b|\bnutrasweet\b|\be[- ]?951\b|\be[- ]?962\b/i,   cap: 22, why: 'Aspartame' },
-    { m: /\bacesulfam[eo]([- ]?k| potassium| pot[áa]sico)?\b|\bace[- ]?k\b|\be[- ]?950\b/i, cap: 22, why: 'Acesulfame potassium' },
+    { m: /\bac[ée]sulfam[eo]?([- ]?k| potassium| pot[áa]sico| de potassium| potassico)?\b|\bacesulfam[- ]?k\b|\bace[- ]?k\b|\be[- ]?950\b/i, cap: 22, why: 'Acesulfame potassium' },
     { m: /\bsaccharin[e]?\b|\bsacarina\b|\be[- ]?954\b/i,     cap: 22, why: 'Saccharin' },
     { m: /\bneotame\b|\be[- ]?961\b/i,                        cap: 22, why: 'Neotame' },
     { m: /\badvantame\b|\be[- ]?969\b/i,                      cap: 22, why: 'Advantame' },
