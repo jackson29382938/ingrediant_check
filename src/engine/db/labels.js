@@ -69,8 +69,32 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // Culinary ingredients — NOVA 2. Real foods, but extracted/concentrated.
   const CULINARY = /^(extra virgin |virgin |cold[- ]pressed |organic |raw )*(olive oil|avocado oil|coconut oil|butter|ghee|tallow|lard|honey|maple syrup|sea salt|salt|vinegar|apple cider vinegar|cream|sugar|aceite de oliva|huile d['’]olive|oliven[öo]l|olio d['’]oliva|aceite de coco|huile de coco|kokos[öo]l|olio di cocco|miel|honig|miele)$/i;
 
-  // Signals of NOVA 3 processing — real food, meaningfully transformed.
-  const PROCESSED_SIGNAL = /\b(cultured|fermented|smoked|cured|canned|pasteurized|celery (juice )?powder|cheese cultures|rennet|yeast|sourdough|brined|pickled|roasted|dried)\b/i;
+  // Signals of NOVA 3 processing — real food, meaningfully transformed. The English words alone
+  // meant "cacahuetes tostados" was NOVA 2 where "roasted peanuts" is NOVA 3, and "lait
+  // pasteurisé, ferments lactiques" or "Sauerteig" signalled nothing. Explicit boundaries, because
+  // \b does not see the accented letters these words start and end with.
+  const PL = '(?<![a-zà-ÿœ\\u0100-\\u017f])', PR = '(?![a-zà-ÿœ\\u0100-\\u017f])';
+  const PROCESSED_SIGNAL = new RegExp(PL + '(?:' + [
+    'cultured|fermented|smoked|cured|canned|pasteurized|celery (?:juice )?powder|cheese cultures|rennet|yeast|sourdough|brined|pickled|roasted|dried',
+    // fermented and cultured
+    'ferments?|fermentos?|fermenti|ferment[ée]e?s?|fermentad[oa]s?|fermentat[oaie]|fermentiert[a-z]*|gefermenteerd[a-z]*|fermenterad[a-z]*|fermentowan[a-zęąó]*|fermente',
+    '(?:milchs[äa]ure|joghurt|s[äa]ure)?kulturen|syr(?:nings)?kultur(?:er)?|kultur(?:er|y)|k[üu]lt[üu]r|zuursel|kiszon[a-zęąó]*',
+    // smoked and cured
+    'fum[ée]e?s?|ahumad[oa]s?|affumicat[oaie]|ger[äa]uchert[a-z]*|gerookt[a-z]*|rökt[a-z]*|w[ęe]dzon[a-zęąó]*|füme|fumad[oa]s?|curad[oa]s?|stagionat[oaie]',
+    // pasteurised
+    'pasteuris[ée]e?s?|pasteurizad[oa]s?|pastorizzat[oaie]|pasteurisiert[a-z]*|gepasteuriseerd[a-z]*|past[öo]riserad[a-z]*|pasteryzowan[a-zęąó]*|past[öo]rize',
+    // rennet
+    'pr[ée]sure|cuajo|caglio|stremsel|löpe|ystenzym|podpuszczk[a-zęąó]*|peynir mayas[ıi]|coalho|labferment',
+    // yeast and sourdough
+    'levures?|levaduras?|leveduras?|lievit[oi]|(?:back|bier|trocken)?hefe[a-z]*|gist(?:extract)?|jäst[a-z]*|dro[żz]d[żz][a-zęąó]*|maya|fermento biol[óo]gico',
+    'levain|masa madre|lievito madre|(?:roggen|weizen|dinkel|natur)?[- ]?sauerteig[a-z]*|zuurdesem|surdeg|zakwas(?:u|ie|em)?|ek[şs]i maya|massa m[ãa]e',
+    // brined and pickled
+    'saumure|salmuera|salamoia|salzlake|pekel|salmoura|salamura|encurtid[oa]s?|sott[\'’]?aceto|eingelegt[a-z]*|ingelegd[a-z]*|inlagd[a-z]*|marynowan[a-zęąó]*|tur[şs]u',
+    // roasted
+    'grill[ée]e?s?|torr[ée]fi[ée]e?s?|r[ôo]ti(?:e|s|es)?|tostad[oa]s?|tostat[oaie]|torrad[oa]s?|ger[öo]stet[a-z]*|geroosterd[a-z]*|rostad[a-z]*|pra[żz]on[a-zęąó]*|kavrulmu[şs][a-zıüş]*',
+    // dried
+    's[ée]ch[ée]e?s?|d[ée]shydrat[ée]e?s?|desidratad[oa]s?|deshidratad[oa]s?|disidratat[oaie]|secc(?:o|a|hi|he)|sec[oa]s?|getrocknet[a-z]*|gedroogd[a-z]*|torkad[a-z]*|suszon[a-zęąó]*|kurutulmu[şs][a-zıüş]*',
+  ].join('|') + ')' + PR, 'i');
 
   // Dairy processing penalties. Weighted by the 'dairyProcessing' category.
   const DAIRY_PENALTY = [

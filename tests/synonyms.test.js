@@ -411,3 +411,24 @@ test('meat, fish, eggs and milk in every label language are whole foods with a s
   }
   for (const text of ['lemon rind', 'Rundkornreis']) assert.deepEqual(reasons(score(text)), [], text);
 });
+
+test('processing words in every label language are the NOVA 3 signals they are in English', () => {
+  // PROCESSED_SIGNAL read English only, so "lait pasteurisé, ferments lactiques" and "Wasser,
+  // Sauerteig" were NOVA 2 at 90 where "pasteurized milk, cultures" and "water, sourdough" are
+  // NOVA 3, and an Italian cheese of milk, salt and rennet ("caglio") was NOVA 2.
+  const pairs = [
+    ['pasteurized milk, cultures', 'lait pasteurisé, ferments lactiques'], ['pasteurized milk, salt', 'latte pastorizzato, sale'],
+    ['milk, yeast', 'Milch, Hefe'], ['milk, salt, rennet', 'latte, sale, caglio'], ['milk, salt, rennet', 'leite, sal, coalho'],
+  ];
+  for (const [en, other] of pairs) {
+    const a = score(en), b = score(other);
+    assert.equal(a.nova, 3, en);
+    assert.equal(b.nova, a.nova, `${other} NOVA`);
+    assert.equal(b.score, a.score, `${other} vs ${en}`);
+  }
+  assert.equal(score('Wasser, Sauerteig').nova, 3);
+  // "zakwaszający" is an acidulant, not sourdough ("zakwas").
+  const { PROCESSED_SIGNAL } = require('../src/engine/db/labels.js');
+  assert.ok(!PROCESSED_SIGNAL.test('środek zakwaszający'));
+  assert.ok(PROCESSED_SIGNAL.test('zakwas żytni'));
+});
