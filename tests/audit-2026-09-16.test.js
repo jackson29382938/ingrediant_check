@@ -7,6 +7,7 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const { loadAmazonContentScripts } = require('./content-scripts.js');
 const fs = require('node:fs');
 const path = require('node:path');
 const src = (...p) => path.join(__dirname, '..', 'src', ...p);
@@ -231,11 +232,12 @@ test('hover and auto-score arm only on results pages', () => {
     const noop = () => {};
     const el = () => ({ appendChild: noop, insertBefore: noop, remove: noop, dataset: {}, isConnected: true, setAttribute: noop, style: {}, querySelector: () => null });
     global.document = {
-      documentElement: el(), title: 'Amazon.com', getElementById: () => null, createElement: el,
+      documentElement: el(), title: 'Amazon.com', getElementById: () => null, createElement: el, addEventListener: noop,
       querySelector: () => null,
       querySelectorAll: sel => (sel.startsWith('[data-asin]') ? tiles.filter(t => !/data-air-(hover|auto)/.test(sel) || !t.hasAttribute(sel.match(/data-air-\w+/)[0])) : []),
     };
     global.self = global;
+    global.window = global;
     global.location = { href: 'https://www.amazon.com' + pathname + search, pathname, search, hostname: 'www.amazon.com' };
     global.MutationObserver = class { observe() {} disconnect() {} };
     global.IntersectionObserver = class { observe() {} unobserve() {} disconnect() {} };
@@ -247,12 +249,8 @@ test('hover and auto-score arm only on results pages', () => {
     };
     for (const k of Object.keys(require.cache)) delete require.cache[k];
     delete global.AIR; delete global.AIRmodule;
-    for (const f of ['engine/db/_module.js', 'engine/db/oils.js', 'engine/db/sugars.js', 'engine/db/additives.js',
-      'engine/db/labels.js', 'engine/db/allergens.js', 'engine/db/ingestible.js', 'engine/db/provenance.js',
-      'engine/categories.js', 'engine/db/prefs.js', 'engine/db/revision.js', 'engine/db/score-cache.js',
-      'engine/score.js', 'content/extract.js', 'content/panel.js',
-      'content/page.js', 'content/product.js', 'content/search.js']) require(src(f));
-    new Function(fs.readFileSync(src('content/main.js'), 'utf8'))();
+    // The production module set, in manifest order; an [AIR] error while they run fails the test.
+    loadAmazonContentScripts();
     return {
       hover: tiles.filter(t => t.hasAttribute('data-air-hover')).length,
       auto: tiles.filter(t => t.hasAttribute('data-air-auto')).length,
