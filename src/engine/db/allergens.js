@@ -101,10 +101,20 @@ const ALLERGENS = [
 // meat; microbial and vegetable rennet are vegetarian.
 const MEAT = '\\b(?:beef|pork|chicken|turkey|lamb|mutton|veal|venison|bison|duck|quail|rabbit|bacon|sausage|salami|pepperoni|chorizo|prosciutto|pancetta|bresaola|gelatine?|lard|tallow|suet|poultry)\\w*'
   + '|\\b(?:ham|goose|meats?)\\b(?<!(?:coconut|nut|crab) meats?)'
-  + '|(?<!\\b(?:vegetable|veggie|vegetal|mushroom|miso|kombu|dashi)\\s)\\b(?:broth|bouillon|stock)\\b';
+  + '|(?<!\\b(?:vegetable|veggie|vegetal|mushroom|miso|kombu|dashi)\\s)\\b(?:broth|bouillon|stock)\\b'
+  // es / fr / it — the stores print their labels in these, and "manteca de cerdo" or "saindoux"
+  // (lard) read as vegetarian. "Porcini" is a mushroom; "lemon rind" is peel.
+  + '|' + L + '(?:cerdo|ternera|pollo|pavo|cordero|tocino|jam[óo]n|manteca de cerdo|gelatina|carne|porc|b(?:œ|oe)uf|poulet|dinde|agneau|veau|jambon|saindoux|g[ée]latine|viande|maiale|manzo|tacchino|agnello|vitello|strutto)' + R
+  // de — compounds: Schweinefleisch, Rindfleisch, Putenbrust, Schweineschmalz. "Hühnerei" is an egg.
+  + '|(?:schweine?|rind|rinder|kalb|lamm|puten|h[äa]hnchen|h[üu]hner(?!ei)|wild)(?:fleisch|brust|schmalz|speck|br[üu]he|fett)\\w*'
+  + '|\\b(?:schwein\\w*|speck|schinken|schmalz|talg|fleisch\\w*|h[äa]hnchen\\w*)'
 const SEA = '\\b(?:fish|shellfish|salmon|tuna|cod|anchov|sardine|mackerel|herring|tilapia|shrimp|prawn|lobster|crayfish|clam|mussel|oyster|scallop|squid|calamari|octopus|krill|worcestershire|isinglass|surimi|bonito|katsuobushi|dashi|caviar)\\w*|\\broe\\b|\\bcrab(?:s|meat)?\\b(?!\\s*-?\\s*apples?)';
-const NOT_VEGETARIAN = MEAT + '|' + SEA + '|(?<!\\b(?:microbial|vegetable|vegetarian|non-animal)\\s)\\brennet\\b|\\b(?:carmine|cochineal|e[- ]?120|e[- ]?441|e[- ]?904)\\b';
-const NOT_VEGAN = NOT_VEGETARIAN + '|' + DAIRY + '|' + EGG + '|\\b(?:honey|royal jelly|beeswax|shellac|lanolin|e[- ]?901|e[- ]?913)\\b';
+// Collagen and pepsin come from animals; carmine from insects.
+const NOT_VEGETARIAN = MEAT + '|' + SEA + '|(?<!\\b(?:microbial|vegetable|vegetarian|non-animal)\\s)\\brennet\\b|\\b(?:carmine|cochineal|collagen|pepsin|e[- ]?120|e[- ]?441|e[- ]?904)\\b';
+// Confectioner's glaze is shellac. L-cysteine (E920) is usually made from feathers or hair: borderline,
+// so flagged, as this module flags borderline. Vitamin D3 is not: vegan products print "vitamin D3
+// (from lichen)", and the parenthesis is split off before this runs, so it would flag exactly those.
+const NOT_VEGAN = NOT_VEGETARIAN + '|' + DAIRY + '|' + EGG + '|\\b(?:honey|royal jelly|beeswax|shellac|lanolin|confectioner[\'’]?s glaze|l-cysteine|e[- ]?901|e[- ]?913|e[- ]?920)\\b';
 const DIETS = [
   { id: 'vegan', label: 'Vegan', conflict: new RegExp(NOT_VEGAN, 'i') },
   { id: 'vegetarian', label: 'Vegetarian', conflict: new RegExp(NOT_VEGETARIAN, 'i') },

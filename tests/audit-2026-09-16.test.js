@@ -308,3 +308,15 @@ test('the allergen declaration words themselves are flagged, in every label lang
   }
   for (const text of ['Brei', 'Reis']) assert.equal(flagged('egg', text), false, text);
 });
+
+test('animal ingredients in every label language conflict with vegetarian and vegan', () => {
+  const labels = (text, diet) => engine.score({ ingredients_text: text }, { diets: [diet] }).flags.map(f => f.label);
+  for (const text of ['collagen', 'pepsin', 'Schweinefleisch', 'Rindfleisch', 'Putenbrust', 'Hühnerbrühe', 'manteca de cerdo',
+    'jamón serrano', 'saindoux', 'viande de bœuf', 'manzo', 'strutto']) assert.ok(labels(text, 'vegetarian').length, text);
+  for (const text of ["confectioner's glaze", 'l-cysteine']) assert.ok(labels(text, 'vegan').length, text);
+  // Not animal: peel, mushrooms, coconut flesh, vegetable stock, an egg (vegetarian), lichen vitamin D3.
+  for (const text of ['lemon rind', 'porcini mushrooms', 'coconut meat', 'Gemüsebrühe', 'Hühnerei']) {
+    assert.deepEqual(labels(text, 'vegetarian'), [], text);
+  }
+  assert.deepEqual(labels('vitamin d3 (from lichen)', 'vegan'), []);
+});
