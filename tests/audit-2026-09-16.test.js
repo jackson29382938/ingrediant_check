@@ -333,3 +333,11 @@ test('additives in the spellings US labels print: "FD&C Red No. 40", "#40", spel
     assert.equal(engine.score({ ingredients_text: `whole grain oats, water, salt, ${text}` }, {}).score, oats, text);
   }
 });
+
+test('indigo carmine, Citrus Red 2 and an unnamed sugar alcohol are read', () => {
+  const oats = engine.score({ ingredients_text: 'whole grain oats, water, salt' }, {}).score;
+  const with_ = text => engine.score({ ingredients_text: `whole grain oats, water, salt, ${text}` }, {}).score;
+  assert.equal(with_('indigo carmine'), 18);
+  assert.equal(with_('Citrus Red 2'), 18);
+  assert.ok(with_('sugar alcohol') < oats);
+});

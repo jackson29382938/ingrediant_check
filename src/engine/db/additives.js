@@ -24,7 +24,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\b(yellow\s*(no\.?\s*)?5|tartrazine|tartrazina|e[- ]?102|amarillo\s*5|jaune\s*5)\b/i, cat: 'colour', cap: 18, why: 'Yellow 5 artificial colour' },
     { m: /\b(yellow\s*(no\.?\s*)?6|sunset yellow|e[- ]?110|amarillo\s*6|jaune\s*6)\b/i, cat: 'colour', cap: 18, why: 'Yellow 6 artificial colour' },
     { m: /\b(blue\s*(no\.?\s*)?1|brilliant blue|e[- ]?133|azul\s*1|bleu\s*1)\b/i, cat: 'colour', cap: 18, why: 'Blue 1 artificial colour' },
-    { m: /\b(blue\s*(no\.?\s*)?2|indigotine|e[- ]?132)\b/i,          cat: 'colour', cap: 18, why: 'Blue 2 artificial colour' },
+    { m: /\b(blue\s*(no\.?\s*)?2|indigotine|indigo carmine|e[- ]?132)\b/i, cat: 'colour', cap: 18, why: 'Blue 2 artificial colour' },
+    { m: /\bcitrus red\s*(no\.?\s*)?2\b/i,                      cat: 'colour', cap: 18, why: 'Citrus Red 2 — permitted in the US only on orange peel' },
     { m: /\b(green\s*(no\.?\s*)?3|fast green)\b/i,              cat: 'colour', cap: 18, why: 'Green 3 artificial colour' },
     // Azo dyes sold in the EU and not the US. E102, E104, E110, E122, E124 and E129 carry a
     // mandatory "may have an adverse effect on activity and attention in children" warning there.

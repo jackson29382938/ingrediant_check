@@ -85,6 +85,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /^(?:mannitol|e[- ]?421)$/i,               pts: 11, why: 'Mannitol' },
     { m: /^(?:isomalt|e[- ]?953)$/i,                pts: 11, why: 'Isomalt' },
     { m: /^(?:lactitol|e[- ]?966)$/i,               pts: 11, why: 'Lactitol' },
+    { m: /^sugar alcohols?$/i,                      pts: 11, why: 'Sugar alcohol (unnamed)' },
     { m: /^allulose$/i,               pts: 8,  why: 'Allulose' },
     { m: /^(steviol glycosides?|stevia( leaf extract)?|reb[- ]?[am]|e[- ]?960[a-d]?)$/i, pts: 8, why: 'Stevia extract — refined, not the leaf' },
     { m: /^monk fruit( extract| juice concentrate)?$/i, pts: 6, why: 'Monk fruit extract' },
