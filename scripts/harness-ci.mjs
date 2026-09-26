@@ -2,6 +2,8 @@
 // Drive tests/harness.html + lifecycle + OCR smoke + popup compare in Chromium.
 // No Amazon network, no login. Used by CI (`npm run harness:ci`).
 import { createServer } from 'node:http';
+import { createServer as createHttpsServer } from 'node:https';
+import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -652,10 +654,12 @@ async function run() {
 async function extensionSmoke(pw, executablePath, pageErrors) {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'ic-smoke-'));
   const context = await pw.chromium.launchPersistentContext(profile, {
-    headless: true, ...(executablePath ? { executablePath } : { channel: 'chromium' }),
+    headless: true, ignoreHTTPSErrors: true, ...(executablePath ? { executablePath } : { channel: 'chromium' }),
     args: [`--disable-extensions-except=${root}`, `--load-extension=${root}`, '--headless=new',
-      `--host-resolver-rules=MAP www.amazon.com 127.0.0.1:${AMAZON_PORT}, MAP * ~NOTFOUND`],
+      // No proxy: every host is either the local snapshot server or unreachable.
+      `--host-resolver-rules=MAP www.amazon.com 127.0.0.1:${AMAZON_PORT}, MAP * ~NOTFOUND`, '--no-proxy-server'],
   });
+  amazonSnapshots = createHttpsServer(snapshotCertificate(), serveSnapshot);
   await new Promise(r => amazonSnapshots.listen(AMAZON_PORT, '127.0.0.1', r));
   try {
     const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker', { timeout: 30000 });
@@ -698,7 +702,7 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
   } finally {
     await context.close();
     fs.rmSync(profile, { recursive: true, force: true });
-    await new Promise(r => amazonSnapshots.close(r));
+    if (amazonSnapshots) await new Promise(r => amazonSnapshots.close(r));
   }
 }
 
@@ -789,15 +793,28 @@ function accessibilityProblems() {
 // manifest matches http:// Amazon URLs too. Every /dp/ page is the oats snapshot except the shampoo.
 const AMAZON_PORT = PORT + 1;
 const SHAMPOO = 'B00SHAMPOO';
-const amazonSnapshots = createServer((req, res) => {
-  const url = new URL(req.url, 'http://www.amazon.com');
+// HTTPS, with a certificate made for this run: newer Chromium upgrades http://www.amazon.com to
+// https, and a plain-HTTP server then fails with ERR_SSL_PROTOCOL_ERROR (seen on GitHub's runners).
+// The test browser accepts the certificate (ignoreHTTPSErrors); nothing else ever sees it.
+function snapshotCertificate() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ic-cert-'));
+  const key = path.join(dir, 'key.pem'), cert = path.join(dir, 'cert.pem');
+  execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', key, '-out', cert,
+    '-days', '1', '-subj', '/CN=www.amazon.com'], { stdio: 'ignore' });
+  const out = { key: fs.readFileSync(key), cert: fs.readFileSync(cert) };
+  fs.rmSync(dir, { recursive: true, force: true });
+  return out;
+}
+let amazonSnapshots = null;
+const serveSnapshot = (req, res) => {
+  const url = new URL(req.url, 'https://www.amazon.com');
   const file = url.pathname === '/s' ? 'us-s-grocery.html'
     : url.pathname === `/dp/${SHAMPOO}` ? 'us-dp-shampoo.html'
       : /^\/dp\/[A-Z0-9]{10}$/.test(url.pathname) ? 'us-dp-oats.html' : '';
   if (!file) { res.writeHead(404); res.end(); return; }
   res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
   res.end(fs.readFileSync(path.join(root, 'tests', 'pages', file)));
-});
+};
 
 async function amazonEndToEnd(context, worker, pageErrors) {
   const open = async url => {
@@ -812,7 +829,7 @@ async function amazonEndToEnd(context, worker, pageErrors) {
     return host && host.dataset.airState && host.dataset.airState !== 'loading' && host.dataset.airState;
   }, { timeout: 30000 }).then(h => h.jsonValue());
 
-  const oats = await open('http://www.amazon.com/dp/B0OATSTEST');
+  const oats = await open('https://www.amazon.com/dp/B0OATSTEST');
   const oatsState = await panelState(oats);
   if (oatsState !== 'scored') throw new Error(`real content script on the oats page: ${oatsState}`);
   const badge = await worker.evaluate(async () => {
@@ -822,7 +839,7 @@ async function amazonEndToEnd(context, worker, pageErrors) {
   if (!/^\d+$/.test(badge)) throw new Error(`toolbar badge on the oats page: "${badge}"`);
   await oats.close();
 
-  const shampoo = await open(`http://www.amazon.com/dp/${SHAMPOO}`);
+  const shampoo = await open(`https://www.amazon.com/dp/${SHAMPOO}`);
   const shampooState = await panelState(shampoo);
   if (shampooState !== 'not-food') throw new Error(`real content script on the shampoo page: ${shampooState}`);
   await shampoo.close();
@@ -840,7 +857,7 @@ async function amazonEndToEnd(context, worker, pageErrors) {
       for (const r of records) if (r.target.classList && r.target.classList.contains('air-badge') && r.target.getAttribute('role') === 'status') window.__liveBadges++;
     }).observe(document, { subtree: true, attributes: true, attributeFilter: ['role'] });
   });
-  await search.goto('http://www.amazon.com/s?k=rolled+oats', { waitUntil: 'load', timeout: 20000 });
+  await search.goto('https://www.amazon.com/s?k=rolled+oats', { waitUntil: 'load', timeout: 20000 });
   await search.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   const badges = await search.waitForFunction(() => {
     const n = [...document.querySelectorAll('.air-badge')].filter(b => /^\d+$/.test(b.textContent.trim())).length;

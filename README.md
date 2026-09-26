@@ -67,7 +67,7 @@ npm run harness          # http://127.0.0.1:8731 — panel, OCR, lifecycle
 `npm run harness:ci` drives those pages in headless Chromium and fails on any page error, `[AIR]` line or
 console error, even when a page's own checks pass. It then loads the real unpacked extension, checks the service worker
 started with every module, and opens each extension page against the real `chrome.*` APIs. Last, with
-Chromium sending `www.amazon.com` to a local server of the saved pages in `tests/pages/` (and every other
+Chromium sending `https://www.amazon.com` to a local server of the saved pages (a certificate made for the run) in `tests/pages/` (and every other
 host nowhere), the real content scripts score a product page, stand down on a non-food one and rate
 search results through the badge queue. Set `HARNESS_CHROME` to a Chromium executable to
 use it instead of the one Playwright downloads.
