@@ -292,3 +292,19 @@ test('allergens hidden in ingredient names are flagged (a missed flag looks like
   const vegetarian = text => engine.score({ ingredients_text: text }, { diets: ['vegetarian'] }).flags.length > 0;
   assert.ok(vegetarian('dashi'), 'fish stock is not vegetarian');
 });
+
+test('the allergen declaration words themselves are flagged, in every label language', () => {
+  const flagged = (id, text) => engine.score({ ingredients_text: text }, { allergens: [id] }).flags.some(f => f.id === id);
+  // "Contains: tree nuts" / "shellfish" is how US labels declare; "nuts" is how UK labels do.
+  for (const text of ['Contains: Milk, Tree Nuts (Almonds)', 'tree nuts', 'mixed nuts', 'nuts', 'frutos secos',
+    'frutta a guscio', 'fruits à coque', 'Schalenfrüchte', 'Nüsse']) assert.ok(flagged('treeNut', text), text);
+  assert.ok(flagged('shellfish', 'shellfish'));
+  for (const text of ['Hühnerei', 'Hühnereiweiß', 'Trockenvollei']) assert.ok(flagged('egg', text), text);
+  assert.ok(flagged('peanut', 'cacahuètes'));
+  // Not nuts: peanuts are legumes (their own flag), coconut and nutmeg are not tree nuts here, tiger
+  // nuts are tubers, and "Brei" / "Reis" are not eggs.
+  for (const text of ['peanuts', 'coconut', 'nutmeg', 'doughnut', 'nutritional yeast', 'tiger nuts', 'Kokosnüsse']) {
+    assert.equal(flagged('treeNut', text), false, text);
+  }
+  for (const text of ['Brei', 'Reis']) assert.equal(flagged('egg', text), false, text);
+});

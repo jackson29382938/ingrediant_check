@@ -44,7 +44,9 @@ const DAIRY = NOT_DAIRY_BEFORE + '\\b(?:milk|butter|cream)\\b(?!\\s*(?:of\\s+tar
 // explicit boundaries. L and R are those boundaries for the Latin-1 alphabet.
 const L = '(?<![a-zà-ÿœ])';
 const R = '(?![a-zà-ÿœ])';
-const EGG = L + '(?:eggs?|egg (?:white|yolk)s?|eggnog|aioli|albumen|albumin|ovalbumin|lysozyme|mayonnaise|meringue|huevos?|(?:œ|oe)ufs?|uov[oa]|eier|eigelb|eiwei[sß]|vollei|ei)' + R;
+const EGG = L + '(?:eggs?|egg (?:white|yolk)s?|eggnog|aioli|albumen|albumin|ovalbumin|lysozyme|mayonnaise|meringue|huevos?|(?:œ|oe)ufs?|uov[oa]|eier|eigelb|eiwei[sß]|vollei|ei)' + R
+  // German compounds name the egg last: Hühnerei, Hühnereiweiß, Trockenvollei.
+  + '|(?:h[üu]hner|trockenvoll|trocken|fl[üu]ssig)ei(?:wei[sß]|gelb|pulver)?' + R;
 
 // The wheat rule spells out its grains because `malt\w*` used to be here — and maltodextrin,
 // maltitol and maltose are not malt. A coeliac user saw "Wheat / gluten" on gluten-free products
@@ -58,17 +60,20 @@ const ALLERGENS = [
   { id: 'milk', label: 'Milk', m: new RegExp(DAIRY, 'i') },
   { id: 'egg', label: 'Egg', m: new RegExp(EGG, 'i') },
   { id: 'peanut', label: 'Peanut',
-    m: new RegExp(L + '(?:peanuts?|groundnuts?|monkey ?nuts?|arachis|cacahuetes?|cacahuates?|man[ií]|arachides?|erdn[üu]ss\\w*|arachidi)' + R, 'i') },
+    m: new RegExp(L + '(?:peanuts?|groundnuts?|monkey ?nuts?|arachis|cacahu[eè]tes?|cacahuates?|man[ií]|arachides?|erdn[üu]ss\\w*|arachidi)' + R, 'i') },
   { id: 'treeNut', label: 'Tree nuts',
     // Nutmeg is "nuez moscada" / "noix de muscade" / "noce moscata", and coconut is "noix de coco".
-    m: /\b(almond|cashew|walnut|pecan|pistachio|hazelnut|macadamia|brazil nut|pine nut|praline|marzipan|gianduja|pesto|nougat|frangipane|almendra|anacardo|avellana|nuez(?!\s+moscada)|nueces|pistacho|amande|cajou|noisette|noix(?!\s+de\s+(?:coco|muscade))|pistache|mandel|haseln[üu]ss|waln[üu]ss|cashewkern|pistazie|mandorl|nocciol|noce(?!\s+(?:moscata|di\s+cocco))|noci|pistacchi)\w*/i },
+    // "Contains: tree nuts" is how US labels declare them, and "nuts" how UK labels do; the generic
+    // words in each language were missing, so the declaration itself went unflagged. Tiger nuts are
+    // tubers.
+    m: /\b(tree ?nuts?|(?<!tiger\s)nuts?\b|mixed nuts|frutos secos|frutos de c[áa]scara|frutta a guscio|fruits? [àa] coques?|schalenfr[üu]chte|n[üu]sse\b|almond|cashew|walnut|pecan|pistachio|hazelnut|macadamia|brazil nut|pine nut|praline|marzipan|gianduja|pesto|nougat|frangipane|almendra|anacardo|avellana|nuez(?!\s+moscada)|nueces|pistacho|amande|cajou|noisette|noix(?!\s+de\s+(?:coco|muscade))|pistache|mandel|haseln[üu]ss|waln[üu]ss|cashewkern|pistazie|mandorl|nocciol|noce(?!\s+(?:moscata|di\s+cocco))|noci|pistacchi)\w*/i },
   { id: 'soy', label: 'Soy',
     m: /\b(soy|soya|soybean|soja|soia|tofu|tempeh|edamame|miso|tamari|shoyu|natto|textured vegetable protein|tvp)\w*/i },
   { id: 'wheat', label: 'Wheat / gluten', m: new RegExp(GLUTEN, 'i') },
   { id: 'fish', label: 'Fish',
     m: /\b(fish|salmon|tuna|cod|halibut|tilapia|anchov\w+|sardines?|mackerel|herring|pollock|haddock|worcestershire|pescado|at[úu]n|salm[óo]n|anchoas?|bacalao|poisson|thon|saumon|morue|fisch\w*|thunfisch\w*|lachs\w*|sardellen|pesce|tonno|salmone|acciughe|merluzzo|surimi|bonito|katsuobushi|dashi|caviar|roe)\b/i },
   { id: 'shellfish', label: 'Shellfish',
-    m: /\b(shrimp|prawn|crab(?!\s*-?\s*apples?)|lobster|crayfish|langoustine|clam|mussel|oyster|scallop|squid|calamari|octopus|krill|crustacean|mollusc|mollusk|camar[óo]n|camarones|gambas?|langosta|cangrejo|mejill[óo]n|almeja|calamar|crust[áa]ceo|molusco|crevettes?|crabe|homard|moules?|hu[îi]tres?|crustac[ée]s?|mollusques?|garnelen?|krabben?|hummer|muscheln?|krebstier|weichtier|gamber|granchio|aragosta|cozze|vongole|crostacei|molluschi)\w*/i },
+    m: /\b(shellfish|shrimp|prawn|crab(?!\s*-?\s*apples?)|lobster|crayfish|langoustine|clam|mussel|oyster|scallop|squid|calamari|octopus|krill|crustacean|mollusc|mollusk|camar[óo]n|camarones|gambas?|langosta|cangrejo|mejill[óo]n|almeja|calamar|crust[áa]ceo|molusco|crevettes?|crabe|homard|moules?|hu[îi]tres?|crustac[ée]s?|mollusques?|garnelen?|krabben?|hummer|muscheln?|krebstier|weichtier|gamber|granchio|aragosta|cozze|vongole|crostacei|molluschi)\w*/i },
   { id: 'sesame', label: 'Sesame',
     m: /\b(sesame|tahini|benne|gingelly|halva|halvah|halwa|gomasio|gomashio|za['’]?atar|s[ée]samo|s[ée]same|sesam)\w*/i },
   { id: 'sulfite', label: 'Sulfites',
