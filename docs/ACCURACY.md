@@ -121,7 +121,7 @@ products score. The Swedish case above shows what a lower gate would put on the 
 
 Flags never move the score, and a missing flag looks exactly like "clear", so the rule in
 `src/engine/db/allergens.js` is to flag borderline terms rather than miss them. What the tests hold
-(`tests/audit-2026-09-16.test.js`):
+(`tests/audit-2026-09-16.test.js`, `tests/label-languages.test.js`):
 
 - **The declaration words themselves**: "Contains: tree nuts", "shellfish", UK "nuts", and the generic
   words in Spanish, Italian, French and German (frutos secos, frutta a guscio, fruits à coque,
@@ -135,6 +135,12 @@ Flags never move the score, and a missing flag looks exactly like "clear", so th
 - **Look-alikes that must stay clear**: peanut butter, cocoa butter and coconut milk (dairy), milk
   thistle, crab apple, bean curd, breadfruit, tiger nuts, nutmeg, lemon rind, porcini, "vitamin D3
   (from lichen)".
+- **Swedish, Polish, Dutch and Portuguese** (`tests/label-languages.test.js`): every allergen, the
+  meat, fish and honey words for the diet checks, and pork for pork-free. Before 2026-09-26 a Swedish
+  or Polish list raised only a soy flag, and a Dutch or Portuguese one missed milk. Plant milks and
+  butters in those languages (kokosmjölk, masło kakaowe, cacaoboter, manteiga de cacau) and lactic
+  acid (mjölksyra, melkzuur, Milchsäure, which also flagged as milk before) stay clear. Foreign fish
+  and shellfish words now conflict with vegetarian as well as flagging the allergen.
 
 Every flag change is checked against all 58 corpus labels: none of them changes its flags. What is
 **not** proven: that a real label never words an allergen some other way. The panel says so next to
