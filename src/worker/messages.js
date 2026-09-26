@@ -2,6 +2,7 @@
 // Loaded via importScripts from background.js (and by Node tests before that file).
 // Unknown types are denied — register new sendMessage types here before shipping them.
 // Function declarations (not const) so they land on the worker global for background.js + tests.
+/* exported allowMessage */
 
 var PAGE_MESSAGE_TYPES = new Set([
   'pageScore', 'ocrLabels', 'lookupBarcode', 'provenanceLookup',

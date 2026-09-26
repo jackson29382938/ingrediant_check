@@ -21,8 +21,6 @@ const panel = require(src('content/panel.js'));
 const score = (text, extra = {}) => engine.score({ ingredients_text: text, ...extra });
 const rows = (r, re) => r.bad.filter(h => re.test(h.why));
 const flags = (list, a = [], d = []) => allergens.detect(list, a, d).map(f => f.label);
-const ALL_ALLERGENS = allergens.ALLERGENS.map(a => a.id);
-const ALL_DIETS = allergens.DIETS.map(d => d.id);
 
 // ---------------------------------------------------------------- regressions from 7632930
 test('a function word in parentheses beside a named additive is a disclosure, not a second additive', () => {

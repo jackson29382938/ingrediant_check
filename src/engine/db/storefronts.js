@@ -87,7 +87,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // The first price in `text` as this store writes it, or null.
   function parsePrice(text, hostOrUrl) {
     const { decimal } = storefront(hostOrUrl);
-    const m = String(text || '').replace(/ /g, ' ').match(new RegExp(PRICE));
+    const m = String(text || '').replace(/\u00a0/g, ' ').match(new RegExp(PRICE));
     if (!m) return null;
     return parseNumber(m[1] || m[2], decimal);
   }

@@ -5,7 +5,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const session = process.env.INGREDIENT_CHECK_SESSION || 'ingredient-check';
 
 function runAb(args, { ignoreFail = false } = {}) {
   try {

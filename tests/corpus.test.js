@@ -10,7 +10,6 @@
 // becomes a hard assertion from then on.
 'use strict';
 
-const assert = require('assert');
 const path = require('path');
 const src = (...p) => path.join(__dirname, '..', 'src', ...p);
 

@@ -51,11 +51,6 @@ function save(key, value) {
   persist({ [key]: value });
 }
 
-function weightOf(weights, id) {
-  const w = weights && typeof weights[id] === 'number' && isFinite(weights[id]) ? weights[id] : null;
-  return w != null ? w : CATS.DEFAULT_WEIGHTS[id];
-}
-
 // { ids, custom } — the selected goals, and whether a slider has since moved off them.
 function currentGoals(weights, goals) {
   return CATS.describeGoals(weights, goals);

@@ -1,7 +1,9 @@
 name: test
 
 on:
+  # Branch pushes are covered by their pull request; main runs on every push.
   push:
+    branches: [main]
   pull_request:
 
 jobs:
@@ -19,6 +21,17 @@ jobs:
       - run: npm test
       - run: npm run preflight
 
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # `npm run lint` installs the pinned eslint, @eslint/js and globals (package.json) for this job only
+      # and fails on any warning.
+      - run: npm run lint
+
   harness:
     runs-on: ubuntu-latest
     steps:
@@ -26,7 +39,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      # Playwright is CI-only. The extension itself stays dependency-free.
-      - run: npm install --no-save playwright
+      # Playwright is CI-only and pinned, so the browser it downloads matches. The extension itself
+      # stays dependency-free.
+      - run: npm install --no-save --no-package-lock playwright@1.63.0
       - run: npx playwright install --with-deps chromium
       - run: npm run harness:ci

@@ -168,6 +168,13 @@ check('OCR internals are not web-accessible', () => {
   assert.ok(/wasm-unsafe-eval/.test(csp), 'wasm-unsafe-eval is required to compile the OCR engine');
 });
 
+check('identity is requested exactly when Google sign-in is configured', () => {
+  // prefs.js OAUTH_CLIENT_ID empty hides sign-in; an unused permission is a store-review rejection.
+  const clientId = read('src/engine/db/prefs.js').match(/const OAUTH_CLIENT_ID = '([^']*)';/)[1];
+  assert.equal(manifest.permissions.includes('identity'), !!clientId,
+    clientId ? 'sign-in is configured but identity is not requested' : 'identity is requested but sign-in is off');
+});
+
 check('content scripts are limited to product and search paths', () => {
   const cs = manifest.content_scripts[0];
   assert.ok(cs.matches.every(m => !m.endsWith('.com/*') && !m.endsWith('.uk/*') && !/\.amazon\.[^/]+\/\*$/.test(m)),

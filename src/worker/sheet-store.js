@@ -2,6 +2,7 @@
 // Revision strings stay in chrome.storage.local for the score-cache fingerprint.
 // Falls back to chrome.storage.local when IndexedDB is unavailable (Node tests, older runtimes).
 // Function declarations so importScripts / vm preload expose them on the worker global.
+/* exported putSheetIndex, getSheetIndex, clearSheetIndex */
 
 var SHEET_IDB_NAME = 'ingredient-check-sheets';
 var SHEET_IDB_STORE = 'indexes';

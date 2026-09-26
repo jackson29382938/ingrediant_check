@@ -64,7 +64,7 @@ npm run pack             # optional: zip a clean extension package under dist/
 npm run harness          # http://127.0.0.1:8731 — panel, OCR, lifecycle
 ```
 
-CI runs `npm test` and `npm run preflight` on Node 20 and 22, plus a Playwright job on the local panel and lifecycle harnesses (`npm run harness:ci`). That job never talks to Amazon.
+CI runs `npm test` and `npm run preflight` on Node 20 and 22, `npm run lint` (pinned ESLint, no warnings allowed), and a Playwright job on the local panel and lifecycle harnesses (`npm run harness:ci`). That job never talks to Amazon. It runs on pull requests and on pushes to `main`.
 
 | Harness | URL |
 |---|---|

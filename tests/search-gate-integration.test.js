@@ -8,9 +8,6 @@
 
 const assert = require('assert');
 const { loadAmazonContentScripts } = require('./content-scripts.js');
-const fs = require('fs');
-const path = require('path');
-const src = (...p) => path.join(__dirname, '..', 'src', ...p);
 
 function makeEl(tag, attrs = {}, text = '') {
   const el = {

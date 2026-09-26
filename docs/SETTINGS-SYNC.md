@@ -72,7 +72,9 @@ To turn sign-in on:
 2. **Credentials → Create OAuth client ID → Web application.** Authorized redirect URI:
    `https://<extension-id>.chromiumapp.org/` — the Chrome Web Store id, or the unpacked id shown on
    `chrome://extensions`.
-3. Put the client id in `OAUTH_CLIENT_ID` in both `src/engine/db/prefs.js` and `apps-script.gs`,
+3. Add `"identity"` to `permissions` in `manifest.json` (it is left out while sign-in is off,
+   and `tests/sanity.test.js` fails if the two disagree).
+4. Put the client id in `OAUTH_CLIENT_ID` in both `src/engine/db/prefs.js` and `apps-script.gs`,
    and publish a new version of the script.
 
 ## Checks on the way in

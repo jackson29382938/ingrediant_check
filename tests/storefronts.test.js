@@ -30,7 +30,7 @@ const PRICES = [
   ['www.amazon.ae', 'AED 12.50', 12.5], ['www.amazon.sa', 'SAR 12.50', 12.5],
   ['www.amazon.co.jp', '￥1,280', 1280], ['www.amazon.co.jp', '¥1,280', 1280], ['www.amazon.com.mx', '$89.00', 89],
   ['www.amazon.de', '4,99 €', 4.99], ['www.amazon.de', '€4,99', 4.99], ['www.amazon.de', '1.234,56 €', 1234.56],
-  ['www.amazon.fr', '4,99 €', 4.99], ['www.amazon.fr', '1 234,56 €', 1234.56],
+  ['www.amazon.fr', '4,99\u00a0€', 4.99], ['www.amazon.fr', '1\u202f234,56 €', 1234.56],
   ['www.amazon.es', '4,99 €', 4.99], ['www.amazon.it', '4,99 €', 4.99], ['www.amazon.nl', '€ 4,99', 4.99],
   ['www.amazon.com.be', '4,99 €', 4.99], ['www.amazon.se', '49,90 kr', 49.9], ['www.amazon.se', '1 234,56 kr', 1234.56],
   ['www.amazon.pl', '19,99 zł', 19.99], ['www.amazon.com.tr', '149,90 TL', 149.9], ['www.amazon.com.tr', '₺149,90', 149.9],

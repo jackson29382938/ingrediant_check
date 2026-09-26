@@ -173,7 +173,7 @@
     "message": "Zwischengespeicherte Bewertungen löschen"
   },
   "popupCleared": {
-    "message": "$1 Zwischenspeicher gelöscht",
+    "message": "$N$ gespeicherte Bewertungen gelöscht",
     "placeholders": {
       "n": {
         "content": "$1"
@@ -1304,5 +1304,20 @@
   },
   "reportShotNotStore": {
     "message": "Es wurde kein Screenshot aufgenommen: Der Tab, auf dem du warst, war keine Amazon- oder Target-Seite und wurde deshalb nicht angefasst. Du kannst unten einen hinzufügen oder ein Bild mit Strg/Cmd+V einfügen."
+  },
+  "optPresetActive": {
+    "message": "Aktiv"
+  },
+  "optPresetCustomLabel": {
+    "message": "Eigene"
+  },
+  "optPresetOptimized": {
+    "message": "Optimiert für"
+  },
+  "optPresetVersus": {
+    "message": "Was sich unterscheidet"
+  },
+  "optPresetCatsAria": {
+    "message": "Kategorien dieses Ausgangspunkts"
   }
 }

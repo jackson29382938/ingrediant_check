@@ -8,8 +8,7 @@
   const page = AIR.page;
   const product = AIR.product;
   const search = AIR.search;
-  const { state, HOST_ID, isProductPage, isListPage, isRelevantPage, MAX_EXTRACT_RETRIES,
-    publishActionBadge } = page;
+  const { state, HOST_ID, isProductPage, isListPage, isRelevantPage, publishActionBadge } = page;
   const { scoreCurrentPage } = product;
   const { searchAllowed, resetSearchGate, standDown, badgeSearchResults, armHoverPass,
     armAutoScorePass, cancelTileWork, clearBadges } = search;

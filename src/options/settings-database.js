@@ -13,6 +13,8 @@ function say(id, text, kind) {
   el.className = 'status' + (kind === 'error' ? ' error' : '');
 }
 
+// Called by settings.js (startSettingsPage).
+/* exported wireDatabase */
 function wireDatabase() {
   const notice = document.getElementById('endpointStatus');
   if (notice && !ONLINE) {

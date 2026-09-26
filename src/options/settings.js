@@ -692,6 +692,8 @@ function wireBreakdown() {
       ok => { if (ok) flash(msg('optSaved', 'Saved')); }));
 }
 
+// Called from settings-database.js, the options page's second classic script, once it has loaded.
+/* exported startSettingsPage */
 function startSettingsPage() {
   chrome.storage.local.get(['weights', 'goals', 'allergens', 'diets', 'avoidList', 'foodOnly'], o => {
     applyScoring(o);
