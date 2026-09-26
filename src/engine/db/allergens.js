@@ -70,7 +70,7 @@ const ALLERGENS = [
   { id: 'shellfish', label: 'Shellfish',
     m: /\b(shrimp|prawn|crab(?!\s*-?\s*apples?)|lobster|crayfish|langoustine|clam|mussel|oyster|scallop|squid|calamari|octopus|krill|crustacean|mollusc|mollusk|camar[óo]n|camarones|gambas?|langosta|cangrejo|mejill[óo]n|almeja|calamar|crust[áa]ceo|molusco|crevettes?|crabe|homard|moules?|hu[îi]tres?|crustac[ée]s?|mollusques?|garnelen?|krabben?|hummer|muscheln?|krebstier|weichtier|gamber|granchio|aragosta|cozze|vongole|crostacei|molluschi)\w*/i },
   { id: 'sesame', label: 'Sesame',
-    m: /\b(sesame|tahini|benne|gingelly|halva|halvah|halwa|gomasio|gomashio|za[\'’]?atar|s[ée]samo|s[ée]same|sesam)\w*/i },
+    m: /\b(sesame|tahini|benne|gingelly|halva|halvah|halwa|gomasio|gomashio|za['’]?atar|s[ée]samo|s[ée]same|sesam)\w*/i },
   { id: 'sulfite', label: 'Sulfites',
     m: /\b((?:meta)?bisul(?:f|ph)ites?|metabisul(?:f|ph)ites?|sulfite|sulphite|sodium bisulfite|potassium metabisulfite|sulfur dioxide|sulphur dioxide|sulfitos?|sulfites?|sulfit|schwefeldioxid|solfiti|anidride solforosa|e[- ]?22[0-8])\w*/i },
   // The EU's mandatory-declaration list has three allergens the US list does not.
