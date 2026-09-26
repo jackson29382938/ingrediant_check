@@ -79,10 +79,11 @@
       const name = text(b);
       const row = NUTRIENTS.find(([, re]) => re.test(name));
       if (!row) continue;
-      const m = clean(text(b.parentNode).slice(name.length)).match(/^([\d.]+)\s*(mg|g|mcg)\b/i);
+      // "1,200mg": a thousands comma, which "[\d.]+" stopped at, reading 1 mg of sodium.
+      const m = clean(text(b.parentNode).slice(name.length)).match(/^(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?\s*(mg|g|mcg)\b/i);
       if (!m) continue;
-      const v = Number(m[1]);
-      out[row[0]] = row[2] === 'mg' && m[2].toLowerCase() === 'g' ? v * 1000 : v;
+      const v = Number(m[1].replace(/,/g, '') + (m[2] || ''));
+      out[row[0]] = row[2] === 'mg' && m[3].toLowerCase() === 'g' ? v * 1000 : v;
     }
     const size = Array.from(section.querySelectorAll('p')).map(text).find(t => /^serving size:/i.test(t)) || '';
     const grams = size.match(/\((\d+(?:\.\d+)?)\s*g\)/i);

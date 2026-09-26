@@ -232,3 +232,15 @@ test('runner: the master switch off means nothing on the page', () => {
   assert.equal(w.writes.length, 0);
   assert.equal(w.fetches.length, 0);
 });
+
+test('nutrition rows read thousands commas and decimals', () => {
+  const html = `<html><body><h1 data-test="product-title">Soup</h1>
+    <div data-test="@web/site-top-of-funnel/ProductDetailCollapsible-LabelInfo"><button aria-expanded="true">Label info</button>
+    <div><p>Serving size: 1 cup (245g)</p><div><b>Sodium</b> 1,200mg</div><div><b>Protein</b> 7.5g</div>
+    <div><b>Total Sugars</b> 2g</div><h4>Ingredients:</h4><div>Water, chicken, salt</div></div></div></body></html>`;
+  const data = T.readProduct(createDocument(html), at('https://www.target.com/p/soup/-/A-12345678'));
+  assert.equal(data.nutrition.sodium, 1200, 'not 1');
+  assert.equal(data.nutrition.protein, 7.5);
+  assert.equal(data.nutrition.sugar, 2);
+  assert.equal(data.nutrition.servingGrams, 245);
+});
