@@ -116,5 +116,16 @@ check('EU salt stands in for sodium only when no sodium is given', () => {
   assert.strictEqual(parsePanel('Nutrition Facts Sodium 150mg Salt 0.4g Protein 3g').sodium, 150);
 });
 
+check('an EU panel declared per 100 g is scored and labelled per 100g', () => {
+  const nutrition = parsePanel('Nährwerte je 100 g Energie 1.580 kJ / 377 kcal Zucker 22 g Eiweiß 4 g Salz 1,2 g');
+  assert.strictEqual(nutrition.servingGrams, 100);
+  const r = engine.score({ name: 'x', ingredients_text: 'Hafer, Zucker', nutrition },
+    { weights: categories.PRESETS.conventional.weights });
+  const sugar = r.bad.find(h => /^Total sugar/.test(h.why));
+  assert.ok(sugar && /per 100g$/.test(sugar.why) && sugar.ing === '22g/100g', JSON.stringify(sugar));
+  assert.strictEqual(parsePanel('Nutrition Facts Serving size 30g Calories 120 Sugars 6g Protein 3g').servingGrams, 30,
+    'a declared serving still wins');
+});
+
 if (failed) { console.error('\n' + failed + ' failed'); process.exit(1); }
 console.log('\nall passed');

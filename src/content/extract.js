@@ -280,6 +280,7 @@
     [/^(total )?fat$/i, 'fat'], [/^saturated( fat)?$/i, 'saturatedFat'],
     [/^trans( fat)?$/i, 'transFat'], [/^(total )?carb(ohydrate)?s?$/i, 'carbs'],
   ];
+  const PER_100 = /\b(?:per|je|pro|pour|por|para|ogni|in)\s+100\s*(?:g|ml)\b/i;
   const VALUE_CELL = /^(\d+(?:[.,]\d+)?)\s*(mg|mcg|g|kcal)?$/i;
 
   function nutritionSummaryTable(doc) {
@@ -299,7 +300,7 @@
           if (!hit) return;
           const m = values[col].match(VALUE_CELL);
           const n = m && toNumber(m[1]);
-          if (isFinite(n)) out[hit[1]] = n;
+          if (Number.isFinite(n)) out[hit[1]] = n;
         });
         if (Object.keys(out).length >= 2) return out;
       }
@@ -323,7 +324,7 @@
         fromTable.servingSize = serving;
         const measure = serving.match(/\(?\s*(\d+(?:[.,]\d+)?)\s*(?:g|grams?)\b/i)
           || serving.match(/\(?\s*(\d+(?:[.,]\d+)?)\s*(?:ml|milliliters?|millilitres?)\b/i);
-        if (measure) { const v = toNumber(measure[1]); if (isFinite(v) && v > 0) fromTable.servingGrams = v; }
+        if (measure) { const v = toNumber(measure[1]); if (Number.isFinite(v) && v > 0) fromTable.servingGrams = v; }
       }
       return fromTable;
     }
@@ -339,7 +340,7 @@
         const m = text.match(re);
         if (!m) continue;
         const v = toNumber(m.slice(1).find(g => g != null && g !== ''));
-        if (isFinite(v)) out[key] = v;
+        if (Number.isFinite(v)) out[key] = v;
       }
       // EU panels give energy as "1580 kJ / 377 kcal": the kilocalories are the calories, not the
       // first number after "Energie".
@@ -372,8 +373,12 @@
         // beverages are close enough to 1 g/ml for a per-100 comparison.
         const millilitres = out.servingSize.match(/\(?\s*(\d+(?:[.,]\d+)?)\s*(?:ml|milliliters?|millilitres?)\b/i);
         const measure = grams || millilitres;
-        if (measure) { const v = toNumber(measure[1]); if (isFinite(v) && v > 0) out.servingGrams = v; }
+        if (measure) { const v = toNumber(measure[1]); if (Number.isFinite(v) && v > 0) out.servingGrams = v; }
       }
+      // EU and UK panels declare "per 100 g" / "je 100 g" / "pour 100 g" instead of a serving, and
+      // their first column is that basis. Saying so lets the engine label the rows per 100g rather
+      // than per serving; the numbers are the same either way.
+      if (out.servingGrams == null && PER_100.test(text)) out.servingGrams = 100;
       if (Object.keys(out).length >= 2) return out;
     }
     return null;

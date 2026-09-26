@@ -709,7 +709,8 @@ function score(product, options = {}) {
         || (typeof nut.sodium === 'number' && nut.sodium * per100 > 40000);
       if (impossible) per100 = 1;                     // score per serving instead, and say so
     }
-    if (per100 !== 1) nut._normalised = true;
+    // A declared 100 g basis (an EU panel) is already per 100g, and its rows should say so.
+    if (per100 !== 1 || grams === 100) nut._normalised = true;
     for (const n of NUTRITION) {
       const weight = w_(n.cat);
       if (!weight) continue;
