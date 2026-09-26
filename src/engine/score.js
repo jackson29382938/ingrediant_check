@@ -471,7 +471,10 @@ const NUTRITION = [
 function score(product, options = {}) {
   const W = db.categories ? db.categories.resolveWeights(options.weights) : {};
   const w_ = id => (id in W ? W[id] : 1);
-  const rawTxt = product.ingredients_text || '';
+  // Open Food Facts marks allergens as _WHEAT_ / _SOJA_. An underscore is a word character, so every
+  // `\b` rule failed on them: "_wheat_ flour" escaped the flour charge, and "lécithines de _soja_"
+  // raised no soy warning. No label prints an underscore, so all of them go.
+  const rawTxt = String(product.ingredients_text || '').replace(/_+/g, ' ');
   // Parse the list as written, then drop only the entries that are themselves denials. The
   // scoring surface is rebuilt from what survives, so caps and penalties see the real ingredients
   // and never see "no artificial colors". See DENIAL_ENTRY above for why this replaced running

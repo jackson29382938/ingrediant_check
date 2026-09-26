@@ -536,3 +536,10 @@ test('toolbar badge colours keep white text readable (WCAG AA, 4.5:1)', () => {
   }
   for (const bg of ['#767676', '#565959']) assert.ok(contrast('#ffffff', bg) >= 4.5, bg);
 });
+
+test('Open Food Facts: allergen markup (_WHEAT_) is stripped from the text the page shows and saves', async () => {
+  const product = { product: { product_name: 'Crackers', ingredients_text_en: '_WHEAT_ flour, palm oil, _EGG_', product_type: 'food', categories_tags: ['en:snacks'] } };
+  const w = worker({ useOpenFoodFacts: true }, async () => ({ ok: true, json: async () => product }));
+  const got = await w.send({ type: 'lookupBarcode', code: '0012345678929' }, amazonTab);
+  assert.equal(got.ingredients_text, 'WHEAT flour, palm oil, EGG');
+});

@@ -245,3 +245,12 @@ test('UK wordings are charged like their US twins', () => {
     assert.equal(b.score, a.score, `${uk} vs ${us}`);
   }
 });
+
+test('Open Food Facts allergen markup does not hide rules or allergens', () => {
+  // "_" is a word character, so "_wheat_ flour" escaped the flour charge and "_soja_" the soy flag.
+  const plain = score('wheat flour, palm oil'), marked = score('_wheat_ flour, palm oil');
+  assert.deepEqual(reasons(marked), reasons(plain));
+  assert.equal(marked.score, plain.score);
+  const soy = engine.score({ ingredients_text: 'sucre, lécithines de _soja_' }, { allergens: ['soy'] });
+  assert.ok(JSON.stringify(soy).includes('"soy"'), 'the soy flag is raised');
+});

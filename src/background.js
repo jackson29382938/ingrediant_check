@@ -105,7 +105,8 @@ async function fetchOpenFoodFacts(code, key) {
     const p = json && json.product;
     if (!p || !(p.ingredients_text_en || p.ingredients_text)) return null;
     const data = {
-      ingredients_text: p.ingredients_text_en || p.ingredients_text,
+      // Open Food Facts marks allergens as _WHEAT_; the panel and the saved reading show plain text.
+      ingredients_text: String(p.ingredients_text_en || p.ingredients_text).replace(/_+/g, ''),
       labels: (p.labels_tags || []).join(' ').replace(/en:/g, ' '),
       nova_group: p.nova_group || null,
       name: p.product_name || null,
