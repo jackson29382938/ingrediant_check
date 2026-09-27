@@ -718,3 +718,23 @@ test('peanuts, the other nuts and seeds are whole foods in every label language'
   assert.deepEqual(engine.parse('orange juice (origin: Spain)'), ['orange juice', 'origin: spain']);
   assert.equal(score('orange juice (origin: Spain)').score, score('orange juice').score);
 });
+
+test('an allergen bracket that repeats its parent is not a second ingredient', () => {
+  // "Cacahuètes (arachides)", "Arachidi (arachidi)", "yogurt (milk)": counting the bracket made the
+  // list one longer, and a three-ingredient peanut butter NOVA 3 where its English twin is NOVA 2.
+  const pairs = [
+    ['peanuts, sunflower oil, salt', 'Arachidi (arachidi), olio di semi di girasole, sale'], ['peanuts, sunflower oil, salt', 'Cacahuètes (arachides), huile de tournesol, sel'],
+    ['fat free yogurt', 'Fat free yogurt (_Milk_).'], ['cheese, salt', 'cheese (milk), salt'],
+  ];
+  for (const [bare, declared] of pairs) {
+    const a = score(bare), b = score(declared);
+    assert.equal(b.score, a.score, declared);
+    assert.equal(b.nova, a.nova, `${declared} NOVA`);
+  }
+  // The declared word still raises the flag and matches the avoid list.
+  const r = score('Cacahuètes (arachides), sel', { allergens: ['peanut'], avoidList: ['arachide'] });
+  assert.ok(r.flags.some(f => f.id === 'peanut'));
+  assert.equal(r.flags.length, 2);
+  // A bracket that says more than its parent is kept: "Kekse (Weizen)" declares the wheat.
+  assert.ok(reasons(score('Kekse (Weizen), Salz')).includes('Wheat'));
+});

@@ -378,6 +378,31 @@ function recognised(ing, { unnamed = true } = {}) {
 
 // Entries, not strings: an entry whose organic word was taken off still counts as read, as it did
 // when the organic claim itself was what the rules recognised ("Organic medjool dates").
+// The sole bracket entry whose allergens and charges are all its parent's already: the same word, or
+// an allergen declaration of it (and nothing the parent is not charged for).
+function repeatedAllergenBrackets(entries) {
+  const al = db.allergens ? db.allergens.ALLERGENS : [];
+  const ids = ing => al.filter(a => a.m.test(ing)).map(a => a.id);
+  const byFam = new Map(entries.map(e => [e.fam, e]));
+  const kids = new Map();
+  for (const e of entries) if (e.parent) kids.set(e.parent, [...(kids.get(e.parent) || []), e]);
+  const out = [];
+  for (const [fam, list] of kids) {
+    const parent = byFam.get(fam);
+    if (!parent || list.length !== 1) continue;
+    const child = list[0];
+    if (child.ing.split(' ').length > 3 || kids.has(child.fam)) continue;
+    if (child.ing === parent.ing) { out.push(child); continue; }
+    const mine = ids(child.ing);
+    if (!mine.length) continue;
+    const theirs = new Set(ids(parent.ing));
+    if (!mine.every(id => theirs.has(id))) continue;
+    const charged = penaltiesFor(parent.ing);
+    if ([...penaltiesFor(child.ing)].every(r => charged.has(r))) out.push(child);
+  }
+  return out;
+}
+
 function recognitionCoverage(entries) {
   if (!entries.length) return 0;
   let seen = 0;
@@ -663,7 +688,14 @@ function score(product, options = {}) {
   const parsed = parseEntries(rawTxt);
   const aside = e => MAY_CONTAIN.test(e.ing) || LABEL_NOTE.test(e.ing);
   const mayContain = parsed.filter(aside).map(e => e.ing);
-  const entries = parsed.filter(e => !isDenialEntry(e.ing) && !aside(e));
+  const listed = parsed.filter(e => !isDenialEntry(e.ing) && !aside(e));
+  // An allergen bracket that only repeats its parent ("Cacahuètes (arachides)", "Arachidi
+  // (arachidi)", "cheese (milk)") is a declaration, not a second ingredient: counted as one it made
+  // a three-ingredient peanut list four, and NOVA 3 where the English is NOVA 2. It still feeds the
+  // allergen flags and the avoid list, where the word it uses may be the one that matters.
+  const repeats = new Set(repeatedAllergenBrackets(listed));
+  const entries = listed.filter(e => !repeats.has(e));
+  const declared = [...repeats].map(e => e.ing);
   // Close the gaps left by dropped claim entries, so a leading "no artificial colors" does not
   // leave the real first ingredient sitting at position 1.
   const dense = new Map();
@@ -1030,8 +1062,8 @@ function score(product, options = {}) {
   // Flags never move the score. "Does this contain dairy" is a different question from "is this a
   // good product", and answering both with one number helps nobody.
   const flags = db.allergens
-    ? [...db.allergens.detect([...list, ...mayContain], options.allergens || [], options.diets || []),
-       ...db.allergens.matchAvoidList(list, options.avoidList || [])]
+    ? [...db.allergens.detect([...list, ...declared, ...mayContain], options.allergens || [], options.diets || []),
+       ...db.allergens.matchAvoidList([...list, ...declared], options.avoidList || [])]
     : [];
 
   // How much of this list the rulebase could actually read. Reported, never scored — a low number
