@@ -518,3 +518,25 @@ test('flavour compounds ("Vanillearoma", "vaniljarom", "vanilya aroması") are c
     assert.equal(b.score, a.score, `${other} vs ${en}`);
   }
 });
+
+test('whole milk ahead of skimmed milk waives the fat-reduced charge in every label language', () => {
+  // The full-fat dairy test read English only, so "lait entier, lait écrémé" was charged as
+  // fat-reduced dairy that "whole milk, skimmed milk" is not; "Vollmilch" and "helmjölk" were not
+  // whole foods either; and the nouns "ferments" / "Kulturen" were NOVA 3 signals where English
+  // "cultures" is not.
+  const en = 'whole milk, skimmed milk, cultures';
+  for (const other of [
+    'lait entier, lait écrémé, ferments', 'Vollmilch, Magermilch, Kulturen', 'leche entera, leche desnatada, fermentos',
+    'helmjölk, skummjölk, kultur', 'mleko pełne, mleko odtłuszczone, kultury', 'volle melk, magere melk, culturen',
+  ]) {
+    const a = score(en), b = score(other);
+    assert.deepEqual(reasons(b), reasons(a), other);
+    assert.equal(b.score, a.score, other);
+    assert.equal(b.nova, a.nova, `${other} NOVA`);
+  }
+  const a = score('sugar, whole milk powder, skimmed milk powder'), b = score('Zucker, Vollmilchpulver, Magermilchpulver');
+  assert.equal(b.score, a.score);
+  // Milk powder and whey are not full-fat dairy, in any language.
+  assert.deepEqual(reasons(score('lait en poudre, lait écrémé')), reasons(score('milk powder, skimmed milk')));
+  assert.deepEqual(reasons(score('Zucker, Molkenpulver, Magermilchpulver')), reasons(score('sugar, whey powder, skimmed milk powder')));
+});
