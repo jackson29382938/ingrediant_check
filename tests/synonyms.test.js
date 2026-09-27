@@ -463,3 +463,41 @@ test('sourdough and sprouting in every label language halve the grain charge as 
   assert.equal(b.score, a.score);
   assert.deepEqual(reasons(b), reasons(a));
 });
+
+test('local flour and starch names are charged like their English twins', () => {
+  // German, Dutch and Swedish write these as one word, which the \b-anchored words missed:
+  // "Roggenmehl, Wasser" scored 80 with no rye row where "rye flour, water" scores 69.
+  const pairs = [
+    ['rye flour, water', 'Roggenmehl, Wasser'], ['rye flour, water', 'roggebloem, water'], ['rye flour, water', 'fullkornsrågmjöl, vatten'],
+    ['spelt flour, water', 'Dinkelmehl, Wasser'], ["spelt flour, water", "farine d'épeautre, eau"], ['water, potato starch', 'Wasser, Kartoffelstärke'],
+    ['water, potato starch', 'eau, fécule de pomme de terre'], ['water, tapioca starch', 'woda, skrobia z manioku'], ['water, soy flour', 'Wasser, Sojamehl'],
+    ["water, oat flour", "eau, farine d'avoine"], ['water, chickpea flour', 'agua, harina de garbanzo'], ['water, lentil flour', 'acqua, farina di lenticchie'],
+  ];
+  for (const [en, other] of pairs) {
+    const a = score(en), b = score(other);
+    assert.deepEqual(reasons(b), reasons(a), `${other} vs ${en}`);
+    assert.equal(b.score, a.score, `${other} vs ${en}`);
+  }
+});
+
+test('the grains in brackets after "may contain" warn but are not charged', () => {
+  // "May contain cereals containing gluten (spelt, barley, oats)" split its bracket into entries,
+  // which were charged as ingredients: a Polish chocolate scored 36 for the wheat, rye and barley
+  // in its trace statement. And a statement of 80 characters or more fell to the length filter,
+  // so its allergen warning went too.
+  const base = score('water, almonds');
+  for (const text of [
+    'water, almonds. May contain traces of soy and cereals containing gluten (spelt, barley, oats) and other nuts.',
+    "eau, amandes. Traces éventuelles de soja et de céréales contenant du gluten (épeautre, orge, avoine) et d'autres fruits à coque.",
+    'Wasser, Mandeln. Kann Spuren von Soja und glutenhaltigem Getreide (Dinkel, Gerste, Hafer) enthalten.',
+    'woda, migdały. Może zawierać gluten (pszenica, żyto, jęczmień, owies), soję.',
+    // The statement runs to the end of its sentence: split at its commas, "soy" and "wheat" were
+    // ingredients of their own and wheat was charged.
+    'water, almonds. May contain milk, soy, wheat.', 'woda, migdały. Może zawierać mleko, soję, pszenicę.',
+  ]) {
+    const r = score(text, { allergens: ['soy', 'wheat'] });
+    assert.deepEqual(reasons(r), [], text);
+    assert.equal(r.score, base.score, text);
+    for (const id of ['soy', 'wheat']) assert.ok(r.flags.some(f => f.id === id), `${id}: ${text}`);
+  }
+});

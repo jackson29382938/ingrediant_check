@@ -400,6 +400,7 @@ const usable = s => s.length > 1 && s.length < 80;
 const MIN_SHARE = /(?:^|[^a-z])(?:min|max|ca|approx)$/i;
 function splitTopLevel(text) {
   const parts = [];
+  parts.sentenceEnds = new Set();   // indices of parts a full stop or semicolon ended
   let depth = 0, buf = '';
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
@@ -408,6 +409,7 @@ function splitTopLevel(text) {
     // A comma between two digits is a decimal ("sugar 8,5%"), not the end of an entry.
     else if (depth === 0 && ((ch === ',' && !(/\d/.test(text[i - 1] || '') && /\d/.test(text[i + 1] || '')))
       || ch === ';' || (ch === '.' && !/\d/.test(text[i + 1] || '') && !(MIN_SHARE.test(buf) && /^\.\s?\d/.test(text.slice(i, i + 3)))))) {
+      if (ch !== ',') parts.sentenceEnds.add(parts.length);
       parts.push(buf); buf = '';
     }
     else buf += ch;
@@ -461,9 +463,31 @@ function lecithinWithSource(part) {
 
 function expandEntry(raw) {
   const part = lecithinWithSource(colonAsParenthesis(raw));
+  // A "may contain" statement stays one entry, brackets and all: "may contain cereals containing
+  // gluten (spelt, barley, oats)" charged spelt, barley and oats as ingredients once the bracket
+  // was split off, and a statement of 80 characters or more fell to the length filter, taking its
+  // allergen warning with it. It is set aside from scoring and read only by the allergen flags.
+  if (MAY_CONTAIN.test(tidy(part.replace(/\([^)]*\)/g, ' ')))) {
+    const whole = tidy(part.replace(/[()]/g, ' ').replace(/\s+/g, ' ').replace(/ ,/g, ',')).slice(0, 400);
+    return whole.length > 1 ? [whole] : [];
+  }
   const pieces = [part.replace(/\([^)]*\)/g, ' ')];
   for (const m of part.matchAll(/\(([^)]*)\)/g)) pieces.push(...m[1].split(/;|(?<!\d),|,(?!\d)/));
   return pieces.map(tidy).filter(usable);
+}
+
+// "May contain milk, soy, wheat." is one statement to the end of its sentence. Split at its commas,
+// "soy" and "wheat" became ingredients of their own and wheat was charged (72 against 94).
+function joinStatements(parts) {
+  const out = [];
+  let open = null;
+  parts.forEach((part, i) => {
+    if (open) open.push(part);
+    else if (MAY_CONTAIN.test(tidy(part.replace(/\([^)]*\)/g, ' ')))) open = [part];
+    else out.push(part);
+    if (open && (parts.sentenceEnds.has(i) || i === parts.length - 1)) { out.push(open.join(', ')); open = null; }
+  });
+  return out;
 }
 
 // [{ ing, pos }] where pos is the TOP-LEVEL position, shared by an ingredient's own sub-list.
@@ -474,7 +498,7 @@ function parseEntries(text) {
   const flat = joinStrains(numbered.replace(/\b((?:contains )?(?:less than \d+(?:\.\d+)?% of|\d+(?:\.\d+)?% or less of)|and\/or)\b/gi, ','));
   const out = [];
   let pos = -1, strainRun = false;
-  for (const part of splitTopLevel(flat)) {
+  for (const part of joinStatements(splitTopLevel(flat))) {
     const strain = STRAIN_ENTRY.test(tidy(part));
     if (!(strain && strainRun)) pos++;
     strainRun = strain;
@@ -601,7 +625,9 @@ function score(product, options = {}) {
     .toLowerCase().replace(NOT_REAL_BUTTER, '$1 spread');
 
   const prov = db.provenance;
-  const kindInfo = prov ? prov.classify(product.ingredients_text || product.name || '') : null;
+  // Classified on the scored list, not the raw text: the eggs and milk of "may contain traces of
+  // eggs, milk" made a rye bread an animal product with a sourcing charge (55 against 69).
+  const kindInfo = prov ? prov.classify(txt || product.name || '') : null;
 
   const PROVENANCE_CRITICAL = ['beef', 'lamb', 'pork', 'poultry', 'egg', 'seafood'];
   const provenanceApplies = !!(kindInfo && (kindInfo.animal || kindInfo.seafood) && list.length <= 4);

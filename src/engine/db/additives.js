@@ -211,25 +211,38 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   ];
 
   // ---------------------------------------------------------------- grains, gluten, legumes
+  // A grain rule plus its local flour and starch names. German, Dutch and Swedish write these as one
+  // word ("Roggenmehl", "aardappelzetmeel", "potatisstärkelse"), which \b-anchored words miss.
+  const NB_L = '(?<![a-zà-ÿœ\\u0100-\\u017f])', NB_R = '(?![a-zà-ÿœ\\u0100-\\u017f])';
+  const grain = (en, local) => new RegExp(en.source + '|' + NB_L + '(?:' + local.join('|') + ')' + NB_R, 'i');
+
   const GRAINS = [
     { m: /\b(?:enriched|fortified) (wheat |bleached |unbleached |white )?flour\b/i, pts: 15, why: 'Enriched flour — stripped, then synthetically re-dosed' },
     { m: /\b(bleached|refined|white) flour\b/i,     pts: 14, why: 'Refined white flour' },
     { m: /\bwheat flour\b|\bharina(?:\s+integral)?\s+de\s+trigo\b|\bfarine(?:\s+(?:compl[èe]te|int[ée]grale))?\s+de\s+bl[ée](?:$|[^a-z])|\b(?:vollkorn)?weizenmehl\b|\bvollkornweizenmehl\b|\bfarina(?:\s+integrale)?\s+di\s+(?:grano|frumento)\b|\bfarinha(?:\s+integral)?\s+de\s+trigo\b|\b(?:volkoren\s?)?tarwe(?:meel|bloem)\b|\bfarine\s+(?:compl[èe]te\s+)?de\s+froment\b|\bvetemj[öo]l\b|\bm[ąa]ka\s+pszenna(?:\s+pe[łl]noziarnista)?\b|\bpszenna\s+m[ąa]ka\b|\bbu[ğg]day\s+unu\b/i, pts: 12, why: 'Wheat flour' },
     { m: /\bwheat\b|\btrigo\b|\bbl[ée](?:$|[^a-z])|\bweizen\b|\bfrumento\b|\bfroment\b|\btarwe\b|\bvete\w*|\bpszen(?:ica|icy|n[aey])\b|\btarwe\w*|\bweizen\w*|\bbu[ğg]day\b/i, pts: 9,  why: 'Wheat', gluten: true },
     { m: /\bbarley\b|\bcebada\b|\borge\b|\bgerste\b|\borzo\b|\bcevada\b|\bgerst\b|\bgerste(?:nmalz|mout)\w*|\bgerstemout\w*|\bkornmalt\b|\bj[ęe]czmie[ńn](?![a-z\u0100-\u017f])|\bj[ęe]czmienn[aey]\b|\barpa\b/i, pts: 8,  why: 'Barley', gluten: true },
-    { m: /\brye\b|\bcenteno\b|\bseigle\b|\broggen\b|\bsegale\b|\bcenteio\b|\brogge\b|\br[åa]gmj[öo]l\b|(?:^|[^a-z])[żz]yt(?:o|nia|ni)\b|(?:^|[^a-z\u0100-\u017f])[çc]avdar\b/i, pts: 8,  why: 'Rye', gluten: true },
+    { m: grain(/\brye\b|\bcenteno\b|\bseigle\b|\broggen\b|\bsegale\b|\bcenteio\b|\brogge\b|\br[åa]gmj[öo]l\b|(?:^|[^a-z])[żz]yt(?:o|nia|ni)\b|(?:^|[^a-z\u0100-\u017f])[çc]avdar\b/i, [
+      '(?:vollkorn)?roggen(?:vollkorn)?(?:mehl|schrot|flocken|sauerteig|malz)[a-z]*', 'rogge(?:bloem|meel|vlokken)', '(?:fullkorns)?råg(?:mjöl|kross|flingor|sikt)?', '[żz]ytni(?:e|ej|ego)']), pts: 8,  why: 'Rye', gluten: true },
     { m: /\bsemolina\b|\bdurum\b|\bs[ée]mola\b|\bsemoule\b|\b(?:hartweizen)?grie[ßs](?![a-zß])|\bs[ée]mola\b|\bgriesmeel\b/i, pts: 10, why: 'Durum semolina', gluten: true },
-    { m: /\bspelt\b/i,                              pts: 5,  why: 'Spelt', gluten: true },
+    { m: grain(/\bspelt\b/i, ['(?:vollkorn)?dinkel(?:vollkorn)?(?:mehl|flocken|schrot)?', 'spelt(?:meel|bloem|mjöl)', '[ée]peautre', 'espelta', 'farro(?: spelta)?', 'spelta', 'orkisz[a-z]*', 'kav[ıi]lca']),
+      pts: 5,  why: 'Spelt', gluten: true },
     { m: /\btriticale\b/i,                          pts: 8,  why: 'Triticale', gluten: true },
     { m: /\bmalted barley( flour)?\b/i,             pts: 8,  why: 'Malted barley', gluten: true },
     { m: /\bcorn ?(flour|meal|starch|masa)\b|\bcornstarch\b|\bcornmeal\b|\bmaize ?(?:flour|meal|starch)\b|\balmid[óo]n de ma[ií]z\b|\bamidon de ma[ïi]s\b|\bmaisst[äa]rke\b|\bamido di mais\b|\bamido de milho\b|\bma[iï]szetmeel\b|\bmajsst[äa]rkelse\b|\bmajsmj[öo]l\b|\bskrobia kukurydziana\b|\bm[ąa]ka kukurydziana\b|\bm[ıi]s[ıi]r (?:ni[şs]astas[ıi](?![a-zà-ÿ\u0100-\u017f])|unu\b)/i, pts: 7,  why: 'Corn flour or starch' },
-    { m: /\boat (flour|fiber)\b/i,                  pts: 5,  why: 'Oat flour' },
+    { m: grain(/\boat (flour|fiber)\b/i, ['farine d[\'’] ?avoine', 'harina de avena', '(?:vollkorn)?hafermehl', 'havermeel', 'havremjöl', 'm[ąa]ka owsiana', 'yulaf unu', 'farina d[\'’] ?avena', 'farinha de aveia']),
+      pts: 5,  why: 'Oat flour' },
     { m: /\brice flour\b|\brijstbloem\b|\breismehl\b|\bharina de arroz\b|\bfarine de riz\b|\bfarina di riso\b|\bfarinha de arroz\b|\brismj[öo]l\b|\bm[ąa]ka ry[żz]owa\b|\bpirin[çc] unu\b/i,                         pts: 6,  why: 'Rice flour' },
-    { m: /\bsoy(bean)? (flour|grits)\b/i,           pts: 12, why: 'Soy flour' },
-    { m: /\bchickpea flour\b|\bgram flour\b/i,      pts: 5,  why: 'Chickpea flour' },
-    { m: /\blentil flour\b/i,                       pts: 5,  why: 'Lentil flour' },
-    { m: /\bpotato (starch|flour)\b/i,              pts: 5,  why: 'Potato starch' },
-    { m: /\btapioca (starch|flour)\b/i,             pts: 4,  why: 'Tapioca starch' },
+    { m: grain(/\bsoy(bean)? (flour|grits)\b/i, ['farine de soja', 'harina de soja', 'sojamehl', 'soja(?:bonen)?meel', 'sojamjöl', 'm[ąa]ka sojowa', 'soya unu', 'farina di soia', 'farinha de soja']),
+      pts: 12, why: 'Soy flour' },
+    { m: grain(/\bchickpea flour\b|\bgram flour\b/i, ['farine de pois chiches?', 'harina de garbanzos?', 'kichererbsenmehl', 'kikkererwtenmeel', 'kikärtsmjöl', 'm[ąa]ka z ciecierzycy', 'nohut unu', 'farina di ceci', 'farinha de gr[ãa]o[- ]de[- ]bico', 'besan']),
+      pts: 5,  why: 'Chickpea flour' },
+    { m: grain(/\blentil flour\b/i, ['farine de lentilles?', 'harina de lentejas?', 'linsenmehl', 'linzenmeel', 'linsmjöl', 'm[ąa]ka z soczewicy', 'mercimek unu', 'farina di lenticchie', 'farinha de lentilhas?']),
+      pts: 5,  why: 'Lentil flour' },
+    { m: grain(/\bpotato (starch|flour)\b/i, ['f[ée]cule de pommes? de terre', 'amidon de pommes? de terre', 'almid[óo]n de patatas?', 'f[ée]cula de patatas?', 'kartoffelst[äa]rke', 'kartoffelmehl', 'aardappelzetmeel', 'potatisst[äa]rkelse', 'potatismjöl', 'skrobia ziemniaczana', 'patates ni[şs]astas[ıi]', 'fecola di patat[ae]', 'amido di patat[ae]', 'f[ée]cula de batata', 'amido de batata']),
+      pts: 5,  why: 'Potato starch' },
+    { m: grain(/\btapioca (starch|flour)\b/i, ['(?:amidon|f[ée]cule) de (?:tapioca|manioc)', 'almid[óo]n de (?:tapioca|yuca|mandioca)', 'tapiokast[äa]rke', 'tapioca(?:zetmeel|meel)', 'tapiokast[äa]rkelse', 'skrobia z (?:tapioki|manioku)', 'amido di (?:tapioca|manioca)', 'f[ée]cula de mandioca', 'amido de mandioca', 'tapyoka ni[şs]astas[ıi]']),
+      pts: 4,  why: 'Tapioca starch' },
     { m: /\bwheat (bran|germ|starch)\b|\btarwe(?:zetmeel|zemelen|kiemen)\b|\bweizen(?:st[äa]rke|kleie|keime)\b|\b(?:almid[óo]n|salvado|germen) de trigo\b|\b(?:amidon|son|germe) de bl[ée](?![a-z])|\b(?:amido|crusca|germe) di (?:frumento|grano)\b|\b(?:amido|farelo|g[ée]rmen) de trigo\b|\bvete(?:st[äa]rkelse|kli|groddar)\b|\bskrobia pszenna\b|\botr[ęe]by pszenne\b|\bbu[ğg]day (?:ni[şs]astas[ıi]|kepe[ğg]i)(?![a-zà-ÿ\u0100-\u017f])/i,           pts: 7,  why: 'Wheat fraction', gluten: true },
   ];
 
