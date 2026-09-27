@@ -134,3 +134,18 @@ test('ß is a letter: "weiß" is not Dutch whey, and Swiss "ss" spellings keep t
   assert.ok(!has('Erdnußbutter', 'milk'));
   assert.ok(has('Butter', 'milk') && has('Sahne', 'milk'));
 });
+
+test('words that only look like an allergen or a meat, from the samples', () => {
+  // Polish "masa kakaowa" is cocoa mass and Spanish "masa madre" sourdough, not corn masa.
+  for (const w of ['masa kakaowa', 'czekolada gorzka: masa kakaowa', 'masa madre']) assert.ok(!has(w, 'corn'), w);
+  assert.ok(has('masa harina', 'corn') && has('masa', 'corn'));
+  assert.ok(!has('tamarind', 'soy') && has('tamari', 'soy'));
+  // Polish "ostra papryka" is hot paprika; "ostras" are oysters.
+  for (const w of ['ostra papryka', 'papryka ostra']) assert.ok(!has(w, 'shellfish'), w);
+  assert.ok(has('ostras', 'shellfish') && has('salsa de ostra', 'shellfish'));
+  assert.ok(!has('Susurluk/Balıkesir işletme kayıt no', 'fish') && has('balık', 'fish'));
+  // Polish "mieszanka" (a mixture) is not "mięso" (meat), and "porcjach" (portions) is not pork.
+  for (const w of ['mieszanka owoców', 'mieszanka fasoli w zmiennych proporcjach', 'mieszane']) assert.ok(!has(w, 'vegetarian'), w);
+  for (const w of ['mięso', 'mieso', 'mięsny']) assert.ok(has(w, 'vegetarian'), w);
+  assert.ok(!has('czerwone owoce w zmiennych pro-porcjach', 'porkFree') && has('poitrine de porc', 'porkFree'));
+});
