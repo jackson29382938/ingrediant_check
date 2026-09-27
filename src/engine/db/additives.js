@@ -86,7 +86,17 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     // Same `why` as the English rules on purpose: a bilingual label lists "natural flavour /
     // arôme naturel" and must be charged once, and `seen` de-duplicates by reason.
     { m: /\b(?:aromas?|ar[ôo]mes?|aromen|aromi|aromat(?:y)?)\s+(?:artificial(?:es)?|artificiels?|k[üu]nstlich\w*|artificial[ei]|kunstmatig\w*|sztuczn\w*)\b|\bk[üu]nstliche[sn]?\s+aroma\b|\bkunstmatig(?:e)?\s+aroma\b|\bkonstgjorda?\s+arom(?:er)?\b|\bsztuczn[ey]\s+aromat(?:y)?\b|\byapay\s+aroma\b/i, pts: 18, why: 'Artificial flavour' },
-    { m: /\b(?:aromas?|ar[ôo]mes?|aromen|aromi|aromat(?:y)?)\s+(?:natural(?:es)?|naturels?|naturali|naturale|naturais|natuurlijk\w*|naturaln\w*)\b|\bnat[üu]rliche[sn]?\s+arom(?:a|en|as)\b|\bnatuurlijk(?:e)?\s+aroma\b|\bnaturliga?\s+arom(?:er)?\b|\bnaturaln[ey]\s+aromat(?:y)?\b|\bdo[ğg]al\s+aroma\b/i, pts: 15, cat: 'naturalFlavour', why: '"Natural flavors" — an undisclosed proprietary blend, not a food' },
+    { m: /\b(?:aromas?|ar[ôo]mes?|aromen|aromi|aromat(?:y)?)\s+(?:natural(?:es)?|naturels?|naturali|naturale|naturais|natuurlijk\w*|naturaln\w*)\b|\bnat[üu]rliche[sn]?\s+arom(?:a|en|as)\b|\bnatuurlijk(?:e)?\s+aroma(?:['’]s)?(?![a-zà-ÿ\u0100-\u017f])|\bnaturliga?\s+arom(?:er)?\b|\bnaturaln[ey]\s+aromat(?:y)?\b|\bdo[ğg]al\s+aroma\b/i, pts: 15, cat: 'naturalFlavour', why: '"Natural flavors" — an undisclosed proprietary blend, not a food' },
+    // German, Dutch and Swedish write the flavour into the word ("Vanillearoma", "kokosnootaroma",
+    // "vaniljarom") and Turkish after it ("vanilya aroması"). None of the rules above saw them, so
+    // "natürliches Vanillearoma" was free where "natural vanilla flavour" costs 15. The suffix is
+    // found with a fixed-length lookbehind rather than a free prefix, which would backtrack.
+    { m: /(?<![a-zà-ÿ\u0100-\u017f])(?:nat[üu]rliche[sn]?|natuurlijke?|naturliga?|do[ğg]al)\s+[a-zà-ÿ\u0100-\u017f]{1,30}?(?:aroma|aromen|arom|aromer)(?![a-zà-ÿ\u0100-\u017f])|(?<![a-zà-ÿ\u0100-\u017f])do[ğg]al\s+[a-zçğıöşü]{1,30}\s+aromas[ıi](?![a-zà-ÿ\u0100-\u017f])/i,
+      pts: 15, cat: 'naturalFlavour', why: '"Natural flavor" — undisclosed proprietary flavour compound' },
+    { m: /(?<![a-zà-ÿ\u0100-\u017f])(?:k[üu]nstliche[sn]?|kunstmatige?|konstgjorda?|yapay)\s+[a-zà-ÿ\u0100-\u017f]{1,30}?(?:aroma|aromen|arom|aromer)(?![a-zà-ÿ\u0100-\u017f])|(?<![a-zà-ÿ\u0100-\u017f])yapay\s+[a-zçğıöşü]{1,30}\s+aromas[ıi](?![a-zà-ÿ\u0100-\u017f])/i,
+      pts: 18, why: 'Artificial flavour compound' },
+    { m: /(?=arom)(?<=[a-zà-ÿ\u0100-\u017f]{3})(?<!rauch|rook|rök)(?<!(?:nat[üu]rliche[sn]?|natuurlijke?|naturliga?|k[üu]nstliche[sn]?|kunstmatige?|konstgjorda?)\s+[a-zà-ÿ\u0100-\u017f]{0,30})(?:aroma|aromen|arom|aromer)(?![a-zà-ÿ\u0100-\u017f])|(?=aromas[ıi])(?<![a-zà-ÿ\u0100-\u017f])(?<!(?:do[ğg]al|yapay)\s+(?:[a-zçğıöşü]{1,30}\s+)?)aromas[ıi](?![a-zà-ÿ\u0100-\u017f])/i,
+      pts: 12, why: 'Unspecified flavouring' },
     { m: /(?<!\b(?:nat[üu]rliche[sn]?|natuurlijke?|naturliga?|naturaln[ey]|k[üu]nstliche[sn]?|kunstmatige?|konstgjorda?|sztuczn[ey]|do[ğg]al|yapay)\s+)\b(?:aromas?|ar[ôo]mes?|aromen|aromi|arom|aromer|aromat|aromaty)(?![a-zà-ÿ\u0100-\u017f])(?!\s+(?:natura|naturel|artificial|artificiel|k[üu]nstlich|kunstmatig|natuurlijk|naturaln|sztuczn))/i, pts: 12, why: 'Unspecified flavouring' },
     { m: /\bmonosodium glutamate\b|\bmsg\b|\be[- ]?62[0-5]\b|\bglutamic acid\b|\b(?:mono)?potassium glutamate\b|\bcalcium diglutamate\b|\bglutamato monos[óo]dico\b|\bglutamate monosodique\b|\bglutamato monoss[óo]dico\b|\bglutammato monosodico\b|\bmononatriumglutamaat\b|\bmononatriumglutamat\b|\bglutaminian (?:mono)?sodu\b|\bmonosodyum glutamat\b/i, pts: 16, why: 'MSG' },
     { m: /\b(autolyzed )?yeast extract\b|\bextracto de levadura\b|\bextrait de levure\b|\bhefeextrakt\b|\bestratto di lievito\b|\bextrato de levedura\b|\bgistextract\b|\bj[äa]stextrakt\b|\bekstrakt (?:z )?dro[żz]d[żz]\w*|\bmaya [öo]z[üu](?![a-zà-ÿ\u0100-\u017f])/i, pts: 14, why: 'Yeast extract — MSG under another name' },
@@ -94,7 +104,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\bvanillin\b|\bvainillina\b|\bvanilline\b|\bvanillina\b|\bvaniline\b|\bvanilina\b|\bwanilina\b|\bvanilin\b/i, pts: 10, why: 'Vanillin — synthetic vanilla' },
     { m: /\bethyl vanillin\b/i,                           pts: 12, why: 'Ethyl vanillin' },
     // "natural smoke flavor" is charged once, by the natural-flavour rule above.
-    { m: /(?<!natural |artificial )\bsmoke flavou?r(ing)?\b/i, pts: 8,  why: 'Liquid smoke flavouring' },
+    { m: /(?<!natural |artificial )\bsmoke flavou?r(ing)?\b|\braucharoma\w*|\brookaroma\b|(?<![a-zà-ÿ\u0100-\u017f])r[öo]karom(?:er)?\b|\bar[ôo]me de fum[ée]e\b|\baroma (?:de humo|di fumo|de fumo)\b|\baromat dymu\b|\bduman aromas[ıi]/i, pts: 8,  why: 'Liquid smoke flavouring' },
     { m: /\btorula yeast\b/i,                             pts: 10, why: 'Torula yeast — glutamate source' },
     { m: /\bmaltol\b|\bethyl maltol\b/i,                  pts: 10, why: 'Maltol flavour enhancer' },
   ];

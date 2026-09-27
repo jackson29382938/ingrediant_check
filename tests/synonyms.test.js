@@ -501,3 +501,20 @@ test('the grains in brackets after "may contain" warn but are not charged', () =
     for (const id of ['soy', 'wheat']) assert.ok(r.flags.some(f => f.id === id), `${id}: ${text}`);
   }
 });
+
+test('flavour compounds ("Vanillearoma", "vaniljarom", "vanilya aroması") are charged like English', () => {
+  // German, Dutch and Swedish write the flavour into the word and Turkish puts it before "aroması":
+  // "natürliches Vanillearoma" was free where "natural vanilla flavour" costs 15.
+  const pairs = [
+    ['sugar, natural vanilla flavour', 'suiker, natuurlijk vanillearoma'], ['sugar, natural vanilla flavour', 'Zucker, natürliches Vanillearoma'],
+    ['sugar, natural vanilla flavour', 'socker, naturlig vaniljarom'], ['sugar, natural coconut flavouring', 'şeker, doğal hindistancevizi aroması'],
+    ['sugar, natural flavourings', "suiker, natuurlijke aroma's"], ['sugar, vanilla flavouring', 'Zucker, Vanillearoma'],
+    ['sugar, vanilla flavouring', 'socker, vaniljarom'], ['sugar, vanilla flavouring', 'şeker, vanilya aroması'],
+    ['sugar, smoke flavouring', 'Zucker, Raucharoma'], ['sugar, artificial vanilla flavor', 'Zucker, künstliches Vanillearoma'],
+  ];
+  for (const [en, other] of pairs) {
+    const a = score(en), b = score(other);
+    assert.deepEqual(reasons(b).sort(), reasons(a).sort(), `${other} vs ${en}`);
+    assert.equal(b.score, a.score, `${other} vs ${en}`);
+  }
+});
