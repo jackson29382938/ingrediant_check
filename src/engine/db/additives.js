@@ -251,7 +251,11 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
       pts: 6, why: 'Seeds — phytates and plant defence compounds' },
   ];
 
-  const TRADITIONAL_PREP = /\b(sourdough|sprouted|soaked|long[- ]?fermented|naturally leavened|einkorn|emmer|khorasan|kamut|heritage (wheat|grain))\b/i;
+  // With the same words in each label language: "farine de seigle, eau, levain" kept the whole
+  // rye charge that "rye flour, water, sourdough" halves.
+  const TRADITIONAL_PREP = new RegExp('\\b(sourdough|sprouted|soaked|long[- ]?fermented|naturally leavened|einkorn|emmer|khorasan|kamut|heritage (wheat|grain))\\b'
+    + '|(?<![a-zà-ÿœ\\u0100-\\u017f])(?:levain|masa madre|lievito madre|(?:roggen|weizen|dinkel|natur)?[- ]?sauerteig[a-z]*|zuurdesem|surdeg|zakwas(?:u|ie|em)?'
+    + '|ek[şs]i maya|massa m[ãa]e|germée?s?|gekeimt[a-z]*|germinad[oa]s|germogliat[oaie]|gekiemd[a-z]*|groddad[a-z]*|kie[łl]kowan[a-zęąó]*|engrain)(?![a-zà-ÿœ\\u0100-\\u017f])', 'i');
 
   const _exports = AIRmodule('additives', {
     CAPS, ISOLATES, FLAVOURS, TEXTURE, PRESERVATIVES, PROCESSING, FORTIFICATION, GRAINS, UNNAMED, TRADITIONAL_PREP, PLANTS,

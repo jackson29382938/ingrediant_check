@@ -584,7 +584,10 @@ function score(product, options = {}) {
   // "Cultured dextrose" and "cultured celery powder" are preservative systems, not living food.
   // Without this the same panel showed "-8 a preservative in disguise" and "+6 Fermented / live
   // cultures" for the same ingredient, so the preservative improved the score.
-  const bonusText = txt.replace(/\bcultured\s+(dextrose|celery|sugar|corn syrup|wheat|whey)\b[^,;.]*/gi, ' ');
+  // Organic footnotes ("*Ingrédients issus de l'agriculture biologique") are set aside from scoring
+  // but are claims printed on the regulated list, as "*organic" on its own already counted.
+  const notes = parsed.filter(e => LABEL_NOTE.test(e.ing)).map(e => e.ing).join(', ');
+  const bonusText = (notes ? txt + ', ' + notes : txt).replace(/\bcultured\s+(dextrose|celery|sugar|corn syrup|wheat|whey)\b[^,;.]*/gi, ' ');
 
   // Only the ingredient list is strong evidence. Seller-written surfaces — the marketing title AND
   // the feature bullets — are claims, worth half and labelled unverified. Bullets used to feed the

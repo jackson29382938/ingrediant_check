@@ -432,3 +432,34 @@ test('processing words in every label language are the NOVA 3 signals they are i
   assert.ok(!PROCESSED_SIGNAL.test('środek zakwaszający'));
   assert.ok(PROCESSED_SIGNAL.test('zakwas żytni'));
 });
+
+test('sourcing claims in every label language earn the bonus their English twins earn', () => {
+  // The bonus rules read English only: "sel marin" and "Meersalz" earned nothing where "sea salt"
+  // earns 5, "maïs bio" nothing where "organic maize" earns 8, and an organic footnote was set aside
+  // with the other label notes, so "*Organic ingredients" lost the bonus "*organic" kept.
+  const good = r => r.good.map(g => g.why).filter(w => !w.startsWith('Natural sugar')).sort();
+  const pairs = [
+    ['chickpeas, water, sea salt', 'Kichererbsen, Wasser, Meersalz'], ['chickpeas, water, sea salt', 'garbanzos, agua, sal marina'],
+    ['Organic maize (94%), sea salt', 'Maïs bio (95%), sel marin'], ['Organic maize (94%), sea salt', 'Kukurydza ekologiczna (95%), sól morska'],
+    ['raw milk, salt, rennet', 'Lait cru, sel, présure'], ['raw milk, salt, rennet', 'Rohmilch, Salz, Lab'],
+    ['rye flour, water, sourdough', 'farine de seigle, eau, levain'], ['wheat flour, sugar, butter', 'farine de blé, sucre, beurre'],
+    ['wheat flour, sugar, butter', 'tarwebloem, suiker, roomboter'], ['non-GMO soybeans, water', 'fèves de soja sans OGM, eau'],
+    ['Wheat flour*, sugar*, salt. *organic', "farine de blé*, sucre*, sel. *Ingrédients issus de l'agriculture biologique"],
+    ['Wheat flour*, sugar*, salt. *organic', 'Wheat flour*, sugar*, salt. *Organic ingredients'],
+  ];
+  for (const [en, other] of pairs) {
+    const a = score(en), b = score(other);
+    assert.ok(good(a).length > 0, en);
+    assert.deepEqual(good(b), good(a), `${other} vs ${en}`);
+  }
+  // Nut butters, wheat germ and a whole-grain word are not the claims they resemble.
+  for (const text of ['beurre de cacahuète', 'farine de blé, germes de blé', 'harina integral, agua', 'manteiga de amendoim']) {
+    assert.deepEqual(good(score(text)).filter(w => !/whole food/.test(w)), [], text);
+  }
+});
+
+test('sourdough and sprouting in every label language halve the grain charge as in English', () => {
+  const a = score('rye flour, water, sourdough'), b = score('farine de seigle, eau, levain');
+  assert.equal(b.score, a.score);
+  assert.deepEqual(reasons(b), reasons(a));
+});
