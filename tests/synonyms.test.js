@@ -700,3 +700,21 @@ test('a denial in any label language is dropped like "no preservatives"', () => 
     assert.equal(score(other).score, en.score, other);
   }
 });
+
+test('peanuts, the other nuts and seeds are whole foods in every label language', () => {
+  const pairs = [
+    ['peanuts, palm oil, salt', 'Erdnüsse, Palmöl, Salz'], ['peanuts, palm oil, salt', 'cacahuètes, huile de palme, sel'],
+    ['roasted peanuts, salt', 'cacahuetes tostados, sal'], ['roasted peanuts, salt', 'geröstete Erdnüsse, Salz'],
+    ['roasted salted pistachios, salt', 'pistaches grillées salées, sel'], ['pumpkin seeds, sunflower seeds, salt', 'Kürbiskerne, Sonnenblumenkerne, Salz'],
+    ['peanuts', "pinda's"], ['pine nuts', 'pinoli'], ['brazil nuts', 'noix du Brésil'], ['pecans', 'Pecan nuts'], ['pistachios, salt', '98,5% pistachio nuts, salt'],
+  ];
+  for (const [en, other] of pairs) {
+    const a = score(en), b = score(other);
+    assert.equal(b.nova, a.nova, `${other} NOVA`);
+    assert.equal(b.score, a.score, `${other} vs ${en}`);
+  }
+  // "possible traces of" is a may-contain statement, and an origin note is not an ingredient.
+  assert.equal(score('100% roasted peanuts, possible traces of soya').score, score('roasted peanuts').score);
+  assert.deepEqual(engine.parse('orange juice (origin: Spain)'), ['orange juice', 'origin: spain']);
+  assert.equal(score('orange juice (origin: Spain)').score, score('orange juice').score);
+});

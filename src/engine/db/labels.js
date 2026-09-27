@@ -74,7 +74,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     /^(organic )?(water|sea salt|salt)$/i,
     new RegExp('^(?:sel(?: marin| de mer| de gu[ée]rande| fin)?|fleur de sel|sal(?: marina| de mar| marinho)?|sale(?: marino)?|(?:speise|meer)?salz|(?:zee|keuken)?zout|(?:hav)?salt|s[óo]l(?: morska)?|(?:deniz |kaya )?tuzu?|flor de sal)$', 'i'),
     /^(organic |raw )*(honey|maple syrup)$/i,
-    /^(organic |raw |dry[- ]roasted |roasted |unsalted |salted |whole |shelled )*(almonds?|walnuts?|pecans?|macadamias?|pistachios?|cashews?|hazelnuts?|peanuts?|pine nuts?|brazil nuts?|(?:pumpkin|sunflower|chia|flax|hemp|sesame) ?seeds?|flaxseed)$/i,
+    /^(organic |raw |dry[- ]roasted |roasted |unsalted |salted |whole |shelled )*(almonds?|walnuts?|pecans?|pecan nuts?|macadamias?|macadamia nuts?|pistachios?|pistachio nuts?|pistachio kernels?|cashews?|cashew nuts?|cashew kernels?|hazelnuts?|hazelnut kernels?|peanuts?|peanut kernels?|pine nuts?|brazil nuts?|(?:pumpkin|sunflower|chia|flax|hemp|sesame) ?seeds?|flaxseed)$/i,
     /^(organic |dried |cooked )*(lentils?|chickpeas?|(?:black|kidney|pinto|navy|cannellini|garbanzo|white|red) beans?|split peas|edamame)$/i,
     /^(organic )?(apples?|bananas?|berries|blueberries|strawberries|oranges?|dates?|figs?|raisins?)$/i,
     /^(organic )?(spinach|kale|broccoli|carrots?|onions?|garlic|tomatoes?|potatoes?|sweet potatoes?)$/i,
@@ -90,6 +90,22 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     /^(?:riz(?: complet)?|arroz(?: integral)?|riso(?: integrale)?|reis|vollkornreis|rijst|ris|fullkornsris|ry[żz]|pirin[çc])$/i,
     /^(?:amandes?|almendras?|mandorle|mandeln|amandelen|mandlar|migda[łl]y|badem|am[êe]ndoas|noisettes|avellanas|nocciole|haseln[üu]sse|hazelnoten|hasseln[öo]tter|orzechy laskowe|f[ıi]nd[ıi]k|avel[ãa]s|noix|nueces|noci|waln[üu]sse|walnoten|valn[öo]tter|orzechy w[łl]oskie|ceviz|nozes|noix de cajou|anacardos|anacardi|cashewkerne|cashewnoten|cashewn[öo]tter|nerkowce|kaju|castanhas? de caju)$/i,
     /^(?:lentilles|lentejas|lenticchie|linsen|linzen|linser|soczewica|mercimek|lentilhas|pois chiches|garbanzos|ceci|kichererbsen|kikkererwten|kik[äa]rtor|ciecierzyca|nohut|gr[ãa]o[- ]de[- ]bico)$/i,
+    // Peanuts, the other nuts and the common seeds, which "peanuts" and "pumpkin seeds" already are:
+    // "Erdnüsse, Palmöl, Salz" was NOVA 3 at 80 where "peanuts, palm oil, salt" is NOVA 2 at 90. A
+    // roasted or salted form is the same food, as "roasted peanuts" is.
+    new RegExp('^(?:(?:gr?ill[ée]e?s|torr[ée]fi[ée]e?s|tostad[oa]s|tostat[ei]|torrad[oa]s|ger[öo]stete|geroosterde|rostade|pra[żz]one|kavrulmu[şs]|sal[ée]e?s|salad[oa]s|salat[ei]|gesalzene|gezouten|saltade|solone|tuzlu)\\s+)?'
+      + '(?:cacahu[èe]tes?|arachides?|cacahuetes?|man[íi]|arachidi|erdn[üu]sse|pinda[\'’]?s|aardnoten|jordn[öo]tter|orzeszki ziemne|orzechy arachidowe|yer f[ıi]st[ıi][ğg][ıi]|amendoins?'
+      + '|pistaches?|pistachos?|pistacchi|pistazien(?:kerne)?|pistachenoten|pistaschn[öo]tter|pistacje|antep f[ıi]st[ıi][ğg][ıi]|pist[áa]chios?'
+      + '|noix de p[ée]can|nueces pecanas?|noci pecan|pekann[üu]sse|pecannoten|pekann[öo]tter|orzechy pekan|pekan cevizi|nozes? pec[ãa]'
+      + '|noix du br[ée]sil|nueces de brasil|noci del brasile|paran[üu]sse|paranoten|paran[öo]tter|orzechy brazylijskie|brezilya f[ıi]nd[ıi][ğg][ıi]|castanhas?[- ]do[- ]par[áa]'
+      + '|pignons?(?: de pin)?|pi[ñn]ones|pinoli|pinienkerne|pijnboompitten|pinjen[öo]tter|orzeszki piniowe|[çc]am f[ıi]st[ıi][ğg][ıi]|pinh[õo]es'
+      + '|noix de macadamia|nueces de macadamia|noci di macadamia|macadamian[üu]sse|macadamianoten|macadamian[öo]tter|orzechy makadamia|makadamya|nozes de macad[âa]mia'
+      + '|graines de (?:tournesol|courge|citrouille|chia|lin|s[ée]same|chanvre)|semillas de (?:girasol|calabaza|ch[íi]a|lino|s[ée]samo|c[áa][ñn]amo)|pipas de girasol'
+      + '|semi di (?:girasole|zucca|chia|lino|sesamo|canapa)|sonnenblumenkerne|k[üu]rbiskerne|leinsamen|sesam(?:saat)?|chiasamen|hanfsamen'
+      + '|zonnebloempitten|pompoenpitten|lijnzaad|sesamzaad|chiazaad|hennepzaad|solrosfr[öo]n?|pumpafr[öo]n?|linfr[öo]n?|sesamfr[öo]n?|chiafr[öo]n?|hampafr[öo]n?'
+      + '|pestki (?:dyni|s[łl]onecznika)|siemi[ęe] lniane|sezam|nasiona chia|ay[çc]i[çc]ek [çc]ekirde[ğg]i|kabak [çc]ekirde[ğg]i|keten tohumu|susam|chia tohumu'
+      + '|sementes de (?:girassol|ab[óo]bora|chia|linha[çc]a|s[ée]samo|c[âa]nhamo)|linha[çc]a)'
+      + '(?:\\s+(?:gr?ill[ée]e?s|torr[ée]fi[ée]e?s|tostad[oa]s|tostat[ei]|torrad[oa]s|sal[ée]e?s|salad[oa]s|salat[ei]|d[ée]cortiqu[ée]e?s|pelad[oa]s|sgusciat[ei]|descascad[oa]s|entier(?:e?s)?|enter[oa]s|inter[ei]|inteir[oa]s)){0,2}$', 'i'),
     /^(cinnamon|turmeric|ginger|paprika|cumin|coriander|oregano|basil|thyme|rosemary|garlic powder|onion powder)$/i,
   ];
 

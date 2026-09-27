@@ -623,7 +623,7 @@ const NUTRITION = [
 ];
 
 // Cross-contact statements in each store language. Matched against a whole entry.
-const MAY_CONTAIN = new RegExp('^(?:(?:this product )?(?:may|can) (?:also )?contain|(?:may )?contains? traces?|traces? of'
+const MAY_CONTAIN = new RegExp('^(?:(?:this product )?(?:may|can) (?:also )?contain|(?:may )?contains? traces?|traces? of|possible traces?|traces? possibles?|possibles? traces?'
   + '|(?:produced|made|manufactured|packed) (?:in a (?:factory|facility)|on (?:equipment|a line))'
   + '|peut contenir|traces? (?:[ée]ventuelles? )?d[e\'’]|kann (?:spuren|.*enthalten)|enth[äa]lt spuren|puede contener|trazas de'
   + '|pu[òo] contenere|tracce di|pode conter|vest[íi]gios de|kan (?:sporen|innehålla|spår)|mo[żz]e zawiera[ćc]'
@@ -633,7 +633,9 @@ const MAY_CONTAIN = new RegExp('^(?:(?:this product )?(?:may|can) (?:also )?cont
 // were read as unrecognised ingredients and pulled real lists under the coverage gate.
 const LABEL_NOTE = new RegExp('^(?:(?:\\*\\s*)?(?:(?:certified )?organic ingredients?|ingr[ée]dients? (?:issus? de|biologiques?|bio\\b)|.*\\bagriculture biologique'
   + '|ingredienti? (?:da|biologic)|.*agricultura (?:biol[óo]gica|ecol[óo]gica)|.*\\bkontrolliert biologische|.*\\bz upraw ekologiczn|sk[łl]adnik(?:i)?(?: pochodz[ąa]c[ey]| pochodz[ąa]cy)?(?: z)? (?:upraw |rolnictwa )?ekologiczn|.*\\brolnictw[ao] ekologiczn|ekologisk(?:a)? ingrediens(?:er)?|.*\\bfr[åa]n ekologisk|.*\\bekologisk (?:odling|produktion|jordbruk)|.*\\bbiologische landbouw'
-  + '|.*commerce [ée]quitable|.*fair ?trade|rainforest alliance)'
+  + '|.*commerce [ée]quitable|.*fair ?trade|rainforest alliance'
+  // Where it was grown: "(origine Amérique du Nord ou Amérique du Sud)", "(Herkunft: EU)".
+  + '|(?:country of )?origine?\\b|provenance\\b|herkunft\\b|origen\\b|provenienza\\b|proveni[êe]ncia\\b|oorsprong\\b|ursprung(?:sland)?\\b|kraj pochodzenia\\b|pochodzenie\\b|men[şs]e(?:i)?(?![a-zà-ÿ\\u0100-\\u017f]))'
   + '|(?:gluten[- ]free|sans gluten|glutenfrei|sin gluten|senza glutine|sem gl[úu]ten|glutenvrij|glutenfri|bezglutenow|glutensiz)$'
   + '|contains? a source of phenylalanine|contient une source de ph[ée]nylalanine|enth[äa]lt eine phenylalaninquelle|contiene una fuente de fenilalanina'
   + '|contiene una fonte di fenilalanina|cont[ée]m uma fonte de fenilalanina|bevat een bron van fenylalanine|inneh[åa]ller en fenylalaninkälla|zawiera [źz]r[óo]d[łl]o fenyloalaniny|fenilalanin kayna[ğg][ıi]'
