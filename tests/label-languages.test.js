@@ -225,3 +225,17 @@ test('vegetarian: carmine, rennet, animal fat, tallow, collagen, gelatine and sa
     assert.ok(!has(w, 'vegetarian'), w);
   }
 });
+
+test('vegan: bee products, shellac, lanolin and L-cysteine; pork-free: local pork words', () => {
+  for (const w of ['gelée royale', 'jalea real', 'pappa reale', 'mleczko pszczele', "cire d'abeille", 'Bienenwachs', 'bivax', 'wosk pszczeli',
+    'balmumu', 'gomme laque', 'Schellack', 'goma laca', 'szelak', 'lanoline', 'Wollfett', 'L-Cystein', 'L-cisteína', 'propolis', 'Bienenpollen']) {
+    assert.ok(has(w, 'vegan'), w);
+  }
+  // Royal jelly is "bee milk" in Turkish, not milk.
+  assert.ok(has('arı sütü', 'vegan') && !has('arı sütü', 'milk'));
+  for (const w of ['Schwein', 'Schmalz', 'saindoux', 'panceta', 'tocino', 'strutto', 'guanciale', 'späck', 'słonina', 'carne magra de suíno',
+    'salami', 'sobrasada', 'Leberwurst', 'Kassler', 'rillettes']) {
+    assert.ok(has(w, 'porkFree'), w);
+  }
+  for (const w of ['Butterschmalz', 'Gänseschmalz', 'Geflügelwurst', 'Putenwurst', 'gelatinised starch']) assert.ok(!has(w, 'porkFree'), w);
+});

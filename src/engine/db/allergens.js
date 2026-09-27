@@ -61,7 +61,7 @@ const DAIRY = NOT_DAIRY_BEFORE + L + '(?:milk|butter|cream)' + R + '(?!\\s*(?:of
   + '|' + L + '(?:leite|manteiga|creme de leite)' + PLANT_PT + R + '|' + L + '(?:queijos?|soro de leite|iogurtes?|requeij[ãa]o|lactose)' + R
   // tr — süt, süt tozu, tereyağı, peynir altı suyu (whey); "hindistan cevizi sütü", "badem sütü" and
   // "bitkisel krema" (a whipped vegetable-fat topping) are not
-  + '|(?<!(?:cevizi|badem|yulaf|soya|pirin[çc]|f[ıi]nd[ıi]k)\\s)' + L + '(?:s[üu]t(?!\\s+asidi)(?:[üu]|l[üu]|tozu)?|tereya[ğg][ıi]?|kaymak|peynir' + W + '|yo[ğg]urt' + W + '|laktoz|kazein' + W + '|ayran|lor)' + R
+  + '|(?<!(?:cevizi|badem|yulaf|soya|pirin[çc]|f[ıi]nd[ıi]k|ar[ıi])\\s)' + L + '(?:s[üu]t(?!\\s+asidi)(?:[üu]|l[üu]|tozu)?|tereya[ğg][ıi]?|kaymak|peynir' + W + '|yo[ğg]urt' + W + '|laktoz|kazein' + W + '|ayran|lor)' + R
   + '|(?<!bitkisel\\s)' + L + 'krema(?:s[ıi])?' + R
   // Cheeses, fresh cheeses and dairy words the lists above did not name, found by probing each language.
   + '|' + L + '(?:milkfat|comt[ée]|reblochon|roquefort|raclette|mimolette|morbier|stracciatella|gorgonzola|taleggio|manchego|faisselle'
@@ -223,7 +223,12 @@ const NOT_VEGETARIAN = MEAT + '|' + SEA + '|' + FOREIGN_SEA + '|(?<!\\b(?:microb
 // (from lichen)", and the parenthesis is split off before this runs, so it would flag exactly those.
 const NOT_VEGAN = NOT_VEGETARIAN + '|' + DAIRY + '|' + EGG + '|\\b(?:honey|royal jelly|beeswax|shellac|lanolin|confectioner[\'’]?s glaze|l-cysteine|e[- ]?901|e[- ]?913|e[- ]?920)\\b'
   // Honey in each label language: miel, Honig, miele, honung, miód, honing, mel.
-  + '|' + L + '(?:miel|honig|miele|honung|mi[óo]d|miodu|honing|mel|bal)' + R;
+  + '|' + L + '(?:miel|honig|miele|honung|mi[óo]d|miodu|honing|mel|bal)' + R
+  // Royal jelly, beeswax, shellac, lanolin, L-cysteine, propolis and bee pollen in each label language.
+  + '|' + L + "(?:gel[ée]e royale|jalea real|pappa reale|koninginnengelei|bidrottninggel[ée]|mleczko pszczele|ar[ıi] s[üu]t[üu]|geleia real"
+  + "|cire d['’ ]?abeilles?|cera de abejas|cera d['’ ]?api|bienenwachs|bijenwas|bivax|wosk pszczeli|balmumu|cera de abelha"
+  + '|gomme laque|schellack|goma laca|gommalacca|schellak|szelak|gomalaca|lanolin[ea]?|wollfett|l-cyste[íi]n[ae]?|l-cistein[ae]|l-ciste[íi]na'
+  + "|propolis|propoli|pr[óo]polis|bee pollen|pollen d['’ ]?abeilles?|bienenpollen|py[łl]ek pszczeli|polen de abeja)" + R;
 const DIETS = [
   { id: 'vegan', label: 'Vegan', conflict: new RegExp(NOT_VEGAN, 'i') },
   { id: 'vegetarian', label: 'Vegetarian', conflict: new RegExp(NOT_VEGETARIAN, 'i') },
@@ -241,7 +246,7 @@ const DIETS = [
       + '|miel|honig|miele|honing|honung|mi[óo]d|miodu|bal|mel|avoine|avena|hafer' + W + '|haver' + W + '|havre' + W + '|owies|owsian' + W + '|yulaf|aveia)' + R
       + '|(?<!mandel|kokos|lein|nuss|erdnuss)mehl|\\w(?:siroop|sirup|stroop|sirap)|(?<!amandel|kokos|noten)(?:bloem|meel)\\b|(?<!mandel|kokos)mj[öo]l(?!k)|\\bunu\\b(?<!badem unu)|' + GLUTEN, 'i') },
   { id: 'porkFree', label: 'Pork-free',
-    conflict: /\b(pork|bacon|lard|gelatin|prosciutto|pancetta|chorizo|schweine\w*|cerdo|porc(?!ini|j)|maiale|jam[óo]n|jambon|speck|schinken|fl[äa]sk|griskött|skinka|wieprzow|smalec|boczek|szynk|varken|reuzel|porco|toucinho|banha|presunto|domuz|jelatin)\w*|\bham\b|(?<![a-zß-ÿœ\u0100-\u017f])(?:[żz]elatyn|spek\b)/i },
+    conflict: /\b(pork|bacon|lard|gelatin(?!i[sz])|prosciutto|pancetta|chorizo|schweine\w*|cerdo|porc(?!ini|j)|maiale|jam[óo]n|jambon|speck|schinken|fl[äa]sk|griskött|skinka|wieprzow|smalec|boczek|szynk|varken|reuzel|porco|toucinho|banha|presunto|domuz|jelatin)\w*|\bham\b|(?<![a-zß-ÿœ\u0100-\u017f])(?:[żz]elatyn|spek\b)|(?<![a-zß-ÿœ\u0100-\u017f])(?:schwein\w*|schmalz|saindoux|lardons?|rillettes|andouille\w*|panceta|tocino|sobrasada|lomo embuchado|salchich[óo]n|su[íi]no|strutto|guanciale|lardo|mortadella|salam[ei]|salami|pepperoni|sp[äa]ck|s[łl]onin\w*|kassler|(?!gefl[üu]gel|puten|h[äa]hnchen|rind)[a-zß-ÿ]*wurst(?:e|en|chen)?)(?![a-zß-ÿœ\u0100-\u017f])/i },
 ];
 
 // Scan a parsed ingredient list. `selected` is the list of ids the user asked to be warned about.
