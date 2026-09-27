@@ -891,3 +891,24 @@ test('words from a third sample of real labels score like their English twins', 
   }
   for (const text of ['Siyah çay', 'Kabuklu susamdan tahin', 'torkad mynta']) assert.equal(score(text).coverage, 1, text);
 });
+
+test('more words from the third sample, and two English gaps', () => {
+  // English: "plant oils" is an unspecified vegetable oil and "soya protein isolate" is soy protein isolate.
+  const pairs = [
+    ['water, vegetable oils', 'water, plant oils'], ['water, soy protein isolate', 'water, soya protein isolate'],
+    ['water, saccharin', 'su, sakkarin'], ['water, locust bean gum', 'su, keçi boynuzu gamı'], ['water, sucralose', 'vatten, sukralos'],
+    ['water, soybean oil', 'vatten, sojaböns olja'], ['water, mono- and diglycerides', 'vatten, mono- och diglycerider'],
+    ['water, mono- and diglycerides of fatty acids', 'water, mono- en diglyceriden van vetzuren'], ['water, mono- and diglycerides of fatty acids', 'água, mono e diglicéridos de ácidos gordos'],
+    ['water, caramelised sugar', 'woda, cukier karmelizowany w proszku'], ['water, diphosphates', 'woda, difosforany'], ['water, polydextrose', 'água, polidextrose'],
+    ['water, guar gum', 'água, goma de guar'], ['water, glucose-fructose syrup', 'água, xarope de glucose-frutose'], ['water, glucose-fructose syrup', 'água, xarope de glicose-frutose'],
+    ['water, sodium carboxymethyl cellulose', 'Wasser, Natriumcarboxymethylcellulose'], ['water, glucose syrup', 'water, glucosesiroop'],
+    ['water, rapeseed oil', 'water, raapzaadolie'], ['water, carrageenan', 'agua, carragenanos'],
+  ];
+  for (const [en, other] of pairs) {
+    const a = score(en), b = score(other);
+    assert.ok(a.bad.length, en);
+    assert.deepEqual(reasons(b).sort(), reasons(a).sort(), `${other} vs ${en}`);
+    assert.equal(b.score, a.score, `${other} vs ${en}`);
+  }
+  assert.deepEqual(reasons(score('woda, kwas fosforowy')), reasons(score('water, phosphoric acid')), 'phosphoric acid is not a polyphosphate');
+});

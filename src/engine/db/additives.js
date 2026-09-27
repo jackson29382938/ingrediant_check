@@ -41,7 +41,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     // Caramel colour in each label language: "sockerkulör", "Zuckerkulör" and "caramello semplice"
     // were read as nothing, so a cola scored like sparkling water where "caramel colour" caps it.
     { m: /\bcaramel colou?r(ing)?\b|\be[- ]?150[a-d]?\b|\bcolor(ante)? caramelo\b|\bcolorant caramel\b|\bcaramel (?:ordinaire|de sulfite caustique|ammoniacal|au sulfite d['’]ammonium)\b|\b(?:caustic sul(?:ph|f)ite|sul(?:ph|f)ite ammonia|ammonia) caramel\b|\bcouleur caramel\b|(?<![a-zà-ÿ\u0100-\u017f])(?:sockerkul[öo]r|zuckerkul[öo]r|zuckercouleur|karamellf[äa]rg|karamelkleur|karmel (?:amoniakalno(?:-siarczynowy)?|siarczynowy|zwyk[łl]y)|(?:amonyum s[üu]lfit|kostik s[üu]lfit|sade) karamel|karamel renklendirici)(?![a-zà-ÿ\u0100-\u017f])|\bcaramello (?:semplice|solfitico|ammoniacale|caustico)\b|\bcorante caramelo\b/i, cat: 'colour', cap: 30, why: 'Caramel colour' },
-    { m: /\bcarrageenan\b|\bcarragh[ée]nanes?\b|\bkarragenan\b|\bcarrageen\b|\bkarrageen\b|\bcarragenano\b|\bkarragen\b|\bkaragenan\b|\be[- ]?407a?\b|\bcarragenina\b|\bcarragh[ée]nane\b/i, cat: 'carrageenan', cap: 40, why: 'Carrageenan — linked to gut inflammation' },
+    { m: /\bcarrageenan\b|\bcarragh[ée]nanes?\b|\bkarragenan\b|\bcarrageen\b|\bkarrageen\b|\bcarragenano\b|\bkarragen\b|\bkaragenan\b|\be[- ]?407a?\b|\bcarragenina\b|\bcarragenanos?\b|\bcarragenine\b|\bcarragh[ée]nane\b/i, cat: 'carrageenan', cap: 40, why: 'Carrageenan — linked to gut inflammation' },
     { m: /\b(bha|butylated hydroxyanisole|e[- ]?320)\b/i,            cat: 'strongPreservative', cap: 45, why: 'BHA preservative' },
     { m: /\b(bht|butylated hydroxytoluene|e[- ]?321)\b/i,            cat: 'strongPreservative', cap: 45, why: 'BHT preservative' },
     { m: /\b(tbhq|tert(?:iary)?[- ]?butyl ?hydroquinone|e[- ]?319)\b/i, cat: 'strongPreservative', cap: 45, why: 'TBHQ preservative' },
@@ -55,7 +55,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
 
   // ---------------------------------------------------------------- protein isolates
   const ISOLATES = [
-    { m: /\bsoy protein (isolate|concentrate)\b|\baislado de prote[íi]na de soja\b|\bisolat de prot[ée]ine de soja\b|\bsojaproteinisolat\b|\bisolato di proteine di soia\b|\bprote[íi]na isolada de soja\b|\bge[iï]soleerd(?:e)?\s+sojaprote[iï]ne\b|\bsoja[- ]?eiwitisolaat\b/i, pts: 22, why: 'Soy protein isolate — hexane-extracted industrial protein' },
+    { m: /\bsoya? protein (isolate|concentrate)\b|\baislado de prote[íi]na de soja\b|\bisolat de prot[ée]ine de soja\b|\bsojaproteinisolat\b|\bisolato di proteine di soia\b|\bprote[íi]na isolada de soja\b|\bge[iï]soleerd(?:e)?\s+sojaprote[iï]ne\b|\bsoja[- ]?eiwitisolaat\b/i, pts: 22, why: 'Soy protein isolate — hexane-extracted industrial protein' },
     { m: /\bpea protein( isolate| concentrate)?\b|\bprot[ée]ines? de pois\b|\bprote[íi]nas? de guisante\b|\berbsenprotein\b|\berwteneiwit\b|\bproteine di pisello\b|\bprote[íi]na de ervilha\b|(?<![a-zà-ÿ\u0100-\u017f])[äa]rtprotein\b|\bbia[łl]ko grochu\b|\bbezelye proteini\b/i, pts: 18, why: 'Pea protein isolate' },
     { m: /\brice protein( isolate)?\b/i,             pts: 15, why: 'Rice protein isolate' },
     { m: /\btextured (vegetable|soy) protein\b|\btvp\b/i, pts: 22, why: 'Textured vegetable protein' },
@@ -115,7 +115,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   const TEXTURE = [
     // "mono- and diglycerides" — hyphen, space, "and", space — is the usual US spelling, and the
     // single optional separator on each side of "and" never matched it.
-    { m: /\bmono[- ]*(?:and|&)?[- ]*di[- ]?glycerides?\b|\bmonoglycerides?\b|\bdiglycerides?\b|\be[- ]?47[01][ab]?\b|\be[- ]?472[a-df]\b|\bmono- und diglyceride\b|\bmono ve digliserit\w*|\bmono-? ?(?:i|en|och|e|y|et|ve|und|and)[- ]di-?gli[cs]er\w*|\bmono- y diglic[ée]ridos\b|\bmono- et diglyc[ée]rides\b|\bmono- e digliceridi\b/i,   pts: 12, why: 'Mono- and diglycerides — emulsifier, a hidden trans-fat source' },
+    { m: /\bmono[- ]*(?:and|&)?[- ]*di[- ]?glycerides?\b|\bmonoglycerides?\b|\bdiglycerides?\b|\be[- ]?47[01][ab]?\b|\be[- ]?472[a-df]\b|\bmono- und diglyceride\b|\bmono ve digliserit\w*|\bmono-? ?(?:i|en|och|e|y|et|ve|und|and)[- ]di-?gl[iy][cs][eé]r[a-zé]*|\bmono- y diglic[ée]ridos\b|\bmono- et diglyc[ée]rides\b|\bmono- e digliceridi\b/i,   pts: 12, why: 'Mono- and diglycerides — emulsifier, a hidden trans-fat source' },
     { m: /\bpoly(?:sorbate|sorbat[eo]?)\s*(20|40|60|65|80)?\b|\bpoli(?:s|ss)orbato\s*(20|40|60|65|80)?\b|\bpolysorbaat\s*(20|40|60|65|80)?\b|\be[- ]?43[2-6]\b/i, pts: 14, why: 'Polysorbate — associated with gut barrier disruption' },
     { m: /\bdatem\b|\bdiacetyl tartaric\b|\be[- ]?472e\b/i,           pts: 12, why: 'DATEM dough conditioner' },
     // PGPR had no rule: it is how cheap chocolate is made with less cocoa butter.
@@ -127,9 +127,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\bmicrocrystalline cellulose\b|\be[- ]?460\b/i,            pts: 10, why: 'Microcrystalline cellulose — wood pulp filler' },
     { m: /\bpowdered cellulose\b/i,                    pts: 10, why: 'Powdered cellulose' },
     { m: /\bxanthan gum\b|\bgoma xantana\b|\bgomme xanthane\b|\bxanthan\b|\bxantangummi\b|\bxanthaangom\b|\bguma ksantanowa\b|\bksantan gam[ıi]?(?![a-zà-ÿ\u0100-\u017f])|\be[- ]?415\b/i,                  pts: 9,  why: 'Xanthan gum' },
-    { m: /\bguar gum\b|\bguar gam[ıi]?(?![a-zà-ÿ\u0100-\u017f])|\bgoma guar\b|\bgomme (de )?guar\b|\bguarkernmehl\b|\bguargom\b|\bguarpitmeel\b|\bguarkärnmjöl\b|\bguma guar\b|\bgomma (?:di )?guar\b|\be[- ]?412\b/i,                     pts: 8,  why: 'Guar gum' },
+    { m: /\bguar gum\b|\bguar gam[ıi]?(?![a-zà-ÿ\u0100-\u017f])|\bgoma (?:de )?guar\b|\bgomme (de )?guar\b|\bguarkernmehl\b|\bguargom\b|\bguarpitmeel\b|\bguarkärnmjöl\b|\bguma guar\b|\bgomma (?:di )?guar\b|\be[- ]?412\b/i,                     pts: 8,  why: 'Guar gum' },
     { m: /\bgellan gum\b|\bgoma gellan\b|\bgomme gellane\b|\bgellangummi\b|\bgomma (?:di )?gellano?\b|\bgoma gelana\b|\bgellangom\b|\bgellan\b|\bjellan\b|\be[- ]?418\b/i, pts: 9,  why: 'Gellan gum' },
-    { m: /\blocust bean gum\b|\bcarob (bean )?gum\b|\bjohannisbrotkernmehl\b|\bgoma (?:garrof[íi]n|de algarrobo)\b|\bgomme (?:de )?caroube\b|\bfarina di (?:semi di )?carrube\b|\bjohannesbroodpitmeel\b|\bm[ąa]czka chleba [śs]wi[ęe]toja[ńn]skiego\b|\bke[çc]iboynuzu gam[ıi]|\bgoma de alfarroba\b|\bjohannesbr[öo]dk[äa]rnmj[öo]l\b|\be[- ]?410\b/i, pts: 7,  why: 'Locust bean gum' },
+    { m: /\blocust bean gum\b|\bcarob (bean )?gum\b|\bjohannisbrotkernmehl\b|\bgoma (?:garrof[íi]n|de algarrobo)\b|\bgomme (?:de )?caroube\b|\bfarina di (?:semi di )?carrube\b|\bjohannesbroodpitmeel\b|\bm[ąa]czka chleba [śs]wi[ęe]toja[ńn]skiego\b|\bke[çc]i ?boynuzu gam[ıi]|\bgoma de alfarroba\b|\bjohannesbr[öo]dk[äa]rnmj[öo]l\b|\be[- ]?410\b/i, pts: 7,  why: 'Locust bean gum' },
     { m: /\btara gum\b|\be[- ]?417\b/i,                              pts: 8,  why: 'Tara gum' },
     { m: /\bacacia gum\b|\bgum acacia\b|\bgum arabic\b|\bgoma ar[áa]biga\b|\bgomme arabique\b|\bgomme d['’] ?acacia\b|\bgoma de acacia\b|\bgomma d['’] ?acacia\b|\bakaziengummi\b|\bguma arabska\b|\bgummi arabicum\b|\bgomma arabica\b|\bgoma ar[áa]bica\b|\barabische gom\b|\bakasya gam[ıi](?![a-zà-ÿ\u0100-\u017f])|\be[- ]?414\b/i, pts: 5,  why: 'Gum arabic' },
     { m: /\bsoy(?:a)? lecithins?\b|\blecitinas? de soja\b|\bl[ée]cithines? de soja\b|\bsojalecithine?n?\b|\blecitin[ae] di soia\b|\bsojalecithine\b|\bsojalecitin\b|\blecytyn[ay]? sojow[ae]\b|\bsojowa lecytyna\b|\bsoya lesitini?\b/i, pts: 9,  why: 'Soy lecithin — hexane-extracted emulsifier' },
@@ -139,7 +139,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /^(?:lecithins?|lecitin[ae]s?|l[ée]cithines?|lecithine?|lecitin(?:er)?|lecytyn[ay]?|lesitin)$|\be[- ]?322\b/i, pts: 7,  why: 'Lecithin — emulsifier, source not stated' },
     { m: /\bmodified (food |corn |maize |potato |tapioca |wheat |rice |waxy maize )?starch\b|\be[- ]?14[0-5]\d\b|\balmid[óo]n modificado\b|\bamidon (?:de (?:ma[ïi]s|bl[ée]|pomme de terre|tapioca|riz) )?modifi[ée](?![a-zà-ÿ\u0100-\u017f])|\bmodifizierte st[äa]rke\b|\bamido modificato\b|\bamido modificado\b|\bgemodificeerd zetmeel\b|\bmodifierad (?:majs|potatis|vete|tapioka)?st[äa]rkelse\b|\bskrobia (?:kukurydziana |ziemniaczana |pszenna |tapiokowa )?modyfikowana\b|\bmodyfikowana skrobia\b|\bmodifiye (?:m[ıi]s[ıi]r |patates |bu[ğg]day )?ni[şs]asta(?:s[ıi])?(?![a-zà-ÿ\u0100-\u017f])/i, pts: 14, why: 'Modified starch — chemically altered' },
     { m: /\bmaltod[eé]xtrin[ae]?\b|\bmaltodestrina\b|\bmaltodextrine\b|\bmaltodekstryna\b|\bmaltodekstrin\b|(?<=[a-zà-ÿ\u0100-\u017f]{3})maltodextrin[ae]?(?![a-zà-ÿ\u0100-\u017f])/i,  pts: 18, why: 'Maltodextrin — raises blood sugar faster than table sugar' },
-    { m: /\bcarboxymethyl\b/i,                         pts: 11, why: 'Carboxymethyl derivative' },
+    { m: /\bcarboxymethyl\b|(?:natrium|sodium ?)carboxymethyl|\bcarboxym[ée]thylcellulose\b|\bcarboximetilcelulosa\b|\bcarbossimetilcellulosa\b|\bkarboksymetyloceluloza\b|\bkarboksimetil sel[üu]loz\b|\bcarboximetilcelulose\b/i,                         pts: 11, why: 'Carboxymethyl derivative' },
     { m: /\bpropylene glycol\b|\be[- ]?1520\b/i,                      pts: 14, why: 'Propylene glycol' },
     { m: /\bglycerin(e)?\b|\bglycerol\b|\bglicerina\b|\bglyc[ée]rine\b|\bglicerolo\b|\bglycerine\b|\bgliser(?:ol|in)\b|\bglicerol\b|\be[- ]?422\b/i, pts: 6,  why: 'Glycerin humectant' },
   ];
@@ -160,7 +160,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\bpotassium metabisul(?:ph|f)ite\b|(?<![a-zà-ÿ\u0100-\u017f])(?:kalium(?:meta)?(?:bi|di)?sulfi(?:t|et)[a-z]*|(?:m[ée]ta)?bisulfite de potassium|(?:meta)?bis?sulfito (?:de |di )?pot[áa]s(?:io|sio|ico)|metabisolfito di potassio|potasyum (?:meta)?bis[üu]lfit)(?![a-zà-ÿ\u0100-\u017f])/i, pts: 12, why: 'Potassium metabisulfite' },
     { m: /\bnatamycin\b|\be[- ]?235\b/i,                              pts: 10, why: 'Natamycin' },
     { m: /\bnisin\b|\be[- ]?234\b/i,                                  pts: 8,  why: 'Nisin' },
-    { m: /\bpolyphosphates?\b|\bsodium (tri)?polyphosphate\b|\b(di|tri)phosphates?\b|\b\w*(?:di|tri|poly)(?:phosphat|fosfa)\w*|\be[- ]?45[0-2]\b/i, pts: 12, why: 'Polyphosphate' },
+    { m: /\bpolyphosphates?\b|\bsodium (tri)?polyphosphate\b|\b(di|tri)phosphates?\b|\b\w*(?:di|tri|poly)(?:phosphat|fosfa|fosfor(?!owy))\w*|\be[- ]?45[0-2]\b/i, pts: 12, why: 'Polyphosphate' },
   ];
 
   // ---------------------------------------------------------------- acids, anticaking, misc aids
