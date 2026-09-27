@@ -19,6 +19,24 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     /^strawberr(y|ies)$/i, /^blueberr(y|ies)$/i, /^raspberr(y|ies)$/i, /^cherr(y|ies)$/i,
     /^mango(es)?$/i, /^pineapple$/i, /^peach(es)?$/i, /^apricots?$/i, /^orange(s)?$/i,
     /^whole fruit$/i, /^fruit puree$/i, /^coconut$/i, /^pumpkin$/i, /^sweet potato$/i, /^carrots?$/i,
+    // The same foods in each label language. They carry no charge by default, but a goal that weighs
+    // naturally occurring sugar (the blood-sugar presets do) charged "dates" and "milk" and let
+    // "dattes" and "lait" through.
+    new RegExp('^(?:lait(?: entier| [ée]cr[ée]m[ée]| demi-[ée]cr[ée]m[ée]| frais| cru)*|leche(?: entera| desnatada| semidesnatada| fresca)?|latte(?: intero| scremato| parzialmente scremato| fresco)?'
+      + '|leite(?: inteiro| magro| meio-gordo)?|[a-zäöü]*milch|(?:volle |halfvolle |magere )?melk|[a-zåäö]*mj[öo]lk|mleko(?: pe[łl]ne| odt[łl]uszczone)?|(?:tam ya[ğg]l[ıi] |ya[ğg]s[ıi]z )?s[üu]t'
+      + '|lactosa|lattosio|laktose|laktos|laktoza|laktoz|cr[èe]me(?: fra[îi]che)?|nata|panna|sahne|room|gr[äa]dde|[śs]mietan(?:a|ka)|krema|natas'
+      + '|yaourt|yogur|yogurt|joghurt|jogurt|yo[ğg]urt|iogurte|k[ée]fir'
+      + '|dattes|d[áa]tiles|datteri|datteln|dadels|dadlar|daktyle|hurma|t[âa]maras|raisins secs|(?:uvas )?pasas|uvetta|uva sultanina|rosinen|sultaninen|rozijnen|russin|rodzynki|kuru [üu]z[üu]m|uvas passas'
+      + '|figues|higos|fichi|feigen|vijgen|fikon|figi|incir|figos|pruneaux|ciruelas pasas|prugne secche|trockenpflaumen|gedroogde pruimen|katrinplommon|suszone [śs]liwki|kuru erik|ameixas secas'
+      + '|bananes?|pl[áa]tanos?|banane|bananas?|bananen|bananen?|banaan|banan(?:y|er)?|muz|pommes?|manzanas?|mel[ae]|[äa]pfel|appels?|[äa]pplen?|jab[łl]k[ao]|elma|ma[çc][ãa]s?|poires?|peras?|pere|birnen?|peren|p[äa]ron|gruszki|armut'
+      + '|fraises|fresas|fragole|erdbeeren|aardbeien|jordgubbar|truskawki|[çc]ilek|morangos|myrtilles|ar[áa]ndanos|mirtilli|heidelbeeren|blaubeeren|bosbessen|bl[åa]b[äa]r|bor[óo]wki|mirtilos'
+      + '|framboises|frambuesas|lamponi|himbeeren|frambozen|hallon|maliny|ahududu|framboesas|cerises|cerezas|ciliegie|kirschen|kersen|k[öo]rsb[äa]r|wi[śs]nie|kiraz|cerejas'
+      + '|mangues?|mangos?|ananas|pi[ñn]a|abacaxi|p[êe]ches|melocotones|pesche|pfirsiche|perziken|persikor|brzoskwinie|[şs]eftali|p[êe]ssegos|abricots|albaricoques|albicocche|aprikosen|abrikozen|aprikoser|morele|kay[ıi]s[ıi]|damascos'
+      + '|oranges|naranjas|arance|orangen|sinaasappels|apelsiner|pomara[ńn]cze|portakal|laranjas|noix de coco|coco|cocco|kokos(?:nuss|noot|n[öo]t)?|hindistan cevizi'
+      + '|potiron|courge|calabaza|zucca|k[üu]rbis|pompoen|pumpa|dynia|bal kaba[ğg][ıi]|ab[óo]bora|patates? douces?|boniato|batata(?:-doce)?|patata dolce|s[üu][ßs]kartoffeln?|zoete aardappel|s[öo]tpotatis|batat|tatl[ıi] patates'
+      + '|carottes?|zanahorias?|carote|karotten|m[öo]hren|wortelen|mor[öo]tter|marchew|havu[çc]|cenouras?'
+      + "|pur[ée]e de pommes|compote de pommes|pur[ée] de manzana|purea di mele|apfelmark|apfelmus|appelmoes|[äa]ppelmos|mus jab[łl]kowy|elma p[üu]resi|pur[ée] de ma[çc][ãa]"
+      + '|pur[ée]e de fruits|pur[ée] de frutas?|purea di frutta|fruchtp[üu]ree|vruchtenpuree|fruktpur[ée]|przecier owocowy|meyve p[üu]resi)$', 'i'),
   ];
 
   // TRADITIONAL — small penalty. Real food, but concentrated.

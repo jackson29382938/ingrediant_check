@@ -77,8 +77,20 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     /^(organic |raw |dry[- ]roasted |roasted |unsalted |salted |whole |shelled )*(almonds?|walnuts?|pecans?|pecan nuts?|macadamias?|macadamia nuts?|pistachios?|pistachio nuts?|pistachio kernels?|cashews?|cashew nuts?|cashew kernels?|hazelnuts?|hazelnut kernels?|peanuts?|peanut kernels?|pine nuts?|brazil nuts?|(?:pumpkin|sunflower|chia|flax|hemp|sesame) ?seeds?|flaxseed)$/i,
     /^(organic |dried |cooked )*(lentils?|chickpeas?|(?:black|kidney|pinto|navy|cannellini|garbanzo|white|red) beans?|split peas|edamame)$/i,
     /^(organic )?(apples?|bananas?|berries|blueberries|strawberries|oranges?|dates?|figs?|raisins?)$/i,
+    // The same fruit in each label language: "dattes, amandes" scored 80 as NOVA 3 where "dates,
+    // almonds" scores 94 as NOVA 1.
+    new RegExp('^(?:pommes?|manzanas?|mel[ae]|[äa]pfel|appels?|[äa]pplen?|jab[łl]k[ao]|elma|ma[çc][ãa]s?'
+      + '|bananes?|pl[áa]tanos?|banane|bananen|banaan|banan(?:y|er)?|muz|bananas?'
+      + '|baies|bayas|bacche|beeren|bessen|b[äa]r|jagody|meyveler|bagas'
+      + '|myrtilles|ar[áa]ndanos|mirtilli|heidelbeeren|blaubeeren|bosbessen|bl[åa]b[äa]r|bor[óo]wki|yaban mersini|mirtilos'
+      + '|fraises|fresas|fragole|erdbeeren|aardbeien|jordgubbar|truskawki|[çc]ilek|morangos'
+      + '|oranges|naranjas|arance|orangen|sinaasappels|apelsiner|pomara[ńn]cze|portakal|laranjas'
+      + '|dattes|d[áa]tiles|datteri|datteln|dadels|dadlar|daktyle|hurma|t[âa]maras'
+      + '|figues|higos|fichi|feigen|vijgen|fikon|figi|incir|figos'
+      + '|raisins secs|(?:uvas )?pasas|uvetta|uva sultanina|rosinen|sultaninen|rozijnen|russin|rodzynki|kuru [üu]z[üu]m|uvas passas)$', 'i'),
     /^(organic )?(spinach|kale|broccoli|carrots?|onions?|garlic|tomatoes?|potatoes?|sweet potatoes?)$/i,
-    /^(organic )?(rice|quinoa|oats|buckwheat)$/i,
+    // "rolled oats", "oat flakes" and "brown rice" are the same whole grain as "oats" and "rice".
+    /^(organic )?(?:(?:brown|white|wild|basmati|jasmine|long[- ]grain|short[- ]grain|whole ?grain|wholegrain) )?(rice|quinoa|buckwheat|(?:(?:rolled|whole|porridge|steel[- ]cut|jumbo|old[- ]fashioned|whole ?grain|wholegrain|gluten[- ]free) )*(?:oats|oat flakes))$/i,
     /^(black |white |cayenne )?pepper$/i,
     // An animal food alone, in each label language, as the English lines above read "chicken breast"
     // or "whole milk". Anchored to the whole entry, so "chocolat au lait" and "bouillon de poulet" are not.
@@ -103,7 +115,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
       + '|graines de (?:tournesol|courge|citrouille|chia|lin|s[ée]same|chanvre)|semillas de (?:girasol|calabaza|ch[íi]a|lino|s[ée]samo|c[áa][ñn]amo)|pipas de girasol'
       + '|semi di (?:girasole|zucca|chia|lino|sesamo|canapa)|sonnenblumenkerne|k[üu]rbiskerne|leinsamen|sesam(?:saat)?|chiasamen|hanfsamen'
       + '|zonnebloempitten|pompoenpitten|lijnzaad|sesamzaad|chiazaad|hennepzaad|solrosfr[öo]n?|pumpafr[öo]n?|linfr[öo]n?|sesamfr[öo]n?|chiafr[öo]n?|hampafr[öo]n?'
-      + '|pestki (?:dyni|s[łl]onecznika)|siemi[ęe] lniane|sezam|nasiona chia|ay[çc]i[çc]ek [çc]ekirde[ğg]i|kabak [çc]ekirde[ğg]i|keten tohumu|susam|chia tohumu'
+      + '|(?:pestki|nasiona) (?:dyni|s[łl]onecznika)|siemi[ęe] lniane|sezam|nasiona (?:chia|sezamu|lnu)|ay[çc]i[çc]e[ğg]?[ıi]? [çc]ekirde[ğg]i|kabak [çc]ekirde[ğg]i|keten tohumu|susam|chia tohumu'
       + '|sementes de (?:girassol|ab[óo]bora|chia|linha[çc]a|s[ée]samo|c[âa]nhamo)|linha[çc]a)'
       + '(?:\\s+(?:gr?ill[ée]e?s|torr[ée]fi[ée]e?s|tostad[oa]s|tostat[ei]|torrad[oa]s|sal[ée]e?s|salad[oa]s|salat[ei]|d[ée]cortiqu[ée]e?s|pelad[oa]s|sgusciat[ei]|descascad[oa]s|entier(?:e?s)?|enter[oa]s|inter[ei]|inteir[oa]s)){0,2}$', 'i'),
     /^(cinnamon|turmeric|ginger|paprika|cumin|coriander|oregano|basil|thyme|rosemary|garlic powder|onion powder)$/i,

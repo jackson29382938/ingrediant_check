@@ -328,9 +328,12 @@ test('additives in the spellings US labels print: "FD&C Red No. 40", "#40", spel
   assert.equal(capped('propylparaben'), 45);
   assert.equal(capped('bromated flour'), 15);
   // A full stop still ends an entry elsewhere, and decimals still do not split.
-  const oats = engine.score({ ingredients_text: 'whole grain oats, water, salt' }, {}).score;
-  for (const text of ['vitamin B12.', '2.5% salt', 'no. 2 grade corn']) {
-    assert.equal(engine.score({ ingredients_text: `whole grain oats, water, salt, ${text}` }, {}).score, oats, text);
+  // Each is compared with the same entry written without the full stop.
+  const same = { 'vitamin B12.': 'vitamin B12', '2.5% salt': '2,5% salt', 'no. 2 grade corn': 'no 2 grade corn' };
+  for (const [text, plain] of Object.entries(same)) {
+    const withIt = engine.score({ ingredients_text: `whole grain oats, water, salt, ${text}` }, {});
+    assert.equal(engine.parse(`whole grain oats, water, salt, ${text}`).length, 4, text);
+    assert.equal(withIt.score, engine.score({ ingredients_text: `whole grain oats, water, salt, ${plain}` }, {}).score, text);
   }
 });
 

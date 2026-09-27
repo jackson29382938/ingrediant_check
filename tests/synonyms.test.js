@@ -749,3 +749,20 @@ test('a flavouring named in its bracket or after its colon is not unspecified', 
   // A bracket that names no flavouring leaves it unspecified.
   assert.ok(reasons(score('sugar, flavouring (milk)')).includes('Unspecified flavouring'));
 });
+
+test('fruit and dairy sugar reads every label language, with the weight on and off', () => {
+  // The natural-sugar list and the whole-fruit list were English: with the naturally occurring sugar
+  // weight on (the blood-sugar goals set it), "dates" was charged and "dattes" not; with it off,
+  // "dattes, amandes" scored 80 as NOVA 3 where "dates, almonds" scores 94 as NOVA 1.
+  const on = { weights: { naturalSugar: 1 } };
+  const pairs = [
+    ['dates, almonds', 'dattes, amandes'], ['milk, cultures', 'lait, ferments'], ['banana, oats', 'Banane, Haferflocken'],
+    ['apple puree, water', 'purée de pommes, eau'], ['raisins, peanuts', "rozijnen, pinda's"], ['yogurt, strawberries', 'jogurt, truskawki'],
+    ['figs', 'incir'], ['apples', 'Äpfel'],
+  ];
+  for (const [en, other] of pairs) {
+    assert.equal(score(other, on).score, score(en, on).score, `${other} (weight on)`);
+    assert.equal(score(other).score, score(en).score, other);
+    assert.equal(score(other).nova, score(en).nova, `${other} NOVA`);
+  }
+});
