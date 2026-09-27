@@ -631,3 +631,18 @@ test('words from bilingual real labels score like their English twins (round 3)'
     assert.equal(b.score, a.score, `${other} vs ${en}`);
   }
 });
+
+test('salt, sugar, vinegar, cream, butter and honey are culinary ingredients in every label language', () => {
+  // Only the English words were NOVA 2 culinary ingredients: "sucre, sel" scored 63 as NOVA 3 where
+  // "sugar, salt" scores 73 as NOVA 2.
+  const pairs = [
+    ['sugar, salt', 'sucre, sel'], ['sugar, salt', 'Zucker, Salz'], ['sugar, salt', 'cukier, sól'], ['sugar, salt', 'şeker, tuz'],
+    ['oats, salt', 'Hafer, Salz'], ['olive oil, vinegar, salt', "huile d'olive vierge extra, vinaigre, sel"],
+    ['cream, salt', 'crème, sel'], ['butter, salt', 'beurre, sel'], ['honey', 'miel'], ['maple syrup', 'syrop klonowy'],
+  ];
+  for (const [en, other] of pairs) {
+    const a = score(en), b = score(other);
+    assert.equal(b.nova, a.nova, `${other} NOVA`);
+    assert.equal(b.score, a.score, `${other} vs ${en}`);
+  }
+});

@@ -24,7 +24,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // TRADITIONAL — small penalty. Real food, but concentrated.
   const TRADITIONAL = [
     { m: /^(organic |raw |unfiltered |wildflower |manuka |clover )*(honey|miel|honig|miele|mel|honing)$/i, pts: 3,  why: 'Honey — concentrated sweetener, light touch' },
-    { m: /^(pure |organic )?maple (syrup|sugar)$/i,         pts: 4,  why: 'Maple syrup — concentrated sweetener' },
+    { m: /^(pure |organic )?maple (syrup|sugar)$|^(?:sirop d['’][ée]rable|jarabe de arce|sciroppo d['’]acero|ahornsirup|ahornsiroop|l[öo]nnsirap|syrop klonowy|ak[çc]aa[ğg]a[çc] [şs]urubu|xarope de [áa]cer|sucre d['’][ée]rable|az[úu]car de arce|ahornzucker)$/i,         pts: 4,  why: 'Maple syrup — concentrated sweetener' },
     { m: /^(blackstrap )?molasses$|^(black )?treacle$|^(?:m[ée]lasse|melaza|melassa|mela[çc]o|melasse|melas)(?: de (?:canne|ca[ñn]a|cana))?$/i,                       pts: 4,  why: 'Molasses' },
     { m: /^coconut (sugar|nectar|sap)$/i,                   pts: 5,  why: 'Coconut sugar' },
     { m: /^date (sugar|syrup)$/i,                           pts: 4,  why: 'Date sugar' },

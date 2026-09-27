@@ -604,7 +604,7 @@ const MAY_CONTAIN = new RegExp('^(?:(?:this product )?(?:may|can) (?:also )?cont
 // source of phenylalanine", "packaged in a protective atmosphere". Like a "may contain" statement they
 // were read as unrecognised ingredients and pulled real lists under the coverage gate.
 const LABEL_NOTE = new RegExp('^(?:(?:\\*\\s*)?(?:(?:certified )?organic ingredients?|ingr[ée]dients? (?:issus? de|biologiques?|bio\\b)|.*\\bagriculture biologique'
-  + '|ingredienti? (?:da|biologic)|.*agricultura (?:biol[óo]gica|ecol[óo]gica)|.*\\bkontrolliert biologische|.*\\bekologiczn|.*\\bekologisk|.*\\bbiologische landbouw'
+  + '|ingredienti? (?:da|biologic)|.*agricultura (?:biol[óo]gica|ecol[óo]gica)|.*\\bkontrolliert biologische|.*\\bz upraw ekologiczn|sk[łl]adnik(?:i)?(?: pochodz[ąa]c[ey]| pochodz[ąa]cy)?(?: z)? (?:upraw |rolnictwa )?ekologiczn|.*\\brolnictw[ao] ekologiczn|ekologisk(?:a)? ingrediens(?:er)?|.*\\bfr[åa]n ekologisk|.*\\bekologisk (?:odling|produktion|jordbruk)|.*\\bbiologische landbouw'
   + '|.*commerce [ée]quitable|.*fair ?trade|rainforest alliance)'
   + '|(?:gluten[- ]free|sans gluten|glutenfrei|sin gluten|senza glutine|sem gl[úu]ten|glutenvrij|glutenfri|bezglutenow|glutensiz)$'
   + '|contains? a source of phenylalanine|contient une source de ph[ée]nylalanine|enth[äa]lt eine phenylalaninquelle|contiene una fuente de fenilalanina'

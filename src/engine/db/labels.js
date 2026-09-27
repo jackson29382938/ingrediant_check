@@ -72,6 +72,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     new RegExp('^[\\w\' -]{0,24}' + NOT_DAIRY + '\\b(milk|cream|butter|ghee|yogh?urt|kefir|cheese|cheddar|mozzarella|parmesan)\\b' + DERIVED + '(?!\\s+of\\s+tartar)', 'i'),
     /^(beef |chicken |pork )?(liver|heart|kidney|bone marrow|tripe|sweetbreads)\b/i,
     /^(organic )?(water|sea salt|salt)$/i,
+    new RegExp('^(?:sel(?: marin| de mer| de gu[ée]rande| fin)?|fleur de sel|sal(?: marina| de mar| marinho)?|sale(?: marino)?|(?:speise|meer)?salz|(?:zee|keuken)?zout|(?:hav)?salt|s[óo]l(?: morska)?|(?:deniz |kaya )?tuzu?|flor de sal)$', 'i'),
     /^(organic |raw )*(honey|maple syrup)$/i,
     /^(organic |raw |dry[- ]roasted |roasted |unsalted |salted |whole |shelled )*(almonds?|walnuts?|pecans?|macadamias?|pistachios?|cashews?|hazelnuts?|peanuts?|pine nuts?|brazil nuts?|(?:pumpkin|sunflower|chia|flax|hemp|sesame) ?seeds?|flaxseed)$/i,
     /^(organic |dried |cooked )*(lentils?|chickpeas?|(?:black|kidney|pinto|navy|cannellini|garbanzo|white|red) beans?|split peas|edamame)$/i,
@@ -93,7 +94,18 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   ];
 
   // Culinary ingredients — NOVA 2. Real foods, but extracted/concentrated.
-  const CULINARY = /^(extra virgin |virgin |cold[- ]pressed |organic |raw )*(olive oil|avocado oil|coconut oil|butter|ghee|tallow|lard|honey|maple syrup|sea salt|salt|vinegar|apple cider vinegar|cream|sugar|aceite de oliva|huile d['’]olive|oliven[öo]l|olio d['’]oliva|aceite de coco|huile de coco|kokos[öo]l|olio di cocco|miel|honig|miele)$/i;
+  // With the same staples in each label language: "sucre, sel" scored 63 as NOVA 3 where "sugar,
+  // salt" scores 73 as NOVA 2, because only the English words were culinary ingredients.
+  const CULINARY = new RegExp('^(extra virgin |virgin |cold[- ]pressed |organic |raw )*(?:olive oil|avocado oil|coconut oil|butter|ghee|tallow|lard|honey|maple syrup|sea salt|salt|vinegar|apple cider vinegar|cream|sugar'
+    + "|aceite de oliva(?: virgen(?: extra)?)?|huile d['’]olive(?: vierge(?: extra)?)?|oliven[öo]l|olio (?:extra vergine )?d['’]? ?oliva|olio (?:extra vergine )?di oliva|olijfolie|olivolja|oliwa z oliwek|zeytinya[ğg][ıi]|azeite(?: virgem(?: extra)?)?"
+    + "|aceite de coco|huile de coco|kokos[öo]l|olio di cocco|kokosolie|kokosolja|olej kokosowy|[óo]leo de coco|hindistan cevizi ya[ğg][ıi]"
+    + '|miel|honig|miele|mel|honing|honung|mi[óo]d|bal'
+    + '|beurre|mantequilla|burro|boter|roomboter|sm[öo]r|mas[łl]o|tereya[ğg][ıi]|manteiga|saindoux|schmalz|strutto|manteca de cerdo|reuzel|ister|smalec|banha'
+    + "|cr[èe]me(?: fra[îi]che)?|nata|panna|sahne|room|gr[äa]dde|[śs]mietan(?:a|ka)|krema|natas?"
+    + '|sucre|az[úu]car|zucchero|zucker|suiker|socker|cukier|[şs]eker|a[çc][úu]car'
+    + "|vinaigre(?: de cidre| de vin| d['’]alcool)?|vinagre(?: de vino| de manzana| de sidra| de [áa]lcool| de alcohol)?|aceto(?: di vino| di mele)?|(?:apfel|wein|branntwein)?essig|azijn|[äa]ttika|vin[äa]ger|ocet(?: jab[łl]kowy| spirytusowy)?|sirke"
+    + "|sirop d['’][ée]rable|jarabe de arce|sciroppo d['’]acero|ahornsirup|ahornsiroop|l[öo]nnsirap|syrop klonowy|ak[çc]aa[ğg]a[çc] [şs]urubu|xarope de [áa]cer"
+    + '|sel(?: marin| de mer| de gu[ée]rande| fin)?|fleur de sel|sal(?: marina| de mar| marinho)?|sale(?: marino)?|(?:speise|meer)?salz|(?:zee|keuken)?zout|(?:hav)?salt|s[óo]l(?: morska)?|(?:deniz |kaya )?tuzu?|flor de sal)$', 'i');
 
   // Signals of NOVA 3 processing — real food, meaningfully transformed. The English words alone
   // meant "cacahuetes tostados" was NOVA 2 where "roasted peanuts" is NOVA 3, and "lait
