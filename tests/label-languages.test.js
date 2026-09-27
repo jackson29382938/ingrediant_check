@@ -197,3 +197,17 @@ test('cheeses, fresh cheeses and dairy compounds by name; soy, sesame, mustard, 
   assert.ok(has('Knollensellerie', 'celery') && has('selderijzout', 'celery'));
   assert.ok(has('puede contener trazas de altramuces', 'lupin'));
 });
+
+test('wheat products named without "wheat"; German malt is not Polish mussels', () => {
+  for (const w of ['chapelure', 'pan rallado', 'Semmelbrösel', 'ströbröd', 'bułka tarta', 'pain', 'Vollkornbrot', 'knäckebröd', 'roggebrood',
+    'chleb żytni', 'pão', 'ekmek', 'Grünkern', 'boulgour', 'semoule', 'kasza manna', 'pęczak', 'mannagryn', 'Graupen', 'Nudeln', 'makaron',
+    'Malzextrakt', 'extracto de malta', 'estratto di malto', 'moutextract', 'ekstrakt słodowy']) {
+    assert.ok(has(w, 'wheat'), w);
+  }
+  for (const w of ['semoule de maïs', 'sémola de maíz', 'sêmola de milho', 'Reisnudeln', 'fideos de arroz', 'nouilles de riz',
+    'mączka chleba świętojańskiego', 'Johannisbrotkernmehl', 'moutarde', 'mouton', 'słodki', 'substancja słodząca', 'maltitol', 'Brotaufstrich']) {
+    assert.ok(!has(w, 'wheat'), w);
+  }
+  // "Malz" (German malt) matched the ASCII spelling of Polish "małże" (mussels).
+  assert.ok(!has('Malzextrakt', 'shellfish') && has('małże', 'shellfish'));
+});

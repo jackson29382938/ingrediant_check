@@ -88,12 +88,18 @@ const GLUTEN = L + '(?:wheat|gluten|glutine|barley|rye|malt|malted|malt (?:extra
   // grain it names, which the rest of this list reads on its own.
   + '|graham|panko|farina(?!(?:\\s+integrale)?\\s+d(?:i\\s|[\'’]))|matzo|matzah|croutons?|bread(?:crumbs?)?|bread crumbs|shortbread'
   // Buckwheat is not wheat: "blé noir", "trigo sarraceno", "grano saraceno" and "trigo mourisco" name it.
-  + '|trigo(?!\\s+(?:sarraceno|mourisco))|cebada|centeno|espelta|s[ée]mola|bl[ée](?!\\s+noir)|orge|seigle|[ée]peautre|froment|weizen' + W + '|gerste' + W + '|roggen' + W + '|dinkel' + W + '|grie(?:ss|[sß])|hartweizen' + W + '|grano(?!\\s+saraceno)|frumento|orzo|segale'
+  + '|trigo(?!\\s+(?:sarraceno|mourisco))|cebada|centeno|espelta|s[ée]mola(?!\\s+d[ei]\\s+(?:ma[íi]z|mais|milho|riso|arroz))|bl[ée](?!\\s+noir)|orge|seigle|[ée]peautre|froment|weizen' + W + '|gerste' + W + '|roggen' + W + '|dinkel' + W + '|grie(?:ss|[sß])|hartweizen' + W + '|grano(?!\\s+saraceno)|frumento|orzo|segale'
   // sv vete, råg, korn is left out (it also means any grain); pl pszenica, jęczmień, żyto, orkisz;
   // nl tarwe, gerst, rogge; pt cevada, centeio
   + '|vete(?:mj[öo]l|gluten|kli|groddar|flingor|protein|st[äa]rkelse)?|råg' + W + '|pszen' + W + '|j[ęe]czmie' + W + '|[żz]yt(?:o|ni)' + W + '|orkisz' + W + '|tarwe' + W + '|gerst' + W + '|rogge' + W + '|cevada|centeio'
   // tr buğday, arpa, çavdar, irmik (semolina), siyez and kavılca (einkorn, emmer), glüten
-  + '|bu[ğg]day' + W + '|arpa|[çc]avdar' + W + '|irmik|siyez|kav[ıi]lca|gl[üu]ten)' + R;
+  + '|bu[ğg]day' + W + '|arpa|[çc]avdar' + W + '|irmik|siyez|kav[ıi]lca|gl[üu]ten)' + R
+  // Wheat products that do not say wheat, in each language: breadcrumbs, bread, semolina, noodles, malt.
+  + '|' + L + '(?:chapelure|pan rallado|pangrattato|paniermehl|semmelbr[öo]sel|paneermeel|str[öo]br[öo]d|bu[łl]k' + W + ' tart' + W + '|p[ãa]o ralado|galeta unu'
+  + '|pain|pane|pan|(?!johann)[a-zß-ÿ]*brot|(?!johann)[a-zß-ÿ]*brood|(?!johann)[a-zß-ÿ]*br[öo]d|chleb' + W + '(?!\\s+[śs]wi[ęe]toja[ńn]sk)|p[ãa]o|ekmek'
+  + '|khorasan|freekeh|engrain|gr[üu]nkern|boulgour|cusc[úu]s|semoule(?!\\s+de\\s+(?:ma[ïi]s|riz))|kasza manna|p[ęe]czak|mannagryn' + W + '|griesmeel|s[êe]mola(?!\\s+de\\s+milho)|graupen'
+  + '|nudeln|noedels|makaron' + W + '|makarna|macarr[ãa]o|maccheroni|spaghetti|fideos(?!\\s+de\\s+arroz)|nouilles(?!\\s+de\\s+riz)'
+  + '|malz' + W + '|mout(?:extract|meel|azijn)?|maltextrakt|malto|malta|s[łl][óo]d(?:owy|owe|owa|u)?)' + R;
 
 const ALLERGENS = [
   { id: 'milk', label: 'Milk', m: new RegExp(DAIRY, 'i') },
@@ -132,7 +138,7 @@ const ALLERGENS = [
       + '|pstr[ąa]g' + W + '|mintaj' + W + '|szprot' + W + '|karp(?:ia|iu|iem)?|sandacz' + W + '|fl[ąa]dr' + W + '|morszczuk' + W
       + '|alabal[ıi]k' + W + '|palamut|l[üu]fer|istavrit|mezgit|ringa)' + R, 'i') },
   { id: 'shellfish', label: 'Shellfish',
-    m: new RegExp(/\b(shellfish|shrimp|prawn|crab(?!\s*-?\s*apples?)|lobster|crayfish|langoustine|clam|mussel|oyster|scallop|squid|calamari|octopus|krill|crustacean|mollusc|mollusk|camar[óo]n|camarones|gambas?|langosta|cangrejo|mejill[óo]n|almeja|calamar|crust[áa]ceo|molusco|crevettes?|crabe|homard|moules?|hu[îi]tres?|crustac[ée]s?|mollusques?|garnelen?|krabben?|hummer|muscheln?|krebstier|weichtier|gamber|granchio|aragosta|cozze|vongole|crostacei|molluschi)\w*/.source + '|' + L + '(?:r[äa]kor|r[äa]ka|krabba|musslor|skaldjur|bl[öo]tdjur|kr[äa]ftdjur|krewetk' + W + '|homar' + W + '|ma[łl][żz]' + W + '|skorupiak' + W + '|mi[ęe]czak' + W + '|ostryg' + W + '|garnal' + W + '|kreeft|mossel' + W + '|oester' + W + '|schaaldier' + W + '|weekdier' + W + '|camar[ãa]o|camar[õo]es|caranguejo|lagosta|mexilh' + W + '|(?<!papryk[ai]\\s)ostras?(?!\\s+papryk)|crust[áa]ceos|karides' + W + '|yenge[çc]' + W + '|midye' + W + '|istakoz|kalamar|ahtapot|istiridye|deniz [üu]r[üu]nleri|kabuklu deniz' + W + '|yumu[şs]ak[çc]a' + W + ')' + R
+    m: new RegExp(/\b(shellfish|shrimp|prawn|crab(?!\s*-?\s*apples?)|lobster|crayfish|langoustine|clam|mussel|oyster|scallop|squid|calamari|octopus|krill|crustacean|mollusc|mollusk|camar[óo]n|camarones|gambas?|langosta|cangrejo|mejill[óo]n|almeja|calamar|crust[áa]ceo|molusco|crevettes?|crabe|homard|moules?|hu[îi]tres?|crustac[ée]s?|mollusques?|garnelen?|krabben?|hummer|muscheln?|krebstier|weichtier|gamber|granchio|aragosta|cozze|vongole|crostacei|molluschi)\w*/.source + '|' + L + '(?:r[äa]kor|r[äa]ka|krabba|musslor|skaldjur|bl[öo]tdjur|kr[äa]ftdjur|krewetk' + W + '|homar' + W + '|(?:ma[łl]ż|mał[żz])' + W + '|skorupiak' + W + '|mi[ęe]czak' + W + '|ostryg' + W + '|garnal' + W + '|kreeft|mossel' + W + '|oester' + W + '|schaaldier' + W + '|weekdier' + W + '|camar[ãa]o|camar[õo]es|caranguejo|lagosta|mexilh' + W + '|(?<!papryk[ai]\\s)ostras?(?!\\s+papryk)|crust[áa]ceos|karides' + W + '|yenge[çc]' + W + '|midye' + W + '|istakoz|kalamar|ahtapot|istiridye|deniz [üu]r[üu]nleri|kabuklu deniz' + W + '|yumu[şs]ak[çc]a' + W + ')' + R
       // Crustaceans and molluscs by species, in each language (squid, octopus and snails are molluscs).
       // Left out for their other meanings: Spanish "polvo" (powder), "choco" (chocolate), and the pasta
       // and biscuit names "lumache", "caracoles" and "canestrelli".
