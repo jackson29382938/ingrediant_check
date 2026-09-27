@@ -3,7 +3,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
-const fs = require('node:fs');
+const { loadWorker } = require('./worker-scripts.js');
 const ENDPOINT = 'https://script.google.com/macros/s/abcdefghijklmnopqrstuvwxyz1234567890/exec';
 function worker(initial = {}, fetcher, { alarms, endpoint = ENDPOINT } = {}) {
   const data = structuredClone(initial);
@@ -44,19 +44,9 @@ function worker(initial = {}, fetcher, { alarms, endpoint = ENDPOINT } = {}) {
   };
   sandbox.self = sandbox;
   const context = vm.createContext(sandbox);
-  vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/_module.js'), 'utf8'), context);
-  vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/allergens.js'), 'utf8'), context);
-  vm.runInContext(fs.readFileSync(require.resolve('../src/engine/categories.js'), 'utf8'), context);
-  vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/ingestible.js'), 'utf8'), context);
-  vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/prefs.js'), 'utf8'), context);
-  // The build constant, pointed at a test URL (or left empty to model an unconfigured build).
-  context.AIR.db.prefs.ENDPOINT = endpoint;
-  vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/ocr-text.js'), 'utf8'), context);
-  vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/product-cache.js'), 'utf8'), context);
-  vm.runInContext(fs.readFileSync(require.resolve('../src/engine/db/speed.js'), 'utf8'), context);
-  vm.runInContext(fs.readFileSync(require.resolve('../src/worker/messages.js'), 'utf8'), context);
-  vm.runInContext(fs.readFileSync(require.resolve('../src/worker/sheet-store.js'), 'utf8'), context);
-  vm.runInContext(fs.readFileSync(require.resolve('../src/background.js'), 'utf8'), context);
+  // Exactly the scripts the worker imports, in its order. The build constant is pointed at a test
+  // URL (or left empty to model an unconfigured build) once prefs.js has defined it.
+  loadWorker(vm, context, { before: () => { if (context.AIR?.db?.prefs) context.AIR.db.prefs.ENDPOINT = endpoint; } });
   return {
     data, synced, call: (expression) => vm.runInContext(expression, context), created: () => created, badges,
     send(msg, sender) {

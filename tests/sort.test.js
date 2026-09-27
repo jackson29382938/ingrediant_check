@@ -3,8 +3,8 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
 const vm = require('node:vm');
+const { loadWorker } = require('./worker-scripts.js');
 const R = require('../src/engine/db/sorted-results.js');
 const U = require('../src/engine/db/unit-price.js');
 const SP = require('../src/engine/db/speed.js');
@@ -228,11 +228,7 @@ function worker({ panelFails = false } = {}) {
   };
   sandbox.self = sandbox;
   const context = vm.createContext(sandbox);
-  for (const f of ['engine/db/_module.js', 'engine/db/allergens.js', 'engine/categories.js', 'engine/db/ingestible.js',
-    'engine/db/prefs.js', 'engine/db/ocr-text.js', 'engine/db/product-cache.js', 'engine/db/sorted-results.js',
-    'worker/messages.js', 'worker/sheet-store.js', 'background.js']) {
-    vm.runInContext(fs.readFileSync(require.resolve('../src/' + f), 'utf8'), context);
-  }
+  loadWorker(vm, context);   // exactly the scripts the worker imports (tests/worker-scripts.js)
   return { session, created, calls, call: e => vm.runInContext(e, context),
     // Returns the synchronous calls made before the listener returned, then the reply.
     send: (msg, sender) => {
