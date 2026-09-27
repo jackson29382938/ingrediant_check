@@ -609,3 +609,25 @@ test('sulphite caramels are caramel colour, not a sulphite preservative', () => 
     assert.deepEqual(reasons(score(text)), ['Caramel colour — caps score at 30'], text);
   }
 });
+
+test('words from bilingual real labels score like their English twins (round 3)', () => {
+  // Compounds and spellings the rules missed, and three patterns whose \b sat against an accented
+  // letter so the accented spelling could never match ("amidon modifié", "äppelsyra", "óleo …").
+  const pairs = [
+    ['water, corn maltodextrin', 'water, maïsmaltodextrine'], ['water, guar gum', 'water, guargom'],
+    ['peanuts, sugar, partially hydrogenated palm oil, salt', 'Erdnüsse, Zucker, teilweise gehärtetes Palmöl, Salz'],
+    ['peanuts, sugar, partially hydrogenated palm oil, salt', "pinda's, suiker, gedeeltelijk gehydrogeneerde palmolie, zout"],
+    ['peanuts, sugar, hydrogenated palm oil, salt', "pinda's, suiker, gehydrogeneerde palmolie, zout"],
+    ['peanuts, sugar, hydrogenated palm oil, salt', 'Erdnüsse, Zucker, gehärtetes Palmfett, Salz'],
+    ['peanuts, peanut oil, salt', "cacahuètes, huile d'arachides, sel"], ['peanuts, peanut oil, salt', 'orzeszki ziemne, olej z orzeszków ziemnych, sól'],
+    ['tomato, modified starch', 'tomate, amidon modifié'], ['tomato, modified corn starch', 'tomate, amidon modifié maïs'],
+    ['tomato, modified corn starch', 'tomate, amidon de maïs modifié'], ['maize, barley malt extract, salt', 'kukurydza, ekstrakt słodu jęczmiennego, sól'],
+    ['wine (sulphur dioxide), salt', 'vin (dioxyde de soufre), sel'], ['water, malic acid', 'vatten, äppelsyra'],
+    ['potatoes, high oleic sunflower oil', 'batatas, óleo de girassol alto oleico'],
+  ];
+  for (const [en, other] of pairs) {
+    const a = score(en), b = score(other);
+    assert.deepEqual(reasons(b).sort(), reasons(a).sort(), `${other} vs ${en}`);
+    assert.equal(b.score, a.score, `${other} vs ${en}`);
+  }
+});
