@@ -54,3 +54,10 @@ test('no pattern puts \\b against an accented letter', () => {
   }
   assert.deepEqual(bad, []);
 });
+
+test('explicit letter classes include ß', () => {
+  // "[a-zà-ÿ]" starts just after ß (U+00DF), so a boundary built from it ended the word at "weiß" →
+  // "wei" (Dutch whey, a milk flag on white beans), and a word running on past ß never reached its end.
+  const bad = patterns().filter(([, re]) => /a-zà-ÿ/.test(re.source)).map(([where]) => where);
+  assert.deepEqual(bad, []);
+});

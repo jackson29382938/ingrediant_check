@@ -25,15 +25,15 @@ const PLANT_IT = '(?!\\s+di\\s+(?:cocco|mandorl[ae]|avena|soia|riso|nocciol[ae]|
 // `\b` does not see an accented letter as part of a word, so "blé", "œuf", "maní" and "łosoś" need
 // explicit boundaries. L and R are those boundaries for Latin-1 and Latin Extended-A (Polish), and
 // W is the rest of a word: `\w*` stops at "ö", so "jordnötssmör" never reached its end.
-const L = '(?<![a-zà-ÿœ\\u0100-\\u017f])';
-const R = '(?![a-zà-ÿœ\\u0100-\\u017f])';
-const W = '[a-zà-ÿœ\\u0100-\\u017f]*';
+const L = '(?<![a-zß-ÿœ\\u0100-\\u017f])';
+const R = '(?![a-zß-ÿœ\\u0100-\\u017f])';
+const W = '[a-zß-ÿœ\\u0100-\\u017f]*';
 // Swedish, Polish, Dutch and Portuguese plant "milks" and butters: kokosmjölk, mleko kokosowe,
 // kokosmelk, leite de coco; kakaosmör, masło kakaowe, cacaoboter, manteiga de cacau.
 const PLANT_PL = '(?!\\s+(?:kokosow|owsian|sojow|migda[łl]ow|ry[żz]ow|kakaow|orzechow|arachidow|shea|z\\s+orzech)' + W + ')';
 const PLANT_PT = '(?!\\s+de\\s+(?:coco|am[êe]ndoas?|aveia|soja|arroz|cacau|amendoim|karit[ée]|castanhas?))';
 // "Milk thistle" and "milkweed" are plants; "cream of tartar" is a salt of tartaric acid.
-const DAIRY = NOT_DAIRY_BEFORE + '\\b(?:milk|butter|cream)\\b(?!\\s*(?:of\\s+tartar|flavou?r|thistle|weed))'
+const DAIRY = NOT_DAIRY_BEFORE + L + '(?:milk|butter|cream)' + R + '(?!\\s*(?:of\\s+tartar|flavou?r|thistle|weed))'
   + '|\\b(?:dairy|cheese|yogh?urt|whey|casein(?:ate)?|lactose|ghee|kefir|custard|buttermilk|lactalbumin|lactoglobulin|paneer|quark)\\b'
   // Named cheeses, butterfat, curds ("bean curd" is tofu), half-and-half, skyr and labneh name no
   // dairy word, and all were read as dairy-free.
@@ -64,12 +64,12 @@ const DAIRY = NOT_DAIRY_BEFORE + '\\b(?:milk|butter|cream)\\b(?!\\s*(?:of\\s+tar
   + '|(?<!(?:cevizi|badem|yulaf|soya|pirin[çc]|f[ıi]nd[ıi]k)\\s)' + L + '(?:s[üu]t(?!\\s+asidi)(?:[üu]|l[üu]|tozu)?|tereya[ğg][ıi]?|kaymak|peynir' + W + '|yo[ğg]urt' + W + '|laktoz|kazein' + W + '|ayran|lor)' + R
   + '|(?<!bitkisel\\s)' + L + 'krema(?:s[ıi])?' + R;
 
-const EGG = L + '(?:eggs?|egg (?:white|yolk)s?|eggnog|aioli|albumen|albumin[ae]?|ovo?albumin[ae]?|l[iy]s[io]z[iy]m[ae]?|mayonnaise|meringues?|huevos?|(?:œ|oe)ufs?|uov[oa]|eier(?:nudeln|teigwaren|pulver)?|eiwei[sß]|ei)' + R
+const EGG = L + '(?:eggs?|egg (?:white|yolk)s?|eggnog|aioli|albumen|albumin[ae]?|ovo?albumin[ae]?|l[iy]s[io]z[iy]m[ae]?|mayonnaise|meringues?|huevos?|(?:œ|oe)ufs?|uov[oa]|eier(?:nudeln|teigwaren|pulver)?|eiwei(?:ss|[sß])|ei)' + R
   // Yolk, white, mayonnaise and meringue by their own names: yema, tuorlo, albume, mayonesa, maionese,
   // Majonäse, merengue, meringa; German compounds Eigelbpulver, Eiklar, Volleipulver.
   + '|' + L + '(?:yemas?|tuorl[oi]|albume|mayonesa|maionese|mayonaise|majon[äa]se|majonez|majon[äa]s|mayonez|merengues?|meringh?[ae]|eigelb|eiklar|vollei)' + W + R
   // German compounds name the egg last: Hühnerei, Hühnereiweiß, Trockenvollei.
-  + '|(?:h[üu]hner|trockenvoll|trocken|fl[üu]ssig)ei(?:wei[sß]|gelb|pulver)?' + R
+  + '|(?:h[üu]hner|trockenvoll|trocken|fl[üu]ssig)ei(?:wei(?:ss|[sß])|gelb|pulver)?' + R
   // sv ägg, äggula, helägg; pl jaja, jajka, żółtko (białko alone is protein, not egg white); nl eieren,
   // eigeel, kippenei; pt ovos, gema, clara de ovo
   + '|' + L + '(?:hel)?ägg(?:en|ula|gula|vita|vitepulver|pulver)?' + R
@@ -84,7 +84,7 @@ const GLUTEN = L + '(?:wheat|gluten|glutine|barley|rye|malt|malted|malt (?:extra
   // grain it names, which the rest of this list reads on its own.
   + '|graham|panko|farina(?!(?:\\s+integrale)?\\s+d(?:i\\s|[\'’]))|matzo|matzah|croutons?|bread(?:crumbs?)?|bread crumbs|shortbread'
   // Buckwheat is not wheat: "blé noir", "trigo sarraceno", "grano saraceno" and "trigo mourisco" name it.
-  + '|trigo(?!\\s+(?:sarraceno|mourisco))|cebada|centeno|espelta|s[ée]mola|bl[ée](?!\\s+noir)|orge|seigle|[ée]peautre|froment|weizen\\w*|gerste\\w*|roggen\\w*|dinkel\\w*|grie[sß]|hartweizen\\w*|grano(?!\\s+saraceno)|frumento|orzo|segale'
+  + '|trigo(?!\\s+(?:sarraceno|mourisco))|cebada|centeno|espelta|s[ée]mola|bl[ée](?!\\s+noir)|orge|seigle|[ée]peautre|froment|weizen' + W + '|gerste' + W + '|roggen' + W + '|dinkel' + W + '|grie(?:ss|[sß])|hartweizen' + W + '|grano(?!\\s+saraceno)|frumento|orzo|segale'
   // sv vete, råg, korn is left out (it also means any grain); pl pszenica, jęczmień, żyto, orkisz;
   // nl tarwe, gerst, rogge; pt cevada, centeio
   + '|vete(?:mj[öo]l|gluten|kli|groddar|flingor|protein|st[äa]rkelse)?|råg' + W + '|pszen' + W + '|j[ęe]czmie' + W + '|[żz]yt(?:o|ni)' + W + '|orkisz' + W + '|tarwe' + W + '|gerst' + W + '|rogge' + W + '|cevada|centeio'
@@ -95,7 +95,7 @@ const ALLERGENS = [
   { id: 'milk', label: 'Milk', m: new RegExp(DAIRY, 'i') },
   { id: 'egg', label: 'Egg', m: new RegExp(EGG, 'i') },
   { id: 'peanut', label: 'Peanut',
-    m: new RegExp(L + '(?:peanuts?|groundnuts?|monkey ?nuts?|arachis|cacahu[eè]tes?|cacahuates?|man[ií]|arachides?|erdn[üu]ss\\w*|arachidi'
+    m: new RegExp(L + '(?:peanuts?|groundnuts?|monkey ?nuts?|arachis|cacahu[eè]tes?|cacahuates?|man[ií]|arachides?|erdn[üu](?:ss|ß)' + W + '|arachidi'
       // sv jordnötter, pl orzeszki ziemne / arachidowe, nl pinda's / aardnoten, pt amendoim
       + '|jordn[öo]t' + W + '|orzeszk' + W + ' ziemn' + W + '|arachidow' + W + '|pinda' + W + '|aardno' + W + '|amendoi[mn]s?'
       // tr yer fıstığı; bare "fıstık" may be peanut or pistachio, so it flags both
@@ -105,7 +105,7 @@ const ALLERGENS = [
     // "Contains: tree nuts" is how US labels declare them, and "nuts" how UK labels do; the generic
     // words in each language were missing, so the declaration itself went unflagged. Tiger nuts are
     // tubers.
-    m: new RegExp(/\b(tree ?nuts?|(?<!tiger\s)nuts?\b|mixed nuts|frutos secos|frutos de c[áa]scara|frutta a guscio|fruits? [àa] coques?|schalenfr[üu]chte|n[üu]sse\b|almond|cashew|walnut|pecan|pistachio|hazelnut|macadamia|brazil nut|pine nut|praline|marzipan|gianduja|pesto|nougat|frangipane|almendra|anacardo|avellana|nuez(?!\s+moscada)|nueces|pistacho|amande|cajou|noisette|noix(?!\s+de\s+(?:coco|muscade))|pistache|mandel|haseln[üu]ss|waln[üu]ss|cashewkern|pistazie|mandorl|nocciol|noce(?!\s+(?:moscata|di\s+cocco))|noci|pistacchi)\w*/.source + '|' + L + '(?:n[öo]tter|n[öo]tkr[äa]m|hasseln[öo]t' + W + '|valn[öo]t' + W + '|cashewn[öo]t' + W + '|pekann[öo]t' + W + '|paran[öo]t' + W + '|mandl(?:ar|or)?' + W + '|mandelmassa|pistasch' + W + '|orzech' + W + '|migda[łl]' + W + '|nerkowc' + W + '|pistacj' + W + '|noten|hazelno' + W + '|walno' + W + '|cashewno' + W + '|pecanno' + W + '|am[êe]ndoas?|avel[ãa]s?|castanhas?(?: de caju| do par[áa])?|noz(?![- ]moscada)|nozes|pistaches?|f[ıi]nd[ıi]k' + W + '|badem' + W + '|(?<!hindistan\\s)ceviz' + W + '|kaju|antep f[ıi]st[ıi][ğg][ıi]|[şs]am f[ıi]st[ıi][ğg][ıi]|f[ıi]st[ıi]k' + W + '|kabuklu yemi[şs]' + W + '|sert kabuklu meyve' + W + '|makadamya|pikan)' + R, 'i') },
+    m: new RegExp(/\b(tree ?nuts?|(?<!tiger\s)nuts?\b|mixed nuts|frutos secos|frutos de c[áa]scara|frutta a guscio|fruits? [àa] coques?|schalenfr[üu]chte|n[üu](?:ss|ß)e\b|almond|cashew|walnut|pecan|pistachio|hazelnut|macadamia|brazil nut|pine nut|praline|marzipan|gianduja|pesto|nougat|frangipane|almendra|anacardo|avellana|nuez(?!\s+moscada)|nueces|pistacho|amande|cajou|noisette|noix(?!\s+de\s+(?:coco|muscade))|pistache|mandel|haseln[üu](?:ss|ß)|waln[üu](?:ss|ß)|cashewkern|pistazie|mandorl|nocciol|noce(?!\s+(?:moscata|di\s+cocco))|noci|pistacchi)\w*/.source + '|' + L + '(?:n[öo]tter|n[öo]tkr[äa]m|hasseln[öo]t' + W + '|valn[öo]t' + W + '|cashewn[öo]t' + W + '|pekann[öo]t' + W + '|paran[öo]t' + W + '|mandl(?:ar|or)?' + W + '|mandelmassa|pistasch' + W + '|orzech' + W + '|migda[łl]' + W + '|nerkowc' + W + '|pistacj' + W + '|noten|hazelno' + W + '|walno' + W + '|cashewno' + W + '|pecanno' + W + '|am[êe]ndoas?|avel[ãa]s?|castanhas?(?: de caju| do par[áa])?|noz(?![- ]moscada)|nozes|pistaches?|f[ıi]nd[ıi]k' + W + '|badem' + W + '|(?<!hindistan\\s)ceviz' + W + '|kaju|antep f[ıi]st[ıi][ğg][ıi]|[şs]am f[ıi]st[ıi][ğg][ıi]|f[ıi]st[ıi]k' + W + '|kabuklu yemi[şs]' + W + '|sert kabuklu meyve' + W + '|makadamya|pikan)' + R, 'i') },
   { id: 'soy', label: 'Soy',
     m: new RegExp(/\b(soy|soya|soybean|soja|soia|tofu|tempeh|edamame|miso|tamari|shoyu|natto|textured vegetable protein|tvp)\w*/.source + '|' + L + '(?:sojow' + W + '|sojab[öo]n' + W + '|sojabon' + W + '|soya' + W + '|soj[ęeiy]|soi)' + R, 'i') },
   { id: 'wheat', label: 'Wheat / gluten', m: new RegExp(GLUTEN, 'i') },
@@ -128,7 +128,7 @@ const ALLERGENS = [
   { id: 'corn', label: 'Corn',
     m: new RegExp(/\b(corn(?!ed\b|ish\b)|popcorn|maize|masa|hominy|dextrose|maltodextrin|cornstarch)\w*/.source
       // in each label language
-      + '|' + L + '(?:ma[ïi]s(?:gries|grie[ßs]|zetmeel|meel|mehl|st[äa]rke|olie|[öo]l|k[öo]rner|kolben|vezel|keim[öo]l|maltodextrin[ae]?|glukose\\w*|glucose\\w*|siroop|sirup)?|ma[ií]z|milho|majs' + W + '|kukurydz' + W + '|m[ıi]s[ıi]r|dextros[ae]?|dekstroz[a]?|destrosio|maltodextrin[ae]?|maltodekstryn[ay]|maltodekstrin)' + R, 'i') },
+      + '|' + L + '(?:ma[ïi]s(?:gries|grie(?:ss|[ßs])|zetmeel|meel|mehl|st[äa]rke|olie|[öo]l|k[öo]rner|kolben|vezel|keim[öo]l|maltodextrin[ae]?|glukose' + W + '|glucose' + W + '|siroop|sirup)?|ma[ií]z|milho|majs' + W + '|kukurydz' + W + '|m[ıi]s[ıi]r|dextros[ae]?|dekstroz[a]?|destrosio|maltodextrin[ae]?|maltodekstryn[ay]|maltodekstrin)' + R, 'i') },
   // Sweet potato is a morning glory, not a nightshade.
   { id: 'nightshade', label: 'Nightshades',
     m: new RegExp(/\b(tomato|(?<!\bsweet\s)potato|eggplant|aubergine|bell pepper|paprika|cayenne|chili|chilli|pimento|goji)\w*/.source
@@ -189,7 +189,7 @@ const DIETS = [
       + '|miel|honig|miele|honing|honung|mi[óo]d|miodu|bal|mel|avoine|avena|hafer' + W + '|haver' + W + '|havre' + W + '|owies|owsian' + W + '|yulaf|aveia)' + R
       + '|(?<!mandel|kokos|lein|nuss|erdnuss)mehl|\\w(?:siroop|sirup|stroop|sirap)|(?<!amandel|kokos|noten)(?:bloem|meel)\\b|(?<!mandel|kokos)mj[öo]l(?!k)|\\bunu\\b(?<!badem unu)|' + GLUTEN, 'i') },
   { id: 'porkFree', label: 'Pork-free',
-    conflict: /\b(pork|bacon|lard|gelatin|prosciutto|pancetta|chorizo|schweine\w*|cerdo|porc(?!ini)|maiale|jam[óo]n|jambon|speck|schinken|fl[äa]sk|griskött|skinka|wieprzow|smalec|boczek|szynk|varken|reuzel|porco|toucinho|banha|presunto|domuz|jelatin)\w*|\bham\b|(?<![a-zà-ÿœ\u0100-\u017f])(?:[żz]elatyn|spek\b)/i },
+    conflict: /\b(pork|bacon|lard|gelatin|prosciutto|pancetta|chorizo|schweine\w*|cerdo|porc(?!ini)|maiale|jam[óo]n|jambon|speck|schinken|fl[äa]sk|griskött|skinka|wieprzow|smalec|boczek|szynk|varken|reuzel|porco|toucinho|banha|presunto|domuz|jelatin)\w*|\bham\b|(?<![a-zß-ÿœ\u0100-\u017f])(?:[żz]elatyn|spek\b)/i },
 ];
 
 // Scan a parsed ingredient list. `selected` is the list of ids the user asked to be warned about.

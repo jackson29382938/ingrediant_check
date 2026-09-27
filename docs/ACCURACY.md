@@ -148,14 +148,14 @@ What it found, and what changed:
   | Language | Lists | Declined before | Declined after |
   |---|---|---|---|
   | French | 97 | 16 | 3 |
-  | German | 60 | 6 | 2 |
-  | Spanish | 54 | 11 | 1 |
+  | German | 60 | 6 | 1 |
+  | Spanish | 54 | 11 | 0 |
   | Italian | 51 | 7 | 1 |
-  | Portuguese | 58 | 18 | 2 |
-  | Dutch | 41 | 21 | 2 |
+  | Portuguese | 58 | 18 | 1 |
+  | Dutch | 41 | 21 | 1 |
   | Swedish | 58 | 4 | 1 |
   | Polish | 59 | 9 | 2 |
-  | Turkish | 61 | 8 | 4 |
+  | Turkish | 61 | 8 | 2 |
   | English (UK) | 92 | 2 | 2 |
 
   These are the same lists the words were taken from, so the "after" column is an upper bound on
@@ -178,6 +178,10 @@ What it found, and what changed:
   erythritol, steviol glycosides, buckwheat, tahini, whole-grain durum). The rate did not fall between
   the second and third samples, which is the honest reading: the vocabulary each sample adds mostly
   fixes that sample.
+
+  With every fix since, the three samples together decline 36 of 2,007 (1.8%): 14 of 631, 11 of 661
+  and 11 of 715. These are the lists the words came from, so this is the in-sample figure; the 3.5%
+  and 3.6% above are the out-of-sample ones. (Measured 2026-09-27, `RULES_REVISION` 2026-09-27.35.)
 
 ### The same product in two languages (2026-09-27)
 

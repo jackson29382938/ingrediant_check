@@ -121,3 +121,16 @@ test('egg by its local names; lactic acid, cream of tartar, nutmeg and milk are 
   for (const w of ['pastöriserad mjölk', 'mjölksyrakultur', 'mellanmjölk']) assert.ok(!has(w, 'keto'), w);
   for (const w of ['vetemjöl', 'mjöl']) assert.ok(has(w, 'keto'), w);
 });
+
+test('ß is a letter: "weiß" is not Dutch whey, and Swiss "ss" spellings keep their flags', () => {
+  // The explicit word boundaries stopped at à, so "weiße Bohnen" read as "wei" (whey) and flagged milk.
+  for (const w of ['weiße Bohnen', 'weißes Maismehl', 'Weißzucker', 'Weißwein', 'Weißkohl', 'Weißbrot']) assert.ok(!has(w, 'milk'), w);
+  assert.ok(has('wei', 'milk') && has('weipoeder', 'milk'));
+  // ...and a word running on past ß must still reach its end.
+  for (const w of ['Hartweizengrieß', 'Weizengrieß', 'Grieß', 'Hartweizengriess', 'Griess']) assert.ok(has(w, 'wheat'), w);
+  for (const w of ['Hühnereiweiß', 'Hühnereiweiss']) assert.ok(has(w, 'egg'), w);
+  for (const w of ['Erdnußöl', 'Erdnuß', 'Erdnußbutter']) assert.ok(has(w, 'peanut'), w);
+  for (const w of ['Haselnuß', 'Walnuß']) assert.ok(has(w, 'treeNut'), w);
+  assert.ok(!has('Erdnußbutter', 'milk'));
+  assert.ok(has('Butter', 'milk') && has('Sahne', 'milk'));
+});

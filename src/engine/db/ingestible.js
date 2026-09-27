@@ -49,8 +49,8 @@ const WEAK_POSITIVE = [
 // The same non-food products in each store's own language. `\b` cannot see a leading or trailing
 // "ü", "ş" or "ú", so these take explicit boundaries. Only the product words: "pasta" alone is food,
 // "pasta de dientes" is not; "mama" is a Turkish baby food, "köpek maması" is dog food.
-const LB = '(?<![a-zà-ÿ\\u0100-\\u017f])';
-const RB = '(?![a-zà-ÿ\\u0100-\\u017f])';
+const LB = '(?<![a-zß-ÿ\\u0100-\\u017f])';
+const RB = '(?![a-zß-ÿ\\u0100-\\u017f])';
 const words = list => new RegExp(LB + '(?:' + list.join('|') + ')' + RB, 'i');
 const COSMETIC_WORDS = words([
   'zahnpasta', 'zahncreme', 'duschgel', 'duschbad', 'haarsp[üu]lung', 'sonnencreme',   // de

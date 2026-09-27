@@ -13,7 +13,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
 
   // Explicit word boundaries for the label-language words below: \b does not see the accented
   // letters they start and end with ("é", "ö", "ł", "ı").
-  const PL = '(?<![a-zà-ÿœ\\u0100-\\u017f])', PR = '(?![a-zà-ÿœ\\u0100-\\u017f])';
+  const PL = '(?<![a-zß-ÿœ\\u0100-\\u017f])', PR = '(?![a-zß-ÿœ\\u0100-\\u017f])';
   // An English rule plus the same claim in each label language. Without the local words
   // "sel marin" and "Meersalz" earned nothing where "sea salt" earns 5, and "maïs bio" nothing
   // where "organic maize" earns 8.
@@ -200,8 +200,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
       // With a word between the milk and the fat level ("leche en polvo desnatada", "leite em pó
       // desnatado", "lait concentré écrémé"), the reverse order ("odtłuszczone mleko") and Dutch fused by
       // Open Food Facts markup ("magere_melk_poeder" → "mageremelkpoeder").
-      + '|\\b(?:leche|leite|lait|latte)(?: [a-zà-ÿ]{1,12}){1,2} (?:(?:semi)?desnatad[ao]|descremad[ao]|[ée]cr[ée]m[ée]e?|scremat[oa]|magro)(?![a-zà-ÿ])'
-      + '|(?<![a-zà-ÿ\\u0100-\\u017f])odt[łl]uszczon[a-zęąó]* mlek[oa]|\\bmagere ?melk[a-z]*|\\b(?:yaourt|fromage blanc|fromage frais|faisselle|lait) maigre|\\bskummj[öo]lk[a-zåäö]*', 'i') },
+      + '|\\b(?:leche|leite|lait|latte)(?: [a-zß-ÿ]{1,12}){1,2} (?:(?:semi)?desnatad[ao]|descremad[ao]|[ée]cr[ée]m[ée]e?|scremat[oa]|magro)(?![a-zß-ÿ])'
+      + '|(?<![a-zß-ÿ\\u0100-\\u017f])odt[łl]uszczon[a-zęąó]* mlek[oa]|\\bmagere ?melk[a-z]*|\\b(?:yaourt|fromage blanc|fromage frais|faisselle|lait) maigre|\\bskummj[öo]lk[a-zåäö]*', 'i') },
   ];
 
   // Full-fat dairy, for the fat-reduced dairy rule above. A whole-milk kefir with some nonfat milk
@@ -220,7 +220,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     'gr[äa]dde', 'ost', 'mleko', 'mleka', '[śs]mietan(?:a|ka)', 'jogurt', 'ser', 's[üu]t', 'krema', 'yo[ğg]urt', 'peynir', 'k[ée]fir']);
   const NOT_FULL_FAT_DAIRY = inLanguages(/\b(protein|isolate|concentrate|solids|powder|permeate|whey|casein(?:ate)?|lactose|minerals?|coconut|almond|oat|soy|soya|rice|cashew|hemp|pea|macadamia|chocolate|substitute|non[- ]?dairy|dairy[- ]?free|plant)\b/i, [
     'poudre', 'polvo', 'polvere', 'p[óo]', '[a-zäöü]*pulver', 'poeder', '[a-z]*poeder', 'proszku', 'toz(?:u)?', 'prot[ée]ines?', 'prote[íi]nas?', 'proteine',
-    'eiwei[ßs]', 'eiwit', 'bia[łl]k[ao]', 'lactos[ée]rum', 'petit[- ]lait', 'suero', 'siero', 'soro', '[a-zäöü]*molke[a-zäöü]*', 'wei(?:poeder)?', 'vassle[a-z]*',
+    'eiwei(?:ss|[ßs])', 'eiwit', 'bia[łl]k[ao]', 'lactos[ée]rum', 'petit[- ]lait', 'suero', 'siero', 'soro', '[a-zäöü]*molke[a-zäöü]*', 'wei(?:poeder)?', 'vassle[a-z]*',
     'serwatk[ai]', 'peyniralt[ıi]', 'lactosa', 'lattosio', 'laktose', 'laktos', 'laktoz[ay]?', 'coco', 'cocco', 'kokos[a-z]*', 'hindistan cevizi', 'amandes?',
     'almendras?', 'mandorl[ae]', 'am[êe]ndoas?', 'mandel[a-z]*', 'amandel[a-z]*', 'migda[łl][a-zęąó]*', 'badem', 'avoine', 'avena', 'aveia', 'hafer[a-z]*', 'haver[a-z]*',
     'havre[a-z]*', 'owsian[a-zęąó]*', 'yulaf', 'soja', 'soia', 'sojow[a-zęąó]*', 'riz', 'arroz', 'riso', 'reis', 'rijst', 'ris', 'ry[żz]', 'pirin[çc]',

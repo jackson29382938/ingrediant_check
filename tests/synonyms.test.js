@@ -1003,3 +1003,8 @@ test('buckwheat is not charged as wheat; local dried egg white and niacin are', 
   assert.ok(!reasons(score('water, eiwitpoeder')).includes('Dried egg white'));
   assert.deepEqual(reasons(score('water, niacyna')), reasons(score('water, niacin')));
 });
+
+test('Swiss "ss" spelling of semolina is charged like "Grieß"', () => {
+  assert.deepEqual(reasons(score('Wasser, Hartweizengriess')), reasons(score('Wasser, Hartweizengrieß')));
+  assert.ok(reasons(score('Wasser, Hartweizengriess')).includes('Durum semolina'));
+});

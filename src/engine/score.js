@@ -81,8 +81,8 @@ const DENIAL_SUFFIX_ENTRY = /^[a-z][a-z0-9 '&-]{0,28}[- ]free$/i;
 // The same denials in each label language: "sans conservateurs", "ohne Zuckerzusatz", "bez
 // konserwantów" and Turkish "koruyucu içermez" stayed in the list as unreadable ingredients (90
 // where "oats, salt, no preservatives" scores 94), and fused "konservierungsstofffrei" likewise.
-const LOCAL_DENIAL_HEAD = /^(?:sans|sin|senza|ohne|zonder|utan|bez|sem|geen|ingen|kein(?:e[nr]?)?|aucun(?:e|s)?|ne contient (?:pas|aucun)(?: de| d['’])?|enth[äa]lt kein(?:e[nr]?)?|no contiene|non contiene|n[ãa]o cont[ée]m|bevat geen|inneh[åa]ller (?:inga|ej|inte)|nie zawiera)(?![a-zà-ÿ\u0100-\u017f])/i;
-const LOCAL_DENIAL_SUFFIX = /^[a-zà-ÿ\u0100-\u017f][a-zà-ÿ\u0100-\u017f '-]{0,40}\s(?:i[çc]ermez|yoktur|kullan[ıi]lmam[ıi][şs]t[ıi]r|eklenmemi[şs]tir)$|^[a-zäöüßåæø]{3,28}(?:frei|vrij|fri)$/i;
+const LOCAL_DENIAL_HEAD = /^(?:sans|sin|senza|ohne|zonder|utan|bez|sem|geen|ingen|kein(?:e[nr]?)?|aucun(?:e|s)?|ne contient (?:pas|aucun)(?: de| d['’])?|enth[äa]lt kein(?:e[nr]?)?|no contiene|non contiene|n[ãa]o cont[ée]m|bevat geen|inneh[åa]ller (?:inga|ej|inte)|nie zawiera)(?![a-zß-ÿ\u0100-\u017f])/i;
+const LOCAL_DENIAL_SUFFIX = /^[a-zß-ÿ\u0100-\u017f][a-zß-ÿ\u0100-\u017f '-]{0,40}\s(?:i[çc]ermez|yoktur|kullan[ıi]lmam[ıi][şs]t[ıi]r|eklenmemi[şs]tir)$|^[a-zäöüßåæø]{3,28}(?:frei|vrij|fri)$/i;
 // "(non hydrogenated)" is a claim about the oil beside it, in any language.
 const CLAIM_ENTRY = /^(?:non[- ]?gmo|gmo[- ]free|all[- ]natural|kosher|halal|certified [a-z ]+|(?:first )?cold[- ]press(?:ed|ing)?|first press(?:ed|ing)?|extra virgin|unrefined|non[- ]?hydrogenated|unhydrogenated|non[- ]hydrog[ée]n[ée]e?s?|nicht geh[äa]rtet(?:e[snmr]?)?|no hidrogenad[oa]s?|n[ãa]o hidrogenad[oa]s?|non idrogenat[oaie]|niet gehydrogeneerde?|ej h[äa]rdad|oh[äa]rdad|nieuwodorniony|nie uwodorniony|hidrojenize olmayan)$/i;
 
@@ -316,7 +316,7 @@ const COMMON_PANEL = new RegExp('\\b(?:' + [
   // that a rule charges is recognised through that rule; these are the ones nothing charges.
   'e[- ]?(?:100|120|14[01]|16[0-3][a-i]?|262|32[5-7]|33[1-3]|40[1-6]|440a?|50[0-4](?:i{1,3})?|50[89]|524|57[45]|901|903|941|948)',
 ].join('|') + ')\\b'
-  + '|(?<![a-zà-ÿ\\u0100-\\u017f])(?:ägg|äggula|äggvita|äpple|äpplen|ärtor|ärter|[śs]mietan[a-zà-ÿ\\u0100-\\u017f]*|łoso[śs]|żyto'
+  + '|(?<![a-zß-ÿ\\u0100-\\u017f])(?:ägg|äggula|äggvita|äpple|äpplen|ärtor|ärter|[śs]mietan[a-zß-ÿ\\u0100-\\u017f]*|łoso[śs]|żyto'
   // Turkish staples: most end or begin in ı, ş, ğ, ç or ü, so they take the same boundaries.
   + '|su|tuz|maya|s[üu]t|s[üu]t tozu|ya[ğg]s[ıi]z s[üu]t tozu|tam ya[ğg]l[ıi] s[üu]t tozu|krema|tereya[ğg][ıi]|peynir|yo[ğg]urt|yo[ğg]urt k[üu]lt[üu]r[üu]|k[üu]lt[üu]r(?:[üu]|ler)?|yumurta|bal|kakao|kakao ya[ğg][ıi]|kakao k[üu]tlesi'
   + '|patates|domates|sar[ıi]msak|so[ğg]an|fesle[ğg]en|kekik|biber|kuru [üu]z[üu]m|[üu]z[üu]m|f[ıi]nd[ıi]k|badem|ceviz|ay[çc][ıi][çc]e[ğg]i [çc]ekirde[ğg]i|elma|[çc]ilek|limon|portakal|muz'
@@ -352,7 +352,7 @@ const COMMON_PANEL = new RegExp('\\b(?:' + [
   + '|selderij|selleri|sellerie|apio|c[ée]leri|sedano|aipo|seler|kereviz|prei|purjol[öo]k|poireaux?|puerros?|porro|lauch|p[ıi]rasa'
   + '|citroen\\w*|zitrone|lim[óo]n|limone|lim[ãa]o|sinaasappel\\w*|naranjas?|arancia|arance|laranjas?|mandarijn\\w*'
   + '|vainilla|baunilha|vanilya|wanilia|vanilj\\w*|vanillepoeder|extracto de vainilla|estratto di vaniglia'
-  + '|chocolat(?: noir| au lait| blanc)?|cioccolato(?: fondente| al latte| bianco)?|\\w*chocolade|[a-zà-ÿ]*choklad|(?:s[üu]tl[üu] |bitter |beyaz )?[çc]ikolata'
+  + '|chocolat(?: noir| au lait| blanc)?|cioccolato(?: fondente| al latte| bianco)?|\\w*chocolade|[a-zß-ÿ]*choklad|(?:s[üu]tl[üu] |bitter |beyaz )?[çc]ikolata'
   + '|especias?|especiarias?|specerij(?:en)?|[ée]pices|gew[üu]rz|spezie|przyprawa'
   + '|kryddnejlik(?:a|or)|clavos?(?: de olor)?|chiodi di garofano|cravinhos?|clous? de girofle|(?:gew[üu]rz)?nelken|kruidnagel(?:en)?|go[źz]dzik[ia]?|karanfil'
   + '|mostaza|moutarde|senf|mosterd|senap|hardal|mostarda|senape|senapsfr[öo]n|semillas de mostaza|graines de moutarde|senfk[öo]rner|senfsa(?:men|at)|mosterdzaad|semi di senape|ziarna gorczycy|hardal tohumu|sementes de mostarda'
@@ -362,7 +362,7 @@ const COMMON_PANEL = new RegExp('\\b(?:' + [
   + '|cloruro pot[áa]sico|kaliumchlorid|cloruro di potassio|cloreto de pot[áa]ssio|chlorek potasu|potasyum kl[öo]r[üu]r|kaliumklorid'
   + '|tiamina|tiammina|tiamin|tiamine|farinha|zonnebloem|girassol|solros|levedura|(?:back)?hefe'
   + '|estratt[io] di rosmarino|extrait de romarin|extracto de romero|rosmarinextrakt|rozemarijnextract|ekstrakt z rozmarynu|biberiye ekstrakt[ıi]'
-  + ')(?![a-zà-ÿ\\u0100-\\u017f])', 'i');
+  + ')(?![a-zß-ÿ\\u0100-\\u017f])', 'i');
 
 // Marketing qualifiers in front of an ingredient carry no scoring information, but most sugar and
 // sweetener rules are anchored at the start of the entry — so "organic agave nectar" matched nothing
@@ -382,7 +382,7 @@ const hitsAny = (rules, ing, pick = r => r) => rules.some(r => hits1(pick(r), in
 // A hyphen inside a phrase is often just a space: "modified corn-starch", "natural-flavors",
 // "soya-lecithin" escaped their rules. Rules are tried on both forms, because some need the hyphen
 // ("mono- und", "demi-écrémé", "L-cysteine") and the text itself is left as written.
-const spaced = s => (s.includes('-') ? s.replace(/([a-zà-ÿœ\u0100-\u017f])-(?=[a-zà-ÿœ\u0100-\u017f])/gi, '$1 ') : s);
+const spaced = s => (s.includes('-') ? s.replace(/([a-zß-ÿœ\u0100-\u017f])-(?=[a-zß-ÿœ\u0100-\u017f])/gi, '$1 ') : s);
 const eitherForm = (re, s) => re.test(s) || (s.includes('-') && re.test(spaced(s)));
 
 function penaltiesFor(ing) {
@@ -614,7 +614,7 @@ function joinStatements(parts) {
 const ORGANIC_WORD = '(?:organic|bio|biologique|biologiques|biol[óo]gic[oa]s?|biologic[oaie]|biologiche|biologisch(?:e[mnrs]?)?'
   + '|ecol[óo]gic[oa]s?|eco|[öo]ko|ekologisk[at]?|ekologiczn[a-zęąó]*|organik|kbA)';
 const ORGANIC_EDGE = new RegExp(`^(?:${ORGANIC_WORD}[- ]\\s*)+|(?:\\s+${ORGANIC_WORD})+$`, 'gi');
-const BIO_FUSED = /^bio(?!t[iy]n|log|flav|cult|kult|akt|act|fib|fib|sph|mass|gas|eth|dyn|chem|synt|top|tech|degr|sol)(?=[a-zà-ÿ\u0100-\u017f]{4,}$)/i;
+const BIO_FUSED = /^bio(?!t[iy]n|log|flav|cult|kult|akt|act|fib|fib|sph|mass|gas|eth|dyn|chem|synt|top|tech|degr|sol)(?=[a-zß-ÿ\u0100-\u017f]{4,}$)/i;
 function withoutOrganic(ing) {
   if (ing.length > 80 || !/bio|org|eco|[öo]ko|eko|kba/i.test(ing)) return null;
   // A claim or a note is read whole ("certified organic", "*ingrédients biologiques").
@@ -707,7 +707,7 @@ const LABEL_NOTE = new RegExp('^(?:(?:\\*\\s*)?(?:(?:certified )?organic ingredi
   + '|ingredienti? (?:da|biologic)|.*agricultura (?:biol[óo]gica|ecol[óo]gica)|.*\\bkontrolliert biologische|.*\\bz upraw ekologiczn|sk[łl]adnik(?:i)?(?: pochodz[ąa]c[ey]| pochodz[ąa]cy)?(?: z)? (?:upraw |rolnictwa )?ekologiczn|.*\\brolnictw[ao] ekologiczn|ekologisk(?:a)? ingrediens(?:er)?|.*\\bfr[åa]n ekologisk|.*\\bekologisk (?:odling|produktion|jordbruk)|.*\\bbiologische landbouw'
   + '|.*commerce [ée]quitable|.*fair ?trade|rainforest alliance'
   // Where it was grown: "(origine Amérique du Nord ou Amérique du Sud)", "(Herkunft: EU)".
-  + '|(?:country of )?origine?\\b|provenance\\b|herkunft\\b|origen\\b|provenienza\\b|proveni[êe]ncia\\b|oorsprong\\b|ursprung(?:sland)?\\b|kraj pochodzenia\\b|pochodzenie\\b|men[şs]e(?:i)?(?![a-zà-ÿ\\u0100-\\u017f]))'
+  + '|(?:country of )?origine?\\b|provenance\\b|herkunft\\b|origen\\b|provenienza\\b|proveni[êe]ncia\\b|oorsprong\\b|ursprung(?:sland)?\\b|kraj pochodzenia\\b|pochodzenie\\b|men[şs]e(?:i)?(?![a-zß-ÿ\\u0100-\\u017f]))'
   + '|(?:gluten[- ]free|sans gluten|glutenfrei|sin gluten|senza glutine|sem gl[úu]ten|glutenvrij|glutenfri|bezglutenow|glutensiz)$'
   + '|contains? a source of phenylalanine|contient une source de ph[ée]nylalanine|enth[äa]lt eine phenylalaninquelle|contiene una fuente de fenilalanina'
   + '|contiene una fonte di fenilalanina|cont[ée]m uma fonte de fenilalanina|bevat een bron van fenylalanine|inneh[åa]ller en fenylalaninkälla|zawiera [źz]r[óo]d[łl]o fenyloalaniny|fenilalanin kayna[ğg][ıi]'
@@ -728,7 +728,7 @@ function score(product, options = {}) {
   // A hyphen left from a line break keeps its spaces in Open Food Facts text ("mono - i diglicerydy",
   // "glucose - fructosestroop", "zuurte - regelaar"), which no rule reads; it is closed up.
   const rawTxt = String(product.ingredients_text || '').replace(/_+/g, '').replace(/[[{]/g, '(').replace(/[\]}]/g, ')')
-    .replace(/([a-zà-ÿœ\u0100-\u017f]) +- +([a-zà-ÿœ\u0100-\u017f])/gi, '$1-$2');
+    .replace(/([a-zß-ÿœ\u0100-\u017f]) +- +([a-zß-ÿœ\u0100-\u017f])/gi, '$1-$2');
   // Parse the list as written, then drop only the entries that are themselves denials. The
   // scoring surface is rebuilt from what survives, so caps and penalties see the real ingredients
   // and never see "no artificial colors". See DENIAL_ENTRY above for why this replaced running
