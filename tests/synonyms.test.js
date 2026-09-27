@@ -939,3 +939,13 @@ test('English everyday words from the samples are read; a pressing claim is not 
   assert.equal(oil.nova, 2);
   assert.ok(oil.good.some(g => g.why.startsWith('Cold-pressed')));
 });
+
+test('"-ing agent" wordings of the function words are the unnamed additive', () => {
+  const pairs = [
+    ['water, stabiliser', 'water, stabilising agent'], ['water, stabiliser', 'water, thickening agent'], ['water, stabiliser', 'water, gelling agent'],
+    ['water, emulsifier', 'water, emulsifying agent'], ['water, preservative', 'water, preserving agent'], ['water, antioxidant', 'water, anti-oxidant'],
+    ['water, acidity regulator', 'water, acidity correctors'], ['water, vegetable oil', 'water, oil of vegetable origin'],
+  ];
+  for (const [a, b] of pairs) assert.deepEqual(reasons(score(b)), reasons(score(a)), b);
+  assert.deepEqual(reasons(score('water, emulsifying agent (soy lecithin)')), reasons(score('water, soy lecithin')));
+});
