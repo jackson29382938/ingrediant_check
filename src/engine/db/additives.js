@@ -136,12 +136,12 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\bsunflower lecithins?\b|\blecitinas? de girasol\b|\bl[ée]cithines? de tournesol\b|\bsonnenblumenlecithine?n?\b|\blecitin[ae] di girasole\b|\blecith?ina de girassol\b|\bzonnebloemlecithine\b|\bsolroslecitin\b|\blecytyn[ay]? s[łl]onecznikow[ae]\b|\bay[çc][ıi][çc]ek lesitini?\b/i, pts: 4,  why: 'Sunflower lecithin' },
     // "Lecithin" with no source, or E322 — which is most EU chocolate. Between the two lecithins
     // above, because the source is exactly what the label declined to say.
-    { m: /^(?:lecithins?|lecitin[ae]s?|l[ée]cithines?|lecithine?|lecitin(?:er)?|lecytyn[ay]?|lesitin)$|\be[- ]?322\b/i, pts: 7,  why: 'Lecithin — emulsifier, source not stated' },
+    { m: /^(?:lecithins?|lecitin[ae]s?|l[ée]cithines?|lecithine?n?|lecitin(?:er)?|lecytyn[ay]?|lesitin(?:ler)?)$|\be[- ]?322\b/i, pts: 7,  why: 'Lecithin — emulsifier, source not stated' },
     { m: /\bmodified (food |corn |maize |potato |tapioca |wheat |rice |waxy maize )?starch\b|\be[- ]?14[0-5]\d\b|\balmid[óo]n modificado\b|\bamidon (?:de (?:ma[ïi]s|bl[ée]|pomme de terre|tapioca|riz) )?modifi[ée](?![a-zà-ÿ\u0100-\u017f])|\bmodifizierte st[äa]rke\b|\bamido modificato\b|\bamido modificado\b|\bgemodificeerd zetmeel\b|\bmodifierad (?:majs|potatis|vete|tapioka)?st[äa]rkelse\b|\bskrobia (?:kukurydziana |ziemniaczana |pszenna |tapiokowa )?modyfikowana\b|\bmodyfikowana skrobia\b|\bmodifiye (?:m[ıi]s[ıi]r |patates |bu[ğg]day )?ni[şs]asta(?:s[ıi])?(?![a-zà-ÿ\u0100-\u017f])/i, pts: 14, why: 'Modified starch — chemically altered' },
     { m: /\bmaltod[eé]xtrin[ae]?\b|\bmaltodestrina\b|\bmaltodextrine\b|\bmaltodekstryna\b|\bmaltodekstrin\b|(?<=[a-zà-ÿ\u0100-\u017f]{3})maltodextrin[ae]?(?![a-zà-ÿ\u0100-\u017f])/i,  pts: 18, why: 'Maltodextrin — raises blood sugar faster than table sugar' },
     { m: /\bcarboxymethyl\b|(?:natrium|sodium ?)carboxymethyl|\bcarboxym[ée]thylcellulose\b|\bcarboximetilcelulosa\b|\bcarbossimetilcellulosa\b|\bkarboksymetyloceluloza\b|\bkarboksimetil sel[üu]loz\b|\bcarboximetilcelulose\b/i,                         pts: 11, why: 'Carboxymethyl derivative' },
     { m: /\bpropylene glycol\b|\be[- ]?1520\b/i,                      pts: 14, why: 'Propylene glycol' },
-    { m: /\bglycerin(e)?\b|\bglycerol\b|\bglicerina\b|\bglyc[ée]rine\b|\bglicerolo\b|\bglycerine\b|\bgliser(?:ol|in)\b|\bglicerol\b|\be[- ]?422\b/i, pts: 6,  why: 'Glycerin humectant' },
+    { m: /\bglycerin(e)?\b|\bglyc[ée]rol\b|\bglicerina\b|\bglyc[ée]rine\b|\bglicerolo\b|\bglycerine\b|\bgliser(?:ol|in)\b|\bglicerol\b|\be[- ]?422\b/i, pts: 6,  why: 'Glycerin humectant' },
   ];
 
   // ---------------------------------------------------------------- preservatives

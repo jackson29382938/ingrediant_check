@@ -84,7 +84,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
       + '|baies|bayas|bacche|beeren|bessen|b[äa]r|jagody|meyveler|bagas'
       + '|myrtilles|ar[áa]ndanos|mirtilli|heidelbeeren|blaubeeren|bosbessen|bl[åa]b[äa]r|bor[óo]wki|yaban mersini|mirtilos'
       + '|fraises|fresas|fragole|erdbeeren|aardbeien|jordgubbar|truskawki|[çc]ilek|morangos'
-      + '|oranges|naranjas|arance|orangen|sinaasappels|apelsiner|pomara[ńn]cze|portakal|laranjas'
+      + '|oranges|naranjas?|arancia|arance|orangen?|sinaasappels?|apelsin(?:er)?|pomara[ńn]cz[ae]|portakal|laranjas?'
       + '|dattes|d[áa]tiles|datteri|datteln|dadels|dadlar|daktyle|hurma|t[âa]maras'
       + '|figues|higos|fichi|feigen|vijgen|fikon|figi|incir|figos'
       + '|raisins secs|(?:uvas )?pasas|uvetta|uva sultanina|rosinen|sultaninen|rozijnen|russin|rodzynki|kuru [üu]z[üu]m|uvas passas)$', 'i'),
@@ -93,14 +93,15 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     new RegExp('^(?:[ée]pinards?|espinacas?|spinaci|spinat|spinazie|spenat|szpinak|ıspanak|espinafres?'
       + '|chou kale|col rizada|cavolo riccio|gr[üu]nkohl|boerenkool|gr[öo]nk[åa]l|jarmu[żz]|karalahana|couve galega'
       + '|brocolis?|br[óo]coli|broccoli|brokkoli|brokuły|brokoli|br[óo]colos?'
-      + '|carottes?|zanahorias?|carote|karotten|m[öo]hren|wortelen|mor[öo]tter|marchew|havu[çc]|cenouras?'
-      + '|oignons?|cebollas?|cipoll[ae]|zwiebeln?|uien|l[öo]k|cebula|so[ğg]an|cebolas?'
+      + '|carottes?|zanahorias?|carot[ae]|karotten?|m[öo]hren?|wortel(?:en|s)?|mor[öo]t(?:ter)?|marchew|havu[çc]|cenouras?'
+      + '|oignons?|cebollas?|cipoll[ae]|zwiebeln?|ui(?:en)?|l[öo]k|cebula|so[ğg]an|cebolas?'
       + '|ail|ajo|aglio|knoblauch|knoflook|vitl[öo]k|czosnek|sar[ıi]msak|alho'
       + '|tomates?|pomodor[oi]|tomaten|tomaat|tomater?|pomidor(?:y)?|domates'
       + '|pommes? de terre|patatas?|papas|patat[ae]|kartoffeln?|aardappel(?:en|s)?|potatis|ziemniak(?:i)?|patates|batatas?)$', 'i'),
     // "rolled oats", "oat flakes" and "brown rice" are the same whole grain as "oats" and "rice".
     /^(organic )?(?:(?:brown|white|wild|basmati|jasmine|long[- ]grain|short[- ]grain|whole ?grain|wholegrain) )?(rice|quinoa|buckwheat|(?:(?:rolled|whole|porridge|steel[- ]cut|jumbo|old[- ]fashioned|whole ?grain|wholegrain|gluten[- ]free) )*(?:oats|oat flakes))$/i,
     /^(black |white |cayenne )?pepper$/i,
+    /^(?:(?:zwarte |witte )?peper|pepe(?: nero| bianco)?|(?:schwarzer |wei[ßs]er )?pfeffer|poivre(?: noir| blanc)?|pimienta(?: negra| blanca)?|pimenta(?: preta| branca|-do-reino)?|(?:svart|vit)?peppar|pieprz(?: czarny| bia[łl]y)?|karabiber)$/i,
     // An animal food alone, in each label language, as the English lines above read "chicken breast"
     // or "whole milk". Anchored to the whole entry, so "chocolat au lait" and "bouillon de poulet" are not.
     new RegExp('^(?:(?:bio|volle|halfvolle|magere|tam ya[ğg]l[ıi]|ya[ğg]l[ıi]|ya[ğg]s[ıi]z|past[öo]riserad|pasteurisierte|gepasteuriseerde|past[öo]rize|frais|fra[îi]che|frisch[e]?|fresc[oa]|vers[e]?|f[äa]rsk|[śs]wie[żz]\\w*|taze|filet de|blanc de|cuisse de|pechuga de|petto di|pier[śs] z)\\s+)*(?:b(?:œ|oe)uf|bovin|rindfleisch\\w*|rinder\\w*|rinds\\w*|kalb\\w*|ternera|vacuno|carne de res|manzo|vitello|rundvlees|rundsvlees|runder\\w*|rundergehakt|kalfs?vlees|n[öo]tk[öo]tt|kalv\\w*|wo[łl]owin\\w*|ciel[ęe]cin\\w*|s[ıi][ğg][ıi]r(?: eti)?|dana eti|carne bovina|vitela|novilho|porc|jambon|saucisses?|schwein\\w*|schinken|cerdo|jam[óo]n|maiale|salsicci[ae]|varkens?\\w*|fl[äa]sk\\w*|skinka|wieprzow\\w*|szynk[ai]|boczek|porco|presunto|toucinho|lingui[çc]a|poulet|dinde|canard|volaille|h[äa]hnchen\\w*|huhn|h[üu]hner\\w*|pute\\w*|truthahn|ente|gefl[üu]gel|pollo|pavo|pato|tacchino|anatra|kip(?:filet|pendij)?|kippen\\w*|kalkoen|eend|gevogelte|kyckling\\w*|kalkon|anka|kurczak\\w*|kurcz[ęe]\\w*|indyk\\w*|kaczk\\w*|dr[óo]b|tavuk(?: \\w+)?|hindi eti|[öo]rdek|frango|agneau|mouton|lamm\\w*|schaf\\w*|cordero|cabra|agnello|capra|lamsvlees|jagni[ęe]cin\\w*|baranin\\w*|kuzu(?: eti)?|koyun eti|borrego|cordeiro|(?:œ|oe)ufs?(?: entiers?| frais)?|eier|ei|huevos?|uov[ao]|eieren|[äa]gg|jaj(?:a|ka)|yumurta|ovos?|saumon|thon|cabillaud|crevettes?|lachs\\w*|thunfisch\\w*|kabeljau|garnelen?|salm[óo]n|salmone|at[úu]n|bacalao|gambas?|tonno|merluzzo|gamber[io]|zalm|tonijn|kabeljauw|garnalen?|lax|tonfisk|torsk|r[äa]kor|[łl]oso[śs]\\w*|tu[ńn]czyk\\w*|dorsz\\w*|krewetk\\w*|somon|ton bal[ıi][ğg][ıi]|morina|karides|salm[ãa]o|atum|bacalhau|camar[ãa]o|sardines?|sardinas?|sardinen|sardynk\\w*|sardalya|sardinhas?|maquereau|caballa|sgombro|makreel|makrill|makrel\\w*|uskumru|cavala|truites?|truchas?|trota|forellen?|forel|[öo]ring|pstr[ąa]g\\w*|alabal[ıi]k|truta|lait|cr[èe]me|beurre|fromage|yaourt|milch|(?:voll|mager|frisch|alpen|heu|weide|roh|bergbauern)milch|sahne|k[äa]se|joghurt|leche|nata|mantequilla|queso|yogur|latte|panna|burro|formaggio|melk|room|boter|kaas|(?:hel|skum|mellan|l[äa]tt|standard)?mj[öo]lk|gr[äa]dde|sm[öo]r|ost|mleko|[śs]mietan\\w*|mas[łl]o|ser|jogurt|s[üu]t|krema|tereya[ğg][ıi]|peynir|(?:pastörize )?inek s[üu]t[üu]|yo[ğg]urt|leite|manteiga|queijo|iogurte)(?:\\s+(?:frais|fra[îi]che|entier|enti[èe]re|hach[ée]e?|frisch|fresc[oa]|enter[oa]|inter[oa]|hele|f[äa]rsk|taze|inteir[oa]|pasteuris[ée]e?|pastorizad[oa]|pastorizzat[oa]|pasteurisiert[e]?|gepasteuriseerd[e]?|past[öo]riserad|pasteryzowane|past[öo]rize|pasteurizad[oa]|maigre|pe[łl]ne|odt[łl]uszczone|[ée]cr[ée]m[ée]e?|demi-[ée]cr[ée]m[ée]e?|desnatad[oa]|semidesnatad[oa]|scremat[oa]|parzialmente scremat[oa]|filets?|filé|brust|breast|g[öo]ğs[üu]|picad[ao]|macinat[oa]|gehakt|mald|mielon[ay]|k[ıi]yma))*$', 'i'),
@@ -128,6 +129,16 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
       + '|sementes de (?:girassol|ab[óo]bora|chia|linha[çc]a|s[ée]samo|c[âa]nhamo)|linha[çc]a)'
       + '(?:\\s+(?:gr?ill[ée]e?s|torr[ée]fi[ée]e?s|tostad[oa]s|tostat[ei]|torrad[oa]s?|sal[ée]e?s|salad[oa]s|salat[ei]|d[ée]cortiqu[ée]e?s|pelad[oa]s|sgusciat[ei]|descascad[oa]s|entier(?:e?s)?|enter[oa]s|inter[ei]|inteir[oa]s)){0,2}$', 'i'),
     /^(cinnamon|turmeric|ginger|paprika|cumin|coriander|oregano|basil|thyme|rosemary|garlic powder|onion powder)$/i,
+    // The same spices and herbs in each label language ("cannelle" was NOVA 2 where "cinnamon" is 1).
+    new RegExp('^(?:cannelle|canela|cannella|zimt|kaneel|kanel|cynamon|tar[çc][ıi]n'
+      + '|curcuma|c[úu]rcuma|kurkuma|gurkmeja|zerde[çc]al|a[çc]afr[ãa]o-da-terra'
+      + '|gingembre|jengibre|zenzero|ingwer|gember|ingef[äa]ra|imbir|zencefil|gengibre|piment[óo]n'
+      + '|cumin|comino|cumino|cominho|kreuzk[üu]mmel|komijn|spiskummin|kmin(?: rzymski)?|kimyon'
+      + '|coriandre|coriandolo|coentro|koriander|kolendra|ki[şs]ni[şs]'
+      + '|origan|or[ée]gano|origano|oregano|basilic|albahaca|basilico|basilikum|basilicum|basilika|bazylia|fesle[ğg]en|manjeric[ãa]o'
+      + '|thym|tomillo|timo|thymian|tijm|timjan|tymianek|kekik|tomilho|romarin|romero|rosmarino|rosmarin|rozemarijn|rozmaryn|biberiye|alecrim'
+      + "|poudre d['’] ?(?:oignon|ail)|(?:cebolla|ajo) en polvo|(?:zwiebel|knoblauch)pulver|(?:cipolla|aglio) in polvere|(?:uien|knoflook)poeder"
+      + '|(?:cebola|alho) em p[óo]|(?:l[öo]k|vitl[öo]ks?)pulver|(?:cebula|czosnek) w proszku|(?:so[ğg]an|sar[ıi]msak) tozu)$', 'i'),
   ];
 
   // Culinary ingredients — NOVA 2. Real foods, but extracted/concentrated.

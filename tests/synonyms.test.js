@@ -961,3 +961,32 @@ test('local gelling agents and "agent" wordings read as their English function w
   for (const [a, b] of pairs) assert.deepEqual(reasons(score(b)), reasons(score(a)), b);
   assert.deepEqual(reasons(score('eau, gélifiant (pectine)')), reasons(score('eau, pectine')));
 });
+
+test('everyday spices, vegetables, raising agents and food colours from the third sample read as their English twins', () => {
+  const twins = {
+    cinnamon: ['cannelle', 'canela', 'zimt', 'kaneel', 'tarçın'], cumin: ['comino', 'kreuzkümmel', 'spiskummin', 'kimyon'],
+    'black pepper': ['zwarte peper', 'pepe nero', 'schwarzer pfeffer', 'poivre noir', 'svartpeppar'], carrot: ['carota', 'möhre', 'wortel', 'morot'],
+    onion: ['ui'], 'onion powder': ['cebolla en polvo', 'zwiebelpulver', 'soğan tozu'], oranges: ['naranja', 'sinaasappel', 'apelsin'],
+    celery: ['selderij', 'selleri', 'apio', 'céleri'], leek: ['prei', 'purjolök', 'poireau'], lemon: ['citroen', 'limón', 'zitrone'],
+    vanilla: ['vainilla', 'baunilha', 'vanilj'], 'dark chocolate': ['chocolat noir', 'cioccolato fondente', 'mörk choklad', 'bitter çikolata'],
+    spices: ['especias', 'specerijen', 'épices', 'spezie'], cloves: ['kryddnejlika', 'clous de girofle', 'kruidnagel', 'karanfil'],
+    carotenes: ['carotenos', 'karotener', 'karotenler'], anthocyanins: ['antocyjany', 'antocianinas', 'anthocyanes'],
+    'ammonium bicarbonate': ["carbonato acido d'ammonio", 'ammoniumvätekarbonat', 'węglany amonu', 'carbonatos de amonio'],
+    'sodium carbonates': ['węglany sodu', 'natriumbicarbonaat', 'bicarbonato de sódio'], 'raising agent': ['agente lievitante', 'triebmittel'],
+    'trisodium citrate': ['trisodyum sitrat', 'citrato trisódico'], 'potassium chloride': ['cloruro potásico', 'kaliumchlorid', 'chlorek potasu'],
+    thiamin: ['tiamina', 'tiamin'], flour: ['farinha'], yeast: ['levedura', 'hefe'],
+  };
+  for (const [en, locals] of Object.entries(twins)) {
+    const a = score(`water, ${en}`);
+    for (const l of locals) {
+      const b = score(`water, ${l}`);
+      assert.deepEqual([b.score, b.coverage, reasons(b)], [a.score, a.coverage, reasons(a)], l);
+    }
+  }
+  // A food colour in its function word's bracket names it, as "colour (anthocyanins)" does.
+  assert.deepEqual(reasons(score('woda, barwnik (antocyjany)')), reasons(score('water, colour (anthocyanins)')));
+  // Plural lecithin and accented glycerol are the additive.
+  for (const [a, b] of [['lecithin', 'lecithinen'], ['lecithin', 'lesitinler'], ['glycerol', 'glycérol']]) {
+    assert.deepEqual(reasons(score(`water, ${b}`)), reasons(score(`water, ${a}`)), b);
+  }
+});

@@ -348,6 +348,19 @@ const COMMON_PANEL = new RegExp('\\b(?:' + [
   + '|lactas[ea]|laktase?|lattasi|laktaz(?: enzimi)?|kahve|[öo][ğg][üu]t[üu]lm[üu][şs] kahve|caf[ée](?: moulu| soluble| torr[ée]fi[ée])?|caff[èe]|kaffee|koffie|kaffe|kawa|chicor[ée]e(?: soluble)?|achicoria|cicoria|zichorie|cichorei|cikoria|cykoria|hindiba|sumo|polpa'
   + "|huile de s[ée]same|aceite de s[ée]samo|olio di sesamo|sesam[öo]l|sesamolie|sesamolja|olej sezamowy|susam ya[ğg][ıi]|[óo]leo de s[ée]samo"
   + '|mj[öo]lksyrakulturer?|syrakulturer?|vitm[öo]gelkultur|l[öo]pe|milchs[äa]urekulturen|fermenti lattici|fermentos? l[áa]cticos|zuursel|kultury bakterii|pr[ée]sure|cuajo(?: microbiano)?|caglio|stremsel|podpuszczk[ai]|peynir mayas[ıi]|coalho(?: microbiano)?|labferment'
+  // From the third sample (page 3, 715 lists): everyday words English reads and does not charge.
+  + '|selderij|selleri|sellerie|apio|c[ée]leri|sedano|aipo|seler|kereviz|prei|purjol[öo]k|poireaux?|puerros?|porro|lauch|p[ıi]rasa'
+  + '|citroen\\w*|zitrone|lim[óo]n|limone|lim[ãa]o|sinaasappel\\w*|naranjas?|arancia|arance|laranjas?|mandarijn\\w*'
+  + '|vainilla|baunilha|vanilya|wanilia|vanilj\\w*|vanillepoeder|extracto de vainilla|estratto di vaniglia'
+  + '|chocolat(?: noir| au lait| blanc)?|cioccolato(?: fondente| al latte| bianco)?|\\w*chocolade|[a-zà-ÿ]*choklad|(?:s[üu]tl[üu] |bitter |beyaz )?[çc]ikolata'
+  + '|especias?|especiarias?|specerij(?:en)?|[ée]pices|gew[üu]rz|spezie|przyprawa'
+  + '|kryddnejlik(?:a|or)|clavos?(?: de olor)?|chiodi di garofano|cravinhos?|clous? de girofle|(?:gew[üu]rz)?nelken|kruidnagel(?:en)?|go[źz]dzik[ia]?|karanfil'
+  + '|mostaza|moutarde|senf|mosterd|senap|hardal|mostarda|senape|senapsfr[öo]n|semillas de mostaza|graines de moutarde|senfk[öo]rner|senfsa(?:men|at)|mosterdzaad|semi di senape|ziarna gorczycy|hardal tohumu|sementes de mostarda'
+  + '|carotenos|karotener|karotenler|karoteny|carot[èe]nes?|caroteni|karotene|antocyjany|antocianinas?|antocianine|anthocyanes?|antocyaner|antosiyanin(?:ler)?|antocianos'
+  + "|carbonato acido d['’] ?ammonio|ammoniumv[äa]tekarbonat|w[ęe]glany (?:amonu|sodu)|carbonatos? (?:de )?(?:amonio|am[óo]nio|sodio)|ammoniumcarbonat|natriums[äa]urecarbonat|natriumbicarbonaat|carbonati di (?:sodio|ammonio)|bicarbonato di sodio|bicarbonato de s[óo]dio|natriumcarbonate?|(?:sodyum|amonyum) karbonatlar?"
+  + '|agent[ei] lievitant[ei]|triebmittel|trisodyum sitrat|citrato tris[óo]dico|citrate trisodique'
+  + '|cloruro pot[áa]sico|kaliumchlorid|cloruro di potassio|cloreto de pot[áa]ssio|chlorek potasu|potasyum kl[öo]r[üu]r|kaliumklorid'
+  + '|tiamina|tiammina|tiamin|tiamine|farinha|zonnebloem|girassol|solros|levedura|(?:back)?hefe'
   + '|estratt[io] di rosmarino|extrait de romarin|extracto de romero|rosmarinextrakt|rozemarijnextract|ekstrakt z rozmarynu|biberiye ekstrakt[ıi]'
   + ')(?![a-zà-ÿ\\u0100-\\u017f])', 'i');
 
