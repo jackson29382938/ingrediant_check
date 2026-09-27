@@ -789,3 +789,17 @@ test('concentrated and clarified butter earn the cooking-fat bonus in every labe
   }
   assert.notEqual(score('zucchero, burro di cacao').score, en.score, 'cocoa butter is not butter');
 });
+
+test('fat-reduced dairy in any word order, and whole-milk powders that waive it', () => {
+  const RF = 'Fat-reduced dairy';
+  for (const text of ['sucre, lait concentré écrémé', 'azúcar, leche en polvo desnatada', 'açúcar, leite em pó desnatado',
+    'cukier, odtłuszczone mleko w proszku', 'suiker, magere_melk_poeder']) {
+    assert.ok(reasons(score(text)).includes(RF), text);
+  }
+  const en = score('sugar, whole milk powder, skimmed milk powder');
+  for (const other of ['suiker, volle_melk_poeder, magere_melk_poeder', 'cukier, mleko pełne w proszku, odtłuszczone mleko w proszku',
+    'sucre, lait entier en poudre, lait écrémé en poudre']) {
+    assert.deepEqual(reasons(score(other)), reasons(en), other);
+    assert.equal(score(other).score, en.score, other);
+  }
+});

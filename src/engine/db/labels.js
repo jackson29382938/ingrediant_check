@@ -185,7 +185,12 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
       // leite desnatado, skummjölk, mleko odtłuszczone, yağsız süt.
       + '|\\b(?:mager|entrahmt)\\w*(?:milch|joghurt|quark)|\\bmagermilch|\\blait (?:demi[- ]?)?[ée]cr[ée]m[ée]|\\bleche (?:semi)?(?:desnatada|descremada)'
       + '|\\blatte (?:parzialmente )?scremato|\\bmagere (?:melk|yoghurt|kwark)|\\bleite (?:semi)?desnatado|\\bleite magro|\\bskummj[öo]lk|\\bl[äa]ttmj[öo]lk'
-      + '|\\bmlek[oa] (?:odt[łl]uszczon\\w*|chude)|\\bya[ğg]s[ıi]z s[üu]t|\\by[aâ]r[ıi]m ya[ğg]l[ıi] s[üu]t', 'i') },
+      + '|\\bmlek[oa] (?:odt[łl]uszczon\\w*|chude)|\\bya[ğg]s[ıi]z s[üu]t|\\by[aâ]r[ıi]m ya[ğg]l[ıi] s[üu]t'
+      // With a word between the milk and the fat level ("leche en polvo desnatada", "leite em pó
+      // desnatado", "lait concentré écrémé"), the reverse order ("odtłuszczone mleko") and Dutch fused by
+      // Open Food Facts markup ("magere_melk_poeder" → "mageremelkpoeder").
+      + '|\\b(?:leche|leite|lait|latte)(?: [a-zà-ÿ]{1,12}){1,2} (?:(?:semi)?desnatad[ao]|descremad[ao]|[ée]cr[ée]m[ée]e?|scremat[oa]|magro)(?![a-zà-ÿ])'
+      + '|(?<![a-zà-ÿ\\u0100-\\u017f])odt[łl]uszczon[a-zęąó]* mlek[oa]|\\bmagere ?melk[a-z]*|\\bskummj[öo]lk[a-zåäö]*', 'i') },
   ];
 
   // Full-fat dairy, for the fat-reduced dairy rule above. A whole-milk kefir with some nonfat milk
@@ -200,7 +205,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // German and Swedish compounds ("Vollmilchpulver", "helmjölk") carry the words inside them.
   const DAIRY_NOUN = inLanguages(/\b(milk|cream|kefir|yogh?urt|cheese|buttermilk)\b/i, [
     'lait', 'cr[èe]me', 'yaourt', 'fromage', 'leche', 'nata', 'yogur', 'queso', 'latte', 'panna', 'yogurt', 'formaggio', 'leite', 'natas?',
-    'iogurte', 'queijo', '[a-zäöü]*milch[a-zäöü]*', 'sahne', 'joghurt', 'k[äa]se', 'melk', 'volle melk', 'room', 'kaas', '[a-zåäö]*mj[öo]lk[a-zåäö]*',
+    'iogurte', 'queijo', '[a-zäöü]*milch[a-zäöü]*', 'sahne', 'joghurt', 'k[äa]se', '(?:volle ?|magere ?|halfvolle ?)?melk(?:poeder|room|vet)?', 'room', 'kaas', '[a-zåäö]*mj[öo]lk[a-zåäö]*',
     'gr[äa]dde', 'ost', 'mleko', 'mleka', '[śs]mietan(?:a|ka)', 'jogurt', 'ser', 's[üu]t', 'krema', 'yo[ğg]urt', 'peynir', 'k[ée]fir']);
   const NOT_FULL_FAT_DAIRY = inLanguages(/\b(protein|isolate|concentrate|solids|powder|permeate|whey|casein(?:ate)?|lactose|minerals?|coconut|almond|oat|soy|soya|rice|cashew|hemp|pea|macadamia|chocolate|substitute|non[- ]?dairy|dairy[- ]?free|plant)\b/i, [
     'poudre', 'polvo', 'polvere', 'p[óo]', '[a-zäöü]*pulver', 'poeder', '[a-z]*poeder', 'proszku', 'toz(?:u)?', 'prot[ée]ines?', 'prote[íi]nas?', 'proteine',
@@ -211,7 +216,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     'chocolat', 'cioccolato', '[a-zäöü]*schokolade', '[a-z]*chocolade', 'choklad', 'czekolad[a-zęąó]*', '[çc]ikolata', 'concentr[ée]', 'concentrad[oa]', 'concentrat[oa]',
     '[a-zäöü]*konzentrat', '[a-z]*concentraat', 'koncentrat']);
   const FULL_FAT_WORD = inLanguages(/\b(whole|full[- ]fat|full[- ]cream)\b/i, [
-    'enti[èe]re?s?', 'entera', 'intero', 'inteiro', 'integral', 'voll[a-zäöü]*', 'volle', 'hel[a-zåäö]*', 'pe[łl]n[a-zęąó]*', 'tam ya[ğg]l[ıi]']);
+    'enti[èe]re?s?', 'entera', 'intero', 'inteiro', 'integral', 'voll[a-zäöü]*', 'volle', 'vollemelk[a-z]*', 'gordo', 'gorda', 'hel[a-zåäö]*', 'pe[łl]n[a-zęąó]*', 'tam ya[ğg]l[ıi]']);
   function isFullFatDairy(ing) {
     const s = String(ing || '');
     if (!DAIRY_NOUN.test(s)) return false;
