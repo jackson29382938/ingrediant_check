@@ -540,3 +540,15 @@ test('whole milk ahead of skimmed milk waives the fat-reduced charge in every la
   assert.deepEqual(reasons(score('lait en poudre, lait écrémé')), reasons(score('milk powder, skimmed milk')));
   assert.deepEqual(reasons(score('Zucker, Molkenpulver, Magermilchpulver')), reasons(score('sugar, whey powder, skimmed milk powder')));
 });
+
+test('brackets inside brackets are read by depth', () => {
+  // The flat bracket pattern closed at the first ")": in "chocolate (sugar, emulsifier: lecithins
+  // (soy), vanillin)" the tail ", vanillin)" stayed in the parent entry, and "sugar (cane
+  // (organic))" left "sugar )", which no rule reads.
+  assert.deepEqual(engine.parse('milk chocolate (sugar, emulsifier: lecithins (soy), vanillin), salt'),
+    ['milk chocolate', 'sugar', 'soy lecithin', 'vanillin', 'salt']);
+  assert.deepEqual(engine.parse('sugar (cane (organic)), salt'), ['sugar', 'cane', 'organic', 'salt']);
+  assert.equal(score('sugar (cane (organic)), salt').score, score('sugar, cane, organic, salt').score);
+  // An unclosed bracket is read as closed at the end, so what follows it is still split.
+  assert.deepEqual(engine.parse('water, stabiliser (pectin, sugar, salt'), ['water', 'stabiliser', 'pectin', 'sugar', 'salt']);
+});

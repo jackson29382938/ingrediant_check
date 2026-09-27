@@ -461,19 +461,52 @@ function lecithinWithSource(part) {
   return hit ? hit[1] : part;
 }
 
-function expandEntry(raw) {
+function expandEntry(raw, depth = 0) {
   const part = lecithinWithSource(colonAsParenthesis(raw));
   // A "may contain" statement stays one entry, brackets and all: "may contain cereals containing
   // gluten (spelt, barley, oats)" charged spelt, barley and oats as ingredients once the bracket
   // was split off, and a statement of 80 characters or more fell to the length filter, taking its
   // allergen warning with it. It is set aside from scoring and read only by the allergen flags.
-  if (MAY_CONTAIN.test(tidy(part.replace(/\([^)]*\)/g, ' ')))) {
+  // (The text outside brackets comes from one linear pass: the pattern /\([^)]*\)/ took 150 ms on a
+  // run of 20,000 open brackets, once per level.)
+  const { head, groups } = bracketGroups(part);
+  if (MAY_CONTAIN.test(tidy(head))) {
     const whole = tidy(part.replace(/[()]/g, ' ').replace(/\s+/g, ' ').replace(/ ,/g, ',')).slice(0, 400);
     return whole.length > 1 ? [whole] : [];
   }
-  const pieces = [part.replace(/\([^)]*\)/g, ' ')];
-  for (const m of part.matchAll(/\(([^)]*)\)/g)) pieces.push(...m[1].split(/;|(?<!\d),|,(?!\d)/));
-  return pieces.map(tidy).filter(usable);
+  // Brackets are read by depth. The flat pattern closed "milk chocolate (sugar, emulsifier:
+  // lecithins (soy), flavouring: vanillin)" at the inner ")", so ", flavouring: vanillin)" stayed in
+  // the parent entry and was charged there as an unspecified flavouring. A sub-ingredient's own
+  // brackets are expanded the same way, a few levels deep; below that they are read flat as before.
+  const pieces = [tidy(head)];
+  for (const group of groups) {
+    for (const child of group.split(/;|(?<!\d),|,(?!\d)/)) {
+      if (depth < 3 && (child.includes('(') || child.includes(':'))) pieces.push(...expandEntry(child, depth + 1));
+      else pieces.push(tidy(child.replace(/[()]/g, ' ')));
+    }
+  }
+  return pieces.filter(usable);
+}
+
+// The text outside brackets, and each top-level bracket's contents with its own brackets kept.
+// An unclosed bracket ("Base de soja (água, grãos…" with no ")") is read as closed at the end, so
+// what follows it is still split into ingredients rather than left as one long unreadable entry.
+function bracketGroups(part) {
+  let depth = 0, head = '', buf = '';
+  const groups = [];
+  for (const ch of part) {
+    if (ch === '(') { if (depth > 0) buf += ch; depth++; }
+    else if (ch === ')') {
+      if (depth === 0) { head += ' '; continue; }
+      depth--;
+      if (depth === 0) { groups.push(buf); buf = ''; head += ' '; }
+      else buf += ch;
+    }
+    else if (depth > 0) buf += ch;
+    else head += ch;
+  }
+  if (depth > 0) groups.push(buf);
+  return { head, groups };
 }
 
 // "May contain milk, soy, wheat." is one statement to the end of its sentence. Split at its commas,
@@ -483,7 +516,7 @@ function joinStatements(parts) {
   let open = null;
   parts.forEach((part, i) => {
     if (open) open.push(part);
-    else if (MAY_CONTAIN.test(tidy(part.replace(/\([^)]*\)/g, ' ')))) open = [part];
+    else if (MAY_CONTAIN.test(tidy(bracketGroups(part).head))) open = [part];
     else out.push(part);
     if (open && (parts.sentenceEnds.has(i) || i === parts.length - 1)) { out.push(open.join(', ')); open = null; }
   });

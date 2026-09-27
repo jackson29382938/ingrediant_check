@@ -19,7 +19,8 @@ const R = require('../src/engine/db/sorted-results.js');
 
 const LENGTH = 6000;   // extract.js MAX_LEN, the longest list anything is handed
 const PIECES = ['1', '1,', '1.', ' ', ',', 'a', 'oil ', '(', 'ingredients\n', 'Ingredients: ', 'contains ',
-  '-', '%', '\n', 'natural ', 'x ', '1 ', '€', 'fl oz ', 'kcal ', 'salt '];
+  '-', '%', '\n', 'natural ', 'x ', '1 ', '€', 'fl oz ', 'kcal ', 'salt ',
+  '(a, ', 'may contain (', 'b (c), ', ')', 'arom'];
 const INPUTS = PIECES.map(p => p.repeat(Math.ceil(LENGTH / p.length)).slice(0, LENGTH) + '!');
 // A few fixed shuffles of the same pieces (deterministic, so a failure reproduces).
 let seed = 7;
