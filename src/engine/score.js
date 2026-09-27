@@ -515,6 +515,11 @@ function lecithinWithSource(part) {
   return hit ? hit[1] : part;
 }
 
+const E_CODE = /^[1-9]\d{2,3}[a-f]?(?:\s?(?:i{1,3}|iv|vi{0,3}|ix))?$/i;
+const isFunctionWord = head => add.UNNAMED.some(r => r.m.test(head)) || SWEETENER_WORD.test(head) || FLAVOUR_WORD.test(head)
+  // or a head that ends in one: "iodised salt and emulsifier (322, 471)", "vitamins and colour (150d)".
+  || /(?:^|[\s,&])(?:raising agents?|leavening(?: agents?)?|preservatives?|antioxidants?|colou?rs?|colou?rings?|emulsifiers?|stabili[sz]ers?|thickeners?|acidity regulators?|acids?|sweeteners?|flavou?r enhancers?|anti-?caking agents?|gelling agents?|firming agents?|humectants?|glazing agents?|flour treatment agents?|dough conditioners?|improvers?)$/i.test(head);
+
 // Each piece carries its family: `fam` is its own id and `parent` the id of the entry whose
 // brackets it came from (0 at the top level), so a function word can be told apart from its
 // siblings in a sub-list.
@@ -537,10 +542,17 @@ function expandEntry(raw, depth = 0, ids = { n: 0 }, parent = 0) {
   // the parent entry and was charged there as an unspecified flavouring. A sub-ingredient's own
   // brackets are expanded the same way, a few levels deep; below that they are read flat as before.
   const pieces = [{ ing: tidy(head), fam, parent }];
+  // UK labels drop the E from a code in a function word's bracket: "emulsifier (472e)", "raising
+  // agents (503, 500)", "preservative (223)". Read there, the code is the E-number it names; anywhere
+  // else a bare number stays a number.
+  const codes = isFunctionWord(pieces[0].ing);
   for (const group of groups) {
     for (const child of group.split(/;|(?<!\d),|,(?!\d)/)) {
-      if (depth < 3 && (child.includes('(') || child.includes(':'))) pieces.push(...expandEntry(child, depth + 1, ids, fam));
-      else pieces.push({ ing: tidy(child.replace(/[()]/g, ' ')), fam: ++ids.n, parent: fam });
+      if (depth < 3 && (child.includes('(') || child.includes(':'))) { pieces.push(...expandEntry(child, depth + 1, ids, fam)); continue; }
+      const one = tidy(child.replace(/[()]/g, ' '));
+      const bare = codes ? one.split(/\s*(?:&|\/|\band\b|\bund\b|\bet\b|\by\b|\be\b|\bi\b|\ben\b|\boch\b|\bve\b)\s*/) : [one];
+      if (codes && bare.length && bare.every(c => E_CODE.test(c))) for (const c of bare) pieces.push({ ing: `e${c}`, fam: ++ids.n, parent: fam });
+      else pieces.push({ ing: one, fam: ++ids.n, parent: fam });
     }
   }
   return pieces.filter(p => usable(p.ing));

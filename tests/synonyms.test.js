@@ -912,3 +912,17 @@ test('more words from the third sample, and two English gaps', () => {
   }
   assert.deepEqual(reasons(score('woda, kwas fosforowy')), reasons(score('water, phosphoric acid')), 'phosphoric acid is not a polyphosphate');
 });
+
+test('a bare code in a function word’s bracket is the E-number it names', () => {
+  // UK and Indian labels drop the E: "emulsifier (472e)" was an unnamed emulsifier, "preservative
+  // (223)" no sulphite, "colour (150d)" no caramel-colour cap.
+  const pairs = [
+    ['flour, emulsifier (E472e), salt', 'flour, emulsifier (472e), salt'], ['wine, preservative (E223)', 'wine, preservative (223)'],
+    ['sugar, colour (E150d)', 'sugar, colour (150d)'], ['flour, raising agents (E503, E500), salt', 'flour, raising agents (503 & 500), salt'],
+    ['salt, emulsifiers (E322, E471, E472e)', 'salt, iodised salt and emulsifier (322, 471, 472E)'], ['flour, dough conditioner (E223)', 'flour, dough conditioner (223)'],
+  ];
+  for (const [coded, bare] of pairs) assert.deepEqual(reasons(score(bare)).sort(), reasons(score(coded)).sort(), bare);
+  // Anywhere else a number stays a number.
+  assert.deepEqual(engine.parse('flour, chocolate (200 g)'), ['flour', 'chocolate', '200 g']);
+  assert.deepEqual(engine.parse('flour, 2 eggs'), ['flour', '2 eggs']);
+});
