@@ -287,7 +287,7 @@ const COMMON_PANEL = new RegExp('\\b(?:' + [
   // Italian staples, and German compounds: "Vollmilchpulver" and "Kakaobutter" contain the words
   // above but no word boundary, so they read as unrecognised and a correctly scored German list
   // still carried a "50% recognised" warning.
-  'acqua|sale|latte|farina|olio|succo|riso|mais|soia|lievito|amido|burro|panna|formaggio|uova|miele|nocciole|mandorle',
+  'acqua|sale|latte|farina|olio|succo|riso|mais|soia|lievito|agenti lievitanti|amido|burro|panna|formaggio|uova|miele|nocciole|mandorle',
   '\\w*(?:milch|zucker|butter|mehl|pulver|st[äa]rke|sirup|saft|salz|wasser|sahne|k[äa]se|joghurt|schokolade|kakao|mandeln|n[üu]sse|haselnuss|erdnuss)\\w*',
   'emulgator(?:en)?|emulsionantes?|emulgentes?|[ée]mulsifiants?|emulsionanti|conservante|conservateur|konservierungsstoff|colorante|colorant|farbstoff|s[äa]uerungsmittel|acidulant|acidificante|correcteur',
   // Colours from food, which no rule charges. Without them "Annatto (color)" read as an unnamed

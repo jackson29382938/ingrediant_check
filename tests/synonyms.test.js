@@ -581,3 +581,31 @@ test('caramel colour in every label language caps like "caramel colour"', () => 
     assert.equal(b.score, en.score, other);
   }
 });
+
+test('sulphites, PGPR and gum acacia are charged in English and every label language', () => {
+  // "sodium metabisulfite" carries both prefixes and the rule allowed one, so the commonest sulphite
+  // was free in English too; "potassium metabisulphite" (UK spelling) likewise; PGPR had no rule.
+  assert.ok(reasons(score('water, sodium metabisulfite')).includes('Sulfites'));
+  assert.ok(reasons(score('lemon juice, preservative (potassium metabisulphite)')).includes('Potassium metabisulfite'));
+  const pairs = [
+    ['water, sodium metabisulfite', 'Wasser, Natriummetabisulfit'], ['water, sodium metabisulfite', 'água, metabissulfito de sódio'],
+    ['water, sodium metabisulfite', 'eau, métabisulfite de sodium'], ['water, sodium metabisulfite', 'woda, pirosiarczyn sodu'],
+    ['water, sodium metabisulfite', 'su, sodyum metabisülfit'], ['water, potassium metabisulphite', 'acqua, metabisolfito di potassio'],
+    ['water, sulphur dioxide', 'vin, anhydride sulfureux'], ['sugar, polyglycerol polyricinoleate', 'şeker, poligliserol polirisinolat'],
+    ['sugar, polyglycerol polyricinoleate', 'Zucker, Polyglycerin-Polyricinoleat'], ['sugar, polyglycerol polyricinoleate', 'sugar, E476'],
+    ['sugar, gum arabic', "sucre, gomme d'acacia"], ['water, acidity regulator', 'acqua, correttori di acidità'],
+  ];
+  for (const [en, other] of pairs) {
+    const a = score(en), b = score(other);
+    assert.ok(a.bad.length > 0, en);
+    assert.deepEqual(reasons(b).sort(), reasons(a).sort(), `${other} vs ${en}`);
+    assert.equal(b.score, a.score, `${other} vs ${en}`);
+  }
+});
+
+test('sulphite caramels are caramel colour, not a sulphite preservative', () => {
+  for (const text of ['water, sulphite ammonia caramel', 'water, caustic sulfite caramel', 'su, amonyum sülfit karamel',
+    'woda, karmel amoniakalno-siarczynowy', "eau, caramel au sulfite d'ammonium"]) {
+    assert.deepEqual(reasons(score(text)), ['Caramel colour — caps score at 30'], text);
+  }
+});
