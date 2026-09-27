@@ -137,7 +137,7 @@ const PENALTIES = [
   // on a fillet of salmon may be paprika extract, and it must not turn the fish into NOVA 3.
   // Tagged `unnamed` so score() can stand the charge down when the additive IS named alongside it:
   // "Sodium Benzoate (Preservative)" is a disclosure, not a second additive (see namedFam).
-  ...tag(add.UNNAMED, 'none', 'processingAid').map(r => ({ ...r, unnamed: true })),
+  ...tag(add.UNNAMED, 'none', 'processingAid').map(r => ({ ...r, upf: r.ultra ? 'hard' : r.upf, unnamed: true })),
   ...tag(add.PROCESSING, byPts(12), 'processing', 'processingAid'),
   ...tag(add.FORTIFICATION, byPts(7), 'fortification'),
   // Only stripped-and-re-dosed flour marks ultra-processing. Plain wheat flour sat exactly on the

@@ -1008,3 +1008,19 @@ test('Swiss "ss" spelling of semolina is charged like "Grieß"', () => {
   assert.deepEqual(reasons(score('Wasser, Hartweizengriess')), reasons(score('Wasser, Hartweizengrieß')));
   assert.ok(reasons(score('Wasser, Hartweizengriess')).includes('Durum semolina'));
 });
+
+test('an unnamed flavour enhancer is charged and ultra-processed; a named one is charged once, as itself', () => {
+  for (const t of ['flavour enhancer', 'flavor enhancers', 'exhausteur de goût', 'potenciador del sabor', 'esaltatori di sapidità',
+    'Geschmacksverstärker', 'smaakversterkers', 'smakförstärkare', 'wzmacniacze smaku', 'intensificadores de sabor', 'lezzet arttırıcı']) {
+    const r = score(`water, ${t}`);
+    assert.deepEqual(reasons(r), ['Unnamed flavour enhancer'], t);
+    assert.equal(r.nova, 4, t);
+  }
+  // Every flavour enhancer the rules name makes the list NOVA 4, so hiding the name must not score better.
+  assert.ok(score('water, flavour enhancer').score <= score('water, disodium inosinate').score);
+  for (const t of ['flavour enhancer (E621)', 'flavour enhancer: monosodium glutamate', 'monosodium glutamate (flavour enhancer)']) {
+    assert.deepEqual(reasons(score(`water, ${t}`)), ['MSG'], t);
+  }
+  assert.deepEqual(reasons(score('water, smaakversterkers: mononatriumglutamaat, dinatriuminosinaat')).sort(),
+    reasons(score('water, flavour enhancers: monosodium glutamate, disodium inosinate')).sort());
+});
