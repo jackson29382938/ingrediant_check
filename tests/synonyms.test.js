@@ -949,3 +949,15 @@ test('"-ing agent" wordings of the function words are the unnamed additive', () 
   for (const [a, b] of pairs) assert.deepEqual(reasons(score(b)), reasons(score(a)), b);
   assert.deepEqual(reasons(score('water, emulsifying agent (soy lecithin)')), reasons(score('water, soy lecithin')));
 });
+
+test('local gelling agents and "agent" wordings read as their English function words', () => {
+  const pairs = [
+    ['water, gelling agent', 'eau, gélifiant'], ['water, gelling agent', 'agua, gelificante'], ['water, gelling agent', 'Wasser, Geliermittel'],
+    ['water, gelling agent', 'water, geleermiddel'], ['water, gelling agent', 'vatten, geleringsmedel'], ['water, gelling agent', 'acqua, gelificante'],
+    ['water, gelling agent', 'woda, substancja żelująca'], ['water, gelling agent', 'su, jelleştirici'], ['water, gelling agent', 'água, espessante'],
+    ['water, emulsifier', 'eau, agent émulsifiant'], ['water, emulsifier', 'agua, agente emulsionante'],
+    ['water, preservative', 'eau, agent de conservation'], ['water, preservative', 'agua, agente de conservación'],
+  ];
+  for (const [a, b] of pairs) assert.deepEqual(reasons(score(b)), reasons(score(a)), b);
+  assert.deepEqual(reasons(score('eau, gélifiant (pectine)')), reasons(score('eau, pectine')));
+});
