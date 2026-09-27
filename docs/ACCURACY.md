@@ -163,6 +163,14 @@ What it found, and what changed:
   gate for a non-food list (a bare "sodium", "sweetener" or "acid") were left out on purpose.
   (Last measured 2026-09-27.)
 
+  **A second sample, not used to write the rules.** Page 2 of the same searches (661 more lists, none
+  of them in the first sample) was scored with the rules as they stood, before any word from it was
+  added. That is the fairer measure of an unseen label: 23 of 661 declined (3.5%), against 20 of 631
+  in the first sample after its fixes. French 4 of 94, German 1 of 47, Spanish 0 of 71, Italian 1 of
+  69, Portuguese 5 of 58, Dutch 1 of 44, Swedish 3 of 55, Polish 1 of 76, Turkish 6 of 56, English 1 of
+  91. It also turned up 27 words English already charges (a Portuguese glucose syrup, Italian
+  sucralose, Spanish sucrose, Dutch potassium phosphates…), which were then added.
+
 ### The same product in two languages (2026-09-27)
 
 About 550 products whose Open Food Facts record carries the list in English and in one or more other

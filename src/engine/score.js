@@ -680,7 +680,10 @@ function score(product, options = {}) {
   // raised no soy warning. No label prints an underscore, so all of them go, without a space, because
   // they also mark part of a word ("_tarwe_bloem"). Square and curly brackets ("lécithines [SOJA]")
   // are read as the parentheses they stand for.
-  const rawTxt = String(product.ingredients_text || '').replace(/_+/g, '').replace(/[[{]/g, '(').replace(/[\]}]/g, ')');
+  // A hyphen left from a line break keeps its spaces in Open Food Facts text ("mono - i diglicerydy",
+  // "glucose - fructosestroop", "zuurte - regelaar"), which no rule reads; it is closed up.
+  const rawTxt = String(product.ingredients_text || '').replace(/_+/g, '').replace(/[[{]/g, '(').replace(/[\]}]/g, ')')
+    .replace(/([a-zà-ÿœ\u0100-\u017f]) +- +([a-zà-ÿœ\u0100-\u017f])/gi, '$1-$2');
   // Parse the list as written, then drop only the entries that are themselves denials. The
   // scoring surface is rebuilt from what survives, so caps and penalties see the real ingredients
   // and never see "no artificial colors". See DENIAL_ENTRY above for why this replaced running

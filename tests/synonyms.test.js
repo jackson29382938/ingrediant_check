@@ -811,3 +811,25 @@ test('"soaked" earns the traditional-preparation bonus in every label language',
     assert.equal(score(other).score, en.score, other);
   }
 });
+
+test('words from a second sample of real labels score like their English twins', () => {
+  // Page 2 of the most-scanned Open Food Facts products in each label language (661 lists).
+  const pairs = [
+    ['water, maltitol', 'eau, maltitols'], ['water, sucralose', 'acqua, sucralosio'], ['water, guar gum', 'acqua, gomma di guar'],
+    ['water, glucose syrup', 'água, xarope de glicose'], ['water, acesulfame k', 'água, acessulfame k'], ['water, invert sugar syrup', 'água, xarope de açúcar invertido'],
+    ['water, glucose-fructose syrup', 'água, xarope de glicose-frutose'], ['water, caramelised sugar', 'água, açúcar caramelizado'],
+    ['water, sunflower lecithin', 'água, lecithina de girassol'], ['water, sunflower lecithin', 'água, lecitina de girassol'], ['water, glycerol', 'água, glicerol'],
+    ['water, mono- and diglycerides of fatty acids', 'woda, mono - i diglicerydy kwasów tłuszczowych'], ['water, sorbitol', 'woda, sorbitole'],
+    ['water, whey protein concentrate', 'woda, koncentrat białek serwatkowych wpc'], ['water, caramelised sugar', 'woda, karmelizowany cukier w proszku'],
+    ['water, wheat malt flour', 'woda, mąka ze słodu pszennego'], ['water, mono- and diglycerides of fatty acids', 'su, yağ asitlerinin mono - ve digliseritleri'],
+    ['water, sodium phosphates', 'vatten, natriumfosfater'], ['water, potassium phosphates', 'water, kaliumfosfaten'], ['water, soybean oil', 'water, sojaboonolie'],
+    ['water, glucose-fructose syrup', 'water, glucose - fructosestroop'], ['water, colour', 'water, kleurstof'], ['water, calcium sulphate', 'water, calciumsulfaat'],
+    ['water, ascorbyl palmitate', 'Wasser, Ascorbylpalmitat'], ['water, sucrose', 'agua, sacarosa'], ['water, pea protein', 'agua, proteína de guisante'],
+    ['water, acidity regulator', 'water, zuurte - regelaar'],
+  ];
+  for (const [en, other] of pairs) {
+    const a = score(en), b = score(other);
+    assert.deepEqual(reasons(b).sort(), reasons(a).sort(), `${other} vs ${en}`);
+    assert.equal(b.score, a.score, `${other} vs ${en}`);
+  }
+});

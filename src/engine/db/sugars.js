@@ -64,17 +64,17 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /^(brown sugar|az[uú]car moren[oa]|a[cç][uú]car mascav[oa]do|sucre (brun|roux)|brauner zucker|zucchero bruno|basterdsuiker|farinsocker|brunt socker|cukier br[ąa]zowy|br[ąa]zowy cukier(?: trzcinowy)?|cukier trzcinowy br[ąa]zowy|esmer [şs]eker|bruine suiker)$/i, pts: 14, why: 'Brown sugar' },
     { m: /^beet sugar$/i,                               pts: 14, why: 'Beet sugar' },
     { m: /^powdered sugar$/i,                           pts: 14, why: 'Powdered sugar' },
-    { m: /^(invert sugar( syrup)?|golden syrup|(?:partially )?inverted (?:refiners[’']? )?sugar syrup|az[uú]car invertid[oa]|a[cç][uú]car invertid[oa]|sucre inverti|invertzucker(?:sirup)?|sirop de sucre inverti|jarabe de az[uú]car invertido|sciroppo di zucchero invertito|invertsuikerstroop|zucchero invertito|invertsuiker|invertsocker(?:sirap)?|cukier inwertowany|syrop inwertowany|invert [şs]eker(?: [şs]urubu)?|invert [şs]urup)$/i, pts: 15, why: 'Invert sugar' },
+    { m: /^(invert sugar( syrup)?|golden syrup|(?:partially )?inverted (?:refiners[’']? )?sugar syrup|az[uú]car invertid[oa]|a[cç][uú]car invertid[oa]|xarope de a[çc][úu]car invertido|sucre inverti|invertzucker(?:sirup)?|sirop de sucre inverti|jarabe de az[uú]car invertido|sciroppo di zucchero invertito|invertsuikerstroop|zucchero invertito|invertsuiker|invertsocker(?:sirap)?|cukier inwertowany|syrop inwertowany|invert [şs]eker(?: [şs]urubu)?|invert [şs]urup)$/i, pts: 15, why: 'Invert sugar' },
     { m: /^(dextrose|dextrosa|destrosio|traubenzucker|dextros|druvsocker|dekstroza|dekstroz)$/i, pts: 14, why: 'Dextrose' },
-    { m: /^glucose( syrup| solids)?$|^(jarabe de glucosa|sirop de glucose|glukosesirup|sciroppo di glucosio|xarope de glucose|glucosestroop|glukossirap|glukos|syrop glukozowy|glukoza|gl[iu]koz(?: [şs]urubu)?)$/i, pts: 14, why: 'Glucose syrup' },
+    { m: /^glucose( syrup| solids)?$|^(jarabe de glucosa|sirop de glucose|glukosesirup|sciroppo di glucosio|xarope de glicose|xarope de glucose|glucosestroop|glukossirap|glukos|syrop glukozowy|glukoza|gl[iu]koz(?: [şs]urubu)?)$/i, pts: 14, why: 'Glucose syrup' },
     { m: /^(fructose|fructosa|fruktose|fruttosio|frutose|fruktos|fruktoza|fr[üu]ktoz)$/i, pts: 16, why: 'Isolated fructose' },
-    { m: /^sucrose$/i,                                  pts: 14, why: 'Sucrose' },
+    { m: /^(?:sucrose|sacarosa|saccharose|saccarosio|sacarose|sackaros|sacharoza|sakaroz)$/i,                                  pts: 14, why: 'Sucrose' },
     { m: /^maltose$/i,                                  pts: 14, why: 'Maltose' },
     { m: /^agave( nectar| syrup)?$/i,                   pts: 16, why: 'Agave — among the highest-fructose sweeteners' },
     { m: /^(brown )?rice syrup$|^(jarabe de arroz|sirop de riz|reissirup|sciroppo di riso|rissirap|syrop ry[żz]owy|pirin[çc] [şs]urubu)$/i, pts: 14, why: 'Rice syrup' },
     { m: /^tapioca syrup$/i,                            pts: 13, why: 'Tapioca syrup' },
     { m: /^barley malt( syrup| extract)?$|^(?:gerstemoutextract|gerstenmalzextrakt|extracto de malta de cebada|extrait de malt d['’]orge|estratto di malto d['’]orzo|extrato de malte de cevada|kornmaltextrakt|ekstrakt s[łl]odu j[ęe]czmiennego|arpa malt[ıi] ekstrakt[ıi])$/i,            pts: 12, why: 'Barley malt syrup' },
-    { m: /^(?:caramel|karamel|caramelo|caramello|karamell|karmel)$|^carameli[sz]ed sugar( syrup)?$|^burnt sugar$/i,                                  pts: 10, why: 'Caramel' },
+    { m: /^(?:caramel|karamel|caramelo|caramello|karamell|karmel)$|^carameli[sz]ed sugar( syrup)?$|^(?:a[çc][úu]car caramelizado|az[úu]car caramelizado|sucre caram[ée]lis[ée]|zucchero caramellato|karamellisierter zucker|gekaramelliseerde suiker|karamelliserat socker|karmelizowany cukier(?: w proszku)?|karamelize [şs]eker)$|^burnt sugar$/i,                                  pts: 10, why: 'Caramel' },
     { m: /^honey (powder|solids)$/i,                    pts: 10, why: 'Honey powder — processed, not raw' },
   ];
 
@@ -83,14 +83,14 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\bhigh[- ]fructose corn syrup\b|\bhfcs\b|\bjarabe de ma[ií]z de alta fructosa\b|\bsirop de ma[ïi]s [àa] haute teneur en fructose\b/i, cap: 30, why: 'High-fructose corn syrup' },
     // Do not fire a second generic cap inside "high-fructose corn syrup".
     { m: /(?<!fructose )\bcorn syrup( solids)?\b|\bjarabe de ma[ií]z\b|\bsirop de ma[ïi]s\b|\bm[ıi]s[ıi]r [şs]urubu/i, cap: 30, why: 'Corn syrup' },
-    { m: /\bglucose[- ]fructose( syrup)?\b|\bglu[ck]ose[- ]fru[ck]tose(?:[- ]?sirup)?\b|\bfru[ck]tose[- ]glu[ck]ose(?:[- ]?sirup)?\b|\bsciroppo di glucosio[- ]fruttosio\b|\bglukos[- ]fruktossirap\b|\bsyrop glukozowo[- ]fruktozowy\b|\bsyrop fruktozowo[- ]glukozowy\b|\bglucose[- ]fructose[- ]?stroop\b|\bfructose[- ]glucose[- ]?stroop\b|\bgl[iu]koz[- ]fr[üu]ktoz [şs]urubu|\bfr[üu]ktoz[- ]gl[iu]koz [şs]urubu|\bni[şs]asta bazl[ıi] [şs]eker|\bnb[şs](?![a-zà-ÿ\u0100-\u017f])/i, cap: 30, why: 'Glucose-fructose syrup' },
+    { m: /\bglucose[- ]fructose( syrup)?\b|\bglu[ck]ose[- ]fru[ck]tose(?:[- ]?sirup)?\b|\bfru[ck]tose[- ]glu[ck]ose(?:[- ]?sirup)?\b|\bsciroppo di glucosio[- ]fruttosio\b|\bxarope de glicose[- ]frutose\b|\bxarope de frutose[- ]glicose\b|\bglukos[- ]fruktossirap\b|\bsyrop glukozowo[- ]fruktozowy\b|\bsyrop fruktozowo[- ]glukozowy\b|\bglucose[- ]fructose[- ]?stroop\b|\bfructose[- ]glucose[- ]?stroop\b|\bgl[iu]koz[- ]fr[üu]ktoz [şs]urubu|\bfr[üu]ktoz[- ]gl[iu]koz [şs]urubu|\bni[şs]asta bazl[ıi] [şs]eker|\bnb[şs](?![a-zà-ÿ\u0100-\u017f])/i, cap: 30, why: 'Glucose-fructose syrup' },
   ];
 
   // ARTIFICIAL — treated as more concerning than sugar by default; adjustable in settings.
   const ARTIFICIAL = [
-    { m: /\bsucralos[ae]\b|\bsukraloz[ae]?\b|\bsplenda\b|\be[- ]?955\b/i,       cap: 22, why: 'Sucralose' },
+    { m: /\bsucralos[ae]\b|\bsucralosio\b|\bsukraloz[ae]?\b|\bsplenda\b|\be[- ]?955\b/i,       cap: 22, why: 'Sucralose' },
     { m: /\baspartam[eo]?\b|\bnutrasweet\b|\be[- ]?951\b|\be[- ]?962\b/i,   cap: 22, why: 'Aspartame' },
-    { m: /\bac[ée]sulfam[eo]?([- ]?k| potassium| pot[áa]sico| de potassium| potassico)?\b|\bacesulfam[- ]?k\b|\bases[üu]lfam(?:[- ]?k)?\b|\bace[- ]?k\b|\be[- ]?950\b/i, cap: 22, why: 'Acesulfame potassium' },
+    { m: /\bac[ée]sulfam[eo]?([- ]?k| potassium| pot[áa]sico| de potassium| potassico)?\b|\bacesulfam[- ]?k\b|\bacess?ulfame?(?:[- ]?k| de pot[áa]ssio)?\b|\bases[üu]lfam(?:[- ]?k)?\b|\bace[- ]?k\b|\be[- ]?950\b/i, cap: 22, why: 'Acesulfame potassium' },
     { m: /\bsaccharin[e]?\b|\bsacarina\b|\be[- ]?954\b/i,     cap: 22, why: 'Saccharin' },
     { m: /\bneotame\b|\be[- ]?961\b/i,                        cap: 22, why: 'Neotame' },
     { m: /\badvantame\b|\be[- ]?969\b/i,                      cap: 22, why: 'Advantame' },
@@ -101,8 +101,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   const ALCOHOLS = [
     { m: /^(?:erythritol|e[- ]?968)$/i,             pts: 12, why: 'Erythritol' },
     { m: /^(?:xylitol|e[- ]?967)$/i,                pts: 10, why: 'Xylitol' },
-    { m: /^(?:maltitol( syrup)?|e[- ]?965)$/i,      pts: 12, why: 'Maltitol' },
-    { m: /^(?:sorbitol( syrup)?|e[- ]?420)$/i,               pts: 11, why: 'Sorbitol' },
+    { m: /^(?:maltitol(?:s|e|i)?( syrup)?|maltitolo|maltitole|sirop de maltitol|e[- ]?965)$/i,      pts: 12, why: 'Maltitol' },
+    { m: /^(?:sorbitol(?:s|e|i)?( syrup)?|sorbitolo|sorbitole|sirop de sorbitol|e[- ]?420)$/i,               pts: 11, why: 'Sorbitol' },
     { m: /^(?:mannitol|e[- ]?421)$/i,               pts: 11, why: 'Mannitol' },
     { m: /^(?:isomalte?|e[- ]?953)$/i,                pts: 11, why: 'Isomalt' },
     { m: /^(?:lactitol|e[- ]?966)$/i,               pts: 11, why: 'Lactitol' },
