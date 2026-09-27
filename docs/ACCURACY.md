@@ -234,6 +234,21 @@ Flags never move the score, and a missing flag looks exactly like "clear", so th
   with English words, so it cleared nearly every non-English list with sugar or flour; corn and
   nightshades likewise. Nut and coconut flours, `maison` and sweet potato stay clear. Five corpus
   entries in German and Spanish gain the keto or corn flag their English twins would have.
+- **An audit against 2,007 real lists** (2026-09-27, the three Open Food Facts samples above). Every
+  word each rule matched was listed and read, and each allergen and diet was probed with its foods
+  by name in every label language, both the words that must flag and the look-alikes that must not.
+  False flags removed include buckwheat ("blé noir", "grano saraceno") and Italian non-wheat flours
+  ("farina di riso") as wheat; Swedish milk ("mjölk") as keto flour; German "weiß" as Dutch "wei"
+  (whey), which flagged white beans and white sugar as milk; Polish cocoa mass ("masa kakaowa") and
+  gherkins ("cornichons") as corn; German malt ("Malz") as Polish mussels; tamarind as soy; and
+  pregelatinised starch as gelatine. Missed flags added include fish and shellfish by species (trout
+  and hake were clear even in English), sulfite salts written as one word (Kaliummetabisulfit),
+  tree nuts by local name (anacardi, pinoli, Paranüsse), named cheeses, wheat products (breadcrumbs,
+  bread, noodles, malt extract), and rennet, carmine, animal fat, collagen, beeswax, shellac and
+  L-cysteine for the diets. Across the samples 105 lists changed: 26 allergen flags came off and 27
+  came on, and 54 diet conflicts came off (26 of them Swedish dairy as keto) and 26 came on. None of
+  the 58 corpus entries changed its flags. The fixes were found on these lists, so this is not an
+  out-of-sample measure.
 
 Every flag change is checked against all 58 corpus entries (51 products and 7 defects): none of them changes its flags, except the five keto and corn flags noted above. What is
 **not** proven: that a real label never words an allergen some other way. The panel says so next to
