@@ -78,14 +78,19 @@ const stripNegations = t => t.replace(NEGATION, '$1 ').replace(NEGATION_SUFFIX, 
 // "Non-GMO Soybean Oil" down to nothing. `not` excludes "not from concentrate", which is a juice.
 const DENIAL_HEAD = /^(?:\d+%\s*)?(?:(?:made|produced|prepared|formulated|packed)\s+(?:with\s+)?|certified\s+|absolutely\s+|completely\s+|totally\s+|guaranteed\s+)?(?:contains\s+)?(?:no|not(?!\s+from\b)|never|none|free\s+(?:of|from)|without|zero|devoid\s+of|0\s*g?\s+of)\b/i;
 const DENIAL_SUFFIX_ENTRY = /^[a-z][a-z0-9 '&-]{0,28}[- ]free$/i;
+// The same denials in each label language: "sans conservateurs", "ohne Zuckerzusatz", "bez
+// konserwantów" and Turkish "koruyucu içermez" stayed in the list as unreadable ingredients (90
+// where "oats, salt, no preservatives" scores 94), and fused "konservierungsstofffrei" likewise.
+const LOCAL_DENIAL_HEAD = /^(?:sans|sin|senza|ohne|zonder|utan|bez|sem|geen|ingen|kein(?:e[nr]?)?|aucun(?:e|s)?|ne contient (?:pas|aucun)(?: de| d['’])?|enth[äa]lt kein(?:e[nr]?)?|no contiene|non contiene|n[ãa]o cont[ée]m|bevat geen|inneh[åa]ller (?:inga|ej|inte)|nie zawiera)(?![a-zà-ÿ\u0100-\u017f])/i;
+const LOCAL_DENIAL_SUFFIX = /^[a-zà-ÿ\u0100-\u017f][a-zà-ÿ\u0100-\u017f '-]{0,40}\s(?:i[çc]ermez|yoktur|kullan[ıi]lmam[ıi][şs]t[ıi]r|eklenmemi[şs]tir)$|^[a-zäöüßåæø]{3,28}(?:frei|vrij|fri)$/i;
 // "(non hydrogenated)" is a claim about the oil beside it, in any language.
 const CLAIM_ENTRY = /^(?:non[- ]?gmo|gmo[- ]free|all[- ]natural|kosher|halal|certified [a-z ]+|non[- ]?hydrogenated|unhydrogenated|non[- ]hydrog[ée]n[ée]e?s?|nicht geh[äa]rtet(?:e[snmr]?)?|no hidrogenad[oa]s?|n[ãa]o hidrogenad[oa]s?|non idrogenat[oaie]|niet gehydrogeneerde?|ej h[äa]rdad|oh[äa]rdad|nieuwodorniony|nie uwodorniony|hidrojenize olmayan)$/i;
 
 // True when the whole entry is a claim and carries no ingredient worth scoring.
 // CAPS is defined below; this only ever runs from score(), by which point it exists.
 function isDenialEntry(entry) {
-  if (DENIAL_SUFFIX_ENTRY.test(entry) || CLAIM_ENTRY.test(entry)) return true;
-  const head = entry.match(DENIAL_HEAD);
+  if (DENIAL_SUFFIX_ENTRY.test(entry) || CLAIM_ENTRY.test(entry) || LOCAL_DENIAL_SUFFIX.test(entry)) return true;
+  const head = entry.match(DENIAL_HEAD) || entry.match(LOCAL_DENIAL_HEAD);
   if (!head) return false;
   const after = entry.slice(head[0].length).trim();
   if (!after) return true;                       // "contains no" and nothing else

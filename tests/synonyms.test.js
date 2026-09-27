@@ -690,3 +690,13 @@ test('hydrolysed protein is charged whatever sits between the words', () => {
     assert.deepEqual(reasons(score(other)), reasons(en), other);
   }
 });
+
+test('a denial in any label language is dropped like "no preservatives"', () => {
+  const en = score('oats, salt, no preservatives');
+  for (const other of ["flocons d'avoine, sel, sans conservateurs", 'Haferflocken, Salz, ohne Zuckerzusatz', 'Haferflocken, Salz, konservierungsstofffrei',
+    'copos de avena, sal, sin conservantes', "fiocchi d'avena, sale, senza conservanti", 'havervlokken, zout, zonder conserveermiddelen',
+    'havregryn, salt, utan konserveringsmedel', 'płatki owsiane, sól, bez konserwantów', 'yulaf ezmesi, tuz, koruyucu içermez',
+    'flocos de aveia, sal, sem conservantes', "flocons d'avoine, sel, ne contient pas de conservateurs"]) {
+    assert.equal(score(other).score, en.score, other);
+  }
+});
