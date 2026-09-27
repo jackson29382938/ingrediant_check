@@ -780,3 +780,12 @@ test('vegetables and prepared nuts are whole foods in every label language', () 
     assert.equal(b.score, a.score, `${other} vs ${en}`);
   }
 });
+
+test('concentrated and clarified butter earn the cooking-fat bonus in every label language', () => {
+  const en = score('sugar, concentrated butter');
+  for (const other of ['Zucker, Butterreinfett', 'suiker, boterconcentraat', 'socker, smörolja', 'cukier, koncentrat masła',
+    'zucchero, burro anidro', 'azúcar, mantequilla concentrada', 'Zucker, Butterschmalz']) {
+    assert.equal(score(other).score, en.score, other);
+  }
+  assert.notEqual(score('zucchero, burro di cacao').score, en.score, 'cocoa butter is not butter');
+});
