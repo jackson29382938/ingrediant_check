@@ -77,8 +77,11 @@ const EGG = L + '(?:eggs?|egg (?:white|yolk)s?|eggnog|aioli|albumen|albumin|oval
 // with maltodextrin in them, which is most of the processed aisle.
 const GLUTEN = L + '(?:wheat|gluten|glutine|barley|rye|malt|malted|malt (?:extract|syrup|flour|vinegar|flavou?r)|semolina|durum|spelt|farro|kamut|einkorn|emmer|triticale|seitan|couscous|bulgur'
   // Wheat products that do not say wheat. "Breadfruit" is a fruit (R stops it).
-  + '|graham|panko|farina|matzo|matzah|croutons?|bread(?:crumbs?)?|bread crumbs|shortbread'
-  + '|trigo|cebada|centeno|espelta|s[ée]mola|bl[ée]|orge|seigle|[ée]peautre|froment|weizen\\w*|gerste\\w*|roggen\\w*|dinkel\\w*|grie[sß]|hartweizen\\w*|grano|frumento|orzo|segale'
+  // Italian "farina" alone is soft-wheat flour by law, but "farina di riso" or "farina d'avena" is the
+  // grain it names, which the rest of this list reads on its own.
+  + '|graham|panko|farina(?!(?:\\s+integrale)?\\s+d(?:i\\s|[\'’]))|matzo|matzah|croutons?|bread(?:crumbs?)?|bread crumbs|shortbread'
+  // Buckwheat is not wheat: "blé noir", "trigo sarraceno", "grano saraceno" and "trigo mourisco" name it.
+  + '|trigo(?!\\s+(?:sarraceno|mourisco))|cebada|centeno|espelta|s[ée]mola|bl[ée](?!\\s+noir)|orge|seigle|[ée]peautre|froment|weizen\\w*|gerste\\w*|roggen\\w*|dinkel\\w*|grie[sß]|hartweizen\\w*|grano(?!\\s+saraceno)|frumento|orzo|segale'
   // sv vete, råg, korn is left out (it also means any grain); pl pszenica, jęczmień, żyto, orkisz;
   // nl tarwe, gerst, rogge; pt cevada, centeio
   + '|vete(?:mj[öo]l|gluten|kli|groddar|flingor|protein|st[äa]rkelse)?|råg' + W + '|pszen' + W + '|j[ęe]czmie' + W + '|[żz]yt(?:o|ni)' + W + '|orkisz' + W + '|tarwe' + W + '|gerst' + W + '|rogge' + W + '|cevada|centeio'

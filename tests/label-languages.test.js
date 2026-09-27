@@ -91,3 +91,15 @@ test('keto, corn and nightshade read every label language; nut flours and sweet 
   for (const w of ['maison']) assert.ok(!has(w, 'corn'), w);
   for (const w of ['patate douce', 'karabiber']) assert.ok(!has(w, 'nightshade'), w);
 });
+
+test('buckwheat and the Italian flours of other grains are not wheat', () => {
+  // "Farina di grano saraceno, farina di riso" is a gluten-free cracker; it read as wheat twice over.
+  for (const w of ['farine de blé noir', 'sarrasin (blé noir)', 'trigo sarraceno', 'harina de trigo sarraceno', 'farinha de trigo sarraceno',
+    'farinha de trigo mourisco', 'farina di grano saraceno', 'farina di riso', 'farina di mais', 'farina di ceci', "farina d'avena", 'farina integrale di riso']) {
+    assert.ok(!has(w, 'wheat'), w);
+  }
+  for (const w of ['farine de blé', 'harina de trigo', 'farinha de trigo', 'farina di grano tenero', 'farina di frumento', 'farina', 'farina 00',
+    "farina d'orzo", 'farina di farro', 'farina di segale', 'semola di grano duro', 'blé noir, blé dur']) {
+    assert.ok(has(w, 'wheat'), w);
+  }
+});

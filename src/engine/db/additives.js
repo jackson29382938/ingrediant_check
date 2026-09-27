@@ -68,7 +68,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     // industrial one in the sense the rest of this table is about. A pts:0 entry used to sit here,
     // which tag() filters out, so it never reached the panel in any form.
     { m: /\bsoy leghemoglobin\b/i,                   pts: 20, why: 'Soy leghemoglobin — genetically engineered heme' },
-    { m: /\begg white (protein )?(powder|solids)\b/i, pts: 4, why: 'Dried egg white' },
+    { m: /\begg white (protein )?(powder|solids)\b|\bblancs? d['’] ?(?:œ|oe)ufs? en poudre|\bclaras? de huevo en polvo|\balbume d['’] ?uovo in polvere|\bclaras? de ovo em p[óo]|\beiklarpulver\b|\bkippeneiwitpoeder\b|(?<![a-zà-ÿœ\u0100-\u017f])[äa]ggvitepulver\b|\bbia[łl]k(?:o|a) jaj(?:a)? w proszku|\byumurta ak[ıi] tozu/i, pts: 4, why: 'Dried egg white' },
   ];
 
   // ---------------------------------------------------------------- flavour & glutamates
@@ -218,7 +218,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\bpyridoxine hydrochloride\b|\bchlorhydrate de pyridoxine\b|\bpyridoxinhydrochlorid\b|\bclorhidrato de piridoxina\b|\bpiridossina cloridrato\b|\bcloridrato de piridoxina\b/i,       pts: 7,  why: 'Synthetic B6' },
     { m: /\bcyanocobalamine?\b|\bcianocobalamina\b|\bcyjanokobalamina\b|\bsiyanokobalamin\b/i,                 pts: 7,  why: 'Cyanocobalamin — the synthetic B12 form' },
     { m: /\bzinc oxide\b/i,                     pts: 8,  why: 'Zinc oxide fortification' },
-    { m: /\bniacinamide?\b|\bniacin[ae]?\b|\bnicotinamide?\b|\bnicotinamida\b|\bnikotynamid\b|\bniasin\b/i,         pts: 7,  why: 'Synthetic niacin' },
+    { m: /\bniacinamide?\b|\bniacin[ae]?\b|\bniacyn[ay]\b|\bnicotinamide?\b|\bnicotinamida\b|\bnikotynamid\b|\bniasin\b/i,         pts: 7,  why: 'Synthetic niacin' },
     { m: /\bcalcium carbonate\b|\bcarbonate de calcium\b|\bcarbonato de c[áa]lcio\b|\bcarbonato di calcio\b|\bcalciumcarbona(?:at|t)\b|\bkalciumkarbonat\b|\bw[ęe]glan wapnia\b|\bkalsiyum karbonat\b|\be[- ]?170\b/i,              pts: 5,  why: 'Calcium carbonate fortification' },
     { m: /\b(sodium|calcium) ascorbate\b|\bascorbic acid\b|\bascorbyl palmitate\b|\bascorbylpalmitat\b|\bpalmitate d['’]ascorbyle\b|\bpalmitato de ascorbilo\b|\bascorbilpalmitato\b|\bpalmitynian askorbylu\b|\bascorbylpalmitaat\b|(?:^|[^a-z])[aá]cido asc[oó]rbico(?:$|[^a-z])|\bacide ascorbique\b|\bascorbins[äa]ure\b|\bascorbinezuur\b|\bkwas askorbinowy\b|\baskorbik asit\b|\baskorbinsyra\b|\be[- ]?30[0-4]\b/i, pts: 5, why: 'Synthetic vitamin C' },
     { m: /\bvitamin a (palmitate|acetate)\b/i,  pts: 7,  why: 'Synthetic vitamin A' },
@@ -237,8 +237,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   const GRAINS = [
     { m: /\b(?:enriched|fortified) (wheat |bleached |unbleached |white )?flour\b/i, pts: 15, why: 'Enriched flour — stripped, then synthetically re-dosed' },
     { m: /\b(bleached|refined|white) flour\b/i,     pts: 14, why: 'Refined white flour' },
-    { m: /\bwheat flour\b|\bharina(?:\s+integral)?\s+de\s+trigo\b|\bfarine(?:\s+(?:compl[èe]te|int[ée]grale))?\s+de\s+bl[ée](?:$|[^a-z])|\b(?:vollkorn)?weizenmehl\b|\bvollkornweizenmehl\b|\bfarina(?:\s+integrale)?\s+di\s+(?:grano|frumento)\b|\bfarinha(?:\s+integral)?\s+de\s+trigo\b|\b(?:volkoren\s?)?tarwe(?:meel|bloem)\b|\bfarine\s+(?:compl[èe]te\s+)?de\s+froment\b|\bvetemj[öo]l\b|\bm[ąa]ka\s+pszenna(?:\s+pe[łl]noziarnista)?\b|\bpszenna\s+m[ąa]ka\b|\bbu[ğg]day\s+unu\b/i, pts: 12, why: 'Wheat flour' },
-    { m: /\bwheat\b|\btrigo\b|\bbl[ée](?:$|[^a-z])|\bweizen\b|\bfrumento\b|\bfroment\b|\btarwe\b|\bvete\w*|\bpszen(?:ica|icy|n[aey]|nego|nej)\b|\bfullkorns(?:durum)?vete\w*|\btarwe\w*|\bweizen\w*|\bbu[ğg]day\b/i, pts: 9,  why: 'Wheat', gluten: true },
+    { m: /\bwheat flour\b|\bharina(?:\s+integral)?\s+de\s+trigo\b(?!\s+(?:sarraceno|mourisco))|\bfarine(?:\s+(?:compl[èe]te|int[ée]grale))?\s+de\s+bl[ée](?!\s*noir)(?:$|[^a-z])|\b(?:vollkorn)?weizenmehl\b|\bvollkornweizenmehl\b|\bfarina(?:\s+integrale)?\s+di\s+(?:grano|frumento)\b(?!\s+saraceno)|\bfarinha(?:\s+integral)?\s+de\s+trigo\b(?!\s+(?:sarraceno|mourisco))|\b(?:volkoren\s?)?tarwe(?:meel|bloem)\b|\bfarine\s+(?:compl[èe]te\s+)?de\s+froment\b|\bvetemj[öo]l\b|\bm[ąa]ka\s+pszenna(?:\s+pe[łl]noziarnista)?\b|\bpszenna\s+m[ąa]ka\b|\bbu[ğg]day\s+unu\b/i, pts: 12, why: 'Wheat flour' },
+    { m: /\bwheat\b|\btrigo\b(?!\s+(?:sarraceno|mourisco))|\bbl[ée](?!\s*noir)(?:$|[^a-z])|\bweizen\b|\bfrumento\b|\bfroment\b|\btarwe\b|\bvete\w*|\bpszen(?:ica|icy|n[aey]|nego|nej)\b|\bfullkorns(?:durum)?vete\w*|\btarwe\w*|\bweizen\w*|\bbu[ğg]day\b/i, pts: 9,  why: 'Wheat', gluten: true },
     { m: /\bbarley\b|\bcebada\b|\borge\b|\bgerste\b|\borzo\b|\bcevada\b|\bgerst\b|\bgerste(?:nmalz|mout)\w*|\bgerstemout\w*|\bkornmalt\b|\bj[ęe]czmie[ńn](?![a-z\u0100-\u017f])|\bj[ęe]czmienn(?:a|e|y|ego|ej)(?![a-z\u0100-\u017f])|\barpa\b/i, pts: 8,  why: 'Barley', gluten: true },
     { m: grain(/\brye\b|\bcenteno\b|\bseigle\b|\broggen\b|\bsegale\b|\bcenteio\b|\brogge\b|\br[åa]gmj[öo]l\b|(?:^|[^a-z])[żz]yt(?:o|nia|ni)\b|(?:^|[^a-z\u0100-\u017f])[çc]avdar\b/i, [
       '(?:vollkorn)?roggen(?:vollkorn)?(?:mehl|schrot|flocken|sauerteig|malz)[a-z]*', 'rogge(?:bloem|meel|vlokken)', '(?:fullkorns)?råg(?:mjöl|kross|flingor|sikt)?', '[żz]ytni(?:e|ej|ego)']), pts: 8,  why: 'Rye', gluten: true },

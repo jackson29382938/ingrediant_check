@@ -990,3 +990,16 @@ test('everyday spices, vegetables, raising agents and food colours from the thir
     assert.deepEqual(reasons(score(`water, ${b}`)), reasons(score(`water, ${a}`)), b);
   }
 });
+
+test('buckwheat is not charged as wheat; local dried egg white and niacin are', () => {
+  for (const t of ['farine de blé noir', 'harina de trigo sarraceno', 'farinha de trigo sarraceno', 'farina di grano saraceno']) {
+    assert.deepEqual(reasons(score(`water, ${t}`)), reasons(score('water, buckwheat flour')), t);
+  }
+  assert.ok(reasons(score('water, farina di grano tenero')).includes('Wheat flour'));
+  for (const t of ["blanc d'œuf en poudre", 'clara de huevo en polvo', "albume d'uovo in polvere", 'eiklarpulver', 'äggvitepulver', 'białka jaj w proszku', 'yumurta akı tozu', 'kippeneiwitpoeder']) {
+    assert.deepEqual(reasons(score(`water, ${t}`)), reasons(score('water, egg white powder')), t);
+  }
+  // Dutch "eiwit" is also protein in general.
+  assert.ok(!reasons(score('water, eiwitpoeder')).includes('Dried egg white'));
+  assert.deepEqual(reasons(score('water, niacyna')), reasons(score('water, niacin')));
+});
