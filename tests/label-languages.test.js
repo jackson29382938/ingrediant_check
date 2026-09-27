@@ -211,3 +211,17 @@ test('wheat products named without "wheat"; German malt is not Polish mussels', 
   // "Malz" (German malt) matched the ASCII spelling of Polish "małże" (mussels).
   assert.ok(!has('Malzextrakt', 'shellfish') && has('małże', 'shellfish'));
 });
+
+test('vegetarian: carmine, rennet, animal fat, tallow, collagen, gelatine and sausages in each language', () => {
+  for (const w of ['Rindergelatine', 'gelatyna', 'carmin', 'cochenille', 'Karmin', 'karmijn', 'koszenila', 'cochinilla', 'Tierfett',
+    'graisse animale', 'grasa animal', 'dierlijk vet', 'tłuszcz zwierzęcy', 'hayvansal yağ', 'suif', 'Rindertalg', 'łój', 'présure', 'caglio',
+    'cuajo', 'tierisches Lab', 'stremsel', 'löpe', 'podpuszczka', 'peynir mayası', 'coalho animal', 'Kollagen', 'colágeno', 'collagène',
+    'E542', 'Knochenbrühe', 'rosół', 'salchichón', 'Bratwurst', 'Wurst', 'mortadella', 'kiełbasa', 'parówki', 'rookworst', 'falukorv']) {
+    assert.ok(has(w, 'vegetarian'), w);
+  }
+  // Microbial and vegetable rennet are vegetarian, pregelatinised starch is starch, Dutch "gehakte" is "chopped".
+  for (const w of ['caglio microbico', 'coalho microbiologico', 'cuajo microbiano', 'présure microbienne', 'mikrobielles Lab',
+    'vegetabiliskt löpe', 'bitkisel peynir mayası', 'gelatinised starch', 'gelatinisierte Stärke', 'gehakte noten', 'Wurstgewürz']) {
+    assert.ok(!has(w, 'vegetarian'), w);
+  }
+});

@@ -184,7 +184,7 @@ const ALLERGENS = [
 // The animal lists are spelled out rather than summarised: `shellfish` as a literal word never
 // appears on a label, so shrimp, duck, bacon and ham all passed as vegan. "Coconut meat" is not
 // meat; microbial and vegetable rennet are vegetarian.
-const MEAT = '\\b(?:beef|pork|chicken|turkey|lamb|mutton|veal|venison|bison|duck|quail|rabbit|bacon|sausage|salami|pepperoni|chorizo|prosciutto|pancetta|bresaola|gelatine?|lard|tallow|suet|poultry)\\w*'
+const MEAT = '\\b(?:beef|pork|chicken|turkey|lamb|mutton|veal|venison|bison|duck|quail|rabbit|bacon|sausage|salami|pepperoni|chorizo|prosciutto|pancetta|bresaola|gelatin(?!i[sz])e?|lard|tallow|suet|poultry)\\w*'
   + '|\\b(?:ham|goose|meats?)\\b(?<!(?:coconut|nut|crab) meats?)'
   + '|(?<!\\b(?:vegetable|veggie|vegetal|mushroom|miso|kombu|dashi)\\s)\\b(?:broth|bouillon|stock)\\b'
   // es / fr / it — the stores print their labels in these, and "manteca de cerdo" or "saindoux"
@@ -196,7 +196,7 @@ const MEAT = '\\b(?:beef|pork|chicken|turkey|lamb|mutton|veal|venison|bison|duck
   // sv, pl, nl, pt. Swedish and Dutch compound like German: nötkött, fläskkött, kycklingbuljong,
   // varkensvlees, rundvlees. Bare "gris" (French grey, as in sel gris) and "rund" (German round,
   // as in Rundkornreis) are left to the compounds.
-  + '|' + L + '(?:k[öo]tt' + W + '|n[öo]tk[öo]tt' + W + '|fl[äa]sk' + W + '|kyckling' + W + '|skinka|kalkon' + W + '|gelatin' + W + '|ister'
+  + '|' + L + '(?:k[öo]tt' + W + '|n[öo]tk[öo]tt' + W + '|fl[äa]sk' + W + '|kyckling' + W + '|skinka|kalkon' + W + '|gelatin(?!i[sz])' + W + '|ister'
   + '|mi[ęe]s(?!z)' + W + '|wieprzow' + W + '|wo[łl]ow' + W + '|drobiow' + W + '|kurczak' + W + '|kurczaka|indyk' + W + '|szynk' + W + '|boczek|boczku|smalec|smalcu|[żz]elatyn' + W + '|wieprzowin' + W + '|wo[łl]owin' + W
   + '|vlees' + W + '|varken' + W + '|kip|kippen(?!ei)' + W + '|kalkoen' + W + '|spek|reuzel|gelatine'
   + '|porco|su[íi]n' + W + '|frango|bovin' + W + '|presunto|toucinho|banha'
@@ -206,7 +206,18 @@ const MEAT = '\\b(?:beef|pork|chicken|turkey|lamb|mutton|veal|venison|bison|duck
 const SEA = '\\b(?:fish|shellfish|salmon|tuna|cod|anchov|sardine|mackerel|herring|tilapia|shrimp|prawn|lobster|crayfish|clam|mussel|oyster|scallop|squid|calamari|octopus|krill|worcestershire|isinglass|surimi|bonito|katsuobushi|dashi|caviar)\\w*|\\broe\\b|\\bcrab(?:s|meat)?\\b(?!\\s*-?\\s*apples?)';
 // Collagen and pepsin come from animals; carmine from insects.
 const FOREIGN_SEA = ALLERGENS.filter(a => a.id === 'fish' || a.id === 'shellfish').map(a => a.m.source).join('|');
-const NOT_VEGETARIAN = MEAT + '|' + SEA + '|' + FOREIGN_SEA + '|(?<!\\b(?:microbial|vegetable|vegetarian|non-animal)\\s)\\brennet\\b|\\b(?:carmine|cochineal|collagen|pepsin|e[- ]?120|e[- ]?441|e[- ]?904)\\b';
+const NOT_VEGETARIAN = MEAT + '|' + SEA + '|' + FOREIGN_SEA + '|(?<!\\b(?:microbial|vegetable|vegetarian|non-animal)\\s)\\brennet\\b|\\b(?:carmine|cochineal|collagen|pepsin|e[- ]?120|e[- ]?441|e[- ]?904)\\b'
+  // The same in each label language: carmine, rennet (not the microbial or vegetable kind), animal fat,
+  // tallow, collagen, compound gelatine, bone broth, and sausages and cured meats by name. Dutch "gehakt"
+  // is also "chopped", and "worst" is English, so only the compounds ("rookworst") count.
+  + '|' + L + '(?:carmin[ea]?|cochenille|karmin|karmijn|koszenil' + W + '|carminio|cochinilla|cochonilha|ko[şs]ineal|acide carminique|kwas karminowy|carminic acid'
+  + '|(?:[a-zß-ÿ]+)?gelat(?:ine?|yn[aey])'
+  + '|tierfett' + W + '|tierische[sn]? fett' + W + '|graisses? animales?|grasas? animal(?:es)?|grass[io] animal[ei]|dierlijke? vet(?:ten)?|animaliskt fett|t[łl]uszcz' + W + ' zwierz[ęe]c' + W + '|hayvansal ya[ğg]' + W + '|gorduras? anima(?:l|is)'
+  + '|suif|[a-zß-ÿ]*talg|sebo|sego|[łl][óo]j|don ya[ğg][ıi]|kollagen|col[áa]geno|collag[èe]ne|kolagen|collageen|kolajen|e[- ]?542'
+  + '|knochenbr[üu]he|caldo de huesos|brodo di ossa|ros[óo][łl]|foie gras|salchich[óo]n|[a-zß-ÿ]*wurst(?:e|en|chen|scheiben|br[äa]t)?|mortadella|cecina|panceta|guanciale|ossobuco|kavurma'
+  + '|kie[łl]bas' + W + '|kabanos' + W + '|par[óo]wk' + W + '|mielonk' + W + '|[a-z]+worst|[a-zåäö]*korv'
+  + '|(?<!(?:micro|mikro|v[ée]g[ée]tal|vegetabil|bitkisel)[a-zß-ÿ]*\\s)(?:pr[ée]sure|caglio|cuajo|stremsel|l[öo]pe|podpuszczk' + W + '|peynir mayas[ıi]|coalho|lab)(?!\\s+\\(?(?:micro|mikro|v[ée]g[ée]tal|bitkisel))'
+  + ')' + R;
 // Confectioner's glaze is shellac. L-cysteine (E920) is usually made from feathers or hair: borderline,
 // so flagged, as this module flags borderline. Vitamin D3 is not: vegan products print "vitamin D3
 // (from lichen)", and the parenthesis is split off before this runs, so it would flag exactly those.
