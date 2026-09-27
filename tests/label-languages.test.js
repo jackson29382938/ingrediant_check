@@ -103,3 +103,21 @@ test('buckwheat and the Italian flours of other grains are not wheat', () => {
     assert.ok(has(w, 'wheat'), w);
   }
 });
+
+test('egg by its local names; lactic acid, cream of tartar, nutmeg and milk are not what they look like', () => {
+  for (const w of ['yema de huevo', 'tuorlo', 'albume', 'mayonesa', 'maionese', 'Majonäse', 'merengue', 'meringa', 'Eigelbpulver', 'Eiklar',
+    'Volleipulver', 'Eiernudeln', 'ovoalbumina', 'lisozima', 'Lysozym']) {
+    assert.ok(has(w, 'egg'), w);
+  }
+  assert.ok(!has('Eiersatz', 'egg'));
+  // "Kippeneiwit" is hen's egg white: egg, and vegetarian.
+  assert.ok(has('kippeneiwit', 'egg') && !has('kippeneiwit', 'vegetarian'));
+  assert.ok(has('kippenvlees', 'vegetarian'));
+  for (const w of ['süt asidi', 'crème de tartre', 'crème de marrons', 'crema di tartaro']) assert.ok(!has(w, 'milk'), w);
+  for (const w of ['süt', 'süt tozu', 'crème fraîche', 'crema']) assert.ok(has(w, 'milk'), w);
+  for (const w of ['noz-moscada', 'noz moscada']) assert.ok(!has(w, 'treeNut'), w);
+  assert.ok(has('nozes', 'treeNut'));
+  // Swedish milk is not flour: "mjölk" and "mjölksyrakultur" conflicted with keto on every dairy list.
+  for (const w of ['pastöriserad mjölk', 'mjölksyrakultur', 'mellanmjölk']) assert.ok(!has(w, 'keto'), w);
+  for (const w of ['vetemjöl', 'mjöl']) assert.ok(has(w, 'keto'), w);
+});
