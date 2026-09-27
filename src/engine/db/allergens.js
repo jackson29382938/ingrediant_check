@@ -167,15 +167,20 @@ const ALLERGENS = [
     m: new RegExp(/\b(lupin|lupine|lupini|altramuz|altramuces|lupino)\w*/.source + '|' + L + '(?:[łl]ubin' + W + '|tremo[çc]o' + W + '|ac[ıi] bakla)' + R, 'i') },
   // "Corned beef" is beef; popcorn is corn; a Cornish hen is a chicken.
   { id: 'corn', label: 'Corn',
-    m: new RegExp(/\b(corn(?!ed\b|ish\b)|popcorn|maize|masa(?!\s+(?:kakaow|madre|jajow|serow|makow|orzechow|czekoladow|mleczn|kokosow|pszenn|ziemniaczan))|hominy|dextrose|maltodextrin|cornstarch)\w*/.source
+    m: new RegExp(/\b(corn(?!ed\b|ish\b|ichons?\b|ouailles)|popcorn|maize|masa(?![a-z])(?!\s+(?:kakaow|madre|jajow|serow|makow|orzechow|czekoladow|mleczn|kokosow|pszenn|ziemniaczan))|hominy|dextrose|maltodextrin|cornstarch)\w*/.source
       // in each label language
-      + '|' + L + '(?:ma[ïi]s(?:gries|grie(?:ss|[ßs])|zetmeel|meel|mehl|st[äa]rke|olie|[öo]l|k[öo]rner|kolben|vezel|keim[öo]l|maltodextrin[ae]?|glukose' + W + '|glucose' + W + '|siroop|sirup)?|ma[ií]z|milho|majs' + W + '|kukurydz' + W + '|m[ıi]s[ıi]r|dextros[ae]?|dekstroz[a]?|destrosio|maltodextrin[ae]?|maltodekstryn[ay]|maltodekstrin)' + R, 'i') },
+      + '|' + L + '(?:ma[ïi]s(?:gries|grie(?:ss|[ßs])|zetmeel|meel|mehl|st[äa]rke|olie|[öo]l|k[öo]rner|kolben|vezel|keim[öo]l|maltodextrin[ae]?|glukose' + W + '|glucose' + W + '|siroop|sirup)?|ma[ií]z|milho|majs' + W + '|kukurydz' + W + '|m[ıi]s[ıi]r|dextros[ae]?|dekstroz[a]?|destrosio|maltodextrin[ae]?|maltodekstryn[ay]|maltodekstrin'
+      // Corn foods named without the word corn: polenta, grits, nachos, arepa, fubá, zein, HFCS.
+      + '|ma[ïi]sflocken|m[ıi]s[ıi]r[öo]z[üu]' + W + '|polenta|(?<!(?:oat|barley|buckwheat|wheat|rice)\\s)grits|nachos|palomitas|mazorcas?|elotes?|choclos?|canjica|fub[áa]|pozole|arepas?|zein|hfcs)' + R, 'i') },
   // Sweet potato is a morning glory, not a nightshade.
   { id: 'nightshade', label: 'Nightshades',
     m: new RegExp(/\b(tomato|(?<!\bsweet\s)potato|eggplant|aubergine|bell pepper|paprika|cayenne|chili|chilli|pimento|goji)\w*/.source
       // in each label language; sweet potato (patate douce, batata) is not a nightshade
-      + '|' + L + '(?:tomat' + W + '|pomodor' + W + '|pomidor' + W + '|domates|pommes? de terre|patat[ae]s?(?!\\s+(?:douces?|dolci|dulces?))|kartoffel' + W
-      + '|aardappel' + W + '|potatis|ziemniak' + W + '|aubergines?|berenjenas?|melanzan[ae]|poivrons?|pimientos?|peperon[ei]|paprik' + W + '|piment' + W + '|patl[ıi]can|biber)' + R, 'i') },
+      + '|' + L + '(?:tomat' + W + '|pomodor' + W + '|pomidor' + W + '|domates|pommes? de terre|(?<!tatl[ıi]\\s)patat[ae]s?(?!\\s+(?:douces?|dolci|dulces?))|kartoffel' + W
+      + '|(?<!zoete\\s)aardappel' + W + '|potatis' + W + '|(?<!s[łl]odki\\s)ziemnia[kc]' + W + '|aubergines?|berenjenas?|melanzan[ae]|poivrons?|pimientos?|peperon[ei]|paprik' + W
+      + '|piment' + W + '(?!\\s+de\\s+la\\s+jama)|patl[ıi]can|(?<!kara\\s)biber'
+      // Bare "chile" is also the country, and "batata" is sweet potato in Spanish, so both stay out.
+      + '|passata|papas?|papryk' + W + '|p[áa]prica|guindillas?|peperoncin[oi]|jalape[ñn]os?|harissa|sriracha|bak[łl]a[żz]an' + W + '|beringelas?|ashwagandha|isot|ajvar|capsicum)' + R, 'i') },
 ];
 
 // Diet compatibility. `conflict` matching means the product is NOT compatible.

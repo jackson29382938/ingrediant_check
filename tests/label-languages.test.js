@@ -239,3 +239,16 @@ test('vegan: bee products, shellac, lanolin and L-cysteine; pork-free: local por
   }
   for (const w of ['Butterschmalz', 'Gänseschmalz', 'Geflügelwurst', 'Putenwurst', 'gelatinised starch']) assert.ok(!has(w, 'porkFree'), w);
 });
+
+test('nightshades and corn in each language, and their look-alikes', () => {
+  for (const w of ['passata', 'potatisstärkelse', 'skrobia ziemniaczana', 'papryka', 'guindilla', 'peperoncino', 'papryczki jalapeño',
+    'harissa', 'bakłażan', 'beringela', 'ajvar', 'capsicum', 'pul biber']) {
+    assert.ok(has(w, 'nightshade'), w);
+  }
+  for (const w of ['zoete aardappel', 'słodki ziemniak', 'tatlı patates', 'piment de la Jamaïque', 'kara biber', 'karabiber', 'papaya']) {
+    assert.ok(!has(w, 'nightshade'), w);
+  }
+  for (const w of ['polenta', 'grits', 'nachos', 'arepa', 'fubá', 'Maisflocken', 'mısırözü yağı', 'zein', 'HFCS']) assert.ok(has(w, 'corn'), w);
+  // Gherkins, garam masala and oat groats are not corn.
+  for (const w of ['cornichons', 'Cornichon', 'garam masala', 'oat grits']) assert.ok(!has(w, 'corn'), w);
+});
