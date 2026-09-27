@@ -78,7 +78,8 @@ const stripNegations = t => t.replace(NEGATION, '$1 ').replace(NEGATION_SUFFIX, 
 // "Non-GMO Soybean Oil" down to nothing. `not` excludes "not from concentrate", which is a juice.
 const DENIAL_HEAD = /^(?:\d+%\s*)?(?:(?:made|produced|prepared|formulated|packed)\s+(?:with\s+)?|certified\s+|absolutely\s+|completely\s+|totally\s+|guaranteed\s+)?(?:contains\s+)?(?:no|not(?!\s+from\b)|never|none|free\s+(?:of|from)|without|zero|devoid\s+of|0\s*g?\s+of)\b/i;
 const DENIAL_SUFFIX_ENTRY = /^[a-z][a-z0-9 '&-]{0,28}[- ]free$/i;
-const CLAIM_ENTRY = /^(?:non[- ]?gmo|gmo[- ]free|all[- ]natural|kosher|halal|certified [a-z ]+)$/i;
+// "(non hydrogenated)" is a claim about the oil beside it, in any language.
+const CLAIM_ENTRY = /^(?:non[- ]?gmo|gmo[- ]free|all[- ]natural|kosher|halal|certified [a-z ]+|non[- ]?hydrogenated|unhydrogenated|non[- ]hydrog[ée]n[ée]e?s?|nicht geh[äa]rtet(?:e[snmr]?)?|no hidrogenad[oa]s?|n[ãa]o hidrogenad[oa]s?|non idrogenat[oaie]|niet gehydrogeneerde?|ej h[äa]rdad|oh[äa]rdad|nieuwodorniony|nie uwodorniony|hidrojenize olmayan)$/i;
 
 // True when the whole entry is a claim and carries no ingredient worth scoring.
 // CAPS is defined below; this only ever runs from score(), by which point it exists.

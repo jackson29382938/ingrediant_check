@@ -17,9 +17,10 @@ require(path.join(__dirname, '..', 'src', 'engine', 'db', '_module.js'));
 const engine = require('../src/engine/score.js');
 const DB = ['additives', 'oils', 'sugars', 'labels', 'allergens', 'provenance', 'ingestible', 'ocr-text'];
 
-const ACCENTED = 'à-ÿœ\\u0100-\\u017f';
-// An accented letter (alone, or in a class with one) then \b, allowing ?, *, + and a closing group.
-const AFTER = new RegExp(`(\\[[^\\]]*[${ACCENTED}][^\\]]*\\]|[${ACCENTED}])[?*+]?(?:\\)[?*+]?)?\\\\b`, 'g');
+const ACCENTED = 'ßà-ÿœ\\u0100-\\u017f';   // ß sits just below à
+// An accented letter (alone, or in a class with one) then \b, allowing ?, *, +, a closing group, and
+// optional letters in between: "hydrog[ée]n[ée]e?\b" matched "hydrogénée" but never "hydrogéné".
+const AFTER = new RegExp(`(\\[[^\\]]*[${ACCENTED}][^\\]]*\\]|[${ACCENTED}])[?*+]?(?:[a-z][?*])*(?:\\)[?*+]?)?\\\\b`, 'g');
 // \b then an accented letter, or a class that starts with one, allowing an opening (?: group.
 const BEFORE = new RegExp(`\\\\b(?:\\(\\?:)?(\\[[${ACCENTED}][^\\]]*\\]|[${ACCENTED}])`, 'g');
 

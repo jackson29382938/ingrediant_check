@@ -664,3 +664,29 @@ test('an organic word before or after the ingredient does not hide it', () => {
   // Words that only start with "bio" are left alone.
   for (const text of ['biotine', 'bioflavonoide']) assert.deepEqual(engine.parse(text), [text]);
 });
+
+test('"non-hydrogenated" is not hydrogenated, in any language', () => {
+  // The negation was ignored: "non-hydrogenated palm oil" scored 25 as hydrogenated fat where plain
+  // palm oil scores 90, and "(non hydrogenated)" was an unreadable entry of its own.
+  const plain = score('peanuts, palm oil, salt');
+  for (const text of ['peanuts, non-hydrogenated palm oil, salt', 'peanuts, palm oil (non hydrogenated), salt', 'peanuts, unhydrogenated palm oil, salt']) {
+    assert.equal(score(text).score, plain.score, text);
+  }
+  for (const text of ['cacahuètes, huile de palme non hydrogénée, sel', 'Erdnüsse, Palmöl (nicht gehärtet), Salz', 'cacahuetes, aceite de palma no hidrogenado, sal',
+    'amendoins, óleo de palma não hidrogenado, sal', 'woda, olej palmowy nieuwodorniony', 'su, palm yağı (hidrojenize olmayan)']) {
+    assert.ok(!reasons(score(text)).some(w => /ydrogenated/.test(w)), text);
+  }
+  // Still charged when it is.
+  for (const text of ['cacahuètes, huile hydrogéné', 'cacahuètes, huiles hydrogénées', 'cacahuètes, huile de palme partiellement hydrogéné']) {
+    assert.ok(reasons(score(text)).some(w => /ydrogenated/.test(w)), text);
+  }
+});
+
+test('hydrolysed protein is charged whatever sits between the words', () => {
+  const en = score('water, hydrolyzed soy protein');
+  for (const other of ['eau, protéine de soja hydrolysée', 'eau, protéines végétales hydrolysées', 'agua, proteína de soja hidrolizada',
+    'Wasser, hydrolysiertes Pflanzeneiweiß', 'acqua, proteine di soia idrolizzate', 'water, gehydrolyseerde plantaardige eiwitten',
+    'vatten, hydrolyserat sojaprotein', 'woda, hydrolizowane białko sojowe', 'su, hidrolize soya proteini', 'água, proteína de soja hidrolisada']) {
+    assert.deepEqual(reasons(score(other)), reasons(en), other);
+  }
+});

@@ -30,12 +30,19 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { id: 'shortening',  m: /\bshortening\b/i,                                    why: 'Vegetable shortening' },
     { id: 'margarine',   m: /\bmargarine?\b/i,                                     why: 'Margarine' },
     { id: 'interester',  m: /\binte?re?sterified\b/i,                             why: 'Interesterified fat' },
-    { id: 'hydrogen',    m: /(?<!partially )\b(fully )?hydrogenated\b|(?<!parcialmente )\b(totalmente\s+)?hidrogenad[oa]\b|(?<!partiellement )\bhydrog[ée]n[ée]e?\b|(?<!teilweise |teilweise geh[äa]rtet |teilweise )\bgeh[äa]rtete?[snmr]?\b|(?<!gedeeltelijk )\bgehydrogeneerde?\b|\bidrogenat[oi]\b|(?<!delvis )\bh[äa]rda[dt]e?\b|(?<!cz[ęe][śs]ciowo )\buwodornion[yae]?\b|(?<!k[ıi]smen )\bhidrojen(?:ize|e)\b/i, why: 'Hydrogenated oil' },
+    // A negated claim is not the thing: "non-hydrogenated palm oil", "huile de palme non hydrogénée",
+    // "Palmöl (nicht gehärtet)" were charged as hydrogenated fat, 25 where plain palm oil scores 90.
+    { id: 'hydrogen',    m: new RegExp([
+      '(?<!partially )\\b(fully )?hydrogenated\\b', '(?<!parcialmente )\\b(totalmente\\s+)?hidrogenad[oa]s?\\b',
+      '(?<!partiellement )\\bhydrog[ée]n[ée]e?s?(?![a-zà-ÿ\\u0100-\\u017f])', '(?<!teilweise |teilweise geh[äa]rtet )\\bgeh[äa]rtete?[snmr]?\\b',
+      '(?<!gedeeltelijk )\\bgehydrogeneerde?\\b', '(?<!parzialmente )\\bidrogenat[oiea]\\b', '(?<!delvis )\\bh[äa]rda[dt]e?\\b',
+      '(?<!cz[ęe][śs]ciowo )(?<![a-zà-ÿ\\u0100-\\u017f])uwodornion[yae]?(?![a-zà-ÿ\\u0100-\\u017f])', '(?<!k[ıi]smen )\\bhidrojen(?:ize|e)\\b(?!\\s+(?:olmayan|edilmemi[şs]))',
+    ].map(p => '(?<!(?:\\bnon|\\bnot|\\bno|\\bn[ãa]o|\\bnicht|\\bniet|\\bej|\\bicke|\\bnie|\\bsans|\\bsin|\\bsenza|\\bohne|\\bzonder|\\butan|\\bbez|\\bwithout)[- ]?)' + p).join('|'), 'i'), why: 'Hydrogenated oil' },
     { id: 'monoglyoil',  m: /\bhigh\s+oleic\s+(soybean|sunflower|safflower)\b|\b(?:girass?ol|girasole|tournesol)\s+(?:alto\s+)?ol[ée]ico?\b|\bhuile\s+de\s+tournesol\s+ol[ée]ique\b|\bhigh[- ]oleic\b|\bhoog\s+oliezuur\w*|(?<![a-zà-ÿ\u0100-\u017f])(?:[óo]leo|aceite|olio)\s+de?i?\s*(?:girass?ol|girasole)\s+alto\s+oleico\b/i,  why: 'High-oleic industrial seed oil' },
   ];
 
   // Artificial trans fat. Its own, far lower cap.
-  const TRANS = { m: /\bpartially\s+hydrogenated\b|\bparcialmente\s+hidrogenad[oa]\b|\bpartiellement\s+hydrog[ée]n[ée]e?\b|\bdelvis\s+h[äa]rda[dt]e?\b|\bcz[ęe][śs]ciowo\s+uwodornion[yae]?\b|\bk[ıi]smen\s+hidrojen(?:ize|e)\b|\bteilweise\s+geh[äa]rtete?[snmr]?\b|\bgedeeltelijk\s+gehydrogeneerde?\b|\bparzialmente\s+idrogenat[oi]\b|\bparcialmente\s+hidrogenad[oa]s?\b/i, why: 'Partially hydrogenated oil (artificial trans fat)', cap: 5 };
+  const TRANS = { m: /\bpartially\s+hydrogenated\b|\bparcialmente\s+hidrogenad[oa]\b|\bpartiellement\s+hydrog[ée]n[ée]e?s?(?![a-zà-ÿ\u0100-\u017f])|\bdelvis\s+h[äa]rda[dt]e?\b|\bcz[ęe][śs]ciowo\s+uwodornion[yae]?\b|\bk[ıi]smen\s+hidrojen(?:ize|e)\b|\bteilweise\s+geh[äa]rtete?[snmr]?\b|\bgedeeltelijk\s+gehydrogeneerde?\b|\bparzialmente\s+idrogenat[oi]\b|\bparcialmente\s+hidrogenad[oa]s?\b/i, why: 'Partially hydrogenated oil (artificial trans fat)', cap: 5 };
 
   const TRADITIONAL = [
     { id: 'butter',   m: /(?<!peanut |almond |cashew |sunflower |seed |nut |cocoa |shea |apple |soy |coconut )\bbutter\b/i, why: 'Butter' },
