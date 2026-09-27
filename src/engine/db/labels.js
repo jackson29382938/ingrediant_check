@@ -49,7 +49,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
       's[óo]l morska', 'deniz tuzu', 'sal marinho', 'flor de sal', 'sel de l[\'’]himalaya', 'sal del himalaya', 'sale dell[\'’]himalaya', 'himalayasalz', 'himalayazout', 'himalayasalt'] ) },
     { pts:  4, cat: 'animalWelfare', why: 'Heritage / heirloom breed',   m: /\b(heritage|heirloom|berkshire|wagyu)\b/i },
     { pts:  4, cat: 'traditionalPrep', why: 'Dry-aged / traditionally cured', m: /\bdry[- ]?(aged|cured)\b/i },
-    { pts:  3, cat: 'unrefined', why: 'Cold-pressed / unrefined',        m: inLanguages(/\b(cold[- ]pressed|expeller[- ]pressed|unrefined|first press)\b/i, [
+    { pts:  3, cat: 'unrefined', why: 'Cold-pressed / unrefined',        m: inLanguages(/\b(cold[- ]pressed|expeller[- ]pressed|unrefined|first (?:cold )?press(?:ed|ing)?)\b/i, [
       'press[ée]e? [àa] froid', 'premi[èe]re pression [àa] froid', 'prensad[oa] en fr[íi]o', 'prensad[oa] a frio', 'spremitura a freddo', 'spremuto a freddo',
       'kaltgepresst[a-z]*', 'koudgeperst[a-z]*', 'kallpressad[a-z]*', 't[łl]oczon[a-zęąó]* na zimno', 'so[ğg]uk s[ıi]k[ıi]m', 'non raffin[ée]e?s?', 'no refinad[oa]s?',
       'non raffinat[oaie]', 'unraffiniert[a-z]*', 'ongeraffineerd[a-z]*', 'oraffinerad[a-z]*', 'nierafinowan[a-zęąó]*', 'n[ãa]o refinad[oa]s?'] ) },
@@ -76,7 +76,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     /^(organic |raw )*(honey|maple syrup)$/i,
     /^(organic |raw |dry[- ]roasted |roasted |unsalted |salted |whole |shelled |blanched |sliced |slivered |flaked |chopped |ground |halved )*(almonds?|walnuts?|pecans?|pecan nuts?|macadamias?|macadamia nuts?|pistachios?|pistachio nuts?|pistachio kernels?|cashews?|cashew nuts?|cashew kernels?|hazelnuts?|hazelnut kernels?|peanuts?|peanut kernels?|pine nuts?|brazil nuts?|(?:pumpkin|sunflower|chia|flax|hemp|sesame) ?seeds?|flaxseed)$/i,
     /^(organic |dried |cooked )*(lentils?|chickpeas?|(?:black|kidney|pinto|navy|cannellini|garbanzo|white|red) beans?|split peas|edamame)$/i,
-    /^(organic )?(apples?|bananas?|berries|blueberries|strawberries|oranges?|dates?|figs?|raisins?)$/i,
+    /^(organic )?(?:(?:dried|freeze[- ]dried|frozen|fresh|chopped|pitted|sliced) )*(apples?|bananas?|berries|blueberries|strawberries|raspberries|cherries|oranges?|dates?|figs?|raisins?|sultanas|apricots?|prunes?|mangos?|mangoes|cranberries)$/i,
     // The same fruit in each label language: "dattes, amandes" scored 80 as NOVA 3 where "dates,
     // almonds" scores 94 as NOVA 1.
     new RegExp('^(?:pommes?|manzanas?|mel[ae]|[äa]pfel|appels?|[äa]pplen?|jab[łl]k[ao]|elma|ma[çc][ãa]s?'

@@ -926,3 +926,16 @@ test('a bare code in a function word’s bracket is the E-number it names', () =
   assert.deepEqual(engine.parse('flour, chocolate (200 g)'), ['flour', 'chocolate', '200 g']);
   assert.deepEqual(engine.parse('flour, 2 eggs'), ['flour', '2 eggs']);
 });
+
+test('English everyday words from the samples are read; a pressing claim is not an ingredient', () => {
+  for (const t of ['water, pectins', 'water, pantothenic acid', 'water, mixed seeds', 'parsnip', 'water, nigari', 'water, caffeine', 'water, psyllium husk']) {
+    assert.equal(score(t).coverage, 1, t);
+  }
+  assert.ok(reasons(score('water, colouring agent')).includes('Unnamed colour'));
+  assert.equal(score('freeze-dried blueberries').nova, 1);
+  assert.equal(score('chopped dates').nova, 1);
+  // "(First Cold Press)" was a second, unreadable ingredient that made a bottle of olive oil NOVA 3.
+  const oil = score('( First Cold Press ) Organic Extra Virgin Olive Oil');
+  assert.equal(oil.nova, 2);
+  assert.ok(oil.good.some(g => g.why.startsWith('Cold-pressed')));
+});
