@@ -41,7 +41,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { pts:  5, cat: 'dairyProcessing', why: 'A2 dairy',                  m: /\ba2\b/i },
     { pts:  5, cat: 'traditionalPrep', why: 'Sourdough / sprouted grain', m: inLanguages(/\b(sourdough|sprouted|naturally leavened|einkorn|soaked)\b/i, [
       'levain', 'masa madre', 'lievito madre', '(?:roggen|weizen|dinkel|natur)?[- ]?sauerteig[a-z]*', 'zuurdesem', 'surdeg', 'zakwas(?:u|ie|em)?', 'ek[şs]i maya',
-      'massa m[ãa]e', 'germée?s?', 'gekeimt[a-z]*', 'germinad[oa]s', 'germogliat[oaie]', 'gekiemd[a-z]*', 'groddad[a-z]*', 'kie[łl]kowan[a-zęąó]*', 'engrain', 'einkorn'] ) },
+      'massa m[ãa]e', 'germée?s?', 'gekeimt[a-z]*', 'germinad[oa]s', 'germogliat[oaie]', 'gekiemd[a-z]*', 'groddad[a-z]*', 'kie[łl]kowan[a-zęąó]*', 'engrain', 'einkorn', 'tremp[ée]e?s', 'eingeweicht[a-z]*', 'remojad[oa]s', 'ammollat[oaie]', 'geweekt[a-z]*', 'bl[öo]tlagd[a-z]*', 'namoczon[a-zęąó]*', 'demolhad[oa]s', '[ıi]slat[ıi]lm[ıi][şs]'] ) },
     { pts:  5, cat: 'nonGmo', why: 'Non-GMO verified',                   m: inLanguages(/\bnon[- ]?gmo\b/i, [
       'sans ogm', 'sin ogm', 'senza ogm', 'sem ogm', 'ohne gentechnik', 'gentechnikfrei', 'bez gmo', 'gdo[\'’]?suz', 'zonder gmo', 'utan gmo'] ) },
     { pts:  5, cat: 'unrefined', why: 'Unrefined salt',                  m: inLanguages(/\b(sea salt|redmond|celtic|real salt|himalayan salt)\b/i, [

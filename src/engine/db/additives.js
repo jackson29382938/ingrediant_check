@@ -286,7 +286,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // rye charge that "rye flour, water, sourdough" halves.
   const TRADITIONAL_PREP = new RegExp('\\b(sourdough|sprouted|soaked|long[- ]?fermented|naturally leavened|einkorn|emmer|khorasan|kamut|heritage (wheat|grain))\\b'
     + '|(?<![a-zà-ÿœ\\u0100-\\u017f])(?:levain|masa madre|lievito madre|(?:roggen|weizen|dinkel|natur)?[- ]?sauerteig[a-z]*|zuurdesem|surdeg|zakwas(?:u|ie|em)?'
-    + '|ek[şs]i maya|massa m[ãa]e|germée?s?|gekeimt[a-z]*|germinad[oa]s|germogliat[oaie]|gekiemd[a-z]*|groddad[a-z]*|kie[łl]kowan[a-zęąó]*|engrain)(?![a-zà-ÿœ\\u0100-\\u017f])', 'i');
+    + '|ek[şs]i maya|massa m[ãa]e|germée?s?|gekeimt[a-z]*|germinad[oa]s|germogliat[oaie]|gekiemd[a-z]*|groddad[a-z]*|kie[łl]kowan[a-zęąó]*|engrain|tremp[ée]e?s|eingeweicht[a-z]*|remojad[oa]s|ammollat[oaie]|geweekt[a-z]*|bl[öo]tlagd[a-z]*|namoczon[a-zęąó]*|demolhad[oa]s|[ıi]slat[ıi]lm[ıi][şs])(?![a-zà-ÿœ\\u0100-\\u017f])', 'i');
 
   const _exports = AIRmodule('additives', {
     CAPS, ISOLATES, FLAVOURS, TEXTURE, PRESERVATIVES, PROCESSING, FORTIFICATION, GRAINS, UNNAMED, TRADITIONAL_PREP, PLANTS,

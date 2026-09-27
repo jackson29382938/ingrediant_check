@@ -803,3 +803,11 @@ test('fat-reduced dairy in any word order, and whole-milk powders that waive it'
     assert.equal(score(other).score, en.score, other);
   }
 });
+
+test('"soaked" earns the traditional-preparation bonus in every label language', () => {
+  const en = score('water, soaked kidney beans, salt');
+  for (const other of ['eau, haricots rouges secs trempés, sel', 'Wasser, eingeweichte Kidneybohnen, Salz',
+    'agua, alubias rojas remojadas, sal', 'woda, namoczona fasola, sól']) {
+    assert.equal(score(other).score, en.score, other);
+  }
+});
