@@ -342,6 +342,8 @@ const COMMON_PANEL = new RegExp('\\b(?:' + [
   + '|emulsifying salts?|sels de fonte|sales (?:de )?fundid[oa]s?|sali di fusione|schmelzsalze?|smeltzouten|sm[äa]ltsalter|s[óo]le emulguj[ąa]ce|eritme tuzlar[ıi]|sais de fus[ãa]o'
   + '|polyglycerol esters?(?: of fatty acids)?|sorbitan (?:tri|mono)?stearate|sorbitan(?:tri|mono)stearat|trist[ée]arate de sorbitane|triestearato de sorbitano|(?:ya[ğg] asitlerinin )?poligliserol esterleri'
   + '|sodium hydroxide|natriumhydroxide?|hydroxyde de sodium|hidr[óo]xido de s[óo]dio|idrossido di sodio|wodorotlenek sodu|sodyum hidroksit|kaliumcarbonate?n?|carotin|b[ée]ta[- ]?carot[èe]ne'
+  + '|siyah [çc]ay|ye[şs]il [çc]ay|[çc]ay|tahin[ie]?|tahina|karabu[ğg]day|nane|maydanoz|dereotu|fesle[ğg]en|kekik|biberiye|karabiber|mynta|persilja|basilika|timjan|rosmarin|peppar|menthe|persil|aneth|basilic|origan|thym|romarin|ciboulette|menta|perejil|eneldo|albahaca|or[ée]gano|tomillo|romero|prezzemolo|aneto|basilico|origano|timo|rosmarino|minze|petersilie|thymian|peterselie|dille|basilicum|tijm|rozemarijn|mi[ęe]ta|pietruszka|koperek|bazylia|tymianek|rozmaryn|hortel[ãa]|endro|manjeric[ãa]o|or[ée]g[ãa]os|tomilho|alecrim'
+  + '|iodine|iodised salt|iodized salt|jod|jodid|iode|yodo|iodio|jodium|jodek|iyot|iyodat|klumpf[öo]rebyggande medel|antiaglomerantes?|anti-?agglom[ée]rants?|trennmittel|antiagglomeranti?|antiklontermiddel(?:en)?|substancj[ae] przeciwzbrylaj[ąa]c[ae]|topaklanmay[ıi] [öo]nleyici(?:ler)?|antiaglutinantes?'
   + '|lactas[ea]|laktase?|lattasi|laktaz(?: enzimi)?|kahve|[öo][ğg][üu]t[üu]lm[üu][şs] kahve|caf[ée](?: moulu| soluble| torr[ée]fi[ée])?|caff[èe]|kaffee|koffie|kaffe|kawa|chicor[ée]e(?: soluble)?|achicoria|cicoria|zichorie|cichorei|cikoria|cykoria|hindiba|sumo|polpa'
   + "|huile de s[ée]same|aceite de s[ée]samo|olio di sesamo|sesam[öo]l|sesamolie|sesamolja|olej sezamowy|susam ya[ğg][ıi]|[óo]leo de s[ée]samo"
   + '|mj[öo]lksyrakulturer?|syrakulturer?|vitm[öo]gelkultur|l[öo]pe|milchs[äa]urekulturen|fermenti lattici|fermentos? l[áa]cticos|zuursel|kultury bakterii|pr[ée]sure|cuajo(?: microbiano)?|caglio|stremsel|podpuszczk[ai]|peynir mayas[ıi]|coalho(?: microbiano)?|labferment'
@@ -482,7 +484,7 @@ function splitTopLevel(text) {
 const FUNCTION_HEAD = /^([^:()]{3,40}):(.+)$/;
 const SWEETENER_WORD = /^(?:sweeteners?|edulcorantes?|[ée]dulcorants?|s[üu][ßs]ungsmittel|dolcificanti|zoetstoff(?:en)?|s[öo]tningsmedel|substancje s[łl]odz[ąa]ce|tatland[ıi]r[ıi]c[ıi](?:lar)?|substancja s[łl]odz[ąa]ca)$/i;
 // "flavouring: vanillin", "Aroma: Vanillin", "arôme : vanilline" name the flavouring after the colon.
-const FLAVOUR_WORD = /^(?:flavou?rings?|flavou?rs?|ar[ôo]mes?|aromas?|aromen|aromi|aromat[ya]?|arom(?:er)?|aroma vericiler?)$/i;
+const FLAVOUR_WORD = /^(?:flavou?rings?|flavou?rs?|ar[ôo]mes?|aromas?|aromen|aromi|aromat[ya]?|arom(?:er)?|aroma vericiler?|bulking agents?|agents? de charge|agentes? de carga|f[üu]llstoffe?|agent[ei] di carica|vulstof(?:fen)?|fyllnadsmedel|substancj[ae] wype[łl]niaj[ąa]c[ae]|dolgu maddesi|agentes? de volume)$/i;
 function colonAsParenthesis(part) {
   // Only a short head before the colon can be a function word. Checked before the pattern runs, and
   // the pattern has no free whitespace to backtrack over: on 6,000 spaces it once took a second.

@@ -874,3 +874,20 @@ test('a hyphen or an apostrophe inside a phrase does not hide it', () => {
     assert.equal(b.score, a.score, other);
   }
 });
+
+test('words from a third sample of real labels score like their English twins', () => {
+  const pairs = [
+    ['water, erythritol', 'eau, érythritol'], ['water, erythritol', 'água, eritritol'], ['water, erythritol', 'Wasser, Erythrit'], ['water, erythritol', 'woda, erytrytol'],
+    ['water, steviol glycosides', 'eau, glycosides de stéviol'], ['water, steviol glycosides', 'Wasser, Steviolglycoside'], ['water, steviol glycosides', 'vatten, steviolglykosider'],
+    ['water, steviol glycosides', 'woda, glikozydy stewiolowe'], ['water, steviol glycosides', 'agua, glucósidos de esteviol'],
+    ['water, bulking agent (erythritol)', 'water, bulking agent: erythritol'], ['water, erythritol', 'eau, agent de charge: érythritol'],
+    ['low fat yogurt', 'Yaourt maigre'], ['brazil nuts', 'Paranusskerne'], ['cashew', 'anacardo'], ['roasted peanut', 'geroosterde pinda'],
+    ['whole durum wheat', 'fullkornsdurumvete'], ['buckwheat', 'Karabuğday'], ['whole milk', 'Yağlı inek sütü'], ['salt, potassium iodide', 'Sel, iodure de potassium'],
+  ];
+  for (const [en, other] of pairs) {
+    const a = score(en), b = score(other);
+    assert.deepEqual(reasons(b).sort(), reasons(a).sort(), `${other} vs ${en}`);
+    assert.equal(b.score, a.score, `${other} vs ${en}`);
+  }
+  for (const text of ['Siyah çay', 'Kabuklu susamdan tahin', 'torkad mynta']) assert.equal(score(text).coverage, 1, text);
+});

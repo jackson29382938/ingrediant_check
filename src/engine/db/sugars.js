@@ -99,7 +99,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
 
   // SUGAR ALCOHOLS & NOVEL — penalised, not capped.
   const ALCOHOLS = [
-    { m: /^(?:erythritol|e[- ]?968)$/i,             pts: 12, why: 'Erythritol' },
+    { m: /^(?:erythritol|[ée]rythritol|eritritol[oe]?|erytrytol|erythrit|eritritol|e[- ]?968)$/i,             pts: 12, why: 'Erythritol' },
     { m: /^(?:xylitol|e[- ]?967)$/i,                pts: 10, why: 'Xylitol' },
     { m: /^(?:maltitol(?:s|e|i)?( syrup)?|maltitolo|maltitole|sirop de maltitol|e[- ]?965)$/i,      pts: 12, why: 'Maltitol' },
     { m: /^(?:sorbitol(?:s|e|i)?( syrup)?|sorbitolo|sorbitole|sirop de sorbitol|e[- ]?420)$/i,               pts: 11, why: 'Sorbitol' },
@@ -108,7 +108,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /^(?:lactitol|e[- ]?966)$/i,               pts: 11, why: 'Lactitol' },
     { m: /^sugar alcohols?$/i,                      pts: 11, why: 'Sugar alcohol (unnamed)' },
     { m: /^allulose$/i,               pts: 8,  why: 'Allulose' },
-    { m: /^(steviol glycosides?|stevia( leaf extract)?|reb[- ]?[am]|e[- ]?960[a-d]?)$/i, pts: 8, why: 'Stevia extract — refined, not the leaf' },
+    { m: /^(steviol glycosides?|stevia( leaf extract)?|reb[- ]?[am]|e[- ]?960[a-d]?|glycosides? de st[ée]viol(?: issus de (?:la )?st[ée]via)?|gluc[óo]sidos de esteviol|gluc[óo]sidos de steviol|glicosidi steviolici|steviolglycosid(?:e|en)|steviolglykosider|glikozydy stewiolowe|steviol glikozitleri|glicos[íi]deos de esteviol)$/i, pts: 8, why: 'Stevia extract — refined, not the leaf' },
     { m: /^monk fruit( extract| juice concentrate)?$/i, pts: 6, why: 'Monk fruit extract' },
     { m: /^(soluble )?(corn|tapioca|chicory) (fiber|root fiber)$|^(?:fibres? (?:solubles? )?de (?:chicor[ée]e|ma[ïi]s)|fibra (?:solubile )?di (?:cicoria|mais)|fibra (?:soluble )?de (?:achicoria|ma[ií]z)|fibra (?:sol[úu]vel )?de (?:chic[óo]ria|milho)|zichorienwurzelfasern?|zichorienfasern?|chicoreivezels?|cichoreivezels?|ma[ïi]svezels?|oplosbare ma[ïi]svezels?|cikoriafiber|b[łl]onnik z cykorii|hindiba k[öo]k[üu] lifi)$/i, pts: 9, why: 'Isolated fiber syrup' },
     // Oligofructose and fructo-oligosaccharides are inulin cut shorter, the same chicory isolate: they

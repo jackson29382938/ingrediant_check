@@ -224,7 +224,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\bvitamin a (palmitate|acetate)\b/i,  pts: 7,  why: 'Synthetic vitamin A' },
     { m: /\bd[- ]?alpha[- ]?tocopher(ol|yl)\b|\bmixed tocopherols\b|\btocopherols?\b|\be[- ]?30[6-9]\b/i, pts: 3, why: 'Tocopherol antioxidant' },
     { m: /\bcholecalciferol\b|\bvitamin d[23]\b/i, pts: 3, why: 'Added vitamin D' },
-    { m: /\bpotassium iodide\b/i,               pts: 3,  why: 'Added iodine' },
+    { m: /\bpotassium iodide\b|\bpotassium iodate\b|\bkaliumjodi[dt]e?\b|\biod(?:ure|ate) de potassium\b|\byod(?:uro|ato) pot[áa]sico\b|\biod(?:uro|ato) di potassio\b|\bjod(?:ek|an) potasu\b|\bpotasyum iyod(?:[üu]r|at)\b|\biod(?:eto|ato) de pot[áa]ssio\b/i,               pts: 3,  why: 'Added iodine' },
     { m: /\bsodium selenite\b/i,                pts: 6,  why: 'Sodium selenite' },
   ];
 
@@ -238,11 +238,11 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\b(?:enriched|fortified) (wheat |bleached |unbleached |white )?flour\b/i, pts: 15, why: 'Enriched flour — stripped, then synthetically re-dosed' },
     { m: /\b(bleached|refined|white) flour\b/i,     pts: 14, why: 'Refined white flour' },
     { m: /\bwheat flour\b|\bharina(?:\s+integral)?\s+de\s+trigo\b|\bfarine(?:\s+(?:compl[èe]te|int[ée]grale))?\s+de\s+bl[ée](?:$|[^a-z])|\b(?:vollkorn)?weizenmehl\b|\bvollkornweizenmehl\b|\bfarina(?:\s+integrale)?\s+di\s+(?:grano|frumento)\b|\bfarinha(?:\s+integral)?\s+de\s+trigo\b|\b(?:volkoren\s?)?tarwe(?:meel|bloem)\b|\bfarine\s+(?:compl[èe]te\s+)?de\s+froment\b|\bvetemj[öo]l\b|\bm[ąa]ka\s+pszenna(?:\s+pe[łl]noziarnista)?\b|\bpszenna\s+m[ąa]ka\b|\bbu[ğg]day\s+unu\b/i, pts: 12, why: 'Wheat flour' },
-    { m: /\bwheat\b|\btrigo\b|\bbl[ée](?:$|[^a-z])|\bweizen\b|\bfrumento\b|\bfroment\b|\btarwe\b|\bvete\w*|\bpszen(?:ica|icy|n[aey]|nego|nej)\b|\btarwe\w*|\bweizen\w*|\bbu[ğg]day\b/i, pts: 9,  why: 'Wheat', gluten: true },
+    { m: /\bwheat\b|\btrigo\b|\bbl[ée](?:$|[^a-z])|\bweizen\b|\bfrumento\b|\bfroment\b|\btarwe\b|\bvete\w*|\bpszen(?:ica|icy|n[aey]|nego|nej)\b|\bfullkorns(?:durum)?vete\w*|\btarwe\w*|\bweizen\w*|\bbu[ğg]day\b/i, pts: 9,  why: 'Wheat', gluten: true },
     { m: /\bbarley\b|\bcebada\b|\borge\b|\bgerste\b|\borzo\b|\bcevada\b|\bgerst\b|\bgerste(?:nmalz|mout)\w*|\bgerstemout\w*|\bkornmalt\b|\bj[ęe]czmie[ńn](?![a-z\u0100-\u017f])|\bj[ęe]czmienn(?:a|e|y|ego|ej)(?![a-z\u0100-\u017f])|\barpa\b/i, pts: 8,  why: 'Barley', gluten: true },
     { m: grain(/\brye\b|\bcenteno\b|\bseigle\b|\broggen\b|\bsegale\b|\bcenteio\b|\brogge\b|\br[åa]gmj[öo]l\b|(?:^|[^a-z])[żz]yt(?:o|nia|ni)\b|(?:^|[^a-z\u0100-\u017f])[çc]avdar\b/i, [
       '(?:vollkorn)?roggen(?:vollkorn)?(?:mehl|schrot|flocken|sauerteig|malz)[a-z]*', 'rogge(?:bloem|meel|vlokken)', '(?:fullkorns)?råg(?:mjöl|kross|flingor|sikt)?', '[żz]ytni(?:e|ej|ego)']), pts: 8,  why: 'Rye', gluten: true },
-    { m: /\bsemolina\b|\bdurum\b|\bs[ée]mola\b|\bsemoule\b|\b(?:hartweizen)?grie[ßs](?![a-zß])|\bs[ée]mola\b|\bgriesmeel\b/i, pts: 10, why: 'Durum semolina', gluten: true },
+    { m: /\bsemolina\b|\bdurum\b|\b(?:fullkorns)?durumvete\b|\bs[ée]mola\b|\bsemoule\b|\b(?:hartweizen)?grie[ßs](?![a-zß])|\bs[ée]mola\b|\bgriesmeel\b/i, pts: 10, why: 'Durum semolina', gluten: true },
     { m: grain(/\bspelt\b/i, ['(?:vollkorn)?dinkel(?:vollkorn)?(?:mehl|flocken|schrot)?', 'spelt(?:meel|bloem|mjöl)', '[ée]peautre', 'espelta', 'farro(?: spelta)?', 'spelta', 'orkisz[a-z]*', 'kav[ıi]lca']),
       pts: 5,  why: 'Spelt', gluten: true },
     { m: /\btriticale\b/i,                          pts: 8,  why: 'Triticale', gluten: true },

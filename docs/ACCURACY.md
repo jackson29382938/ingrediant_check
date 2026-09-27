@@ -171,6 +171,14 @@ What it found, and what changed:
   91. It also turned up 27 words English already charges (a Portuguese glucose syrup, Italian
   sucralose, Spanish sucrose, Dutch potassium phosphates…), which were then added.
 
+  **A third sample** (page 3, 715 lists, none in the first two), scored the same way after the second
+  sample's fixes: 26 of 715 declined (3.6%). Nearly all of them are Swedish (7) and Turkish (8), and
+  most of those are not ingredient lists at all (nutrition panels, mineral-water analyses, Norwegian
+  or Cyrillic text); the ones that were lists used words added after this measurement (accented
+  erythritol, steviol glycosides, buckwheat, tahini, whole-grain durum). The rate did not fall between
+  the second and third samples, which is the honest reading: the vocabulary each sample adds mostly
+  fixes that sample.
+
 ### The same product in two languages (2026-09-27)
 
 About 550 products whose Open Food Facts record carries the list in English and in one or more other
