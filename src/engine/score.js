@@ -130,7 +130,7 @@ const PENALTIES = [
   // An unnamed function word is charged but does not vote on the processing class: "color added"
   // on a fillet of salmon may be paprika extract, and it must not turn the fish into NOVA 3.
   // Tagged `unnamed` so score() can stand the charge down when the additive IS named alongside it:
-  // "Sodium Benzoate (Preservative)" is a disclosure, not a second additive (see namedBeside).
+  // "Sodium Benzoate (Preservative)" is a disclosure, not a second additive (see namedFam).
   ...tag(add.UNNAMED, 'none', 'processingAid').map(r => ({ ...r, unnamed: true })),
   ...tag(add.PROCESSING, byPts(12), 'processing', 'processingAid'),
   ...tag(add.FORTIFICATION, byPts(7), 'fortification'),
@@ -461,7 +461,11 @@ function lecithinWithSource(part) {
   return hit ? hit[1] : part;
 }
 
-function expandEntry(raw, depth = 0) {
+// Each piece carries its family: `fam` is its own id and `parent` the id of the entry whose
+// brackets it came from (0 at the top level), so a function word can be told apart from its
+// siblings in a sub-list.
+function expandEntry(raw, depth = 0, ids = { n: 0 }, parent = 0) {
+  const fam = ++ids.n;
   const part = lecithinWithSource(colonAsParenthesis(raw));
   // A "may contain" statement stays one entry, brackets and all: "may contain cereals containing
   // gluten (spelt, barley, oats)" charged spelt, barley and oats as ingredients once the bracket
@@ -472,20 +476,20 @@ function expandEntry(raw, depth = 0) {
   const { head, groups } = bracketGroups(part);
   if (MAY_CONTAIN.test(tidy(head))) {
     const whole = tidy(part.replace(/[()]/g, ' ').replace(/\s+/g, ' ').replace(/ ,/g, ',')).slice(0, 400);
-    return whole.length > 1 ? [whole] : [];
+    return whole.length > 1 ? [{ ing: whole, fam, parent }] : [];
   }
   // Brackets are read by depth. The flat pattern closed "milk chocolate (sugar, emulsifier:
   // lecithins (soy), flavouring: vanillin)" at the inner ")", so ", flavouring: vanillin)" stayed in
   // the parent entry and was charged there as an unspecified flavouring. A sub-ingredient's own
   // brackets are expanded the same way, a few levels deep; below that they are read flat as before.
-  const pieces = [tidy(head)];
+  const pieces = [{ ing: tidy(head), fam, parent }];
   for (const group of groups) {
     for (const child of group.split(/;|(?<!\d),|,(?!\d)/)) {
-      if (depth < 3 && (child.includes('(') || child.includes(':'))) pieces.push(...expandEntry(child, depth + 1));
-      else pieces.push(tidy(child.replace(/[()]/g, ' ')));
+      if (depth < 3 && (child.includes('(') || child.includes(':'))) pieces.push(...expandEntry(child, depth + 1, ids, fam));
+      else pieces.push({ ing: tidy(child.replace(/[()]/g, ' ')), fam: ++ids.n, parent: fam });
     }
   }
-  return pieces.filter(usable);
+  return pieces.filter(p => usable(p.ing));
 }
 
 // The text outside brackets, and each top-level bracket's contents with its own brackets kept.
@@ -529,13 +533,13 @@ function parseEntries(text) {
   // entry ("fd&c red no" / "40"), so the dye went unread; both now read as "no 40".
   const numbered = text.replace(/\bno\.\s*(?=\d)/gi, 'no ').replace(/#\s*(?=\d)/g, 'no ');
   const flat = joinStrains(numbered.replace(/\b((?:contains )?(?:less than \d+(?:\.\d+)?% of|\d+(?:\.\d+)?% or less of)|and\/or)\b/gi, ','));
-  const out = [];
+  const out = [], ids = { n: 0 };
   let pos = -1, strainRun = false;
   for (const part of joinStatements(splitTopLevel(flat))) {
     const strain = STRAIN_ENTRY.test(tidy(part));
     if (!(strain && strainRun)) pos++;
     strainRun = strain;
-    for (const ing of expandEntry(part)) out.push({ ing, pos });
+    for (const e of expandEntry(part, 0, ids)) out.push({ ing: e.ing, pos, fam: e.fam, parent: e.parent });
   }
   return out;
 }
@@ -642,8 +646,9 @@ function score(product, options = {}) {
   // Without this the same panel showed "-8 a preservative in disguise" and "+6 Fermented / live
   // cultures" for the same ingredient, so the preservative improved the score.
   // Organic footnotes ("*Ingrédients issus de l'agriculture biologique") are set aside from scoring
-  // but are claims printed on the regulated list, as "*organic" on its own already counted.
-  const notes = parsed.filter(e => LABEL_NOTE.test(e.ing)).map(e => e.ing).join(', ');
+  // but are claims printed on the regulated list, as "*organic" on its own already counted. So are
+  // claim entries: "soybeans (non-GMO)" lost the bonus that "non-GMO soybeans" earns.
+  const notes = parsed.filter(e => LABEL_NOTE.test(e.ing) || CLAIM_ENTRY.test(e.ing)).map(e => e.ing).join(', ');
   const bonusText = (notes ? txt + ', ' + notes : txt).replace(/\bcultured\s+(dextrose|celery|sugar|corn syrup|wheat|whey)\b[^,;.]*/gi, ' ');
 
   // Only the ingredient list is strong evidence. Seller-written surfaces — the marketing title AND
@@ -674,19 +679,27 @@ function score(product, options = {}) {
   let hardHits = 0, softHits = 0;
   const tradPrep = add.TRADITIONAL_PREP.test(txt);
 
-  // A function word is an undisclosed additive only when nothing beside it names the additive.
-  // US labels write "Sodium Benzoate (Preservative)" and EU labels write "Emulsifier (Soy
-  // Lecithin)"; the parenthetical shares its parent's position, so the pair is found by position.
+  // A function word is an undisclosed additive only when nothing names the additive. EU labels
+  // write "Emulsifier (Soy Lecithin)", so its own bracket names it; US labels write "Sodium
+  // Benzoate (Preservative)", so the entry whose bracket holds nothing but function words names it.
   // Charging the word as well as the additive cost a label 7–9 points for saying more, and
   // "Annatto (Color)" — a natural colour, fully disclosed — was charged as an unnamed one.
-  const namedBeside = new Map();
+  // It used to go by position, which a whole sub-list shares: "chocolate (sugar, cocoa butter,
+  // emulsifier)" left the emulsifier uncharged because the sugar beside it was recognised.
+  // The bare function word is not its own disclosure. Several translated words also live in
+  // COMMON_PANEL so they contribute to coverage; without this guard a standalone "conservante"
+  // or "emulgator" was recognised there and incorrectly suppressed its own unnamed charge.
+  const bare = e => add.UNNAMED.some(r => r.m.test(e.ing));
+  const names = e => !bare(e) && recognised(e.ing, { unnamed: false });
+  const byFam = new Map(entries.map(e => [e.fam, e]));
+  const childrenOf = new Map();
+  for (const e of entries) if (e.parent) childrenOf.set(e.parent, [...(childrenOf.get(e.parent) || []), e]);
+  const namedFam = new Set();
   for (const e of entries) {
-    if (namedBeside.get(e.pos)) continue;
-    // The bare function word is not its own disclosure. Several translated words also live in
-    // COMMON_PANEL so they contribute to coverage; without this guard a standalone "conservante"
-    // or "emulgator" was recognised there and incorrectly suppressed its own unnamed charge.
-    const bareFunction = add.UNNAMED.some(r => r.m.test(e.ing));
-    if (!bareFunction && recognised(e.ing, { unnamed: false })) namedBeside.set(e.pos, true);
+    const kids = childrenOf.get(e.fam) || [];
+    if (kids.some(names)) namedFam.add(e.fam);
+    const up = byFam.get(e.parent);
+    if (up && names(up) && (childrenOf.get(e.parent) || []).every(bare)) namedFam.add(e.fam);
   }
 
   // For the fat-reduced dairy rule: is there full-fat dairy ahead of this position?
@@ -694,7 +707,7 @@ function score(product, options = {}) {
   const firstFullFat = entries.reduce((min, e) => (e.pos < min && labels.isFullFatDairy && labels.isFullFatDairy(e.ing) ? e.pos : min), Infinity);
   const fullFatBefore = pos => firstFullFat < pos;
 
-  entries.forEach(({ ing, pos }) => {
+  entries.forEach(({ ing, pos, fam }) => {
     const w = weight(pos);
     const tripped = penaltiesFor(ing);
 
@@ -716,7 +729,7 @@ function score(product, options = {}) {
     for (const r of PENALTIES) {
       if (!tripped.has(r)) continue;
       if (seen.has(r.why)) continue;
-      if (r.unnamed && namedBeside.get(pos)) continue;   // the additive is named right beside it
+      if (r.unnamed && namedFam.has(fam)) continue;   // the additive is named in or around its bracket
       // Fat-reduced dairy describes the product only when it is mostly fat-reduced: not when
       // full-fat dairy comes earlier in the list, or the title says whole milk / full fat.
       if (r.cat === 'reducedFatDairy' && (fullFatTitle || fullFatBefore(pos))) {

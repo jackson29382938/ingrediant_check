@@ -552,3 +552,21 @@ test('brackets inside brackets are read by depth', () => {
   // An unclosed bracket is read as closed at the end, so what follows it is still split.
   assert.deepEqual(engine.parse('water, stabiliser (pectin, sugar, salt'), ['water', 'stabiliser', 'pectin', 'sugar', 'salt']);
 });
+
+test('a function word in a sub-list is named by its own bracket, not by its siblings', () => {
+  // The stand-down went by position, which a whole sub-list shares: "chocolate (sugar, cocoa
+  // butter, emulsifier)" left the emulsifier uncharged because the sugar beside it was recognised.
+  assert.ok(reasons(score('chocolate (sugar, cocoa butter, emulsifier), salt')).includes('Unnamed emulsifier'));
+  // Still named: its own bracket, the colon form, and an entry whose bracket only says what it is for.
+  for (const text of ['chocolate (sugar, emulsifier (soy lecithin)), salt', 'emulsifier: soy lecithin, water',
+    'sodium benzoate (preservative), water', 'annatto (color), cheese', 'citric acid (acidity regulator, preservative), water']) {
+    assert.ok(!reasons(score(text)).some(w => /^Unnamed/.test(w)), text);
+  }
+});
+
+test('a claim in brackets still earns its bonus', () => {
+  // Claim entries are dropped from scoring, and with them the evidence: "soybeans (non-GMO)" lost
+  // the bonus that "non-GMO soybeans" earns.
+  assert.equal(score('soybeans (non-GMO), water').score, score('non-GMO soybeans, water').score);
+  assert.equal(score('oats (certified organic), salt').score, score('organic oats, salt').score);
+});
