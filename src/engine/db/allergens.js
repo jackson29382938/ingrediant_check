@@ -62,7 +62,11 @@ const DAIRY = NOT_DAIRY_BEFORE + L + '(?:milk|butter|cream)' + R + '(?!\\s*(?:of
   // tr — süt, süt tozu, tereyağı, peynir altı suyu (whey); "hindistan cevizi sütü", "badem sütü" and
   // "bitkisel krema" (a whipped vegetable-fat topping) are not
   + '|(?<!(?:cevizi|badem|yulaf|soya|pirin[çc]|f[ıi]nd[ıi]k)\\s)' + L + '(?:s[üu]t(?!\\s+asidi)(?:[üu]|l[üu]|tozu)?|tereya[ğg][ıi]?|kaymak|peynir' + W + '|yo[ğg]urt' + W + '|laktoz|kazein' + W + '|ayran|lor)' + R
-  + '|(?<!bitkisel\\s)' + L + 'krema(?:s[ıi])?' + R;
+  + '|(?<!bitkisel\\s)' + L + 'krema(?:s[ıi])?' + R
+  // Cheeses, fresh cheeses and dairy words the lists above did not name, found by probing each language.
+  + '|' + L + '(?:milkfat|comt[ée]|reblochon|roquefort|raclette|mimolette|morbier|stracciatella|gorgonzola|taleggio|manchego|faisselle'
+  + '|yogh?ourt|latticello|natas|cajeta|khoa|labne|topfen|schmand|butterschmalz|butterfett|butter(?:milch|[öo]l|pulver)|kr[äa]uterbutter'
+  + '|twar[óo][gż]' + W + '|kefir' + W + '|kesella|smetana|ka[şs]ar' + W + '|(?:natrium|calcium|kalium)case[iï]na?at' + W + ')' + R;
 
 const EGG = L + '(?:eggs?|egg (?:white|yolk)s?|eggnog|aioli|albumen|albumin[ae]?|ovo?albumin[ae]?|l[iy]s[io]z[iy]m[ae]?|mayonnaise|meringues?|huevos?|(?:œ|oe)ufs?|uov[oa]|eier(?:nudeln|teigwaren|pulver)?|eiwei(?:ss|[sß])|ei)' + R
   // Yolk, white, mayonnaise and meringue by their own names: yema, tuorlo, albume, mayonesa, maionese,
@@ -111,7 +115,7 @@ const ALLERGENS = [
       + '|(?:para|pekan|pecan|macadamia|pinien)n[üu](?:ss|ß)' + W + '|anacardi|pist[áa]cios?|macad[âa]mias?|makadamian[öo]t' + W
       + '|pralin[ée]?s?|massepain|mazap[áa]n|marsepein|marcepan' + W + '|marsipan|amaretti|gianduia|turr[óo]n' + W + '|torron' + W + ')' + R, 'i') },
   { id: 'soy', label: 'Soy',
-    m: new RegExp(/\b(soy|soya|soybean|soja|soia|tofu|tempeh|edamame|miso|tamari(?!nd)|shoyu|natto|textured vegetable protein|tvp)\w*/.source + '|' + L + '(?:sojow' + W + '|sojab[öo]n' + W + '|sojabon' + W + '|soya' + W + '|soj[ęeiy]|soi)' + R, 'i') },
+    m: new RegExp(/\b(soy|soya|soybean|soja|soia|tofu|tempeh|edamame|miso|tamari(?!nd)|shoyu|natto|yuba|textured vegetable protein|tvp)\w*/.source + '|' + L + '(?:sojow' + W + '|sojab[öo]n' + W + '|sojabon' + W + '|soya' + W + '|soj[ęeiy]|soi)' + R, 'i') },
   { id: 'wheat', label: 'Wheat / gluten', m: new RegExp(GLUTEN, 'i') },
   { id: 'fish', label: 'Fish',
     m: new RegExp(/\b(fish|salmon|tuna|cod|halibut|tilapia|anchov\w+|sardines?|mackerel|herring|pollock|haddock|worcestershire|pescado|at[úu]n|salm[óo]n|anchoas?|bacalao|poisson|thon|saumon|morue|fisch\w*|thunfisch\w*|lachs\w*|sardellen|pesce|tonno|salmone|acciughe|merluzzo|surimi|bonito|katsuobushi|dashi|caviar|roe)\b/.source + '|' + L + '(?:fisk' + W + '|lax|tonfisk|sill|torsk|ansjovis|makrill|ryb(?:a|y|n' + W + ')|[łl]oso[śs]' + W + '|tu[ńn]czyk' + W + '|[śs]led[źz]' + W + '|dorsz' + W + '|sardynk' + W + '|makrel' + W + '|vis|zalm|tonijn|haring|kabeljauw|makreel|peixes?|atum|salm[ãa]o|bacalhau|sardinhas?|anchovas?|bal[ıi]k(?!esir)' + W + '|ton bal[ıi][ğg][ıi]|somon|hamsi|sardalya|uskumru|morina|levrek|[çc]ipura)' + R
@@ -143,18 +147,18 @@ const ALLERGENS = [
       + '|o[śs]miornic' + W + '|przegrzebk' + W + '|m[ąa]tw' + W + '|[śs]limak' + W
       + '|salyangoz' + W + '|ahtapot' + W + '|istakoz' + W + ')' + R, 'i') },
   { id: 'sesame', label: 'Sesame',
-    m: new RegExp(/\b(sesame|tahini|benne|gingelly|halva|halvah|halwa|gomasio|gomashio|za['’]?atar|s[ée]samo|s[ée]same|sesam)\w*/.source + '|' + L + '(?:sezam' + W + '|gergelim|susam' + W + '|tahin)' + R, 'i') },
+    m: new RegExp(/\b(sesame|tahini|tahina|benne|gingelly|halva|halvah|halwa|gomasio|gomashio|za['’]?atar|s[ée]samo|s[ée]same|sesam)\w*/.source + '|' + L + '(?:sezam' + W + '|gergelim|susam' + W + '|tahin)' + R, 'i') },
   { id: 'sulfite', label: 'Sulfites',
     m: new RegExp(/\b((?:meta)?bisul(?:f|ph)ites?|metabisul(?:f|ph)ites?|sulfite|sulphite|sodium bisulfite|potassium metabisulfite|sulfur dioxide|sulphur dioxide|sulfitos?|sulfites?|sulfit|schwefeldioxid|solfiti|anidride solforosa|e[- ]?22[0-8])\w*/.source + '|' + L + '(?:svaveldioxid|sulfiter|dwutlenek siarki|siarczyn' + W + '|zwaveldioxide|sulfieten|di[óo]xido de enxofre|sulfitos|k[üu]k[üu]rt dioksit|s[üu]lfit' + W + ')' + R
       // Compounds name the salt first: Kaliummetabisulfit, Natriumdisulfit, natriumbisulfiet, bisolfito.
       + '|(?:kalium|natrium|calcium|kalcium)(?:meta)?(?:bi|di)?sulfi(?:e?t|te)' + W + '|' + L + '(?:meta)?bisolfit' + W + '|' + L + 'disulfit' + W, 'i') },
   // The EU's mandatory-declaration list has three allergens the US list does not.
   { id: 'celery', label: 'Celery',
-    m: new RegExp(/\b(celery|celeriac|apio|c[ée]leri|sellerie|sedano)\w*/.source + '|' + L + '(?:selleri|seler' + W + '|selderij|aipo|kereviz' + W + ')' + R, 'i') },
+    m: new RegExp(/\b(celery|celeriac|apio|c[ée]leri|sellerie|sedano)\w*/.source + '|' + L + '(?:selleri|seler' + W + '|selderij' + W + '|knollensellerie|stangensellerie|aipo|kereviz' + W + ')' + R, 'i') },
   { id: 'mustard', label: 'Mustard',
-    m: new RegExp(/\b(mustard|dijon|mostaza|moutarde|senf|senape)\w*/.source + '|' + L + '(?:senap|gorczyc' + W + '|musztard' + W + '|mosterd|mostarda|hardal' + W + ')' + R, 'i') },
+    m: new RegExp(/\b(mustard|dijon|mostaza|moutarde|senf|senape)\w*/.source + '|' + L + '(?:senaps' + W + '|senap|gorczyc' + W + '|musztard' + W + '|mosterd|mostarda|hardal' + W + ')' + R, 'i') },
   { id: 'lupin', label: 'Lupin',
-    m: new RegExp(/\b(lupin|lupine|lupini|altramuz|lupino)\w*/.source + '|' + L + '(?:[łl]ubin' + W + '|tremo[çc]o' + W + '|ac[ıi] bakla)' + R, 'i') },
+    m: new RegExp(/\b(lupin|lupine|lupini|altramuz|altramuces|lupino)\w*/.source + '|' + L + '(?:[łl]ubin' + W + '|tremo[çc]o' + W + '|ac[ıi] bakla)' + R, 'i') },
   // "Corned beef" is beef; popcorn is corn; a Cornish hen is a chicken.
   { id: 'corn', label: 'Corn',
     m: new RegExp(/\b(corn(?!ed\b|ish\b)|popcorn|maize|masa(?!\s+(?:kakaow|madre|jajow|serow|makow|orzechow|czekoladow|mleczn|kokosow|pszenn|ziemniaczan))|hominy|dextrose|maltodextrin|cornstarch)\w*/.source

@@ -186,3 +186,14 @@ test('tree nuts by their local and compound names, pine nuts, and nut sweets', (
   }
   for (const w of ['Kokosnüsse', 'Muskatnuss', 'crème de marrons']) assert.ok(!has(w, 'treeNut'), w);
 });
+
+test('cheeses, fresh cheeses and dairy compounds by name; soy, sesame, mustard, celery and lupin forms', () => {
+  for (const w of ['natriumcaseïnaat', 'milkfat', 'comté', 'roquefort', 'gorgonzola', 'taleggio', 'manchego', 'Topfen', 'Schmand',
+    'Butterschmalz', 'kesella', 'kaşar', 'labne', 'natas', 'faisselle', 'latticello', 'yoghourt', 'twarożek', 'kefiru']) {
+    assert.ok(has(w, 'milk'), w);
+  }
+  for (const w of ['Kakaobutter', 'Sheabutter', 'Erdnussbutter', 'beurre de karité']) assert.ok(!has(w, 'milk'), w);
+  assert.ok(has('yuba', 'soy') && has('tahina', 'sesame') && has('senapsfrön', 'mustard'));
+  assert.ok(has('Knollensellerie', 'celery') && has('selderijzout', 'celery'));
+  assert.ok(has('puede contener trazas de altramuces', 'lupin'));
+});
