@@ -842,3 +842,19 @@ test('oligofructose and fructo-oligosaccharides are the inulin isolate they are 
   }
   assert.deepEqual(reasons(score('water, fosfato')), [], '"fosfato" is not FOS');
 });
+
+test('everyday words from the second sample are read, and semi-skimmed milk is charged', () => {
+  // "semi-skimmed cow's milk": the apostrophe broke the words allowed between "semi-skimmed" and "milk".
+  assert.ok(reasons(score("semi-skimmed cow's milk, lactase enzyme")).includes('Fat-reduced dairy'));
+  assert.ok(reasons(score('Yarım yağlı inek sütü, laktaz enzimi')).includes('Fat-reduced dairy'));
+  const pairs = [
+    ['ground coffee', 'Öğütülmüş kahve'], ['cashews', 'Caju'], ['roasted pistachios', 'PISTACIOS torrados'], ['roasted peanut', 'amendoim torrado'],
+    ['orange juice and pulp', 'Sumo de laranja e polpa'], ['soluble chicory', 'chicorée soluble'], ['sesame oil', 'Sesamolja'],
+    ['water, humectant', 'su, nem vericiler'], ['water, emulsifying salts', 'vatten, smältsalter'], ['water, sodium alginate', 'su, sodyum aljinat'],
+  ];
+  for (const [en, other] of pairs) {
+    const a = score(en), b = score(other);
+    assert.equal(b.coverage, a.coverage, `${other} coverage`);
+    assert.equal(b.score, a.score, `${other} vs ${en}`);
+  }
+});
