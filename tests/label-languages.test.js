@@ -177,3 +177,12 @@ test('crustaceans and molluscs by species; words with another meaning stay clear
   assert.ok(!has('fruits à coques', 'shellfish') && has('fruits à coques', 'treeNut'));
   for (const w of ['leche en polvo', 'choco chips', 'Krebs']) assert.ok(!has(w, 'shellfish'), w);
 });
+
+test('tree nuts by their local and compound names, pine nuts, and nut sweets', () => {
+  for (const w of ['pignons de pin', 'piñones', 'pinoli', 'Pinienkerne', 'pijnboompitten', 'rostade pinjenötter', 'pinhões', 'Paranüsse',
+    'paranusskerne', 'Pekannüsse', 'anacardi', 'pistacios torrados', 'pistácios', 'macadâmia', 'makadamianötter', 'praliné', 'massepain',
+    'mazapán', 'marsepein', 'marcepan', 'marsipan', 'gianduia', 'turrón', 'torrone']) {
+    assert.ok(has(w, 'treeNut'), w);
+  }
+  for (const w of ['Kokosnüsse', 'Muskatnuss', 'crème de marrons']) assert.ok(!has(w, 'treeNut'), w);
+});
