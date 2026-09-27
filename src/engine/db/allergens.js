@@ -73,7 +73,7 @@ const EGG = L + '(?:eggs?|egg (?:white|yolk)s?|eggnog|aioli|albumen|albumin[ae]?
   // sv ägg, äggula, helägg; pl jaja, jajka, żółtko (białko alone is protein, not egg white); nl eieren,
   // eigeel, kippenei; pt ovos, gema, clara de ovo
   + '|' + L + '(?:hel)?ägg(?:en|ula|gula|vita|vitepulver|pulver)?' + R
-  + '|' + L + '(?:jaj(?:a|ka|ko|o|ek)?|jajeczn' + W + '|[żz][óo][łl]tk' + W + '|bia[łl]ko jaja|eieren|eigeel|eidooier|eipoeder|kippenei' + W + '|ovos?|gemas? de ovo|claras? de ovo|yumurta' + W + ')' + R;
+  + '|' + L + '(?:jaj(?:a|ka|ko|o|ek)?|jajeczn' + W + '|[żz][óo][łl]tk' + W + '|bia[łl]ko jaja|eieren|eigeel(?:poeder)?|eidooier(?:poeder|s)?|eiwitpoeder|eipoeder|kippenei' + W + '|ovos?|gemas? de ovo|claras? de ovo|yumurta' + W + ')' + R;
 
 // The wheat rule spells out its grains because `malt\w*` used to be here — and maltodextrin,
 // maltitol and maltose are not malt. A coeliac user saw "Wheat / gluten" on gluten-free products
@@ -110,13 +110,27 @@ const ALLERGENS = [
     m: new RegExp(/\b(soy|soya|soybean|soja|soia|tofu|tempeh|edamame|miso|tamari(?!nd)|shoyu|natto|textured vegetable protein|tvp)\w*/.source + '|' + L + '(?:sojow' + W + '|sojab[öo]n' + W + '|sojabon' + W + '|soya' + W + '|soj[ęeiy]|soi)' + R, 'i') },
   { id: 'wheat', label: 'Wheat / gluten', m: new RegExp(GLUTEN, 'i') },
   { id: 'fish', label: 'Fish',
-    m: new RegExp(/\b(fish|salmon|tuna|cod|halibut|tilapia|anchov\w+|sardines?|mackerel|herring|pollock|haddock|worcestershire|pescado|at[úu]n|salm[óo]n|anchoas?|bacalao|poisson|thon|saumon|morue|fisch\w*|thunfisch\w*|lachs\w*|sardellen|pesce|tonno|salmone|acciughe|merluzzo|surimi|bonito|katsuobushi|dashi|caviar|roe)\b/.source + '|' + L + '(?:fisk' + W + '|lax|tonfisk|sill|torsk|ansjovis|makrill|ryb(?:a|y|n' + W + ')|[łl]oso[śs]' + W + '|tu[ńn]czyk' + W + '|[śs]led[źz]' + W + '|dorsz' + W + '|sardynk' + W + '|makrel' + W + '|vis|zalm|tonijn|haring|kabeljauw|makreel|peixes?|atum|salm[ãa]o|bacalhau|sardinhas?|anchovas?|bal[ıi]k(?!esir)' + W + '|ton bal[ıi][ğg][ıi]|somon|hamsi|sardalya|uskumru|morina|levrek|[çc]ipura)' + R, 'i') },
+    m: new RegExp(/\b(fish|salmon|tuna|cod|halibut|tilapia|anchov\w+|sardines?|mackerel|herring|pollock|haddock|worcestershire|pescado|at[úu]n|salm[óo]n|anchoas?|bacalao|poisson|thon|saumon|morue|fisch\w*|thunfisch\w*|lachs\w*|sardellen|pesce|tonno|salmone|acciughe|merluzzo|surimi|bonito|katsuobushi|dashi|caviar|roe)\b/.source + '|' + L + '(?:fisk' + W + '|lax|tonfisk|sill|torsk|ansjovis|makrill|ryb(?:a|y|n' + W + ')|[łl]oso[śs]' + W + '|tu[ńn]czyk' + W + '|[śs]led[źz]' + W + '|dorsz' + W + '|sardynk' + W + '|makrel' + W + '|vis|zalm|tonijn|haring|kabeljauw|makreel|peixes?|atum|salm[ãa]o|bacalhau|sardinhas?|anchovas?|bal[ıi]k(?!esir)' + W + '|ton bal[ıi][ğg][ıi]|somon|hamsi|sardalya|uskumru|morina|levrek|[çc]ipura)' + R
+      // Fish by species, in each language. Trout, hake, cabillaud, merluza, Hering, Kabeljau, Seelachs,
+      // pstrąg and the rest were read as clear, in English too.
+      + '|' + L + '(?:trout|hake|plaice|whiting|sprats?|pilchards?|eels?|carp|catfish|snapper|monkfish|kippers?|whitebait|swordfish|sea ?bass|perch|pike|grouper|mahi[- ]?mahi|turbot|bream|pangasius|pollack|coley|basa|barramundi|zander|sturgeon|lumpfish|dogfish|whitefish|rockfish|codfish|kingfish|milkfish'
+      + '|maquereaux?|poissons|saumons|thons|cabillaud|merlus?|harengs?|truites?|anchois|colin|lieu noir|[ée]glefin|fl[ée]tan|dorades?|limandes?|rougets?|espadon|lottes?|brochets?|sandres?|carpes?|anguilles?|loup de mer|pangas'
+      + '|sardinas?|caballas?|merluzas?|arenques?|truchas?|boquerones?|jurel|abadejo|lubinas?|pez espada|bacaladilla|anguilas?|angulas|lenguados?|pescadillas?|salmonetes?|rodaballo|besugo|panga|palometa|melva'
+      + '|sgombr[oi]|aring(?:a|he)|trot[ae]|alici|nasello|branzin[oi]|spigol[ae]|orat[ae]|pesce spada|sarde|baccal[àa]|stoccafisso|platessa|merluzz[oi]|anguill[ae]|rombo|cernia|dentice|palombo'
+      + '|(?:alaska-?)?seelachs' + W + '|hering' + W + '|matjes|b[üu]ckling' + W + '|forelle' + W + '|kabeljau' + W + '|sprotten|scholle' + W + '|dorsch' + W + '|rotbarsch' + W + '|zander' + W + '|hecht' + W + '|karpfen' + W + '|seehecht' + W + '|steinbutt'
+      + '|cavalas?|pescadas?|trutas?|carapaus?|robalos?|pescadinhas?|linguados?|peixe-espada|enguias?|badejo|corvina'
+      + '|forel' + W + '|koolvis|schol|heek|sprot' + W + '|paling|wijting|zeebaars|sardientjes|vis(?:olie|saus|gelatine|filet|sticks?|soep)' + W
+      + '|str[öo]mming' + W + '|sej|kolja|r[öo]dsp[äa]tta|g[äa]dda|abborre|r[öo]ding|forell|(?:skarp)?sill' + W
+      + '|pstr[ąa]g' + W + '|mintaj' + W + '|szprot' + W + '|karp(?:ia|iu|iem)?|sandacz' + W + '|fl[ąa]dr' + W + '|morszczuk' + W
+      + '|alabal[ıi]k' + W + '|palamut|l[üu]fer|istavrit|mezgit|ringa)' + R, 'i') },
   { id: 'shellfish', label: 'Shellfish',
     m: new RegExp(/\b(shellfish|shrimp|prawn|crab(?!\s*-?\s*apples?)|lobster|crayfish|langoustine|clam|mussel|oyster|scallop|squid|calamari|octopus|krill|crustacean|mollusc|mollusk|camar[óo]n|camarones|gambas?|langosta|cangrejo|mejill[óo]n|almeja|calamar|crust[áa]ceo|molusco|crevettes?|crabe|homard|moules?|hu[îi]tres?|crustac[ée]s?|mollusques?|garnelen?|krabben?|hummer|muscheln?|krebstier|weichtier|gamber|granchio|aragosta|cozze|vongole|crostacei|molluschi)\w*/.source + '|' + L + '(?:r[äa]kor|r[äa]ka|krabba|musslor|skaldjur|bl[öo]tdjur|kr[äa]ftdjur|krewetk' + W + '|homar' + W + '|ma[łl][żz]' + W + '|skorupiak' + W + '|mi[ęe]czak' + W + '|ostryg' + W + '|garnal' + W + '|kreeft|mossel' + W + '|oester' + W + '|schaaldier' + W + '|weekdier' + W + '|camar[ãa]o|camar[õo]es|caranguejo|lagosta|mexilh' + W + '|(?<!papryk[ai]\\s)ostras?(?!\\s+papryk)|crust[áa]ceos|karides' + W + '|yenge[çc]' + W + '|midye' + W + '|istakoz|kalamar|ahtapot|istiridye|deniz [üu]r[üu]nleri|kabuklu deniz' + W + '|yumu[şs]ak[çc]a' + W + ')' + R, 'i') },
   { id: 'sesame', label: 'Sesame',
     m: new RegExp(/\b(sesame|tahini|benne|gingelly|halva|halvah|halwa|gomasio|gomashio|za['’]?atar|s[ée]samo|s[ée]same|sesam)\w*/.source + '|' + L + '(?:sezam' + W + '|gergelim|susam' + W + '|tahin)' + R, 'i') },
   { id: 'sulfite', label: 'Sulfites',
-    m: new RegExp(/\b((?:meta)?bisul(?:f|ph)ites?|metabisul(?:f|ph)ites?|sulfite|sulphite|sodium bisulfite|potassium metabisulfite|sulfur dioxide|sulphur dioxide|sulfitos?|sulfites?|sulfit|schwefeldioxid|solfiti|anidride solforosa|e[- ]?22[0-8])\w*/.source + '|' + L + '(?:svaveldioxid|sulfiter|dwutlenek siarki|siarczyn' + W + '|zwaveldioxide|sulfieten|di[óo]xido de enxofre|sulfitos|k[üu]k[üu]rt dioksit|s[üu]lfit' + W + ')' + R, 'i') },
+    m: new RegExp(/\b((?:meta)?bisul(?:f|ph)ites?|metabisul(?:f|ph)ites?|sulfite|sulphite|sodium bisulfite|potassium metabisulfite|sulfur dioxide|sulphur dioxide|sulfitos?|sulfites?|sulfit|schwefeldioxid|solfiti|anidride solforosa|e[- ]?22[0-8])\w*/.source + '|' + L + '(?:svaveldioxid|sulfiter|dwutlenek siarki|siarczyn' + W + '|zwaveldioxide|sulfieten|di[óo]xido de enxofre|sulfitos|k[üu]k[üu]rt dioksit|s[üu]lfit' + W + ')' + R
+      // Compounds name the salt first: Kaliummetabisulfit, Natriumdisulfit, natriumbisulfiet, bisolfito.
+      + '|(?:kalium|natrium|calcium|kalcium)(?:meta)?(?:bi|di)?sulfi(?:e?t|te)' + W + '|' + L + '(?:meta)?bisolfit' + W + '|' + L + 'disulfit' + W, 'i') },
   // The EU's mandatory-declaration list has three allergens the US list does not.
   { id: 'celery', label: 'Celery',
     m: new RegExp(/\b(celery|celeriac|apio|c[ée]leri|sellerie|sedano)\w*/.source + '|' + L + '(?:selleri|seler' + W + '|selderij|aipo|kereviz' + W + ')' + R, 'i') },

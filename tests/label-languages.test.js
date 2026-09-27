@@ -149,3 +149,19 @@ test('words that only look like an allergen or a meat, from the samples', () => 
   for (const w of ['mięso', 'mieso', 'mięsny']) assert.ok(has(w, 'vegetarian'), w);
   assert.ok(!has('czerwone owoce w zmiennych pro-porcjach', 'porkFree') && has('poitrine de porc', 'porkFree'));
 });
+
+test('fish by species, sulfite salts in compounds, and Dutch egg compounds', () => {
+  // A missed fish flag reads as "clear": trout and hake were, in English, and so were most species elsewhere.
+  for (const w of ['trout', 'hake', 'plaice', 'eels', 'swordfish', 'catfish', 'filets de maquereaux', 'poissons', 'cabillaud', 'colin d\'Alaska',
+    'merluza', 'boquerones', 'sgombro', 'alici', 'Heringsfilet', 'Alaska-Seelachs', 'Kabeljau', 'Forelle', 'pescada', 'truta', 'koolvis',
+    'visolie', 'strömming', 'skarpsill', 'pstrąg', 'mintaj', 'alabalık', 'palamut']) {
+    assert.ok(has(w, 'fish'), w);
+    assert.ok(has(w, 'vegetarian'), `${w} → vegetarian`);
+  }
+  for (const w of ['Kaliummetabisulfit', 'Natriumdisulfit', 'natriumbisulfiet', 'metabisolfito di potassio', 'disulfite de potassium']) {
+    assert.ok(has(w, 'sulfite'), w);
+  }
+  for (const w of ['Kaliumsulfat', 'sulfate de calcium']) assert.ok(!has(w, 'sulfite'), w);
+  for (const w of ['eiwitpoeder', 'eigeelpoeder']) assert.ok(has(w, 'egg'), w);
+  assert.ok(!has('melkeiwitpoeder', 'egg'));
+});
