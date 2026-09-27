@@ -766,3 +766,17 @@ test('fruit and dairy sugar reads every label language, with the weight on and o
     assert.equal(score(other).nova, score(en).nova, `${other} NOVA`);
   }
 });
+
+test('vegetables and prepared nuts are whole foods in every label language', () => {
+  const pairs = [
+    ['potatoes, sunflower oil, salt', 'Kartoffeln, Sonnenblumenöl, Salz'], ['tomatoes, salt', 'pomodori, sale'], ['Tomato 99.5%, salt', 'Pomodoro 99,5%, sale'],
+    ['onions', 'cebollas'], ['spinach', 'Spinat'], ['garlic, salt', 'ail, sel'], ['diced tomatoes', 'tomaat'],
+    ['walnuts, hazelnuts, blanched almonds', 'noix, noisettes, amandes décortiquées'], ['walnuts, hazelnuts, blanched almonds', 'Walnusskerne, Haselnusskerne, blanchierte Mandeln'],
+    ['walnuts, cashews, blanched almonds', 'orzechy włoskie, orzechy nerkowca, blanszowane migdały'], ['almonds', 'sliced almonds'],
+  ];
+  for (const [en, other] of pairs) {
+    const a = score(en), b = score(other);
+    assert.equal(b.nova, a.nova, `${other} NOVA`);
+    assert.equal(b.score, a.score, `${other} vs ${en}`);
+  }
+});

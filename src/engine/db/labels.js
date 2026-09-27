@@ -74,7 +74,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     /^(organic )?(water|sea salt|salt)$/i,
     new RegExp('^(?:sel(?: marin| de mer| de gu[ée]rande| fin)?|fleur de sel|sal(?: marina| de mar| marinho)?|sale(?: marino)?|(?:speise|meer)?salz|(?:zee|keuken)?zout|(?:hav)?salt|s[óo]l(?: morska)?|(?:deniz |kaya )?tuzu?|flor de sal)$', 'i'),
     /^(organic |raw )*(honey|maple syrup)$/i,
-    /^(organic |raw |dry[- ]roasted |roasted |unsalted |salted |whole |shelled )*(almonds?|walnuts?|pecans?|pecan nuts?|macadamias?|macadamia nuts?|pistachios?|pistachio nuts?|pistachio kernels?|cashews?|cashew nuts?|cashew kernels?|hazelnuts?|hazelnut kernels?|peanuts?|peanut kernels?|pine nuts?|brazil nuts?|(?:pumpkin|sunflower|chia|flax|hemp|sesame) ?seeds?|flaxseed)$/i,
+    /^(organic |raw |dry[- ]roasted |roasted |unsalted |salted |whole |shelled |blanched |sliced |slivered |flaked |chopped |ground |halved )*(almonds?|walnuts?|pecans?|pecan nuts?|macadamias?|macadamia nuts?|pistachios?|pistachio nuts?|pistachio kernels?|cashews?|cashew nuts?|cashew kernels?|hazelnuts?|hazelnut kernels?|peanuts?|peanut kernels?|pine nuts?|brazil nuts?|(?:pumpkin|sunflower|chia|flax|hemp|sesame) ?seeds?|flaxseed)$/i,
     /^(organic |dried |cooked )*(lentils?|chickpeas?|(?:black|kidney|pinto|navy|cannellini|garbanzo|white|red) beans?|split peas|edamame)$/i,
     /^(organic )?(apples?|bananas?|berries|blueberries|strawberries|oranges?|dates?|figs?|raisins?)$/i,
     // The same fruit in each label language: "dattes, amandes" scored 80 as NOVA 3 where "dates,
@@ -88,7 +88,16 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
       + '|dattes|d[áa]tiles|datteri|datteln|dadels|dadlar|daktyle|hurma|t[âa]maras'
       + '|figues|higos|fichi|feigen|vijgen|fikon|figi|incir|figos'
       + '|raisins secs|(?:uvas )?pasas|uvetta|uva sultanina|rosinen|sultaninen|rozijnen|russin|rodzynki|kuru [üu]z[üu]m|uvas passas)$', 'i'),
-    /^(organic )?(spinach|kale|broccoli|carrots?|onions?|garlic|tomatoes?|potatoes?|sweet potatoes?)$/i,
+    /^(organic )?(?:(?:fresh|frozen|diced|chopped|crushed|sliced|peeled|whole) )*(spinach|kale|broccoli|carrots?|onions?|garlic|tomato(?:es)?|potato(?:es)?|sweet potato(?:es)?)$/i,
+    // The same vegetables in each label language ("Kartoffeln, Sonnenblumenöl, Salz" was NOVA 3).
+    new RegExp('^(?:[ée]pinards?|espinacas?|spinaci|spinat|spinazie|spenat|szpinak|ıspanak|espinafres?'
+      + '|chou kale|col rizada|cavolo riccio|gr[üu]nkohl|boerenkool|gr[öo]nk[åa]l|jarmu[żz]|karalahana|couve galega'
+      + '|brocolis?|br[óo]coli|broccoli|brokkoli|brokuły|brokoli|br[óo]colos?'
+      + '|carottes?|zanahorias?|carote|karotten|m[öo]hren|wortelen|mor[öo]tter|marchew|havu[çc]|cenouras?'
+      + '|oignons?|cebollas?|cipoll[ae]|zwiebeln?|uien|l[öo]k|cebula|so[ğg]an|cebolas?'
+      + '|ail|ajo|aglio|knoblauch|knoflook|vitl[öo]k|czosnek|sar[ıi]msak|alho'
+      + '|tomates?|pomodor[oi]|tomaten|tomaat|tomater?|pomidor(?:y)?|domates'
+      + '|pommes? de terre|patatas?|papas|patat[ae]|kartoffeln?|aardappel(?:en|s)?|potatis|ziemniak(?:i)?|patates|batatas?)$', 'i'),
     // "rolled oats", "oat flakes" and "brown rice" are the same whole grain as "oats" and "rice".
     /^(organic )?(?:(?:brown|white|wild|basmati|jasmine|long[- ]grain|short[- ]grain|whole ?grain|wholegrain) )?(rice|quinoa|buckwheat|(?:(?:rolled|whole|porridge|steel[- ]cut|jumbo|old[- ]fashioned|whole ?grain|wholegrain|gluten[- ]free) )*(?:oats|oat flakes))$/i,
     /^(black |white |cayenne )?pepper$/i,
@@ -100,7 +109,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     /^(?:bio |biologique |ecol[óo]gic[oa] |organic |[öo]ko |eko )?(?:eau|agua|acqua|wasser|vatten|woda|su|[áa]gua|eau min[ée]rale naturelle|agua mineral natural|acqua minerale naturale|nat[üu]rliches mineralwasser|natuurlijk mineraalwater)$/i,
     /^(?:flocons d['’] ?avoine(?: compl[èe]te)?|avoine|copos de avena(?: integral)?|avena|fiocchi d['’] ?avena(?: integrale)?|haferflocken|hafer|havervlokken|haver|havregryn|havre|p[łl]atki owsiane|owies|yulaf(?: ezmesi)?|flocos de aveia|aveia)$/i,
     /^(?:riz(?: complet)?|arroz(?: integral)?|riso(?: integrale)?|reis|vollkornreis|rijst|ris|fullkornsris|ry[żz]|pirin[çc])$/i,
-    /^(?:amandes?|almendras?|mandorle|mandeln|amandelen|mandlar|migda[łl]y|badem|am[êe]ndoas|noisettes|avellanas|nocciole|haseln[üu]sse|hazelnoten|hasseln[öo]tter|orzechy laskowe|f[ıi]nd[ıi]k|avel[ãa]s|noix|nueces|noci|waln[üu]sse|walnoten|valn[öo]tter|orzechy w[łl]oskie|ceviz|nozes|noix de cajou|anacardos|anacardi|cashewkerne|cashewnoten|cashewn[öo]tter|nerkowce|kaju|castanhas? de caju)$/i,
+    /^(?:(?:blanchierte|ger[öo]stete|gehackte|gemahlene|gehobelte|halbe|blanszowane|pra[żz]one|pokrojone)\s+)?(?:amandes?|almendras?|mandorle|mandeln|mandelkerne|walnusskerne|haselnusskerne|amandelen|mandlar|migda[łl]y|badem|am[êe]ndoas|noisettes|avellanas|nocciole|haseln[üu]sse|hazelnoten|hasseln[öo]tter|orzechy laskowe|f[ıi]nd[ıi]k|avel[ãa]s|noix|nueces|noci|waln[üu]sse|walnoten|valn[öo]tter|orzechy w[łl]oskie|ceviz|nozes|noix de cajou|anacardos|anacardi|noci di acagi[ùu]|orzechy nerkowca|cashewkerne|cashewnoten|cashewn[öo]tter|nerkowce|kaju|castanhas? de caju)(?:\s+(?:d[ée]cortiqu[ée]e?s|mond[ée]e?s|blanchies|enti[èe]re?s|pelad[ao]s|tostad[ao]s|grill[ée]e?s|pelate|sgusciat[ei]|tostat[ei]|gesch[äa]lt(?:e)?|blanchiert(?:e)?|ger[öo]stet(?:e)?|gepeld(?:e)?|geroosterd(?:e)?|skalade|rostade|blancherade|obrane|pra[żz]one|kabuklu|kabuksuz|kavrulmu[şs]|descascad[ao]s|torrad[ao]s))?$/i,
     /^(?:lentilles|lentejas|lenticchie|linsen|linzen|linser|soczewica|mercimek|lentilhas|pois chiches|garbanzos|ceci|kichererbsen|kikkererwten|kik[äa]rtor|ciecierzyca|nohut|gr[ãa]o[- ]de[- ]bico)$/i,
     // Peanuts, the other nuts and the common seeds, which "peanuts" and "pumpkin seeds" already are:
     // "Erdnüsse, Palmöl, Salz" was NOVA 3 at 80 where "peanuts, palm oil, salt" is NOVA 2 at 90. A
