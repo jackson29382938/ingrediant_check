@@ -858,3 +858,19 @@ test('everyday words from the second sample are read, and semi-skimmed milk is c
     assert.equal(b.score, a.score, `${other} vs ${en}`);
   }
 });
+
+test('a hyphen or an apostrophe inside a phrase does not hide it', () => {
+  // "partially-hydrogenated" was charged as hydrogenated oil (capped 25) instead of trans fat
+  // (capped 5); "modified corn-starch", "natural-flavors" and "soya-lecithin" escaped their rules;
+  // "confectioner's sugar" was charged nothing.
+  const pairs = [
+    ['water, partially hydrogenated soybean oil', 'water, partially-hydrogenated soybean oil'], ['water, modified corn starch', 'water, modified corn-starch'],
+    ['water, natural flavors', 'water, natural-flavors'], ['water, soy lecithin', 'water, soya-lecithin'],
+    ['water, confectioners sugar', "water, confectioner's sugar"], ['water, confectioners sugar', 'water, confectioners’ sugar'],
+  ];
+  for (const [plain, other] of pairs) {
+    const a = score(plain), b = score(other);
+    assert.deepEqual(reasons(b).sort(), reasons(a).sort(), other);
+    assert.equal(b.score, a.score, other);
+  }
+});

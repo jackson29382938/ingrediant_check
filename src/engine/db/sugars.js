@@ -54,7 +54,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   const REFINED = [
     // "cane" is deliberately absent from this list: the cane rule below owns it, and carrying it
     // here as well charged "cane sugar" twice (17 + 4) against 17 for "sugar".
-    { m: /^(organic )?(raw |turbinado |demerara |muscovado |granulated |white |caster |icing |confectioners'? )?sugar$/i, pts: 14, why: 'Refined added sugar' },
+    { m: /^(organic )?(raw |turbinado |demerara |muscovado |granulated |white |caster |icing |confectioner(?:s['’]?|['’]s) )?sugar$/i, pts: 14, why: 'Refined added sugar' },
     // Spanish, French, German, Italian, Portuguese, Dutch, Swedish and Polish — the stores whose
     // headings the extractor already reads.
     { m: /^(az[uú]car|a[cç][uú]car|sucre|zucker|zucchero|suiker|socker|str[öo]socker|betsocker|cukier|[şs]eker|toz [şs]eker|kristal [şs]eker|rafine [şs]eker|pancar [şs]ekeri)( blanc[oa]| refinad[oa]| blanc| raffin[ée]| bianco| grezzo| wit| bia[łl]y| buraczany)?$/i, pts: 14, why: 'Refined added sugar' },

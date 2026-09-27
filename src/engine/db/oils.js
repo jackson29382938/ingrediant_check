@@ -33,7 +33,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     // A negated claim is not the thing: "non-hydrogenated palm oil", "huile de palme non hydrogénée",
     // "Palmöl (nicht gehärtet)" were charged as hydrogenated fat, 25 where plain palm oil scores 90.
     { id: 'hydrogen',    m: new RegExp([
-      '(?<!partially )\\b(fully )?hydrogenated\\b', '(?<!parcialmente )\\b(totalmente\\s+)?hidrogenad[oa]s?\\b',
+      '(?<!partially[- ])\\b(fully[- ])?hydrogenated\\b', '(?<!parcialmente )\\b(totalmente\\s+)?hidrogenad[oa]s?\\b',
       '(?<!partiellement )\\bhydrog[ée]n[ée]e?s?(?![a-zà-ÿ\\u0100-\\u017f])', '(?<!teilweise |teilweise geh[äa]rtet )\\bgeh[äa]rtete?[snmr]?\\b',
       '(?<!gedeeltelijk )\\bgehydrogeneerde?\\b', '(?<!parzialmente )\\bidrogenat[oiea]\\b', '(?<!delvis )\\bh[äa]rda[dt]e?\\b',
       '(?<!cz[ęe][śs]ciowo )(?<![a-zà-ÿ\\u0100-\\u017f])uwodornion[yae]?(?![a-zà-ÿ\\u0100-\\u017f])', '(?<!k[ıi]smen )\\bhidrojen(?:ize|e)\\b(?!\\s+(?:olmayan|edilmemi[şs]))',

@@ -363,8 +363,14 @@ const hitsAny = (rules, ing, pick = r => r) => rules.some(r => hits1(pick(r), in
 // Without that second condition "natural flavors" hit the natural-flavour rule as written AND the
 // bare-"flavors" rule once "natural" was stripped, and paid for the same blend twice — the
 // qualifier strip exists to catch "organic agave", not to invent a second flavouring.
+// A hyphen inside a phrase is often just a space: "modified corn-starch", "natural-flavors",
+// "soya-lecithin" escaped their rules. Rules are tried on both forms, because some need the hyphen
+// ("mono- und", "demi-écrémé", "L-cysteine") and the text itself is left as written.
+const spaced = s => (s.includes('-') ? s.replace(/([a-zà-ÿœ\u0100-\u017f])-(?=[a-zà-ÿœ\u0100-\u017f])/gi, '$1 ') : s);
+const eitherForm = (re, s) => re.test(s) || (s.includes('-') && re.test(spaced(s)));
+
 function penaltiesFor(ing) {
-  const hit = new Set(PENALTIES.filter(r => r.m.test(ing)));
+  const hit = new Set(PENALTIES.filter(r => eitherForm(r.m, ing)));
   if (!QUALIFIERS.test(ing)) return hit;
   const groups = new Set([...hit].map(r => r.group));
   const stripped = bare(ing);
@@ -382,8 +388,8 @@ function recognised(ing, { unnamed = true } = {}) {
     || hits1(labels.CULINARY, ing)
     || COMMON_PANEL.test(ing)
     || hitsAny(sugars.FREE, ing)
-    || PENALTIES.some(r => (unnamed || !r.unnamed) && hits1(r.m, ing))
-    || CAPS.some(c => c.m.test(ing))
+    || PENALTIES.some(r => (unnamed || !r.unnamed) && (hits1(r.m, ing) || (ing.includes('-') && hits1(r.m, spaced(ing)))))
+    || CAPS.some(c => eitherForm(c.m, ing))
     || labels.BONUSES.some(b => b.m.test(ing));
 }
 
@@ -899,9 +905,9 @@ function score(product, options = {}) {
   // A label claim lifts a product, not an ingredient. When every ingredient on the list is itself
   // penalised or capped there is nothing for "organic" to be a better version of: a bag of organic
   // cane sugar scored 81 Good against 73 for plain sugar, and the cane rule was the only row.
-  const capsHit = CAPS.filter(c => c.m.test(txt));
+  const capsHit = CAPS.filter(c => eitherForm(c.m, txt));
   const allPenalised = list.length > 0
-    && list.every(i => hits.some(h => h.ing === i && h.cat !== 'naturalSugar') || capsHit.some(c => c.m.test(i)));
+    && list.every(i => hits.some(h => h.ing === i && h.cat !== 'naturalSugar') || capsHit.some(c => eitherForm(c.m, i)));
   let bonus = 0, titleBonus = 0;
   for (const b of labels.BONUSES) {
     if (allPenalised) break;
@@ -941,7 +947,7 @@ function score(product, options = {}) {
       // Checked per entry, not against the whole text: a product listing both "sunflower oil" and
       // "cold-pressed olive oil" must keep the sunflower cap. Only when every entry naming this
       // oil carries the qualifier does the softer ceiling apply.
-      const naming = list.filter(i => c.m.test(i));
+      const naming = list.filter(i => eitherForm(c.m, i));
       if (naming.length && naming.every(i => c.unless.test(i))) ceiling = c.soften;
     }
     // A ceiling of 25 at weight 1 becomes no ceiling at weight 0 and a ceiling of 0 at weight 2.
