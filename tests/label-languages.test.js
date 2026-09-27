@@ -165,3 +165,15 @@ test('fish by species, sulfite salts in compounds, and Dutch egg compounds', () 
   for (const w of ['eiwitpoeder', 'eigeelpoeder']) assert.ok(has(w, 'egg'), w);
   assert.ok(!has('melkeiwitpoeder', 'egg'));
 });
+
+test('crustaceans and molluscs by species; words with another meaning stay clear', () => {
+  for (const w of ['scampi', 'cockles', 'whelks', 'snails', 'cuttlefish', 'cigalas', 'vieiras', 'pulpo', 'coques', 'coquilles Saint-Jacques',
+    'seiches', 'poulpe', 'écrevisses', 'seppie', 'polpo', 'capesante', 'Jakobsmuscheln', 'Miesmuscheln', 'Kalmar', 'Flusskrebse', 'Austern',
+    'inktvis', 'krab', 'sint-jakobsschelpen', 'lagostins', 'amêijoas', 'lulas', 'kräftor', 'blåmusslor', 'ostron', 'ośmiornica',
+    'przegrzebki', 'mątwy', 'ślimaki', 'salyangoz', 'ahtapot', 'istakoz']) {
+    assert.ok(has(w, 'shellfish'), w);
+  }
+  // "Fruits à coque(s)" are nuts; "leche en polvo" is milk powder; "choco" is chocolate.
+  assert.ok(!has('fruits à coques', 'shellfish') && has('fruits à coques', 'treeNut'));
+  for (const w of ['leche en polvo', 'choco chips', 'Krebs']) assert.ok(!has(w, 'shellfish'), w);
+});

@@ -124,7 +124,20 @@ const ALLERGENS = [
       + '|pstr[ąa]g' + W + '|mintaj' + W + '|szprot' + W + '|karp(?:ia|iu|iem)?|sandacz' + W + '|fl[ąa]dr' + W + '|morszczuk' + W
       + '|alabal[ıi]k' + W + '|palamut|l[üu]fer|istavrit|mezgit|ringa)' + R, 'i') },
   { id: 'shellfish', label: 'Shellfish',
-    m: new RegExp(/\b(shellfish|shrimp|prawn|crab(?!\s*-?\s*apples?)|lobster|crayfish|langoustine|clam|mussel|oyster|scallop|squid|calamari|octopus|krill|crustacean|mollusc|mollusk|camar[óo]n|camarones|gambas?|langosta|cangrejo|mejill[óo]n|almeja|calamar|crust[áa]ceo|molusco|crevettes?|crabe|homard|moules?|hu[îi]tres?|crustac[ée]s?|mollusques?|garnelen?|krabben?|hummer|muscheln?|krebstier|weichtier|gamber|granchio|aragosta|cozze|vongole|crostacei|molluschi)\w*/.source + '|' + L + '(?:r[äa]kor|r[äa]ka|krabba|musslor|skaldjur|bl[öo]tdjur|kr[äa]ftdjur|krewetk' + W + '|homar' + W + '|ma[łl][żz]' + W + '|skorupiak' + W + '|mi[ęe]czak' + W + '|ostryg' + W + '|garnal' + W + '|kreeft|mossel' + W + '|oester' + W + '|schaaldier' + W + '|weekdier' + W + '|camar[ãa]o|camar[õo]es|caranguejo|lagosta|mexilh' + W + '|(?<!papryk[ai]\\s)ostras?(?!\\s+papryk)|crust[áa]ceos|karides' + W + '|yenge[çc]' + W + '|midye' + W + '|istakoz|kalamar|ahtapot|istiridye|deniz [üu]r[üu]nleri|kabuklu deniz' + W + '|yumu[şs]ak[çc]a' + W + ')' + R, 'i') },
+    m: new RegExp(/\b(shellfish|shrimp|prawn|crab(?!\s*-?\s*apples?)|lobster|crayfish|langoustine|clam|mussel|oyster|scallop|squid|calamari|octopus|krill|crustacean|mollusc|mollusk|camar[óo]n|camarones|gambas?|langosta|cangrejo|mejill[óo]n|almeja|calamar|crust[áa]ceo|molusco|crevettes?|crabe|homard|moules?|hu[îi]tres?|crustac[ée]s?|mollusques?|garnelen?|krabben?|hummer|muscheln?|krebstier|weichtier|gamber|granchio|aragosta|cozze|vongole|crostacei|molluschi)\w*/.source + '|' + L + '(?:r[äa]kor|r[äa]ka|krabba|musslor|skaldjur|bl[öo]tdjur|kr[äa]ftdjur|krewetk' + W + '|homar' + W + '|ma[łl][żz]' + W + '|skorupiak' + W + '|mi[ęe]czak' + W + '|ostryg' + W + '|garnal' + W + '|kreeft|mossel' + W + '|oester' + W + '|schaaldier' + W + '|weekdier' + W + '|camar[ãa]o|camar[õo]es|caranguejo|lagosta|mexilh' + W + '|(?<!papryk[ai]\\s)ostras?(?!\\s+papryk)|crust[áa]ceos|karides' + W + '|yenge[çc]' + W + '|midye' + W + '|istakoz|kalamar|ahtapot|istiridye|deniz [üu]r[üu]nleri|kabuklu deniz' + W + '|yumu[şs]ak[çc]a' + W + ')' + R
+      // Crustaceans and molluscs by species, in each language (squid, octopus and snails are molluscs).
+      // Left out for their other meanings: Spanish "polvo" (powder), "choco" (chocolate), and the pasta
+      // and biscuit names "lumache", "caracoles" and "canestrelli".
+      + '|' + L + '(?:scampi|cockles?|whelks?|winkles?|periwinkles?|snails?|escargots?|cuttlefish|abalone|conch|sea urchins?|crawfish'
+      + '|cigalas?|bogavantes?|centollas?|n[ée]coras?|percebes|berberechos|navajas|vieiras|zamburi[ñn]as|sepias?|chipirones|pulpos?|ostiones'
+      + '|(?<!fruits? [àa] )coques|bulots|bigorneaux|palourdes|seiches?|encornets|poulpes?|langoustes?|[ée]crevisses|(?:coquilles? )?saint[- ]jacques'
+      + '|seppi[ae]|polpo|totani|moscardini|capesante|ostriche|astice|mazzancolle'
+      + '|(?:jakobs|mies|venus|herz)muschel' + W + '|kalmar' + W + '|oktopus' + W + '|languste' + W + '|(?:fluss)?krebs(?:e|fleisch|schw[äa]nze)' + W + '|austern?'
+      + '|inktvis' + W + '|krab(?:y|[óo]w|a|ben|vlees|sticks?|salade)?|sint[- ]jakobsschelp' + W + '|kokkels|slakken'
+      + '|lagostins?|am[êe]ijoas?|berbig[ãa]o|lulas?|santolas?|carac[óo]is'
+      + '|kr[äa]ftor|bl[åa]musslor|ostron|pilgrimsmusslor|havskr[äa]ftor|sniglar'
+      + '|o[śs]miornic' + W + '|przegrzebk' + W + '|m[ąa]tw' + W + '|[śs]limak' + W
+      + '|salyangoz' + W + '|ahtapot' + W + '|istakoz' + W + ')' + R, 'i') },
   { id: 'sesame', label: 'Sesame',
     m: new RegExp(/\b(sesame|tahini|benne|gingelly|halva|halvah|halwa|gomasio|gomashio|za['’]?atar|s[ée]samo|s[ée]same|sesam)\w*/.source + '|' + L + '(?:sezam' + W + '|gergelim|susam' + W + '|tahin)' + R, 'i') },
   { id: 'sulfite', label: 'Sulfites',
