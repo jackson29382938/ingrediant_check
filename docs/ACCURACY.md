@@ -147,20 +147,43 @@ What it found, and what changed:
 
   | Language | Lists | Declined before | Declined after |
   |---|---|---|---|
-  | French | 97 | 16 | 4 |
+  | French | 97 | 16 | 3 |
   | German | 60 | 6 | 2 |
   | Spanish | 54 | 11 | 1 |
   | Italian | 51 | 7 | 1 |
   | Portuguese | 58 | 18 | 2 |
-  | Dutch | 41 | 21 | 5 |
+  | Dutch | 41 | 21 | 2 |
   | Swedish | 58 | 4 | 1 |
   | Polish | 59 | 9 | 2 |
-  | Turkish | 61 | 8 | 5 |
+  | Turkish | 61 | 8 | 4 |
   | English (UK) | 92 | 2 | 2 |
 
   These are the same lists the words were taken from, so the "after" column is an upper bound on
   how well unseen labels will do. Nothing added for coverage is charged; words that would open the
   gate for a non-food list (a bare "sodium", "sweetener" or "acid") were left out on purpose.
+  (Last measured 2026-09-27.)
+
+### The same product in two languages (2026-09-27)
+
+About 550 products whose Open Food Facts record carries the list in English and in one or more other
+label languages give about 1,050 pairs where both lists are readable. A pair's two scores should
+agree unless the two lists really differ (Open Food Facts often has an older recipe or a looser
+translation in one of them, so they never all agree). Comparing them found fixes in the engine, not
+only in the vocabulary, each pinned in `tests/synonyms.test.js`:
+
+- **Parsing.** Brackets inside brackets closed at the first ")"; a "may contain" statement was split
+  at its commas and its bracket, so the traces were charged; an organic word after the ingredient
+  ("sucre bio") hid it from every anchored rule; a function word in a sub-list was "named" by its
+  siblings; a denial ("sans conservateurs") and an origin note stayed as ingredients.
+- **Negation.** "non-hydrogenated palm oil" was charged as hydrogenated fat (25 where palm oil scores
+  90), in English as well.
+- **Word edges.** `\b` cannot sit against an accented letter, so "amidon modifié", "äppelsyra" and
+  "hydrogéné" never matched; `tests/accent-boundaries.test.js` now fails on any such pattern.
+- **English gaps found on the way**: "sodium metabisulfite" matched no sulphite rule, PGPR had no rule,
+  and "pistachio nuts" and "peanut kernels" were not whole foods.
+
+Pairs whose scores differ by 8 points or more went from 206 to 143, and pairs in different NOVA
+classes from 106 to 81. As with the declines above, these are the pairs the fixes were found on.
 
 ## Allergen and diet flags
 
