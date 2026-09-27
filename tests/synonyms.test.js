@@ -646,3 +646,21 @@ test('salt, sugar, vinegar, cream, butter and honey are culinary ingredients in 
     assert.equal(b.score, a.score, `${other} vs ${en}`);
   }
 });
+
+test('an organic word before or after the ingredient does not hide it', () => {
+  // EU labels write the organic word after the ingredient ("sucre bio"), and every rule anchored at
+  // the end of the entry missed it: organic sugar scored 88, uncharged, where "sugar" costs 14.
+  const pairs = [
+    ['organic sugar, salt', 'sucre bio, sel'], ['organic sugar, salt', 'Zucker bio, Salz'], ['organic cane sugar, salt', 'zucchero di canna biologico, sale'],
+    ['organic maize, salt', 'Kukurydza ekologiczna, sól'], ['organic maize, salt', 'ekologiczna kukurydza, sól'], ['organic oats, salt', 'Bio-Hafer, Salz'],
+    ['organic oats, salt', 'Biohafer, Salz'], ['organic sunflower oil, salt', 'aceite de girasol ecológico, sal'], ['organic wheat flour, water', 'farine de blé bio, eau'],
+  ];
+  for (const [en, other] of pairs) {
+    const a = score(en), b = score(other);
+    assert.deepEqual(reasons(b).sort(), reasons(a).sort(), `${other} vs ${en}`);
+    assert.equal(b.score, a.score, `${other} vs ${en}`);
+    assert.ok(b.good.some(g => g.why === 'Certified organic'), `${other}: the organic claim still counts`);
+  }
+  // Words that only start with "bio" are left alone.
+  for (const text of ['biotine', 'bioflavonoide']) assert.deepEqual(engine.parse(text), [text]);
+});

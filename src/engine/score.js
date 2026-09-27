@@ -370,11 +370,13 @@ function recognised(ing, { unnamed = true } = {}) {
     || labels.BONUSES.some(b => b.m.test(ing));
 }
 
-function recognitionCoverage(list) {
-  if (!list.length) return 0;
+// Entries, not strings: an entry whose organic word was taken off still counts as read, as it did
+// when the organic claim itself was what the rules recognised ("Organic medjool dates").
+function recognitionCoverage(entries) {
+  if (!entries.length) return 0;
   let seen = 0;
-  for (const ing of list) if (recognised(ing)) seen++;
-  return seen / list.length;
+  for (const e of entries) if (e.organic || recognised(e.ing)) seen++;
+  return seen / entries.length;
 }
 
 // ---------------------------------------------------------------- parsing
@@ -527,6 +529,23 @@ function joinStatements(parts) {
   return out;
 }
 
+// An organic qualifier before or after the ingredient. EU labels write it after ("sucre bio",
+// "zucchero di canna biologico", "Kukurydza ekologiczna"), and every rule anchored at the end of
+// the entry missed the ingredient: organic sugar was charged nothing where "sugar" costs 14. The
+// qualifier is taken off the entry and kept as evidence for the organic bonus.
+const ORGANIC_WORD = '(?:organic|bio|biologique|biologiques|biol[óo]gic[oa]s?|biologic[oaie]|biologiche|biologisch(?:e[mnrs]?)?'
+  + '|ecol[óo]gic[oa]s?|eco|[öo]ko|ekologisk[at]?|ekologiczn[a-zęąó]*|organik|kbA)';
+const ORGANIC_EDGE = new RegExp(`^(?:${ORGANIC_WORD}[- ]\\s*)+|(?:\\s+${ORGANIC_WORD})+$`, 'gi');
+const BIO_FUSED = /^bio(?!t[iy]n|log|flav|cult|kult|akt|act|fib|fib|sph|mass|gas|eth|dyn|chem|synt|top|tech|degr|sol)(?=[a-zà-ÿ\u0100-\u017f]{4,}$)/i;
+function withoutOrganic(ing) {
+  if (ing.length > 80 || !/bio|org|eco|[öo]ko|eko|kba/i.test(ing)) return null;
+  // A claim or a note is read whole ("certified organic", "*ingrédients biologiques").
+  if (CLAIM_ENTRY.test(ing) || LABEL_NOTE.test(ing) || MAY_CONTAIN.test(ing)) return null;
+  // German and Dutch also fuse it ("Biohafer", "Biomaïs"); words that merely start with "bio" stay.
+  const bare = ing.replace(ORGANIC_EDGE, '').replace(BIO_FUSED, '').trim();
+  return bare !== ing && bare.length > 1 ? bare : null;
+}
+
 // [{ ing, pos }] where pos is the TOP-LEVEL position, shared by an ingredient's own sub-list.
 function parseEntries(text) {
   // "FD&C Red No. 40" and "Red #40" are how US labels print dyes. The full stop after "No" ended the
@@ -539,7 +558,10 @@ function parseEntries(text) {
     const strain = STRAIN_ENTRY.test(tidy(part));
     if (!(strain && strainRun)) pos++;
     strainRun = strain;
-    for (const e of expandEntry(part, 0, ids)) out.push({ ing: e.ing, pos, fam: e.fam, parent: e.parent });
+    for (const e of expandEntry(part, 0, ids)) {
+      const bare = withoutOrganic(e.ing);
+      out.push({ ing: bare || e.ing, pos, fam: e.fam, parent: e.parent, ...(bare ? { organic: true } : {}) });
+    }
   }
   return out;
 }
@@ -648,7 +670,8 @@ function score(product, options = {}) {
   // Organic footnotes ("*Ingrédients issus de l'agriculture biologique") are set aside from scoring
   // but are claims printed on the regulated list, as "*organic" on its own already counted. So are
   // claim entries: "soybeans (non-GMO)" lost the bonus that "non-GMO soybeans" earns.
-  const notes = parsed.filter(e => LABEL_NOTE.test(e.ing) || CLAIM_ENTRY.test(e.ing)).map(e => e.ing).join(', ');
+  const notes = [...parsed.filter(e => LABEL_NOTE.test(e.ing) || CLAIM_ENTRY.test(e.ing)).map(e => e.ing),
+    ...(parsed.some(e => e.organic) ? ['organic'] : [])].join(', ');
   const bonusText = (notes ? txt + ', ' + notes : txt).replace(/\bcultured\s+(dextrose|celery|sugar|corn syrup|wheat|whey)\b[^,;.]*/gi, ' ');
 
   // Only the ingredient list is strong evidence. Seller-written surfaces — the marketing title AND
@@ -1005,7 +1028,7 @@ function score(product, options = {}) {
 
   // How much of this list the rulebase could actually read. Reported, never scored — a low number
   // means "we cannot assess this", which is a different statement from a low score.
-  const coverage = recognitionCoverage(list);
+  const coverage = recognitionCoverage(entries);
 
   const rawTotal_ = Math.round(pts);
   // Ceiling only at this point. The floor and the hard cap are applied AFTER the display rows are
