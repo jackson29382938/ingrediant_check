@@ -464,6 +464,8 @@ function splitTopLevel(text) {
 // is read as the parenthetical form it means: "emulsifier (lecithins)".
 const FUNCTION_HEAD = /^([^:()]{3,40}):(.+)$/;
 const SWEETENER_WORD = /^(?:sweeteners?|edulcorantes?|[ée]dulcorants?|s[üu][ßs]ungsmittel|dolcificanti|zoetstoff(?:en)?|s[öo]tningsmedel|substancje s[łl]odz[ąa]ce|tatland[ıi]r[ıi]c[ıi](?:lar)?|substancja s[łl]odz[ąa]ca)$/i;
+// "flavouring: vanillin", "Aroma: Vanillin", "arôme : vanilline" name the flavouring after the colon.
+const FLAVOUR_WORD = /^(?:flavou?rings?|flavou?rs?|ar[ôo]mes?|aromas?|aromen|aromi|aromat[ya]?|arom(?:er)?|aroma vericiler?)$/i;
 function colonAsParenthesis(part) {
   // Only a short head before the colon can be a function word. Checked before the pattern runs, and
   // the pattern has no free whitespace to backtrack over: on 6,000 spaces it once took a second.
@@ -472,7 +474,7 @@ function colonAsParenthesis(part) {
   const m = part.trim().match(FUNCTION_HEAD);
   if (!m) return part;
   const head = tidy(m[1]);
-  if (!(add.UNNAMED.some(r => r.m.test(head)) || SWEETENER_WORD.test(head))) return part;
+  if (!(add.UNNAMED.some(r => r.m.test(head)) || SWEETENER_WORD.test(head) || FLAVOUR_WORD.test(head))) return part;
   // "emulsifier: lecithins (soy)" names the additive with its own parenthetical; the job word adds
   // nothing then, and nesting it would lose the source.
   return m[2].includes('(') ? m[2] : `${m[1]} (${m[2]})`;
@@ -793,6 +795,9 @@ function score(product, options = {}) {
       if (!tripped.has(r)) continue;
       if (seen.has(r.why)) continue;
       if (r.unnamed && namedFam.has(fam)) continue;   // the additive is named in or around its bracket
+      // "flavouring (vanillin)" is not an unspecified flavouring: its bracket names one, which is
+      // charged under its own rule.
+      if (r.why === 'Unspecified flavouring' && (childrenOf.get(fam) || []).some(c => add.FLAVOURS.some(f => f.why !== r.why && !/^"Natural|^Artificial flavour$/.test(f.why) && f.m.test(c.ing)))) continue;
       // Fat-reduced dairy describes the product only when it is mostly fat-reduced: not when
       // full-fat dairy comes earlier in the list, or the title says whole milk / full fat.
       if (r.cat === 'reducedFatDairy' && (fullFatTitle || fullFatBefore(pos))) {

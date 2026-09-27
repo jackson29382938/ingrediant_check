@@ -738,3 +738,14 @@ test('an allergen bracket that repeats its parent is not a second ingredient', (
   // A bracket that says more than its parent is kept: "Kekse (Weizen)" declares the wheat.
   assert.ok(reasons(score('Kekse (Weizen), Salz')).includes('Wheat'));
 });
+
+test('a flavouring named in its bracket or after its colon is not unspecified', () => {
+  // "flavouring: vanillin" was charged as an unspecified flavouring and as vanillin.
+  const named = score('sugar, vanillin');
+  for (const text of ['sugar, flavouring: vanillin', 'sugar, flavouring (vanillin)', 'Zucker, Aroma: Vanillin', 'sucre, arôme : vanilline']) {
+    assert.deepEqual(reasons(score(text)), reasons(named), text);
+    assert.equal(score(text).score, named.score, text);
+  }
+  // A bracket that names no flavouring leaves it unspecified.
+  assert.ok(reasons(score('sugar, flavouring (milk)')).includes('Unspecified flavouring'));
+});
