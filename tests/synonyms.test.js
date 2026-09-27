@@ -833,3 +833,12 @@ test('words from a second sample of real labels score like their English twins',
     assert.equal(b.score, a.score, `${other} vs ${en}`);
   }
 });
+
+test('oligofructose and fructo-oligosaccharides are the inulin isolate they are made from', () => {
+  const inulin = score('water, inulin');
+  for (const t of ['oligofructose', 'fructooligosaccharides', 'fructo-oligosaccharides', 'oligofrutose', 'oligofructosa', 'oligofruttosio',
+    'Oligofruktose', 'fruktooligosacharydy', 'fructooligosacáridos', 'fruttoligosaccaridi', 'frukto-oligosackarider', 'FOS']) {
+    assert.deepEqual(reasons(score(`water, ${t}`)), reasons(inulin), t);
+  }
+  assert.deepEqual(reasons(score('water, fosfato')), [], '"fosfato" is not FOS');
+});
