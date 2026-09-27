@@ -38,7 +38,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\bbrown ht\b|\be[- ]?155\b/i,                            cat: 'colour', cap: 18, why: 'Brown HT (E155) artificial colour' },
     { m: /\btitanium dioxide\b|\be[- ]?171\b|\bdi[óo]xido de titanio\b|\bdioxyde de titane\b/i, cat: 'colour', cap: 18, why: 'Titanium dioxide — banned as a food additive in the EU' },
     { m: /\bartificial colou?rs?\b|\bcolorantes?\s+artificiales?\b|\bcolorants?\s+artificiels?\b/i, cat: 'colour', cap: 20, why: 'Artificial colour' },
-    { m: /\bcaramel colou?r(ing)?\b|\be[- ]?150[a-d]?\b|\bcolor(ante)? caramelo\b|\bcolorant caramel\b/i, cat: 'colour', cap: 30, why: 'Caramel colour' },
+    // Caramel colour in each label language: "sockerkulör", "Zuckerkulör" and "caramello semplice"
+    // were read as nothing, so a cola scored like sparkling water where "caramel colour" caps it.
+    { m: /\bcaramel colou?r(ing)?\b|\be[- ]?150[a-d]?\b|\bcolor(ante)? caramelo\b|\bcolorant caramel\b|\bcaramel (?:ordinaire|de sulfite caustique|ammoniacal|au sulfite d['’]ammonium)\b|\bcouleur caramel\b|(?<![a-zà-ÿ\u0100-\u017f])(?:sockerkul[öo]r|zuckerkul[öo]r|zuckercouleur|karamellf[äa]rg|karamelkleur|karmel (?:amoniakalno(?:-siarczynowy)?|siarczynowy|zwyk[łl]y)|(?:amonyum s[üu]lfit|kostik s[üu]lfit|sade) karamel|karamel renklendirici)(?![a-zà-ÿ\u0100-\u017f])|\bcaramello (?:semplice|solfitico|ammoniacale|caustico)\b|\bcorante caramelo\b/i, cat: 'colour', cap: 30, why: 'Caramel colour' },
     { m: /\bcarrageenan\b|\bcarragh[ée]nanes?\b|\bkarragenan\b|\bcarrageen\b|\bkarrageen\b|\bcarragenano\b|\bkarragen\b|\bkaragenan\b|\be[- ]?407a?\b|\bcarragenina\b|\bcarragh[ée]nane\b/i, cat: 'carrageenan', cap: 40, why: 'Carrageenan — linked to gut inflammation' },
     { m: /\b(bha|butylated hydroxyanisole|e[- ]?320)\b/i,            cat: 'strongPreservative', cap: 45, why: 'BHA preservative' },
     { m: /\b(bht|butylated hydroxytoluene|e[- ]?321)\b/i,            cat: 'strongPreservative', cap: 45, why: 'BHT preservative' },

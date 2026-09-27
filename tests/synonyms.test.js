@@ -570,3 +570,14 @@ test('a claim in brackets still earns its bonus', () => {
   assert.equal(score('soybeans (non-GMO), water').score, score('non-GMO soybeans, water').score);
   assert.equal(score('oats (certified organic), salt').score, score('organic oats, salt').score);
 });
+
+test('caramel colour in every label language caps like "caramel colour"', () => {
+  const en = score('sparkling water, caramel colour, citric acid');
+  for (const other of ['Kolsyrat vatten, sockerkulör, citronsyra', 'Wasser, Farbstoff: Zuckerkulör, Citronensäure',
+    'acqua, colorante: caramello semplice, acido citrico', 'su, amonyum sülfit karamel, sitrik asit',
+    'woda, barwnik: karmel amoniakalno-siarczynowy, kwas cytrynowy', 'eau, colorant: caramel ordinaire, acide citrique']) {
+    const b = score(other);
+    assert.deepEqual(reasons(b).sort(), reasons(en).sort(), other);
+    assert.equal(b.score, en.score, other);
+  }
+});
