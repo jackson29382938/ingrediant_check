@@ -1083,7 +1083,7 @@ test('organic always earns a benefit: all-penalised lists, capped products and a
   // A certification counts where the sourcing check does not run, labelled as verified.
   const oats = engine.score({ name: 'Oats', ingredients_text: 'rolled oats', certifications: 'USDA Organic' });
   assert.ok(oats.score > engine.score({ name: 'Oats', ingredients_text: 'rolled oats' }).score);
-  assert.ok(oats.good.some(g => g.why === 'Organic — certified'));
+  assert.ok(oats.good.some(g => g.why === 'Organic — verified'));
   // Above a cap the panel still adds up, and says why the score passes the cap.
   const oil = engine.score({ name: 'Canola Oil', ingredients_text: 'organic canola oil' });
   assert.ok(oil.bad.some(h => h.cap && /organic counted above it/.test(h.why)));
@@ -1102,4 +1102,11 @@ test('sweetener names in each language, and two joined by a conjunction', () => 
     assert.deepEqual(reasons(score(`water, ${t}`)).sort(), ['Isomalt', 'Maltitol'], t);
   }
   assert.deepEqual(reasons(score('harina, edulcorantes (maltitol e isomalt)')).sort(), reasons(score('harina, maltitol, isomalt')).sort());
+});
+
+test('glucose-fructose syrup written with "and" in each language is the industrial syrup', () => {
+  for (const t of ['jarabe de glucosa y fructosa', 'jarabe de glucosa-fructosa', 'jarabe de fructosa y glucosa', 'xarope de glicose e frutose',
+    'sciroppo di glucosio e fruttosio', 'sirop de glucose et fructose']) {
+    assert.deepEqual(reasons(score(`water, ${t}`)), reasons(score('water, glucose-fructose syrup')), t);
+  }
 });

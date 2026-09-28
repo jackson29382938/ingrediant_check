@@ -987,7 +987,7 @@ function score(product, options = {}) {
     if (add_ <= 0) continue;
     bonus += add_;
     if (titleOnly) titleBonus += add_;
-    good.push({ c: +add_, why: b.cat === 'organic' ? verifiedOrganic ? 'Organic — certified' : 'Organic, unverified'
+    good.push({ c: +add_, why: b.cat === 'organic' ? verifiedOrganic ? 'Organic — verified' : 'Organic, unverified'
       : titleOnly ? `${b.why} (label claim, unverified)` : b.why, organic: b.cat === 'organic' });
   }
   pts += bonus;
