@@ -23,8 +23,8 @@
   ],
 
   "products": [
-    { "id": "organic-whole-milk", "band": [90, 100], "lang": "en", "evidence": "representative",
-      "note": "score.js ceiling comment: was pinned at exactly 100 before the soft ceiling",
+    { "id": "organic-whole-milk", "band": [80, 100], "lang": "en", "evidence": "representative",
+      "note": "NOVA 3 base with an organic label claim and added vitamin D3; remains Good without a sourcing certification",
       "product": { "name": "Organic Valley Whole Milk", "ingredients_text": "Organic Grade A Milk, Vitamin D3" } },
 
     { "id": "a2-grassfed-milk", "band": [90, 100], "lang": "en", "evidence": "representative",
@@ -72,7 +72,7 @@
         "ingredients_text": "100% extra virgin olive oil" } },
 
     { "id": "refined-coconut-oil", "band": [80, 100], "lang": "en", "evidence": "representative",
-      "note": "score.js ceiling comment: was pinned at 100",
+      "note": "Refined coconut oil does not qualify for the minimally refined cooking-fat bonus",
       "product": { "name": "Refined Coconut Oil", "ingredients_text": "Refined coconut oil" } },
 
     { "id": "rolled-oats", "band": [88, 100], "lang": "en", "evidence": "representative",
@@ -108,7 +108,7 @@
         "ingredients_text": "Milled corn, sugar, malt flavor, contains 2% or less of salt, BHT for freshness, iron, niacinamide, pyridoxine hydrochloride, riboflavin, thiamin mononitrate, folic acid, vitamin D3" } },
 
     { "id": "soy-protein-bar", "band": [3, 40], "lang": "en", "evidence": "representative",
-      "note": "score.js:212 — ad-copy 'grass-fed' on the title must not bank full bonus points here",
+      "note": "Seller's 'grass-fed' claim on a soy protein bar does not apply to the product type",
       "product": { "name": "100% GRASS-FED Protein Bar",
         "ingredients_text": "Soy protein isolate, glycerin, maltitol syrup, palm kernel oil, natural and artificial flavors, sucralose, soy lecithin",
         "labels": "100% grass-fed, non-gmo" } },

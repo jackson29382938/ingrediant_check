@@ -659,7 +659,7 @@ test('an organic word before or after the ingredient does not hide it', () => {
     const a = score(en), b = score(other);
     assert.deepEqual(reasons(b).sort(), reasons(a).sort(), `${other} vs ${en}`);
     assert.equal(b.score, a.score, `${other} vs ${en}`);
-    assert.ok(b.good.some(g => g.why === 'Certified organic'), `${other}: the organic claim still counts`);
+    assert.ok(b.good.some(g => g.why === 'Organic, unverified'), `${other}: the organic claim still counts`);
   }
   // Words that only start with "bio" are left alone.
   for (const text of ['biotine', 'bioflavonoide']) assert.deepEqual(engine.parse(text), [text]);

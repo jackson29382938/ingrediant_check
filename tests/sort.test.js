@@ -313,11 +313,11 @@ test('updates are re-checked, and only the newest run from its own tab lands', a
 });
 
 test('why it scored: bounded rows, points or CAP, only for a scored listing', () => {
-  const why = { plus: [{ c: 8, why: 'Certified organic' }, { c: 5, why: 'Fermented / live cultures', ing: 'cultures' }],
+  const why = { plus: [{ c: 8, why: 'Organic label claim' }, { c: 5, why: 'Fermented / live cultures', ing: 'cultures' }],
     minus: [{ c: -5, why: 'Naturally occurring sugar', ing: 'pasteurized organic milk' }, { c: 'CAP', why: 'Capped' }, { c: 500, why: 'absurd' },
       { c: -3, why: '' }, null, 'junk'], neutral: Array.from({ length: 9 }, (_, i) => ({ c: 0, why: `n${i}` })), extra: [{ c: 1, why: 'x' }] };
   const clean = R.sanitizeProduct(p('B000000001', 78, { why })).why;
-  assert.deepEqual(clean.plus.map(r => [r.c, r.why, r.ing]), [[8, 'Certified organic', ''], [5, 'Fermented / live cultures', 'cultures']]);
+  assert.deepEqual(clean.plus.map(r => [r.c, r.why, r.ing]), [[8, 'Organic label claim', ''], [5, 'Fermented / live cultures', 'cultures']]);
   assert.deepEqual(clean.minus.map(r => r.c), [-5, 'CAP'], 'out-of-range points and empty reasons dropped');
   assert.equal(clean.neutral.length, 3);
   assert.equal(clean.extra, undefined);

@@ -122,8 +122,8 @@ const CATEGORIES = [
 
   // ---------------------------------------------------------------- sourcing
   { id: 'organic', group: 'Sourcing & certification', kind: 'bonus', def: 1,
-    label: 'Organic certification',
-    help: 'Certified organic. Claims found only in the seller-written title or bullets count at half weight and are labelled unverified.' },
+    label: 'Organic claim',
+    help: 'Organic claims earn credit. Claims found only in the seller-written title or bullets count at half weight and are labelled unverified; this score does not verify certification.' },
   { id: 'animalWelfare', group: 'Sourcing & certification', kind: 'bonus', def: 1,
     label: 'Pasture-raised, grass-fed & wild-caught',
     help: 'Sourcing claims about how an animal was raised or caught.' },
