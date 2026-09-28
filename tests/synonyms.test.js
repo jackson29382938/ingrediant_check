@@ -1028,6 +1028,7 @@ test('an unnamed flavour enhancer is charged and ultra-processed; a named one is
 test('bare "organic" is an organic claim, never "USDA Organic"; a verified certification replaces it', () => {
   const claim = engine.score({ name: 'Organic Valley Whole Milk', ingredients_text: 'Organic Grade A Milk, Vitamin D3' });
   assert.ok(claim.good.some(g => g.why === 'Organic, unverified'));
+  assert.equal(claim.good.filter(g => g.why === 'Organic, unverified').length, 1, 'dairy organic claim is scored once');
   assert.ok(!claim.good.some(g => /USDA Organic/.test(g.why)));
   const verified = engine.score({ name: 'Organic Whole Milk', ingredients_text: 'Organic milk', certifications: 'USDA Organic' });
   assert.ok(verified.good.some(g => g.why === 'USDA Organic — verified'));

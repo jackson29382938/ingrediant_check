@@ -125,6 +125,27 @@ check('refined whole-food fats do not earn the unrefined or simplicity bonuses',
     const r = engine.score({ name: ingredient, ingredients_text: ingredient }, {});
     assert.ok(!r.good.some(h => /Minimally refined|Single-ingredient/.test(h.why)), ingredient);
   }
+  const nonHydrogenated = engine.score({ name: 'Non-hydrogenated coconut oil', ingredients_text: 'Non-hydrogenated coconut oil' }, {});
+  assert.ok(nonHydrogenated.good.some(h => /Minimally refined cooking fat/.test(h.why)));
+});
+
+check('sourcing and raw-dairy bonuses match the product type and evidence', () => {
+  const rawMilk = engine.score({ name: 'Milk', ingredients_text: 'Raw milk' }, {});
+  assert.ok(rawMilk.good.some(h => /Raw \/ unpasteurised dairy/.test(h.why)));
+  const rawSauerkraut = engine.score({ name: 'Sauerkraut', ingredients_text: 'Unpasteurized cabbage' }, {});
+  assert.ok(!rawSauerkraut.good.some(h => /Raw \/ unpasteurised dairy/.test(h.why)));
+  const certifiedProduce = engine.score({ name: 'Organic carrots', ingredients_text: 'Organic carrots', certifications: 'USDA Organic' }, {});
+  assert.ok(certifiedProduce.good.some(h => h.why === 'Organic — verified'));
+  const oliveOil = engine.score({ name: 'Unrefined olive oil', ingredients_text: 'Unrefined olive oil' }, {});
+  assert.equal(oliveOil.good.filter(h => /Minimally refined|Cold-pressed/.test(h.why)).length, 1, 'one refinement claim, one bonus');
+  const sugar = engine.score({ name: 'Unrefined cane sugar', ingredients_text: 'Unrefined cane sugar' }, {});
+  assert.ok(!sugar.good.some(h => /Cold-pressed \/ unrefined/.test(h.why)));
+  assert.equal(sugar.score, engine.score({ name: 'Cane sugar', ingredients_text: 'Cane sugar' }, {}).score,
+    'an unrefined claim does not erase concentrated sugar points');
+  const butter = engine.score(corpus.products.find(p => p.id === 'grassfed-butter').product, {});
+  assert.equal(butter.good.filter(h => /grass-fed/i.test(h.why)).length, 1, 'dairy sourcing is counted through one evidence path');
+  const agaBeef = engine.score(corpus.products.find(p => p.id === 'aga-grassfed-beef').product, {});
+  assert.ok(!agaBeef.good.some(h => /grass-fed.*unverified/.test(h.why)), 'audited grass-fed claim is not also paid as generic copy');
 });
 
 console.log(`\n${known} known failure(s) against open defects: ${[...OPEN_DEFECTS].join(', ') || 'none'}`);

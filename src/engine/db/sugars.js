@@ -54,13 +54,13 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   const REFINED = [
     // "cane" is deliberately absent from this list: the cane rule below owns it, and carrying it
     // here as well charged "cane sugar" twice (17 + 4) against 17 for "sugar".
-    { m: /^(organic )?(raw |turbinado |demerara |muscovado |granulated |white |caster |icing |confectioner(?:s['’]?|['’]s) )?sugar$/i, pts: 14, why: 'Refined added sugar' },
+    { m: /^(organic )?(raw |unrefined |turbinado |demerara |muscovado |granulated |white |caster |icing |confectioner(?:s['’]?|['’]s) )?sugar$/i, pts: 14, why: 'Refined added sugar' },
     // Spanish, French, German, Italian, Portuguese, Dutch, Swedish and Polish — the stores whose
     // headings the extractor already reads.
     { m: /^(az[uú]car|a[cç][uú]car|sucre|zucker|zucchero|suiker|socker|str[öo]socker|betsocker|cukier|[şs]eker|toz [şs]eker|kristal [şs]eker|rafine [şs]eker|pancar [şs]ekeri)( blanc[oa]| refinad[oa]| blanc| raffin[ée]| bianco| grezzo| wit| bia[łl]y| buraczany)?$/i, pts: 14, why: 'Refined added sugar' },
     // The same in each label language, here rather than in the refined rule above, so a cane sugar is
     // charged once and named as English names it.
-    { m: /^(evaporated |raw |organic )*cane (juice|sugar|syrup)$|^(?:az[uú]car|sucre|zucchero|a[cç][uú]car)(?: moreno| roux| integral| grezzo| integrale| blond| complet)? d[ei] ca(?:[ñn]a|nne|nna|na)(?: roux| blond| complet| integral| integrale| grezzo| moreno| mascavo)?$|^(?:rohr(?:roh)?zucker|r[öo]rsocker|(?:ruwe )?rietsuiker|cukier trzcinowy|kam[ıi][şs] [şs]ekeri)$/i, pts: 14, why: 'Cane sugar' },
+    { m: /^(evaporated |raw |unrefined |organic )*cane (juice|sugar|syrup)$|^(?:az[uú]car|sucre|zucchero|a[cç][uú]car)(?: moreno| roux| integral| grezzo| integrale| blond| complet)? d[ei] ca(?:[ñn]a|nne|nna|na)(?: roux| blond| complet| integral| integrale| grezzo| moreno| mascavo)?$|^(?:rohr(?:roh)?zucker|r[öo]rsocker|(?:ruwe )?rietsuiker|cukier trzcinowy|kam[ıi][şs] [şs]ekeri)$/i, pts: 14, why: 'Cane sugar' },
     { m: /^(brown sugar|az[uú]car moren[oa]|a[cç][uú]car mascav[oa]do|sucre (brun|roux)|brauner zucker|zucchero bruno|basterdsuiker|farinsocker|brunt socker|cukier br[ąa]zowy|br[ąa]zowy cukier(?: trzcinowy)?|cukier trzcinowy br[ąa]zowy|esmer [şs]eker|bruine suiker)$/i, pts: 14, why: 'Brown sugar' },
     { m: /^beet sugar$/i,                               pts: 14, why: 'Beet sugar' },
     { m: /^powdered sugar$/i,                           pts: 14, why: 'Powdered sugar' },

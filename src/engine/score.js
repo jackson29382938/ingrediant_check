@@ -23,6 +23,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : self, function (db) {
 
 const { oils, sugars, additives: add, labels } = db;
+const HYDROGENATED_OIL = oils.HARD.find(r => r.id === 'hydrogen').m;
 
 const NOVA_BASE = { 1: 96, 2: 90, 3: 80, 4: 60 };
 const BANDS = [[90, 'Excellent'], [75, 'Good'], [50, 'Mediocre'], [25, 'Poor'], [0, 'Avoid']];
@@ -936,7 +937,6 @@ function score(product, options = {}) {
   // bonuses
   // When the provenance block is active it scores sourcing with far better resolution (verified vs
   // claimed, per certification). Paying the generic label bonus as well double-counts the same fact.
-  const PROV_OVERLAP = /grass-fed|pasture|wild-caught|organic|regenerativ|non-gmo/i;
   // A label claim lifts a product, not an ingredient. When every ingredient on the list is itself
   // penalised or capped there is nothing for "fermented" or "sea salt" to be a better version of,
   // so those claims stand down. Organic is the exception, by the owner's rule: organic always earns
@@ -948,18 +948,35 @@ function score(product, options = {}) {
   for (const b of labels.BONUSES) {
     if (allPenalised && b.cat !== 'organic') continue;
     if (b.applies && (!kindInfo || !b.applies.includes(kindInfo.kind))) continue;
-    if (provenanceOwnsSourcing && PROV_OVERLAP.test(b.why)) continue;
-    if (b.cat === 'organic' && provenanceApplies && prov && prov.detectCertifications([
+    const provenanceEvidence = [product.certifications || '', product.provenanceRecord && product.provenanceRecord.certifications || '',
+      product.provenanceRecord && product.provenanceRecord.producerRegistry && product.provenanceRecord.producerRegistry.certifications || '',
+      product.name || '', product.labels || '', txt].join(' ');
+    if (provenanceApplies && b.provenanceIds && prov.detectCertifications(provenanceEvidence, kindInfo.kind)
+      .some(c => b.provenanceIds.includes(c.id))) continue;
+    const verifiedOrganic = b.cat === 'organic' && kindInfo && prov && prov.detectCertifications([
       product.certifications || '', product.provenanceRecord && product.provenanceRecord.certifications || '',
       product.provenanceRecord && product.provenanceRecord.producerRegistry && product.provenanceRecord.producerRegistry.certifications || '',
-    ].join(' '), kindInfo.kind).some(c => c.id === 'organic')) continue;
+    ].join(' '), kindInfo.kind).some(c => c.id === 'organic');
+    if (verifiedOrganic && provenanceApplies) continue;
+    const cookingFatRule = labels.BONUSES.find(f => f.requiresUnrefinedFat);
+    const pressClaim = [bonusText, product.name || '', product.labels || '', product.certifications || '', ...list]
+      .some(source => b.m.test(source) && /press|prens|spremitur|gepresst|pressad|tłoczon|s[ıi]k/i.test(source));
+    const cookingFatEvidence = [bonusText, product.name || '', product.labels || '', product.certifications || ''].some(source =>
+      String(source).split(/[,;.\n]/).some(part => b.m.test(part) && cookingFatRule.m.test(part)))
+      || list.some((part, i) => b.m.test(part) && /press|prens|spremitur|gepresst|pressad|tłoczon|s[ıi]k/i.test(part)
+        && [list[i - 1], list[i + 1]].some(adjacent => adjacent && cookingFatRule.m.test(adjacent)))
+      || parsed.some(e => (LABEL_NOTE.test(e.ing) || CLAIM_ENTRY.test(e.ing)) && b.m.test(e.ing)
+        && list.some(part => cookingFatRule.m.test(part)));
+    if (b.requiresCookingFat && (!cookingFatEvidence
+      || (good.some(g => g.why.startsWith('Minimally refined cooking fat')) && !pressClaim))) continue;
     if (bonus >= labels.BONUS_CAP) break;
-    const evidence = b.applies ? [product.name || '', product.labels || ''].join(' ') : '';
+    const evidence = b.claimSurfaceOnly ? [product.name || '', product.labels || ''].join(' ') : '';
     const unrefinedFat = !b.requiresUnrefinedFat || [bonusText, product.name || '', product.labels || '', product.certifications || '']
       .some(source => String(source).split(/[,;.\n]/).some(part => b.m.test(part)
-        && !/\b(refined|hydrogenated)\b/i.test(part.replace(b.m, ''))));
-    const strong = unrefinedFat && b.m.test(hayStrong) && (!b.applies || b.m.test(evidence));
-    const titleOnly = !strong && unrefinedFat && b.m.test(hayTitle) && (!b.applies || b.m.test(evidence));
+        && !/\brefined\b/i.test(part.replace(b.m, ''))
+        && !HYDROGENATED_OIL.test(part) && !oils.TRANS.m.test(part)));
+    const strong = unrefinedFat && b.m.test(hayStrong) && (!b.claimSurfaceOnly || b.m.test(evidence));
+    const titleOnly = !strong && unrefinedFat && b.m.test(hayTitle) && (!b.claimSurfaceOnly || b.m.test(evidence));
     if (!strong && !titleOnly) continue;
     if (titleOnly && titleBonus >= labels.TITLE_BONUS_CAP) continue;
     const worth = Math.round((titleOnly ? b.pts / 2 : b.pts) * w_(b.cat));
@@ -970,9 +987,7 @@ function score(product, options = {}) {
     if (add_ <= 0) continue;
     bonus += add_;
     if (titleOnly) titleBonus += add_;
-    // Organic named by Amazon's certification data is verified; printed on the list or the title it is not.
-    const organicWhy = b.m.test(product.certifications || '') ? 'Organic — certified' : 'Organic, unverified';
-    good.push({ c: +add_, why: b.cat === 'organic' ? organicWhy
+    good.push({ c: +add_, why: b.cat === 'organic' ? verifiedOrganic ? 'Organic — certified' : 'Organic, unverified'
       : titleOnly ? `${b.why} (label claim, unverified)` : b.why, organic: b.cat === 'organic' });
   }
   pts += bonus;
@@ -1010,7 +1025,7 @@ function score(product, options = {}) {
   // and a bottle of sunflower oil used to collect it too, next to their own penalty or cap.
   const simple = Math.round(4 * w_('simplicity'));
   const lone = list.length === 1 && (hitsAny(labels.WHOLE, list[0]) || hits1(labels.CULINARY, list[0]))
-    && !/\b(refined|hydrogenated)\b/i.test(list[0]);
+    && !/\brefined\b/i.test(list[0]) && !HYDROGENATED_OIL.test(list[0]) && !oils.TRANS.m.test(list[0]);
   if (lone && simple > 0 && !hits.length && !capsHit.length) {
     pts += simple;
     good.push({ c: +simple, why: 'Single-ingredient whole food' });
@@ -1096,7 +1111,7 @@ function score(product, options = {}) {
     const critical = provenanceOwnsSourcing;
     const verified = prov.detectCertifications(strong, kindInfo.kind);
     const claims = prov.detectCertifications(claimed, kindInfo.kind)
-      .filter(c => !verified.some(v => v.id === c.id || v.id === c.weakerThan));
+      .filter(c => !verified.some(v => v.id === c.id || v.id === c.weakerThan || (v.supersedes || []).includes(c.id)));
     const undisclosed = !critical || verified.length ? 0 : (claims.length ? 10 : 14);
     const unknownCost = Math.round(undisclosed * w_('provenanceUnknown'));
     let gained = 0;

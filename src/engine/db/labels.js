@@ -20,16 +20,16 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   const inLanguages = (en, local) => new RegExp(en.source + '|' + PL + '(?:' + local.join('|') + ')' + PR, 'i');
 
   const BONUSES = [
-    { pts: 12, cat: 'animalWelfare', why: '100% grass-fed / grass-finished', applies: ['beef', 'lamb', 'dairy'], m: /\bgrass[- ]?(fed|finished)\b/i },
-    { pts: 10, cat: 'animalWelfare', why: 'Pasture-raised',              applies: ['beef', 'pork', 'poultry', 'lamb', 'egg', 'dairy'], m: /\bpasture[- ]?(raised|fed)\b/i },
-    { pts: 10, cat: 'animalWelfare', why: 'Wild-caught',                 applies: ['seafood'], m: /\bwild[- ]?(caught|harvested)\b/i },
-    { pts:  8, cat: 'organic', why: 'Organic label claim',               m: inLanguages(/\b(certified )?organic\b/i, [
+    { pts: 12, cat: 'animalWelfare', why: '100% grass-fed / grass-finished', applies: ['beef', 'lamb', 'dairy'], claimSurfaceOnly: true, provenanceIds: ['grassFed', 'grassFinished', 'aga'], m: /\bgrass[- ]?(fed|finished)\b/i },
+    { pts: 10, cat: 'animalWelfare', why: 'Pasture-raised',              applies: ['beef', 'pork', 'poultry', 'lamb', 'egg', 'dairy'], claimSurfaceOnly: true, provenanceIds: ['pastureRaised', 'awa', 'gap4', 'gap5'], m: /\bpasture[- ]?(raised|fed)\b/i },
+    { pts: 10, cat: 'animalWelfare', why: 'Wild-caught',                 applies: ['seafood'], claimSurfaceOnly: true, provenanceIds: ['wildCaught'], m: /\bwild[- ]?(caught|harvested)\b/i },
+    { pts:  8, cat: 'organic', why: 'Organic label claim', provenanceIds: ['organic', 'organicClaim'], m: inLanguages(/\b(certified )?organic\b/i, [
       'bio', 'biologiques?', 'biol[óo]gic[oa]s?', 'biologic[oaie]', 'biologiche', 'biologisch(?:e[mnrs]?)?', 'ecol[óo]gic[oa]s?', 'eco',
       '[öo]kologisch(?:e[mnrs]?)?', '[öo]ko', 'ekologisk[at]?', 'ekologiczn[a-zęąó]*', 'eko', 'organik', 'biyolojik'] ) },
-    { pts:  8, cat: 'dairyProcessing', why: 'Raw / unpasteurised dairy', m: inLanguages(/\braw (milk|cream|cheese|dairy|butter)\b|\bunpasteurized\b/i, [
+    { pts:  8, cat: 'dairyProcessing', why: 'Raw / unpasteurised dairy', applies: ['dairy'], m: inLanguages(/\braw (milk|cream|cheese|dairy|butter)\b|\bunpasteurized\b/i, [
       'lait cru', 'au lait cru', 'rohmilch[a-z]*', 'leche cruda', 'latte crudo', 'leite cru', 'rauwe melk', 'opast[öo]riserad[a-z]*',
       'mleko surowe', 'mleka surowego', '[çc]i[ğg] s[üu]t', 'non pastoris[ée]e?', 'no pasteurizad[oa]', 'non pastorizzat[oa]', 'unpasteurisiert[a-z]*'] ) },
-    { pts:  7, cat: 'animalWelfare', why: 'Regeneratively farmed',       m: /\bregenerativ(e|ely)\b/i },
+    { pts:  7, cat: 'animalWelfare', why: 'Regeneratively farmed', provenanceIds: ['regenerative'], m: /\bregenerativ(e|ely)\b/i },
     { pts:  6, cat: 'fermented', why: 'Fermented / live cultures',       m: inLanguages(/\b(cultured|fermented|live active cultures|probiotic|kefir|kimchi|sauerkraut)\b/i, [
       'ferment[ée]e?s?', 'fermentad[oa]s?', 'fermentat[oaie]', 'fermentiert[a-z]*', 'gefermenteerd[a-z]*', 'fermenterad[a-z]*', 'fermentowan[a-zęąó]*', 'fermente',
       'k[ée]fir', 'kefiru?', 'probiotiques?', 'probi[óo]tic[oa]s?', 'probiotisch[a-z]*', 'probiotyczn[a-zęąó]*', 'probiyotik', 'choucroute', 'chucrut', 'crauti',
@@ -42,14 +42,14 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { pts:  5, cat: 'traditionalPrep', why: 'Sourdough / sprouted grain', m: inLanguages(/\b(sourdough|sprouted|naturally leavened|einkorn|soaked)\b/i, [
       'levain', 'masa madre', 'lievito madre', '(?:roggen|weizen|dinkel|natur)?[- ]?sauerteig[a-z]*', 'zuurdesem', 'surdeg', 'zakwas(?:u|ie|em)?', 'ek[şs]i maya',
       'massa m[ãa]e', 'germée?s?', 'gekeimt[a-z]*', 'germinad[oa]s', 'germogliat[oaie]', 'gekiemd[a-z]*', 'groddad[a-z]*', 'kie[łl]kowan[a-zęąó]*', 'engrain', 'einkorn', 'tremp[ée]e?s', 'eingeweicht[a-z]*', 'remojad[oa]s', 'ammollat[oaie]', 'geweekt[a-z]*', 'bl[öo]tlagd[a-z]*', 'namoczon[a-zęąó]*', 'demolhad[oa]s', '[ıi]slat[ıi]lm[ıi][şs]'] ) },
-    { pts:  5, cat: 'nonGmo', why: 'Non-GMO verified',                   m: inLanguages(/\bnon[- ]?gmo\b/i, [
+    { pts:  5, cat: 'nonGmo', why: 'Non-GMO verified', provenanceIds: ['nonGmoVerified'], m: inLanguages(/\bnon[- ]?gmo\b/i, [
       'sans ogm', 'sin ogm', 'senza ogm', 'sem ogm', 'ohne gentechnik', 'gentechnikfrei', 'bez gmo', 'gdo[\'’]?suz', 'zonder gmo', 'utan gmo'] ) },
     { pts:  5, cat: 'unrefined', why: 'Unrefined salt',                  m: inLanguages(/\b(sea salt|redmond|celtic|real salt|himalayan salt)\b/i, [
       'sel marin', 'sel de mer', 'fleur de sel', 'sel de gu[ée]rande', 'gu[ée]rande salt', 'sal marina', 'sal de mar', 'sale marino', 'meersalz', 'zeezout', 'havssalt', 'havsalt',
       's[óo]l morska', 'deniz tuzu', 'sal marinho', 'flor de sal', 'sel de l[\'’]himalaya', 'sal del himalaya', 'sale dell[\'’]himalaya', 'himalayasalz', 'himalayazout', 'himalayasalt'] ) },
-    { pts:  4, cat: 'animalWelfare', why: 'Heritage / heirloom breed',   applies: ['beef', 'pork', 'poultry', 'lamb'], m: /\b(heritage|heirloom|berkshire|wagyu)\b/i },
+    { pts:  4, cat: 'animalWelfare', why: 'Heritage / heirloom breed',   applies: ['beef', 'pork', 'poultry', 'lamb'], claimSurfaceOnly: true, m: /\b(heritage|heirloom|berkshire|wagyu)\b/i },
     { pts:  4, cat: 'traditionalPrep', why: 'Dry-aged / traditionally cured', m: /\bdry[- ]?(aged|cured)\b/i },
-    { pts:  3, cat: 'unrefined', why: 'Cold-pressed / unrefined',        m: inLanguages(/\b(cold[- ]pressed|expeller[- ]pressed|unrefined|first (?:cold )?press(?:ed|ing)?)\b/i, [
+    { pts:  3, cat: 'unrefined', why: 'Cold-pressed / unrefined', requiresCookingFat: true, m: inLanguages(/\b(cold[- ]pressed|expeller[- ]pressed|unrefined|first (?:cold )?press(?:ed|ing)?)\b/i, [
       'press[ée]e? [àa] froid', 'premi[èe]re pression [àa] froid', 'prensad[oa] en fr[íi]o', 'prensad[oa] a frio', 'spremitura a freddo', 'spremuto a freddo',
       'kaltgepresst[a-z]*', 'koudgeperst[a-z]*', 'kallpressad[a-z]*', 't[łl]oczon[a-zęąó]* na zimno', 'so[ğg]uk s[ıi]k[ıi]m', 'non raffin[ée]e?s?', 'no refinad[oa]s?',
       'non raffinat[oaie]', 'unraffiniert[a-z]*', 'ongeraffineerd[a-z]*', 'oraffinerad[a-z]*', 'nierafinowan[a-zęąó]*', 'n[ãa]o refinad[oa]s?'] ) },
