@@ -659,7 +659,7 @@ test('an organic word before or after the ingredient does not hide it', () => {
     const a = score(en), b = score(other);
     assert.deepEqual(reasons(b).sort(), reasons(a).sort(), `${other} vs ${en}`);
     assert.equal(b.score, a.score, `${other} vs ${en}`);
-    assert.ok(b.good.some(g => g.why === 'Certified organic'), `${other}: the organic claim still counts`);
+    assert.ok(b.good.some(g => g.why === 'Organic, unverified'), `${other}: the organic claim still counts`);
   }
   // Words that only start with "bio" are left alone.
   for (const text of ['biotine', 'bioflavonoide']) assert.deepEqual(engine.parse(text), [text]);
@@ -1079,6 +1079,10 @@ test('organic always earns a benefit: all-penalised lists, capped products and a
     const a = engine.score(plain), b = engine.score(organic);
     assert.ok(b.score > a.score, `${organic.name}: ${organic.ingredients_text} ${b.score} vs ${a.score}`);
   }
+  // A certification counts where the sourcing check does not run, labelled as verified.
+  const oats = engine.score({ name: 'Oats', ingredients_text: 'rolled oats', certifications: 'USDA Organic' });
+  assert.ok(oats.score > engine.score({ name: 'Oats', ingredients_text: 'rolled oats' }).score);
+  assert.ok(oats.good.some(g => g.why === 'Organic — certified'));
   // Above a cap the panel still adds up, and says why the score passes the cap.
   const oil = engine.score({ name: 'Canola Oil', ingredients_text: 'organic canola oil' });
   assert.ok(oil.bad.some(h => h.cap && /organic counted above it/.test(h.why)));

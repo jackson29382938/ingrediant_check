@@ -20,10 +20,10 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   const inLanguages = (en, local) => new RegExp(en.source + '|' + PL + '(?:' + local.join('|') + ')' + PR, 'i');
 
   const BONUSES = [
-    { pts: 12, cat: 'animalWelfare', why: '100% grass-fed / grass-finished', m: /\bgrass[- ]?(fed|finished)\b/i },
-    { pts: 10, cat: 'animalWelfare', why: 'Pasture-raised',              m: /\bpasture[- ]?(raised|fed)\b/i },
-    { pts: 10, cat: 'animalWelfare', why: 'Wild-caught',                 m: /\bwild[- ]?(caught|harvested)\b/i },
-    { pts:  8, cat: 'organic', why: 'Certified organic',                 m: inLanguages(/\b(certified )?organic\b/i, [
+    { pts: 12, cat: 'animalWelfare', why: '100% grass-fed / grass-finished', applies: ['beef', 'lamb', 'dairy'], m: /\bgrass[- ]?(fed|finished)\b/i },
+    { pts: 10, cat: 'animalWelfare', why: 'Pasture-raised',              applies: ['beef', 'pork', 'poultry', 'lamb', 'egg', 'dairy'], m: /\bpasture[- ]?(raised|fed)\b/i },
+    { pts: 10, cat: 'animalWelfare', why: 'Wild-caught',                 applies: ['seafood'], m: /\bwild[- ]?(caught|harvested)\b/i },
+    { pts:  8, cat: 'organic', why: 'Organic label claim',               m: inLanguages(/\b(certified )?organic\b/i, [
       'bio', 'biologiques?', 'biol[óo]gic[oa]s?', 'biologic[oaie]', 'biologiche', 'biologisch(?:e[mnrs]?)?', 'ecol[óo]gic[oa]s?', 'eco',
       '[öo]kologisch(?:e[mnrs]?)?', '[öo]ko', 'ekologisk[at]?', 'ekologiczn[a-zęąó]*', 'eko', 'organik', 'biyolojik'] ) },
     { pts:  8, cat: 'dairyProcessing', why: 'Raw / unpasteurised dairy', m: inLanguages(/\braw (milk|cream|cheese|dairy|butter)\b|\bunpasteurized\b/i, [
@@ -34,7 +34,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
       'ferment[ée]e?s?', 'fermentad[oa]s?', 'fermentat[oaie]', 'fermentiert[a-z]*', 'gefermenteerd[a-z]*', 'fermenterad[a-z]*', 'fermentowan[a-zęąó]*', 'fermente',
       'k[ée]fir', 'kefiru?', 'probiotiques?', 'probi[óo]tic[oa]s?', 'probiotisch[a-z]*', 'probiotyczn[a-zęąó]*', 'probiyotik', 'choucroute', 'chucrut', 'crauti',
       'zuurkool', 'surk[åa]l', 'kapusta kiszona', 'ferments vivants', 'fermenti vivi', 'cultivos vivos', 'lebende kulturen', 'levende culturen', '[żz]ywe kultury'] ) },
-    { pts:  6, cat: 'unrefined', why: 'Minimally refined cooking fat', m: inLanguages(/(?<!peanut |almond |cashew |sunflower |seed |nut |cocoa |shea |apple |soy )\b(butter|ghee|tallow|lard|suet|duck fat|coconut oil|olive oil|avocado oil)\b|\b(aceite de (?:oliva|coco)|huile d['’]olive|huile de coco|oliven[öo]l|kokos[öo]l|olio d['’]oliva|olio di cocco|mantequilla|beurre(?!\s+(?:de\s+(?:cacao|cacahu[èe]te|karit[ée]|coco|noix|noisette|amande)|d['’]arachide))|(?<!cacao )burro(?!\s+di\s+cacao))\b/i, [
+    { pts:  6, cat: 'unrefined', why: 'Minimally refined cooking fat', requiresUnrefinedFat: true, m: inLanguages(/(?<!peanut |almond |cashew |sunflower |seed |nut |cocoa |shea |apple |soy )\b(butter|ghee|tallow|lard|suet|duck fat|coconut oil|olive oil|avocado oil)\b|\b(aceite de (?:oliva|coco)|huile d['’]olive|huile de coco|oliven[öo]l|kokos[öo]l|olio d['’]oliva|olio di cocco|mantequilla|beurre(?!\s+(?:de\s+(?:cacao|cacahu[èe]te|karit[ée]|coco|noix|noisette|amande)|d['’]arachide))|(?<!cacao )burro(?!\s+di\s+cacao))\b/i, [
       'olio (?:extra )?vergine di oliva', 'olio di oliva', 'olijfolie', 'olivolja', 'oliwa z oliwek', 'zeytinya[ğg][ıi]', 'azeite(?: de oliva)?', 'kokosolie', 'kokosolja',
       'olej kokosowy', '[óo]leo de coco', 'hindistan cevizi ya[ğg][ıi]', 'roomboter', 'boter', 'sm[öo]r', 'mas[łl]o(?! (?:kakaowe|orzechowe|shea))', 'tereya[ğg][ıi]', 'manteiga(?! de (?:caca[ou]|amendoim|karit[ée]|coco))',
       'butterreinfett', 'butterschmalz', 'butterfett', 'boterconcentraat', 'boterolie', 'gesmolten boter', 'sm[öo]rolja', 'sm[öo]rfett', 'koncentrat mas[łl]a', 'mas[łl]o klarowane', 'burro (?:concentrato|anidro|chiarificato)', 'mantequilla (?:concentrada|clarificada)', 'manteiga (?:concentrada|clarificada)', 'tereya[ğg][ıi] konsantresi', 'sade ya[ğg]', 'saindoux', 'schmalz', 'manteca de cerdo', 'strutto', 'reuzel', 'ister', 'smalec', 'banha'] ) },
@@ -47,7 +47,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { pts:  5, cat: 'unrefined', why: 'Unrefined salt',                  m: inLanguages(/\b(sea salt|redmond|celtic|real salt|himalayan salt)\b/i, [
       'sel marin', 'sel de mer', 'fleur de sel', 'sel de gu[ée]rande', 'gu[ée]rande salt', 'sal marina', 'sal de mar', 'sale marino', 'meersalz', 'zeezout', 'havssalt', 'havsalt',
       's[óo]l morska', 'deniz tuzu', 'sal marinho', 'flor de sal', 'sel de l[\'’]himalaya', 'sal del himalaya', 'sale dell[\'’]himalaya', 'himalayasalz', 'himalayazout', 'himalayasalt'] ) },
-    { pts:  4, cat: 'animalWelfare', why: 'Heritage / heirloom breed',   m: /\b(heritage|heirloom|berkshire|wagyu)\b/i },
+    { pts:  4, cat: 'animalWelfare', why: 'Heritage / heirloom breed',   applies: ['beef', 'pork', 'poultry', 'lamb'], m: /\b(heritage|heirloom|berkshire|wagyu)\b/i },
     { pts:  4, cat: 'traditionalPrep', why: 'Dry-aged / traditionally cured', m: /\bdry[- ]?(aged|cured)\b/i },
     { pts:  3, cat: 'unrefined', why: 'Cold-pressed / unrefined',        m: inLanguages(/\b(cold[- ]pressed|expeller[- ]pressed|unrefined|first (?:cold )?press(?:ed|ing)?)\b/i, [
       'press[ée]e? [àa] froid', 'premi[èe]re pression [àa] froid', 'prensad[oa] en fr[íi]o', 'prensad[oa] a frio', 'spremitura a freddo', 'spremuto a freddo',

@@ -856,13 +856,7 @@ function score(product, options = {}) {
       if (r.why === 'Unspecified flavouring' && (childrenOf.get(fam) || []).some(c => add.FLAVOURS.some(f => f.why !== r.why && !/^"Natural|^Artificial flavour$/.test(f.why) && f.m.test(c.ing)))) continue;
       // Fat-reduced dairy describes the product only when it is mostly fat-reduced: not when
       // full-fat dairy comes earlier in the list, or the title says whole milk / full fat.
-      if (r.cat === 'reducedFatDairy' && (fullFatTitle || fullFatBefore(pos))) {
-        if (!seen.has('fullFatLead')) {
-          seen.add('fullFatLead');
-          good.push({ c: 0, why: 'Mostly full-fat dairy — the fat-reduced dairy in it is not counted', ing });
-        }
-        continue;
-      }
+      if (r.cat === 'reducedFatDairy' && (fullFatTitle || fullFatBefore(pos))) continue;
       // Sugar that comes with its whole food is exempt unless the user turns 'naturally occurring
       // sugars' on, at which point it is scored like any other sugar.
       // Traditional preparation (sourdough, sprouting, soaking) halves the grain penalty rather
@@ -953,10 +947,19 @@ function score(product, options = {}) {
   let bonus = 0, titleBonus = 0;
   for (const b of labels.BONUSES) {
     if (allPenalised && b.cat !== 'organic') continue;
+    if (b.applies && (!kindInfo || !b.applies.includes(kindInfo.kind))) continue;
     if (provenanceOwnsSourcing && PROV_OVERLAP.test(b.why)) continue;
+    if (b.cat === 'organic' && provenanceApplies && prov && prov.detectCertifications([
+      product.certifications || '', product.provenanceRecord && product.provenanceRecord.certifications || '',
+      product.provenanceRecord && product.provenanceRecord.producerRegistry && product.provenanceRecord.producerRegistry.certifications || '',
+    ].join(' '), kindInfo.kind).some(c => c.id === 'organic')) continue;
     if (bonus >= labels.BONUS_CAP) break;
-    const strong = b.m.test(hayStrong);
-    const titleOnly = !strong && b.m.test(hayTitle);
+    const evidence = b.applies ? [product.name || '', product.labels || ''].join(' ') : '';
+    const unrefinedFat = !b.requiresUnrefinedFat || [bonusText, product.name || '', product.labels || '', product.certifications || '']
+      .some(source => String(source).split(/[,;.\n]/).some(part => b.m.test(part)
+        && !/\b(refined|hydrogenated)\b/i.test(part.replace(b.m, ''))));
+    const strong = unrefinedFat && b.m.test(hayStrong) && (!b.applies || b.m.test(evidence));
+    const titleOnly = !strong && unrefinedFat && b.m.test(hayTitle) && (!b.applies || b.m.test(evidence));
     if (!strong && !titleOnly) continue;
     if (titleOnly && titleBonus >= labels.TITLE_BONUS_CAP) continue;
     const worth = Math.round((titleOnly ? b.pts / 2 : b.pts) * w_(b.cat));
@@ -967,7 +970,10 @@ function score(product, options = {}) {
     if (add_ <= 0) continue;
     bonus += add_;
     if (titleOnly) titleBonus += add_;
-    good.push({ c: +add_, why: titleOnly ? `${b.why} (label claim, unverified)` : b.why, organic: b.cat === 'organic' });
+    // Organic named by Amazon's certification data is verified; printed on the list or the title it is not.
+    const organicWhy = b.m.test(product.certifications || '') ? 'Organic — certified' : 'Organic, unverified';
+    good.push({ c: +add_, why: b.cat === 'organic' ? organicWhy
+      : titleOnly ? `${b.why} (label claim, unverified)` : b.why, organic: b.cat === 'organic' });
   }
   pts += bonus;
 
@@ -998,15 +1004,13 @@ function score(product, options = {}) {
     const eff = Math.max(SCORE_FLOOR, Math.round(100 - (100 - ceiling) * w_(c.cat)));
     if (eff >= 100) continue;                            // category switched off by the user
     if (eff < cap) { cap = eff; capWhy = c.why; }
-    // The row text carries a suffix, so an exact comparison never matched and two rules with the
-    // same reason produced two rows.
-    if (!bad.some(h => h.why.startsWith(c.why))) bad.push({ c: 'CAP', why: `${c.why} — caps score at ${eff}` });
   }
 
   // The bonus is for a whole food that is its own list, not for any lone ingredient: plain sugar
   // and a bottle of sunflower oil used to collect it too, next to their own penalty or cap.
   const simple = Math.round(4 * w_('simplicity'));
-  const lone = list.length === 1 && (hitsAny(labels.WHOLE, list[0]) || hits1(labels.CULINARY, list[0]));
+  const lone = list.length === 1 && (hitsAny(labels.WHOLE, list[0]) || hits1(labels.CULINARY, list[0]))
+    && !/\b(refined|hydrogenated)\b/i.test(list[0]);
   if (lone && simple > 0 && !hits.length && !capsHit.length) {
     pts += simple;
     good.push({ c: +simple, why: 'Single-ingredient whole food' });
@@ -1193,13 +1197,10 @@ function score(product, options = {}) {
     const ceiling = Math.min(final, cap + organicLift);
     const drop = final - ceiling;
     const why = ceiling > cap ? `${capWhy} — caps score at ${cap}, organic counted above it` : `${capWhy} — caps score at ${cap}`;
-    // Attach the arithmetic to the cap that actually binds; the others stay as bare labels.
-    const row = bad.find(h => h.c === 'CAP' && h.why.startsWith(capWhy));
-    if (drop > 0) {
-      if (row) { row.c = -drop; row.cap = true; row.why = why; }
-      else bad.push({ c: -drop, cap: true, why });
-    }
+    bad.push(drop > 0 ? { c: -drop, cap: true, why } : { c: 'CAP', why });
     final = ceiling;
+  } else if (cap < 100) {
+    bad.push({ c: 'CAP', why: `${capWhy} — score already below cap of ${cap}` });
   }
   if (final < SCORE_FLOOR) {
     good.push({ c: SCORE_FLOOR - final, why: `Score floor — the scale stops at ${SCORE_FLOOR}` });

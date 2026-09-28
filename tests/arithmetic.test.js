@@ -104,10 +104,10 @@ check('an earned bonus never displays as nothing', () => {
   }
 });
 
-check('cap rows are labelled CAP and a capped score respects the ceiling', () => {
+check('the binding cap has a numeric deduction and respects its ceiling', () => {
   const r = engine.score({ name: 'x', ingredients_text: 'Water, partially hydrogenated soybean oil, sugar' }, {});
   assert.ok(r.cap, 'expected a cap to fire');
-  assert.ok(r.bad.some(h => h.c === 'CAP'), 'expected a CAP row in the panel');
+  assert.ok(r.bad.some(h => h.cap && typeof h.c === 'number'), 'expected the binding cap deduction in the panel');
   assert.ok(r.score <= 5, `trans fat caps at 5, got ${r.score}`);
 });
 
@@ -118,6 +118,13 @@ check('turning a category off removes its rows entirely', () => {
   assert.ok(on.bad.some(h => /sugar/i.test(h.why)), 'sugar row missing at weight 1');
   assert.ok(!off.bad.some(h => /Refined added sugar/i.test(h.why)), 'sugar row still shown at weight 0');
   assert.ok(off.score > on.score, `switching sugar off should not lower the score (${off.score} vs ${on.score})`);
+});
+
+check('refined whole-food fats do not earn the unrefined or simplicity bonuses', () => {
+  for (const ingredient of ['Refined butter', 'Hydrogenated coconut oil']) {
+    const r = engine.score({ name: ingredient, ingredients_text: ingredient }, {});
+    assert.ok(!r.good.some(h => /Minimally refined|Single-ingredient/.test(h.why)), ingredient);
+  }
 });
 
 console.log(`\n${known} known failure(s) against open defects: ${[...OPEN_DEFECTS].join(', ') || 'none'}`);

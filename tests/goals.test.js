@@ -29,7 +29,7 @@ test('full-fat dairy first: the nonfat milk after it is neither a plus nor a pen
   for (const goals of [[], ['weightLoss'], ['strength'], ['endurance']]) {
     const r = score(WHOLE_KEFIR, goals);
     assert.equal(row(r, /^Fat-reduced dairy/), undefined, `goals ${goals}: no fat-reduced dairy row`);
-    assert.ok(row(r, /^Mostly full-fat dairy/), 'the panel says why');
+    assert.equal(row(r, /^Mostly full-fat dairy/), undefined, 'excluded fat-reduced ingredients need no zero-point row');
   }
   const LOWFAT_KEFIR = 'PASTEURIZED ORGANIC LOWFAT MILK, PECTIN, LACTASE ENZYME, VITAMIN D3, CULTURES';
   assert.ok(score(WHOLE_KEFIR, ['weightLoss']).score < score(LOWFAT_KEFIR, ['weightLoss']).score,
