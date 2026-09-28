@@ -1121,3 +1121,16 @@ test('two ingredients joined by "and" are split when a half is charged; compound
   assert.deepEqual(engine.parse('orange juice and pulp'), ['orange juice and pulp']);
   assert.deepEqual(engine.parse('may contain milk and nuts'), ['may contain milk and nuts']);
 });
+
+test('from the bilingual pairs: rice flour, barley, lecithin, silica, tocopherols, malted barley and polyphosphates', () => {
+  const twins = {
+    'rice flour': ['rijstmeel', 'rijstebloem'], barley: ['gerstevlokken', 'gerstebloem', 'Gerstenflocken'], 'soy lecithin': ['soja lecithine'],
+    'silicon dioxide': ['Siliciumdioxid', 'biossido di silicio', 'kiseldioxid', 'dwutlenek krzemu'],
+    tocopherols: ['tocophérols', 'extrait riche en tocophérols', 'tocoferoli', 'tocoferoles', 'Tocopherole', 'tocoferóis'],
+    'malted barley': ['orge maltée', 'cebada malteada'], polyphosphates: ['polifosfatos'],
+    'barley malt extract': ['gerstemoutextract', 'Gerstenmalzextrakt', "extrait de malt d'orge"],
+  };
+  for (const [en, locals] of Object.entries(twins)) {
+    for (const l of locals) assert.deepEqual(reasons(score(`water, ${l}`)).sort(), reasons(score(`water, ${en}`)).sort(), l);
+  }
+});

@@ -132,7 +132,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\blocust bean gum\b|\bcarob (bean )?gum\b|\bjohannisbrotkernmehl\b|\bgoma (?:garrof[íi]n|de algarrobo)\b|\bgomme (?:de )?caroube\b|\bfarina di (?:semi di )?carrube\b|\bjohannesbroodpitmeel\b|\bm[ąa]czka chleba [śs]wi[ęe]toja[ńn]skiego\b|\bke[çc]i ?boynuzu gam[ıi]|\bgoma de alfarroba\b|\bjohannesbr[öo]dk[äa]rnmj[öo]l\b|\be[- ]?410\b/i, pts: 7,  why: 'Locust bean gum' },
     { m: /\btara gum\b|\be[- ]?417\b/i,                              pts: 8,  why: 'Tara gum' },
     { m: /\bacacia gum\b|\bgum acacia\b|\bgum arabic\b|\bgoma ar[áa]biga\b|\bgomme arabique\b|\bgomme d['’] ?acacia\b|\bgoma de acacia\b|\bgomma d['’] ?acacia\b|\bakaziengummi\b|\bguma arabska\b|\bgummi arabicum\b|\bgomma arabica\b|\bgoma ar[áa]bica\b|\barabische gom\b|\bakasya gam[ıi](?![a-zß-ÿ\u0100-\u017f])|\be[- ]?414\b/i, pts: 5,  why: 'Gum arabic' },
-    { m: /\bsoy(?:a)? lecithins?\b|\blecitinas? de soja\b|\bl[ée]cithines? de soja\b|\bsojalecithine?n?\b|\blecitin[ae] di soia\b|\bsojalecithine\b|\bsojalecitin\b|\blecytyn[ay]? sojow[ae]\b|\bsojowa lecytyna\b|\bsoya lesitini?\b/i, pts: 9,  why: 'Soy lecithin — hexane-extracted emulsifier' },
+    { m: /\bsoy(?:a)? lecithins?\b|\blecitinas? de soja\b|\bl[ée]cithines? de soja\b|\bsojalecithine?n?\b|\blecitin[ae] di soia\b|\bsojalecithine\b|\bsojalecitin\b|\bsoja[- ]lecithine?n?\b|\blecytyn[ay]? sojow[ae]\b|\bsojowa lecytyna\b|\bsoya lesitini?\b/i, pts: 9,  why: 'Soy lecithin — hexane-extracted emulsifier' },
     { m: /\bsunflower lecithins?\b|\blecitinas? de girasol\b|\bl[ée]cithines? de tournesol\b|\bsonnenblumenlecithine?n?\b|\blecitin[ae] di girasole\b|\blecith?ina de girassol\b|\bzonnebloemlecithine\b|\bsolroslecitin\b|\blecytyn[ay]? s[łl]onecznikow[ae]\b|\bay[çc][ıi][çc]ek lesitini?\b/i, pts: 4,  why: 'Sunflower lecithin' },
     // "Lecithin" with no source, or E322 — which is most EU chocolate. Between the two lecithins
     // above, because the source is exactly what the label declined to say.
@@ -160,7 +160,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\bpotassium metabisul(?:ph|f)ite\b|(?<![a-zß-ÿ\u0100-\u017f])(?:kalium(?:meta)?(?:bi|di)?sulfi(?:t|et)[a-z]*|(?:m[ée]ta)?bisulfite de potassium|(?:meta)?bis?sulfito (?:de |di )?pot[áa]s(?:io|sio|ico)|metabisolfito di potassio|potasyum (?:meta)?bis[üu]lfit)(?![a-zß-ÿ\u0100-\u017f])/i, pts: 12, why: 'Potassium metabisulfite' },
     { m: /\bnatamycin\b|\be[- ]?235\b/i,                              pts: 10, why: 'Natamycin' },
     { m: /\bnisin\b|\be[- ]?234\b/i,                                  pts: 8,  why: 'Nisin' },
-    { m: /\bpolyphosphates?\b|\bsodium (tri)?polyphosphate\b|\b(di|tri)phosphates?\b|\b\w*(?:di|tri|poly)(?:phosphat|fosfa|fosfor(?!owy))\w*|\be[- ]?45[0-2]\b/i, pts: 12, why: 'Polyphosphate' },
+    { m: /\bpolyphosphates?\b|\bsodium (tri)?polyphosphate\b|\b(di|tri)phosphates?\b|\b\w*(?:di|tri|poly)(?:phosphat|fosfa|fosfor(?!owy))\w*|\bpolifosfat\w*|\be[- ]?45[0-2]\b/i, pts: 12, why: 'Polyphosphate' },
   ];
 
   // ---------------------------------------------------------------- acids, anticaking, misc aids
@@ -171,7 +171,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\bfumaric acid\b|\be[- ]?297\b/i,                           pts: 6,  why: 'Fumaric acid' },
     { m: /\blactic acid\b|(?:^|[^a-z])[aá]cido (?:l[aá]ctico|lattico)(?:$|[^a-z])|\bacide lactique\b|\bmilchs[äa]ure\b|\bmelkzuur\b|\bmj[öo]lksyra\b|\bkwas mlekowy\b|\blaktik asit\b|\be[- ]?270\b/i, pts: 5,  why: 'Industrial lactic acid' },
     { m: /\bacetic acid\b|\be[- ]?260\b/i,                            pts: 4,  why: 'Acetic acid' },
-    { m: /\bsilicon dioxide\b|\bsilica\b|\bdi[óo]xido de silicio\b|\bdioxyde de silicium\b|\bsiliziumdioxid\b|\bdiossido di silicio\b|\bdi[óo]xido de sil[ií]cio\b|\bsiliciumdioxide\b|\be[- ]?551\b/i, pts: 8,  why: 'Silicon dioxide anticaking agent' },
+    { m: /\bsilicon dioxide\b|\bsilica\b|\bdi[óo]xido de silicio\b|\bdioxyde de silicium\b|\bsiliziumdioxid\b|\bdiossido di silicio\b|\bdi[óo]xido de sil[ií]cio\b|\bsiliciumdioxide?\b|\bbiossido di silicio\b|\bkiseldioxid\b|\bdwutlenek krzemu\b|\bsilisyum dioksit\b|\be[- ]?551\b/i, pts: 8,  why: 'Silicon dioxide anticaking agent' },
     { m: /\bcalcium silicate\b|\be[- ]?552\b/i,                       pts: 8,  why: 'Calcium silicate' },
     { m: /\bsodium alumino?silicate\b|\be[- ]?55[4-6]\b|\be[- ]?173\b|\balumin(i)?um (compound|phosphate|sulfate|silicate|powder)\b/i, pts: 12, why: 'Aluminium compound' },
     { m: /\bmagnesium stearate\b|\be[- ]?572\b/i,                     pts: 7,  why: 'Magnesium stearate' },
@@ -229,7 +229,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\bcalcium carbonate\b|\bcarbonate de calcium\b|\bcarbonato de c[áa]lcio\b|\bcarbonato di calcio\b|\bcalciumcarbona(?:at|t)\b|\bkalciumkarbonat\b|\bw[ęe]glan wapnia\b|\bkalsiyum karbonat\b|\be[- ]?170\b/i,              pts: 5,  why: 'Calcium carbonate fortification' },
     { m: /\b(sodium|calcium) ascorbate\b|\bascorbic acid\b|\bascorbyl palmitate\b|\bascorbylpalmitat\b|\bpalmitate d['’]ascorbyle\b|\bpalmitato de ascorbilo\b|\bascorbilpalmitato\b|\bpalmitynian askorbylu\b|\bascorbylpalmitaat\b|(?:^|[^a-z])[aá]cido asc[oó]rbico(?:$|[^a-z])|\bacide ascorbique\b|\bascorbins[äa]ure\b|\bascorbinezuur\b|\bkwas askorbinowy\b|\baskorbik asit\b|\baskorbinsyra\b|\be[- ]?30[0-4]\b/i, pts: 5, why: 'Synthetic vitamin C' },
     { m: /\bvitamin a (palmitate|acetate)\b/i,  pts: 7,  why: 'Synthetic vitamin A' },
-    { m: /\bd[- ]?alpha[- ]?tocopher(ol|yl)\b|\bmixed tocopherols\b|\btocopherols?\b|\be[- ]?30[6-9]\b/i, pts: 3, why: 'Tocopherol antioxidant' },
+    { m: /\bd[- ]?alpha[- ]?tocopher(ol|yl)\b|\bmixed tocopherols\b|\btocopherols?\b|(?<![a-zß-ÿ\u0100-\u017f])toco(?:ph|f)[ée]r(?:ols?|oles|oli|[óo]is|olen?|olo)(?![a-zß-ÿ\u0100-\u017f])|\be[- ]?30[6-9]\b/i, pts: 3, why: 'Tocopherol antioxidant' },
     { m: /\bcholecalciferol\b|\bvitamin d[23]\b/i, pts: 3, why: 'Added vitamin D' },
     { m: /\bpotassium iodide\b|\bpotassium iodate\b|\bkaliumjodi[dt]e?\b|\biod(?:ure|ate) de potassium\b|\byod(?:uro|ato) pot[áa]sico\b|\biod(?:uro|ato) di potassio\b|\bjod(?:ek|an) potasu\b|\bpotasyum iyod(?:[üu]r|at)\b|\biod(?:eto|ato) de pot[áa]ssio\b/i,               pts: 3,  why: 'Added iodine' },
     { m: /\bsodium selenite\b/i,                pts: 6,  why: 'Sodium selenite' },
@@ -246,18 +246,18 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\b(bleached|refined|white) flour\b/i,     pts: 14, why: 'Refined white flour' },
     { m: /\bwheat flour\b|\bharina(?:\s+integral)?\s+de\s+trigo\b(?!\s+(?:sarraceno|mourisco))|\bfarine(?:\s+(?:compl[èe]te|int[ée]grale))?\s+de\s+bl[ée](?!\s*noir)(?:$|[^a-z])|\b(?:vollkorn)?weizenmehl\b|\bvollkornweizenmehl\b|\bfarina(?:\s+integrale)?\s+di\s+(?:grano|frumento)\b(?!\s+saraceno)|\bfarinha(?:\s+integral)?\s+de\s+trigo\b(?!\s+(?:sarraceno|mourisco))|\b(?:volkoren\s?)?tarwe(?:meel|bloem)\b|\bfarine\s+(?:compl[èe]te\s+)?de\s+froment\b|\bvetemj[öo]l\b|\bm[ąa]ka\s+pszenna(?:\s+pe[łl]noziarnista)?\b|\bpszenna\s+m[ąa]ka\b|\bbu[ğg]day\s+unu\b/i, pts: 12, why: 'Wheat flour' },
     { m: /\bwheat\b|\btrigo\b(?!\s+(?:sarraceno|mourisco))|\bbl[ée](?!\s*noir)(?:$|[^a-z])|\bweizen\b|\bfrumento\b|\bfroment\b|\btarwe\b|\bvete\w*|\bpszen(?:ica|icy|n[aey]|nego|nej)\b|\bfullkorns(?:durum)?vete\w*|\btarwe\w*|\bweizen\w*|\bbu[ğg]day\b/i, pts: 9,  why: 'Wheat', gluten: true },
-    { m: /\bbarley\b|\bcebada\b|\borge\b|\bgerste\b|\borzo\b|\bcevada\b|\bgerst\b|\bgerste(?:nmalz|mout)\w*|\bgerstemout\w*|\bkornmalt\b|\bj[ęe]czmie[ńn](?![a-z\u0100-\u017f])|\bj[ęe]czmienn(?:a|e|y|ego|ej)(?![a-z\u0100-\u017f])|\barpa\b/i, pts: 8,  why: 'Barley', gluten: true },
+    { m: /\bbarley\b|\bcebada\b|\borge\b|\bgerste\b|\borzo\b|\bcevada\b|\bgerst\b|\bgerste(?:nmalz|mout)\w*|\bgerstemout\w*|\bgersten?(?:vlokken|bloem|meel|flocken|mehl|graupen|gr[üu]tze)\w*|\bkornmalt\b|\bj[ęe]czmie[ńn](?![a-z\u0100-\u017f])|\bj[ęe]czmienn(?:a|e|y|ego|ej)(?![a-z\u0100-\u017f])|\barpa\b/i, pts: 8,  why: 'Barley', gluten: true },
     { m: grain(/\brye\b|\bcenteno\b|\bseigle\b|\broggen\b|\bsegale\b|\bcenteio\b|\brogge\b|\br[åa]gmj[öo]l\b|(?:^|[^a-z])[żz]yt(?:o|nia|ni)\b|(?:^|[^a-z\u0100-\u017f])[çc]avdar\b/i, [
       '(?:vollkorn)?roggen(?:vollkorn)?(?:mehl|schrot|flocken|sauerteig|malz)[a-z]*', 'rogge(?:bloem|meel|vlokken)', '(?:fullkorns)?råg(?:mjöl|kross|flingor|sikt)?', '[żz]ytni(?:e|ej|ego)']), pts: 8,  why: 'Rye', gluten: true },
     { m: /\bsemolina\b|\bdurum\b|\b(?:fullkorns)?durumvete\b|\bs[ée]mola\b|\bsemoule\b|\b(?:hartweizen)?grie(?:ss|[ßs])(?![a-zß])|\bs[ée]mola\b|\bgriesmeel\b/i, pts: 10, why: 'Durum semolina', gluten: true },
     { m: grain(/\bspelt\b/i, ['(?:vollkorn)?dinkel(?:vollkorn)?(?:mehl|flocken|schrot)?', 'spelt(?:meel|bloem|mjöl)', '[ée]peautre', 'espelta', 'farro(?: spelta)?', 'spelta', 'orkisz[a-z]*', 'kav[ıi]lca']),
       pts: 5,  why: 'Spelt', gluten: true },
     { m: /\btriticale\b/i,                          pts: 8,  why: 'Triticale', gluten: true },
-    { m: /\bmalted barley( flour)?\b/i,             pts: 8,  why: 'Malted barley', gluten: true },
+    { m: /\bmalted barley( flour)?\b|\borge malt[ée]e\b|\bcebada malteada\b|\borzo maltato\b|\bgem[äa]lzte gerste\b|\bgemoute gerst\b|\bcevada maltada\b/i,             pts: 8,  why: 'Malted barley', gluten: true },
     { m: /\bcorn ?(flour|meal|starch|masa)\b|\bcornstarch\b|\bcornmeal\b|\bmaize ?(?:flour|meal|starch)\b|\balmid[óo]n de ma[ií]z\b|\bamidon (?:modifi[ée] )?(?:de )?ma[ïi]s(?![a-zß-ÿ\u0100-\u017f])|\bmaisst[äa]rke\b|\bamido di mais\b|\bamido de milho\b|\bma[iï]szetmeel\b|\bmajsst[äa]rkelse\b|\bmajsmj[öo]l\b|\bskrobia kukurydziana\b|\bm[ąa]ka kukurydziana\b|\bm[ıi]s[ıi]r (?:ni[şs]astas[ıi](?![a-zß-ÿ\u0100-\u017f])|unu\b)/i, pts: 7,  why: 'Corn flour or starch' },
     { m: grain(/\boat (flour|fiber)\b/i, ['farine d[\'’] ?avoine', 'harina de avena', '(?:vollkorn)?hafermehl', 'havermeel', 'havremjöl', 'm[ąa]ka owsiana', 'yulaf unu', 'farina d[\'’] ?avena', 'farinha de aveia']),
       pts: 5,  why: 'Oat flour' },
-    { m: /\brice flour\b|\brijstbloem\b|\breismehl\b|\bharina de arroz\b|\bfarine de riz\b|\bfarina di riso\b|\bfarinha de arroz\b|\brismj[öo]l\b|\bm[ąa]ka ry[żz]owa\b|\bpirin[çc] unu\b/i,                         pts: 6,  why: 'Rice flour' },
+    { m: /\brice flour\b|\brijste?(?:bloem|meel)\b|\breismehl\b|\bharina de arroz\b|\bfarine de riz\b|\bfarina di riso\b|\bfarinha de arroz\b|\brismj[öo]l\b|\bm[ąa]ka ry[żz]owa\b|\bpirin[çc] unu\b/i,                         pts: 6,  why: 'Rice flour' },
     { m: grain(/\bsoy(bean)? (flour|grits)\b/i, ['farine de soja', 'harina de soja', 'sojamehl', 'soja(?:bonen)?meel', 'sojamjöl', 'm[ąa]ka sojowa', 'soya unu', 'farina di soia', 'farinha de soja']),
       pts: 12, why: 'Soy flour' },
     { m: grain(/\bchickpea flour\b|\bgram flour\b/i, ['farine de pois chiches?', 'harina de garbanzos?', 'kichererbsenmehl', 'kikkererwtenmeel', 'kikärtsmjöl', 'm[ąa]ka z ciecierzycy', 'nohut unu', 'farina di ceci', 'farinha de gr[ãa]o[- ]de[- ]bico', 'besan']),
