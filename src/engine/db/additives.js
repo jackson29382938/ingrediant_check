@@ -243,7 +243,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
 
   const GRAINS = [
     { m: /\b(?:enriched|fortified) (wheat |bleached |unbleached |white )?flour\b/i, pts: 15, why: 'Enriched flour — stripped, then synthetically re-dosed' },
-    { m: /\b(bleached|refined|white) flour\b/i,     pts: 14, why: 'Refined white flour' },
+    // "Refined wheat flour" is the same refined flour as "refined flour"; Indian labels call it maida.
+    { m: /\b(bleached|refined|white) (?:wheat )?flour\b|\bmaida\b/i,     pts: 14, why: 'Refined white flour' },
     { m: /\bwheat flour\b|\bharina(?:\s+integral)?\s+de\s+trigo\b(?!\s+(?:sarraceno|mourisco))|\bfarine(?:\s+(?:compl[èe]te|int[ée]grale))?\s+de\s+bl[ée](?!\s*noir)(?:$|[^a-z])|\b(?:vollkorn)?weizenmehl\b|\bvollkornweizenmehl\b|\bfarina(?:\s+integrale)?\s+di\s+(?:grano|frumento)\b(?!\s+saraceno)|\bfarinha(?:\s+integral)?\s+de\s+trigo\b(?!\s+(?:sarraceno|mourisco))|\b(?:volkoren\s?)?tarwe(?:meel|bloem)\b|\bfarine\s+(?:compl[èe]te\s+)?de\s+froment\b|\bvetemj[öo]l\b|\bm[ąa]ka\s+pszenna(?:\s+pe[łl]noziarnista)?\b|\bpszenna\s+m[ąa]ka\b|\bbu[ğg]day\s+unu\b/i, pts: 12, why: 'Wheat flour' },
     { m: /\bwheat\b|\btrigo\b(?!\s+(?:sarraceno|mourisco))|\bbl[ée](?!\s*noir)(?:$|[^a-z])|\bweizen\b|\bfrumento\b|\bfroment\b|\btarwe\b|\bvete\w*|\bpszen(?:ica|icy|n[aey]|nego|nej)\b|\bfullkorns(?:durum)?vete\w*|\btarwe\w*|\bweizen\w*|\bbu[ğg]day\b/i, pts: 9,  why: 'Wheat', gluten: true },
     { m: /\bbarley\b|\bcebada\b|\borge\b|\bgerste\b|\borzo\b|\bcevada\b|\bgerst\b|\bgerste(?:nmalz|mout)\w*|\bgerstemout\w*|\bgersten?(?:vlokken|bloem|meel|flocken|mehl|graupen|gr[üu]tze)\w*|\bkornmalt\b|\bj[ęe]czmie[ńn](?![a-z\u0100-\u017f])|\bj[ęe]czmienn(?:a|e|y|ego|ej)(?![a-z\u0100-\u017f])|\barpa\b/i, pts: 8,  why: 'Barley', gluten: true },

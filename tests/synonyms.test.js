@@ -1144,3 +1144,14 @@ test('facility and shared-equipment statements are not ingredients, and still ra
   const r = score('Organic Red Quinoa. Packaged in a facility that also processes tree nuts and wheat.', { allergens: ['wheat', 'treeNut'] });
   assert.deepEqual(r.flags.map(f => f.id).sort(), ['treeNut', 'wheat']);
 });
+
+test('refined wheat flour and maida are refined flour; a binding agent names its additive after a colon', () => {
+  for (const t of ['refined wheat flour', 'bleached wheat flour', 'maida']) {
+    assert.ok(reasons(score(`water, ${t}`)).includes('Refined white flour'), t);
+  }
+  assert.ok(!reasons(score('water, unbleached wheat flour')).includes('Refined white flour'));
+  for (const t of ['substancja wiążąca: maltitole', 'binder: maltitol', 'binding agent: maltitol']) {
+    assert.deepEqual(reasons(score(`water, ${t}`)), ['Maltitol'], t);
+  }
+  assert.equal(score('water, e492').coverage, score('water, sorbitan tristearate').coverage);
+});

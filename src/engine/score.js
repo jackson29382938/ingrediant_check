@@ -317,7 +317,7 @@ const COMMON_PANEL = new RegExp('\\b(?:' + [
   'emulgeringsmedel|stabiliseringsmedel|f[äa]rg[äa]mne|barwnik|surhetsreglerande medel|regulator kwasowo[śs]ci|smakf[öo]rst[äa]rkare|wzmacniacz smaku|konserveringsmedel|konserwant',
   // Benign E-numbers, so an EU list written in codes is still recognised as a list. Every E-number
   // that a rule charges is recognised through that rule; these are the ones nothing charges.
-  'e[- ]?(?:100|120|14[01]|16[0-3][a-i]?|262|32[5-7]|33[1-3]|40[1-6]|440a?|50[0-4](?:i{1,3})?|50[89]|524|57[45]|901|903|941|948)',
+  'e[- ]?(?:100|120|14[01]|16[0-3][a-i]?|262|32[5-7]|33[1-3]|40[1-6]|440a?|50[0-4](?:i{1,3})?|50[89]|524|57[45]|49[1-5]|901|903|941|948)',
 ].join('|') + ')\\b'
   + '|(?<![a-zß-ÿ\\u0100-\\u017f])(?:ägg|äggula|äggvita|äpple|äpplen|ärtor|ärter|[śs]mietan[a-zß-ÿ\\u0100-\\u017f]*|łoso[śs]|żyto'
   // Turkish staples: most end or begin in ı, ş, ğ, ç or ü, so they take the same boundaries.
@@ -501,7 +501,7 @@ function splitTopLevel(text) {
 const FUNCTION_HEAD = /^([^:()]{3,40}):(.+)$/;
 const SWEETENER_WORD = /^(?:sweeteners?|edulcorantes?|[ée]dulcorants?|s[üu][ßs]ungsmittel|dolcificanti|zoetstoff(?:en)?|s[öo]tningsmedel|substancje s[łl]odz[ąa]ce|tatland[ıi]r[ıi]c[ıi](?:lar)?|substancja s[łl]odz[ąa]ca)$/i;
 // "flavouring: vanillin", "Aroma: Vanillin", "arôme : vanilline" name the flavouring after the colon.
-const FLAVOUR_WORD = /^(?:flavou?rings?|flavou?rs?|ar[ôo]mes?|aromas?|aromen|aromi|aromat[ya]?|arom(?:er)?|aroma vericiler?|bulking agents?|agents? de charge|agentes? de carga|f[üu]llstoffe?|agent[ei] di carica|vulstof(?:fen)?|fyllnadsmedel|substancj[ae] wype[łl]niaj[ąa]c[ae]|dolgu maddesi|agentes? de volume)$/i;
+const FLAVOUR_WORD = /^(?:flavou?rings?|flavou?rs?|ar[ôo]mes?|aromas?|aromen|aromi|aromat[ya]?|arom(?:er)?|aroma vericiler?|bulking agents?|agents? de charge|agentes? de carga|f[üu]llstoffe?|agent[ei] di carica|vulstof(?:fen)?|fyllnadsmedel|substancj[ae] wype[łl]niaj[ąa]c[ae]|dolgu maddesi|agentes? de volume|binders?|binding agents?|substancj[ae] wi[ąa][żz][ąa]c[ae]|liants?|agentes? aglutinantes?|bindemittel|bindmiddel(?:en)?|bindemedel)$/i;
 function colonAsParenthesis(part) {
   // Only a short head before the colon can be a function word. Checked before the pattern runs, and
   // the pattern has no free whitespace to backtrack over: on 6,000 spaces it once took a second.
