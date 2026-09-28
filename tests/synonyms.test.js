@@ -1053,3 +1053,14 @@ test('an unnamed sweetener is charged like the mildest named one, unless the lis
   // The same stand-down for flavour enhancers.
   assert.deepEqual(reasons(score('water, flavour enhancer, monosodium glutamate')), ['MSG']);
 });
+
+test('the cosmetic additives that cap the score also mark it ultra-processed; seed oils and preservatives do not', () => {
+  for (const t of ['water, sucralose', 'water, aspartame', 'flour, red 40', 'flour, titanium dioxide', 'water, high fructose corn syrup',
+    'water, glucose-fructose syrup', 'water, caramel colour', 'milk, carrageenan', 'flour, partially hydrogenated soybean oil']) {
+    assert.equal(score(t).nova, 4, t);
+  }
+  assert.ok(score('water, sunflower oil').nova < 4);
+  assert.ok(score('flour, BHT').nova < 4);
+  // The class moves, not the score: the cap already set it.
+  assert.equal(score('water, sucralose').score, 22);
+});

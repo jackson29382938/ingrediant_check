@@ -217,6 +217,8 @@ const CAPS = [
   ...sugars.ARTIFICIAL.map(x => ({ ...x, why: `${x.why} — artificial sweetener`, cat: 'artificialSweetener' })),
 ];
 
+const ULTRA_CAP = /artificial colour|caramel colour|citrus red|titanium dioxide|carrageenan|olestra|brominated|azodicarbonamide|artificial sweetener|corn syrup|glucose-fructose|trans fat/i;
+
 // ---------------------------------------------------------------- recognition coverage
 //
 // The engine penalises what it recognises, so anything it does not recognise is free. That makes
@@ -890,6 +892,11 @@ function score(product, options = {}) {
   });
 
   const { kept, total: rawPenalty } = collapse(hits);
+  // The cosmetic additives that cap the score are also what marks a product ultra-processed: colours,
+  // artificial sweeteners, industrial syrups, trans fat, carrageenan. They never voted, so "water,
+  // sucralose" read NOVA 2 and a flour with Red 40 NOVA 3, while stevia extract read NOVA 4. Refined
+  // seed oils (a culinary ingredient) and the preservative caps (BHA, TBHQ…) do not vote.
+  if (CAPS.some(c => ULTRA_CAP.test(c.why) && list.some(i => eitherForm(c.m, i)))) hardHits++;
   const nova = novaClass(list, txt, hardHits, softHits);
   // Named strains are one ingredient ("cultures") spelled out, not a long recipe.
   const listLength = list.filter(i => !STRAIN_ENTRY.test(i)).length;
