@@ -1024,7 +1024,7 @@ function score(product, options = {}) {
   }
 
   // hard caps
-  let cap = 100, capWhy = null;
+  let cap = 100, capWhy = null, capDefault = null;
   for (const c of capsHit) {
     let ceiling = c.cap;
     if (c.unless) {
@@ -1039,8 +1039,12 @@ function score(product, options = {}) {
     // escaped the band lookup entirely and crashed on an undefined verdict.
     const eff = Math.max(SCORE_FLOOR, Math.round(100 - (100 - ceiling) * w_(c.cat)));
     if (eff >= 100) continue;                            // category switched off by the user
-    if (eff < cap) { cap = eff; capWhy = c.why; }
+    if (eff < cap) { cap = eff; capWhy = c.why; capDefault = ceiling; }
   }
+  // Goals scale a cap: at a weight of 1.1 the seed-oil cap of 25 becomes 18. The panel said only
+  // "caps score at 18", which read as a different rule; it now names the default it moved from.
+  const capNote = capDefault !== null && capDefault !== cap
+    ? ` (${capDefault} at default weights; your goals weigh it ${cap < capDefault ? 'more' : 'less'})` : '';
 
   // The bonus is for a whole food that is its own list, not for any lone ingredient: plain sugar
   // and a bottle of sunflower oil used to collect it too, next to their own penalty or cap.
@@ -1232,11 +1236,11 @@ function score(product, options = {}) {
     const organicLift = good.filter(g => g.organic && typeof g.c === 'number' && g.c > 0).reduce((a, g) => a + g.c, 0);
     const ceiling = Math.min(final, cap + organicLift);
     const drop = final - ceiling;
-    const why = ceiling > cap ? `${capWhy} — caps score at ${cap}, organic counted above it` : `${capWhy} — caps score at ${cap}`;
+    const why = `${capWhy} — caps score at ${cap}${capNote}${ceiling > cap ? ', organic counted above it' : ''}`;
     bad.push(drop > 0 ? { c: -drop, cap: true, why } : { c: 'CAP', why });
     final = ceiling;
   } else if (cap < 100) {
-    bad.push({ c: 'CAP', why: `${capWhy} — score already below cap of ${cap}` });
+    bad.push({ c: 'CAP', why: `${capWhy} — score already below cap of ${cap}${capNote}` });
   }
   if (final < SCORE_FLOOR) {
     good.push({ c: SCORE_FLOOR - final, why: `Score floor — the scale stops at ${SCORE_FLOOR}` });

@@ -148,6 +148,17 @@ check('sourcing and raw-dairy bonuses match the product type and evidence', () =
   assert.ok(!agaBeef.good.some(h => /grass-fed.*unverified/.test(h.why)), 'audited grass-fed claim is not also paid as generic copy');
 });
 
+check('a cap that goals moved names its default weight', () => {
+  const p = { name: 'Oat milk', ingredients_text: 'water, oats, sunflower oil, calcium carbonate, salt' };
+  const plain = engine.score(p, {});
+  assert.ok(plain.bad.some(h => h.cap && /caps score at 25$/.test(h.why)));
+  const heavy = engine.score(p, { weights: categories.goalWeights(['animalBased']) });
+  assert.ok(heavy.bad.some(h => h.cap && /\(25 at default weights; your goals weigh it more\)/.test(h.why)), heavy.bad.map(h => h.why).join(' | '));
+  const light = engine.score(p, { weights: { ...categories.goalWeights([]), refinedOil: 0.5 } });
+  assert.ok(light.bad.some(h => (h.cap || h.c === 'CAP') && /your goals weigh it less/.test(h.why)), light.bad.map(h => h.why).join(' | '));
+});
+
 console.log(`\n${known} known failure(s) against open defects: ${[...OPEN_DEFECTS].join(', ') || 'none'}`);
 if (failed) { console.error(failed + ' failed'); process.exit(1); }
 console.log('all passed');
+
