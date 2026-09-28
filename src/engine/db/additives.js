@@ -209,6 +209,10 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     // Every flavour enhancer the rules can name (MSG, yeast extract, ribonucleotides) is a cosmetic
     // additive, so an unnamed one votes on the processing class, unlike the other function words.
     { m: /^(?:flavou?r enhancers?|exhausteurs? de go[ûu]t|potenciadore?s? del? sabor|esaltator[ei] di sapidit[àa]|geschmacksverst[äa]rker|smaakversterkers?|smakf[öo]rst[äa]rkare|wzmacniacze? smaku|intensificadore?s? de sabor|real[çc]adore?s? de sabor|lezzet artt?[ıi]r[ıi]c[ıi](?:lar)?)$/i, pts: 12, why: 'Unnamed flavour enhancer', cat: 'glutamate', ultra: true },
+    // Every sweetener the rules can name is at least NOVA 4 (stevia extract, the mildest, costs 8), so an
+    // unnamed one is charged as that and votes the same way. "Contains sweeteners", the EU statement that
+    // accompanies named ones, is its own entry and is not anchored here, so it costs nothing.
+    { m: /^(?:sweeteners?|edulcorantes?|[ée]dulcorants?|s[üu](?:ß|ss)ungsmittel|dolcificant[ei]|zoetstof(?:fen)?|s[öo]tningsmedel|substancj[ae] s[łl]odz[ąa]c[ae]|tatland[ıi]r[ıi]c[ıi](?:lar)?|ado[çc]antes?)$/i, pts: 8, why: 'Unnamed sweetener', cat: 'sweetener', ultra: true },
     { m: /^(?:antioxidants?|anti-?oxidants?|antioxidantes?|antioxydants?|antioxidationsmittel|antiossidanti|antioxidanten|antioxidationsmedel|przeciwutleniacz(?:e)?|antioksidan(?:lar)?)$/i, pts: 4, why: 'Unnamed antioxidant' },
   ];
 

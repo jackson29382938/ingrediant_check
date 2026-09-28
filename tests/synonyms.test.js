@@ -1033,3 +1033,23 @@ test('bare "organic" is an organic claim, never "USDA Organic"; a verified certi
   assert.ok(verified.good.some(g => g.why === 'USDA Organic — verified'));
   assert.ok(!verified.good.some(g => /^Organic\b/.test(g.why)));
 });
+
+test('an unnamed sweetener is charged like the mildest named one, unless the list names a sweetener anywhere', () => {
+  for (const t of ['sweetener', 'sweeteners', 'édulcorant', 'Süßungsmittel', 'edulcorantes', 'dolcificanti', 'zoetstoffen', 'sötningsmedel',
+    'substancja słodząca', 'tatlandırıcılar', 'adoçante']) {
+    const r = score(`water, ${t}`);
+    assert.deepEqual(reasons(r), ['Unnamed sweetener'], t);
+    assert.equal(r.nova, 4, t);
+  }
+  assert.ok(score('water, sweetener').score <= score('water, steviol glycosides').score);
+  // Named in its bracket, after a colon, or (the colon lost to a comma) anywhere in the list: charged once, as itself.
+  for (const [t, why] of [['water, sweetener (sucralose)', 'Sucralose'], ['water, sweeteners: maltitol', 'Maltitol'],
+    ['eau, édulcorants, aspartame', 'Aspartame'], ['water, sweetener, steviol glycosides', 'Stevia']]) {
+    const r = reasons(score(t));
+    assert.ok(!r.includes('Unnamed sweetener') && r.some(x => x.startsWith(why)), t);
+  }
+  // "Contains sweeteners", the EU statement beside named ones, costs nothing.
+  assert.deepEqual(reasons(score('water, contains sweeteners')), []);
+  // The same stand-down for flavour enhancers.
+  assert.deepEqual(reasons(score('water, flavour enhancer, monosodium glutamate')), ['MSG']);
+});

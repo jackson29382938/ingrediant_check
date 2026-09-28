@@ -807,6 +807,9 @@ function score(product, options = {}) {
   const byFam = new Map(entries.map(e => [e.fam, e]));
   const childrenOf = new Map();
   for (const e of entries) if (e.parent) childrenOf.set(e.parent, [...(childrenOf.get(e.parent) || []), e]);
+  // Categories named anywhere in the list; the artificial sweeteners are caps, not penalties.
+  const namedUltra = new Set(entries.flatMap(e => [...penaltiesFor(e.ing)].filter(p => !p.unnamed).map(p => p.cat)
+    .concat(CAPS.some(c => /sweetener/i.test(c.why) && eitherForm(c.m, e.ing)) ? ['sweetener'] : [])));
   const namedFam = new Set();
   for (const e of entries) {
     const kids = childrenOf.get(e.fam) || [];
@@ -843,6 +846,9 @@ function score(product, options = {}) {
       if (!tripped.has(r)) continue;
       if (seen.has(r.why)) continue;
       if (r.unnamed && namedFam.has(fam)) continue;   // the additive is named in or around its bracket
+      // An unnamed sweetener or flavour enhancer stands down when the list names one anywhere: they are
+      // few, and "édulcorants, aspartame, acésulfame-K" (the colon lost to a comma) names them all.
+      if (r.ultra && namedUltra.has(r.cat)) continue;
       // "flavouring (vanillin)" is not an unspecified flavouring: its bracket names one, which is
       // charged under its own rule.
       if (r.why === 'Unspecified flavouring' && (childrenOf.get(fam) || []).some(c => add.FLAVOURS.some(f => f.why !== r.why && !/^"Natural|^Artificial flavour$/.test(f.why) && f.m.test(c.ing)))) continue;
