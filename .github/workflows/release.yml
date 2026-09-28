@@ -1,0 +1,33 @@
+name: release
+
+# Push a tag named after the manifest version (v1.2.0) to publish a GitHub release with the
+# store-ready zip attached. The notes come from docs/releases/<version>.md.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Tag matches the manifest version
+        run: |
+          version=$(node -p "require('./manifest.json').version")
+          test "v$version" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME does not match manifest $version"; exit 1; }
+          test -f "docs/releases/$version.md" || { echo "missing docs/releases/$version.md"; exit 1; }
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - run: npm test
+      - run: npm run pack
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "dist/ingredient-check-$VERSION.zip" \
+            --title "Ingredient Check $VERSION" --notes-file "docs/releases/$VERSION.md" --verify-tag
