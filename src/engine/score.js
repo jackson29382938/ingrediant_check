@@ -628,6 +628,25 @@ function withoutOrganic(ing) {
 }
 
 // [{ ing, pos }] where pos is the TOP-LEVEL position, shared by an ingredient's own sub-list.
+// "Sugar and salt" is two ingredients the list happened to join with a word, and the anchored sugar rules
+// read the pair as nothing: "water, sugar and salt" scored 90 where "water, sugar, salt" scores 65, in
+// every language. The pair is split only when no rule reads it whole ("mono- and diglycerides",
+// "natural and artificial flavors" stay one), every half is an ingredient the rules read, and a half
+// is charged.
+const CONJUNCTION = /\s(?:and|&|und|et|e|y|i|en|och|ve|oraz)\s/i;
+function splitConjunction(e) {
+  const ing = tidy(e.ing);
+  if (!CONJUNCTION.test(ing) || MAY_CONTAIN.test(ing) || LABEL_NOTE.test(ing)) return [e];
+  if (PENALTIES.some(r => eitherForm(r.m, ing)) || CAPS.some(c => eitherForm(c.m, ing))) return [e];
+  const pieces = ing.split(new RegExp(CONJUNCTION.source, 'gi')).map(p => p.trim());
+  if (pieces.length < 2 || !pieces.every(p => p.length > 1 && recognised(withoutOrganic(p) || p))) return [e];
+  // Only when the split exposes something charged: "orange juice and pulp" or "salt and pepper" stay one
+  // entry, since splitting them changes nothing but the list's length.
+  const charged = p => penaltiesFor(withoutOrganic(p) || p).size > 0 || CAPS.some(c => eitherForm(c.m, p));
+  if (!pieces.some(charged)) return [e];
+  return pieces.map(p => ({ ...e, ing: p }));
+}
+
 function parseEntries(text) {
   // "FD&C Red No. 40" and "Red #40" are how US labels print dyes. The full stop after "No" ended the
   // entry ("fd&c red no" / "40"), so the dye went unread; both now read as "no 40".
@@ -639,9 +658,11 @@ function parseEntries(text) {
     const strain = STRAIN_ENTRY.test(tidy(part));
     if (!(strain && strainRun)) pos++;
     strainRun = strain;
-    for (const e of expandEntry(part, 0, ids)) {
-      const bare = withoutOrganic(e.ing);
-      out.push({ ing: bare || e.ing, pos, fam: e.fam, parent: e.parent, ...(bare ? { organic: true } : {}) });
+    for (const x of expandEntry(part, 0, ids)) {
+      for (const e of splitConjunction(x)) {
+        const bare = withoutOrganic(e.ing);
+        out.push({ ing: bare || e.ing, pos, fam: e.fam, parent: e.parent, ...(bare ? { organic: true } : {}) });
+      }
     }
   }
   return out;

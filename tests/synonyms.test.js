@@ -1110,3 +1110,14 @@ test('glucose-fructose syrup written with "and" in each language is the industri
     assert.deepEqual(reasons(score(`water, ${t}`)), reasons(score('water, glucose-fructose syrup')), t);
   }
 });
+
+test('two ingredients joined by "and" are split when a half is charged; compounds stay whole', () => {
+  for (const t of ['water, sugar and salt', 'water, salt and sugar', 'water, azúcar y sal', 'water, zucker und salz', 'water, sucre et sel']) {
+    assert.equal(score(t).score, score('water, sugar, salt').score, t);
+  }
+  assert.deepEqual(engine.parse('flour, mono- and diglycerides'), ['flour', 'mono- and diglycerides']);
+  assert.deepEqual(engine.parse('flour, natural and artificial flavors'), ['flour', 'natural and artificial flavors']);
+  // Nothing charged in either half: the entry stays one, so a juice keeps its class.
+  assert.deepEqual(engine.parse('orange juice and pulp'), ['orange juice and pulp']);
+  assert.deepEqual(engine.parse('may contain milk and nuts'), ['may contain milk and nuts']);
+});

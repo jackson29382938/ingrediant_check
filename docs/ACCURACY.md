@@ -181,7 +181,7 @@ What it found, and what changed:
 
   With every fix since, the three samples together decline 36 of 2,007 (1.8%): 14 of 631, 11 of 661
   and 11 of 715. These are the lists the words came from, so this is the in-sample figure; the 3.5%
-  and 3.6% above are the out-of-sample ones. (Measured 2026-09-27, `RULES_REVISION` 2026-09-28.4.)
+  and 3.6% above are the out-of-sample ones. (Measured 2026-09-27, `RULES_REVISION` 2026-09-28.5.)
 
 ### The same product in two languages (2026-09-27)
 
