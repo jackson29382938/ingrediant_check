@@ -1064,3 +1064,22 @@ test('the cosmetic additives that cap the score also mark it ultra-processed; se
   // The class moves, not the score: the cap already set it.
   assert.equal(score('water, sucralose').score, 22);
 });
+
+test('organic always earns a benefit: all-penalised lists, capped products and animal foods', () => {
+  const pairs = [
+    [{ name: 'Cane Sugar', ingredients_text: 'cane sugar' }, { name: 'Cane Sugar', ingredients_text: 'organic cane sugar' }],
+    [{ name: 'Honey', ingredients_text: 'honey' }, { name: 'Honey', ingredients_text: 'organic honey' }],
+    [{ name: 'Canola Oil', ingredients_text: 'canola oil' }, { name: 'Canola Oil', ingredients_text: 'organic canola oil' }],
+    [{ name: 'Drink', ingredients_text: 'water, sucralose' }, { name: 'Drink', ingredients_text: 'organic water, sucralose' }],
+    [{ name: 'Eggs', ingredients_text: 'eggs' }, { name: 'Eggs', ingredients_text: 'organic eggs' }],
+    [{ name: 'Ground Beef', ingredients_text: 'ground beef' }, { name: 'Organic Ground Beef', ingredients_text: 'ground beef' }],
+    [{ name: 'Oats', ingredients_text: 'rolled oats' }, { name: 'Oats', ingredients_text: 'organic rolled oats' }],
+  ];
+  for (const [plain, organic] of pairs) {
+    const a = engine.score(plain), b = engine.score(organic);
+    assert.ok(b.score > a.score, `${organic.name}: ${organic.ingredients_text} ${b.score} vs ${a.score}`);
+  }
+  // Above a cap the panel still adds up, and says why the score passes the cap.
+  const oil = engine.score({ name: 'Canola Oil', ingredients_text: 'organic canola oil' });
+  assert.ok(oil.bad.some(h => h.cap && /organic counted above it/.test(h.why)));
+});

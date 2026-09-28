@@ -218,8 +218,8 @@
       "note": "September 16 audit. E104, E122 and E124 carry a mandatory EU warning and were absent from the rulebase.",
       "product": { "name": "Fruit Gummies", "ingredients_text": "Glucose syrup, sugar, gelatine, dextrose, citric acid, flavourings, colours (E104, E122, E124)" } },
 
-    { "id": "organic-cane-sugar-bag", "band": [50, 74], "lang": "en", "evidence": "synthetic",
-      "note": "September 16 audit. A bag of sugar is sugar: organic earns nothing when every ingredient is itself penalised.",
+    { "id": "organic-cane-sugar-bag", "band": [74, 85], "lang": "en", "evidence": "synthetic",
+      "note": "Organic always earns its benefit (owner's rule, 2026-09-28), even when every ingredient is penalised: plain cane sugar scores 73, organic above it.",
       "product": { "name": "Organic Cane Sugar", "ingredients_text": "Organic cane sugar" } },
 
     { "id": "sandwich-bread-mono-diglycerides", "band": [10, 35], "lang": "en", "evidence": "synthetic",

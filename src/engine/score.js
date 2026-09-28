@@ -944,14 +944,15 @@ function score(product, options = {}) {
   // claimed, per certification). Paying the generic label bonus as well double-counts the same fact.
   const PROV_OVERLAP = /grass-fed|pasture|wild-caught|organic|regenerativ|non-gmo/i;
   // A label claim lifts a product, not an ingredient. When every ingredient on the list is itself
-  // penalised or capped there is nothing for "organic" to be a better version of: a bag of organic
-  // cane sugar scored 81 Good against 73 for plain sugar, and the cane rule was the only row.
+  // penalised or capped there is nothing for "fermented" or "sea salt" to be a better version of,
+  // so those claims stand down. Organic is the exception, by the owner's rule: organic always earns
+  // its benefit, so organic cane sugar or honey scores above the conventional one.
   const capsHit = CAPS.filter(c => eitherForm(c.m, txt));
   const allPenalised = list.length > 0
     && list.every(i => hits.some(h => h.ing === i && h.cat !== 'naturalSugar') || capsHit.some(c => eitherForm(c.m, i)));
   let bonus = 0, titleBonus = 0;
   for (const b of labels.BONUSES) {
-    if (allPenalised) break;
+    if (allPenalised && b.cat !== 'organic') continue;
     if (provenanceOwnsSourcing && PROV_OVERLAP.test(b.why)) continue;
     if (bonus >= labels.BONUS_CAP) break;
     const strong = b.m.test(hayStrong);
@@ -966,7 +967,7 @@ function score(product, options = {}) {
     if (add_ <= 0) continue;
     bonus += add_;
     if (titleOnly) titleBonus += add_;
-    good.push({ c: +add_, why: titleOnly ? `${b.why} (label claim, unverified)` : b.why });
+    good.push({ c: +add_, why: titleOnly ? `${b.why} (label claim, unverified)` : b.why, organic: b.cat === 'organic' });
   }
   pts += bonus;
 
@@ -1067,7 +1068,8 @@ function score(product, options = {}) {
       record ? (record.certifications || '') : '',
       registry ? (registry.certifications || '') : '',
     ].join(' ');
-    const claimed = [product.name || '', product.labels || '', txt].join(' ');
+    // bonusText, not txt: "organic eggs" loses its organic word to the parser, which keeps it as a note.
+    const claimed = [product.name || '', product.labels || '', bonusText].join(' ');
 
     // Hollow claims are things the SELLER said, so they are read off the seller's surfaces only.
     // Reading them off `claimed`, which includes the ingredient text, made "natural flavors" in a
@@ -1098,13 +1100,13 @@ function score(product, options = {}) {
       const add = Math.min(Math.round(c.pts * w_('provenanceVerified')), PROV_CAP - gained);
       if (add <= 0) continue;
       gained += add;
-      good.push({ c: +add, why: `${c.label} — verified` });
+      good.push({ c: +add, why: `${c.label} — verified`, organic: /^organic/i.test(c.id) });
     }
     for (const c of claims) {
       const add = Math.min(Math.round((c.pts / 2) * w_('provenanceClaimed')), PROV_CAP - gained);
       if (add <= 0) continue;
       gained += add;
-      good.push({ c: +add, why: `${c.label}, unverified` });
+      good.push({ c: +add, why: `${c.label}, unverified`, organic: /^organic/i.test(c.id) });
     }
     pts += gained;
 
@@ -1185,12 +1187,19 @@ function score(product, options = {}) {
   // at all beside a red 25, and the CAP row that explained it carried no number. 7 of 47 corpus
   // products were wrong at default weights, more under the presets.
   if (final > cap) {
-    const drop = final - cap;
+    // Organic always earns its benefit, so its credit counts above the ceiling: organic canola oil
+    // scores above conventional canola oil, both still held down by the cap.
+    const organicLift = good.filter(g => g.organic && typeof g.c === 'number' && g.c > 0).reduce((a, g) => a + g.c, 0);
+    const ceiling = Math.min(final, cap + organicLift);
+    const drop = final - ceiling;
+    const why = ceiling > cap ? `${capWhy} — caps score at ${cap}, organic counted above it` : `${capWhy} — caps score at ${cap}`;
     // Attach the arithmetic to the cap that actually binds; the others stay as bare labels.
     const row = bad.find(h => h.c === 'CAP' && h.why.startsWith(capWhy));
-    if (row) { row.c = -drop; row.cap = true; }
-    else bad.push({ c: -drop, cap: true, why: `${capWhy} — caps score at ${cap}` });
-    final = cap;
+    if (drop > 0) {
+      if (row) { row.c = -drop; row.cap = true; row.why = why; }
+      else bad.push({ c: -drop, cap: true, why });
+    }
+    final = ceiling;
   }
   if (final < SCORE_FLOOR) {
     good.push({ c: SCORE_FLOOR - final, why: `Score floor — the scale stops at ${SCORE_FLOOR}` });
