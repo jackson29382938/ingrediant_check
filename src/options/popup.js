@@ -505,10 +505,10 @@ function paintCacheCount() {
   const btn = document.getElementById('clear');
   if (!btn) return;
   cacheKeys().then(keys => {
-    const n = keys.filter(k => !k.startsWith('p:')).length;
+    const n = keys.length;
     btn.disabled = keys.length === 0;
     btn.textContent = n
-      ? msg('popupClearN', `Clear ${n} cached scores`, n)
+      ? msg('popupClearN', `Clear ${n} cached entries`, n)
       : msg('popupClear', 'Clear cached scores');
   }, () => {});
 }
@@ -604,9 +604,9 @@ document.getElementById('clear').addEventListener('click', async event => {
   try {
     const keys = await cacheKeys();
     await chrome.storage.local.remove(keys);
-    const n = keys.filter(k => !k.startsWith('p:')).length;
+    const n = keys.length;
     const cleared = chrome.i18n && chrome.i18n.getMessage('popupCleared', [String(n)]);
-    event.target.textContent = cleared || `Cleared ${n} cached scores`;
+    event.target.textContent = cleared || `Cleared ${n} cached entries`;
     event.target.disabled = true;
     paintPageScore();
     paintCompare();

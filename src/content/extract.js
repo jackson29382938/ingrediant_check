@@ -14,7 +14,7 @@
 (function (root) {
   root.AIR = root.AIR || {};
 
-  const NEXT_SECTION = /^(directions|legal disclaimer|safety information|allergen information|warnings?|storage|nutrition facts|product description|informaci[oó]n nutricional|n[äa]hrwert|valeurs nutritionnelles|valori nutrizionali|n[äa]ringsv[äa]rde|besin de[gğ]erleri)\b/i;
+  const NEXT_SECTION = /^(directions|legal disclaimer|safety information|allergen information|warnings?|storage|nutrition facts|product description|ingredientes?|informação nutricional|informaci[oó]n nutricional|n[äa]hrwert|valeurs nutritionnelles|valori nutrizionali|n[äa]ringsv[äa]rde|besin de[gğ]erleri)\b/i;
   // US pages print "Ingredients". EU/LatAm pages print the local heading, and a US-only match
   // used to walk past a perfectly readable list on amazon.de / .es / .fr / .it.
   // Swedish Ingredienser / Turkish İçindekiler were missing; JP 原材料 is already here. Polish labels
@@ -23,7 +23,7 @@
   // English headings sellers write in their own description blocks: "Ingredient List", "Ingredients
   // List", "List of Ingredients", "Full Ingredients", "Ingredient Statement", "Ingredients (by weight)".
   const EN_HEADING = '(?:(?:full|complete)\\s+)?ingredients?(?:\\s+(?:list|statement))?(?:\\s*\\([^)\\n]{1,20}\\))?|list of ingredients';
-  const INGREDIENT_HEADING = new RegExp('^\\s*(?:' + EN_HEADING + '|ingredientes|ingredi[eë]nten|ingr[eé]dients?|zutaten|ingredienti|sk[łl]ad(?:niki)?|ingredienser|[iİ][çc]indekiler|原材料)\\s*:?\\s*$', 'i');
+  const INGREDIENT_HEADING = new RegExp('^\\s*(?:' + EN_HEADING + '|ingredientes?|ingredi[eë]nten|ingr[eé]dients?|zutaten|bestandteile|ingredienti|sk[łl]ad(?:niki)?|ingredienser|[iİ][çc]indekiler|原材料)\\s*:?\\s*$', 'i');
   const MIN_LEN = 4;
   // Rejecting rather than truncating is deliberate: the tail of a list is exactly where the
   // additives live, so a truncated list would score clean for the wrong reason. But 3000 was tight
@@ -40,7 +40,12 @@
   // "See label for ingredients." rendered as 94/100 Excellent and "Product of USA, Keep
   // refrigerated, Best by date on package" as 96/100 NOVA 1. Both were confidently wrong.
   const PLACEHOLDER = /\b(see (the |each |individual |product )?(label|package|packaging|product)s?|refer to (the )?(label|package)|listed on (the )?(label|package)|information (is )?unavailable|not available|var(?:y|ies) by|may vary|check (the )?(label|package)|see (the )?(nutrition|ingredients?) (panel|facts|label|information)|see (the )?(back|side|bottom) of|photo|image)\b/i;
-  const NON_INGREDIENT = /\b(product of|distributed by|manufactured (by|for)|keep (refrigerated|frozen|cool)|best (by|before)|use by|sell by|store in|net wt|serving size|calories|made in|packed (in|by)|questions\??|call \d|www\.|http)/i;
+  const NON_INGREDIENT = /\b(product of|distributed by|manufactured (by|for)|keep (refrigerated|frozen|cool)|best (by|before)|use by|sell by|store in|net wt|serving size|calories|made in|packaged? in|packed (in|by)|questions\??|call \d|www\.|http|may contain|contains traces?|not suitable for|facility that also processes)\b/i;
+  const ADVISORY = /\b(may contain|contains traces?|not suitable for|facility that also processes|manufactured in a facility|made in a facility)\b/i;
+  const splitAdvisory = text => {
+    const lines = String(text || '').split(/(?<=[.!?])\s+(?=[A-Z(*])|;\s*(?=(?:may contain|contains traces?|not suitable for|facility that also processes|manufactured in a facility|made in a facility)\b)|\n+/i);
+    return { ingredients: lines.filter(line => !ADVISORY.test(line)).join(' ').trim(), advisory: lines.filter(line => ADVISORY.test(line)).join(' ').trim() };
+  };
 
   // Amazon's ingredients field is sometimes populated with the product NAME plus its pack specs.
   // Verified on live amazon.com: Lifeway Low Fat Kefir (B00LOAW7U6) publishes
@@ -134,14 +139,20 @@
   // ---- Tier 1: verified stable selectors -------------------------------------------------
   function tier1(doc, title) {
     const direct = doc.querySelector('#nic-ingredients-content');
-    if (direct && looksLikeIngredients(direct.innerText, title)) {
-      return { text: stripBoilerplate(direct.innerText), via: 'nic-ingredients-content', confidence: 0.98 };
+    const visible = el => {
+      if (!el || el.hidden || el.getAttribute?.('aria-hidden') === 'true') return false;
+      const style = el.ownerDocument?.defaultView?.getComputedStyle?.(el);
+      return !style || (style.display !== 'none' && style.visibility !== 'hidden');
+    };
+    if (visible(direct)) {
+      const split = splitAdvisory(direct.innerText);
+      if (looksLikeIngredients(split.ingredients, title)) return { text: stripBoilerplate(split.ingredients), advisoryText: split.advisory, via: 'nic-ingredients-content', confidence: 0.98 };
     }
     // Scope anchors, used when the exact id is absent but the card is present.
-    const scopes = ['#nutritionalInfoAndIngredients_feature_div', '.nicDesktop', '[class*="nicSection"]'];
+    const scopes = ['#nutritionalInfoAndIngredients_feature_div', '[id^="nutritionalInfoAndIngredientsEU_feature_div"]', '.nicDesktop', '[class*="nicSection"]'];
     for (const sel of scopes) {
       const scope = doc.querySelector(sel);
-      if (!scope) continue;
+      if (!visible(scope)) continue;
       const found = fromExpander(scope, title) || fromLabelledSection(scope, title);
       if (found) return { ...found, via: `scope:${sel}`, confidence: 0.9 };
     }
@@ -157,8 +168,9 @@
       const container = h.closest('.a-expander-container');
       if (!container) continue;
       const content = container.querySelector('.a-expander-content');
-      if (content && looksLikeIngredients(content.innerText, title)) {
-        return { text: stripBoilerplate(content.innerText) };
+      if (content) {
+        const split = splitAdvisory(content.innerText);
+        if (looksLikeIngredients(split.ingredients, title)) return { text: stripBoilerplate(split.ingredients), advisoryText: split.advisory };
       }
     }
     return null;
@@ -181,13 +193,16 @@
         .filter(t => t && !INGREDIENT_HEADING.test(t) && !NEXT_SECTION.test(t));
       const seenBlocks = new Set();
       const text = norm(blocks.filter(b => !seenBlocks.has(b) && seenBlocks.add(b)).join(' '));
-      if (looksLikeIngredients(text, title)) return { text: stripBoilerplate(text) };
+      const split = splitAdvisory(text);
+      if (looksLikeIngredients(split.ingredients, title)) {
+        return { text: stripBoilerplate(split.ingredients), advisoryText: split.advisory };
+      }
     }
     return null;
   }
 
   function tier2(doc, title) {
-    for (const sel of ['#important-information', '#nutritionalInfoAndIngredients_feature_div', 'body']) {
+    for (const sel of ['#important-information', '#importantInformation_feature_div', '#nutritionalInfoAndIngredients_feature_div', '[id^="nutritionalInfoAndIngredientsEU_feature_div"]', 'body']) {
       const scope = doc.querySelector(sel);
       if (!scope) continue;
       const found = fromExpander(scope, title) || fromLabelledSection(scope, title);
@@ -202,9 +217,9 @@
   // Stop at a known next-section heading or end of text — NOT at the first blank line. Consecutive
   // <p> elements render as a blank line in innerText, so the old blank-line terminator cut lists in
   // half whenever Amazon split them across paragraphs.
-  const LINE_BLOCK = /(?:^|\n)[ \t]*(?:(?:(?:Full|Complete)\s+)?Ingredients?(?:\s+(?:List|Statement))?(?:\s*\([^)\n]{1,20}\))?|List of Ingredients|Ingredientes|Ingrediënten|Ingrédients|Zutaten|Ingredienti|Sk[łl]ad(?:niki)?|Ingredienser|[İI]çindekiler|Icindekiler|原材料)[ \t]*:?[ \t]*\n+([\s\S]{4,6000}?)(?=\n[ \t]*(?:Directions|Legal Disclaimer|Safety Information|Allergen Information|Warnings?|Storage|Nutrition Facts|Product Description|About this item|Información nutricional|Nährwert|Valeurs nutritionnelles|Valori nutrizionali|Voedingswaarde|Wartość odżywcza|Näringsvärde|Informação nutricional|Besin değerleri|栄養成分)(?:\b|$)|$)/i;
+  const LINE_BLOCK = /(?:^|\n)[ \t]*(?:(?:(?:Full|Complete)\s+)?Ingredients?(?:\s+(?:List|Statement))?(?:\s*\([^)\n]{1,20}\))?|List of Ingredients|Ingredientes?|Ingrediënten|Ingrédients|Zutaten|Bestandteile|Ingredienti|Sk[łl]ad(?:niki)?|Ingredienser|[İI]çindekiler|Icindekiler|原材料)[ \t]*:?[ \t]*\n+([\s\S]{4,6000}?)(?=\n[ \t]*(?:Directions|Legal Disclaimer|Safety Information|Allergen Information|Warnings?|Storage|Nutrition Facts|Product Description|About this item|Información nutricional|Nährwert|Valeurs nutritionnelles|Valori nutrizionali|Voedingswaarde|Wartość odżywcza|Näringsvärde|Informação nutricional|Besin değerleri|栄養成分)(?:\b|$)|$)/i;
   // Same-line form used on a lot of detail-bullet pages: "Ingredients: water, sugar, salt".
-  const LINE_INLINE = /(?:^|\n)[ \t]*(?:(?:(?:Full|Complete)\s+)?Ingredients?(?:\s+(?:List|Statement))?(?:\s*\([^)\n]{1,20}\))?|List of Ingredients|Ingredientes|Ingrediënten|Ingrédients|Zutaten|Ingredienti|Sk[łl]ad(?:niki)?|Ingredienser|[İI]çindekiler|Icindekiler|原材料)\s*:\s*([^\n]{8,6000})/i;
+  const LINE_INLINE = /(?:^|\n)[ \t]*(?:(?:(?:Full|Complete)\s+)?Ingredients?(?:\s+(?:List|Statement))?(?:\s*\([^)\n]{1,20}\))?|List of Ingredients|Ingredientes?|Ingrediënten|Ingrédients|Zutaten|Bestandteile|Ingredienti|Sk[łl]ad(?:niki)?|Ingredienser|[İI]çindekiler|Icindekiler|原材料)\s*:\s*([^\n]{8,6000})/i;
 
   function tier3(doc, title) {
     const regions = ['#important-information', '#productDetails_feature_div', '#detailBullets_feature_div', '#aplus'];
@@ -219,13 +234,15 @@
         const lines = m[1].split('\n');
         const stop = lines.findIndex(l => NEXT_SECTION.test(l.trim()));
         const body = (stop === -1 ? lines : lines.slice(0, stop)).join(' ');
-        if (looksLikeIngredients(body, title)) {
-          return { text: stripBoilerplate(body), via: `line-sweep:${sel}`, confidence: 0.6 };
+        const split = splitAdvisory(body);
+        if (looksLikeIngredients(split.ingredients, title)) {
+          return { text: stripBoilerplate(split.ingredients), advisoryText: split.advisory, via: `line-sweep:${sel}`, confidence: 0.6 };
         }
       }
       const inline = text.match(LINE_INLINE);
       if (inline && looksLikeIngredients(inline[1], title)) {
-        return { text: stripBoilerplate(inline[1]), via: `line-inline:${sel}`, confidence: 0.55 };
+        const split = splitAdvisory(inline[1]);
+        return { text: stripBoilerplate(split.ingredients), advisoryText: split.advisory, via: `line-inline:${sel}`, confidence: 0.55 };
       }
     }
     // Some listings publish only a placeholder ("See nutrition panel") and name the ingredients in a
@@ -234,7 +251,8 @@
     const bullets = doc.querySelector('#feature-bullets');
     const b = ((bullets && bullets.innerText) || '').match(/\bingredients?\s*:\s*([^\n]{8,600}?)(?:\.(?!\d)|\n|$)/i);
     if (b && looksLikeIngredients(b[1], title)) {
-      return { text: stripBoilerplate(b[1]), via: 'feature-bullets', confidence: 0.5 };
+      const split = splitAdvisory(b[1]);
+      return { text: stripBoilerplate(split.ingredients), advisoryText: split.advisory, via: 'feature-bullets', confidence: 0.5 };
     }
     return null;
   }
@@ -439,7 +457,7 @@
   // ---- store locale ------------------------------------------------------------------------
   // Headings can be added per store. Scoring + OCR stay English-first. Japanese and Arabic
   // stores are decline-until-ready: English Tesseract will invent a confident wrong list.
-  const OCR_NOT_READY = /(?:^|\.)amazon\.(?:co\.jp|ae|sa)$/i;
+  const OCR_NOT_READY = /(?:^|\.)amazon\.(?:co\.jp|ae|sa|pl)$/i;
   function hostOf(hostname) {
     return String(hostname || '').replace(/^www\./i, '').toLowerCase();
   }
@@ -454,6 +472,11 @@
     if (/(?:^|\.)amazon\.(?:ae|sa)$/.test(host)) {
       return { host, locale: 'ar', ocrReady: false, reason: 'ar-ocr-not-ready' };
     }
+    if (/(?:^|\.)amazon\.pl$/.test(host)) return { host, locale: 'pl', ocrReady: false, reason: 'pl-ocr-not-ready' };
+    if (/(?:^|\.)amazon\.com\.mx$/.test(host)) return { host, locale: 'es', ocrReady: true };
+    if (/(?:^|\.)amazon\.com\.br$/.test(host)) return { host, locale: 'pt', ocrReady: true };
+    if (/(?:^|\.)amazon\.de$/.test(host)) return { host, locale: 'de', ocrReady: true };
+    if (/(?:^|\.)amazon\.fr$/.test(host)) return { host, locale: 'fr', ocrReady: true };
     if (/(?:^|\.)amazon\.se$/.test(host)) return { host, locale: 'sv', ocrReady: true };
     if (/(?:^|\.)amazon\.com\.tr$/.test(host)) return { host, locale: 'tr', ocrReady: true };
     return { host, locale: 'en', ocrReady: true };
@@ -486,6 +509,6 @@
     return { ok: false, ...identity, reason: identity.upc ? 'no-dom-match-barcode-available' : 'no-dom-match' };
   }
 
-  root.AIR.extract = { extract, looksLikeIngredients, stripBoilerplate, echoesTitle, LINE_BLOCK, LINE_INLINE, INGREDIENT_HEADING, productIdentity, nutritionFacts, nutritionSummaryTable, ocrReadyForHost, localeStatus };
+  root.AIR.extract = { extract, looksLikeIngredients, splitAdvisory, stripBoilerplate, echoesTitle, LINE_BLOCK, LINE_INLINE, INGREDIENT_HEADING, productIdentity, nutritionFacts, nutritionSummaryTable, ocrReadyForHost, localeStatus };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.AIR.extract;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

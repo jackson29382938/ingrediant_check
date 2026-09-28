@@ -24,7 +24,7 @@ check('unknown and non-boolean values fall back to defaults', () => {
   assert.strictEqual(clean.enabled, true);
   assert.strictEqual(clean.badges, true);
   assert.strictEqual(clean.ocrLabels, true);
-  assert.strictEqual(clean.autoScoreSearch, true, 'numbers on every results tile by default');
+  assert.strictEqual(clean.autoScoreSearch, false, 'search-page fetches are opt-in');
   assert.strictEqual(clean.hoverBreakdown, true);
   assert.ok(!('extra' in clean));
 });
@@ -111,7 +111,7 @@ check('the build ships with no invented endpoint or OAuth client', () => {
 });
 check('the shared database and the Chrome backup are on by default, sharing extras are not', () => {
   const t = prefs.sanitizeToggles({});
-  assert.strictEqual(t.sharedCache, true);
+  assert.strictEqual(t.sharedCache, false);
   assert.strictEqual(t.settingsBackup, true);
   assert.strictEqual(t.shareContributions, false);
   assert.strictEqual(t.sendDiagnostics, false);

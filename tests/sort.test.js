@@ -133,6 +133,8 @@ test('price per ounce on the owner\'s kefir search (2026-09-25): fluid ounces, F
   assert.equal(per('Green Tea, 100 Count, 7 oz', 5).unitPrice, null);
   near(per('Whole Milk, 1 Gallon', 4.99).unitPrice, 4.99 / 128);
   near(per('Orange Juice 52 fl oz (1.53 L)', 4.5).unitPrice, 4.5 / 52);
+  near(per('Optimum Nutrition Gold Standard Whey Protein 5 lb, 24g Protein, 5.5g BCAA', 59.99).unitPrice, 59.99 / 80);
+  near(per('Monster Energy Ultra 16 Fl Oz, 24 Pack, 384 Fl Oz Total', 35.99).unitPrice, 35.99 / 384);
   assert.equal(per('Mooala Bananamilk, Plant-Based Beverage, On the Go 12 Pack', 35.99).unitPrice, null, 'no size: no guess');
   assert.equal(U.parseQuantity('Protein shake 32 fl oz, 2 lb tub'), null, 'volume and weight together: no guess');
 });

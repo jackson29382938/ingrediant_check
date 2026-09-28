@@ -298,7 +298,7 @@
     // Our own score badge sits at the start of the title (search.js paintBadge); it is not the title.
     const badge = (card.querySelector('.air-badge')?.textContent || '').trim();
     const withoutBadge = s => (badge && s.startsWith(badge) ? s.slice(badge.length) : s).trim();
-    const titleNode = card.querySelector('h2 span:not(.air-badge)') || card.querySelector('h2')
+    const titleNode = card.querySelector('h2 a.a-text-normal') || card.querySelector('h2 a') || card.querySelector('h2')
       || card.querySelector('[data-cy="title-recipe"]');
     const linkNode = card.querySelector('h2 a')
       || [...card.querySelectorAll('a[href]')].find(a => /\/(?:dp|gp\/product)\/[A-Z0-9]{10}/.test(a.getAttribute('href') || ''))

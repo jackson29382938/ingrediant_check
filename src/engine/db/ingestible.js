@@ -31,7 +31,7 @@ const STRONG_POSITIVE = [
   { id: 'servingSize', pts: 3, why: 'Serving size and servings per container',
     test: (doc, text) => /\bserving size\b|\bservings per container\b|\bportionsgr[öo]sse\b|\bpro portion\b|\bportion\b|\bpor[cç][ãa]o\b|\bporci[óo]n\b|\bporzione\b|\bporsiyon\b|\bper 100 ?g\b/i.test(text) },
   { id: 'foodDept', pts: 5, why: 'Listed in a food or supplement department',
-    test: (doc, text) => /\b(grocery & gourmet food|grocery and gourmet food|grocery|food cupboard|fresh food|whole foods market|amazon fresh|vitamins & dietary supplements|vitamins and dietary supplements|sports nutrition|baby food|health & personal care)\b/i.test(text)
+    test: (doc, text) => /\b(grocery & gourmet food|grocery and gourmet food|grocery|food cupboard|fresh food|whole foods market|amazon fresh|vitamins & diet(?:ary)? supplements|vitamins and diet(?:ary)? supplements|sports nutrition|baby food|health & personal care)\b/i.test(text)
       || /\b(lebensmittel|getr[äa]nke|drogerie & k[öo]rperpflege|[ée]picerie|alimentation|produits frais|alimentaci[óo]n|supermercado|alimentari|generi alimentari|mercearia|boodschappen|livsmedel|artyku[łl]y spo[żz]ywcze|g[ıi]da)\b/i.test(text)
       || /食品|飲料|食品・飲料/.test(text) },
   { id: 'foodForm', pts: 2, why: 'Food-specific product attributes',
@@ -40,7 +40,7 @@ const STRONG_POSITIVE = [
 
 const WEAK_POSITIVE = [
   { id: 'edibleWords', pts: 2, why: 'Edible product words in the title',
-    test: (doc, text, title) => /\b(snack|cereal|beverage|drink|coffee|tea|juice|sauce|seasoning|spice|flour|pasta|rice|beans?|jerky|bar|gummies|capsules?|tablets?|softgels?|powder|protein|vitamin|probiotic|collagen|electrolyte)\b/i.test(title) },
+    test: (doc, text, title) => /\b(snack|cereal|granola|muesli|beverage|drink|coffee|tea|juice|sauce|seasoning|spice|flour|pasta|rice|beans?|jerky|bar|gummies|capsules?|tablets?|softgels?|powder|protein|vitamin|probiotic|collagen|electrolyte)\b/i.test(title) },
   { id: 'edibleFood', pts: 3, why: 'Named food in the title',
     test: (doc, text, title) => /\b(beef|pork|chicken|turkey|lamb|fish|salmon|tuna|shrimp|egg|milk|cheese|yogh?urt|butter|bread|oil|honey|fruit|vegetable|nuts?|chocolate|cookie|chips?|soup|broth)\b/i.test(title) },
 ];

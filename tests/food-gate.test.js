@@ -170,7 +170,7 @@ check('foodOnly on: shampoo does not parse ingredients', () => {
 
 check('foodOnly off: shampoo ingredients are parsed', () => {
   const doc = stubDoc('Head & Shoulders Classic Clean Shampoo', {
-    '#nic-ingredients-content': { innerText: 'Water, Sodium Laureth Sulfate, Cocamidopropyl Betaine, Fragrance' },
+    '#nic-ingredients-content': { innerText: 'Water, Sodium Laureth Sulfate, Cocamidopropyl Betaine, Fragrance', hidden: false, getAttribute: () => null },
   });
   const out = extract.extract(doc, { foodOnly: false });
   assert.ok(out.ok, JSON.stringify({ ok: out.ok, reason: out.reason, text: out.text }));
@@ -186,6 +186,16 @@ check('food product still extracts when foodOnly is on', () => {
   const out = extract.extract(doc, { foodOnly: true });
   assert.ok(out.ok, JSON.stringify({ ok: out.ok, reason: out.reason, ingestible: out.ingestible }));
   assert.ok(/rolled oats/i.test(out.text));
+});
+
+check('manufacturing allergen advisories stay out of ingredients but remain available for flags', () => {
+  const split = extract.splitAdvisory('Oatmeal. Not suitable for people with milk and wheat allergies.');
+  assert.equal(split.ingredients, 'Oatmeal.');
+  assert.match(split.advisory, /milk and wheat allergies/i);
+  assert.match(extract.splitAdvisory('Oatmeal; may contain milk').advisory, /may contain milk/i);
+  assert.equal(require('../src/engine/score.js').score({ ingredients_text: split.ingredients }).score,
+    require('../src/engine/score.js').score({ ingredients_text: 'Oatmeal' }).score);
+  assert.ok(require('../src/engine/score.js').score({ ingredients_text: split.ingredients, advisory_text: split.advisory }, { allergens: ['milk', 'wheat'] }).flags.length);
 });
 
 console.log('looksLikeIngredients accepts short whole foods');

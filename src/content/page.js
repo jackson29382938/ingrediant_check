@@ -29,7 +29,7 @@
   const BALANCED = { mode: 'balanced', maxAgeMs: CACHE.TTL_MS, autoFetches: 60, sharedDays: 30 };
   const speed = () => (root.AIR.db.speed ? root.AIR.db.speed.profile(state.speedMode) : BALANCED);
   const usableCache = (hit, asin) => CACHE.valid(hit, {
-    store: location.hostname, asin, version: ENGINE_VERSION, prefs: cachePrefs(), maxAgeMs: speed().maxAgeMs,
+    store: location.hostname, asin, version: ENGINE_VERSION, prefs: { ...cachePrefs(), ocrLabels: state.ocrLabels, useOpenFoodFacts: (state.cacheOptions || {}).useOpenFoodFacts }, maxAgeMs: speed().maxAgeMs,
   });
   const freshLocal = row => !root.AIR.db.productCache.stale(row, Date.now(), speed().maxAgeMs);
   const sharedOk = row => !!row && (!root.AIR.db.speed || root.AIR.db.speed.sharedUsable(row.scanned_at, state.speedMode));

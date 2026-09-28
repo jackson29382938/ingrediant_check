@@ -16,7 +16,7 @@ const check = (name, fn) => {
 };
 
 console.log('ingredient headings');
-for (const heading of ['Ingredients', 'Ingredienser', 'İçindekiler', 'Icindekiler', '原材料', 'Skład', 'Składniki']) {
+for (const heading of ['Ingredients', 'Ingredienser', 'İçindekiler', 'Icindekiler', '原材料', 'Skład', 'Składniki', 'Bestandteile']) {
   check(`recognises "${heading}"`, () => {
     assert.ok(extract.INGREDIENT_HEADING.test(heading), `missed ${heading}`);
     assert.ok(extract.INGREDIENT_HEADING.test(heading + ':'), `missed ${heading}:`);
@@ -28,6 +28,10 @@ check('US/SE/TR still allow English OCR', () => {
   assert.equal(extract.ocrReadyForHost('www.amazon.com'), true);
   assert.equal(extract.ocrReadyForHost('www.amazon.se'), true);
   assert.equal(extract.ocrReadyForHost('www.amazon.com.tr'), true);
+  assert.equal(extract.ocrReadyForHost('www.amazon.pl'), false);
+  assert.equal(extract.localeStatus('www.amazon.com.mx').locale, 'es');
+  assert.equal(extract.localeStatus('www.amazon.com.br').locale, 'pt');
+  assert.equal(extract.localeStatus('www.amazon.de').locale, 'de');
 });
 check('JP and Arabic stores decline English OCR', () => {
   assert.equal(extract.ocrReadyForHost('www.amazon.co.jp'), false);
@@ -36,6 +40,7 @@ check('JP and Arabic stores decline English OCR', () => {
   assert.equal(extract.ocrReadyForHost('www.amazon.sa'), false);
   assert.equal(extract.localeStatus('www.amazon.co.jp').reason, 'jp-ocr-not-ready');
   assert.equal(extract.localeStatus('www.amazon.ae').reason, 'ar-ocr-not-ready');
+  assert.equal(extract.localeStatus('www.amazon.pl').reason, 'pl-ocr-not-ready');
 });
 
 console.log('\nfailure copy names the locale decline');

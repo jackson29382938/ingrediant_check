@@ -28,7 +28,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
     };
     // Toggling OCR / OFF must not retire DOM-extracted chips. Only entries produced by those
     // paths include the matching flag in the fingerprint.
-    if (source === 'label-ocr') out.ocrLabels = raw.ocrLabels === true;
+    if (source === 'label-ocr' || source === 'ocr') out.ocrLabels = raw.ocrLabels === true;
     if (source === 'open-food-facts') out.useOpenFoodFacts = raw.useOpenFoodFacts === true;
     return JSON.stringify(out);
   }
@@ -46,19 +46,17 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
   }
 
   function parseKey(raw) {
-    const m = String(raw || '').match(/^s:([^:]+):([A-Z0-9]{10})$/i);
+    const m = String(raw || '').match(/^s:([^:]+):([A-Z0-9]{6,12})$/i);
     return m ? { store: m[1], asin: m[2].toUpperCase() } : null;
   }
 
   // maxAgeMs: the speed setting's age limit, as for valid().
-  // Amazon only while other stores are previews: the popup's compare view is the only caller, and
-  // a 10-digit Target id would otherwise pass parseKey and sit beside Amazon products unlabelled.
-  const AMAZON_STORE = /^amazon\.[a-z.]+$/;
+  const COMPARABLE_STORE = /^(?:amazon\.[a-z.]+|target\.com)$/;
   function listScores(all, { version, prefs, maxAgeMs = TTL_MS } = {}, now = Date.now()) {
     const out = [];
     for (const [cacheKey, hit] of Object.entries(all || {})) {
       const parsed = parseKey(cacheKey);
-      if (!parsed || !hit || !AMAZON_STORE.test(parsed.store)) continue;
+      if (!parsed || !hit || !COMPARABLE_STORE.test(parsed.store)) continue;
       if (!valid(hit, { store: parsed.store, asin: parsed.asin, version, prefs, maxAgeMs }, now)) continue;
       out.push({
         key: cacheKey, store: hit.store, asin: hit.asin,

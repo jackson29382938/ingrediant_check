@@ -41,6 +41,10 @@ can send one, and the receiver and the extension can check a row's shape and bou
 its ingredient text is what is printed on the label. A made-up row would put a made-up score on a
 search badge and in the sorted list for everyone who reads it, until it went stale.
 
+The extension has no row-delete request. If a bad row is already in the shared sheet, the owner must
+remove it in the sheet or replace it with a verified reading; disabling shared lookups prevents new
+clients from consuming it but does not purge the stored row.
+
 So, until there is a way to establish who wrote a row (authenticated writers, or rows the owner
 reviews):
 
@@ -123,7 +127,7 @@ when the script replies `tab: 'products'`.
 
 ## Off switch and offline
 
-**Use the shared online database** (settings, on by default) turns reads and writes off together.
+**Use the shared online database** (settings, off by default) turns shared lookups off. Product-reading uploads remain a separate opt-in.
 So does a build with no `ENDPOINT` ([SETTINGS-SYNC.md](SETTINGS-SYNC.md)). Either way the local
 `p:` / `s:` cache keeps working, and anything it cannot answer is read from Amazon. A network
 failure behaves the same: nothing waits on the sheet.

@@ -19,7 +19,9 @@
 
   function mountPoint() {
     return document.querySelector('#nutritionalInfoAndIngredients_feature_div')
-      || document.querySelector('#important-information')
+      || document.querySelector('#nutritionalInfoAndIngredientsEU_feature_div, [id^="nutritionalInfoAndIngredientsEU_feature_div"]')
+      || document.querySelector('#importantInformation_feature_div')
+      || document.querySelector('#importantInformation_feature_div, #important-information')
       || document.querySelector('#feature-bullets')
       || document.querySelector('#centerCol')
       || document.querySelector('#dp-container');
@@ -53,7 +55,7 @@
     publishActionBadge({ status: 'not-food' });
     const shadow = root.AIR.panel.mount(host, root.AIR.panel.renderNotFood(data));
     wireScoreAnyway(shadow, host, data, key);
-    P().settle('not-food');
+    // Keep watching: Amazon may hydrate food evidence after the title/crumbs arrive.
   }
 
   function presentResult(host, data, key, result, meta) {
@@ -119,8 +121,6 @@
       return;
     }
 
-    if (earlyKey === state.lastKey && existingState === 'not-food') { P().settle('not-food'); return; }
-
     const quick = quickNonFood();
     if (quick) {
       showNotFood({ asin: urlAsin, title: quick.title, ingestible: quick.verdict }, earlyKey);
@@ -143,7 +143,7 @@
     }
     if (state.foodOnly && data.ingestible && !data.ingestible.ok) {
       const key = data.asin || earlyKey;
-      if (existingState === 'not-food' && key === state.lastKey) { P().settle('not-food'); return; }
+      if (existingState === 'not-food' && key === state.lastKey) return;
       showNotFood(data, key);
       return;
     }
@@ -192,7 +192,7 @@
     const requestId = ++state.requestId;
     const input = {
       name: data.title, labels: data.labels, certifications: data.certifications,
-      nutrition: data.nutrition, ingredients_text: data.text,
+      nutrition: data.nutrition, ingredients_text: data.text, advisory_text: data.advisoryText,
     };
     const result = root.AIR.engine.score(input, state.prefs);
     if (!presentResult(host, data, key, result, {
@@ -268,6 +268,9 @@
     host.dataset.airCheck = '1';
     root.AIR.panel.mount(host, root.AIR.panel.renderLoading({ ...data, cache: true }));
     const use = (row, shared) => {
+      if (ocrReadingBlocked(row.data.via)) { miss(); return; }
+      if ((row.data.via === 'label-ocr' || row.data.via === 'ocr') && !state.ocrLabels) { miss(); return; }
+      if (row.data.via === 'open-food-facts' && (state.cacheOptions || {}).useOpenFoodFacts !== true) { miss(); return; }
       done();
       const result = root.AIR.engine.score(C.toInput(row), state.prefs);
       if (!presentResult(host, data, key, result, {
@@ -298,6 +301,12 @@
         });
       } catch (e) { miss(); }
     });
+  }
+
+  function ocrReadingBlocked(via) {
+    return !!(root.AIR.extract.ocrReadyForHost
+      && !root.AIR.extract.ocrReadyForHost(location.hostname)
+      && /^(?:label-ocr|ocr)$/.test(String(via || '')));
   }
 
   // A saved reading answered first, because it is instant. Opening the product page still reads it
@@ -364,7 +373,7 @@
         if (err || !record) { maybeContribute(data, first); return; }
         const better = root.AIR.engine.score({
           name: data.title, labels: data.labels, certifications: data.certifications,
-          nutrition: data.nutrition, ingredients_text: data.text, provenanceRecord: record,
+          nutrition: data.nutrition, ingredients_text: data.text, advisory_text: data.advisoryText, provenanceRecord: record,
         }, state.prefs);
         presentResult(host, data, key, better, {
           title: data.title, confidence: data.confidence, via: data.via,
@@ -410,7 +419,7 @@
       return;
     }
     const urls = (root.AIR.db.ocrText && root.AIR.db.ocrText.imageCandidates(document)) || [];
-    if (!urls.length) { showFailure(host, { ...data, ocrAttempted: true }, key); return; }
+    if (!urls.length) { showFailure(host, { ...data, ocrAttempted: true, ocrOutcome: 'no-images' }, key); return; }
     const requestId = ++state.requestId;
     host.dataset.airState = 'loading';
     root.AIR.panel.mount(host, root.AIR.panel.renderLoading({ ...data, ocr: true }));
@@ -430,7 +439,7 @@
         if (requestId !== state.requestId || state.lastKey !== key || !host.isConnected) return;
         const best = res && res.ok && root.AIR.db.ocrText.bestBlock(res.results,
           t => root.AIR.extract.looksLikeIngredients(t, data.title));
-        if (!best) { giveUp({}); return; }
+        if (!best) { giveUp({ ocrOutcome: res && res.ok ? 'no-match' : 'error' }); return; }
         const input = pageInput(data, { ingredients_text: best.text });
         const result = root.AIR.engine.score(input, state.prefs);
         presentResult(host, data, key, result, {

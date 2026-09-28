@@ -39,7 +39,9 @@ function startServer() {
       fs.createReadStream(file).pipe(res);
     });
     server.listen(PORT, '127.0.0.1', () => resolve(server));
-    server.on('error', reject);
+    server.on('error', error => reject(error.code === 'EADDRINUSE'
+      ? new Error(`harness-ci: port ${PORT} is already in use; stop the other harness or set HARNESS_PORT`)
+      : error));
   });
 }
 

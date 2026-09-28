@@ -32,8 +32,7 @@
     try { u = new URL(String(raw || '')); } catch (e) { return ''; }
     if (!/^https?:$/.test(u.protocol)) return u.protocol === 'chrome-extension:' ? `extension page ${u.pathname}` : '';
     const path = u.pathname.replace(/\/ref=[^/]*$/, '');
-    const k = u.searchParams.get('k') || u.searchParams.get('searchTerm');
-    return `${u.origin}${path}${k ? `?k=${encodeURIComponent(k)}` : ''}`;
+    return `${u.origin}${path}`;
   }
 
   // storage.local -> the settings a report needs, and counts of what is cached.

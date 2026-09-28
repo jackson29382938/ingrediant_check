@@ -440,6 +440,7 @@ test('speed: "Fresher" re-reads a product saved 10 days ago; Balanced still uses
 });
 test('a shared reading answers an unreadable page and counts a pull; a miss falls through to OCR', () => {
   const w = cacheSetup({ shared: { B000000001: cachedRow('B000000001', { via: 'label-ocr' }) } });
+  w.h.state.ocrLabels = true;
   w.context.AIR.extract.extract = () => ({ ok: false, title: 'Oats', asin: 'B000000001' });
   w.h.scoreCurrentPage();
   assert.equal(w.host.dataset.airState, 'scored');
@@ -534,6 +535,7 @@ test('no notice once seen, for hover scoring, or while paused', () => {
 test('a score from a saved reading survives the next Amazon page update', () => {
   const row = cachedRow('B000000001', { via: 'label-ocr', input: { name: 'Kefir', ingredients_text: 'lowfat milk, cane sugar' } });
   const w = cacheSetup({ local: { [PC.localKey('amazon.com', 'B000000001')]: { ...row, t: Date.parse(row.scanned_at) } } });
+  w.h.state.ocrLabels = true;
   const removed = [];
   w.context.chrome.storage.local.remove = (k, cb) => { removed.push(k); cb?.(); };
   w.context.AIR.extract.extract = () => ({ ok: false, title: 'Kefir', asin: 'B000000001' });

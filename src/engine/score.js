@@ -287,7 +287,7 @@ const COMMON_PANEL = new RegExp('\\b(?:' + [
   'cobalamin|tocopherol|ascorb(ic|ate)|calcium|iron|zinc|magnesium|potassium|phosphate',
   // Non-English staples, so a Spanish/French panel that DOES hit the cap rules above clears the
   // coverage gate and gets scored rather than declined.
-  'agua|eau|wasser|sal|sel|salz|az[uú]car|sucre|zucker|leche|lait|milch|harina|farine|mehl',
+  'agua|eau|wasser|sal|sel|salz|az[uú]car|sucre|zucker|leche|lait|milch|harina|farine|mehl|avoine|hafer|avena|flocons|hafervollkornflocken|muesli|granola',
   'aceite|huile|[öo]l|jarabe|sirop|jugo|jus|saft|ma[ií]z|ma[ïi]s|trigo|bl[ée]|arroz|riz|reis',
   'soja|girasol|tournesol|colza|vegetal|v[ée]g[ée]tale|almid[óo]n|amidon|levadura|levure',
   // Italian staples, and German compounds: "Vollmilchpulver" and "Kakaobutter" contain the words
@@ -737,7 +737,7 @@ function score(product, options = {}) {
   // wheat" was charged as wheat. It still feeds the allergen flags below, and nothing else.
   const parsed = parseEntries(rawTxt);
   const aside = e => MAY_CONTAIN.test(e.ing) || LABEL_NOTE.test(e.ing);
-  const mayContain = parsed.filter(aside).map(e => e.ing);
+  const mayContain = [...parsed.filter(aside).map(e => e.ing), ...(product.advisory_text ? [String(product.advisory_text)] : [])];
   const listed = parsed.filter(e => !isDenialEntry(e.ing) && !aside(e));
   // An allergen bracket that only repeats its parent ("Cacahuètes (arachides)", "Arachidi
   // (arachidi)", "cheese (milk)") is a declaration, not a second ingredient: counted as one it made
@@ -1188,6 +1188,7 @@ function score(product, options = {}) {
     score: final,
     verdict: BANDS.find(b => final >= b[0])[1],
     nova, base: displayBase, novaBase: base, cap: capWhy, flags, provenance,
+    selectedAllergens: options.allergens || [],
     good, bad,
     parsed: list.length,
     coverage,

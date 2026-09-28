@@ -24,6 +24,7 @@ const check = (name, fn) => {
 function walk(dir, out = []) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, e.name);
+    if (e.name.startsWith('._')) continue;
     if (e.isDirectory()) walk(full, out);
     else if (e.name.endsWith('.js')) out.push(full);
   }

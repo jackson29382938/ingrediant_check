@@ -35,7 +35,7 @@ test('recent actions: short, no query strings, repeats folded, capped', () => {
 test('page address: path and search term only', () => {
   assert.equal(D.pageAddress('https://www.amazon.com/LIFEWAY-Organic-Plain-Kefir-FZ/dp/B0DX45213W/ref=sr_1_3_us_f3_0o_wf?dib=eyJ2&keywords=kefir&qid=1'),
     'https://www.amazon.com/LIFEWAY-Organic-Plain-Kefir-FZ/dp/B0DX45213W');
-  assert.equal(D.pageAddress('https://www.amazon.com/s?k=organic+kefir&crid=3KB&sprefix=kef'), 'https://www.amazon.com/s?k=organic%20kefir');
+  assert.equal(D.pageAddress('https://www.amazon.com/s?k=organic+kefir&crid=3KB&sprefix=kef'), 'https://www.amazon.com/s');
   assert.equal(D.pageAddress('chrome-extension://abc/src/options/sidepanel.html'), 'extension page /src/options/sidepanel.html');
   assert.equal(D.pageAddress('javascript:alert(1)'), '');
   assert.equal(D.pageAddress('not a url'), '');
@@ -77,7 +77,7 @@ test('a report: the reader\'s words, then the details, each part can be left out
   const r = D.build({ kind: 'problem', title: 'No price per ounce for kefir', description: 'Most say "No price per ounce".', steps: '1. Sort by price per ounce' }, CTX);
   assert.equal(r.subject, '[Ingredient Check] Something is wrong / needs a fix: No price per ounce for kefir');
   assert.match(r.text, /Most say "No price per ounce"/);
-  assert.match(r.text, /Page: https:\/\/www\.amazon\.com\/s\?k=kefir\n/);
+  assert.match(r.text, /Page: https:\/\/www\.amazon\.com\/s\n/);
   assert.match(r.text, /Side panel list: .*"listings":2,"withScore":1,"withPricePerOunce":1/);
   assert.match(r.text, /Weights changed from default: sugar=1\.5/);
   assert.match(r.text, /Avoid list: carrageenan/);

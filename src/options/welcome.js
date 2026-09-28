@@ -114,7 +114,7 @@ function closeTab() {
   catch (e) { window.close(); }
 }
 
-function finish() {
+async function finish() {
   const goals = CATS.sanitizeGoals(picked.goals);
   const sameGoals = goals.length === startGoals.length && goals.every(g => startGoals.includes(g));
   // Unchanged goals keep whatever sliders were already set; new goals load their weights.
@@ -126,6 +126,9 @@ function finish() {
   const values = { weights: scoring.weights, goals: scoring.goals, allergens: scoring.allergens,
     diets: scoring.diets, avoidList: scoring.avoidList, onboarded: true };
   for (const id of OPTIONS) values[id] = document.getElementById(id).checked;
+  if (values.useOpenFoodFacts) {
+    values.useOpenFoodFacts = await new Promise(resolve => chrome.permissions.contains(OFF_PERMISSION, resolve));
+  }
   chrome.storage.local.set(values, () => show(LAST + 1));
 }
 

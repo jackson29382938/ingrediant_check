@@ -72,6 +72,7 @@ test('fingerprints track weights, food gate, provenance revisions; OCR/OFF only 
   assert.notEqual(
     cache.fingerprint({ ocrLabels: true }, 'label-ocr'),
     cache.fingerprint({}, 'label-ocr'));
+  assert.notEqual(cache.fingerprint({ ocrLabels: true }, 'ocr'), cache.fingerprint({}, 'ocr'));
   assert.notEqual(
     cache.fingerprint({ useOpenFoodFacts: true }, 'open-food-facts'),
     cache.fingerprint({}, 'open-food-facts'));
@@ -100,13 +101,13 @@ test('listScores follows the speed setting age it is given', () => {
     'Fastest keeps 90 days, and the popup lists it');
 });
 
-test('listScores lists Amazon scores only, even when a Target id is ten digits long', () => {
-  const target = { ...entry, store: 'target.com', asin: '1234567890', t: now };
+test('listScores includes Amazon ASINs and Target TCINs only', () => {
+  const target = { ...entry, store: 'target.com', asin: '1234567890', prefs: cache.fingerprint({}), t: now };
   const all = {
     [cache.key('amazon.com', 'B000000001')]: entry,
     [cache.key('target.com', '1234567890')]: target,
     [cache.key('target.com', '16600402')]: { ...target, asin: '16600402' },
   };
   const listed = cache.listScores(all, { version: context.version, prefs: {} }, now);
-  assert.deepEqual(listed.map(x => x.asin), ['B000000001']);
+  assert.deepEqual(listed.map(x => x.asin).sort(), ['1234567890', '16600402', 'B000000001']);
 });

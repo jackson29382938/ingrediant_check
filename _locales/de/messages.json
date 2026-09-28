@@ -94,6 +94,7 @@
   "allergenCaveat": {
     "message": "Found in the ingredient text on this page. Absence of a warning is not a safety check — never rely on this for an allergy."
   },
+  "allergenNoFlags": { "message": "No selected warnings were found in the text this page provided. Lists can be incomplete — this does not confirm a product is free of an allergen." },
   "failTitle": {
     "message": "Zutaten auf dieser Seite konnten nicht gelesen werden."
   },
@@ -216,6 +217,9 @@
   "failOcr": {
     "message": "The label photo was checked too, and no ingredient list could be read from it. "
   },
+  "failOcrNoImages": { "message": "No usable label photo was available to check. " },
+  "failOcrError": { "message": "The label photo could not be checked because the reader failed. " },
+  "failOcrNoMatch": { "message": "The label photo was checked, but no ingredient list could be read from it. " },
   "failLocale": {
     "message": "This Amazon store’s labels are in a script the on-device English reader will misread, so photo OCR is not used here yet. Paste the list if you can read it. "
   },
@@ -991,6 +995,7 @@
   "sortedOpenTab": {
     "message": "Open in new tab"
   },
+  "sortedOpenTabFail": { "message": "Could not open a new tab. Try again from Chrome." },
   "sortedStop": {
     "message": "Stop rating"
   },

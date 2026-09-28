@@ -36,7 +36,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
   const UNIT = 'fl\\.?\\s*oz|fluid\\s*ounces?|fl\\.?\\s*ounces?|fz|ounces?|oz|pounds?|lbs?|kilograms?|kgs?|gramm|grams?|g'
     + '|milliliters?|millilitres?|ml|cl|liters?|litres?|l|quarts?|qt|pints?|pt|gallons?|gal';
   // "10g Protein", "0g Added Sugar", "5 g of fiber": a nutrient amount, not the package size.
-  const NUTRIENT_AFTER = /^\s*(?:of\s+)?(?:added\s+)?(?:protein|fat|carbs?|carbohydrates?|sugars?|fib(?:er|re)|net\s+carbs?|sodium|caffeine|collagen|probiotics?|prebiotics?|electrolytes?|creatine)\b/i;
+  const NUTRIENT_AFTER = /^\s*(?:of\s+)?(?:added\s+)?(?:protein|fat|carbs?|carbohydrates?|sugars?|fib(?:er|re)|net\s+carbs?|sodium|caffeine|collagen|probiotics?|prebiotics?|electrolytes?|creatine|BCAA|MCT|servings?)\b/i;
   // What to do when Amazon shows no unit price (the Cost Sorter's "missing price" setting).
   const MISSING = ['calculate-clear', 'displayed-only', 'infer-more'];
   const UNIT_DEFAULTS = { unitMissing: 'calculate-clear' };
@@ -86,6 +86,18 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
       const info = unitInfo(match[2]);
       const ounces = Number(match[1]) * (info ? info.oz : 0);
       if (info && Number.isFinite(ounces) && ounces > 0) found.push({ ounces, kind: info.kind });
+    }
+    const total = source.match(new RegExp(`(\\d+(?:\\.\\d+)?)[\\s-]*(${UNIT})\\s+total\\b`, 'i'));
+    if (total) {
+      const info = unitInfo(total[2]);
+      const ounces = Number(total[1]) * (info ? info.oz : 0);
+      const count = source.match(/\bpack\s+of\s+(\d+)\b|\b(\d+)[\s-]*(?:pack|pk|count|ct|bottles?|cans?)\b/i);
+      const multiplier = count ? Number(count[1] || count[2]) : 1;
+      const item = found.find(f => f.kind === (info && info.kind)
+        && Math.abs(f.ounces * multiplier - ounces) / Math.max(f.ounces * multiplier, ounces) <= 0.02);
+      if (info && ounces > 0 && item) return { ounces, kind: info.kind };
+      if (info && ounces > 0 && !found.length) return { ounces, kind: info.kind };
+      if (info && ounces > 0) return null;
     }
     if (!found.length) return null;
     // Weight and volume in one title ("32 fl oz ... 2 lb") cannot be told apart safely.

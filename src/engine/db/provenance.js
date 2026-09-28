@@ -57,7 +57,7 @@ const CERTIFICATIONS = [
     means: 'Pasture centred. Animals live outdoors on pasture for a meaningful part of their lives.',
     applies: ['beef', 'pork', 'poultry', 'lamb'] },
   { id: 'organic', tier: 3, pts: 12, label: 'USDA Organic',
-    m: /\b(usda organic|certified organic|organic)\b/i,
+    m: /\b(usda organic|certified organic)\b/i,
     means: 'Organic feed, no antibiotics or added hormones, outdoor access required. Note: organic does NOT mean 100% grass-fed.',
     applies: ['beef', 'pork', 'poultry', 'lamb', 'egg', 'dairy', 'produce', 'grain', 'nut'] },
   { id: 'humane', tier: 3, pts: 8, label: 'Certified Humane',

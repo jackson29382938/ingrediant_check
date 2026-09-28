@@ -1,6 +1,7 @@
 node_modules/
 .chrome-profile/
 .DS_Store
+._*
 
 # Build / secrets
 dist/

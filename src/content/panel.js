@@ -129,11 +129,15 @@
   }
   @media (prefers-color-scheme: dark) {
     .card { background: #1b1c1c; border-color: #3a3c3c; box-shadow: none; }
-    .head { background: var(--bg); }
+    .head { background: #232525; }
     .head:hover { filter: brightness(1.06); }
     .body { border-top-color: #3a3c3c; }
     .sub, .chev, .ing, .m, h4, .prov h5, .foot, .disclaim { color: #aeaeae; }
     .why { color: #f3f3f3; }
+    .pts { color: #f3f3f3; }
+    .plus .pts { color: #7bd99b; }
+    .minus .pts, .capflag .pts { color: #ff8585; }
+    .pop { color: #f3f3f3; }
     .fail { color: #f3f3f3; }
     .foot { border-top-color: #3a3c3c; }
     .score { background: #1b1c1c; }
@@ -149,8 +153,8 @@
 
   // Allergen, diet and avoid-list warnings. Deliberately outside the collapsed body: if you asked to
   // be told about sesame, you should not have to expand a card to find out.
-  function flagsHTML(flags) {
-    if (!flags || !flags.length) return '';
+  function flagsHTML(flags, selected = false) {
+    if (!flags || !flags.length) return selected ? `<p class="disclaim" style="padding:6px 16px 0">${esc(t('allergenNoFlags', 'No selected warnings were found in the text this page provided. Lists can be incomplete — this does not confirm a product is free of an allergen.'))}</p>` : '';
     // A missing flag is the dangerous direction: flags come only from the text we managed to read,
     // so a truncated, unread or unrecognised list produces none at all — which looks identical to
     // "clear". Say so next to the chips rather than anywhere a user has to go looking.
@@ -252,7 +256,7 @@
           'Only $1% of this list was recognised — treat the score as a partial reading.',
           Math.round(result.coverage * 100)))}</p>`
         : ''}
-      ${flagsHTML(result.flags)}
+      ${flagsHTML(result.flags, !!result.selectedAllergens?.length)}
       ${provenanceHTML(result.provenance, meta)}
       <div class="body" id="air-panel-details">
         ${caps.length ? `<h4>${esc(t('headDisqualifying', 'Disqualifying'))}</h4>${rowsHTML(caps, 'minus')}` : ''}
@@ -316,7 +320,7 @@
       const compact = meta.detail === 'compact';
       const { caps, minus, plus, neutral } = sections(result);
       const top = (rows, n) => (compact ? rows.slice().sort((a, b) => Math.abs(b.c) - Math.abs(a.c)).slice(0, n) : rows);
-      body = `${flagsHTML(result.flags)}
+      body = `${flagsHTML(result.flags, !!result.selectedAllergens?.length)}
         ${compact ? '' : provenanceHTML(result.provenance, meta)}
         ${caps.length ? `<h4>${esc(t('headDisqualifying', 'Disqualifying'))}</h4>${rowsHTML(caps, 'minus')}` : ''}
         ${plus.length ? `<h4>${esc(t('headGood', "What's good"))}</h4>${rowsHTML(top(plus, 3), 'plus')}` : ''}
@@ -412,8 +416,12 @@
           ? esc(t('failUnreadable', 'The ingredients are published, but almost none of them match anything this tool knows — usually that means the label is in a language it cannot read yet. Scoring it anyway would produce a confident wrong answer. '))
           : meta && meta.localeDeclined
           ? esc(t('failLocale', 'This Amazon store’s labels are in a script the on-device English reader will misread, so photo OCR is not used here yet. Paste the list if you can read it. '))
-          : meta && meta.ocrAttempted
-          ? esc(t('failOcr', 'The label photo was checked too, and no ingredient list could be read from it. '))
+          : meta && meta.ocrOutcome === 'no-images'
+          ? esc(t('failOcrNoImages', 'No usable label photo was available to check. '))
+          : meta && meta.ocrOutcome === 'error'
+          ? esc(t('failOcrError', 'The label photo could not be checked because the reader failed. '))
+          : meta && meta.ocrOutcome === 'no-match'
+          ? esc(t('failOcrNoMatch', 'The label photo was checked, but no ingredient list could be read from it. '))
           : meta && meta.lookupAttempted
           ? esc(t('failLookup', "The optional barcode lookup didn't return an ingredient list. "))
           : meta && meta.storeName

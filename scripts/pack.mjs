@@ -31,7 +31,7 @@ if (pre.status) process.exit(pre.status || 1);
 fs.mkdirSync(outDir, { recursive: true });
 if (fs.existsSync(outFile)) fs.unlinkSync(outFile);
 
-const zip = spawnSync('zip', ['-r', '-q', outFile, ...include, '-x', '*.DS_Store'], {
+const zip = spawnSync('zip', ['-r', '-q', outFile, ...include, '-x', '*.DS_Store', '._*', '*/._*'], {
   cwd: root, stdio: 'inherit',
 });
 if (zip.status === 0) {
@@ -54,7 +54,7 @@ with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
             continue
         for dirpath, _dirs, files in os.walk(full):
             for name in files:
-                if name in skip:
+                if name in skip or name.startswith('._'):
                     continue
                 abs_path = os.path.join(dirpath, name)
                 z.write(abs_path, os.path.relpath(abs_path, root))

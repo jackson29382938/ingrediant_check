@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><title>Ingredient Check</title><style>
  :root { color-scheme: light dark; }
  body{font:13px/1.45 "Amazon Ember",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-   width:280px;margin:0;padding:14px 14px 12px;color:#0f1111;background:#fff}
+   width:280px;max-height:calc(100vh - 24px);overflow-y:auto;margin:0;padding:14px 14px 12px;color:#0f1111;background:#fff}
  h1{font-size:14px;margin:0 0 2px}
  .sub{color:#565959;font-size:11px;margin-bottom:12px}
  .page-score{display:block;margin:0 0 12px;padding:9px 10px;
@@ -152,7 +152,7 @@
  <a href="#" id="openReport" data-i18n="popupReport">Report a problem or suggest an improvement</a>
  <div class="sub" data-i18n="popupDisclaimer" style="margin-top:10px;font-size:11px">Scores are a guide, not health or allergy
    advice. Always read the label.</div>
- <button type="button" id="clear" data-i18n="popupClear">Clear cached scores</button>
+ <button type="button" id="clear" data-i18n="popupClear">Clear cached entries</button>
  <p id="status" class="d" role="status" aria-live="polite" style="margin-top:8px;min-height:1.3em;display:block"></p>
  <div class="compare-block" id="compareBlock" hidden>
    <div class="ps-kicker" data-i18n="popupCompare">Compare cached scores</div>

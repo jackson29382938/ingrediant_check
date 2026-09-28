@@ -30,7 +30,7 @@ const TOGGLE_DEFAULTS = {
   // Numbers on every results tile out of the box: product pages are fetched from Amazon a few at a
   // time (at most 60 per page); scores saved on this computer, and shared readings when the reader
   // turned them on, answer the rest without a fetch.
-  autoScoreSearch: true,
+  autoScoreSearch: false,
   hoverScore: false,
   // Hover or focus a score badge on a results page to see why it scored that way.
   hoverBreakdown: true,
@@ -40,7 +40,7 @@ const TOGGLE_DEFAULTS = {
   sendDiagnostics: false,
   // The shared online database: the owner-kept certification tables (provenance, producers). Off
   // keeps every lookup on this computer.
-  sharedCache: true,
+  sharedCache: false,
   // Product readings other people's computers uploaded to the shared database, and uploading this
   // computer's. Off until the reader turns it on: anyone who has the endpoint can write a product
   // row, and nothing yet shows that a row's ingredient text is true (docs/CACHE.md, "Trust"). A new

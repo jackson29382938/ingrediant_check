@@ -119,7 +119,10 @@
   }
   function openInTab() {
     logUi('Open in new tab');
-    chrome.tabs.create({ url: chrome.runtime.getURL('src/options/sorted.html') }).catch(() => {});
+    const target = Number.isInteger(windowId) ? { windowId } : Number.isInteger(saved && saved.sourceWindowId) ? { windowId: saved.sourceWindowId } : {};
+    chrome.tabs.create({ ...target, url: chrome.runtime.getURL('src/options/sorted.html') }).catch(() => {
+      ui.openTab.textContent = t('sortedOpenTabFail', 'Could not open a new tab. Try again from Chrome.');
+    });
   }
   // Synchronous inside the click, so Chrome counts it as the user's action.
   function openSidePanel(b) {
@@ -159,7 +162,10 @@
     const actions = node('div', 'header-actions');
     ui.back = button('button secondary', t('sortedBack', 'Back to Amazon search'), backToAmazon);
     actions.append(ui.back);
-    if (isPanel) actions.append(button('button secondary', t('sortedOpenTab', 'Open in new tab'), openInTab));
+    if (isPanel) {
+      ui.openTab = button('button secondary', t('sortedOpenTab', 'Open in new tab'), openInTab);
+      actions.append(ui.openTab);
+    }
     else {
       const panelButton = button('button secondary', t('sortedOpenPanel', 'Open side panel'), () => openSidePanel(panelButton));
       actions.append(panelButton);
