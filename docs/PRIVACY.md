@@ -92,7 +92,7 @@ everything that would be included:
 - the page's address, cut to its path and search term, the score shown for it, and a summary of the
   side panel list (option, how many listings, how many with a score or a price per ounce, its status)
 - your Ingredient Check settings, read through the same checks the extension uses: switches, weights,
-  goals, allergens, diets, avoid list, sort and speed settings, and how many scores are cached. Never
+  goals and how much each counts, allergens, diets, avoid list, sort and speed settings, and how many scores are cached. Never
   the cached scores themselves, a sign-in token, queued diagnostics, or anything another page stored
 - your recent clicks in the extension this browser session (up to 60 short lines, such as "popup:
   autoScoreSearch off" or "Amazon sort menu: chose Price per ounce on /s"), kept in memory only

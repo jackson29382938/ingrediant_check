@@ -59,8 +59,10 @@ function save(key, value) {
 }
 
 // { ids, custom } — the selected goals, and whether a slider has since moved off them.
+// How much each goal counts where goals overlap (set on the settings page; 1 each by default).
+let popupImportance = {};
 function currentGoals(weights, goals) {
-  return CATS.describeGoals(weights, goals);
+  return CATS.describeGoals(weights, goals, popupImportance);
 }
 
 let popupPresetCategory = 'everyday';
@@ -171,7 +173,7 @@ let popupWeights = null;
 function applyPreset(id) {
   if (!CATS.PRESETS[id]) return;
   const goals = CATS.toggleGoal(currentGoals(popupWeights, popupGoals).ids, id);
-  const weights = PREFS.sanitizeScoring({ weights: CATS.goalWeights(goals) }).weights;
+  const weights = PREFS.sanitizeScoring({ weights: CATS.goalWeights(goals, popupImportance) }).weights;
   const host = document.getElementById('presets');
   popupPresetCategory = CATS.PRESETS[id].category || popupPresetCategory;
   if (host) host.dataset.userTab = '1';
@@ -179,7 +181,8 @@ function applyPreset(id) {
   AIR.db.activity && AIR.db.activity.log('popup', `goal ${goals.includes(id) ? 'picked' : 'removed'}: ${id} (now: ${goals.join(', ') || 'balanced'})`);
 }
 
-chrome.storage.local.get([...KEYS, 'weights', 'goals'], options => {
+chrome.storage.local.get([...KEYS, 'weights', 'goals', 'goalImportance'], options => {
+  popupImportance = PREFS.sanitizeScoring({ goalImportance: options.goalImportance }).goalImportance;
   const toggles = cleanToggles(options);
   const healed = {};
   for (const key of KEYS) {
@@ -534,7 +537,10 @@ chrome.storage.onChanged.addListener(changes => {
     const fallback = document.getElementById('useOpenFoodFacts');
     if (fallback && !fallback.disabled) fallback.checked = isOn('useOpenFoodFacts', changes.useOpenFoodFacts.newValue);
   }
-  if (changes.weights || changes.goals) chrome.storage.local.get(['weights', 'goals'], o => renderPresets(o.weights, o.goals));
+  if (changes.weights || changes.goals || changes.goalImportance) chrome.storage.local.get(['weights', 'goals', 'goalImportance'], o => {
+    popupImportance = PREFS.sanitizeScoring({ goalImportance: o.goalImportance }).goalImportance;
+    renderPresets(o.weights, o.goals);
+  });
   if (changes.popupShowWhy) paintWhy(changes.popupShowWhy.newValue === true);
   if (Object.keys(changes).some(k => /^(s|p|off):/.test(k) || ['weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sheetIndexRev', 'producerIndexRev', 'compareA', 'compareB'].includes(k))) {
     paintCacheCount();

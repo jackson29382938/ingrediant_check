@@ -646,6 +646,29 @@ async function run() {
       await settingsPage.waitForFunction(() => window.__stored.sharedCache === false, { timeout: 5000 });
       if (!(await sharing()).disabled) throw new Error('shared readings should be disabled again');
       console.log('  ok  settings → shared database and shared readings off by default; readings usable only while the database is on');
+      // Goals weighted against each other: a slider per selected goal appears once two are picked, and
+      // moving one saves its weight and re-averages the dials towards that goal.
+      const pickable = await settingsPage.evaluate(() => [...document.querySelectorAll('.preset-card')]
+        .map(b => b.dataset.preset).filter(id => id !== 'balanced').slice(0, 2));
+      if (pickable.length < 2) throw new Error(`goal cards: ${JSON.stringify(pickable)}`);
+      const mixHidden = () => settingsPage.evaluate(() => document.getElementById('goalMix').hidden);
+      await settingsPage.click(`.preset-card[data-preset="${pickable[0]}"]`);
+      if (!(await mixHidden())) throw new Error('goal weights should stay hidden with one goal');
+      await settingsPage.click(`.preset-card[data-preset="${pickable[1]}"]`);
+      await settingsPage.waitForFunction(() => !document.getElementById('goalMix').hidden
+        && document.querySelectorAll('#goalMixRows input[type=range]').length === 2, { timeout: 5000 });
+      const beforeMix = await settingsPage.evaluate(() => JSON.stringify(window.__stored.weights));
+      await settingsPage.evaluate(id => {
+        const input = document.getElementById(`goalMix-${id}`);
+        input.value = '3';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }, pickable[0]);
+      await settingsPage.waitForFunction(id => window.__stored.goalImportance && window.__stored.goalImportance[id] === 3, pickable[0], { timeout: 5000 });
+      const afterMix = await settingsPage.evaluate(() => ({ weights: JSON.stringify(window.__stored.weights),
+        shown: document.querySelector(`#goalMixRows output`).textContent,
+        active: document.getElementById('presetActiveName').textContent }));
+      if (afterMix.weights === beforeMix || /Custom/.test(afterMix.active)) throw new Error(`goal weights: ${JSON.stringify(afterMix)}`);
+      console.log('  ok  settings → a weight per goal once two are picked; moving one saves it and re-averages the dials, and the goals stay selected');
       // Import: a real export is applied; an oversized file is refused without touching the settings.
       const exported = JSON.stringify({ _format: 'ingredient-check-settings', _version: 1, weights: { sugar: 1.7 }, allergens: ['milk'] });
       await settingsPage.setInputFiles('#importFile', { name: 'settings.json', mimeType: 'application/json', buffer: Buffer.from(exported) });

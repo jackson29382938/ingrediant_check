@@ -124,6 +124,7 @@ function sanitizeScoring(raw) {
   return {
     weights,
     goals: cats && typeof cats.sanitizeGoals === 'function' ? cats.sanitizeGoals(src.goals) : [],
+    goalImportance: cats && typeof cats.sanitizeGoalImportance === 'function' ? cats.sanitizeGoalImportance(src.goalImportance) : {},
     allergens: uniqueKnown(src.allergens, allergenIds),
     diets: uniqueKnown(src.diets, dietIds),
     avoidList: sanitizeAvoidList(src.avoidList),
@@ -170,6 +171,7 @@ function exportPayload(prefs) {
     _version: SETTINGS_VERSION,
     weights: clean.weights,
     goals: clean.goals,
+    goalImportance: clean.goalImportance,
     allergens: clean.allergens,
     diets: clean.diets,
     avoidList: clean.avoidList,

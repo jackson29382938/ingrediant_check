@@ -127,3 +127,42 @@ test('toggling and describing goals; goals travel with exports', () => {
   assert.deepEqual(exported.goals, g);
   assert.deepEqual(prefs.parseImport(JSON.stringify(exported)).prefs.goals, g);
 });
+
+test('goals can be weighted: the one that counts more wins where they disagree; 1 each is a plain average', () => {
+  const g = ['weightLoss', 'generalWellbeing'];
+  // naturalFlavour: Weight loss 0.15, General wellbeing 1.2.
+  assert.deepEqual(C.goalWeights(g, {}), C.goalWeights(g), 'no importance is 1 each');
+  assert.deepEqual(C.goalWeights(g, { weightLoss: 1, generalWellbeing: 1 }), C.goalWeights(g));
+  assert.ok(Math.abs(C.goalWeights(g).naturalFlavour - (0.15 + 1.2) / 2) < 0.001);
+  const leanLoss = C.goalWeights(g, { weightLoss: 3 });
+  assert.ok(Math.abs(leanLoss.naturalFlavour - (0.15 * 3 + 1.2) / 4) < 0.001, `weighted 3:1 → ${leanLoss.naturalFlavour}`);
+  const leanWell = C.goalWeights(g, { generalWellbeing: 3 });
+  assert.ok(leanWell.naturalFlavour > C.goalWeights(g).naturalFlavour && leanLoss.naturalFlavour < C.goalWeights(g).naturalFlavour);
+  // A dial only one goal sets keeps that goal's value, whatever the weights.
+  const only = Object.keys(C.PRESETS.weightLoss.weights).find(k => !(k in C.PRESETS.generalWellbeing.weights));
+  if (only) assert.equal(C.goalWeights(g, { weightLoss: 0.25 })[only], C.goalWeights(g)[only]);
+  // A focused dial is still decided by its focused goal alone.
+  assert.equal(C.goalWeights(['vitamins', 'weightLoss'], { weightLoss: 4 }).fortification, -1.5);
+  // Scores follow: the goal that counts more pulls the score its way.
+  const text = 'oats, natural flavors';
+  const s = w => engine.score({ ingredients_text: text }, { weights: C.goalWeights(g, w) }).score;
+  assert.ok(s({ weightLoss: 4 }) >= s({}) && s({}) >= s({ generalWellbeing: 4 }));
+});
+
+test('goal importance is sanitised, saved, exported and matched', () => {
+  assert.deepEqual(C.sanitizeGoalImportance({ weightLoss: 9, vitamins: 0.01, nope: 2, generalWellbeing: 1, strength: 'x' }),
+    { weightLoss: C.IMPORTANCE_MAX, vitamins: C.IMPORTANCE_MIN });
+  assert.deepEqual(C.sanitizeGoalImportance(null), {});
+  const imp = { weightLoss: 2 };
+  const g = ['weightLoss', 'generalWellbeing'];
+  const clean = prefs.sanitizeScoring({ weights: C.goalWeights(g, imp), goals: g, goalImportance: imp });
+  assert.deepEqual(clean.goalImportance, imp);
+  assert.deepEqual(prefs.exportPayload(clean).goalImportance, imp);
+  assert.deepEqual(prefs.parseImport(JSON.stringify(prefs.exportPayload(clean))).prefs.goalImportance, imp);
+  // The weighted weights still read as those goals, not Custom; the plain average does not match them.
+  assert.deepEqual(C.describeGoals(C.goalWeights(g, imp), g, imp), { ids: g, custom: false });
+  assert.equal(C.describeGoals(C.goalWeights(g), g, imp).custom, true);
+  // The Chrome backup carries the goals and their weights.
+  const back = prefs.parseBackup(prefs.backupPayload(clean));
+  assert.deepEqual([back.values.goals, back.values.goalImportance], [g, imp]);
+});

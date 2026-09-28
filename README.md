@@ -53,7 +53,7 @@ Ingredient headings are recognised in English and several EU languages (Zutaten,
 
 ## Goals
 
-A new install opens a one-minute setup (goals, allergens and diets, an avoid list, and four fetch choices); **Run setup again** in the popup or settings reopens it. Goals can be combined — where two set the same dial they are averaged — and some turn a minus into a plus: fat-reduced dairy under **Weight loss**, added vitamins under **Vitamins & minerals**, honey under **Animal-based (Paul Saladino)**. Those rows are marked "a plus for your goals" and capped at +20 in total; hard caps such as Red 40 never become pluses. Definitions live in `src/engine/categories.js` (`PRESETS`, `goalWeights`).
+A new install opens a one-minute setup (goals, allergens and diets, an avoid list, and four fetch choices); **Run setup again** in the popup or settings reopens it. Goals can be combined — where two set the same dial they are averaged, weighted by how much each goal counts (a slider per goal in settings, 1 each by default) — and some turn a minus into a plus: fat-reduced dairy under **Weight loss**, added vitamins under **Vitamins & minerals**, honey under **Animal-based (Paul Saladino)**. Those rows are marked "a plus for your goals" and capped at +20 in total; hard caps such as Red 40 never become pluses. Definitions live in `src/engine/categories.js` (`PRESETS`, `goalWeights`).
 
 ## Tests
 

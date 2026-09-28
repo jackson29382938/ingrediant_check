@@ -632,7 +632,7 @@
     "message": "Ziele kombiniert: Wo zwei denselben Regler setzen, wird gemittelt."
   },
   "optNotePresets": {
-    "message": "Wähle ein Ziel oder mehrere — sie werden kombiniert, und wo zwei denselben Regler setzen, wird gemittelt. Manche Ziele machen aus einem Minus ein Plus: fettreduzierte Milchprodukte bei Abnehmen, zugesetzte Vitamine bei Vitamine & Mineralstoffe. Harte Obergrenzen wie Red 40 werden nie zum Plus. Du kannst danach jeden Regler verschieben; dann steht dort Benutzerdefiniert. Ein erneuter Klick entfernt ein Ziel; Ausgewogen setzt alle zurück."
+    "message": "Wähle ein Ziel oder mehrere — sie werden kombiniert, und wo zwei denselben Regler setzen, wird gemittelt (wie stark jedes zählt, legst du fest). Manche Ziele machen aus einem Minus ein Plus: fettreduzierte Milchprodukte bei Abnehmen, zugesetzte Vitamine bei Vitamine & Mineralstoffe. Harte Obergrenzen wie Red 40 werden nie zum Plus. Du kannst danach jeden Regler verschieben; dann steht dort Benutzerdefiniert. Ein erneuter Klick entfernt ein Ziel; Ausgewogen setzt alle zurück."
   },
   "welTitle": {
     "message": "Ingredient Check einrichten"
@@ -1339,5 +1339,14 @@
   },
   "repStepsPh": {
     "message": "1. Bei Amazon nach Kefir gesucht\n2. Im Menü „Sortieren nach“ Preis pro Unze gewählt\n3. …"
+  },
+  "optGoalMixTitle": {
+    "message": "Wie stark jedes Ziel zählt"
+  },
+  "optGoalMixNote": {
+    "message": "Wo zwei Ziele denselben Regler setzen, wird nach diesen Gewichten gemittelt. Bei 1 zählen sie gleich; erhöhe ein Ziel, damit es sich durchsetzt, wo sie sich widersprechen."
+  },
+  "optGoalMixAria": {
+    "message": "Wie stark $1 zählt"
   }
 }

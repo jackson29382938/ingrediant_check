@@ -741,7 +741,7 @@ async function sendProducts() {
 //   - the user's own row on the shared sheet, keyed by a hash of their Google account id, written
 //     and read only through the optional Google sign-in (the options page supplies the token)
 
-const BACKUP_SOURCE_KEYS = ['weights', 'allergens', 'diets', 'avoidList', 'foodOnly',
+const BACKUP_SOURCE_KEYS = ['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly',
   ...Object.keys(self.AIR.db.prefs.TOGGLE_DEFAULTS), ...Object.keys(self.AIR.db.prefs.DISPLAY_DEFAULTS)];
 let backupTimer = null;
 

@@ -445,23 +445,44 @@ function matchPreset(weights) {
   return null;
 }
 
+// How much each selected goal counts where goals overlap: a multiplier per goal, 1 unless the reader
+// sets it. Weight loss at 2 with Animal-based at 1 makes honey lean two parts Weight loss to one.
+const IMPORTANCE_MIN = 0.25;
+const IMPORTANCE_MAX = 4;
+function sanitizeGoalImportance(raw) {
+  const out = {};
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+  for (const [id, v] of Object.entries(raw)) {
+    if (!Object.hasOwn(PRESETS, id) || typeof v !== 'number' || !isFinite(v)) continue;
+    const clamped = Math.round(Math.max(IMPORTANCE_MIN, Math.min(IMPORTANCE_MAX, v)) * 100) / 100;
+    if (clamped !== 1) out[id] = clamped;       // 1 is the default and is not stored
+  }
+  return out;
+}
+const importanceOf = (importance, id) => (importance && typeof importance[id] === 'number' ? importance[id] : 1);
+
 // Several goals at once. Each goal votes only on the dials it sets; where goals overlap the votes are
-// averaged, and a dial no goal mentions stays at its default. So Weight loss (artificial sweeteners
+// averaged, weighted by how much each goal counts (1 each by default), and a dial no goal mentions
+// stays at its default. So Weight loss (artificial sweeteners
 // 0.5) with General wellbeing (1.1) lands at 0.8: lifted from the default cap, but less than Weight
 // loss alone. A dial a goal lists in `focus` is decided by the goals focused on it, not averaged
 // away by another goal's incidental setting. No goals, or only Balanced, is the defaults.
-function goalWeights(ids) {
-  const goals = (Array.isArray(ids) ? ids : []).map(id => PRESETS[id]).filter(Boolean);
-  const focused = new Set(goals.flatMap(g => g.focus || []));
+function goalWeights(ids, importance) {
+  const imp = sanitizeGoalImportance(importance);
+  const goals = (Array.isArray(ids) ? ids : []).filter(id => PRESETS[id]).map(id => [PRESETS[id], importanceOf(imp, id)]);
+  const focused = new Set(goals.flatMap(([g]) => g.focus || []));
   const votes = {};
-  for (const g of goals) {
+  for (const [g, w] of goals) {
     for (const [k, v] of Object.entries(g.weights || {})) {
       if (focused.has(k) && !(g.focus || []).includes(k)) continue;
-      (votes[k] = votes[k] || []).push(v);
+      (votes[k] = votes[k] || []).push([v, w]);
     }
   }
   const out = {};
-  for (const [k, list] of Object.entries(votes)) out[k] = list.reduce((a, b) => a + b, 0) / list.length;
+  for (const [k, list] of Object.entries(votes)) {
+    const total = list.reduce((a, [, w]) => a + w, 0);
+    out[k] = list.reduce((a, [v, w]) => a + v * w, 0) / total;
+  }
   return resolveWeights({ ...DEFAULT_WEIGHTS, ...out });
 }
 
@@ -470,8 +491,8 @@ function sanitizeGoals(ids) {
   return [...new Set(ids.filter(id => typeof id === 'string' && Object.hasOwn(PRESETS, id)))];
 }
 
-function weightsMatchGoals(weights, ids, epsilon = 0.001) {
-  const target = goalWeights(ids);
+function weightsMatchGoals(weights, ids, epsilon = 0.001, importance) {
+  const target = goalWeights(ids, importance);
   const current = resolveWeights(weights);
   return Object.keys(target).every(k => Math.abs((current[k] ?? 0) - target[k]) < epsilon);
 }
@@ -479,9 +500,9 @@ function weightsMatchGoals(weights, ids, epsilon = 0.001) {
 // Which goals describe these weights. The stored list when the weights still match it; otherwise a
 // single preset they happen to match (settings from before goals could be combined); otherwise the
 // list is kept but marked custom, because a slider has moved.
-function describeGoals(weights, goals) {
+function describeGoals(weights, goals, importance) {
   const ids = sanitizeGoals(goals);
-  if (weightsMatchGoals(weights, ids)) return { ids, custom: false };
+  if (weightsMatchGoals(weights, ids, 0.001, importance)) return { ids, custom: false };
   const single = matchPreset(weights);
   if (single) return { ids: single[0] === 'balanced' ? [] : [single[0]], custom: false };
   return { ids, custom: true };
@@ -510,6 +531,7 @@ const _exports = AIRmodule('categories', {
   CATEGORIES, PRESETS, PRESET_CATEGORIES, DEFAULT_WEIGHTS, resolveWeights,
   presetWeightMap, weightsMatchPreset, matchPreset, presetsInCategory, listPresets,
   SIGNED, goalWeights, sanitizeGoals, weightsMatchGoals, describeGoals, toggleGoal, goalsLabel,
+  IMPORTANCE_MIN, IMPORTANCE_MAX, sanitizeGoalImportance,
 });
 if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 

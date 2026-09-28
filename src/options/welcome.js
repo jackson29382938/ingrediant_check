@@ -28,7 +28,7 @@ for (const el of document.querySelectorAll('[data-i18n-placeholder]')) {
 }
 
 const picked = { goals: [], allergens: [], diets: [], avoid: [] };
-let startGoals = [], startWeights = null, step = 1;
+let startGoals = [], startWeights = null, startImportance = {}, step = 1;
 
 function chip(label, on, onToggle) {
   const b = document.createElement('button');
@@ -118,7 +118,7 @@ async function finish() {
   const goals = CATS.sanitizeGoals(picked.goals);
   const sameGoals = goals.length === startGoals.length && goals.every(g => startGoals.includes(g));
   // Unchanged goals keep whatever sliders were already set; new goals load their weights.
-  const weights = sameGoals && startWeights ? startWeights : CATS.goalWeights(goals);
+  const weights = sameGoals && startWeights ? startWeights : CATS.goalWeights(goals, startImportance);
   const scoring = PREFS.sanitizeScoring({
     weights, goals, allergens: picked.allergens, diets: picked.diets,
     avoidList: document.getElementById('avoidList').value, foodOnly: true,
@@ -156,10 +156,11 @@ document.getElementById('useOpenFoodFacts').addEventListener('change', e => {
   });
 });
 
-chrome.storage.local.get(['weights', 'goals', 'allergens', 'diets', 'avoidList', ...OPTIONS], o => {
+chrome.storage.local.get(['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', ...OPTIONS], o => {
   const scoring = PREFS.sanitizeScoring(o);
   const toggles = PREFS.sanitizeToggles(o);
-  startGoals = CATS.describeGoals(scoring.weights, scoring.goals).ids;
+  startImportance = scoring.goalImportance;
+  startGoals = CATS.describeGoals(scoring.weights, scoring.goals, startImportance).ids;
   startWeights = scoring.weights;
   picked.goals = [...startGoals];
   picked.allergens = [...scoring.allergens];

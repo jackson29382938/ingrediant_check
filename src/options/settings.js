@@ -75,6 +75,7 @@ function applyScoring(next) {
   const clean = PREFS.sanitizeScoring(next);
   state.weights = clean.weights;
   state.goals = clean.goals;
+  state.goalImportance = clean.goalImportance;
   state.allergens = clean.allergens;
   state.diets = clean.diets;
   state.avoidList = clean.avoidList;
@@ -211,7 +212,7 @@ function presetCategories() {
 
 // { ids, custom } — the selected goals, and whether a slider has since moved off them.
 function currentGoals() {
-  return CATS.describeGoals(state.weights, state.goals);
+  return CATS.describeGoals(state.weights, state.goals, state.goalImportance);
 }
 
 function renderPresetCategories() {
@@ -349,7 +350,7 @@ function paintPresetActive(goals) {
 function applyPreset(id) {
   if (!CATS.PRESETS[id]) return;
   const goals = CATS.toggleGoal(currentGoals().ids, id);
-  applyScoring({ ...state, goals, weights: CATS.goalWeights(goals) });
+  applyScoring({ ...state, goals, weights: CATS.goalWeights(goals, state.goalImportance) });
   // Goals combine across tabs: stay on the tab that was clicked instead of jumping to the first
   // selected goal's tab, which hid the goal just picked.
   const host = document.getElementById('presets');
@@ -358,8 +359,66 @@ function applyPreset(id) {
   renderCategories();
   renderPresetCategories();
   renderPresets();
+  renderGoalMix();
   showPresetDetail(id);
   save({ immediate: true });
+}
+
+// One slider per selected goal, shown once two or more are picked: how much that goal counts where
+// goals set the same dial. 1 each is a plain average; moving one re-averages the weights.
+function renderGoalMix() {
+  const box = document.getElementById('goalMix');
+  const rows = document.getElementById('goalMixRows');
+  if (!box || !rows) return;
+  const goals = currentGoals();
+  const ids = goals.ids.filter(id => CATS.PRESETS[id]);
+  box.hidden = ids.length < 2 || goals.custom;
+  if (box.hidden) { rows.textContent = ''; delete rows.dataset.ids; return; }
+  // The same goals: update the values in place, so a save while a slider is being dragged does not
+  // rebuild it under the pointer.
+  if (rows.dataset.ids === ids.join(',')) {
+    for (const input of rows.querySelectorAll('input[data-goal-mix]')) {
+      if (input === document.activeElement) continue;
+      const v = (state.goalImportance && state.goalImportance[input.dataset.goalMix]) || 1;
+      input.value = String(v);
+      input.nextElementSibling.textContent = `×${v}`;
+    }
+    return;
+  }
+  rows.dataset.ids = ids.join(',');
+  rows.textContent = '';
+  for (const id of ids) {
+    const label = CATS.PRESETS[id].label;
+    const value = (state.goalImportance && state.goalImportance[id]) || 1;
+    const row = document.createElement('div');
+    row.className = 'goal-mix-row';
+    const name = document.createElement('label');
+    name.htmlFor = `goalMix-${id}`;
+    name.textContent = label;
+    const input = document.createElement('input');
+    input.type = 'range';
+    input.id = `goalMix-${id}`;
+    input.dataset.goalMix = id;
+    input.min = String(CATS.IMPORTANCE_MIN);
+    input.max = String(CATS.IMPORTANCE_MAX);
+    input.step = '0.25';
+    input.value = String(value);
+    input.setAttribute('aria-label', msg('optGoalMixAria', `How much ${label} counts`, label));
+    const out = document.createElement('output');
+    out.htmlFor = input.id;
+    out.textContent = `×${value}`;
+    input.addEventListener('input', () => {
+      const v = Number(input.value);
+      out.textContent = `×${v}`;
+      const imp = { ...(state.goalImportance || {}), [id]: v };
+      applyScoring({ ...state, goalImportance: imp, weights: CATS.goalWeights(currentGoals().ids, imp) });
+      renderCategories();
+      markPresetDirty();
+      save();
+    });
+    row.append(name, input, out);
+    rows.appendChild(row);
+  }
 }
 
 function markActivePreset(goals) {
@@ -560,6 +619,7 @@ function renderAll() {
   renderCategories();
   renderPresetCategories();
   renderPresets();
+  renderGoalMix();
   renderChips('allergens', ALLERGENS.ALLERGENS, state.allergens, (id, on) => toggleIn(state.allergens, id, on));
   renderChips('diets', ALLERGENS.DIETS, state.diets, (id, on) => toggleIn(state.diets, id, on));
   const avoid = document.getElementById('avoidList');
@@ -705,7 +765,7 @@ function wireBreakdown() {
 // Called from settings-database.js, the options page's second classic script, once it has loaded.
 /* exported startSettingsPage */
 function startSettingsPage() {
-  chrome.storage.local.get(['weights', 'goals', 'allergens', 'diets', 'avoidList', 'foodOnly'], o => {
+  chrome.storage.local.get(['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly'], o => {
     applyScoring(o);
     if (!PREFS.scoringEqual(o, state)) persist(scoringPayload());
     const first = currentGoals().ids[0];
@@ -755,8 +815,8 @@ chrome.storage.onChanged.addListener(changes => {
     const fo = document.getElementById('foodOnly');
     if (fo) fo.checked = state.foodOnly;
   }
-  if (changes.weights || changes.goals || changes.allergens || changes.diets || changes.avoidList) {
-    chrome.storage.local.get(['weights', 'goals', 'allergens', 'diets', 'avoidList', 'foodOnly'], o => {
+  if (changes.weights || changes.goals || changes.goalImportance || changes.allergens || changes.diets || changes.avoidList) {
+    chrome.storage.local.get(['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly'], o => {
       applyScoring(o);
       renderAll();
     });

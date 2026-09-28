@@ -46,6 +46,13 @@
                          text-transform: uppercase; color: #0f7b3f; }
   .preset-active-name { font-weight: 700; font-size: 14px; }
   .preset-active-name.is-custom { color: #565959; font-weight: 600; }
+  .goal-mix { margin: -6px 0 14px; padding: 10px 12px; border-radius: 8px; border: 1px solid #d5d9d9; }
+  .goal-mix-title { font-weight: 700; font-size: 13px; margin: 0 0 2px; }
+  .goal-mix-note { margin: 0 0 8px; }
+  .goal-mix-row { display: flex; align-items: center; gap: 10px; margin: 4px 0; flex-wrap: wrap; }
+  .goal-mix-row label { min-width: 150px; font-size: 13px; }
+  .goal-mix-row input[type=range] { flex: 1 1 160px; max-width: 280px; }
+  .goal-mix-row output { min-width: 3.5em; font-variant-numeric: tabular-nums; font-weight: 600; }
   .preset-cats { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
   .preset-cat { border: 1px solid #d5d9d9; background: #fff; border-radius: 8px;
                 padding: 6px 12px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
@@ -150,6 +157,7 @@
     .jump a:hover, .preset:hover, button.act:hover, .hint-chip:hover { background: #2d2f2f; }
     .preset, button.act { background: #2d2f2f; border-color: #3a3c3c; color: #f3f3f3; }
     .preset-active { background: #1e2a22; border-color: #2f5a40; }
+    .goal-mix { border-color: #3a3c3c; }
     .preset-active-label { color: #6fdf9a; }
     .preset-active-name.is-custom { color: #aeaeae; }
     .preset-cat { background: #232525; border-color: #3a3c3c; color: #f3f3f3; }
@@ -353,11 +361,16 @@
   <section id="sec-presets">
     <h2 data-i18n="optPresetsH">Goal-based scoring</h2>
     <p class="note" style="margin: -6px 0 12px" data-i18n="optNotePresets">
-      Pick one goal or several — they combine, and where two set the same dial they are averaged. Some goals turn a minus into a plus: fat-reduced dairy under Weight loss, added vitamins under Vitamins & minerals. Hard ceilings like Red 40 never become pluses. You can still move any slider afterwards; the active label then shows Custom. Click a selected goal again to remove it; Balanced clears them all.
+      Pick one goal or several — they combine, and where two set the same dial they are averaged (you can set how much each counts). Some goals turn a minus into a plus: fat-reduced dairy under Weight loss, added vitamins under Vitamins & minerals. Hard ceilings like Red 40 never become pluses. You can still move any slider afterwards; the active label then shows Custom. Click a selected goal again to remove it; Balanced clears them all.
     </p>
     <div class="preset-active" id="presetActive" aria-live="polite">
       <span class="preset-active-label" data-i18n="optPresetActive">Active</span>
       <span class="preset-active-name" id="presetActiveName">Balanced</span>
+    </div>
+    <div class="goal-mix" id="goalMix" hidden>
+      <p class="goal-mix-title" data-i18n="optGoalMixTitle">How much each goal counts</p>
+      <p class="note goal-mix-note" data-i18n="optGoalMixNote">Where two goals set the same dial, they are averaged by these weights. At 1 each they count equally; raise a goal to let it win where they disagree.</p>
+      <div id="goalMixRows"></div>
     </div>
     <div class="preset-cats" id="presetCats" role="tablist" data-i18n-aria="optPresetCatsAria" aria-label="Preset categories"></div>
     <p class="preset-cat-blurb" id="presetCatBlurb"></p>

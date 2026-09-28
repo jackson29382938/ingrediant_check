@@ -357,7 +357,7 @@
     "message": "Preset categories"
   },
   "optNotePresets": {
-    "message": "Pick one goal or several — they combine, and where two set the same dial they are averaged. Some goals turn a minus into a plus: fat-reduced dairy under Weight loss, added vitamins under Vitamins & minerals. Hard ceilings like Red 40 never become pluses. You can still move any slider afterwards; the active label then shows Custom. Click a selected goal again to remove it; Balanced clears them all."
+    "message": "Pick one goal or several — they combine, and where two set the same dial they are averaged (you can set how much each counts). Some goals turn a minus into a plus: fat-reduced dairy under Weight loss, added vitamins under Vitamins & minerals. Hard ceilings like Red 40 never become pluses. You can still move any slider afterwards; the active label then shows Custom. Click a selected goal again to remove it; Balanced clears them all."
   },
   "optTitle": {
     "message": "Ingredient Check — Settings"
@@ -1341,5 +1341,14 @@
   },
   "repStepsPh": {
     "message": "1. Searched Amazon for kefir\n2. Chose Price per ounce in Amazon's Sort by menu\n3. …"
+  },
+  "optGoalMixTitle": {
+    "message": "How much each goal counts"
+  },
+  "optGoalMixNote": {
+    "message": "Where two goals set the same dial, they are averaged by these weights. At 1 each they count equally; raise a goal to let it win where they disagree."
+  },
+  "optGoalMixAria": {
+    "message": "How much $1 counts"
   }
 }
