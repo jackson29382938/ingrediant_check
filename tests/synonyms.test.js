@@ -1134,3 +1134,13 @@ test('from the bilingual pairs: rice flour, barley, lecithin, silica, tocopherol
     for (const l of locals) assert.deepEqual(reasons(score(`water, ${l}`)).sort(), reasons(score(`water, ${en}`)).sort(), l);
   }
 });
+
+test('facility and shared-equipment statements are not ingredients, and still raise their allergen flags', () => {
+  for (const t of ['Organic Red Quinoa. Packaged in a facility that also processes tree nuts and wheat.',
+    'Quinoa. Produced in a plant that handles peanuts.', 'Oats. Processed on shared equipment with wheat.', 'Almonds. Made on the same line as peanuts.']) {
+    const [first] = t.split('.');
+    assert.equal(score(t).score, score(first).score, t);
+  }
+  const r = score('Organic Red Quinoa. Packaged in a facility that also processes tree nuts and wheat.', { allergens: ['wheat', 'treeNut'] });
+  assert.deepEqual(r.flags.map(f => f.id).sort(), ['treeNut', 'wheat']);
+});

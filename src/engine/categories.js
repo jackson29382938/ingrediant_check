@@ -45,7 +45,7 @@ const CATEGORIES = [
     help: 'Artificial flavours, bare "flavouring", and flavour enhancers such as vanillin and maltol.' },
   { id: 'naturalFlavour', group: 'Additives', kind: 'penalty', def: 1, signed: true,
     label: '"Natural flavors"',
-    help: 'An undisclosed proprietary blend. Separate from artificial flavours so a goal that does not care about it (weight loss) can nearly switch it off. Below 0 it counts in favour of the product — a goal can set that.' },
+    help: 'An undisclosed proprietary blend. Separate from artificial flavours so a goal that does not care about it (weight loss) can nearly switch its points off. Below 0 it counts in favour of the product — a goal can set that. The dial moves points only: an added flavouring still makes the product ultra-processed (NOVA 4), which sets its starting score.' },
   { id: 'glutamate', group: 'Additives', kind: 'penalty', def: 1,
     label: 'MSG & free glutamates',
     help: 'Monosodium glutamate, yeast extract, hydrolysed protein, disodium inosinate.' },

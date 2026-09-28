@@ -720,7 +720,7 @@ const NUTRITION = [
 
 // Cross-contact statements in each store language. Matched against a whole entry.
 const MAY_CONTAIN = new RegExp('^(?:(?:this product )?(?:may|can) (?:also )?contain|(?:may )?contains? traces?|traces? of|possible traces?|traces? possibles?|possibles? traces?'
-  + '|(?:produced|made|manufactured|packed) (?:in a (?:factory|facility)|on (?:equipment|a line))'
+  + '|(?:produced|made|manufactured|packed|packaged|processed|prepared|bottled|roasted) (?:in|on|at) (?:a |the |our )?(?:shared |same )?(?:factory|facility|plant|site|premises|equipment|(?:production )?line)'
   + '|peut contenir|traces? (?:[ée]ventuelles? )?d[e\'’]|kann (?:spuren|.*enthalten)|enth[äa]lt spuren|puede contener|trazas de'
   + '|pu[òo] contenere|tracce di|pode conter|vest[íi]gios de|kan (?:sporen|innehålla|spår)|mo[żz]e zawiera[ćc]'
   + '|.*\\bi[çc]erebilir|eser miktarda)', 'i');
