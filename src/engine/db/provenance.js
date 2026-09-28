@@ -60,6 +60,12 @@ const CERTIFICATIONS = [
     m: /\b(usda organic|certified organic)\b/i,
     means: 'Organic feed, no antibiotics or added hormones, outdoor access required. Note: organic does NOT mean 100% grass-fed.',
     applies: ['beef', 'pork', 'poultry', 'lamb', 'egg', 'dairy', 'produce', 'grain', 'nut'] },
+  // The word "organic" alone names no certifier, so it is not "USDA Organic". It is still a legally
+  // restricted word on US and EU food labels, so it counts as a claim, never on top of the certification.
+  { id: 'organicClaim', tier: 2, pts: 12, label: 'Organic', weakerThan: 'organic',
+    m: /\borganic\b/i,
+    means: 'Printed as "organic" without naming a certifier. In the US and EU the word is restricted to certified products, but no certification is shown here.',
+    applies: ['beef', 'pork', 'poultry', 'lamb', 'egg', 'dairy', 'produce', 'grain', 'nut'] },
   { id: 'humane', tier: 3, pts: 8, label: 'Certified Humane',
     m: /\bcertified humane\b/i,
     means: 'Audited welfare standard covering space, bedding and handling. Base certification does not by itself require pasture.',
@@ -147,6 +153,7 @@ function detectCertifications(evidence, kind) {
   if (found.some(c => c.id === 'grassFinished')) drop.add('grassFed');
   if (found.some(c => c.id === 'aga')) { drop.add('grassFed'); drop.add('grassFinished'); }
   if (found.some(c => c.id === 'gap5')) drop.add('gap4');
+  for (const c of found) if (c.weakerThan && found.some(f => f.id === c.weakerThan)) drop.add(c.id);
   return found.filter(c => !drop.has(c.id));
 }
 

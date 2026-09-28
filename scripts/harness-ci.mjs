@@ -553,12 +553,13 @@ async function run() {
         auto: document.getElementById('autoScoreSearch').checked,
         hover: document.getElementById('hoverScore').checked,
       }));
-      if (before.stores !== manifest.host_permissions.length || !before.auto || before.hover) {
+      // Auto-rating search results is off until the reader turns it on (storefront audit, 2026-09-27).
+      if (before.stores !== manifest.host_permissions.length || before.auto || before.hover) {
         throw new Error(`settings search scoring: ${JSON.stringify(before)}`);
       }
       await settingsPage.click('#autoScoreSearch');
-      await settingsPage.waitForFunction(() => window.__stored.autoScoreSearch === false, { timeout: 5000 });
-      console.log(`  ok  settings → auto-rate and hover switches, ${before.stores} stores from the manifest, saves off`);
+      await settingsPage.waitForFunction(() => window.__stored.autoScoreSearch === true, { timeout: 5000 });
+      console.log(`  ok  settings → auto-rate and hover switches, ${before.stores} stores from the manifest, off by default, saves on`);
 
       // Store wishlist: the list comes from the registry, and the draft link only exists once valid.
       const idle = await settingsPage.evaluate(() => ({
@@ -630,20 +631,21 @@ async function run() {
       const disabled = await settingsPage.evaluate(() => [...document.querySelectorAll('input[name="unitMissing"]')].every(r => r.disabled));
       if (!disabled) throw new Error('unit price off should disable its choices');
       console.log('  ok  settings → price per ounce on, "clear weight", speed Balanced by default; each saves; off disables its choices');
-      // Shared product readings: off by default, and unusable while the shared database is off.
+      // Shared product readings: off by default, and unusable while the shared database is off, which
+      // is itself off by default since the storefront audit (2026-09-27).
       const sharing = () => settingsPage.evaluate(() => ({
         on: document.getElementById('sharedProducts').checked,
         disabled: document.getElementById('sharedProducts').disabled,
       }));
       const first = await sharing();
-      if (first.on || first.disabled) throw new Error(`shared readings should start off and usable: ${JSON.stringify(first)}`);
-      await settingsPage.click('#sharedCache');
-      await settingsPage.waitForFunction(() => window.__stored.sharedCache === false, { timeout: 5000 });
-      if (!(await sharing()).disabled) throw new Error('shared readings should be disabled while the shared database is off');
+      if (first.on || !first.disabled) throw new Error(`shared readings should start off and disabled: ${JSON.stringify(first)}`);
       await settingsPage.click('#sharedCache');
       await settingsPage.waitForFunction(() => window.__stored.sharedCache === true, { timeout: 5000 });
-      if ((await sharing()).disabled) throw new Error('shared readings should be usable again');
-      console.log('  ok  settings → shared product readings off by default; disabled while the shared database is off');
+      if ((await sharing()).disabled) throw new Error('shared readings should be usable once the shared database is on');
+      await settingsPage.click('#sharedCache');
+      await settingsPage.waitForFunction(() => window.__stored.sharedCache === false, { timeout: 5000 });
+      if (!(await sharing()).disabled) throw new Error('shared readings should be disabled again');
+      console.log('  ok  settings → shared database and shared readings off by default; readings usable only while the database is on');
       // Import: a real export is applied; an oversized file is refused without touching the settings.
       const exported = JSON.stringify({ _format: 'ingredient-check-settings', _version: 1, weights: { sugar: 1.7 }, allergens: ['milk'] });
       await settingsPage.setInputFiles('#importFile', { name: 'settings.json', mimeType: 'application/json', buffer: Buffer.from(exported) });
@@ -890,10 +892,11 @@ async function amazonEndToEnd(context, worker, pageErrors) {
   if (shampooState !== 'not-food') throw new Error(`real content script on the shampoo page: ${shampooState}`);
   await shampoo.close();
 
-  // "Rate every search result" is on by default: the badge queue requests each tile's product page.
-  // The breakdown is switched off here so the badges are plain named images, not buttons, and a page
-  // observer records any badge that is ever a live region, however briefly.
-  await worker.evaluate(() => chrome.storage.local.set({ hoverBreakdown: false }));
+  // "Rate every search result" is off by default (storefront audit, 2026-09-27), so it is turned on
+  // here: the badge queue then requests each tile's product page. The breakdown is switched off so the
+  // badges are plain named images, not buttons, and a page observer records any badge that is ever a
+  // live region, however briefly.
+  await worker.evaluate(() => chrome.storage.local.set({ autoScoreSearch: true, hoverBreakdown: false }));
   const search = await context.newPage();
   search.on('pageerror', err => pageErrors.push(`search: uncaught ${err.message}`));
   search.on('console', message => { if (message.text().includes('[AIR]')) pageErrors.push(`search: ${message.text()}`); });

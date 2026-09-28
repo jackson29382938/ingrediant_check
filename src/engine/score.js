@@ -1077,7 +1077,7 @@ function score(product, options = {}) {
     const critical = provenanceOwnsSourcing;
     const verified = prov.detectCertifications(strong, kindInfo.kind);
     const claims = prov.detectCertifications(claimed, kindInfo.kind)
-      .filter(c => !verified.some(v => v.id === c.id));
+      .filter(c => !verified.some(v => v.id === c.id || v.id === c.weakerThan));
     const undisclosed = !critical || verified.length ? 0 : (claims.length ? 10 : 14);
     const unknownCost = Math.round(undisclosed * w_('provenanceUnknown'));
     let gained = 0;

@@ -1024,3 +1024,12 @@ test('an unnamed flavour enhancer is charged and ultra-processed; a named one is
   assert.deepEqual(reasons(score('water, smaakversterkers: mononatriumglutamaat, dinatriuminosinaat')).sort(),
     reasons(score('water, flavour enhancers: monosodium glutamate, disodium inosinate')).sort());
 });
+
+test('bare "organic" is an organic claim, never "USDA Organic"; a verified certification replaces it', () => {
+  const claim = engine.score({ name: 'Organic Valley Whole Milk', ingredients_text: 'Organic Grade A Milk, Vitamin D3' });
+  assert.ok(claim.good.some(g => g.why === 'Organic, unverified'));
+  assert.ok(!claim.good.some(g => /USDA Organic/.test(g.why)));
+  const verified = engine.score({ name: 'Organic Whole Milk', ingredients_text: 'Organic milk', certifications: 'USDA Organic' });
+  assert.ok(verified.good.some(g => g.why === 'USDA Organic — verified'));
+  assert.ok(!verified.good.some(g => /^Organic\b/.test(g.why)));
+});
