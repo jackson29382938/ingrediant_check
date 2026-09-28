@@ -1087,3 +1087,18 @@ test('organic always earns a benefit: all-penalised lists, capped products and a
   const oil = engine.score({ name: 'Canola Oil', ingredients_text: 'organic canola oil' });
   assert.ok(oil.bad.some(h => h.cap && /organic counted above it/.test(h.why)));
 });
+
+test('sweetener names in each language, and two joined by a conjunction', () => {
+  for (const [en, locals] of Object.entries({
+    'maltitol syrup': ['xarope de maltitol', 'jarabe de maltitol', 'sciroppo di maltitolo', 'Maltitsirup', 'maltitolsiroop'],
+    'sorbitol syrup': ['xarope de sorbitol', 'Sorbitsirup', 'sorbitolsirap'],
+    xylitol: ['xilitol', 'ksylitol'], isomalt: ['isomaltitol'], 'steviol glycosides': ['steviol glikozitler', 'steviadan steviol glikozitler'],
+    saccharin: ['sakarin'], cyclamate: ['Natriumcyclamat'],
+  })) {
+    for (const l of locals) assert.deepEqual(reasons(score(`water, ${l}`)), reasons(score(`water, ${en}`)), l);
+  }
+  for (const t of ['maltitol and isomalt', 'maltitol e isomalt', 'maltitol y isomalt', 'maltitol und isomalt']) {
+    assert.deepEqual(reasons(score(`water, ${t}`)).sort(), ['Isomalt', 'Maltitol'], t);
+  }
+  assert.deepEqual(reasons(score('harina, edulcorantes (maltitol e isomalt)')).sort(), reasons(score('harina, maltitol, isomalt')).sort());
+});

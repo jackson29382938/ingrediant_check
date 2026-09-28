@@ -91,24 +91,24 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\bsucralos[ae]\b|\bsucralosio\b|\bsukraloz[ae]?\b|\bsukralos\b|\bsplenda\b|\be[- ]?955\b/i,       cap: 22, why: 'Sucralose' },
     { m: /\baspartam[eo]?\b|\bnutrasweet\b|\be[- ]?951\b|\be[- ]?962\b/i,   cap: 22, why: 'Aspartame' },
     { m: /\bac[ée]sulfam[eo]?([- ]?k| potassium| pot[áa]sico| de potassium| potassico)?\b|\bacesulfam[- ]?k\b|\bacess?ulfame?(?:[- ]?k| de pot[áa]ssio)?\b|\bases[üu]lfam(?:[- ]?k)?\b|\bace[- ]?k\b|\be[- ]?950\b/i, cap: 22, why: 'Acesulfame potassium' },
-    { m: /\bsaccharin[e]?\b|\bsacarina\b|\bsaccarina\b|\bsacharyna\b|\bsakkarin\b|\bsackarin\b|\bsacarin[ae]\b|\be[- ]?954\b/i,     cap: 22, why: 'Saccharin' },
+    { m: /\bsaccharin[e]?\b|\bsacarina\b|\bsaccarina\b|\bsacharyna\b|\bsakkarin\b|\bsakarin\b|\bsackarin\b|\bsacarin[ae]\b|\be[- ]?954\b/i,     cap: 22, why: 'Saccharin' },
     { m: /\bneotame\b|\be[- ]?961\b/i,                        cap: 22, why: 'Neotame' },
     { m: /\badvantame\b|\be[- ]?969\b/i,                      cap: 22, why: 'Advantame' },
-    { m: /\bcyclamates?\b|\bcyclamic acid\b|\bcyklaminian\w*|\bsiklamat\b|\bcyclamaat\b|\bciclamatos?\b|\bcyclamat\b|\bcyklamat\b|\be[- ]?952\b/i,                      cap: 22, why: 'Cyclamate' },
+    { m: /\bcyclamates?\b|\bcyclamic acid\b|\bcyklaminian\w*|\bsiklamat\b|\bcyclamaat\b|\bciclamatos?\b|\bcyclamat\b|\b(?:natrium|kalium|calcium)cyclamat\b|\bcyklamat\b|\be[- ]?952\b/i,                      cap: 22, why: 'Cyclamate' },
   ];
 
   // SUGAR ALCOHOLS & NOVEL — penalised, not capped.
   const ALCOHOLS = [
     { m: /^(?:erythritol|[ée]rythritol|eritritol[oe]?|erytrytol|erythrit|eritritol|e[- ]?968)$/i,             pts: 12, why: 'Erythritol' },
-    { m: /^(?:xylitol|e[- ]?967)$/i,                pts: 10, why: 'Xylitol' },
-    { m: /^(?:maltitol(?:s|e|i)?( syrup)?|maltitolo|maltitole|sirop de maltitol|e[- ]?965)$/i,      pts: 12, why: 'Maltitol' },
-    { m: /^(?:sorbitol(?:s|e|i)?( syrup)?|sorbitolo|sorbitole|sirop de sorbitol|e[- ]?420)$/i,               pts: 11, why: 'Sorbitol' },
+    { m: /^(?:xylitol|xilitol[oe]?|ksylitol|ksilitol|xylit|e[- ]?967)$/i,                pts: 10, why: 'Xylitol' },
+    { m: /^(?:maltitol(?:s|e|i)?( syrup)?|maltitolo|maltitole|sirop de maltitol|xarope de maltitol|jarabe de maltitol|sciroppo di maltitolo|maltitsirup|maltitolsiroop|maltitolsirap|syrop maltitolowy|maltitol [şs]urubu|e[- ]?965)$/i,      pts: 12, why: 'Maltitol' },
+    { m: /^(?:sorbitol(?:s|e|i)?( syrup)?|sorbitolo|sorbitole|sirop de sorbitol|xarope de sorbitol|jarabe de sorbitol|sciroppo di sorbitolo|sorbitsirup|sorbitolsiroop|sorbitolsirap|syrop sorbitolowy|sorbitol [şs]urubu|e[- ]?420)$/i,               pts: 11, why: 'Sorbitol' },
     { m: /^(?:mannitol|e[- ]?421)$/i,               pts: 11, why: 'Mannitol' },
-    { m: /^(?:isomalte?|e[- ]?953)$/i,                pts: 11, why: 'Isomalt' },
+    { m: /^(?:isomalte?|isomaltitol|izomalt|e[- ]?953)$/i,                pts: 11, why: 'Isomalt' },
     { m: /^(?:lactitol|e[- ]?966)$/i,               pts: 11, why: 'Lactitol' },
     { m: /^sugar alcohols?$/i,                      pts: 11, why: 'Sugar alcohol (unnamed)' },
     { m: /^allulose$/i,               pts: 8,  why: 'Allulose' },
-    { m: /^(steviol glycosides?|stevia( leaf extract)?|reb[- ]?[am]|e[- ]?960[a-d]?|glycosides? de st[ée]viol(?: issus de (?:la )?st[ée]via)?|gluc[óo]sidos de esteviol|gluc[óo]sidos de steviol|glicosidi steviolici|steviolglycosid(?:e|en)|steviolglykosider|glikozydy stewiolowe|steviol glikozitleri|glicos[íi]deos de esteviol)$/i, pts: 8, why: 'Stevia extract — refined, not the leaf' },
+    { m: /^(steviol glycosides?|stevia( leaf extract)?|reb[- ]?[am]|e[- ]?960[a-d]?|glycosides? de st[ée]viol(?: issus de (?:la )?st[ée]via)?|gluc[óo]sidos de esteviol|gluc[óo]sidos de steviol|glicosidi steviolici|steviolglycosid(?:e|en)|steviolglykosider|glikozydy stewiolowe|steviol glikozit(?:ler(?:i)?)?|steviadan steviol glikozit(?:ler(?:i)?)?|glicos[íi]deos de esteviol)$/i, pts: 8, why: 'Stevia extract — refined, not the leaf' },
     { m: /^monk fruit( extract| juice concentrate)?$/i, pts: 6, why: 'Monk fruit extract' },
     { m: /^(soluble )?(corn|tapioca|chicory) (fiber|root fiber)$|^(?:fibres? (?:solubles? )?de (?:chicor[ée]e|ma[ïi]s)|fibra (?:solubile )?di (?:cicoria|mais)|fibra (?:soluble )?de (?:achicoria|ma[ií]z)|fibra (?:sol[úu]vel )?de (?:chic[óo]ria|milho)|zichorienwurzelfasern?|zichorienfasern?|chicoreivezels?|cichoreivezels?|ma[ïi]svezels?|oplosbare ma[ïi]svezels?|cikoriafiber|b[łl]onnik z cykorii|hindiba k[öo]k[üu] lifi)$/i, pts: 9, why: 'Isolated fiber syrup' },
     // Oligofructose and fructo-oligosaccharides are inulin cut shorter, the same chicory isolate: they
@@ -116,6 +116,15 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /^(?:inulin[ae]?|inuline|in[üu]lin|oligofru(?:c|k|t)to[sz][ae]?|oligofru(?:c|k|t)t?os[ae]?|oligofruttosio|oligofrutose|oligofructosa|oligofruktoz[ay]?|(?:fru(?:c|k)to|frutt?o?|fruto)[- ]?oligo(?:sac?c?h?[aá]r|sackar|sakkar|ssacar)[a-zíéáö]*|fos)$/i, pts: 6,  why: 'Isolated inulin' },
     { m: /^(?:polydextrose|polidextros[ae]|polidestrosio|polydextros|polidekstroza|polidekstroz|e[- ]?1200)$/i,           pts: 12, why: 'Polydextrose' },
   ];
+
+  // These rules are anchored to the whole entry, but a list can join two of them with a conjunction the
+  // parser does not split on ("edulcorantes (maltitol e isomalt)", "maltitol and sucralose"): each name
+  // is also read on either side of one.
+  const AND = '\\s(?:and|und|et|e|y|i|en|och|ve|oraz)\\s';
+  for (const r of ALCOHOLS) {
+    const inner = r.m.source.replace(/^\^/, '').replace(/\$$/, '');
+    r.m = new RegExp('^(?:.*?' + AND + ')?(?:' + inner + ')(?:' + AND + '.*)?$', r.m.flags);
+  }
 
   const _exports = AIRmodule('sugars', { FREE, TRADITIONAL, REFINED, INDUSTRIAL, ARTIFICIAL, ALCOHOLS });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
