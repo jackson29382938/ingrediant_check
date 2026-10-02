@@ -424,9 +424,9 @@
   <section id="sec-avoid">
     <h2 id="avoidHeading" data-i18n="optAvoidH">Your own avoid list</h2>
     <p class="note" id="avoidNote" style="margin: -6px 0 10px" data-i18n="optNoteAvoid">
-      One ingredient or phrase per line. Anything matching gets flagged on the panel.
+      Separate ingredients or phrases with commas or new lines. Each entry is flagged independently on the panel.
     </p>
-    <textarea id="avoidList" aria-labelledby="avoidHeading" aria-describedby="avoidNote avoidCount" data-i18n-placeholder="optAvoidPh" placeholder="carrageenan&#10;red 40&#10;natural flavors"></textarea>
+    <textarea id="avoidList" aria-labelledby="avoidHeading" aria-describedby="avoidNote avoidCount" data-i18n-placeholder="optAvoidPh" placeholder="e.g. palm oil, natural flavors"></textarea>
     <p class="note" id="avoidCount" style="margin: 6px 0 0"></p>
     <p class="note" style="margin: 8px 0 6px" data-i18n="optNoteAvoidHint">Add a common one:</p>
     <div class="chips" id="avoidHints"></div>
@@ -496,6 +496,8 @@
         <input type="text" id="oauthClientId" autocomplete="off" spellcheck="false">
         <button class="act" id="saveAccountSetup">Save sign-in configuration</button>
         <p class="note" id="accountRedirect"></p>
+        <button class="act" id="copyAccountRedirect">Copy redirect address</button>
+        <a class="act" href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Open Google Cloud credentials</a>
       </details>
       <p class="note" style="margin: 16px 0 4px">Or keep a copy with your Google account on the
         Ingredient Check database, for a browser that is not signed into Chrome. Only a hash of your
@@ -503,8 +505,10 @@
       <div class="row">
         <button class="act" id="accountSave" data-i18n="optAccountSave">Sign in with Google and save</button>
         <button class="act" id="accountLoad" data-i18n="optAccountLoad">Sign in with Google and restore</button>
-        <span class="status" id="accountStatus"></span>
+        <span class="status" id="accountStatus" role="status"></span>
       </div>
+      <p class="note">Chrome profile sync and Google account backup are separate. Each Google save or restore lets you choose an account; signing in here does not sign Chrome in.</p>
+      <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener">Manage your Google app connections</a>
     </div>
   </section>
 

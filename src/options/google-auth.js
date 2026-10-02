@@ -23,7 +23,12 @@
       url.search = new URLSearchParams({ client_id: clientId, response_type: 'token', scope: 'openid',
         redirect_uri: redirect, prompt: 'select_account', state });
       api.identity.launchWebAuthFlow({ url: url.href, interactive: true }, returned => {
-        if (api.runtime.lastError || !returned) { reject(new Error('cancelled')); return; }
+        const error = api.runtime.lastError;
+        if (error) {
+          reject(new Error(/cancel|closed|did not approve|denied/i.test(error.message || '') ? 'cancelled' : 'auth-failed'));
+          return;
+        }
+        if (!returned) { reject(new Error('cancelled')); return; }
         try { resolve(redirectToken(returned, redirect, state)); } catch (e) { reject(e); }
       });
     });

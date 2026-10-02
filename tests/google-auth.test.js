@@ -26,3 +26,9 @@ test('Google auth flow generates a fresh state and returns only an ephemeral tok
   api.runtime.lastError={message:'cancelled'};
   await assert.rejects(token(api,'public.apps.googleusercontent.com'),/cancelled/);
 });
+
+test('Google configuration errors are not reported as user cancellation', async () => {
+  const api = { runtime: { lastError: { message: 'Authorization page could not be loaded.' } },
+    identity: { getRedirectURL: () => redirect, launchWebAuthFlow(_opts, cb) { cb(); } } };
+  await assert.rejects(token(api, 'public.apps.googleusercontent.com'), /auth-failed/);
+});

@@ -2,9 +2,10 @@
 //
 // Scoring is local. This worker holds the only network paths, and never fetches Amazon pages:
 //   - the shared online database — one Apps Script endpoint, a build constant in prefs.js, inert while
-//     the constant is empty. Certification tables: off until `sharedCache` is enabled. Product
+//     the constant is empty. Certification tables: on by default unless `sharedCache` is disabled. Product
 //     readings from other computers (and uploading this one's): off until `sharedProducts` is on
-//   - Open Food Facts, contributions, diagnostics — each off until toggled
+//   - Open Food Facts — recommended, gated by optional host permission
+//   - contributions and diagnostics — off until toggled
 //   - the settings backup (chrome.storage.sync) and the optional Google-account copy
 
 if (typeof importScripts === 'function') {
@@ -65,7 +66,9 @@ const offInFlight = new Map();
 
 async function lookupBarcode(code, { foodOnly = true } = {}) {
   const conf = await chrome.storage.local.get(['enabled', 'useOpenFoodFacts']);
-  if (conf.enabled === false || conf.useOpenFoodFacts !== true) return null;
+  const toggles = AIR.db.prefs.sanitizeToggles(conf);
+  if (!toggles.enabled || !toggles.useOpenFoodFacts) return null;
+  if (!await chrome.permissions.contains({ origins: ['https://world.openfoodfacts.org/*'] })) return null;
   if (!/^\d{8,14}$/.test(String(code))) return null;
   const key = `off:${code}`;
   const cached = (await chrome.storage.local.get(key))[key];
@@ -174,14 +177,14 @@ function allowedOcrUrls(urls) {
 
 async function ocrLabels(urls) {
   const conf = await chrome.storage.local.get(['enabled', 'ocrLabels']);
-  if (conf.enabled === false || conf.ocrLabels !== true) return { ok: false, reason: 'not-enabled' };
+  if (conf.enabled === false || !AIR.db.prefs.sanitizeToggles(conf).ocrLabels) return { ok: false, reason: 'not-enabled' };
   const allowed = allowedOcrUrls(urls);
   if (!allowed.length) return { ok: false, reason: 'no-images' };
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       await ensureOffscreen();
       const current = await chrome.storage.local.get(['enabled', 'ocrLabels']);
-      if (current.enabled === false || current.ocrLabels !== true) return { ok: false, reason: 'not-enabled' };
+      if (current.enabled === false || !AIR.db.prefs.sanitizeToggles(current).ocrLabels) return { ok: false, reason: 'not-enabled' };
       return await chrome.runtime.sendMessage({ target: 'ocr-offscreen', type: 'ocrImages', urls: allowed });
     } catch (e) {
       const message = String(e && e.message || e);

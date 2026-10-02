@@ -450,7 +450,7 @@
     "message": "Clear filter"
   },
   "optAvoidPh": {
-    "message": "carrageenan\nred 40\nnatural flavors"
+    "message": "e.g. palm oil, natural flavors"
   },
   "optShare": {
     "message": "Send certifications I come across to the shared database"
@@ -534,7 +534,7 @@
     "message": "Flagged on the panel. These never change the score — whether a food contains sesame is a different question from whether it is a good food."
   },
   "optNoteAvoid": {
-    "message": "One ingredient or phrase per line. Anything matching gets flagged on the panel."
+    "message": "Separate ingredients or phrases with commas or new lines. Each entry is flagged independently on the panel."
   },
   "optNoteAvoidHint": {
     "message": "Add a common one:"
@@ -673,13 +673,13 @@
     "message": "Anything you avoid?"
   },
   "welAvoidLede": {
-    "message": "Optional. Products containing these get a red flag. Tap common ones or type your own, one per line."
+    "message": "Optional. Products containing these get a red flag. Tap common ones or type your own, separated by commas or new lines."
   },
   "welOptionsH": {
     "message": "A few last choices"
   },
   "welOptionsLede": {
-    "message": "Scoring always happens on your computer. These decide what the extension may fetch. You can change them later in the toolbar popup."
+    "message": "All four choices are recommended and on by default. Uncheck anything you do not want. Scoring stays on your computer. Chrome will ask for barcode lookup access when you finish. Change these choices later in Settings."
   },
   "welSharedD": {
     "message": "Certifications for whole foods (organic, grass-fed, origin) from tables the developer keeps. Never sends your settings or anything about you."
@@ -1334,7 +1334,7 @@
     "message": "Second cached score"
   },
   "welAvoidPh": {
-    "message": "e.g. palm oil"
+    "message": "e.g. palm oil, natural flavors"
   },
   "repTitlePh": {
     "message": "e.g. Side panel shows no price per ounce for kefir"

@@ -560,7 +560,7 @@ function paintAvoidHints() {
     b.addEventListener('click', () => {
       state.avoidList = PREFS.sanitizeAvoidList([...state.avoidList, term]);
       const ta = document.getElementById('avoidList');
-      if (ta) ta.value = state.avoidList.join('\n');
+      if (ta) ta.value = state.avoidList.join(', ');
       paintAvoidHints();
       save({ immediate: true });
     });
@@ -624,7 +624,7 @@ function renderAll() {
   renderChips('allergens', ALLERGENS.ALLERGENS, state.allergens, (id, on) => toggleIn(state.allergens, id, on));
   renderChips('diets', ALLERGENS.DIETS, state.diets, (id, on) => toggleIn(state.diets, id, on));
   const avoid = document.getElementById('avoidList');
-  if (document.activeElement !== avoid) avoid.value = state.avoidList.join('\n');
+  if (document.activeElement !== avoid) avoid.value = state.avoidList.join(', ');
   paintAvoidHints();
   const fo = document.getElementById('foodOnly');
   if (fo) fo.checked = state.foodOnly;
@@ -787,7 +787,7 @@ function startSettingsPage() {
     });
     document.getElementById('avoidList').addEventListener('blur', e => {
       state.avoidList = PREFS.sanitizeAvoidList(e.target.value);
-      e.target.value = state.avoidList.join('\n');
+      e.target.value = state.avoidList.join(', ');
       paintAvoidHints();
       save({ immediate: true });
     });

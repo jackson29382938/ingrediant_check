@@ -88,10 +88,10 @@ function renderAvoid() {
     host.appendChild(chip(term, have.has(term), on => {
       const lines = PREFS.sanitizeAvoidList(box.value).filter(x => x.toLowerCase() !== term);
       if (on) lines.push(term);
-      box.value = lines.join('\n');
+      box.value = lines.join(', ');
     }));
   }
-  box.value = picked.avoid.join('\n');
+  box.value = picked.avoid.join(', ');
 }
 
 function show(n) {
@@ -115,6 +115,23 @@ function closeTab() {
 }
 
 async function finish() {
+  const next = document.getElementById('next');
+  if (next.disabled) return;
+  next.disabled = true;
+  const status = document.getElementById('status');
+  status.textContent = '';
+  // Request optional barcode access directly from Finish's user gesture.
+  // A checked recommendation is not itself a Chrome permission grant.
+  if (document.getElementById('useOpenFoodFacts').checked) {
+    const granted = await new Promise(resolve => chrome.permissions.request(OFF_PERMISSION,
+      ok => resolve(!chrome.runtime.lastError && ok)));
+    if (!granted) {
+      document.getElementById('useOpenFoodFacts').checked = false;
+      status.textContent = msg('popupOffDenied', 'Chrome did not grant Open Food Facts access.');
+      next.disabled = false;
+      return;
+    }
+  }
   const goals = CATS.sanitizeGoals(picked.goals);
   const sameGoals = goals.length === startGoals.length && goals.every(g => startGoals.includes(g));
   // Unchanged goals keep whatever sliders were already set; new goals load their weights.
@@ -126,10 +143,14 @@ async function finish() {
   const values = { weights: scoring.weights, goals: scoring.goals, allergens: scoring.allergens,
     diets: scoring.diets, avoidList: scoring.avoidList, onboarded: true };
   for (const id of OPTIONS) values[id] = document.getElementById(id).checked;
-  if (values.useOpenFoodFacts) {
-    values.useOpenFoodFacts = await new Promise(resolve => chrome.permissions.contains(OFF_PERMISSION, resolve));
-  }
-  chrome.storage.local.set(values, () => show(LAST + 1));
+  chrome.storage.local.set(values, () => {
+    next.disabled = false;
+    if (chrome.runtime.lastError) {
+      status.textContent = 'Could not save your choices. Please try again.';
+      return;
+    }
+    show(LAST + 1);
+  });
 }
 
 document.getElementById('next').addEventListener('click', () => {
@@ -167,11 +188,15 @@ chrome.storage.local.get(['weights', 'goals', 'goalImportance', 'allergens', 'di
   picked.diets = [...scoring.diets];
   picked.avoid = [...scoring.avoidList];
   for (const id of OPTIONS) document.getElementById(id).checked = toggles[id];
-  chrome.permissions.contains(OFF_PERMISSION, has => {
-    if (!has) document.getElementById('useOpenFoodFacts').checked = false;
-  });
   renderGoals();
   renderWarnings();
   renderAvoid();
   show(1);
+});
+
+document.getElementById('openChromeProfile').addEventListener('click', () => {
+  chrome.tabs.create({ url: 'chrome://settings/people' });
+});
+document.getElementById('openAccountSettings').addEventListener('click', () => {
+  chrome.tabs.create({ url: chrome.runtime.getURL('src/options/options.html#sec-account') });
 });

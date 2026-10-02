@@ -223,8 +223,8 @@
 
   chrome.storage.local.get(['enabled', 'badges', 'hoverScore', 'autoScoreSearch', 'hoverBreakdown',
     'breakdownDetail', 'breakdownDelayMs', 'foodOnly', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList', 'useOpenFoodFacts', 'sharedCache', 'sharedProducts', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'unitPrice'], o => {
-    state.cacheOptions = { ...o };
     const toggles = AIR.db.prefs.sanitizeToggles(o);
+    state.cacheOptions = { ...o, ...toggles };
     state.enabled = toggles.enabled;
     state.badges = toggles.badges;
     state.hoverScore = toggles.hoverScore;
@@ -253,7 +253,8 @@
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area && area !== 'local') return;
     for (const key of ['weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sharedCache', 'sharedProducts', 'sheetIndexRev', 'producerIndexRev']) {
-      if (changes[key]) state.cacheOptions[key] = changes[key].newValue;
+      if (changes[key]) state.cacheOptions[key] = Object.hasOwn(AIR.db.prefs.TOGGLE_DEFAULTS, key)
+        ? AIR.db.prefs.sanitizeToggles({ [key]: changes[key].newValue })[key] : changes[key].newValue;
     }
     if (changes.weights || changes.allergens || changes.diets || changes.avoidList) {
       chrome.storage.local.get(['weights', 'allergens', 'diets', 'avoidList'], o => {
@@ -298,7 +299,7 @@
       if (state.enabled) { schedule(); armAutoScorePass(); }
     }
     if (changes.autoScoreSearch) {
-      state.autoScoreSearch = changes.autoScoreSearch.newValue === true;
+      state.autoScoreSearch = AIR.db.prefs.sanitizeToggles({ autoScoreSearch: changes.autoScoreSearch.newValue }).autoScoreSearch;
       resetListState();
       if (state.enabled && state.badges) wake();
     }
@@ -317,7 +318,7 @@
       AIR.hoverCard?.close();
     }
     if (changes.ocrLabels) {
-      state.ocrLabels = changes.ocrLabels.newValue === true;
+      state.ocrLabels = AIR.db.prefs.sanitizeToggles({ ocrLabels: changes.ocrLabels.newValue }).ocrLabels;
       resetListState();
       if (state.enabled) { removePanel(); wake(); }
     }

@@ -418,14 +418,14 @@ Coverage: 45 controls, 173 penalty matchers, 56 ceilings, 15 label signals, 7 nu
 | enabled | true | Retained local functionality |
 | badges | true | Retained local functionality |
 | foodOnly | true | Retained local functionality |
-| autoScoreSearch | false | Retained opt-in/off |
+| autoScoreSearch | true | Retained opt-in/off |
 | hoverScore | false | Retained opt-in/off |
 | hoverBreakdown | true | Retained local functionality |
-| ocrLabels | false | Retained opt-in/off |
-| useOpenFoodFacts | false | Retained opt-in/off |
+| ocrLabels | true | Retained opt-in/off |
+| useOpenFoodFacts | true | Retained opt-in/off |
 | shareContributions | false | Retained opt-in/off |
 | sendDiagnostics | false | Retained opt-in/off |
-| sharedCache | false | Retained opt-in/off |
+| sharedCache | true | Retained opt-in/off |
 | sharedProducts | false | Retained opt-in/off |
 | unitPrice | true | Retained local functionality |
 | settingsBackup | true | Retained Chrome profile backup; restore remains explicit |

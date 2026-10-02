@@ -166,8 +166,16 @@ function wireAccount() {
     if (!ONLINE) say('accountStatus', 'The account database is not configured in this build.', 'error');
     else if (!clientId) say('accountStatus', 'Google sign-in needs a registered OAuth client ID. Chrome profile backup works independently.');
   });
-  document.getElementById('accountRedirect').textContent = 'Redirect address: ' + (chrome.identity
-    ? chrome.identity.getRedirectURL() : `https://${chrome.runtime.id}.chromiumapp.org/`);
+  const redirect = chrome.identity ? chrome.identity.getRedirectURL() : `https://${chrome.runtime.id}.chromiumapp.org/`;
+  document.getElementById('accountRedirect').textContent = 'Redirect address: ' + redirect;
+  document.getElementById('copyAccountRedirect').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(redirect);
+      say('accountStatus', 'Redirect address copied. Add it to the OAuth client’s authorized redirect URIs.');
+    } catch (e) {
+      say('accountStatus', 'Could not copy. Select and copy the redirect address shown above.', 'error');
+    }
+  });
   document.getElementById('saveAccountSetup').addEventListener('click', () => {
     const id = PREFS.oauthClientId(field.value);
     if (!id) { say('accountStatus', 'Enter a Google client ID ending in .apps.googleusercontent.com', 'error'); return; }
@@ -189,6 +197,7 @@ function wireAccount() {
     } catch (e) {
       const messages = { cancelled: 'Sign-in cancelled. Your settings are unchanged.',
         'permission-denied': 'Google sign-in permission was not granted.',
+        'auth-failed': 'Google sign-in could not start or complete. Register the redirect address in Configure Google sign-in and check the app’s test-user access.',
         'invalid-redirect': 'Google returned an unexpected redirect. Check the registered redirect address.',
         'no-token': 'Google did not return a valid sign-in token.',
         'no-backup': 'Nothing saved to this Google account yet.',

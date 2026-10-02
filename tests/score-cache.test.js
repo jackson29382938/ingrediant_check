@@ -70,13 +70,15 @@ test('fingerprints track weights, food gate, provenance revisions; OCR/OFF only 
   assert.equal(cache.fingerprint({ ocrLabels: true }), cache.fingerprint({}));
   assert.equal(cache.fingerprint({ useOpenFoodFacts: true }), cache.fingerprint({}));
   assert.notEqual(
-    cache.fingerprint({ ocrLabels: true }, 'label-ocr'),
+    cache.fingerprint({ ocrLabels: false }, 'label-ocr'),
     cache.fingerprint({}, 'label-ocr'));
-  assert.notEqual(cache.fingerprint({ ocrLabels: true }, 'ocr'), cache.fingerprint({}, 'ocr'));
+  assert.notEqual(cache.fingerprint({ ocrLabels: false }, 'ocr'), cache.fingerprint({}, 'ocr'));
   assert.notEqual(
-    cache.fingerprint({ useOpenFoodFacts: true }, 'open-food-facts'),
+    cache.fingerprint({ useOpenFoodFacts: false }, 'open-food-facts'),
     cache.fingerprint({}, 'open-food-facts'));
-  assert.equal(cache.fingerprint({ ocrLabels: true }, 'page'), cache.fingerprint({}, 'page'));
+  assert.equal(cache.fingerprint({ ocrLabels: false }, 'page'), cache.fingerprint({}, 'page'));
+  assert.equal(cache.fingerprint({ ocrLabels: true }, 'ocr'), cache.fingerprint({}, 'ocr'));
+  assert.equal(cache.fingerprint({ useOpenFoodFacts: true }, 'open-food-facts'), cache.fingerprint({}, 'open-food-facts'));
 });
 
 test('storedKeys lists keys without reading values when Chrome can, and falls back when it cannot', async () => {

@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const { loadWorker } = require('./worker-scripts.js');
 const ENDPOINT = 'https://script.google.com/macros/s/abcdefghijklmnopqrstuvwxyz1234567890/exec';
-function worker(initial = {}, fetcher, { alarms, endpoint = ENDPOINT, productsAllowed = true } = {}) {
+function worker(initial = {}, fetcher, { alarms, endpoint = ENDPOINT, productsAllowed = true, offPermission = true } = {}) {
   const data = structuredClone(initial);
   const synced = {};
   const event = { addListener() {} };
@@ -23,6 +23,7 @@ function worker(initial = {}, fetcher, { alarms, endpoint = ENDPOINT, productsAl
         getContexts: async () => [],
         onMessage: { addListener(fn) { onMessage = fn; } },
         onStartup: event, onInstalled: event },
+      permissions: { contains: async () => offPermission },
       offscreen: { createDocument: async () => { created++; } },
       alarms: alarms || { create() {}, onAlarm: event },
       action: {
@@ -587,4 +588,11 @@ test('closed build prevents shared product reads and writes even with a saved op
   assert.equal(await w.call('sharedProductsEndpoint()'), '');
   await w.call("productsLookup('amazon.com', ['B00LOAW7U6'])");
   assert.equal(calls, 0);
+});
+
+test('barcode lookup never contacts Open Food Facts without its Chrome host permission', async () => {
+  let requests = 0;
+  const w = worker({}, async () => { requests++; throw new Error('must not fetch'); }, { offPermission: false });
+  assert.equal(await w.call('lookupBarcode("12345678")'), null);
+  assert.equal(requests, 0);
 });

@@ -24,7 +24,7 @@ check('unknown and non-boolean values fall back to defaults', () => {
   assert.strictEqual(clean.enabled, true);
   assert.strictEqual(clean.badges, true);
   assert.strictEqual(clean.ocrLabels, true);
-  assert.strictEqual(clean.autoScoreSearch, false, 'search-page fetches are opt-in');
+  assert.strictEqual(clean.autoScoreSearch, true, 'recommended search rating defaults on');
   assert.strictEqual(clean.hoverBreakdown, true);
   assert.ok(!('extra' in clean));
 });
@@ -109,9 +109,9 @@ check('the build ships with no invented endpoint or OAuth client', () => {
   const endpoint = src.match(/const ENDPOINT = '([^']*)';/)[1];
   assert.ok(endpoint === '' || prefs.toScriptUrl(endpoint), 'ENDPOINT must be empty or a real /exec URL');
 });
-check('Chrome backup defaults on; the shared database and sharing extras default off', () => {
+check('Chrome backup and lookup choices default on; sharing extras default off', () => {
   const t = prefs.sanitizeToggles({});
-  assert.strictEqual(t.sharedCache, false);
+  assert.strictEqual(t.sharedCache, true);
   assert.strictEqual(t.settingsBackup, true);
   assert.strictEqual(t.shareContributions, false);
   assert.strictEqual(t.sendDiagnostics, false);
@@ -190,6 +190,18 @@ check('legacy backups restore and leave unspecified workflow preferences untouch
   assert.ok(restored.ok);
   assert.deepStrictEqual(restored.values.avoidList, ['milk']);
   assert.ok(!Object.hasOwn(restored.values, 'speedMode'));
+});
+
+
+check('comma and newline avoid entries stay separate across imports', () => {
+  assert.deepStrictEqual(prefs.sanitizeAvoidList('palm oil, natural flavors\nred 40, PALM OIL'), ['palm oil', 'natural flavors', 'red 40']);
+  assert.deepStrictEqual(prefs.sanitizeAvoidList(['palm oil, natural flavors']), ['palm oil', 'natural flavors']);
+});
+check('all final setup defaults are on and explicit opt-outs are retained', () => {
+  for (const key of ['autoScoreSearch', 'sharedCache', 'ocrLabels', 'useOpenFoodFacts']) {
+    assert.equal(prefs.sanitizeToggles({})[key], true);
+    assert.equal(prefs.sanitizeToggles({ [key]: false })[key], false);
+  }
 });
 
 if (failed) { console.error('\n' + failed + ' failed'); process.exit(1); }

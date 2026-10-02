@@ -1,12 +1,12 @@
 # Privacy (Chrome Web Store)
 
-Ingredient Check scores grocery labels on Amazon, and as a preview on Target, **on your computer**. By default, settings backup uses your Chrome profile storage; Chrome syncs it to your own account when browser sync is enabled. The shared database, automatic search rating, OCR, barcode lookup, diagnostics, and sharing product readings are off until you enable them. Backup can also be switched off.
+Ingredient Check scores grocery labels on Amazon, and as a preview on Target, **on your computer**. By default, settings backup uses your Chrome profile storage; Chrome syncs it to your own account when browser sync is enabled. Automatic search rating, owner-kept certification lookups, and on-device label OCR are enabled by default. Barcode lookup is recommended and checked in setup but requires Chrome’s optional permission. Diagnostics and sharing product readings stay off. Backup can also be switched off.
 
 This page is the one-screen note for a store listing. Settings copy and [DIAGNOSTICS.md](DIAGNOSTICS.md) say the same things at more length.
 
 ## What the extension reads
 
-On Amazon product, search, browse, and store pages it already has permission to run on, it reads the product title, department crumbs, published ingredient text, nutrition table, barcode/ASIN, and (if you turn the option on) the product image URL already on the page.
+On Amazon product, search, browse, and store pages it already has permission to run on, it reads the product title, department crumbs, published ingredient text, nutrition table, barcode/ASIN, and (unless you switch label OCR off) the product image URL already on the page.
 
 It does not read your Amazon password, payment details, cart, orders, or account pages. Content scripts are not injected there.
 
@@ -25,7 +25,7 @@ access to read product and search pages. **Rate every search result** and **Scor
 use it to request product pages. Settings → *What to rate* lists the stores and explains how to limit
 access (`chrome://extensions` → *Details* → *Site access*).
 
-**Rate every search result is off by default.** When enabled, For each result the extension cannot already answer,
+**Rate every search result is on by default.** For each result the extension cannot already answer,
 it requests the product page from the Amazon store you are on. The request uses your Amazon sign-in
 (your cookies for that store), so Amazon sees it much as if you had opened the product yourself. You
 are told about this in three places:
@@ -55,11 +55,11 @@ Scoring is always local: the rules, your weights and every score are computed in
 
 | Feature | What is sent | Who sees it |
 |---|---|---|
-| **Shared online database** (off by default; enabled in settings) | A request for the certification tables (organic, grass-fed, origin), a few times a day. Nothing about the products you look at. | The Ingredient Check Apps Script, which keeps a **private** spreadsheet (nobody can open it). |
+| **Shared online database** (on by default; can be disabled in settings) | A request for the certification tables (organic, grass-fed, origin), a few times a day. Nothing about the products you look at. | The Ingredient Check Apps Script, which keeps a **private** spreadsheet (nobody can open it). |
 | **Share product readings with other computers** (off by default; experimental) | The store and product IDs of search tiles this computer cannot already answer (one batched request per page), and of a product page whose ingredients Amazon did not publish as text. For products you score: what was read off the page — ingredient text, title, feature bullets, certifications, nutrition numbers, how it was read — and when. One pull count when a shared read is used. Never your settings, your scores, or anything that identifies you. Readings from other computers are not checked, so a badge could show a score for text that is not on the label (product pages you open are always read from the page). | The Ingredient Check Apps Script, as above. It learns which products are being looked at, not by whom. See [CACHE.md](CACHE.md). |
 | **Back up my settings** (on by default) | Weights, goals and their importance, allergen and diet choices, avoid list, toggles, sort, speed and display preferences | Chrome's own sync, for the Google account signed into Chrome. Not the Ingredient Check database. |
 | **Sign in with Google** (only when you click it) | A Google access token (checked with Google, never stored) and the same settings | The Ingredient Check database, keyed by a SHA-256 of your Google account id — not your email. |
-| **Rate every search result** (off by default) or **Score on hover** | Ordinary `GET` of `/dp/ASIN` on the Amazon store you are on, using your Amazon session (`credentials: same-origin`), three at a time and at most 60 per results page — only for tiles this computer and the shared database cannot already answer | **Amazon.** Each auto-scored or hovered tile looks like you opened that product. See *Access to Amazon* above. |
+| **Rate every search result** (on by default) or **Score on hover** | Ordinary `GET` of `/dp/ASIN` on the Amazon store you are on, using your Amazon session (`credentials: same-origin`), three at a time and at most 60 per results page — only for tiles this computer and the shared database cannot already answer | **Amazon.** Each auto-scored or hovered tile looks like you opened that product. See *Access to Amazon* above. |
 | **Sort menu → Rate them** (the default sort setting; only when *Rate every search result* is on) | After you choose an Ingredient Check option in Amazon's sort menu: the same product-page `GET`s as *Rate every search result*, for listings in the list without a score. They go through the same queue as the badges: three at a time in total, never twice for one product, paused for both when Amazon refuses, and inside the same limit — 60 product pages (fewer under *Speed*) for each Amazon results page in the list, counting the ones the badges already requested. It stops at that limit or when you press *Stop rating* | **Amazon**, as above. |
 | **Sort menu → Load more results** (off by default) | Amazon search pages after this one, until the chosen number of listings (1–500), then, with *Rate them*, product pages of listings still without a score, as above | **Amazon**, as above. Shared product readings are asked first, like for badges, if you turned them on. |
 | **Price per ounce** (on by default) | Nothing. Read from the results page already open | Nobody. |

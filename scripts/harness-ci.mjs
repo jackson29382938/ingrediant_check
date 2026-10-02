@@ -553,13 +553,13 @@ async function run() {
         auto: document.getElementById('autoScoreSearch').checked,
         hover: document.getElementById('hoverScore').checked,
       }));
-      // Auto-rating search results is off until the reader turns it on (storefront audit, 2026-09-27).
-      if (before.stores !== manifest.host_permissions.length || before.auto || before.hover) {
+      // Auto-rating is recommended by default; the reader can save an explicit opt-out.
+      if (before.stores !== manifest.host_permissions.length || !before.auto || before.hover) {
         throw new Error(`settings search scoring: ${JSON.stringify(before)}`);
       }
       await settingsPage.click('#autoScoreSearch');
-      await settingsPage.waitForFunction(() => window.__stored.autoScoreSearch === true, { timeout: 5000 });
-      console.log(`  ok  settings → auto-rate and hover switches, ${before.stores} stores from the manifest, off by default, saves on`);
+      await settingsPage.waitForFunction(() => window.__stored.autoScoreSearch === false, { timeout: 5000 });
+      console.log(`  ok  settings → auto-rate and hover switches, ${before.stores} stores from the manifest, auto-rate on by default, saves off`);
 
       // Store wishlist: the list comes from the registry, and the draft link only exists once valid.
       const idle = await settingsPage.evaluate(() => ({
@@ -631,8 +631,7 @@ async function run() {
       const disabled = await settingsPage.evaluate(() => [...document.querySelectorAll('input[name="unitMissing"]')].every(r => r.disabled));
       if (!disabled) throw new Error('unit price off should disable its choices');
       console.log('  ok  settings → price per ounce on, "clear weight", speed Balanced by default; each saves; off disables its choices');
-      // Shared product readings: off by default, and unusable while the shared database is off, which
-      // is itself off by default since the storefront audit (2026-09-27).
+      // Certification lookups default on; product exchange remains closed independently.
       const sharing = () => settingsPage.evaluate(() => ({
         on: document.getElementById('sharedProducts').checked,
         disabled: document.getElementById('sharedProducts').disabled,
@@ -640,12 +639,12 @@ async function run() {
       const first = await sharing();
       if (first.on || !first.disabled) throw new Error(`shared readings should start off and disabled: ${JSON.stringify(first)}`);
       await settingsPage.click('#sharedCache');
-      await settingsPage.waitForFunction(() => window.__stored.sharedCache === true, { timeout: 5000 });
+      await settingsPage.waitForFunction(() => window.__stored.sharedCache === false, { timeout: 5000 });
       if (!(await sharing()).disabled) throw new Error('shared readings must stay closed pending trust verification');
       await settingsPage.click('#sharedCache');
-      await settingsPage.waitForFunction(() => window.__stored.sharedCache === false, { timeout: 5000 });
-      if (!(await sharing()).disabled) throw new Error('shared readings should be disabled again');
-      console.log('  ok  settings → shared database and shared readings off by default; product exchange remains closed pending trust verification');
+      await settingsPage.waitForFunction(() => window.__stored.sharedCache === true, { timeout: 5000 });
+      if (!(await sharing()).disabled) throw new Error('shared readings must remain closed');
+      console.log('  ok  settings → certification database on; shared readings off by default; product exchange remains closed pending trust verification');
       // Goals weighted against each other: a slider per selected goal appears once two are picked, and
       // moving one saves its weight and re-averages the dials towards that goal.
       const pickable = await settingsPage.evaluate(() => [...document.querySelectorAll('.preset-card')]
@@ -769,13 +768,17 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
         await page.click('#allergens .chip:has-text("Milk")');
         await page.click('#diets .chip:has-text("Vegan")');
         await page.click('#next');
-        await page.fill('#avoidList', 'palm oil');
+        await page.fill('#avoidList', 'palm oil, natural flavors');
         await page.click('#next');
+        const defaults = await page.evaluate(() => ['autoScoreSearch', 'sharedCache', 'ocrLabels', 'useOpenFoodFacts'].map(id => document.getElementById(id).checked));
+        if (defaults.some(value => !value)) throw new Error('setup recommendations should all be checked');
+        // Real permission prompts need user interaction. Confirm a saved opt-out here.
+        await page.uncheck('#useOpenFoodFacts');
         await page.click('#next');
         await page.waitForFunction(() => !document.getElementById('skip') || document.getElementById('skip').hidden, { timeout: 5000 });
         const saved = await page.evaluate(() => new Promise(r => chrome.storage.local.get(['goals', 'allergens', 'diets', 'avoidList', 'onboarded'], r)));
         if (goalPicked !== 'true' || !saved.onboarded || !(saved.goals || []).length || !(saved.allergens || []).includes('milk')
-          || !(saved.diets || []).includes('vegan') || !JSON.stringify(saved.avoidList || '').includes('palm oil')) {
+          || !(saved.diets || []).includes('vegan') || JSON.stringify(saved.avoidList) !== JSON.stringify(['palm oil', 'natural flavors'])) {
           throw new Error(`setup did not save what was picked: ${JSON.stringify({ goalPicked, saved })}`);
         }
         await page.evaluate(old => new Promise(r => chrome.storage.local.clear(() => chrome.storage.local.set(old, r))), before);
@@ -799,6 +802,12 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
         }
         // Configured builds collapse setup; open it before testing a local client override.
         if (!account.setup) await page.locator('#accountSetup > summary').click();
+        await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', {
+          configurable: true, value: { writeText: async text => { window.__copiedRedirect = text; } },
+        }));
+        await page.click('#copyAccountRedirect');
+        const copied = await page.evaluate(() => window.__copiedRedirect);
+        if (copied !== `https://${id}.chromiumapp.org/`) throw new Error('Google redirect copy used the wrong extension ID');
         // identity is unavailable until its optional permission is granted. Setup remains usable.
         await page.fill('#oauthClientId', 'audit-client.apps.googleusercontent.com');
         await page.click('#saveAccountSetup');

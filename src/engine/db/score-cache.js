@@ -28,8 +28,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
     };
     // Toggling OCR / OFF must not retire DOM-extracted chips. Only entries produced by those
     // paths include the matching flag in the fingerprint.
-    if (source === 'label-ocr' || source === 'ocr') out.ocrLabels = raw.ocrLabels === true;
-    if (source === 'open-food-facts') out.useOpenFoodFacts = raw.useOpenFoodFacts === true;
+    if (source === 'label-ocr' || source === 'ocr') out.ocrLabels = AIR.db.prefs.sanitizeToggles(raw).ocrLabels;
+    if (source === 'open-food-facts') out.useOpenFoodFacts = AIR.db.prefs.sanitizeToggles(raw).useOpenFoodFacts;
     return JSON.stringify(out);
   }
 

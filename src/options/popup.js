@@ -206,7 +206,7 @@ chrome.storage.local.get([...KEYS, 'weights', 'goals', 'goalImportance'], option
   const fallback = document.getElementById('useOpenFoodFacts');
   chrome.permissions.contains(OFF_PERMISSION, hasPermission => {
     fallback.checked = toggles.useOpenFoodFacts && hasPermission;
-    if (toggles.useOpenFoodFacts && !hasPermission) persist({ useOpenFoodFacts: false });
+    if (options.useOpenFoodFacts === true && !hasPermission) persist({ useOpenFoodFacts: false });
 
     fallback.addEventListener('change', () => {
       const requested = fallback.checked;

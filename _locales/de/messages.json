@@ -427,7 +427,7 @@
     "message": "Clear filter"
   },
   "optAvoidPh": {
-    "message": "carrageenan\nred 40\nnatural flavors"
+    "message": "e.g. palm oil, natural flavors"
   },
   "optShare": {
     "message": "Gefundene Zertifizierungen an die gemeinsame Datenbank senden"
@@ -514,7 +514,7 @@
     "message": "Flagged on the panel. These never change the score — whether a food contains sesame is a different question from whether it is a good food."
   },
   "optNoteAvoid": {
-    "message": "One ingredient or phrase per line. Anything matching gets flagged on the panel."
+    "message": "Separate ingredients or phrases with commas or new lines. Each entry is flagged independently on the panel."
   },
   "optNoteAvoidHint": {
     "message": "Add a common one:"
@@ -656,13 +656,13 @@
     "message": "Vermeidest du etwas?"
   },
   "welAvoidLede": {
-    "message": "Optional. Produkte, die das enthalten, bekommen eine rote Markierung. Tippe gängige an oder schreibe eigene, eine pro Zeile."
+    "message": "Optional. Products containing these get a red flag. Tap common ones or type your own, separated by commas or new lines."
   },
   "welOptionsH": {
     "message": "Noch ein paar Entscheidungen"
   },
   "welOptionsLede": {
-    "message": "Bewertet wird immer auf deinem Computer. Hier legst du fest, was die Erweiterung abrufen darf. Du kannst das später im Symbolleisten-Popup ändern."
+    "message": "All four choices are recommended and on by default. Uncheck anything you do not want. Scoring stays on your computer. Chrome will ask for barcode lookup access when you finish. Change these choices later in Settings."
   },
   "welSharedD": {
     "message": "Zertifizierungen für unverarbeitete Lebensmittel (Bio, Weidehaltung, Herkunft) aus Tabellen, die der Entwickler pflegt. Sendet nie deine Einstellungen oder etwas über dich."
@@ -1332,7 +1332,7 @@
     "message": "Zweite zwischengespeicherte Bewertung"
   },
   "welAvoidPh": {
-    "message": "z. B. Palmöl"
+    "message": "e.g. palm oil, natural flavors"
   },
   "repTitlePh": {
     "message": "z. B. Die Seitenleiste zeigt für Kefir keinen Preis pro Unze"

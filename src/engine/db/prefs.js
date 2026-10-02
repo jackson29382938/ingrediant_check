@@ -38,17 +38,17 @@ const TOGGLE_DEFAULTS = {
   // When enabled, product pages are fetched from Amazon a few at a
   // time (at most 60 per page); scores saved on this computer, and shared readings when the reader
   // turned them on, answer the rest without a fetch.
-  autoScoreSearch: false,
+  autoScoreSearch: true,
   hoverScore: false,
   // Hover or focus a score badge on a results page to see why it scored that way.
   hoverBreakdown: true,
-  ocrLabels: false,
-  useOpenFoodFacts: false,
+  ocrLabels: true,
+  useOpenFoodFacts: true,
   shareContributions: false,
   sendDiagnostics: false,
-  // The shared online database: the owner-kept certification tables (provenance, producers). Off
-  // keeps every lookup on this computer.
-  sharedCache: false,
+  // Owner-kept certification tables are enabled by default. Switching this off
+  // keeps certification lookups on this computer.
+  sharedCache: true,
   // Product readings other people's computers uploaded to the shared database, and uploading this
   // computer's. Off until the reader turns it on: anyone who has the endpoint can write a product
   // row, and nothing yet shows that a row's ingredient text is true (docs/CACHE.md, "Trust"). A new
@@ -104,11 +104,11 @@ function uniqueKnown(list, allowed) {
 }
 
 function sanitizeAvoidList(list) {
-  if (typeof list === 'string') list = list.split(/\r?\n/);
+  if (typeof list === 'string') list = list.split(/[,\r\n]+/);
   if (!Array.isArray(list)) return [];
   const out = [];
   const seen = new Set();
-  for (const raw of list) {
+  for (const raw of list.flatMap(item => typeof item === 'string' ? item.split(/[,\r\n]+/) : [item])) {
     const term = String(raw || '').replace(/\s+/g, ' ').trim().slice(0, AVOID_MAX_LEN);
     if (term.length < 2) continue;
     const key = term.toLowerCase();

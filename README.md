@@ -10,7 +10,7 @@ You do not need a build step.
 
 1. `chrome://extensions` → enable **Developer mode**
 2. **Load unpacked** → select this folder
-3. Expect **Ingredient Check 1.4.1** with no errors on the card
+3. Expect **Ingredient Check 1.4.2** with no errors on the card
 
 Optional local session (Chrome for Testing, extension preloaded):
 
@@ -85,13 +85,13 @@ Live Amazon checks are in [docs/VERIFY.md](docs/VERIFY.md). When a rule changes,
 
 ## Network
 
-Scoring is always local. Chrome profile settings backup is on by default. The shared database, **Rate every search result**, OCR, barcode lookup, diagnostics, and sharing product readings are off until you turn them on. Hover a score on a results page to see why it scored that way (**Show why on hover**, computed locally).
+Scoring is always local. Chrome profile settings backup is on by default. The four final setup choices are recommended and checked by default: **Rate every search result**, certification-table lookups, on-device label OCR, and barcode fallback. Barcode fallback requires Chrome’s optional permission. Existing saved opt-outs are preserved. Diagnostics and shared product readings remain off. Hover a score on a results page to see why it scored that way (**Show why on hover**, computed locally).
 
 **Rate every search result** requests product pages from the Amazon store you are on, a few at a time and at most 60 per results page. The sorted side-panel list uses the same queue and the same limit (60 for each results page it collected, counting what the badges already requested), and never requests a product twice. The requests use your Amazon sign-in. This is shown under the switch in the popup, in Settings → *What to rate*, and once on the first results page it rates, with a **Turn off automatic rating** button. The extension has access to the 21 supported Amazon stores, granted by Chrome at install. Settings lists them and explains how to limit that access. See [docs/PRIVACY.md](docs/PRIVACY.md).
 
 - **Open Food Facts fallback** — barcode only, after Chrome grants the host
 - **Read label photos** — local Tesseract; fetches the product image already on the page
-- **Shared online database** (off by default) — certification tables for whole foods, kept by the developer on a private Google Sheet behind one Apps Script ([docs/SETTINGS-SYNC.md](docs/SETTINGS-SYNC.md)). This build has a configured endpoint, used only when the relevant feature is enabled. Diagnostics use the same endpoint: [docs/DIAGNOSTICS.md](docs/DIAGNOSTICS.md).
+- **Shared online database** (on by default) — certification tables for whole foods, kept by the developer on a private Google Sheet behind one Apps Script ([docs/SETTINGS-SYNC.md](docs/SETTINGS-SYNC.md)). This build has a configured endpoint, used only when the relevant feature is enabled. Diagnostics use the same endpoint: [docs/DIAGNOSTICS.md](docs/DIAGNOSTICS.md).
 - **Share product readings with other computers** (closed in this build) — what was read off each product, before weighting, so a product is read from Amazon about once a month instead of once per person. Anyone can upload a reading and nothing yet checks that it is true, so it is off in the extension and closed on the receiver until the owner opens it ([docs/CACHE.md](docs/CACHE.md), *Trust*).
 - **Settings backup** (on by default) — Chrome's own sync; optional Google sign-in copy on the shared database. Google sign-in needs a registered OAuth client ID and a matching backend configuration; it does not sign Chrome itself into a profile.
 
