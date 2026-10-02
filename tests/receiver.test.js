@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 
 // productsOpen: the PRODUCTS_OPEN script property. The product tests below model an opened receiver.
-function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true } = {}) {
+function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true, propertyClientId = null } = {}) {
   const tabs = new Map();
   const order = [];
   let locked = false, failFlush = false, legacy = '{}';
@@ -14,6 +14,7 @@ function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true } = 
       getLastColumn: () => Math.max(0, ...data.map(r => r.length)),
       appendRow(row) { assert.equal(locked, true, 'all appends must hold the shared lock'); data.push([...row]); },
       setFrozenRows() {},
+      deleteRow(row) { assert.equal(locked, true); data.splice(row - 1, 1); },
       getRangeList: a1s => ({ getRanges: () => a1s.map(a1 => {
         const [, r] = a1.match(/^A(\d+):G\d+$/);
         return sheet.getRange(Number(r), 1, 1, 7);
@@ -55,7 +56,8 @@ function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true } = 
     Utilities: { DigestAlgorithm: { SHA_256: 'sha256' },
       computeDigest: (_alg, text) => [...require('node:crypto').createHash('sha256').update(text).digest()].map(b => (b << 24) >> 24) },
     PropertiesService: { getScriptProperties: () => ({
-      getProperty: key => (key === 'PRODUCTS_OPEN' ? (productsOpen ? 'true' : null) : legacy),
+      getProperty: key => (key === 'PRODUCTS_OPEN' ? (productsOpen ? 'true' : null) : key === 'OAUTH_CLIENT_ID' ? propertyClientId : legacy),
+      deleteProperty(key) { if (key === 'PRODUCTS_OPEN') productsOpen = false; },
       setProperty() { throw new Error('dedup must not depend on property writes'); } }) },
     ContentService: { MimeType: { JSON: 'json' },
       createTextOutput: text => ({ setMimeType: () => JSON.parse(text) }) },
@@ -214,4 +216,21 @@ test('each request logs one line for load measurement, with no payload in it', (
     [['products', 1, true, false], ['lookup', 2, true, false], ['diagnostics', 12, false, true], ['get:provenance', 1, true, false]]);
   assert.ok(lines.every(l => Number.isFinite(l.ms) && l.ic === 'request'));
   assert.ok(!JSON.stringify(lines).includes('Organic rolled oats'), 'no product data in the log');
+});
+
+test('Google client can be configured by owner script property without accepting another app', () => {
+  const token = 'a'.repeat(30);
+  const r = receiver({clientId:'',propertyClientId:'registered-client',tokens:{[token]:{aud:'registered-client',sub:'1001'}}});
+  assert.equal(r.post({kind:'account',token,payload:{_format:'ingredient-check-settings',weights:{}}}).ok,true);
+  assert.equal(receiver({clientId:'',propertyClientId:'other-client',tokens:{[token]:{aud:'registered-client',sub:'1001'}}}).post({kind:'accountGet',token}).ok,false);
+});
+
+test('owner purge closes exchange and removes only the requested product', () => {
+  const r = receiver();
+  const sh = r.sheet('products');
+  sh.data.push(['key'], ['amazon.pl:B00MCJ3180'], ['amazon.com:B00LOAW7U6'], ['amazon.pl:B00MCJ3180']);
+  assert.equal(r.context.purgeHistoricalPolishReading(), 2);
+  assert.equal(sh.data.length, 2);
+  assert.equal(sh.data[1][0], 'amazon.com:B00LOAW7U6');
+  assert.equal(r.post({kind:'lookup',keys:[]}).closed, true);
 });

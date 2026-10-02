@@ -41,10 +41,16 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
   const MISSING = ['calculate-clear', 'displayed-only', 'infer-more'];
   const UNIT_DEFAULTS = { unitMissing: 'calculate-clear' };
 
-  function unitInfo(unit) {
+  function unitInfo(unit, store) {
     const u = String(unit).toLowerCase().replace(/\./g, '').replace(/\s+/g, ' ').trim();
+    const imperial = /^(?:www\.)?amazon\.(?:co\.uk|ie)$/i.test(String(store || ''));
     const hit = UNITS.find(([re]) => re.test(u) || re.test(u.replace(/ /g, '')));
-    return hit ? { oz: hit[1], kind: hit[2] } : null;
+    if (!hit) return null;
+    const imperialMl = /^(?:pt|pints?)$/.test(u) ? 568.26125
+      : /^(?:qt|quarts?)$/.test(u) ? 1136.5225
+      : /^(?:gal|gallons?)$/.test(u) ? 4546.09
+      : hit[2] === 'fluid' && hit[1] === 1 ? 28.4130625 : null;
+    return { oz: imperial && imperialMl ? imperialMl * FL_OZ_PER_ML : hit[1], kind: hit[2] };
   }
 
   const SF = () => AIR.db.storefronts;
@@ -60,7 +66,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
     const pattern = new RegExp(`(?:${SF().PRICE}|(?<![\\d.,])(\\d+(?:[.,]\\d+)?)\\s*\u00a2)\\s*(?:\\/|per\\s+)\\s*${qty}?\\s*(${UNIT})(?![a-z])`, 'i');
     const match = normalized.match(pattern);
     if (!match) return null;
-    const info = unitInfo(match[5]);
+    const info = unitInfo(match[5], store);
     if (!info) return null;
     const cents = match[3] != null ? SF().parseNumber(match[3], decimal) : null;
     const price = cents != null ? cents / 100 : SF().parseNumber(match[1] || match[2], decimal);
@@ -83,13 +89,13 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
     // split a run of digits in every possible way from every position, and took minutes on a long one.
     for (const match of source.matchAll(new RegExp(`(?<![\\d.])(\\d+(?:\\.\\d+)?|\\.\\d+)[\\s-]*(${UNIT})\\.?(?![a-z])`, 'g'))) {
       if (NUTRIENT_AFTER.test(source.slice(match.index + match[0].length))) continue;
-      const info = unitInfo(match[2]);
+      const info = unitInfo(match[2], store);
       const ounces = Number(match[1]) * (info ? info.oz : 0);
       if (info && Number.isFinite(ounces) && ounces > 0) found.push({ ounces, kind: info.kind });
     }
     const total = source.match(new RegExp(`(\\d+(?:\\.\\d+)?)[\\s-]*(${UNIT})\\s+total\\b`, 'i'));
     if (total) {
-      const info = unitInfo(total[2]);
+      const info = unitInfo(total[2], store);
       const ounces = Number(total[1]) * (info ? info.oz : 0);
       const count = source.match(/\bpack\s+of\s+(\d+)\b|\b(\d+)[\s-]*(?:pack|pk|count|ct|bottles?|cans?)\b/i);
       const multiplier = count ? Number(count[1] || count[2]) : 1;

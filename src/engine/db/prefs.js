@@ -5,7 +5,12 @@
 // function heals them before anything else trusts them. Unknown ids are dropped, weights are
 // clamped to the slider range. The online endpoint is a constant of the build, not a setting.
 
-if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./_module.js');
+if (typeof require !== 'undefined' && typeof module !== 'undefined') {
+  require('./_module.js');
+  require('./sorted-results.js');
+  require('./unit-price.js');
+  require('./speed.js');
+}
 
 (function () {
 
@@ -20,14 +25,17 @@ const AVOID_MAX_LEN = 80;
 // Never invent one. Mutable only so the tests can point it somewhere.
 const ENDPOINT = 'https://script.google.com/macros/s/AKfycbw4rTzddQVMtsqolUDse8Rfcv3eqXyL0qiS6ct6hHaQrMzTcff0p6JByc6Brvk-Lugd/exec';
 // OAuth "Web application" client for the optional Google sign-in (docs/SETTINGS-SYNC.md). Empty
-// hides the sign-in buttons. The same id goes into OAUTH_CLIENT_ID in apps-script.gs.
+// leaves sign-in disabled until a client is configured in settings. The same id must be
+// configured by the backend owner in Apps Script.
 const OAUTH_CLIENT_ID = '';
+// Keep anonymous product exchange closed until deployment trust controls are verified.
+const SHARED_PRODUCTS_ALLOWED = false;
 
 const TOGGLE_DEFAULTS = {
   enabled: true,
   badges: true,
   foodOnly: true,
-  // Numbers on every results tile out of the box: product pages are fetched from Amazon a few at a
+  // When enabled, product pages are fetched from Amazon a few at a
   // time (at most 60 per page); scores saved on this computer, and shared readings when the reader
   // turned them on, answer the rest without a fetch.
   autoScoreSearch: false,
@@ -179,13 +187,24 @@ function exportPayload(prefs) {
   };
 }
 
+const WORKFLOW_KEYS = ['speedMode', 'sortMissing', 'sortLoadMore', 'sortCount', 'unitMissing'];
+function sanitizeWorkflow(raw) {
+  return { ...db('speed').sanitizeSpeed(raw), ...db('sortedResults').sanitizeSort(raw),
+    ...db('unitPrice').sanitizeUnit(raw) };
+}
+
+function oauthClientId(raw) {
+  const id = String(raw || '').trim();
+  return /^[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$/.test(id) ? id : '';
+}
+
 // Backup of everything the user chose: the scoring export plus the toggles, minus the master
 // switch (restoring a paused state from another computer would look like a broken install).
 function backupPayload(raw, now) {
   const toggles = sanitizeToggles(raw);
   delete toggles.enabled;
   return { ...exportPayload(raw), ts: (now instanceof Date ? now : new Date()).toISOString(), toggles,
-    display: sanitizeDisplay(raw) };
+    display: sanitizeDisplay(raw), workflow: sanitizeWorkflow(raw) };
 }
 
 // Anything that claims to be a backup -> the storage values to write. Always re-sanitized.
@@ -196,20 +215,81 @@ function parseBackup(obj) {
   const toggles = sanitizeToggles(obj.toggles);
   delete toggles.enabled;
   const ts = Date.parse(obj.ts);
-  return { ok: true, values: { ...sanitizeScoring(obj), ...toggles, ...sanitizeDisplay(obj.display) },
+  return { ok: true, values: { ...sanitizeScoring(obj), ...toggles, ...sanitizeDisplay(obj.display),
+    ...(obj.workflow && typeof obj.workflow === 'object' ? sanitizeWorkflow(obj.workflow) : {}) },
     ts: Number.isFinite(ts) ? ts : null };
 }
 
-// chrome.storage.sync caps an item at 8 KB, and a full avoid list is ~6.5 KB on its own.
-const SYNC_KEYS = ['icBackup', 'icBackupAvoid'];
-function toSyncItems(payload) {
+// Two banks keep the previous backup readable if staging a new one fails. Only the final
+// icBackup pointer is committed after all its parts have been stored successfully.
+const SYNC_PARTS = 4;
+const SYNC_ITEM_BYTES = 7000;
+const partKey = (bank, i, device = '') => `icBackupAvoid_${device ? device + '_' : ''}${bank}_${i}`;
+const SYNC_KEYS = ['icBackup', 'icBackupAvoid',
+  ...['a', 'b'].flatMap(bank => Array.from({ length: SYNC_PARTS }, (_, i) => partKey(bank, i)))];
+// Detect parts arriving out of order from Chrome sync or another device. This checksum is
+// an integrity marker, not authentication; all values still pass through the sanitizers.
+const partHash = part => {
+  let h = 2166136261;
+  for (const char of JSON.stringify(part)) h = Math.imul(h ^ char.codePointAt(0), 16777619);
+  return (h >>> 0).toString(16);
+};
+const utf8Bytes = value => {
+  let n = 0;
+  for (const char of value) {
+    const cp = char.codePointAt(0);
+    n += cp < 0x80 ? 1 : cp < 0x800 ? 2 : cp < 0x10000 ? 3 : 4;
+  }
+  return n;
+};
+function toSyncItems(payload, bank = 'a', device = '') {
+  if (device && !/^[a-f0-9]{32}$/.test(device)) throw new Error('invalid-backup-device');
+  if (!['a', 'b'].includes(bank)) throw new Error('invalid-backup-bank');
   const { avoidList, ...rest } = payload;
-  return { icBackup: rest, icBackupAvoid: avoidList || [] };
+  const parts = [[]];
+  for (const term of sanitizeAvoidList(avoidList)) {
+    let part = parts[parts.length - 1];
+    const key = partKey(bank, parts.length - 1, device);
+    if (utf8Bytes(key) + utf8Bytes(JSON.stringify([...part, term])) > SYNC_ITEM_BYTES) {
+      parts.push([]);
+      part = parts[parts.length - 1];
+    }
+    part.push(term);
+  }
+  if (parts.length > SYNC_PARTS) throw new Error('backup-too-large');
+  const main = { ...rest, _syncVersion: device ? 3 : 2, _syncDevice: device, _syncBank: bank, _syncParts: parts.length, _syncHashes: parts.map(partHash) };
+  if (utf8Bytes('icBackup') + utf8Bytes(JSON.stringify(main)) > SYNC_ITEM_BYTES) throw new Error('backup-too-large');
+  return { ...Object.fromEntries(parts.map((part, i) => [partKey(bank, i, device), part])), icBackup: main };
 }
 function fromSyncItems(items) {
   const main = items && items.icBackup;
   if (!main) return { ok: false, reason: 'no-backup' };
-  return parseBackup({ ...main, avoidList: items.icBackupAvoid || [] });
+  if (main._syncVersion == null) return parseBackup({ ...main, avoidList: items.icBackupAvoid || [] });
+  if (![2, 3].includes(main._syncVersion) || (main._syncVersion === 3 && !/^[a-f0-9]{32}$/.test(main._syncDevice)) || !['a', 'b'].includes(main._syncBank)
+    || !Number.isInteger(main._syncParts) || main._syncParts < 1 || main._syncParts > SYNC_PARTS) {
+    return { ok: false, reason: 'invalid-backup' };
+  }
+  const parts = Array.from({ length: main._syncParts }, (_, i) => items[partKey(main._syncBank, i, main._syncVersion === 3 ? main._syncDevice : '')]);
+  if (!Array.isArray(main._syncHashes) || main._syncHashes.length !== parts.length
+    || parts.some((part, i) => !Array.isArray(part) || partHash(part) !== main._syncHashes[i])) return { ok: false, reason: 'incomplete-backup' };
+  return parseBackup({ ...main, avoidList: parts.flat() });
+}
+
+// Read the pointer first, then its profile-specific parts. Retry a pointer change rather than
+// combining old chunks with a new header. Sync storage is small; local product storage is not read.
+async function readSync(area) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const head = await area.get('icBackup');
+    const main = head.icBackup;
+    let keys = SYNC_KEYS.filter(k => k !== 'icBackup');
+    if (main && main._syncVersion === 3 && /^[a-f0-9]{32}$/.test(main._syncDevice)
+      && ['a', 'b'].includes(main._syncBank) && Number.isInteger(main._syncParts) && main._syncParts > 0 && main._syncParts <= SYNC_PARTS) {
+      keys = Array.from({length:main._syncParts}, (_, i) => partKey(main._syncBank, i, main._syncDevice));
+    }
+    const parsed = fromSyncItems({ ...(await area.get(keys)), ...head });
+    if (parsed.reason !== 'incomplete-backup') return parsed;
+  }
+  return {ok:false,reason:'incomplete-backup'};
 }
 
 function scoringEqual(a, b) {
@@ -220,10 +300,10 @@ function scoringEqual(a, b) {
 
 const _exports = AIRmodule('prefs', {
   SETTINGS_FORMAT, SETTINGS_VERSION, TOGGLE_DEFAULTS, DISPLAY_DEFAULTS, BREAKDOWN_DELAY_MAX, sanitizeDisplay,
-  AVOID_MAX_LINES, AVOID_MAX_LEN, ENDPOINT, OAUTH_CLIENT_ID, SYNC_KEYS,
+  AVOID_MAX_LINES, AVOID_MAX_LEN, ENDPOINT, OAUTH_CLIENT_ID, SHARED_PRODUCTS_ALLOWED, SYNC_KEYS,
   sanitizeToggles, sanitizeScoring, sanitizeAvoidList, toScriptUrl, endpoint,
   parseImport, exportPayload, looksLikeSettings, scoringEqual,
-  backupPayload, parseBackup, toSyncItems, fromSyncItems,
+  backupPayload, parseBackup, toSyncItems, fromSyncItems, readSync, WORKFLOW_KEYS, sanitizeWorkflow, oauthClientId,
 });
 if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 

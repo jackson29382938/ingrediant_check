@@ -183,12 +183,16 @@
       }
     }
     if (!state.badges || !tiles.length) return false;
+    const generation = state.generation;
     const keys = tiles.map(x => CACHE.key(STORE, x.id));
     chrome.storage.local.get(keys, got => {
+      if (generation !== state.generation || !state.enabled || !state.badges) return;
       for (const x of tiles) {
         const hit = got && got[CACHE.key(STORE, x.id)];
         if (x.anchor.isConnected && CACHE.valid(hit, { store: STORE, asin: x.id, version: VERSION, prefs: state.raw, maxAgeMs: state.maxAgeMs })) {
           paintBadge(x.anchor, hit);
+        } else {
+          x.anchor.querySelector('.' + BADGE_CLASS)?.remove();
         }
       }
     });
@@ -228,12 +232,14 @@
   }
 
   function reset() {
+    state.generation = (state.generation || 0) + 1;
+    send({ type: 'pageScore', status: null });
     stopWatching();
     document.getElementById(HOST_ID)?.remove();
     clearBadges();
     state.pageScore = null; state.override = false; state.done = false; state.started = Date.now();
     state.url = location.href;
-    if (!state.enabled) { send({ type: 'pageScore', status: null }); return; }
+    if (!state.enabled) return;
     if (!adapter.isProductPage(location) && !adapter.isSearchPage(location)) return;
     pass();
     if (!state.done) watch();
@@ -247,7 +253,10 @@
   chrome.storage.local.get(KEYS, o => { readSettings(o || {}); reset(); });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area && area !== 'local') return;
-    if (!KEYS.some(k => changes[k])) return;
+    if (!KEYS.some(k => changes[k])) {
+      if (Object.keys(changes).some(k => k.startsWith(`s:${STORE}:`)) && adapter.isSearchPage(location)) pass();
+      return;
+    }
     chrome.storage.local.get(KEYS, o => { readSettings(o || {}); reset(); });
   });
 

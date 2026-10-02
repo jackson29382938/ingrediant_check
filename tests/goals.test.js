@@ -11,12 +11,12 @@ const score = (text, goals) => engine.score({ ingredients_text: text }, { weight
 const row = (r, re) => [...r.good, ...r.bad].find(h => re.test(h.why));
 const KEFIR = 'Cultured pasteurized lowfat milk, cane sugar, natural flavors, pectin, vitamin A palmitate, vitamin D3';
 
-test('Weight loss: fat-reduced dairy becomes a big plus, natural flavors barely count', () => {
+test('Weight loss: fat-reduced dairy becomes a modest plus, natural flavors barely count', () => {
   const plain = score(KEFIR, []);
   const cut = score(KEFIR, ['weightLoss']);
-  assert.ok(row(plain, /^Fat-reduced dairy/).c < 0);
+  assert.equal(row(plain, /^Fat-reduced dairy/), undefined, 'neutral by default');
   const dairy = row(cut, /^Fat-reduced dairy/);
-  assert.ok(dairy.c >= 12, `fat-reduced dairy should be a big plus, got ${dairy.c}`);
+  assert.ok(dairy.c >= 6 && dairy.c <= 10, `fat-reduced dairy should be a modest plus, got ${dairy.c}`);
   assert.match(dairy.why, /a plus for your goals/);
   assert.ok(Math.abs(row(cut, /Natural flavors/).c) <= 3, 'natural flavors nearly off');
   assert.ok(Math.abs(row(plain, /Natural flavors/).c) >= 10);
@@ -42,7 +42,8 @@ test('fat-reduced dairy still counts when it leads, or only milk fractions or pl
   for (const text of ['Cultured pasteurized nonfat milk, live cultures', 'Skim milk, vitamin A palmitate, vitamin D3',
     'Water, milk protein concentrate, nonfat milk, sucralose', 'Oat milk, nonfat milk, coffee', 'Whey protein, nonfat dry milk, cocoa']) {
     assert.ok(row(score(text, ['weightLoss']), /^Fat-reduced dairy — a plus/), text);
-    assert.ok(row(score(text, []), /^Fat-reduced dairy/).c < 0, text);
+    assert.equal(row(score(text, []), /^Fat-reduced dairy/), undefined, text);
+    assert.ok(row(engine.score({ingredients_text:text},{weights:{reducedFatDairy:1}}), /^Fat-reduced dairy/).c < 0, text);
   }
 });
 

@@ -165,7 +165,7 @@ function renderCategories() {
     const slider = document.createElement('input');
     slider.type = 'range';
     // Signed categories go below zero: a goal can make them count in a product's favour.
-    slider.min = CATS.SIGNED && CATS.SIGNED.has(c.id) ? '-2' : '0'; slider.max = '2'; slider.step = '0.1';
+    slider.min = CATS.SIGNED && CATS.SIGNED.has(c.id) ? '-2' : '0'; slider.max = '2'; slider.step = 'any';
     slider.value = String(weightOf(c.id));
     slider.id = `w-${c.id}`;
     slider.setAttribute('aria-label', `${c.label} weight`);
@@ -174,7 +174,8 @@ function renderCategories() {
     val.className = 'val';
     const paint = v => {
       const n = Number(v);
-      val.textContent = n === 0 ? 'off' : n < 0 ? `+${Math.abs(n).toFixed(1)}× plus` : `${n.toFixed(1)}×`;
+      const shown = Math.abs(n).toLocaleString('en', {maximumFractionDigits:3});
+      val.textContent = n === 0 ? 'off' : n < 0 ? `+${shown}× plus` : `${shown}×`;
       val.className = 'val' + (n === 0 ? ' zero' : n < 0 ? ' plus' : n > 1 ? ' high' : '');
     };
     paint(slider.value);

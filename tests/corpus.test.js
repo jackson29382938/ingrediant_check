@@ -83,7 +83,7 @@ function pair(name, aId, bId, cmp, why) {
 }
 
 pair('negation must not launder a capped oil', 'non-gmo-soybean-oil', 'english-junk-panel',
-  (a) => a <= 30, 'a Non-GMO seed oil must still trip the refined-oil cap');
+  (a) => a <= 63, 'a Non-GMO seed oil must still respect the default moderate ceiling');
 pair('language must not change the verdict', 'spanish-junk-panel', 'english-junk-panel',
   (a, b) => Math.abs(a - b) <= 15, 'the same product in two languages must score alike');
 pair('unrefined oil must beat refined', 'cold-pressed-sunflower-oil', 'refined-sunflower-oil',

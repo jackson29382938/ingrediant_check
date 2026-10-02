@@ -203,3 +203,14 @@ test('price and size parsing stays linear on long runs of digits', () => {
   near(U.parseDisplayedUnitPrice('$3.49 (38.1¢/Ounce)'), 0.381);
   assert.equal(R.parseMoney('Preis: 4,99 €', 'www.amazon.de'), 4.99);
 });
+
+test('UK imperial pints and litres agree; US pints remain US units', () => {
+  const U = require('../src/engine/db/unit-price.js');
+  assert.ok(Math.abs(U.parseQuantity('Milk 1 pint', 'amazon.co.uk').ounces - 568.26125 / 29.5735295625) < 1e-8);
+  assert.ok(U.parseQuantity('Milk 1 litre (1.76 pints)', 'amazon.co.uk'));
+  assert.equal(U.parseQuantity('Milk 1 pint', 'amazon.com').ounces, 16);
+  assert.ok(U.parseQuantity('Milk 1 pint (20 fl oz)', 'amazon.co.uk'));
+  assert.ok(U.parseQuantity('Milk 1 pint (16 fl oz)', 'amazon.com'));
+  assert.ok(Math.abs(U.parseDisplayedUnit('£1.00/20 fl oz', 'amazon.co.uk').perOz - 29.5735295625 / 568.26125) < 1e-8);
+  assert.ok(Math.abs(U.parseDisplayedUnit('£1.00/Pint', 'amazon.co.uk').perOz - 29.5735295625 / 568.26125) < 1e-8);
+});

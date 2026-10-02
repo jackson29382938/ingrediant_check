@@ -78,7 +78,7 @@ const CERTIFICATIONS = [
     m: /\b(marine stewardship council|MSC certified|aquaculture stewardship|ASC certified|best aquaculture)\b/i,
     means: 'Independently audited fishery or farm standard.',
     applies: ['seafood'] },
-  { id: 'productOfUsa', tier: 2, pts: 6, label: 'Product of USA (2026 standard)',
+  { id: 'productOfUsa', tier: 2, pts: 0, label: 'Product of USA (2026 standard)',
     m: /\bproduct of (the )?usa\b|\bborn,? raised,? and harvested in the u\.?s\.?a?\b/i,
     means: 'Since 1 January 2026 this claim requires the animal to be born, raised, slaughtered AND processed in the United States. Before that date the same words could mean only that the meat was repackaged here.',
     applies: ['beef', 'pork', 'poultry', 'lamb', 'egg'] },

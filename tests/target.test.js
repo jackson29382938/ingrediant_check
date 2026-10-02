@@ -178,8 +178,8 @@ test('runner: a Target product page is scored locally, cached for this computer,
   assert.equal(write[key].source, 'page');
   assert.ok(scoreCache.valid(write[key], { store: 'target.com', asin: '16600402', version: '1.1.0', prefs: {} }),
     'the entry validates the way the popup and badges check it');
-  assert.deepEqual(w.messages.map(m => m.type), ['pageScore'], 'the only message is the toolbar badge');
-  assert.ok(w.messages[0].score >= 90);
+  assert.deepEqual(w.messages.map(m => m.type), ['pageScore', 'pageScore'], 'the only message is the toolbar badge');
+  assert.ok(w.messages.at(-1).score >= 90);
   assert.equal(w.fetches.length, 0);
 });
 
@@ -223,7 +223,8 @@ test('runner: search badges come only from this computer\'s cache; nothing is re
   assert.equal(painted[0].inserted[0].attrs.role, 'img', 'named for screen readers, not a bare number');
   assert.match(painted[0].inserted[0].attrs['aria-label'], new RegExp(`${oats.score}/100`));
   assert.equal(w.fetches.length, 0);
-  assert.equal(w.messages.length, 0);
+  assert.equal(w.messages.length, 1);
+  assert.equal(w.messages[0].status, null);
 
   // A second pass over an unchanged badge must not touch it: a rewrite is a DOM change, and the
   // page watcher answers every change with another pass.
@@ -269,4 +270,22 @@ test('runner: search badges keep a saved score as long as the speed setting says
   };
   assert.equal(painted('balanced'), 0, 'Balanced: 45 days is past 30');
   assert.equal(painted('fastest'), 1, 'Fastest keeps 90 days');
+});
+
+test('Target removes invalid badges and clears the toolbar on SPA navigation', () => {
+  const key = 's:target.com:79364857';
+  const hit = {schema:scoreCache.SCHEMA,v:'1.1.0',t:Date.now()-1000,store:'target.com',asin:'79364857',
+    prefs:scoreCache.fingerprint({},'page'),score:98,verdict:'Excellent',source:'page'};
+  const w = runner('target-s-oats.html', 'https://www.target.com/s?searchTerm=organic+oats', {[key]:hit});
+  const anchor = [...w.page.querySelectorAll('h3')].find(h=>h.inserted?.length);
+  const badge = anchor.inserted[0]; let removed = false;
+  badge.remove = () => { removed = true; };
+  anchor.querySelector = s => s === '.air-badge' ? badge : null;
+  delete w.data[key]; w.pass();
+  assert.equal(removed, true);
+  const product = runner('target-p-chips.html', CHIPS_URL, {});
+  product.sandbox.location.href = 'https://www.target.com/c/grocery/-/N-5xt1a';
+  product.sandbox.location.pathname = '/c/grocery/-/N-5xt1a';
+  product.sandbox.module.exports.reset();
+  assert.equal(product.messages.at(-1).status, null);
 });

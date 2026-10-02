@@ -1,0 +1,1071 @@
+{
+  "penalties": [
+    {
+      "input": "soy protein isolate",
+      "why": "Soy protein isolate — isolated protein"
+    },
+    {
+      "input": "pea protein isolate",
+      "why": "Pea protein isolate"
+    },
+    {
+      "input": "rice protein isolate",
+      "why": "Rice protein isolate"
+    },
+    {
+      "input": "textured vegetable protein",
+      "why": "Textured vegetable protein"
+    },
+    {
+      "input": "wheat gluten",
+      "why": "Isolated wheat gluten"
+    },
+    {
+      "input": "hydrolyzed protein",
+      "why": "Hydrolyzed protein — a hidden glutamate source"
+    },
+    {
+      "input": "whey protein isolate",
+      "why": "Whey protein isolate — processed dairy fraction"
+    },
+    {
+      "input": "milk protein isolate",
+      "why": "Milk protein isolate"
+    },
+    {
+      "input": "sodium caseinate",
+      "why": "Caseinate — chemically extracted milk protein"
+    },
+    {
+      "input": "soy leghemoglobin",
+      "why": "Soy leghemoglobin — genetically engineered heme"
+    },
+    {
+      "input": "dried egg white",
+      "why": "Dried egg white"
+    },
+    {
+      "input": "artificial flavor",
+      "why": "Artificial flavour"
+    },
+    {
+      "input": "natural flavors",
+      "why": "\"Natural flavors\" — an undisclosed flavour blend"
+    },
+    {
+      "input": "natural vanilla flavor",
+      "why": "\"Natural flavor\" — undisclosed proprietary flavour compound"
+    },
+    {
+      "input": "artificial vanilla flavor",
+      "why": "Artificial flavour compound"
+    },
+    {
+      "input": "flavoring",
+      "why": "Unspecified flavouring"
+    },
+    {
+      "input": "aromas artificiales",
+      "why": "Artificial flavour"
+    },
+    {
+      "input": "aromas naturales",
+      "why": "\"Natural flavors\" — an undisclosed flavour blend"
+    },
+    {
+      "input": "natürliche vanillearoma",
+      "why": "\"Natural flavor\" — undisclosed proprietary flavour compound"
+    },
+    {
+      "input": "künstliche vanillearoma",
+      "why": "Artificial flavour compound"
+    },
+    {
+      "input": "vanillearoma",
+      "why": "Unspecified flavouring"
+    },
+    {
+      "input": "aroma",
+      "why": "Unspecified flavouring"
+    },
+    {
+      "input": "monosodium glutamate",
+      "why": "MSG"
+    },
+    {
+      "input": "yeast extract",
+      "why": "Yeast extract — added flavouring"
+    },
+    {
+      "input": "disodium inosinate",
+      "why": "Ribonucleotide flavour enhancer"
+    },
+    {
+      "input": "vanillin",
+      "why": "Vanillin — synthetic vanilla"
+    },
+    {
+      "input": "ethyl vanillin",
+      "why": "Ethyl vanillin"
+    },
+    {
+      "input": "liquid smoke",
+      "why": "Liquid smoke flavouring"
+    },
+    {
+      "input": "torula yeast",
+      "why": "Torula yeast — glutamate source"
+    },
+    {
+      "input": "maltol",
+      "why": "Maltol flavour enhancer"
+    },
+    {
+      "input": "mono and diglycerides",
+      "why": "Mono- and diglycerides — emulsifier"
+    },
+    {
+      "input": "polysorbate 80",
+      "why": "Polysorbate — emulsifier"
+    },
+    {
+      "input": "DATEM",
+      "why": "DATEM dough conditioner"
+    },
+    {
+      "input": "PGPR",
+      "why": "PGPR — castor-oil emulsifier standing in for cocoa butter"
+    },
+    {
+      "input": "sodium stearoyl lactylate",
+      "why": "Sodium stearoyl lactylate"
+    },
+    {
+      "input": "methylcellulose",
+      "why": "Methylcellulose — industrial binder"
+    },
+    {
+      "input": "cellulose gum",
+      "why": "Cellulose gum"
+    },
+    {
+      "input": "microcrystalline cellulose",
+      "why": "Microcrystalline cellulose — texture agent"
+    },
+    {
+      "input": "powdered cellulose",
+      "why": "Powdered cellulose"
+    },
+    {
+      "input": "xanthan gum",
+      "why": "Xanthan gum"
+    },
+    {
+      "input": "guar gum",
+      "why": "Guar gum"
+    },
+    {
+      "input": "gellan gum",
+      "why": "Gellan gum"
+    },
+    {
+      "input": "locust bean gum",
+      "why": "Locust bean gum"
+    },
+    {
+      "input": "tara gum",
+      "why": "Tara gum"
+    },
+    {
+      "input": "gum arabic",
+      "why": "Gum arabic"
+    },
+    {
+      "input": "soy lecithin",
+      "why": "Soy lecithin — soy-derived emulsifier"
+    },
+    {
+      "input": "sunflower lecithin",
+      "why": "Sunflower lecithin"
+    },
+    {
+      "input": "lecithin",
+      "why": "Lecithin — emulsifier, source not stated"
+    },
+    {
+      "input": "modified starch",
+      "why": "Modified starch — chemically altered"
+    },
+    {
+      "input": "maltodextrin",
+      "why": "Maltodextrin — starch-derived bulking agent"
+    },
+    {
+      "input": "carboxymethylcellulose",
+      "why": "Carboxymethyl derivative"
+    },
+    {
+      "input": "propylene glycol",
+      "why": "Propylene glycol"
+    },
+    {
+      "input": "glycerin",
+      "why": "Glycerin humectant"
+    },
+    {
+      "input": "sodium nitrite",
+      "why": "Synthetic nitrite — curing preservative"
+    },
+    {
+      "input": "sodium benzoate",
+      "why": "Sodium benzoate"
+    },
+    {
+      "input": "potassium sorbate",
+      "why": "Potassium sorbate"
+    },
+    {
+      "input": "sorbic acid",
+      "why": "Sorbic acid"
+    },
+    {
+      "input": "calcium propionate",
+      "why": "Calcium propionate"
+    },
+    {
+      "input": "sodium propionate",
+      "why": "Sodium propionate"
+    },
+    {
+      "input": "EDTA",
+      "why": "EDTA — a chelating agent"
+    },
+    {
+      "input": "sodium sulfite",
+      "why": "Sulfites"
+    },
+    {
+      "input": "potassium metabisulfite",
+      "why": "Potassium metabisulfite"
+    },
+    {
+      "input": "natamycin",
+      "why": "Natamycin"
+    },
+    {
+      "input": "nisin",
+      "why": "Nisin"
+    },
+    {
+      "input": "sodium polyphosphate",
+      "why": "Polyphosphate"
+    },
+    {
+      "input": "preservative",
+      "why": "Unnamed preservative"
+    },
+    {
+      "input": "color added",
+      "why": "Unnamed colour"
+    },
+    {
+      "input": "emulsifier",
+      "why": "Unnamed emulsifier"
+    },
+    {
+      "input": "stabilizer",
+      "why": "Unnamed stabiliser or thickener"
+    },
+    {
+      "input": "acidity regulator",
+      "why": "Unnamed acidity regulator"
+    },
+    {
+      "input": "flavor enhancer",
+      "why": "Unnamed flavour enhancer"
+    },
+    {
+      "input": "sweetener",
+      "why": "Unnamed sweetener"
+    },
+    {
+      "input": "antioxidant",
+      "why": "Unnamed antioxidant"
+    },
+    {
+      "input": "phosphoric acid",
+      "why": "Phosphoric acid — acidity regulator"
+    },
+    {
+      "input": "citric acid",
+      "why": "Citric acid — acidity regulator"
+    },
+    {
+      "input": "malic acid",
+      "why": "Malic acid"
+    },
+    {
+      "input": "fumaric acid",
+      "why": "Fumaric acid"
+    },
+    {
+      "input": "lactic acid",
+      "why": "Industrial lactic acid"
+    },
+    {
+      "input": "acetic acid",
+      "why": "Acetic acid"
+    },
+    {
+      "input": "silicon dioxide",
+      "why": "Silicon dioxide anticaking agent"
+    },
+    {
+      "input": "calcium silicate",
+      "why": "Calcium silicate"
+    },
+    {
+      "input": "E173",
+      "why": "Aluminium compound"
+    },
+    {
+      "input": "magnesium stearate",
+      "why": "Magnesium stearate"
+    },
+    {
+      "input": "tripotassium phosphate",
+      "why": "Tripotassium phosphate"
+    },
+    {
+      "input": "dipotassium phosphate",
+      "why": "Dipotassium phosphate"
+    },
+    {
+      "input": "sodium phosphate",
+      "why": "Phosphate additive"
+    },
+    {
+      "input": "sodium aluminium phosphate",
+      "why": "Sodium aluminium phosphate"
+    },
+    {
+      "input": "calcium sulfate",
+      "why": "Calcium sulfate"
+    },
+    {
+      "input": "ammonium chloride",
+      "why": "Ammonium salt dough conditioner"
+    },
+    {
+      "input": "L-cysteine",
+      "why": "L-cysteine dough conditioner"
+    },
+    {
+      "input": "enzymes",
+      "why": "Processing enzymes"
+    },
+    {
+      "input": "alcohol",
+      "why": "Added alcohol (preservative / solvent)"
+    },
+    {
+      "input": "cultured dextrose",
+      "why": "Cultured dextrose — a preservative in disguise"
+    },
+    {
+      "input": "celery powder",
+      "why": "Celery powder — nitrite by another name, which is what \"uncured\" means here"
+    },
+    {
+      "input": "thiamin mononitrate",
+      "why": "Synthetic thiamine"
+    },
+    {
+      "input": "riboflavin",
+      "why": "Synthetic riboflavin"
+    },
+    {
+      "input": "folic acid",
+      "why": "Folic acid — the synthetic form, not folate"
+    },
+    {
+      "input": "reduced iron",
+      "why": "Elemental iron fortification"
+    },
+    {
+      "input": "pyridoxine hydrochloride",
+      "why": "Synthetic B6"
+    },
+    {
+      "input": "cyanocobalamin",
+      "why": "Cyanocobalamin — the synthetic B12 form"
+    },
+    {
+      "input": "zinc oxide",
+      "why": "Zinc oxide fortification"
+    },
+    {
+      "input": "niacin",
+      "why": "Synthetic niacin"
+    },
+    {
+      "input": "calcium carbonate",
+      "why": "Calcium carbonate fortification"
+    },
+    {
+      "input": "ascorbic acid",
+      "why": "Synthetic vitamin C"
+    },
+    {
+      "input": "vitamin A palmitate",
+      "why": "Synthetic vitamin A"
+    },
+    {
+      "input": "mixed tocopherols",
+      "why": "Tocopherol antioxidant"
+    },
+    {
+      "input": "vitamin D3",
+      "why": "Added vitamin D"
+    },
+    {
+      "input": "potassium iodide",
+      "why": "Added iodine"
+    },
+    {
+      "input": "sodium selenite",
+      "why": "Sodium selenite"
+    },
+    {
+      "input": "enriched wheat flour",
+      "why": "Enriched flour — stripped, then synthetically re-dosed"
+    },
+    {
+      "input": "white flour",
+      "why": "Refined white flour"
+    },
+    {
+      "input": "wheat flour",
+      "why": "Wheat flour"
+    },
+    {
+      "input": "wheat",
+      "why": "Wheat"
+    },
+    {
+      "input": "barley",
+      "why": "Barley"
+    },
+    {
+      "input": "rye",
+      "why": "Rye"
+    },
+    {
+      "input": "durum semolina",
+      "why": "Durum semolina"
+    },
+    {
+      "input": "spelt",
+      "why": "Spelt"
+    },
+    {
+      "input": "triticale",
+      "why": "Triticale"
+    },
+    {
+      "input": "malted barley",
+      "why": "Malted barley"
+    },
+    {
+      "input": "corn starch",
+      "why": "Corn flour or starch"
+    },
+    {
+      "input": "oat flour",
+      "why": "Oat flour"
+    },
+    {
+      "input": "rice flour",
+      "why": "Rice flour"
+    },
+    {
+      "input": "soy flour",
+      "why": "Soy flour"
+    },
+    {
+      "input": "chickpea flour",
+      "why": "Chickpea flour"
+    },
+    {
+      "input": "lentil flour",
+      "why": "Lentil flour"
+    },
+    {
+      "input": "potato starch",
+      "why": "Potato starch"
+    },
+    {
+      "input": "tapioca starch",
+      "why": "Tapioca starch"
+    },
+    {
+      "input": "wheat bran",
+      "why": "Wheat fraction"
+    },
+    {
+      "input": "ultra-pasteurized milk",
+      "why": "Ultra-pasteurized dairy"
+    },
+    {
+      "input": "homogenized milk",
+      "why": "Homogenized dairy"
+    },
+    {
+      "input": "skim milk",
+      "why": "Fat-reduced dairy"
+    },
+    {
+      "input": "sugar",
+      "why": "Refined added sugar"
+    },
+    {
+      "input": "sucre",
+      "why": "Refined added sugar"
+    },
+    {
+      "input": "cane sugar",
+      "why": "Cane sugar"
+    },
+    {
+      "input": "brown sugar",
+      "why": "Brown sugar"
+    },
+    {
+      "input": "beet sugar",
+      "why": "Beet sugar"
+    },
+    {
+      "input": "powdered sugar",
+      "why": "Powdered sugar"
+    },
+    {
+      "input": "invert sugar",
+      "why": "Invert sugar"
+    },
+    {
+      "input": "dextrose",
+      "why": "Dextrose"
+    },
+    {
+      "input": "glucose syrup",
+      "why": "Glucose syrup"
+    },
+    {
+      "input": "fructose",
+      "why": "Isolated fructose"
+    },
+    {
+      "input": "sucrose",
+      "why": "Sucrose"
+    },
+    {
+      "input": "maltose",
+      "why": "Maltose"
+    },
+    {
+      "input": "agave nectar",
+      "why": "Agave — among the highest-fructose sweeteners"
+    },
+    {
+      "input": "rice syrup",
+      "why": "Rice syrup"
+    },
+    {
+      "input": "tapioca syrup",
+      "why": "Tapioca syrup"
+    },
+    {
+      "input": "barley malt syrup",
+      "why": "Barley malt syrup"
+    },
+    {
+      "input": "caramel",
+      "why": "Caramel"
+    },
+    {
+      "input": "honey powder",
+      "why": "Honey powder — processed, not raw"
+    },
+    {
+      "input": "honey",
+      "why": "Honey — concentrated sweetener, light touch"
+    },
+    {
+      "input": "maple syrup",
+      "why": "Maple syrup — concentrated sweetener"
+    },
+    {
+      "input": "molasses",
+      "why": "Molasses"
+    },
+    {
+      "input": "coconut sugar",
+      "why": "Coconut sugar"
+    },
+    {
+      "input": "date sugar",
+      "why": "Date sugar"
+    },
+    {
+      "input": "sorghum syrup",
+      "why": "Sorghum syrup"
+    },
+    {
+      "input": "fruit juice concentrate",
+      "why": "Fruit juice concentrate — sugar stripped of its fruit"
+    },
+    {
+      "input": "black beans",
+      "why": "Legumes — lectins and phytates"
+    },
+    {
+      "input": "almonds",
+      "why": "Tree nuts — phytates and oxalates"
+    },
+    {
+      "input": "chia seeds",
+      "why": "Seeds — phytates and plant defence compounds"
+    },
+    {
+      "input": "erythritol",
+      "why": "Erythritol"
+    },
+    {
+      "input": "xylitol",
+      "why": "Xylitol"
+    },
+    {
+      "input": "maltitol",
+      "why": "Maltitol"
+    },
+    {
+      "input": "sorbitol",
+      "why": "Sorbitol"
+    },
+    {
+      "input": "mannitol",
+      "why": "Mannitol"
+    },
+    {
+      "input": "isomalt",
+      "why": "Isomalt"
+    },
+    {
+      "input": "lactitol",
+      "why": "Lactitol"
+    },
+    {
+      "input": "sugar alcohol",
+      "why": "Sugar alcohol (unnamed)"
+    },
+    {
+      "input": "allulose",
+      "why": "Allulose"
+    },
+    {
+      "input": "stevia extract",
+      "why": "Stevia extract — refined, not the leaf"
+    },
+    {
+      "input": "monk fruit extract",
+      "why": "Monk fruit extract"
+    },
+    {
+      "input": "soluble corn fiber",
+      "why": "Isolated fiber syrup"
+    },
+    {
+      "input": "inulin",
+      "why": "Isolated inulin"
+    },
+    {
+      "input": "polydextrose",
+      "why": "Polydextrose"
+    }
+  ],
+  "caps": [
+    {
+      "input": "partially hydrogenated soybean oil",
+      "why": "Partially hydrogenated oil (artificial trans fat)"
+    },
+    {
+      "input": "canola oil",
+      "why": "Canola/rapeseed oil — refined seed oil"
+    },
+    {
+      "input": "soybean oil",
+      "why": "Soybean oil — refined seed oil"
+    },
+    {
+      "input": "sunflower oil",
+      "why": "Sunflower oil — refined seed oil"
+    },
+    {
+      "input": "safflower oil",
+      "why": "Safflower oil — refined seed oil"
+    },
+    {
+      "input": "corn oil",
+      "why": "Corn oil — refined seed oil"
+    },
+    {
+      "input": "cottonseed oil",
+      "why": "Cottonseed oil — refined seed oil"
+    },
+    {
+      "input": "grapeseed oil",
+      "why": "Grapeseed oil — refined seed oil"
+    },
+    {
+      "input": "rice bran oil",
+      "why": "Rice bran oil — refined seed oil"
+    },
+    {
+      "input": "peanut oil",
+      "why": "Peanut oil — refined seed oil"
+    },
+    {
+      "input": "refined sesame oil",
+      "why": "Refined sesame oil — refined seed oil"
+    },
+    {
+      "input": "vegetable oil",
+      "why": "Unspecified \"vegetable oil\" — refined seed oil"
+    },
+    {
+      "input": "oil blend",
+      "why": "Unspecified oil blend — refined seed oil"
+    },
+    {
+      "input": "vegetable shortening",
+      "why": "Vegetable shortening — refined seed oil"
+    },
+    {
+      "input": "margarine",
+      "why": "Margarine — refined seed oil"
+    },
+    {
+      "input": "interesterified fat",
+      "why": "Interesterified fat — refined seed oil"
+    },
+    {
+      "input": "hydrogenated coconut oil",
+      "why": "Hydrogenated oil — refined seed oil"
+    },
+    {
+      "input": "high-oleic sunflower oil",
+      "why": "High-oleic industrial seed oil — refined seed oil"
+    },
+    {
+      "input": "red 40",
+      "why": "Red 40 artificial colour"
+    },
+    {
+      "input": "red 3",
+      "why": "Red 3 artificial colour"
+    },
+    {
+      "input": "yellow 5",
+      "why": "Yellow 5 artificial colour"
+    },
+    {
+      "input": "yellow 6",
+      "why": "Yellow 6 artificial colour"
+    },
+    {
+      "input": "blue 1",
+      "why": "Blue 1 artificial colour"
+    },
+    {
+      "input": "blue 2",
+      "why": "Blue 2 artificial colour"
+    },
+    {
+      "input": "citrus red 2",
+      "why": "Citrus Red 2 — permitted in the US only on orange peel"
+    },
+    {
+      "input": "green 3",
+      "why": "Green 3 artificial colour"
+    },
+    {
+      "input": "E104",
+      "why": "Quinoline yellow (E104) artificial colour"
+    },
+    {
+      "input": "E122",
+      "why": "Carmoisine (E122) artificial colour"
+    },
+    {
+      "input": "E124",
+      "why": "Ponceau 4R (E124) artificial colour"
+    },
+    {
+      "input": "E131",
+      "why": "Patent blue V (E131) artificial colour"
+    },
+    {
+      "input": "E142",
+      "why": "Green S (E142) artificial colour"
+    },
+    {
+      "input": "E151",
+      "why": "Brilliant black (E151) artificial colour"
+    },
+    {
+      "input": "E155",
+      "why": "Brown HT (E155) artificial colour"
+    },
+    {
+      "input": "titanium dioxide",
+      "why": "Titanium dioxide — banned as a food additive in the EU"
+    },
+    {
+      "input": "artificial color",
+      "why": "Artificial colour"
+    },
+    {
+      "input": "caramel color",
+      "why": "Caramel colour"
+    },
+    {
+      "input": "carrageenan",
+      "why": "Carrageenan — thickener"
+    },
+    {
+      "input": "BHA",
+      "why": "BHA preservative"
+    },
+    {
+      "input": "BHT",
+      "why": "BHT preservative"
+    },
+    {
+      "input": "TBHQ",
+      "why": "TBHQ preservative"
+    },
+    {
+      "input": "propyl gallate",
+      "why": "Propyl gallate"
+    },
+    {
+      "input": "propylparaben",
+      "why": "Propylparaben — banned as a food additive in the EU"
+    },
+    {
+      "input": "potassium bromate",
+      "why": "Potassium bromate — banned in the EU, UK, and Canada"
+    },
+    {
+      "input": "azodicarbonamide",
+      "why": "Azodicarbonamide — the \"yoga mat\" dough conditioner"
+    },
+    {
+      "input": "olestra",
+      "why": "Olestra"
+    },
+    {
+      "input": "brominated vegetable oil",
+      "why": "Brominated vegetable oil"
+    },
+    {
+      "input": "high-fructose corn syrup",
+      "why": "High-fructose corn syrup"
+    },
+    {
+      "input": "corn syrup",
+      "why": "Corn syrup"
+    },
+    {
+      "input": "glucose-fructose syrup",
+      "why": "Glucose-fructose syrup"
+    },
+    {
+      "input": "sucralose",
+      "why": "Sucralose — artificial sweetener"
+    },
+    {
+      "input": "aspartame",
+      "why": "Aspartame — artificial sweetener"
+    },
+    {
+      "input": "acesulfame potassium",
+      "why": "Acesulfame potassium — artificial sweetener"
+    },
+    {
+      "input": "saccharin",
+      "why": "Saccharin — artificial sweetener"
+    },
+    {
+      "input": "neotame",
+      "why": "Neotame — artificial sweetener"
+    },
+    {
+      "input": "advantame",
+      "why": "Advantame — artificial sweetener"
+    },
+    {
+      "input": "cyclamate",
+      "why": "Cyclamate — artificial sweetener"
+    }
+  ],
+  "bonuses": [
+    {
+      "input": "grass-fed",
+      "why": "100% grass-fed / grass-finished"
+    },
+    {
+      "input": "pasture-raised",
+      "why": "Pasture-raised"
+    },
+    {
+      "input": "wild-caught",
+      "why": "Wild-caught"
+    },
+    {
+      "input": "organic",
+      "why": "Organic label claim"
+    },
+    {
+      "input": "raw milk",
+      "why": "Raw / unpasteurised dairy"
+    },
+    {
+      "input": "regeneratively farmed",
+      "why": "Regeneratively farmed"
+    },
+    {
+      "input": "fermented",
+      "why": "Fermented / live cultures"
+    },
+    {
+      "input": "olive oil",
+      "why": "Minimally refined cooking fat"
+    },
+    {
+      "input": "A2",
+      "why": "A2 dairy"
+    },
+    {
+      "input": "sourdough",
+      "why": "Sourdough / sprouted grain"
+    },
+    {
+      "input": "non-GMO",
+      "why": "Non-GMO claim"
+    },
+    {
+      "input": "sea salt",
+      "why": "Unrefined salt"
+    },
+    {
+      "input": "heritage",
+      "why": "Heritage / heirloom breed"
+    },
+    {
+      "input": "dry-aged",
+      "why": "Dry-aged / traditionally cured"
+    },
+    {
+      "input": "cold-pressed olive oil",
+      "why": "Cold-pressed / unrefined"
+    }
+  ],
+  "certifications": [
+    {
+      "id": "aga",
+      "input": "American Grassfed Association certified",
+      "kind": "beef"
+    },
+    {
+      "id": "awa",
+      "input": "Animal Welfare Approved",
+      "kind": "beef"
+    },
+    {
+      "id": "gap5",
+      "input": "GAP step 5",
+      "kind": "beef"
+    },
+    {
+      "id": "gap4",
+      "input": "GAP step 4",
+      "kind": "beef"
+    },
+    {
+      "id": "organic",
+      "input": "USDA Organic",
+      "kind": "beef"
+    },
+    {
+      "id": "organicClaim",
+      "input": "organic",
+      "kind": "beef"
+    },
+    {
+      "id": "humane",
+      "input": "Certified Humane",
+      "kind": "beef"
+    },
+    {
+      "id": "regenerative",
+      "input": "ROC certified",
+      "kind": "beef"
+    },
+    {
+      "id": "msc",
+      "input": "MSC certified",
+      "kind": "seafood"
+    },
+    {
+      "id": "productOfUsa",
+      "input": "Product of USA",
+      "kind": "beef"
+    },
+    {
+      "id": "wildCaught",
+      "input": "wild-caught",
+      "kind": "seafood"
+    },
+    {
+      "id": "grassFinished",
+      "input": "100% grass-fed",
+      "kind": "beef"
+    },
+    {
+      "id": "grassFed",
+      "input": "grass-fed",
+      "kind": "beef"
+    },
+    {
+      "id": "pastureRaised",
+      "input": "pasture-raised",
+      "kind": "beef"
+    },
+    {
+      "id": "freeRange",
+      "input": "free-range",
+      "kind": "poultry"
+    },
+    {
+      "id": "noAntibiotics",
+      "input": "raised without antibiotics",
+      "kind": "beef"
+    },
+    {
+      "id": "nonGmoVerified",
+      "input": "Non-GMO Project Verified",
+      "kind": "beef"
+    }
+  ]
+}

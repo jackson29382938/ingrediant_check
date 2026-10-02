@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const { loadWorker } = require('./worker-scripts.js');
 const ENDPOINT = 'https://script.google.com/macros/s/abcdefghijklmnopqrstuvwxyz1234567890/exec';
-function worker(initial = {}, fetcher, { alarms, endpoint = ENDPOINT } = {}) {
+function worker(initial = {}, fetcher, { alarms, endpoint = ENDPOINT, productsAllowed = true } = {}) {
   const data = structuredClone(initial);
   const synced = {};
   const event = { addListener() {} };
@@ -13,6 +13,7 @@ function worker(initial = {}, fetcher, { alarms, endpoint = ENDPOINT } = {}) {
   let onMessage = null;
   const badges = [];
   let changed;
+  let syncFailure = false;
   const sandbox = {
     console, URL, URLSearchParams, AbortSignal, AbortController, setTimeout, clearTimeout,
     fetch: fetcher || (async () => { throw new Error('offline'); }),
@@ -38,7 +39,7 @@ function worker(initial = {}, fetcher, { alarms, endpoint = ENDPOINT } = {}) {
         async remove(keys) { for (const k of [].concat(keys)) delete data[k]; },
       }, sync: {
         async get(keys) { return structuredClone(Object.fromEntries([].concat(keys).map(k => [k, synced[k]]))); },
-        async set(values) { Object.assign(synced, structuredClone(values)); },
+        async set(values) { if (typeof syncFailure === 'function' ? syncFailure(values) : syncFailure) throw new Error('quota'); Object.assign(synced, structuredClone(values)); },
       } },
     },
   };
@@ -46,8 +47,9 @@ function worker(initial = {}, fetcher, { alarms, endpoint = ENDPOINT } = {}) {
   const context = vm.createContext(sandbox);
   // Exactly the scripts the worker imports, in its order. The build constant is pointed at a test
   // URL (or left empty to model an unconfigured build) once prefs.js has defined it.
-  loadWorker(vm, context, { before: () => { if (context.AIR?.db?.prefs) context.AIR.db.prefs.ENDPOINT = endpoint; } });
+  loadWorker(vm, context, { before: () => { if (context.AIR?.db?.prefs) { context.AIR.db.prefs.ENDPOINT = endpoint; context.AIR.db.prefs.SHARED_PRODUCTS_ALLOWED = productsAllowed; } } });
   return {
+    failSync: value => { syncFailure = value; },
     data, synced, call: (expression) => vm.runInContext(expression, context), created: () => created, badges,
     send(msg, sender) {
       return new Promise(resolve => {
@@ -336,7 +338,7 @@ test('settings back up to the Chrome account, sanitized and split under the 8 KB
   assert.equal(main.toggles.hoverScore, true);
   assert.equal('enabled' in main.toggles, false, 'the master switch is never backed up');
   assert.equal(main.email, undefined);
-  assert.deepEqual(w.synced.icBackupAvoid, ['red 40']);
+  assert.deepEqual(JSON.parse(w.call('JSON.stringify(self.AIR.db.prefs.fromSyncItems(' + JSON.stringify(w.synced) + ').values.avoidList)')), ['red 40']);
   const off = worker({ settingsBackup: false });
   assert.equal((await off.call('backupToChrome()')).reason, 'not-enabled');
   assert.equal(off.synced.icBackup, undefined);
@@ -532,4 +534,57 @@ test('Open Food Facts: allergen markup (_WHEAT_) is stripped from the text the p
   const w = worker({ useOpenFoodFacts: true }, async () => ({ ok: true, json: async () => product }));
   const got = await w.send({ type: 'lookupBarcode', code: '0012345678929' }, amazonTab);
   assert.equal(got.ingredients_text, 'WHEAT flour, palm oil, EGG');
+});
+
+test('backup stages alternate banks, preserves the last copy on failure, and records recovery', async () => {
+  const w = worker({ avoidList: ['milk'], speedMode: 'freshest', sortCount: 500 });
+  assert.equal((await w.call('backupToChrome()')).ok, true);
+  const saved = structuredClone(w.synced);
+  w.data.avoidList = Array.from({length:80}, (_,i) => String(i).padEnd(80, '漢'));
+  w.failSync(true);
+  assert.equal((await w.call('backupToChrome()')).ok, false);
+  assert.deepEqual(w.synced, saved);
+  assert.equal(w.data.backupStatus.ok, false);
+  w.failSync(false);
+  await Promise.all([w.call('backupToChrome()'), w.call('backupToChrome()')]);
+  assert.equal(w.data.backupStatus.ok, true);
+  const restored = JSON.parse(w.call('JSON.stringify(self.AIR.db.prefs.fromSyncItems(' + JSON.stringify(w.synced) + '))'));
+  assert.equal(restored.values.avoidList.length, 80);
+  assert.equal(restored.values.speedMode, 'freshest');
+});
+test('Google save requires confirmed account receipt; restore sanitizes without persisting the token', async () => {
+  let payload;
+  const w = worker({ goals: ['weightLoss'], speedMode: 'freshest', sortLoadMore: true }, async (_url, opts) => {
+    const req = JSON.parse(opts.body); payload = req.payload;
+    return {ok:true,json:async()=>req.kind === 'account' ? {ok:true,tab:'accounts'}
+      : {ok:true,payload:{_format:'ingredient-check-settings',weights:{sugar:9},workflow:{speedMode:'freshest',sortCount:500},toggles:{enabled:false}}}};
+  });
+  const token = 'a'.repeat(30);
+  assert.equal((await w.call(`accountSave('${token}')`)).ok, true);
+  assert.equal(payload.workflow.speedMode, 'freshest');
+  assert.equal((await w.call(`accountLoad('${token}')`)).ok, true);
+  assert.equal(w.data.weights.sugar, 2);
+  assert.equal(w.data.sortCount, 500);
+  assert.equal(w.data.enabled, undefined);
+  assert.ok(!JSON.stringify(w.data).includes(token));
+});
+
+test('failed pointer commit leaves the prior backup readable after staged parts were written', async () => {
+  const w = worker({avoidList:['milk']});
+  await w.call('backupToChrome()');
+  const pointer = structuredClone(w.synced.icBackup);
+  w.data.avoidList = ['soy'];
+  w.failSync(values => Object.hasOwn(values, 'icBackup'));
+  assert.equal((await w.call('backupToChrome()')).ok, false);
+  assert.deepEqual(w.synced.icBackup, pointer);
+  const previous = JSON.parse(w.call('JSON.stringify(self.AIR.db.prefs.fromSyncItems(' + JSON.stringify(w.synced) + '))'));
+  assert.deepEqual(previous.values.avoidList, ['milk']);
+});
+
+test('closed build prevents shared product reads and writes even with a saved opt-in', async () => {
+  let calls = 0;
+  const w = worker({sharedProducts:true, sharedCache:true}, async () => { calls++; throw new Error('network'); }, {productsAllowed:false});
+  assert.equal(await w.call('sharedProductsEndpoint()'), '');
+  await w.call("productsLookup('amazon.com', ['B00LOAW7U6'])");
+  assert.equal(calls, 0);
 });

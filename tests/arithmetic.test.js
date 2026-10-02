@@ -131,7 +131,7 @@ check('refined whole-food fats do not earn the unrefined or simplicity bonuses',
 
 check('sourcing and raw-dairy bonuses match the product type and evidence', () => {
   const rawMilk = engine.score({ name: 'Milk', ingredients_text: 'Raw milk' }, {});
-  assert.ok(rawMilk.good.some(h => /Raw \/ unpasteurised dairy/.test(h.why)));
+  assert.ok(!rawMilk.good.some(h => /Raw \/ unpasteurised dairy/.test(h.why)));
   const rawSauerkraut = engine.score({ name: 'Sauerkraut', ingredients_text: 'Unpasteurized cabbage' }, {});
   assert.ok(!rawSauerkraut.good.some(h => /Raw \/ unpasteurised dairy/.test(h.why)));
   const certifiedProduce = engine.score({ name: 'Organic carrots', ingredients_text: 'Organic carrots', certifications: 'USDA Organic' }, {});
@@ -151,10 +151,10 @@ check('sourcing and raw-dairy bonuses match the product type and evidence', () =
 check('a cap that goals moved names its default weight', () => {
   const p = { name: 'Oat milk', ingredients_text: 'water, oats, sunflower oil, calcium carbonate, salt' };
   const plain = engine.score(p, {});
-  assert.ok(plain.bad.some(h => h.cap && /caps score at 25$/.test(h.why)));
+  assert.ok(plain.bad.some(h => h.cap && /caps score at 63$/.test(h.why)));
   const heavy = engine.score(p, { weights: categories.goalWeights(['animalBased']) });
-  assert.ok(heavy.bad.some(h => h.cap && /\(25 at default weights; your goals weigh it more\)/.test(h.why)), heavy.bad.map(h => h.why).join(' | '));
-  const light = engine.score(p, { weights: { ...categories.goalWeights([]), refinedOil: 0.5 } });
+  assert.ok(heavy.bad.some(h => h.cap && /\(63 at default weights; your goals weigh it more\)/.test(h.why)), heavy.bad.map(h => h.why).join(' | '));
+  const light = engine.score(p, { weights: { ...categories.goalWeights([]), refinedOil: 0.25 } });
   assert.ok(light.bad.some(h => (h.cap || h.c === 'CAP') && /your goals weigh it less/.test(h.why)), light.bad.map(h => h.why).join(' | '));
 });
 

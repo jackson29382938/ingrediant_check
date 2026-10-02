@@ -109,7 +109,7 @@ check('the build ships with no invented endpoint or OAuth client', () => {
   const endpoint = src.match(/const ENDPOINT = '([^']*)';/)[1];
   assert.ok(endpoint === '' || prefs.toScriptUrl(endpoint), 'ENDPOINT must be empty or a real /exec URL');
 });
-check('the shared database and the Chrome backup are on by default, sharing extras are not', () => {
+check('Chrome backup defaults on; the shared database and sharing extras default off', () => {
   const t = prefs.sanitizeToggles({});
   assert.strictEqual(t.sharedCache, false);
   assert.strictEqual(t.settingsBackup, true);
@@ -136,7 +136,8 @@ check('a backup is the sanitized export plus toggles, never the master switch or
 check('a backup round-trips through chrome.storage.sync items and is re-sanitized on the way in', () => {
   const b = prefs.backupPayload({ weights: { sugar: 0.4 }, avoidList: Array.from({ length: 80 }, (_, i) => String(i).padStart(2, '0') + 'x'.repeat(78)) });
   const items = prefs.toSyncItems(b);
-  assert.deepStrictEqual(Object.keys(items), prefs.SYNC_KEYS);
+  assert.ok(Object.keys(items).every(k => prefs.SYNC_KEYS.includes(k)));
+  assert.ok(items.icBackup._syncVersion === 2);
   for (const v of Object.values(items)) assert.ok(JSON.stringify(v).length < 8192, 'each item fits the 8 KB cap');
   const back = prefs.fromSyncItems(items);
   assert.ok(back.ok);
@@ -158,6 +159,37 @@ check('apps-script.gs knows every kind the extension sends', () => {
   assert.ok(gs.includes("kind === 'provenance'"), 'GET must serve provenance');
   assert.ok(!/kind === 'settings'|kind === 'ratings'/.test(gs), 'the shared one-row settings and ratings kinds are gone');
   assert.ok(gs.match(/var DIAGNOSTIC_COLUMNS = (\[[\s\S]*?\]);/), 'diagnostic columns must stay parseable');
+});
+
+
+
+check('Unicode backups fit byte quotas, retain every term, and detect incomplete sync', () => {
+  const avoidList = Array.from({ length: 80 }, (_, i) => String(i).padEnd(80, '漢'));
+  const payload = prefs.backupPayload({ avoidList, speedMode: 'freshest', sortCount: 500,
+    sortMissing: 'leave', sortLoadMore: true, unitMissing: 'displayed-only' });
+  const items = prefs.toSyncItems(payload, 'b');
+  for (const [key, value] of Object.entries(items)) {
+    assert.ok(Buffer.byteLength(key) + Buffer.byteLength(JSON.stringify(value)) < 8192);
+  }
+  const restored = prefs.fromSyncItems(items);
+  assert.deepStrictEqual(restored.values.avoidList, avoidList);
+  assert.strictEqual(restored.values.speedMode, 'freshest');
+  assert.strictEqual(restored.values.sortCount, 500);
+  assert.strictEqual(restored.values.sortLoadMore, true);
+  assert.strictEqual(restored.values.unitMissing, 'displayed-only');
+  const intact = items.icBackupAvoid_b_0;
+  items.icBackupAvoid_b_0 = ['stale part from another device'];
+  assert.strictEqual(prefs.fromSyncItems(items).reason, 'incomplete-backup');
+  items.icBackupAvoid_b_0 = intact;
+  delete items.icBackupAvoid_b_0;
+  assert.strictEqual(prefs.fromSyncItems(items).reason, 'incomplete-backup');
+});
+check('legacy backups restore and leave unspecified workflow preferences untouched', () => {
+  const legacy = prefs.exportPayload({ avoidList: ['milk'], goals: ['weightLoss'] });
+  const restored = prefs.fromSyncItems({ icBackup: legacy, icBackupAvoid: ['milk'] });
+  assert.ok(restored.ok);
+  assert.deepStrictEqual(restored.values.avoidList, ['milk']);
+  assert.ok(!Object.hasOwn(restored.values, 'speedMode'));
 });
 
 if (failed) { console.error('\n' + failed + ' failed'); process.exit(1); }

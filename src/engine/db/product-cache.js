@@ -26,7 +26,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // Pasted lists and the food-gate override belong to one tab, never to anyone else.
   const PRIVATE_VIA = new Set(['manual-paste', 'food-override']);
   const NUTRIENTS = ['sodium', 'saturatedFat', 'transFat', 'sugar', 'addedSugar', 'fibre', 'protein',
-    'calories', 'fat', 'carbs', 'servingGrams'];
+    'calories', 'fat', 'carbs', 'servingGrams', 'servingMl'];
 
   const str = (v, n) => String(v == null ? '' : v).replace(/^'/, '').replace(/\s+/g, ' ').trim().slice(0, n);
   const normalizeStore = s => str(s, 60).toLowerCase().replace(/^www\./, '');
@@ -84,7 +84,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     return (Number(row.pulls) || 0) >= MAX_PULLS || now - t >= maxAgeMs;
   }
 
-  // Engine input from a row. A fresh object each call: score() writes `_normalised` into nutrition.
+  // Engine input from a row, copied so consumers cannot alter the stored reading.
   function toInput(row) {
     const d = row.data;
     return {

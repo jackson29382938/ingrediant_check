@@ -21,8 +21,9 @@ const check = (name, fn) => {
   try { fn(); console.log('  ok  ' + name); }
   catch (e) { failed++; console.error('  FAIL ' + name + '\n       ' + e.message); }
 };
-const scoreOf = t => engine.score({ name: 'Test', ingredients_text: t }, {}).score;
-const capOf = t => engine.score({ name: 'Test', ingredients_text: t }, {}).cap;
+const STRICT = {weights:{refinedOil:1,artificialSweetener:1}};
+const scoreOf = t => engine.score({ name: 'Test', ingredients_text: t }, STRICT).score;
+const capOf = t => engine.score({ name: 'Test', ingredients_text: t }, STRICT).cap;
 
 // Every ingredient that sets a hard ceiling, with the marketing adjectives that really appear
 // beside it on a US panel. Each must still trip its cap.
@@ -90,7 +91,7 @@ check('cold-pressed seed oil lands between the cap and a clean score', () => {
 });
 check('a qualifier on one oil does not lift the cap on another', () => {
   const mixed = engine.score(
-    { name: 'x', ingredients_text: 'Potatoes, sunflower oil, cold-pressed olive oil, salt' }, {});
+    { name: 'x', ingredients_text: 'Potatoes, sunflower oil, cold-pressed olive oil, salt' }, STRICT);
   assert.ok(mixed.score <= 30, `scored ${mixed.score} — the olive oil qualifier lifted the sunflower cap`);
 });
 
@@ -98,7 +99,7 @@ console.log('\nthe two surfaces stay separate');
 check('a title denial does not condemn, an ingredient adjective does not launder', () => {
   const laundered = engine.score(
     { name: 'Heart Healthy Mayo — No Artificial Anything', labels: 'No preservatives, non-gmo',
-      ingredients_text: 'Water, Non-GMO Soybean Oil, sugar' }, {});
+      ingredients_text: 'Water, Non-GMO Soybean Oil, sugar' }, STRICT);
   assert.ok(laundered.cap, 'the seed oil must still cap despite clean marketing copy');
   assert.ok(laundered.score <= 30, `scored ${laundered.score}, expected the cap to bind`);
 });

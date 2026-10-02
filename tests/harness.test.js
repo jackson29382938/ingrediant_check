@@ -87,8 +87,8 @@ function verdictFor(f) {
 
 const EXPECTED = {
   oats:    { card: 'scored', min: 85, certs: /USDA Organic/, nutrition: true },
-  flakes:  { card: 'scored', max: 55, certs: /Kosher/, nutrition: true },
-  chips:   { card: 'scored', max: 40, capped: true },
+  flakes:  { card: 'scored', max: 70, certs: /Kosher/, nutrition: true },
+  chips:   { card: 'scored', max: 65, capped: true },
   beef:    { card: 'scored', min: 80, certs: /Grassfed/, provenance: true },
   shampoo: { card: 'not-food' },
   unreadable: { card: 'declined' },

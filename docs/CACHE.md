@@ -48,7 +48,8 @@ clients from consuming it but does not purge the stored row.
 So, until there is a way to establish who wrote a row (authenticated writers, or rows the owner
 reviews):
 
-- **The extension** reads and uploads product rows only when the reader turns on *Share product
+- **This build** closes product exchange with `SHARED_PRODUCTS_ALLOWED = false`, even with an older saved opt-in. The worker refuses reads and uploads and the settings control stays disabled. Reopening requires verified writer trust controls.
+- **When explicitly reopened by a future build**, the extension reads and uploads product rows only when the reader turns on *Share product
   readings with other computers* (Settings → *Shared online database*; `sharedProducts` in
   `prefs.js`, off by default). It is a new key, so an install that saved the older on-by-default
   `sharedCache: true` is off too, and an update drops anything still queued for upload. Turning it
@@ -143,3 +144,13 @@ failure behaves the same: nothing waits on the sheet.
 - The endpoint URL ships inside the extension. Anyone who extracts it can write well-formed rows.
   Both sides re-check every row and a row only moves forward in time, but a plausible fake read
   would be served until a real read replaces it or it goes stale.
+
+## Owner maintenance
+
+Run `closeSharedProducts()` in the Apps Script editor to remove `PRODUCTS_OPEN`.
+Run `purgeHistoricalPolishReading()` to close exchange and remove the historical
+`amazon.pl:B00MCJ3180` row. `purgeSharedProduct(store, asin)` removes only that key,
+under the script lock. These functions have no public request route.
+The deployed endpoint did not return `closed: true` during the 2026-10-01 lookup check;
+its actual deployment still needs owner verification. The local build gate protects
+this extension without assuming that deployment has been updated.

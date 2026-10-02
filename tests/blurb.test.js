@@ -64,7 +64,7 @@ console.log('\nfat-reduced dairy covers the nouns dairy actually comes as');
 for (const t of ['Cultured lowfat kefir', 'Low fat cottage cheese, salt', 'Part-skim mozzarella cheese',
                  'Reduced-fat sour cream, cultures', 'Nonfat buttermilk']) {
   check(t, () => {
-    const r = engine.score({ name: 'Dairy', ingredients_text: t }, {});
+    const r = engine.score({ name: 'Dairy', ingredients_text: t }, {weights:{reducedFatDairy:1}});
     assert.ok(r.bad.some(h => /fat-reduced dairy/i.test(h.why)), `no fat-reduced penalty for "${t}"`);
   });
 }

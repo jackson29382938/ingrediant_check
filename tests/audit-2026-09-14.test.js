@@ -160,7 +160,7 @@ test('nutrition values parse with decimal commas and added sugar reads its own r
   const us = extract.nutritionFacts(doc('Nutrition Facts Serving size 1 cup (240ml) Calories 120 Sodium 125mg Dietary Fiber 4g Total Sugars 12g\nIncludes 10g Added Sugars\nProtein 8g'));
   assert.equal(us.addedSugar, 10);
   assert.equal(us.fibre, 4);
-  assert.equal(us.servingGrams, 240);
+  assert.equal(us.servingMl, 240);
   const de = extract.nutritionFacts(doc('Nährwertangaben Portion 30 g Energie 450 kcal gesättigte Fettsäuren 2,5 g Zucker 12,5 g Ballaststoffe 3,1 g Eiweiß 8,2 g Natrium 120 mg'));
   assert.deepEqual([de.saturatedFat, de.sugar, de.fibre, de.protein, de.sodium], [2.5, 12.5, 3.1, 8.2, 120]);
 });

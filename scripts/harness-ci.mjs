@@ -641,11 +641,11 @@ async function run() {
       if (first.on || !first.disabled) throw new Error(`shared readings should start off and disabled: ${JSON.stringify(first)}`);
       await settingsPage.click('#sharedCache');
       await settingsPage.waitForFunction(() => window.__stored.sharedCache === true, { timeout: 5000 });
-      if ((await sharing()).disabled) throw new Error('shared readings should be usable once the shared database is on');
+      if (!(await sharing()).disabled) throw new Error('shared readings must stay closed pending trust verification');
       await settingsPage.click('#sharedCache');
       await settingsPage.waitForFunction(() => window.__stored.sharedCache === false, { timeout: 5000 });
       if (!(await sharing()).disabled) throw new Error('shared readings should be disabled again');
-      console.log('  ok  settings → shared database and shared readings off by default; readings usable only while the database is on');
+      console.log('  ok  settings → shared database and shared readings off by default; product exchange remains closed pending trust verification');
       // Goals weighted against each other: a slider per selected goal appears once two are picked, and
       // moving one saves its weight and re-averages the dials towards that goal.
       const pickable = await settingsPage.evaluate(() => [...document.querySelectorAll('.preset-card')]
@@ -727,6 +727,25 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
       });
       await page.goto(`chrome-extension://${id}/src/options/${name}`, { waitUntil: 'load', timeout: 20000 });
       await page.waitForTimeout(300);   // let storage callbacks run
+      // Narrow desktop windows and 200% page zoom must keep every named control reachable.
+      for (const shape of [{width:400,height:600,zoom:1}, {width:1280,height:800,zoom:2}]) {
+        await page.setViewportSize({width:shape.width,height:shape.height});
+        await page.evaluate(zoom => { document.body.style.zoom = String(zoom); }, shape.zoom);
+        const sizing = await page.evaluate(() => ({width:document.documentElement.clientWidth, content:document.documentElement.scrollWidth}));
+        if (sizing.content > sizing.width + 2) pageErrors.push(`extension ${name}: horizontal overflow at ${shape.width}px / ${shape.zoom * 100}% (${sizing.content}px)`);
+        const names = await page.evaluate(accessibilityProblems);
+        for (const problem of names) pageErrors.push(`extension ${name} zoom ${shape.zoom}: ${problem}`);
+      }
+      await page.setViewportSize({width:1280,height:800});
+      await page.evaluate(() => { document.body.style.zoom = ''; });
+      const accessibilitySession = await context.newCDPSession(page);
+      const axTree = await accessibilitySession.send('Accessibility.getFullAXTree');
+      for (const node of axTree.nodes) {
+        if (!node.ignored && /^(button|checkbox|radio|combobox|slider|link)$/.test(node.role?.value || '') && !String(node.name?.value || '').trim()) {
+          pageErrors.push(`extension ${name}: browser accessibility tree has unnamed ${node.role.value}`);
+        }
+      }
+      await accessibilitySession.detach();
       const a11y = await page.evaluate(accessibilityProblems);
       for (const problem of a11y) pageErrors.push(`extension ${name}: ${problem}`);
       for (const colorScheme of ['light', 'dark']) {
@@ -762,9 +781,52 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
         await page.evaluate(old => new Promise(r => chrome.storage.local.clear(() => chrome.storage.local.set(old, r))), before);
       }
       if (name === 'options.html') {
-        // Google sign-in is off in this build (no OAuth client id), so its block must stay hidden.
-        const account = await page.evaluate(() => ({ hidden: document.getElementById('accountBlock')?.hidden, id: !!(window.AIR && AIR.db.prefs.OAUTH_CLIENT_ID) }));
-        if (!account.id && account.hidden !== true) throw new Error(`settings: the Google account block shows without a client id: ${JSON.stringify(account)}`);
+        const originalWeights = await page.evaluate(() => chrome.storage.local.get('weights'));
+        await page.evaluate(() => chrome.storage.local.set({weights:{...AIR.db.categories.DEFAULT_WEIGHTS, artificialSweetener:0.35}}));
+        await page.reload();
+        await page.waitForFunction(() => !!document.getElementById('w-artificialSweetener'));
+        const precise = await page.evaluate(() => ({value:Number(document.getElementById('w-artificialSweetener').value), label:document.getElementById('w-artificialSweetener').closest('.cat').querySelector('.val').textContent}));
+        if (precise.value !== 0.35 || !precise.label.includes('0.35')) throw new Error(`goal weights were rounded by the UI: ${JSON.stringify(precise)}`);
+        await page.evaluate(old => old.weights ? chrome.storage.local.set(old) : chrome.storage.local.remove('weights'), originalWeights);
+        await page.reload();
+        await page.waitForFunction(() => document.getElementById('accountSave').disabled || document.getElementById('oauthClientId')?.value.trim());
+        // An unconfigured account offers setup while preventing an unusable sign-in attempt.
+        const account = await page.evaluate(() => ({ hidden: document.getElementById('accountBlock')?.hidden,
+          id: !!AIR.db.prefs.OAUTH_CLIENT_ID, disabled: document.getElementById('accountSave')?.disabled,
+          setup: document.getElementById('accountSetup')?.open, identity: !!chrome.identity }));
+        if (!account.id && (account.hidden || !account.disabled || !account.setup)) {
+          throw new Error(`settings: unconfigured Google sign-in is not explained: ${JSON.stringify(account)}`);
+        }
+        // identity is unavailable until its optional permission is granted. Setup remains usable.
+        await page.fill('#oauthClientId', 'audit-client.apps.googleusercontent.com');
+        await page.click('#saveAccountSetup');
+        await page.waitForFunction(() => !document.getElementById('accountSave').disabled);
+        const client = await worker.evaluate(() => chrome.storage.local.get('oauthClientId'));
+        if (client.oauthClientId !== 'audit-client.apps.googleusercontent.com') throw new Error('Google configuration was not saved');
+        await worker.evaluate(() => chrome.storage.local.remove('oauthClientId'));
+        console.log(`  ok  Google sign-in setup → public client saved; local redirect https://${id}.chromiumapp.org/`);
+        const beforeBackup = await worker.evaluate(() => chrome.storage.local.get(null));
+        const avoid = Array.from({ length: 80 }, (_, i) => String(i).padEnd(80, '漢'));
+        await worker.evaluate(async avoidList => {
+          await chrome.storage.local.set({ avoidList, goals: ['weightLoss'], goalImportance: { weightLoss: 2 },
+            speedMode: 'freshest', sortLoadMore: true, sortCount: 500, settingsBackup: true });
+          const result = await self.backupToChrome();
+          if (!result.ok) throw new Error('real Chrome backup failed');
+        }, avoid);
+        const backup = await page.evaluate(async () => AIR.db.prefs.readSync(chrome.storage.sync));
+        if (!backup.ok || JSON.stringify(backup.values.avoidList) !== JSON.stringify(avoid)
+          || backup.values.speedMode !== 'freshest' || backup.values.sortCount !== 500) throw new Error('Chrome backup lost preferences');
+        await worker.evaluate(() => chrome.storage.local.set({ settingsBackup: false, avoidList: ['changed'], speedMode: 'balanced', sortCount: 100 }));
+        await page.waitForFunction(() => !document.getElementById('restoreChrome').disabled);
+        page.once('dialog', d => d.accept());
+        await page.click('#restoreChrome');
+        await page.waitForFunction(() => document.getElementById('avoidList')?.value.includes('漢'), { timeout: 10000 });
+        const restored = await worker.evaluate(() => chrome.storage.local.get(['goals', 'avoidList', 'speedMode', 'sortCount']));
+        if (!restored.goals.includes('weightLoss') || restored.avoidList.length !== 80
+          || restored.speedMode !== 'freshest' || restored.sortCount !== 500) throw new Error('settings restore did not survive reload');
+        await worker.evaluate(async old => { await chrome.storage.local.clear(); await chrome.storage.local.set(old); }, beforeBackup);
+        console.log('  ok  Chrome profile backup → Unicode list fits real quota; sort, speed and goals survive restore/reload');
+
       }
       await page.close();
     }

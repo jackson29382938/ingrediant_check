@@ -70,6 +70,7 @@
   const NUTRIENTS = [
     ['sodium', /^sodium$/i, 'mg'], ['saturatedFat', /^saturated fat$/i, 'g'],
     ['sugar', /^(?:total )?sugars$/i, 'g'], ['addedSugar', /^(?:includes )?added sugars?$/i, 'g'],
+    ['carbs', /^(?:total )?carbohydrates?$/i, 'g'],
     ['fibre', /^dietary fiber$/i, 'g'], ['protein', /^protein$/i, 'g'],
   ];
   function nutritionFacts(section) {
@@ -83,11 +84,14 @@
       const m = clean(text(b.parentNode).slice(name.length)).match(/^(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?\s*(mg|g|mcg)\b/i);
       if (!m) continue;
       const v = Number(m[1].replace(/,/g, '') + (m[2] || ''));
-      out[row[0]] = row[2] === 'mg' && m[3].toLowerCase() === 'g' ? v * 1000 : v;
+      const units = {g:1000, mg:1, mcg:0.001};
+      out[row[0]] = v * units[m[3].toLowerCase()] / units[row[2]];
     }
     const size = Array.from(section.querySelectorAll('p')).map(text).find(t => /^serving size:/i.test(t)) || '';
     const grams = size.match(/\((\d+(?:\.\d+)?)\s*g\)/i);
     if (grams) out.servingGrams = Number(grams[1]);
+    const ml = size.match(/\((\d+(?:\.\d+)?)\s*ml\)/i);
+    if (!grams && ml) out.servingMl = Number(ml[1]);
     return Object.keys(out).length ? out : null;
   }
 

@@ -1,7 +1,7 @@
 // Category taxonomy.
 //
 // Every rule in the database belongs to exactly one category here, and every category carries a
-// user-adjustable weight. Weight 1.0 reproduces the built-in defaults; 0 switches the category off
+// user-adjustable weight with its own declared default. Weight 0 switches the category off
 // entirely; 2.0 doubles how much it matters.
 //
 // The point of this file is that the tool holds no opinions the user cannot change. Anything
@@ -28,9 +28,9 @@ const CATEGORIES = [
   { id: 'colour', group: 'Additives', kind: 'cap', def: 1,
     label: 'Artificial colours',
     help: 'Synthetic dyes such as Red 40, Yellow 5, and titanium dioxide. Sets a hard ceiling on the score.' },
-  { id: 'artificialSweetener', group: 'Additives', kind: 'cap', def: 1,
+  { id: 'artificialSweetener', group: 'Additives', kind: 'cap', def: 0.5,
     label: 'Artificial sweeteners',
-    help: 'Sucralose, aspartame, acesulfame potassium, saccharin. Sets a hard ceiling on the score.' },
+    help: 'Sucralose, aspartame, acesulfame potassium, saccharin. Uses a moderate ceiling at the default weight of 0.5. Stronger avoidance remains an optional preference.' },
   { id: 'sweetener', group: 'Additives', kind: 'penalty', def: 1, signed: true,
     label: 'Sugar alcohols & novel sweeteners',
     help: 'Erythritol, xylitol, maltitol, allulose, stevia extract, monk fruit. Lower this if you use these deliberately. Below 0 it counts in favour of the product — a goal can set that.' },
@@ -60,9 +60,9 @@ const CATEGORIES = [
     help: 'Phosphates, industrial acids, anti-caking agents, dough conditioners, aluminium compounds.' },
 
   // ---------------------------------------------------------------- fats & oils
-  { id: 'refinedOil', group: 'Fats & oils', kind: 'cap', def: 1,
+  { id: 'refinedOil', group: 'Fats & oils', kind: 'cap', def: 0.5,
     label: 'Refined seed & vegetable oils',
-    help: 'Canola, soybean, sunflower, safflower, corn, cottonseed, and unspecified "vegetable oil". Sets a hard ceiling by default; lower the weight if you do not want these treated as disqualifying.' },
+    help: 'Canola, soybean, sunflower, safflower, corn, cottonseed, and unspecified "vegetable oil". Default weight 0.5 uses a moderate ceiling; stricter goals can restore the stronger avoidance preference. This is not a toxicity estimate.' },
   { id: 'transFat', group: 'Fats & oils', kind: 'cap', def: 1,
     label: 'Partially hydrogenated oil (trans fat)',
     help: 'Industrial trans fat. The most severe ceiling in the system.' },
@@ -89,8 +89,11 @@ const CATEGORIES = [
 
   // ---------------------------------------------------------------- grains & proteins
   { id: 'grain', group: 'Grains & proteins', kind: 'penalty', def: 1,
-    label: 'Refined grains & gluten',
-    help: 'Default 1.0: gluten grains are a penalty, including whole wheat. Enriched and white flour cost more; wheat, barley and rye still count when they are whole grain, because this dial is gluten as much as refinement. Traditionally prepared grains (sourdough, sprouted, soaked) count half. Lower this weight if you do not want gluten grains counted against a score. NOVA still treats plain flour as processed (3) and enriched as ultra (4) — that mapping is not this dial.' },
+    label: 'Refined grains & milled starches',
+    help: 'Refined flour, isolated starches and milled grain ingredients. Explicit whole-grain flour is exempt. Gluten is a separate preference, off by default; use allergen warnings for avoidance.' },
+  { id: 'gluten', group: 'Grains & proteins', kind: 'penalty', def: 0,
+    label: 'Gluten-containing grains',
+    help: 'OFF by default. Optional ingredient preference for wheat, barley, rye and related grains. Gluten alone is not a quality defect. Use allergen warnings for gluten avoidance; a score cannot establish safety.' },
   { id: 'isolate', group: 'Grains & proteins', kind: 'penalty', def: 1, signed: true,
     label: 'Isolated & industrial proteins',
     help: 'Soy protein isolate, pea protein, whey and milk protein isolate, textured vegetable protein, caseinate. Below 0 it counts in favour of the product — a goal can set that.' },
@@ -99,17 +102,23 @@ const CATEGORIES = [
     help: 'OFF by default. Beans, lentils, peas, peanuts, soy, tree nuts and seeds. Only the animal-based goal turns this on.' },
 
   // ---------------------------------------------------------------- fortification & dairy
-  { id: 'fortification', group: 'Fortification & dairy', kind: 'penalty', def: 1, signed: true,
+  { id: 'fortification', group: 'Fortification & dairy', kind: 'penalty', def: 0, signed: true,
     label: 'Added vitamins & minerals',
-    help: 'Added folic acid, reduced iron, thiamin mononitrate, vitamin D and similar. Lower this if you consider fortification neutral; the vitamins goal makes it a plus. Below 0 it counts in favour of the product — a goal can set that.' },
-  { id: 'dairyProcessing', group: 'Fortification & dairy', kind: 'penalty', def: 1,
+    help: 'OFF by default. Added folic acid, reduced iron, thiamin mononitrate, vitamin D and similar. Fortification alone does not establish ultra-processing; the vitamins goal makes it a plus. Below 0 it counts in favour of the product — a goal can set that.' },
+  { id: 'dairyProcessing', group: 'Fortification & dairy', kind: 'penalty', def: 0,
     label: 'Dairy processing',
-    help: 'Ultra-pasteurised and homogenised dairy. Also scales the raw-milk bonus.' },
-  { id: 'reducedFatDairy', group: 'Fortification & dairy', kind: 'penalty', def: 1, signed: true,
+    help: 'OFF by default. Ultra-pasteurised and homogenised dairy as an optional processing preference. Raw milk and A2 claims earn no automatic quality bonus.' },
+  { id: 'reducedFatDairy', group: 'Fortification & dairy', kind: 'penalty', def: 0, signed: true,
     label: 'Fat-reduced dairy',
-    help: 'Skim, low-fat, reduced-fat and nonfat milk, yogurt, cheese and kefir. A processing penalty by default; weight-loss goals make it a plus. Below 0 it counts in favour of the product — a goal can set that.' },
+    help: 'OFF by default. Skim, low-fat, reduced-fat and nonfat milk, yogurt, cheese and kefir. A weight-loss preference can reward it, without estimating calories. Below 0 it counts in favour of the product — a goal can set that.' },
 
   // ---------------------------------------------------------------- nutrition panel
+  { id: 'addedSugar', group: 'Nutrition panel', kind: 'penalty', def: 0,
+    label: 'Added sugar quantity',
+    help: 'OFF by default. Uses declared added-sugar grams, normalized to 100g or 100ml when a basis is available. Replaces ingredient sugar deductions when usable quantity data exists. Missing quantity stays unknown.' },
+  { id: 'carbohydrate', group: 'Nutrition panel', kind: 'penalty', def: 0,
+    label: 'Total carbohydrate',
+    help: 'OFF by default. An optional low-carb preference based on declared carbohydrate grams. Requires nutrition data; ingredient names alone cannot establish carb content.' },
   { id: 'sodium', group: 'Nutrition panel', kind: 'penalty', def: 0,
     label: 'Sodium per serving',
     help: 'OFF by default. Scores milligrams of sodium against per-serving thresholds. Requires nutrition data on the page.' },
@@ -141,7 +150,7 @@ const CATEGORIES = [
     help: 'Sourdough, sprouted, soaked, dry-aged, and long-fermented preparation.' },
   { id: 'simplicity', group: 'Sourcing & certification', kind: 'bonus', def: 1,
     label: 'Short ingredient list',
-    help: 'Rewards single-ingredient and few-ingredient foods.' },
+    help: 'Rewards recognized single-ingredient whole foods. List length alone is not a defect.' },
 
   // ---------------------------------------------------------------- provenance
   { id: 'provenanceVerified', group: 'Provenance (whole foods)', kind: 'bonus', def: 1,
@@ -152,7 +161,7 @@ const CATEGORIES = [
     help: 'Label claims with no audit behind them — "grass-fed", "pasture-raised", "no antibiotics". Worth roughly half a verified certification. Lower this to zero if you only want to credit audited claims.' },
   { id: 'provenanceUnknown', group: 'Provenance (whole foods)', kind: 'penalty', def: 1,
     label: 'No sourcing information',
-    help: 'Applies only to whole animal foods that make no sourcing claim at all. Commodity meat with a silent label is conventionally raised by default, so silence is treated as information rather than as a free pass. Set to 0 to score unlabelled meat purely on its ingredients.' },
+    help: 'Applies only to whole animal foods that make no sourcing claim at all. Missing certification is uncertainty, not proof of a production method; this optional preference reserves points for sourcing evidence. Set to 0 to score unlabelled meat purely on its ingredients.' },
   { id: 'hollowClaims', group: 'Provenance (whole foods)', kind: 'flag', def: 1,
     label: 'Flag meaningless claims',
     help: 'Surfaces claims that sound like quality signals but are not — "USDA Inspected" (mandatory for all meat), "no hormones added" on pork and poultry (already illegal), "natural", "farm-raised". Never scored, only flagged.' },
@@ -198,7 +207,7 @@ const PRESETS = {
 
   generalWellbeing: {
     label: 'General wellbeing', category: 'everyday', glyph: 'WB',
-    note: 'Long-run health over any single number: harder on ultra-processing, artificial sweeteners and colours, seed oils and added sugar; rewards fermented foods, fibre and short lists.',
+    note: 'Stricter ingredient preferences: harder on ultra-processing, artificial sweeteners and colours, seed oils and added sugar; rewards fermented foods, fibre and short lists.',
     versus: 'Stricter than Balanced across the board. Paired with Weight loss it pulls artificial sweeteners back down.',
     weights: {
       // Cap dials stay close to 1: a cap weight scales the ceiling from 100, so 1.6 on colours
@@ -237,7 +246,7 @@ const PRESETS = {
     note: 'Short lists and minimal processing above everything: isolates, gums, flavourings and fortification cost more; unrefined fats and traditional preparation earn more.',
     versus: 'About list length and industrial steps — not macros. High protein and Muscle gain are the opposite on isolates.',
     weights: {
-      processing: 1.8, simplicity: 2, isolate: 1.8, texture: 1.6, flavour: 1.5, naturalFlavour: 1.5,
+      processing: 1.8, refinedOil: 1, artificialSweetener: 1, simplicity: 2, isolate: 1.8, texture: 1.6, flavour: 1.5, naturalFlavour: 1.5,
       fortification: 1.5, grain: 1.1, reducedFatDairy: 1.3, dairyProcessing: 1.3, unrefined: 1.5,
       traditionalPrep: 1.5,
     },
@@ -246,12 +255,12 @@ const PRESETS = {
   // ----- Body goals ---------------------------------------------------------
   weightLoss: {
     label: 'Weight loss / cutting', category: 'goals', glyph: 'WL',
-    note: 'Calories and fullness first: fat-reduced dairy is a big plus, zero-calorie sweeteners and protein isolates a small one, "natural flavors" hardly count. Added and total sugar, honey and syrups cost much more; fibre and protein are rewarded.',
-    versus: 'The only goal where fat-reduced dairy is a big plus and artificial sweeteners are lifted (not freed — a diet drink still cannot score top marks). Add General wellbeing to pull those sweeteners back down.',
+    note: 'Ingredient preferences for a cutting goal: fat-reduced dairy is a modest plus, zero-calorie sweeteners and protein isolates a small one, "natural flavors" hardly count. Added sugar, honey and syrups cost more; fibre and protein are rewarded when quantities are published. This does not estimate calories or predict weight change.',
+    versus: 'The only goal where fat-reduced dairy is a plus and artificial sweeteners are lifted (not freed — a diet drink still cannot score top marks). Add General wellbeing to pull those sweeteners back down.',
     weights: {
-      reducedFatDairy: -2, sweetener: -0.6, isolate: -0.5, naturalFlavour: 0.15, flavour: 0.6,
-      artificialSweetener: 0.5, sugar: 1.8, totalSugar: 1.6, naturalSugar: 0.6, traditionalSweetener: 1.6,
-      industrialSyrup: 1.8, processing: 1.3, fibre: 1.8, protein: 1.5, sodium: 0.6,
+      reducedFatDairy: -1, sweetener: -0.6, isolate: -0.5, naturalFlavour: 0.15, flavour: 0.6,
+      artificialSweetener: 0.35, sugar: 1.8, addedSugar: 1.5, totalSugar: 0.6, naturalSugar: 0, traditionalSweetener: 1.6,
+      industrialSyrup: 1.8, processing: 1.05, fibre: 1.8, protein: 1.5, sodium: 0.6,
       saturatedFat: 0.6, refinedOil: 1.1, grain: 1.3,
     },
   },
@@ -311,7 +320,7 @@ const PRESETS = {
 
   endurance: {
     label: 'Running / endurance', category: 'training', glyph: 'End',
-    note: 'Fuel availability: added sugar, honey, grains and sodium barely count (sodium replaces sweat losses); HFCS keeps its cap; fibre is eased for training days.',
+    note: 'Ingredient preferences for endurance: added sugar, honey, grains and sodium are weighted lightly; HFCS keeps its cap; fibre is eased for training days.',
     versus: 'The most carb-lenient training goal. High-carb goes further still; Low-carb is the opposite.',
     weights: {
       sugar: 0.35, traditionalSweetener: 0.2, grain: 0.25, totalSugar: 0.2, naturalSugar: 0,
@@ -363,10 +372,10 @@ const PRESETS = {
 
   lowCarb: {
     label: 'Low-carb', category: 'style', glyph: 'LC',
-    note: 'Carbohydrate is the enemy: every sugar (fruit, honey and dairy included) and every grain costs a lot; zero-calorie sweeteners are a small plus; full-fat dairy is preferred; saturated fat is not counted.',
+    note: 'A low-carb preference: declared carbohydrate quantity, sugars and refined grains count against the score; zero-calorie sweeteners are a small plus; full-fat dairy is preferred; saturated fat is not counted.',
     versus: 'The opposite of Endurance and High-carb. Stricter on natural sugar than Sugar-conscious.',
     weights: {
-      sugar: 2, totalSugar: 1.8, naturalSugar: 1.5, traditionalSweetener: 1.8, grain: 2, industrialSyrup: 2,
+      sugar: 2, totalSugar: 1.2, carbohydrate: 1.5, naturalSugar: 1.5, traditionalSweetener: 1.8, grain: 1.5, industrialSyrup: 2,
       sweetener: -0.5, artificialSweetener: 0.6, protein: 1.3, fibre: 1.3, refinedOil: 0.4,
       processing: 1.1, reducedFatDairy: 1.3,
     },
@@ -385,8 +394,8 @@ const PRESETS = {
 
   strictSugar: {
     label: 'Sugar-conscious', category: 'style', glyph: 'Sug',
-    note: 'Sugar from every source counts double: refined, honey and maple, fruit and dairy, sugar alcohols and artificial sweeteners.',
-    versus: 'Only about sugar. Low-carb also counts grains.',
+    note: 'Strong sugar preferences across refined sugars, honey and maple, fruit and dairy, sugar alcohols and artificial sweeteners. Declared added and total sugar are assessed without counting the same grams twice.',
+    versus: 'Focused on sugars. Low-carb also uses declared total carbohydrate.',
     weights: {
       sugar: 2, totalSugar: 2, naturalSugar: 1.3, traditionalSweetener: 2, sweetener: 1.6,
       artificialSweetener: 1.8, industrialSyrup: 2,
@@ -398,7 +407,7 @@ const PRESETS = {
     note: 'Meat, organs, animal fats, raw and full-fat dairy, fruit and honey. Seed oils, grains, legumes, nuts and seeds, soy, fat-reduced dairy, protein isolates and processing all cost much more; honey is a plus; fruit sugar and saturated fat are not counted.',
     versus: 'The only goal that counts nuts, seeds and legumes against a product. Vegetables are left neutral.',
     weights: {
-      grain: 1.8, plantDefense: 1.6, refinedOil: 1.8, transFat: 2, processing: 1.5, isolate: 1.6,
+      grain: 1.8, gluten: 1.8, plantDefense: 1.6, refinedOil: 1.8, transFat: 2, processing: 1.5, isolate: 1.6,
       texture: 1.4, flavour: 1.3, naturalFlavour: 1.2, fortification: 1.3, reducedFatDairy: 1.6,
       dairyProcessing: 1.6, sugar: 1.4, industrialSyrup: 1.8, sweetener: 1.4, artificialSweetener: 1.6,
       traditionalSweetener: -0.8, naturalSugar: 0, saturatedFat: 0, unrefined: 2, animalWelfare: 1.8,
@@ -420,7 +429,7 @@ function resolveWeights(stored) {
       // Clamped to the range the settings slider can actually express. This used to allow 3,
       // so an imported or hand-edited file could set a weight the UI could neither display nor
       // reproduce, and moving any slider afterwards silently discarded it.
-      if (k in w && typeof v === 'number' && isFinite(v)) w[k] = Math.max(SIGNED.has(k) ? -2 : 0, Math.min(2, v));
+      if (Object.hasOwn(w, k) && typeof v === 'number' && isFinite(v)) w[k] = Math.max(SIGNED.has(k) ? -2 : 0, Math.min(2, v));
     }
   }
   return w;
@@ -464,12 +473,12 @@ const importanceOf = (importance, id) => (importance && typeof importance[id] ==
 // Several goals at once. Each goal votes only on the dials it sets; where goals overlap the votes are
 // averaged, weighted by how much each goal counts (1 each by default), and a dial no goal mentions
 // stays at its default. So Weight loss (artificial sweeteners
-// 0.5) with General wellbeing (1.1) lands at 0.8: lifted from the default cap, but less than Weight
+// 0.35) with General wellbeing (1.1) lands at 0.725: lifted from the default cap, but less than Weight
 // loss alone. A dial a goal lists in `focus` is decided by the goals focused on it, not averaged
 // away by another goal's incidental setting. No goals, or only Balanced, is the defaults.
 function goalWeights(ids, importance) {
   const imp = sanitizeGoalImportance(importance);
-  const goals = (Array.isArray(ids) ? ids : []).filter(id => PRESETS[id]).map(id => [PRESETS[id], importanceOf(imp, id)]);
+  const goals = sanitizeGoals(ids).map(id => [PRESETS[id], importanceOf(imp, id)]);
   const focused = new Set(goals.flatMap(([g]) => g.focus || []));
   const votes = {};
   for (const [g, w] of goals) {
@@ -515,7 +524,7 @@ function toggleGoal(goals, id) {
   return ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id];
 }
 
-const goalsLabel = ids => (ids.length ? ids.map(id => PRESETS[id].label).join(' + ') : PRESETS.balanced.label);
+const goalsLabel = ids => { const clean = sanitizeGoals(ids); return clean.length ? clean.map(id => PRESETS[id].label).join(' + ') : PRESETS.balanced.label; };
 
 function presetsInCategory(categoryId) {
   return Object.entries(PRESETS)

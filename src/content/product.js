@@ -196,7 +196,7 @@
     };
     const result = root.AIR.engine.score(input, state.prefs);
     if (!presentResult(host, data, key, result, {
-      input,   // sanitize() keeps only known nutrition fields, so the engine's _normalised mark stays out
+      input,   // sanitize() keeps only known reading and nutrition fields
       title: data.title, confidence: data.confidence, via: data.via,
       text: data.text, textSig: (data.text || '').slice(0, 320),
     })) return;

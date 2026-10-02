@@ -284,6 +284,7 @@
     // end of the line, or it reads the next row's protein grams as added sugar.
     ['addedSugar',   new RegExp('\\badded sugars?\\b[^0-9\\n]{0,20}' + NUM + '\\s*g|\\bincludes\\s+' + NUM + '\\s*g\\s+added sugars?', 'i')],
     ['fibre',        new RegExp('\\b(?:dietary fib(?:er|re)|fib(?:er|re)|ballaststoffe|fibra(?:s)?(?: alimentaria| alimentar)?|fibres? alimentaires?|(?:voedings)?vezels?|kostfiber|b[łl]onnik|lif)\\b[^0-9]{0,20}' + NUM + '\\s*g', 'i')],
+    ['carbs', new RegExp('\\b(?:total carbohydrate|carbohydrates?|kohlenhydrate|glucides|hidratos de carbono|carboidrati|koolhydraten|kolhydrater|w[ęe]glowodany|karbonhidrat)\\b[^0-9]{0,20}' + NUM + '\\s*g', 'i')],
     ['protein',      new RegExp('\\b(?:protein|eiweiss|prot[eé]ines?|prote[ií]nas?|eiwitten|bia[łl]ko)\\b[^0-9]{0,20}' + NUM + '\\s*g|eiwei[sß][^0-9a-z]{0,20}' + NUM + '\\s*g', 'i')],
     ['calories',     new RegExp('\\b(?:calories|energie|energ[ií]a|énergie)\\b[^0-9]{0,20}' + NUM, 'i')],
   ];
@@ -345,7 +346,7 @@
         fromTable.servingSize = serving;
         const measure = serving.match(/\(?\s*(\d+(?:[.,]\d+)?)\s*(?:g|grams?)\b/i)
           || serving.match(/\(?\s*(\d+(?:[.,]\d+)?)\s*(?:ml|milliliters?|millilitres?)\b/i);
-        if (measure) { const v = toNumber(measure[1]); if (Number.isFinite(v) && v > 0) fromTable.servingGrams = v; }
+        if (measure) { const v = toNumber(measure[1]); if (Number.isFinite(v) && v > 0) fromTable[/(?:ml|millilit)/i.test(measure[0]) ? 'servingMl' : 'servingGrams'] = v; }
       }
       return fromTable;
     }
@@ -388,18 +389,20 @@
         // out so the engine can compare per 100g instead.
         const grams = out.servingSize.match(/\(?\s*(\d+(?:[.,]\d+)?)\s*g\b/i)
           || out.servingSize.match(/(\d+(?:[.,]\d+)?)\s*(?:grams?)\b/i);
-        // Drinks declare millilitres, and matching only grams meant no beverage was ever
-        // normalised — so the gaming this exists to defeat still worked on exactly the category
-        // where serving sizes vary most (240ml vs 355ml vs 500ml for the same drink). Water-based
-        // beverages are close enough to 1 g/ml for a per-100 comparison.
+        // Drinks declare millilitres. Keep volume distinct from mass so the score compares
+        // per 100ml without assuming a density of 1 g/ml.
         const millilitres = out.servingSize.match(/\(?\s*(\d+(?:[.,]\d+)?)\s*(?:ml|milliliters?|millilitres?)\b/i);
         const measure = grams || millilitres;
-        if (measure) { const v = toNumber(measure[1]); if (Number.isFinite(v) && v > 0) out.servingGrams = v; }
+        if (measure) { const v = toNumber(measure[1]); if (Number.isFinite(v) && v > 0) out[grams ? 'servingGrams' : 'servingMl'] = v; }
       }
       // EU and UK panels declare "per 100 g" / "je 100 g" / "pour 100 g" instead of a serving, and
       // their first column is that basis. Saying so lets the engine label the rows per 100g rather
       // than per serving; the numbers are the same either way.
-      if (out.servingGrams == null && PER_100.test(text)) out.servingGrams = 100;
+      const basis = text.match(PER_100);
+      if (basis) {
+        delete out.servingGrams; delete out.servingMl;
+        out[/ml/i.test(basis[0]) ? 'servingMl' : 'servingGrams'] = 100;
+      }
       if (Object.keys(out).length >= 2) return out;
     }
     return null;

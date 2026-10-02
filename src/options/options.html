@@ -483,10 +483,20 @@
     <p class="note" style="margin: 0 0 4px">Uses Chrome's own sync for the Google account signed into
       Chrome. Private to you. If Chrome sync is off, the copy stays on this computer.</p>
     <div class="row">
+      <button class="act" id="openChromeProfile">Open Chrome profile settings</button>
       <button class="act" id="restoreChrome" data-i18n="optRestoreChrome">Restore from my Chrome account</button>
       <span class="status" id="backupStatus"></span>
     </div>
     <div id="accountBlock" hidden>
+      <details id="accountSetup">
+        <summary>Configure Google sign-in</summary>
+        <p class="note">Use the public OAuth client ID configured by the database owner. Register
+          the redirect address below in that client's Google Cloud settings. No client secret is needed.</p>
+        <label for="oauthClientId">Google OAuth client ID</label>
+        <input type="text" id="oauthClientId" autocomplete="off" spellcheck="false">
+        <button class="act" id="saveAccountSetup">Save sign-in configuration</button>
+        <p class="note" id="accountRedirect"></p>
+      </details>
       <p class="note" style="margin: 16px 0 4px">Or keep a copy with your Google account on the
         Ingredient Check database, for a browser that is not signed into Chrome. Only a hash of your
         account id is stored — not your email.</p>
@@ -637,6 +647,7 @@
 <script src="../engine/db/activity.js"></script>
 <script src="tabs.js"></script>
 <script src="settings.js"></script>
+<script src="google-auth.js"></script>
 <script src="settings-database.js"></script>
 <script src="../stores/registry.js"></script>
 <script src="store-request.js"></script>

@@ -55,11 +55,11 @@ database until the next release.
 The settings on the computer are always the ones in use. Nothing is ever applied on its own.
 
 - **Chrome account backup** (default on). After every change the settings — weights, allergens,
-  diets, the avoid list and the toggles, never the master switch — are written to
-  `chrome.storage.sync` (`icBackup`, `icBackupAvoid`; split because an item is capped at 8 KB).
+  diets, goals and their importance, the avoid list, sort/speed/display preferences and the toggles, never the master switch — are written to
+  `chrome.storage.sync`. New backups use a versioned `icBackup` pointer plus byte-sized avoid-list chunks in alternating banks, committed only after the parts are written. Legacy `icBackupAvoid` backups remain readable. Failed writes retain the prior copy, show an error, and retry through a Chrome alarm. Partial cross-device sync is detected and must finish before restore.
   Chrome syncs that privately to the Google account signed into Chrome. **Restore from my Chrome
   account** brings it back after a confirmation. No setup, and nothing goes to the shared sheet.
-- **Sign in with Google** (optional, hidden until configured). For a browser that is not signed
+- **Sign in with Google** (optional, disabled until configured). For a browser that is not signed
   into Chrome. The options page gets an OAuth access token (scope `openid`) through
   `chrome.identity.launchWebAuthFlow` and hands it to the worker for one request. The script asks
   Google who the token belongs to, refuses a token issued to any other app, and keys the row by a
@@ -72,10 +72,12 @@ To turn sign-in on:
 2. **Credentials → Create OAuth client ID → Web application.** Authorized redirect URI:
    `https://<extension-id>.chromiumapp.org/` — the Chrome Web Store id, or the unpacked id shown on
    `chrome://extensions`.
-3. Add `"identity"` to `permissions` in `manifest.json` (it is left out while sign-in is off,
-   and `tests/sanity.test.js` fails if the two disagree).
-4. Put the client id in `OAUTH_CLIENT_ID` in both `src/engine/db/prefs.js` and `apps-script.gs`,
-   and publish a new version of the script.
+3. Settings → Shared database & backups → Configure Google sign-in shows the redirect address.
+   Enter the public client ID there. `identity` is already declared as optional and is requested
+   from the sign-in button; no client secret is used. The build constant can supply a default.
+4. In Apps Script Project Settings → Script Properties, set `OAUTH_CLIENT_ID` to the same public ID.
+   Deploy the updated `apps-script.gs` as a new version of the existing deployment. Account tokens
+   from any other client are refused. See [GOOGLE-SIGN-IN-SETUP.md](GOOGLE-SIGN-IN-SETUP.md).
 
 ## Checks on the way in
 
@@ -105,3 +107,18 @@ What to change, cheapest first: prune stale `products` rows (older than 30 days,
 write single product rows in place (TextFinder on the key column, one `setValues`) instead of
 rewriting the tab; keep a key→row map in CacheService for lookups; and only if those are not
 enough, move product rows off Sheets.
+
+## Concurrent Chrome profiles
+
+Sync format 3 assigns a random local device ID to each profile and writes chunks into
+that profile's alternating banks before committing the shared pointer. This prevents
+two devices from combining chunks into a corrupt backup. Restore validates hashes,
+refuses incomplete deliveries and retries a changed pointer. Format 1 and 2 backups
+remain readable. Concurrent complete backups use Chrome's final delivered pointer;
+settings are never merged or automatically applied. Review the backup before restore.
+
+Chrome sync has a 100 KB total quota. Two maximum-size Unicode profiles fit in isolation;
+additional profiles or legacy chunks can exhaust it. A failed write preserves the last
+committed copy and shows an error with retry. Export a local JSON backup as an additional
+recovery copy. Account-level cross-device delivery still requires testing with signed-in
+Chrome profiles; the regression tests simulate reordered delivery and concurrent writers.

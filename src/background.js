@@ -2,7 +2,7 @@
 //
 // Scoring is local. This worker holds the only network paths, and never fetches Amazon pages:
 //   - the shared online database — one Apps Script endpoint, a build constant in prefs.js, inert while
-//     the constant is empty. Certification tables: on by default, off with `sharedCache`. Product
+//     the constant is empty. Certification tables: off until `sharedCache` is enabled. Product
 //     readings from other computers (and uploading this one's): off until `sharedProducts` is on
 //   - Open Food Facts, contributions, diagnostics — each off until toggled
 //   - the settings backup (chrome.storage.sync) and the optional Google-account copy
@@ -11,7 +11,7 @@ if (typeof importScripts === 'function') {
   importScripts('engine/db/_module.js', 'engine/db/allergens.js', 'engine/categories.js',
     'engine/db/ingestible.js', 'engine/db/prefs.js',
     'engine/db/ocr-text.js', 'engine/db/product-cache.js', 'engine/db/storefronts.js', 'engine/db/sorted-results.js',
-    'engine/db/speed.js',
+    'engine/db/speed.js', 'engine/db/unit-price.js',
     'engine/db/activity.js', 'worker/messages.js', 'worker/sheet-store.js');
 }
 
@@ -344,6 +344,7 @@ function ensureHousekeepingAlarm() {
 }
 ensureHousekeepingAlarm();
 chrome.alarms.onAlarm.addListener(a => {
+  if (a.name === BACKUP_ALARM) { backupToChrome().catch(() => {}); return; }
   if (a.name !== HOUSEKEEPING) return;
   sweepCache();
   // A partial batch would otherwise sit until enough new products were scored to fill it.
@@ -364,7 +365,7 @@ chrome.runtime.onInstalled.addListener(details => {
   dropLegacy();
   // An update from a build that uploaded product readings by default: nothing queued then leaves
   // unless the reader has turned shared product readings on since.
-  chrome.storage.local.get('sharedProducts').then(o => { if (o.sharedProducts !== true) dropProductsQueue(); }, () => {});
+  chrome.storage.local.get('sharedProducts').then(o => { if (o.sharedProducts !== true || !self.AIR.db.prefs.SHARED_PRODUCTS_ALLOWED) dropProductsQueue(); }, () => {});
   // A new install asks its setup questions (src/options/welcome.html); an update never does.
   if (details && details.reason === 'install' && chrome.tabs) {
     chrome.tabs.create({ url: chrome.runtime.getURL('src/options/welcome.html') });
@@ -638,6 +639,7 @@ function serializeProducts(work) {
 // Product readings from other computers: only when the reader turned them on (prefs.js
 // sharedProducts), as well as the shared database itself.
 async function sharedProductsEndpoint() {
+  if (!AIR.db.prefs.SHARED_PRODUCTS_ALLOWED) return '';
   const c = await chrome.storage.local.get(['enabled', 'sharedCache', 'sharedProducts']);
   return c.sharedProducts === true ? sharedEndpoint(c) : '';
 }
@@ -742,23 +744,45 @@ async function sendProducts() {
 //     and read only through the optional Google sign-in (the options page supplies the token)
 
 const BACKUP_SOURCE_KEYS = ['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly',
-  ...Object.keys(self.AIR.db.prefs.TOGGLE_DEFAULTS), ...Object.keys(self.AIR.db.prefs.DISPLAY_DEFAULTS)];
+  ...self.AIR.db.prefs.WORKFLOW_KEYS, ...Object.keys(self.AIR.db.prefs.TOGGLE_DEFAULTS), ...Object.keys(self.AIR.db.prefs.DISPLAY_DEFAULTS)];
 let backupTimer = null;
+let backupChain = Promise.resolve();
+const BACKUP_ALARM = 'ic-backup-retry';
 
 function noteBackupChange(changes) {
   if (!changes || !BACKUP_SOURCE_KEYS.some(key => changes[key])) return;
   clearTimeout(backupTimer);
+  // An alarm survives worker suspension; timers alone can lose the last edit.
+  chrome.alarms.create(BACKUP_ALARM, { delayInMinutes: 1 });
   // Debounced: a slider drag is dozens of writes, and chrome.storage.sync allows 120 a minute.
   backupTimer = setTimeout(() => { backupTimer = null; backupToChrome().catch(() => {}); }, 2000);
 }
 
-async function backupToChrome() {
-  if (!chrome.storage.sync) return { ok: false, reason: 'no-sync' };
-  const conf = await chrome.storage.local.get(BACKUP_SOURCE_KEYS);
-  if (conf.settingsBackup === false) return { ok: false, reason: 'not-enabled' };
-  const P = self.AIR.db.prefs;
-  await chrome.storage.sync.set(P.toSyncItems(P.backupPayload(conf)));
-  return { ok: true };
+function backupToChrome() {
+  const attempt = backupChain.catch(() => {}).then(async () => {
+    if (!chrome.storage.sync) return { ok: false, reason: 'no-sync' };
+    const conf = await chrome.storage.local.get(BACKUP_SOURCE_KEYS);
+    if (conf.settingsBackup === false) return { ok: false, reason: 'not-enabled' };
+    const P = self.AIR.db.prefs;
+    try {
+      const local = await chrome.storage.local.get('backupDeviceId');
+      const device = /^[a-f0-9]{32}$/.test(local.backupDeviceId || '') ? local.backupDeviceId : crypto.randomUUID().replace(/-/g, '');
+      if (device !== local.backupDeviceId) await chrome.storage.local.set({ backupDeviceId: device });
+      const old = await chrome.storage.sync.get('icBackup');
+      const bank = old.icBackup?._syncBank === 'a' ? 'b' : 'a';
+      const { icBackup, ...parts } = P.toSyncItems(P.backupPayload(conf), bank, device);
+      await chrome.storage.sync.set(parts);
+      await chrome.storage.sync.set({ icBackup });
+      await chrome.storage.local.set({ backupStatus: { ok: true, t: Date.now() } });
+      return { ok: true };
+    } catch (e) {
+      chrome.alarms.create(BACKUP_ALARM, { delayInMinutes: 5 });
+      await chrome.storage.local.set({ backupStatus: { ok: false, t: Date.now(), reason: 'sync-write-failed' } });
+      return { ok: false, reason: 'sync-write-failed' };
+    }
+  });
+  backupChain = attempt;
+  return attempt;
 }
 
 // The options page hands over an OAuth access token; the web app verifies it with Google and
