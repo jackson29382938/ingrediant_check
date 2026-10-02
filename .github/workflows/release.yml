@@ -35,6 +35,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view "$TAG" > /dev/null 2>&1; then echo "release $TAG already exists"; exit 1; fi
-          gh release create "$TAG" "dist/ingredient-check-$VERSION.zip" --target "$GITHUB_SHA" \
-            --title "Ingredient Check $VERSION" --notes-file "docs/releases/$VERSION.md"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            git fetch origin "refs/tags/$TAG:refs/tags/$TAG"
+            test "$(git rev-parse "$TAG^{commit}")" = "$GITHUB_SHA" || {
+              echo "existing release tag does not point to this commit"; exit 1;
+            }
+            gh release upload "$TAG" "dist/ingredient-check-$VERSION.zip" --clobber
+            gh release edit "$TAG" --notes-file "docs/releases/$VERSION.md"
+          else
+            gh release create "$TAG" "dist/ingredient-check-$VERSION.zip" --target "$GITHUB_SHA" \
+              --title "Ingredient Check $VERSION" --notes-file "docs/releases/$VERSION.md"
+          fi
