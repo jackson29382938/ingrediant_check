@@ -797,6 +797,8 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
         if (!account.id && (account.hidden || !account.disabled || !account.setup)) {
           throw new Error(`settings: unconfigured Google sign-in is not explained: ${JSON.stringify(account)}`);
         }
+        // Configured builds collapse setup; open it before testing a local client override.
+        if (!account.setup) await page.locator('#accountSetup > summary').click();
         // identity is unavailable until its optional permission is granted. Setup remains usable.
         await page.fill('#oauthClientId', 'audit-client.apps.googleusercontent.com');
         await page.click('#saveAccountSetup');

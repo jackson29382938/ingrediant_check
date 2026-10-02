@@ -8,6 +8,10 @@ In extension settings, click **Open Chrome profile settings**, sign in to Chrome
 
 Local Chrome storage and restoring a complete backup have been validated in Chrome for Testing. Actual cross-device synchronization requires two signed-in Chrome profiles and has not been verified in this cloud environment.
 
+## Configured public client
+
+The extension default is `483888107675-hofgo4a3uh1g2khv4hja9ci8nhama6tk.apps.googleusercontent.com`. The supplied OAuth export identifies a Web application but contains no authorized redirect URIs. Register the exact redirect shown in extension settings before testing sign-in. The client secret is not used or stored by this extension. Configure the same public client ID as the Apps Script `OAUTH_CLIENT_ID` property and deploy the updated backend; the local client setting alone does not enable account backup.
+
 ## Google account backup
 
 Live checks on October 1, 2026 found that the deployed endpoint answers its health check, but an account read without a token returns `accounts are not configured`. The account code below must be configured and deployed before a real account save/restore can succeed. A Gmail address alone is not an OAuth client ID; no password or client secret should be added to extension code or supplied in chat.

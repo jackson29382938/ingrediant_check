@@ -24,10 +24,10 @@ const AVOID_MAX_LEN = 80;
 // private. Empty until the script is deployed: the extension then runs entirely on this computer.
 // Never invent one. Mutable only so the tests can point it somewhere.
 const ENDPOINT = 'https://script.google.com/macros/s/AKfycbw4rTzddQVMtsqolUDse8Rfcv3eqXyL0qiS6ct6hHaQrMzTcff0p6JByc6Brvk-Lugd/exec';
-// OAuth "Web application" client for the optional Google sign-in (docs/SETTINGS-SYNC.md). Empty
-// leaves sign-in disabled until a client is configured in settings. The same id must be
-// configured by the backend owner in Apps Script.
-const OAUTH_CLIENT_ID = '';
+// Public OAuth Web application client for optional Google sign-in. A local settings override
+// can select another client. The backend owner must configure the same public ID in Apps Script.
+// Client secrets must never be included in extension code.
+const OAUTH_CLIENT_ID = '483888107675-hofgo4a3uh1g2khv4hja9ci8nhama6tk.apps.googleusercontent.com';
 // Keep anonymous product exchange closed until deployment trust controls are verified.
 const SHARED_PRODUCTS_ALLOWED = false;
 
