@@ -160,7 +160,10 @@ function renderCategories() {
     const help = document.createElement('div');
     help.className = 'help';
     help.textContent = msg(`catHelp_${c.id}`, c.help);
-    label.append(name, help);
+    const baseline = document.createElement('div');
+    baseline.className = 'help baseline';
+    baseline.textContent = `${msg('optBalancedDefault', 'Balanced default')}: ${CATS.DEFAULT_WEIGHTS[c.id]}`;
+    label.append(name, baseline, help);
 
     const slider = document.createElement('input');
     slider.type = 'range';
@@ -531,18 +534,14 @@ function wireFileActions() {
 
 
 // ---------------------------------------------------------------- boot
-const AVOID_HINTS = [
-  'carrageenan', 'red 40', 'yellow 5', 'yellow 6', 'blue 1',
-  'titanium dioxide', 'BHT', 'BHA', 'TBHQ',
-  'natural flavors', 'artificial flavors', 'sucralose',
-];
+const AVOID_HINTS = PREFS.AVOID_HINTS;
 
 function paintAvoidCount() {
   const el = document.getElementById('avoidCount');
   if (!el) return;
   const max = PREFS.AVOID_MAX_LINES || 80;
   const n = state.avoidList.length;
-  el.textContent = n ? `${n} / ${max} lines` : `Up to ${max} lines.`;
+  el.textContent = n ? `${n} / ${max} entries` : `Up to ${max} entries.`;
 }
 
 function paintAvoidHints() {

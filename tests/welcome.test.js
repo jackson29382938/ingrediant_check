@@ -11,8 +11,10 @@ function setup(initial = {}, permission = true) {
   const elements = new Map();
   function element() {
     return { value: '', checked: false, disabled: false, hidden: false, dataset: {}, children: [],
+      attributes: {}, querySelectorAll() { return this.children; },
+      getAttribute(name) { return this.attributes[name]; },
       classList: { toggle() {} }, append(...items) { this.children.push(...items); },
-      appendChild(item) { this.children.push(item); }, setAttribute() {}, focus() {},
+      appendChild(item) { this.children.push(item); }, setAttribute(name, value) { this.attributes[name] = String(value); }, focus() {},
       addEventListener(name, fn) { this[name] = fn; } };
   }
   const get = id => { if (!elements.has(id)) elements.set(id, element()); return elements.get(id); };
@@ -61,4 +63,28 @@ test('comma-separated avoid phrases produce distinct product warnings', () => {
   const avoidList = prefs.sanitizeAvoidList('palm oil, natural flavors');
   const result = engine.score({ ingredients_text: 'potatoes, palm oil, natural flavors, salt' }, { avoidList });
   assert.deepEqual(result.flags.filter(flag => flag.kind === 'avoid').map(flag => flag.id), ['palm oil', 'natural flavors']);
+});
+
+test('typed avoid entries and chip removals stay synchronized', () => {
+  const s = setup();
+  s.get('avoidList').value = 'palm oil, natural flavors';
+  s.get('avoidList').input();
+  const palm = s.get('avoidHints').children.find(button => button.textContent === 'palm oil');
+  assert.equal(palm.getAttribute('aria-pressed'), 'true');
+  assert.equal(s.get('avoidCount').textContent, '2 / 80 entries');
+  palm.click();
+  assert.equal(s.get('avoidList').value, 'natural flavors');
+  assert.equal(palm.getAttribute('aria-pressed'), 'false');
+  assert.equal(s.get('avoidCount').textContent, '1 / 80 entries');
+});
+test('rerunning setup preserves weighted goal priorities and their active description', async () => {
+  const categories = require('../src/engine/categories.js');
+  const goals = ['weightLoss', 'wholeFood'];
+  const goalImportance = { weightLoss: 2, wholeFood: 1 };
+  const weights = categories.goalWeights(goals, goalImportance);
+  const s = setup({ goals, weights, goalImportance, useOpenFoodFacts: false });
+  assert.match(s.get('goalSummary').textContent, /Selected goals \(2\)/);
+  await s.finish();
+  assert.deepEqual(JSON.parse(JSON.stringify(s.data.goalImportance)), categories.sanitizeGoalImportance(goalImportance));
+  assert.equal(categories.describeGoals(s.data.weights, s.data.goals, s.data.goalImportance).custom, false);
 });

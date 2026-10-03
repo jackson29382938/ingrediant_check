@@ -6,8 +6,7 @@ const CATS = AIR.db.categories;
 const ALLERGENS = AIR.db.allergens;
 const PREFS = AIR.db.prefs;
 const OFF_PERMISSION = { origins: ['https://world.openfoodfacts.org/*'] };
-const AVOID_HINTS = ['carrageenan', 'red 40', 'natural flavors', 'sucralose', 'aspartame',
-  'palm oil', 'canola oil', 'high fructose corn syrup', 'titanium dioxide', 'msg'];
+const AVOID_HINTS = PREFS.AVOID_HINTS;
 const OPTIONS = ['autoScoreSearch', 'sharedCache', 'ocrLabels', 'useOpenFoodFacts'];
 const LAST = 4;
 
@@ -64,9 +63,21 @@ function renderGoals() {
       row.appendChild(chip(preset.label, picked.goals.includes(id), on => {
         toggleIn(picked.goals, id, on);
         note.textContent = on ? preset.note : '';
+        paintGoalSummary();
       }));
     }
     host.append(h, row);
+  }
+}
+
+function paintGoalSummary() {
+  const summary = document.getElementById('goalSummary');
+  if (picked.goals.length) {
+    summary.textContent = `${msg('welGoalsSelected', 'Selected goals')} (${picked.goals.length}): ${CATS.goalsLabel(picked.goals)}`;
+  } else {
+    summary.textContent = CATS.describeGoals(startWeights, startGoals, startImportance).custom
+      ? msg('welGoalsCustom', 'Your custom weights are kept unless you change goals.')
+      : msg('welGoalsBalanced', 'No goals selected: use the balanced defaults.');
   }
 }
 
@@ -89,10 +100,27 @@ function renderAvoid() {
       const lines = PREFS.sanitizeAvoidList(box.value).filter(x => x.toLowerCase() !== term);
       if (on) lines.push(term);
       box.value = lines.join(', ');
+      paintAvoidChoices();
     }));
   }
   box.value = picked.avoid.join(', ');
+  paintAvoidChoices();
 }
+
+function paintAvoidChoices() {
+  picked.avoid = PREFS.sanitizeAvoidList(document.getElementById('avoidList').value);
+  const have = new Set(picked.avoid.map(term => term.toLowerCase()));
+  for (const button of document.getElementById('avoidHints').querySelectorAll('button')) {
+    button.setAttribute('aria-pressed', String(have.has(button.textContent.toLowerCase())));
+  }
+  document.getElementById('avoidCount').textContent = `${picked.avoid.length} / ${PREFS.AVOID_MAX_LINES} entries`;
+}
+
+document.getElementById('avoidList').addEventListener('input', paintAvoidChoices);
+document.getElementById('avoidList').addEventListener('blur', () => {
+  paintAvoidChoices();
+  document.getElementById('avoidList').value = picked.avoid.join(', ');
+});
 
 function show(n) {
   step = n;
@@ -137,10 +165,10 @@ async function finish() {
   // Unchanged goals keep whatever sliders were already set; new goals load their weights.
   const weights = sameGoals && startWeights ? startWeights : CATS.goalWeights(goals, startImportance);
   const scoring = PREFS.sanitizeScoring({
-    weights, goals, allergens: picked.allergens, diets: picked.diets,
+    weights, goals, goalImportance: startImportance, allergens: picked.allergens, diets: picked.diets,
     avoidList: document.getElementById('avoidList').value, foodOnly: true,
   });
-  const values = { weights: scoring.weights, goals: scoring.goals, allergens: scoring.allergens,
+  const values = { weights: scoring.weights, goals: scoring.goals, goalImportance: scoring.goalImportance, allergens: scoring.allergens,
     diets: scoring.diets, avoidList: scoring.avoidList, onboarded: true };
   for (const id of OPTIONS) values[id] = document.getElementById(id).checked;
   chrome.storage.local.set(values, () => {
@@ -189,6 +217,7 @@ chrome.storage.local.get(['weights', 'goals', 'goalImportance', 'allergens', 'di
   picked.avoid = [...scoring.avoidList];
   for (const id of OPTIONS) document.getElementById(id).checked = toggles[id];
   renderGoals();
+  paintGoalSummary();
   renderWarnings();
   renderAvoid();
   show(1);

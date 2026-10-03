@@ -360,16 +360,14 @@
 
   <section id="sec-presets">
     <h2 data-i18n="optPresetsH">Goal-based scoring</h2>
-    <p class="note" style="margin: -6px 0 12px" data-i18n="optNotePresets">
-      Pick one goal or several — they combine, and where two set the same dial they are averaged (you can set how much each counts). Some goals turn a minus into a plus: fat-reduced dairy under Weight loss, added vitamins under Vitamins & minerals. Hard ceilings like Red 40 never become pluses. You can still move any slider afterwards; the active label then shows Custom. Click a selected goal again to remove it; Balanced clears them all.
-    </p>
+    <p class="note" style="margin: -6px 0 12px" data-i18n="optNotePresets">Pick one goal or several. Their priorities combine; where goals overlap, their weights are averaged. A goal focused on a category takes priority over another goal’s incidental setting. Adjust how much each selected goal counts below. Some goals turn deductions into preference credits; hard score limits stay limits. Moving a category slider makes the active label Custom. Click a selected goal to remove it; Balanced clears them all.</p>
     <div class="preset-active" id="presetActive" aria-live="polite">
       <span class="preset-active-label" data-i18n="optPresetActive">Active</span>
       <span class="preset-active-name" id="presetActiveName">Balanced</span>
     </div>
     <div class="goal-mix" id="goalMix" hidden>
       <p class="goal-mix-title" data-i18n="optGoalMixTitle">How much each goal counts</p>
-      <p class="note goal-mix-note" data-i18n="optGoalMixNote">Where two goals set the same dial, they are averaged by these weights. At 1 each they count equally; raise a goal to let it win where they disagree.</p>
+      <p class="note goal-mix-note" data-i18n="optGoalMixNote">These importance weights decide how selected goals combine where their priorities overlap. At 1 each they count equally. Focused priorities take precedence over incidental settings. Higher values give a goal more influence, not a guarantee about the final score.</p>
       <div id="goalMixRows"></div>
     </div>
     <div class="preset-cats" id="presetCats" role="tablist" data-i18n-aria="optPresetCatsAria" aria-label="Preset categories"></div>
@@ -384,11 +382,7 @@
 
   <section id="sec-weights">
     <h2 data-i18n="optWeightsH">What counts, and how much</h2>
-    <p class="note" style="margin: -6px 0 12px" data-i18n="optNoteWeights">
-      1.0 is the default weight. 0 switches a category off entirely. 2.0 makes it matter twice as
-      much. Categories set to 0 by default are ones people reasonably disagree about — turn them on
-      if you want them. Press <kbd>/</kbd> to jump to the filter.
-    </p>
+    <p class="note" style="margin: -6px 0 12px" data-i18n="optNoteWeights">Each category has its own default. A weight of 1.0 applies the listed rule normally; 0 switches its score effect off, and 2.0 doubles its deduction or credit before score limits. Some categories start at 0 or 0.5. Negative weights, available for selected categories, turn a deduction into a preference credit. Goal presets change these weights. Press / to jump to the filter.</p>
     <div class="cat-tools">
       <input type="search" id="catFilter" data-i18n-placeholder="optFilterPh" data-i18n-aria="optFilterAria" placeholder="Filter categories" aria-label="Filter categories">
       <div class="chips" id="catModes">
@@ -423,9 +417,7 @@
 
   <section id="sec-avoid">
     <h2 id="avoidHeading" data-i18n="optAvoidH">Your own avoid list</h2>
-    <p class="note" id="avoidNote" style="margin: -6px 0 10px" data-i18n="optNoteAvoid">
-      Separate ingredients or phrases with commas or new lines. Each entry is flagged independently on the panel.
-    </p>
+    <p class="note" id="avoidNote" style="margin: -6px 0 10px" data-i18n="optNoteAvoid">Separate ingredients or phrases with commas or new lines. Each entry creates its own warning; these warnings do not change the score. Matches come from the text provided by the page, so always check the package.</p>
     <textarea id="avoidList" aria-labelledby="avoidHeading" aria-describedby="avoidNote avoidCount" data-i18n-placeholder="optAvoidPh" placeholder="e.g. palm oil, natural flavors"></textarea>
     <p class="note" id="avoidCount" style="margin: 6px 0 0"></p>
     <p class="note" style="margin: 8px 0 6px" data-i18n="optNoteAvoidHint">Add a common one:</p>

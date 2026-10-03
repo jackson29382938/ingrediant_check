@@ -764,10 +764,16 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
         await page.click('#back');
         await page.click('#goals .chip');
         const goalPicked = await page.evaluate(() => document.querySelector('#goals .chip').getAttribute('aria-pressed'));
+        if (!/Selected goals \(1\)/.test(await page.locator('#goalSummary').textContent())) throw new Error('setup goal summary did not update');
         await page.click('#next');
         await page.click('#allergens .chip:has-text("Milk")');
         await page.click('#diets .chip:has-text("Vegan")');
         await page.click('#next');
+        await page.fill('#avoidList', 'palm oil, natural flavors');
+        const palmHint = page.locator('#avoidHints button').filter({ hasText: /^palm oil$/ });
+        if (await palmHint.getAttribute('aria-pressed') !== 'true') throw new Error('typed palm oil did not select its hint');
+        await palmHint.click();
+        if (await page.locator('#avoidList').inputValue() !== 'natural flavors') throw new Error('selected avoid hint did not remove the independent term');
         await page.fill('#avoidList', 'palm oil, natural flavors');
         await page.click('#next');
         const defaults = await page.evaluate(() => ['autoScoreSearch', 'sharedCache', 'ocrLabels', 'useOpenFoodFacts'].map(id => document.getElementById(id).checked));
@@ -784,6 +790,8 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
         await page.evaluate(old => new Promise(r => chrome.storage.local.clear(() => chrome.storage.local.set(old, r))), before);
       }
       if (name === 'options.html') {
+        const baseline = await page.locator('#w-refinedOil').evaluate(el => el.closest('.cat').querySelector('.baseline').textContent);
+        if (baseline !== 'Balanced default: 0.5') throw new Error('category baseline label must use its actual default');
         const originalWeights = await page.evaluate(() => chrome.storage.local.get('weights'));
         await page.evaluate(() => chrome.storage.local.set({weights:{...AIR.db.categories.DEFAULT_WEIGHTS, artificialSweetener:0.35}}));
         await page.reload();

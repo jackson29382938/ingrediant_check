@@ -20,7 +20,7 @@
     "message": "Ultra-processed"
   },
   "headDisqualifying": {
-    "message": "Disqualifying",
+    "message": "Score limits",
     "description": "Panel section: ingredients that cap the score."
   },
   "headGood": {
@@ -508,13 +508,13 @@
     "message": "Skips shoes, toys, cosmetics, medicine and cleaning products. A score on shampoo would imply it was judged as something you could eat. When this is on, a non-food page shows why it was skipped instead of a silent blank."
   },
   "optNoteWeights": {
-    "message": "1.0 is the default weight. 0 switches a category off entirely. 2.0 makes it matter twice as much. Categories set to 0 by default are ones people reasonably disagree about — turn them on if you want them. Press / to jump to the filter."
+    "message": "Each category has its own default. A weight of 1.0 applies the listed rule normally; 0 switches its score effect off, and 2.0 doubles its deduction or credit before score limits. Some categories start at 0 or 0.5. Negative weights, available for selected categories, turn a deduction into a preference credit. Goal presets change these weights. Press / to jump to the filter."
   },
   "optNoteAllergen": {
     "message": "Flagged on the panel. These never change the score — whether a food contains sesame is a different question from whether it is a good food."
   },
   "optNoteAvoid": {
-    "message": "Separate ingredients or phrases with commas or new lines. Each entry is flagged independently on the panel."
+    "message": "Separate ingredients or phrases with commas or new lines. Each entry creates its own warning; these warnings do not change the score. Matches come from the text provided by the page, so always check the package."
   },
   "optNoteAvoidHint": {
     "message": "Add a common one:"
@@ -632,7 +632,7 @@
     "message": "Ziele kombiniert: Wo zwei denselben Regler setzen, wird gemittelt."
   },
   "optNotePresets": {
-    "message": "Wähle ein Ziel oder mehrere — sie werden kombiniert, und wo zwei denselben Regler setzen, wird gemittelt (wie stark jedes zählt, legst du fest). Manche Ziele machen aus einem Minus ein Plus: fettreduzierte Milchprodukte bei Abnehmen, zugesetzte Vitamine bei Vitamine & Mineralstoffe. Harte Obergrenzen wie Red 40 werden nie zum Plus. Du kannst danach jeden Regler verschieben; dann steht dort Benutzerdefiniert. Ein erneuter Klick entfernt ein Ziel; Ausgewogen setzt alle zurück."
+    "message": "Pick one goal or several. Their priorities combine; where goals overlap, their weights are averaged. A goal focused on a category takes priority over another goal’s incidental setting. Adjust how much each selected goal counts below. Some goals turn deductions into preference credits; hard score limits stay limits. Moving a category slider makes the active label Custom. Click a selected goal to remove it; Balanced clears them all."
   },
   "welTitle": {
     "message": "Ingredient Check einrichten"
@@ -641,7 +641,7 @@
     "message": "Was ist dein Ziel?"
   },
   "welGoalsLede": {
-    "message": "Wähle alle, die passen — sie werden kombiniert. Die Bewertungen passen sich an: Bei Abnehmen werden fettarme Milchprodukte zum Plus, bei Vitamine & Mineralstoffe zugesetzte Vitamine. Nichts wählen heißt ausgewogener Standard."
+    "message": "Pick goals that fit your preferences. They combine; overlapping priorities are averaged according to how much each goal counts. Change those priorities later in Settings. Goals guide ingredient scores; they do not predict weight loss or medical outcomes. Pick nothing for the balanced default."
   },
   "welWarnH": {
     "message": "Wovor sollen wir dich warnen?"
@@ -656,7 +656,7 @@
     "message": "Vermeidest du etwas?"
   },
   "welAvoidLede": {
-    "message": "Optional. Products containing these get a red flag. Tap common ones or type your own, separated by commas or new lines."
+    "message": "Optional. Products containing these get a red flag, without changing the score. Tap common ones or type your own, separated by commas or new lines. Always check the package."
   },
   "welOptionsH": {
     "message": "Noch ein paar Entscheidungen"
@@ -1344,9 +1344,13 @@
     "message": "Wie stark jedes Ziel zählt"
   },
   "optGoalMixNote": {
-    "message": "Wo zwei Ziele denselben Regler setzen, wird nach diesen Gewichten gemittelt. Bei 1 zählen sie gleich; erhöhe ein Ziel, damit es sich durchsetzt, wo sie sich widersprechen."
+    "message": "These importance weights decide how selected goals combine where their priorities overlap. At 1 each they count equally. Focused priorities take precedence over incidental settings. Higher values give a goal more influence, not a guarantee about the final score."
   },
   "optGoalMixAria": {
     "message": "Wie stark $1 zählt"
-  }
+  },
+  "welGoalsSelected": { "message": "Selected goals" },
+  "welGoalsBalanced": { "message": "No goals selected: use the balanced defaults." },
+  "welGoalsCustom": { "message": "Your custom weights are kept unless you change goals." },
+  "optBalancedDefault": { "message": "Balanced default" }
 }

@@ -57,8 +57,9 @@
 
   <section data-step="1">
     <h1 data-i18n="welGoalsH">What are you aiming for?</h1>
-    <p class="lede" data-i18n="welGoalsLede">Pick any that fit — they combine. Scores change to match: under Weight loss, low-fat dairy becomes a plus; under Vitamins &amp; minerals, added vitamins do. Pick nothing for the balanced default.</p>
+    <p class="lede" data-i18n="welGoalsLede">Pick goals that fit your preferences. They combine; overlapping priorities are averaged according to how much each goal counts. Change those priorities later in Settings. Goals guide ingredient scores; they do not predict weight loss or medical outcomes. Pick nothing for the balanced default.</p>
     <div id="goals"></div>
+    <p class="goal-note" id="goalSummary" aria-live="polite"></p>
     <p class="goal-note" id="goalNote" aria-live="polite"></p>
   </section>
 
@@ -73,9 +74,10 @@
 
   <section data-step="3" hidden>
     <h1 data-i18n="welAvoidH">Anything you avoid?</h1>
-    <p class="lede" data-i18n="welAvoidLede">Optional. Products containing these get a red flag. Tap common ones or type your own, separated by commas or new lines.</p>
+    <p class="lede" data-i18n="welAvoidLede">Optional. Products containing these get a red flag, without changing the score. Tap common ones or type your own, separated by commas or new lines. Always check the package.</p>
     <div class="chips" id="avoidHints"></div>
-    <textarea id="avoidList" data-i18n-aria="optAvoidH" aria-label="Your own avoid list" data-i18n-placeholder="welAvoidPh" placeholder="e.g. palm oil, natural flavors"></textarea>
+    <textarea id="avoidList" data-i18n-aria="optAvoidH" aria-label="Your own avoid list" data-i18n-placeholder="welAvoidPh" placeholder="e.g. palm oil, natural flavors" aria-describedby="avoidCount"></textarea>
+    <p class="goal-note" id="avoidCount" aria-live="polite"></p>
   </section>
 
   <section data-step="4" hidden>

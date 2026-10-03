@@ -18,6 +18,10 @@ const SETTINGS_FORMAT = 'ingredient-check-settings';
 const SETTINGS_VERSION = 1;
 const AVOID_MAX_LINES = 80;
 const AVOID_MAX_LEN = 80;
+// Shared suggestions only: never added to the reader's avoid list automatically.
+const AVOID_HINTS = Object.freeze(['palm oil', 'natural flavors', 'carrageenan', 'red 40',
+  'yellow 5', 'yellow 6', 'blue 1', 'sucralose', 'aspartame', 'canola oil',
+  'high fructose corn syrup', 'titanium dioxide', 'msg', 'BHT', 'BHA', 'TBHQ', 'artificial flavors']);
 
 // The Apps Script web app deployed from the shared (private) spreadsheet — docs/SETTINGS-SYNC.md.
 // Every online feature goes through it; nothing reads the sheet directly, so the sheet itself stays
@@ -300,7 +304,7 @@ function scoringEqual(a, b) {
 
 const _exports = AIRmodule('prefs', {
   SETTINGS_FORMAT, SETTINGS_VERSION, TOGGLE_DEFAULTS, DISPLAY_DEFAULTS, BREAKDOWN_DELAY_MAX, sanitizeDisplay,
-  AVOID_MAX_LINES, AVOID_MAX_LEN, ENDPOINT, OAUTH_CLIENT_ID, SHARED_PRODUCTS_ALLOWED, SYNC_KEYS,
+  AVOID_MAX_LINES, AVOID_MAX_LEN, AVOID_HINTS, ENDPOINT, OAUTH_CLIENT_ID, SHARED_PRODUCTS_ALLOWED, SYNC_KEYS,
   sanitizeToggles, sanitizeScoring, sanitizeAvoidList, toScriptUrl, endpoint,
   parseImport, exportPayload, looksLikeSettings, scoringEqual,
   backupPayload, parseBackup, toSyncItems, fromSyncItems, readSync, WORKFLOW_KEYS, sanitizeWorkflow, oauthClientId,
