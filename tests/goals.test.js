@@ -167,3 +167,11 @@ test('goal importance is sanitised, saved, exported and matched', () => {
   const back = prefs.parseBackup(prefs.backupPayload(clean));
   assert.deepEqual([back.values.goals, back.values.goalImportance], [g, imp]);
 });
+
+test('Balanced is a baseline, never a hidden extra goal in imports or labels', () => {
+  assert.deepEqual(C.sanitizeGoals(['balanced']), []);
+  assert.deepEqual(C.sanitizeGoals(['balanced', 'weightLoss', 'weightLoss']), ['weightLoss']);
+  assert.equal(C.goalsLabel(['balanced', 'weightLoss']), C.PRESETS.weightLoss.label);
+  assert.deepEqual(C.describeGoals(C.DEFAULT_WEIGHTS, ['balanced']), { ids: [], custom: false });
+  assert.deepEqual(C.goalWeights(['balanced', 'weightLoss']), C.goalWeights(['weightLoss']));
+});

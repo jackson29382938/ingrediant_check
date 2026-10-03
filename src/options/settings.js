@@ -405,7 +405,7 @@ function renderGoalMix() {
     input.dataset.goalMix = id;
     input.min = String(CATS.IMPORTANCE_MIN);
     input.max = String(CATS.IMPORTANCE_MAX);
-    input.step = '0.25';
+    input.step = '0.01';
     input.value = String(value);
     input.setAttribute('aria-label', msg('optGoalMixAria', `How much ${label} counts`, label));
     const out = document.createElement('output');

@@ -63,7 +63,7 @@ function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true, pro
       createTextOutput: text => ({ setMimeType: () => JSON.parse(text) }) },
   });
   vm.runInContext(fs.readFileSync(require.resolve('../docs/apps-script.gs'), 'utf8').replace(
-    "var OAUTH_CLIENT_ID = '';", `var OAUTH_CLIENT_ID = ${JSON.stringify(clientId)};`), c);
+    /var OAUTH_CLIENT_ID = '[^']*';/, `var OAUTH_CLIENT_ID = ${JSON.stringify(clientId)};`), c);
   return { context: c, tabs, order, post: body => c.doPost({ postData: { contents: JSON.stringify(body) } }),
     get: parameter => c.doGet({ parameter }),
     sheet: name => { const sh = newSheet(); tabs.set(name, sh); order.push(name); return sh; },
@@ -233,4 +233,29 @@ test('owner purge closes exchange and removes only the requested product', () =>
   assert.equal(sh.data.length, 2);
   assert.equal(sh.data[1][0], 'amazon.com:B00LOAW7U6');
   assert.equal(r.post({kind:'lookup',keys:[]}).closed, true);
+});
+
+test('Google account tokens reject conflicting audiences and expired token metadata', () => {
+  const payload = { _format: 'ingredient-check-settings', weights: {} };
+  for (const info of [
+    { aud: 'other-client', azp: 'client-1', sub: '1001' },
+    { aud: 'client-1', azp: 'other-client', sub: '1001' },
+    { aud: 'client-1', sub: '1001', expires_in: 0 },
+    { aud: 'client-1', sub: '1001', expires_in: -1 },
+    { aud: 'client-1', sub: '1001', expires_in: 'invalid' },
+    { aud: 'client-1', sub: { malformed: true } },
+  ]) {
+    const token = 'a'.repeat(30);
+    const r = receiver({ tokens: { [token]: info } });
+    assert.equal(r.post({ kind: 'account', token, payload }).ok, false);
+    assert.equal(r.tabs.has('accounts'), false, 'rejected tokens must not create account rows');
+  }
+  const token = 'b'.repeat(30);
+  assert.equal(receiver({ tokens: { [token]: { aud: 'client-1', azp: 'client-1', sub: '1001', expires_in: '3600' } } })
+    .post({ kind: 'account', token, payload }).ok, true);
+});
+test('deployment template uses the same public OAuth client as the extension', () => {
+  const template = fs.readFileSync(require.resolve('../docs/apps-script.gs'), 'utf8');
+  const client = template.match(/var OAUTH_CLIENT_ID = '([^']*)';/)[1];
+  assert.equal(client, require('../src/engine/db/prefs.js').OAUTH_CLIENT_ID);
 });

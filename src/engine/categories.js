@@ -497,7 +497,7 @@ function goalWeights(ids, importance) {
 
 function sanitizeGoals(ids) {
   if (!Array.isArray(ids)) return [];
-  return [...new Set(ids.filter(id => typeof id === 'string' && Object.hasOwn(PRESETS, id)))];
+  return [...new Set(ids.filter(id => typeof id === 'string' && id !== 'balanced' && Object.hasOwn(PRESETS, id)))];
 }
 
 function weightsMatchGoals(weights, ids, epsilon = 0.001, importance) {

@@ -29,7 +29,7 @@
 
 // OAuth client id for the optional Google sign-in; the same value as OAUTH_CLIENT_ID in prefs.js.
 // Empty turns account storage off.
-var OAUTH_CLIENT_ID = '';
+var OAUTH_CLIENT_ID = '483888107675-hofgo4a3uh1g2khv4hja9ci8nhama6tk.apps.googleusercontent.com';
 
 var DIAGNOSTIC_COLUMNS = ["ts","version","store","asin","upc","brand","product_name","source","via","confidence","gate","coverage","parsed","score","verdict","nova","base","cap","penalties","bonuses","flags","provenance","weights","ingredients"];
 
@@ -278,7 +278,12 @@ function accountId(token) {
   if (res.getResponseCode() !== 200) throw new Error('token rejected');
   var info = JSON.parse(res.getContentText());
   // A token issued to some other app must not open this user's row.
-  if ((info.aud !== clientId && info.azp !== clientId) || !info.sub) throw new Error('token rejected');
+  var audience = info.aud || info.azp;
+  if (audience !== clientId || (info.azp && info.azp !== clientId)
+      || typeof info.sub !== 'string' || !info.sub) throw new Error('token rejected');
+  if (info.expires_in != null && (!isFinite(Number(info.expires_in)) || Number(info.expires_in) <= 0)) {
+    throw new Error('token rejected');
+  }
   var digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, 'ingredient-check:' + info.sub);
   return digest.map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('');
 }

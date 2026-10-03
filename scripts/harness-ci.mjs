@@ -792,6 +792,22 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
       if (name === 'options.html') {
         const baseline = await page.locator('#w-refinedOil').evaluate(el => el.closest('.cat').querySelector('.baseline').textContent);
         if (baseline !== 'Balanced default: 0.5') throw new Error('category baseline label must use its actual default');
+        const goalState = await page.evaluate(() => chrome.storage.local.get(['weights', 'goals', 'goalImportance']));
+        await page.evaluate(() => {
+          const goals = ['wholeFood', 'generalWellbeing'];
+          const goalImportance = { wholeFood: 1.33 };
+          return chrome.storage.local.set({ goals, goalImportance, weights: AIR.db.categories.goalWeights(goals, goalImportance) });
+        });
+        await page.reload();
+        await page.locator('#goalMix-wholeFood').waitFor({ state: 'visible' });
+        const importance = await page.locator('#goalMix-wholeFood').inputValue();
+        if (Number(importance) !== 1.33) throw new Error('fractional goal importance was rounded by the slider');
+        await page.evaluate(async saved => {
+          await chrome.storage.local.remove(['weights', 'goals', 'goalImportance']);
+          await chrome.storage.local.set(saved);
+        }, goalState);
+        await page.reload();
+        await page.waitForFunction(() => !!document.getElementById('w-artificialSweetener'));
         const originalWeights = await page.evaluate(() => chrome.storage.local.get('weights'));
         await page.evaluate(() => chrome.storage.local.set({weights:{...AIR.db.categories.DEFAULT_WEIGHTS, artificialSweetener:0.35}}));
         await page.reload();
