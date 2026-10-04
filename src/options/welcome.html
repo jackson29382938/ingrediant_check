@@ -32,6 +32,7 @@
   .goal-note { color: var(--muted); font-size: 13px; min-height: 2.6em; margin: 12px 0 0; }
   .opt { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-top: 1px solid var(--line); cursor: pointer; }
   .opt:first-of-type { border-top: 0; }
+  .opt:has(input:checked) b { color: var(--accent); }
   .opt input { margin-top: 4px; width: 18px; height: 18px; accent-color: var(--accent); flex: 0 0 auto; }
   .opt b { display: block; }
   .opt span span { display: block; color: var(--muted); font-size: 13px; }
@@ -52,17 +53,32 @@
 </head>
 <body>
 <main class="card">
-  <div class="progress" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+  <div class="progress" id="progress" aria-hidden="true"></div>
   <p class="kicker" id="stepCount"></p>
 
-  <section data-step="1">
+  <section data-step="level">
+    <h1 data-i18n="welLevelH">How much do you want to set up?</h1>
+    <p class="lede" data-i18n="welLevelLede">This decides how many settings you see, here and in Settings. Nothing is locked: change it any time, and settings you do not see keep sensible defaults.</p>
+    <label class="opt"><input type="radio" name="settingsLevel" value="minimal"><span><b data-i18n="optLevelMinimal">Minimal</b>
+      <span data-i18n="optLevelMinimalD">Your goals, allergen warnings and diets. Everything else stays at its default.</span></span></label>
+    <label class="opt"><input type="radio" name="settingsLevel" value="simple"><span><b data-i18n="optLevelSimple">Simple</b>
+      <span data-i18n="optLevelSimpleD">Adds what to rate, search-result scoring and your own avoid list.</span></span></label>
+    <label class="opt"><input type="radio" name="settingsLevel" value="standard"><span><b data-i18n="optLevelStandard">Standard (default)</b>
+      <span data-i18n="optLevelStandardD">Adds sorting, price per ounce, score on hover, the shared database, backup and stores.</span></span></label>
+    <label class="opt"><input type="radio" name="settingsLevel" value="advanced"><span><b data-i18n="optLevelAdvanced">Advanced</b>
+      <span data-i18n="optLevelAdvancedD">Adds every scoring weight, speed and freshness, timing, sort details and the settings file.</span></span></label>
+    <label class="opt"><input type="radio" name="settingsLevel" value="expert"><span><b data-i18n="optLevelExpert">Everything</b>
+      <span data-i18n="optLevelExpertD">Also shows diagnostics, contributions to the shared database and Google account sign-in.</span></span></label>
+  </section>
+
+  <section data-step="goals" hidden>
     <h1 data-i18n="welGoalsH">What are you aiming for?</h1>
     <p class="lede" data-i18n="welGoalsLede">Pick any that fit — they combine. Scores change to match: under Weight loss, low-fat dairy becomes a plus; under Vitamins &amp; minerals, added vitamins do. Pick nothing for the balanced default.</p>
     <div id="goals"></div>
     <p class="goal-note" id="goalNote" aria-live="polite"></p>
   </section>
 
-  <section data-step="2" hidden>
+  <section data-step="warn" hidden>
     <h1 data-i18n="welWarnH">Anything to warn you about?</h1>
     <p class="lede" data-i18n="welWarnLede">Tap any allergens or diets. Warnings sit on top of the score and never change it. They only cover the ingredient text on the page — always check the package.</p>
     <h2 data-i18n="welAllergens">Allergens</h2>
@@ -71,14 +87,14 @@
     <div class="chips" id="diets"></div>
   </section>
 
-  <section data-step="3" hidden>
+  <section data-step="avoid" hidden>
     <h1 data-i18n="welAvoidH">Anything you avoid?</h1>
     <p class="lede" data-i18n="welAvoidLede">Optional. Products containing these get a red flag. Tap common ones or type your own, one per line.</p>
     <div class="chips" id="avoidHints"></div>
     <textarea id="avoidList" data-i18n-aria="optAvoidH" aria-label="Your own avoid list" data-i18n-placeholder="welAvoidPh" placeholder="e.g. palm oil"></textarea>
   </section>
 
-  <section data-step="4" hidden>
+  <section data-step="options" hidden>
     <h1 data-i18n="welOptionsH">A few last choices</h1>
     <p class="lede" data-i18n="welOptionsLede">Scoring always happens on your computer. These decide what the extension may fetch. You can change them later in the toolbar popup.</p>
     <label class="opt"><input type="checkbox" id="autoScoreSearch"><span><b data-i18n="popupAutoScore">Rate every search result</b>
@@ -92,7 +108,7 @@
     <p class="status" id="status" role="status"></p>
   </section>
 
-  <section data-step="5" class="done" hidden>
+  <section data-step="done" class="done" hidden>
     <h1 data-i18n="welDoneH">You're set</h1>
     <p class="lede" data-i18n="welDoneLede">Open any grocery product or search on Amazon. Hover a score on a results page to see why. Everything here can be changed later under Settings.</p>
     <p><a href="https://www.amazon.com/s?k=organic+oats&amp;i=grocery" target="_blank" rel="noopener" data-i18n="welTry">Try a grocery search →</a></p>

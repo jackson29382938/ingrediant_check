@@ -33,8 +33,11 @@ test('money parsing matches the Cost Sorter', () => {
 });
 
 test('sort settings are bounded', () => {
-  assert.deepEqual(R.sanitizeSort({}), { sortMissing: 'rate-first', sortLoadMore: false, sortCount: 100 });
-  assert.deepEqual(R.sanitizeSort({ sortMissing: 'end', sortLoadMore: true, sortCount: '250' }), { sortMissing: 'end', sortLoadMore: true, sortCount: 250 });
+  assert.deepEqual(R.sanitizeSort({}), { sortMissing: 'rate-first', sortLoadMore: false, sortCount: 100, sortTimeLimit: 60 });
+  assert.deepEqual(R.sanitizeSort({ sortMissing: 'end', sortLoadMore: true, sortCount: '250' }), { sortMissing: 'end', sortLoadMore: true, sortCount: 250, sortTimeLimit: 60 });
+  assert.equal(R.sanitizeSort({ sortTimeLimit: 0 }).sortTimeLimit, 0, 'no limit is allowed');
+  assert.equal(R.sanitizeSort({ sortTimeLimit: '30' }).sortTimeLimit, 30);
+  assert.equal(R.sanitizeSort({ sortTimeLimit: 7 }).sortTimeLimit, 60, 'an odd value falls back to the default');
   assert.equal(R.sanitizeSort({ sortCount: 0 }).sortCount, 1);
   assert.equal(R.sanitizeSort({ sortCount: 9999 }).sortCount, 500);
   assert.equal(R.sanitizeSort({ sortCount: 'lots' }).sortCount, 100);

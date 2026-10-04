@@ -12,7 +12,7 @@ function msg(key, fallback, sub) {
   let out = '';
   try { out = chrome.i18n && chrome.i18n.getMessage(key, sub != null ? [String(sub)] : []) || ''; }
   catch (e) { /* missing key or not in an extension page */ }
-  return out || fallback;
+  return (out || fallback).replace('$1', sub != null ? String(sub) : '$1');
 }
 
 (function localise() {
@@ -613,20 +613,41 @@ function wireSort() {
   const count = document.getElementById('sortCount');
   const more = document.getElementById('sortLoadMore');
   const radios = [...document.querySelectorAll('input[name="sortMissing"]')];
-  if (!R || !count || !more || !radios.length) return;
+  const depth = document.getElementById('sortDepth');
+  const limit = document.getElementById('sortTimeLimit');
+  if (!R || !count || !more || !radios.length || !depth || !limit) return;
   const keys = Object.keys(R.SORT_DEFAULTS);
+
+  // "How much to load" is the same two settings as the checkbox and number below it, as one choice.
+  const DEPTHS = [100, 200, 300, 500];
+  const option = (select, value, text) => select.appendChild(new Option(text, value));
+  option(depth, 'page', msg('optSortDepthPage', 'Just this page (about 48 products)'));
+  for (const n of DEPTHS) option(depth, String(n), msg('optSortDepthN', 'About $1 products', n));
+  const custom = new Option(msg('optSortDepthCustom', 'Custom (set below)'), 'custom');
+  custom.hidden = true;
+  depth.appendChild(custom);
+  for (const s of R.TIME_LIMITS) {
+    option(limit, String(s), !s ? msg('optSortTimeNone', 'No limit')
+      : s < 120 ? msg('optSortSeconds', '$1 seconds', s) : msg('optSortMinutes', '$1 minutes', s / 60));
+  }
+
   const paint = o => {
     const v = R.sanitizeSort(o);
     radios.forEach(r => { r.checked = r.value === v.sortMissing; });
     more.checked = v.sortLoadMore;
     count.value = String(v.sortCount);
     count.disabled = !v.sortLoadMore;
+    depth.value = !v.sortLoadMore ? 'page' : DEPTHS.includes(v.sortCount) ? String(v.sortCount) : 'custom';
+    custom.hidden = depth.value !== 'custom';
+    limit.value = String(v.sortTimeLimit);
   };
-  const save = () => {
+  const save = (over = {}) => {
     const v = R.sanitizeSort({
       sortMissing: (radios.find(r => r.checked) || {}).value,
       sortLoadMore: more.checked,
       sortCount: count.value,
+      sortTimeLimit: limit.value,
+      ...over,
     });
     paint(v);
     persist(v, ok => { if (ok) flash(msg('optSaved', 'Saved')); });
@@ -635,9 +656,15 @@ function wireSort() {
   chrome.storage.onChanged.addListener(changes => {
     if (keys.some(k => changes[k])) chrome.storage.local.get(keys, paint);
   });
-  radios.forEach(r => r.addEventListener('change', save));
-  more.addEventListener('change', save);
-  count.addEventListener('change', save);
+  radios.forEach(r => r.addEventListener('change', () => save()));
+  more.addEventListener('change', () => save());
+  count.addEventListener('change', () => save());
+  limit.addEventListener('change', () => save());
+  depth.addEventListener('change', () => {
+    if (depth.value === 'custom') return;
+    // Just this page keeps the count, so choosing a depth again starts from it.
+    save(depth.value === 'page' ? { sortLoadMore: false } : { sortLoadMore: true, sortCount: Number(depth.value) });
+  });
 
   // Price per ounce: the on/off switch (also in the popup) and what to do without Amazon's unit price.
   const U = AIR.db.unitPrice;
@@ -672,6 +699,15 @@ function wireSpeed() {
     const v = SP.sanitizeSpeed({ speedMode: (radios.find(x => x.checked) || {}).value });
     persist(v, ok => { if (ok) flash(msg('optSaved', 'Saved')); });
   }));
+
+  // How fast product pages are requested: its own choice, beside how long scores are kept.
+  const paces = [...document.querySelectorAll('input[name="ratePace"]')];
+  const paintPace = o => { const { ratePace } = SP.sanitizePace(o); paces.forEach(r => { r.checked = r.value === ratePace; }); };
+  chrome.storage.local.get('ratePace', paintPace);
+  chrome.storage.onChanged.addListener(changes => { if (changes.ratePace) paintPace({ ratePace: changes.ratePace.newValue }); });
+  paces.forEach(r => r.addEventListener('change', () => {
+    persist(SP.sanitizePace({ ratePace: (paces.find(x => x.checked) || {}).value }), ok => { if (ok) flash(msg('optSaved', 'Saved')); });
+  }));
 }
 
 // Results-page breakdown: the toggle, how much it shows, and how long a hover waits before it opens.
@@ -693,12 +729,59 @@ function wireBreakdown() {
   chrome.storage.onChanged.addListener(changes => {
     if (keys.some(k => changes[k])) chrome.storage.local.get(keys, paint);
   });
+  // Only this section's own keys: sanitizeDisplay returns every display key, defaults included.
   detail.addEventListener('change', () =>
-    persist(PREFS.sanitizeDisplay({ breakdownDetail: detail.value, breakdownDelayMs: Number(delay.value) }),
+    persist({ breakdownDetail: PREFS.sanitizeDisplay({ breakdownDetail: detail.value }).breakdownDetail },
       ok => { if (ok) flash(msg('optSaved', 'Saved')); }));
   delay.addEventListener('input', () => paintDelay(Number(delay.value)));
   delay.addEventListener('change', () =>
     persist({ breakdownDelayMs: PREFS.sanitizeDisplay({ breakdownDelayMs: Number(delay.value) }).breakdownDelayMs },
+      ok => { if (ok) flash(msg('optSaved', 'Saved')); }));
+}
+
+// How many settings to show (PREFS.LEVELS). Elements carry data-level="N": the first level that
+// shows them. Hidden only with a class, so the `hidden` attribute other code toggles is untouched.
+function applyLevel(level) {
+  const at = Math.max(0, PREFS.LEVELS.indexOf(level));
+  for (const el of document.querySelectorAll('[data-level]')) {
+    el.classList.toggle('lvl-hidden', Number(el.dataset.level) > at);
+  }
+  for (const r of document.querySelectorAll('input[name="settingsLevel"]')) r.checked = r.value === PREFS.LEVELS[at];
+}
+
+// The picker. The first load writes the level back, so it is stored from then on.
+function wireLevel() {
+  chrome.storage.local.get(['settingsLevel', 'onboarded'], o => {
+    const stored = PREFS.levelOf(o);
+    if (stored !== o.settingsLevel) persist({ settingsLevel: stored });
+    applyLevel(stored);
+  });
+  chrome.storage.onChanged.addListener(changes => {
+    if (changes.settingsLevel) applyLevel(PREFS.sanitizeDisplay({ settingsLevel: changes.settingsLevel.newValue }).settingsLevel);
+  });
+  for (const r of document.querySelectorAll('input[name="settingsLevel"]')) {
+    r.addEventListener('change', () => {
+      applyLevel(r.value);
+      persist({ settingsLevel: r.value }, ok => { if (ok) flash(msg('optSaved', 'Saved')); });
+    });
+  }
+}
+
+// Product-page panel and the wait before Score on hover starts.
+function wirePanelAndHover() {
+  bindToggle('panelOpen');
+  const delay = document.getElementById('scoreHoverDelayMs');
+  const val = document.getElementById('scoreHoverDelayVal');
+  if (!delay) return;
+  const paint = ms => { if (val) val.textContent = `${(ms / 1000).toFixed(1)} s`; };
+  const show = o => { const ms = PREFS.sanitizeDisplay(o).scoreHoverDelayMs; delay.value = String(ms); paint(ms); };
+  chrome.storage.local.get('scoreHoverDelayMs', show);
+  chrome.storage.onChanged.addListener(changes => {
+    if (changes.scoreHoverDelayMs) show({ scoreHoverDelayMs: changes.scoreHoverDelayMs.newValue });
+  });
+  delay.addEventListener('input', () => paint(Number(delay.value)));
+  delay.addEventListener('change', () =>
+    persist({ scoreHoverDelayMs: PREFS.sanitizeDisplay({ scoreHoverDelayMs: Number(delay.value) }).scoreHoverDelayMs },
       ok => { if (ok) flash(msg('optSaved', 'Saved')); }));
 }
 
@@ -718,6 +801,8 @@ function startSettingsPage() {
     wireSort();
     wireSpeed();
     wireBreakdown();
+    wirePanelAndHover();
+    wireLevel();
 
     document.getElementById('avoidList').addEventListener('input', e => {
       state.avoidList = PREFS.sanitizeAvoidList(e.target.value);

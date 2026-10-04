@@ -9,7 +9,7 @@
   const HOST_ID = 'air-score-panel';
   const BADGE_ATTR = 'data-air-badge';
   const state = { enabled: true, badges: true, hoverScore: false, autoScoreSearch: true, foodOnly: true,
-    hoverBreakdown: true, breakdownDetail: 'full', breakdownDelayMs: 200,
+    hoverBreakdown: true, breakdownDetail: 'full', breakdownDelayMs: 200, scoreHoverDelayMs: 600, panelOpen: false,
     ocrLabels: false, sendDiagnostics: false, settled: null, lastBadgeScore: undefined,
     prefs: { weights: {}, allergens: [], diets: [], avoidList: [] }, lastKey: null, requestId: 0,
     failedExtracts: 0, manual: null, lastTextSig: null, lastFailSig: null };
@@ -27,6 +27,8 @@
   // shared-database reading may answer.
   state.speedMode = 'balanced';
   const BALANCED = { mode: 'balanced', maxAgeMs: CACHE.TTL_MS, autoFetches: 60, sharedDays: 30 };
+  state.ratePace = 'normal';
+  const pace = () => (root.AIR.db.speed ? root.AIR.db.speed.pace(state.ratePace) : { concurrent: 3, gapMs: 250 });
   const speed = () => (root.AIR.db.speed ? root.AIR.db.speed.profile(state.speedMode) : BALANCED);
   const usableCache = (hit, asin) => CACHE.valid(hit, {
     store: location.hostname, asin, version: ENGINE_VERSION, prefs: { ...cachePrefs(), ocrLabels: state.ocrLabels, useOpenFoodFacts: (state.cacheOptions || {}).useOpenFoodFacts }, maxAgeMs: speed().maxAgeMs,
@@ -155,7 +157,7 @@
 
   const page = {
     HOST_ID, BADGE_ATTR, state, ENGINE_VERSION, CACHE,
-    cachePrefs, cacheKey, usableCache, freshLocal, sharedOk, sharedProductsOn, speed, storeHost, ingredientSig,
+    cachePrefs, cacheKey, usableCache, freshLocal, sharedOk, sharedProductsOn, speed, pace, storeHost, ingredientSig,
     MAX_EXTRACT_RETRIES, isProductPage, isListPage, isRelevantPage,
     MIN_COVERAGE, unreadable,
     sendDiagnostic, publishActionBadge, cacheScore, cache, rememberProduct, logAction,

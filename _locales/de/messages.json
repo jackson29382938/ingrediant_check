@@ -1339,5 +1339,122 @@
   },
   "repStepsPh": {
     "message": "1. Bei Amazon nach Kefir gesucht\n2. Im Menü „Sortieren nach“ Preis pro Unze gewählt\n3. …"
+  },
+  "optNavLevel": {
+    "message": "Umfang"
+  },
+  "optLevelH": {
+    "message": "Wie viele Einstellungen angezeigt werden"
+  },
+  "optLevelLede": {
+    "message": "Fang klein an und blende jederzeit mehr ein. Eine ausgeblendete Einstellung behält ihren Wert und wirkt weiter; hier wird nur festgelegt, was diese Seite zeigt."
+  },
+  "optLevelMinimal": {
+    "message": "Minimal"
+  },
+  "optLevelMinimalD": {
+    "message": "Deine Ziele, Allergenwarnungen und Ernährungsformen. Alles andere bleibt auf dem Standardwert."
+  },
+  "optLevelSimple": {
+    "message": "Einfach"
+  },
+  "optLevelSimpleD": {
+    "message": "Dazu: was bewertet wird, Bewertung von Suchergebnissen und deine eigene Meidungsliste."
+  },
+  "optLevelStandard": {
+    "message": "Standard (Voreinstellung)"
+  },
+  "optLevelStandardD": {
+    "message": "Dazu: Sortierung, Preis pro Unze, Bewertung beim Überfahren, die gemeinsame Datenbank, Sicherung und Shops."
+  },
+  "optLevelAdvanced": {
+    "message": "Erweitert"
+  },
+  "optLevelAdvancedD": {
+    "message": "Dazu: jede Gewichtung, Tempo und Aktualität, Zeiten, Sortierdetails und die Einstellungsdatei."
+  },
+  "optLevelExpert": {
+    "message": "Alles"
+  },
+  "optLevelExpertD": {
+    "message": "Zeigt außerdem Diagnosen, Beiträge zur gemeinsamen Datenbank und die Anmeldung mit dem Google-Konto."
+  },
+  "optHoverDelay": {
+    "message": "Wartezeit vor der Bewertung"
+  },
+  "optPanelOpen": {
+    "message": "Bewertungsfeld auf Produktseiten geöffnet anzeigen"
+  },
+  "optNotePanelOpen": {
+    "message": "Standardmäßig aus: Eine Produktseite zeigt Bewertung und Urteil, ein Klick öffnet die ganze Aufschlüsselung. Eingeschaltet ist sie schon geöffnet."
+  },
+  "welLevelH": {
+    "message": "Wie viel möchtest du einrichten?"
+  },
+  "welLevelLede": {
+    "message": "Das bestimmt, wie viele Einstellungen du hier und in den Einstellungen siehst. Nichts ist gesperrt: Du kannst es jederzeit ändern, und nicht sichtbare Einstellungen behalten sinnvolle Standardwerte."
+  },
+  "optSortDepth": {
+    "message": "Wie viel geladen wird"
+  },
+  "optSortDepthD": {
+    "message": "Mehr Produkte ergeben einen besseren Vergleich und dauern länger. Über diese Seite hinaus liest Ingredient Check weitere Amazon-Ergebnisseiten und bewertet, was es kann, innerhalb des Zeitlimits. Gespeicherte Bewertungen und die gemeinsame Datenbank kommen zuerst, eine wiederholte Suche geht also schnell."
+  },
+  "optSortDepthPage": {
+    "message": "Nur diese Seite (etwa 48 Produkte)"
+  },
+  "optSortDepthN": {
+    "message": "Etwa $1 Produkte"
+  },
+  "optSortDepthCustom": {
+    "message": "Eigener Wert (unten einstellen)"
+  },
+  "optSortTimeLimit": {
+    "message": "Sammeln beenden nach"
+  },
+  "optSortTimeLimitD": {
+    "message": "Ist die Zeit um, wird die Liste mit dem bisher Gesammelten gezeigt; der Rest steht ohne Bewertung da."
+  },
+  "optSortTimeNone": {
+    "message": "Kein Limit"
+  },
+  "optSortSeconds": {
+    "message": "$1 Sekunden"
+  },
+  "optSortMinutes": {
+    "message": "$1 Minuten"
+  },
+  "optPaceH": {
+    "message": "Wie schnell Produktseiten abgerufen werden"
+  },
+  "optPaceLede": {
+    "message": "Gilt für die Bewertung einer Ergebnisseite und für den Aufbau der sortierten Liste. Schneller ist früher fertig, wirkt aber eher wie automatisierter Datenverkehr, daher kann Amazon früher ablehnen; nach fünf Ablehnungen in Folge pausiert alles von selbst."
+  },
+  "optPaceGentle": {
+    "message": "Behutsam"
+  },
+  "optPaceGentleD": {
+    "message": "Zwei gleichzeitig, 0,4 s Abstand. Am langsamsten, am seltensten abgelehnt."
+  },
+  "optPaceNormal": {
+    "message": "Normal (Voreinstellung)"
+  },
+  "optPaceNormalD": {
+    "message": "Drei gleichzeitig, 0,25 s Abstand. So lief es bisher immer."
+  },
+  "optPaceQuick": {
+    "message": "Zügig"
+  },
+  "optPaceQuickD": {
+    "message": "Vier gleichzeitig, 0,15 s Abstand. Etwa ein Drittel schneller als Normal."
+  },
+  "optPaceFast": {
+    "message": "Schnell"
+  },
+  "optPaceFastD": {
+    "message": "Fünf gleichzeitig, 0,1 s Abstand. Etwa zwei Drittel schneller als Normal und am ehesten abgelehnt."
+  },
+  "sortTimeLimit": {
+    "message": "Nach $1 Sekunden beendet, dem Zeitlimit für diese Liste."
   }
 }

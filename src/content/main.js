@@ -14,6 +14,7 @@
     armAutoScorePass, cancelTileWork, clearBadges } = search;
 
   // The speed setting (AIR.db.speed); 'balanced' when that module is not loaded.
+  const paceOf = v => (AIR.db.speed ? AIR.db.speed.sanitizePace({ ratePace: v }).ratePace : 'normal');
   const speedModeOf = v => (AIR.db.speed ? AIR.db.speed.sanitizeSpeed({ speedMode: v }).speedMode : 'balanced');
 
   chrome.runtime.onMessage?.addListener((msg, _sender, reply) => {
@@ -222,7 +223,7 @@
   }
 
   chrome.storage.local.get(['enabled', 'badges', 'hoverScore', 'autoScoreSearch', 'hoverBreakdown',
-    'breakdownDetail', 'breakdownDelayMs', 'foodOnly', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList', 'useOpenFoodFacts', 'sharedCache', 'sharedProducts', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'unitPrice'], o => {
+    'breakdownDetail', 'breakdownDelayMs', 'scoreHoverDelayMs', 'panelOpen', 'foodOnly', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList', 'useOpenFoodFacts', 'sharedCache', 'sharedProducts', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'ratePace', 'unitPrice'], o => {
     state.cacheOptions = { ...o };
     const toggles = AIR.db.prefs.sanitizeToggles(o);
     state.enabled = toggles.enabled;
@@ -230,12 +231,14 @@
     state.hoverScore = toggles.hoverScore;
     state.autoScoreSearch = toggles.autoScoreSearch;
     state.hoverBreakdown = toggles.hoverBreakdown;
+    state.panelOpen = toggles.panelOpen;
     Object.assign(state, AIR.db.prefs.sanitizeDisplay(o));
     state.foodOnly = toggles.foodOnly;
     state.ocrLabels = toggles.ocrLabels;
     state.sendDiagnostics = toggles.sendDiagnostics;
     state.unitPrice = toggles.unitPrice;
     state.speedMode = speedModeOf(o.speedMode);
+    state.ratePace = paceOf(o.ratePace);
     readPrefs(o);
     if (state.enabled) resume(); else suspend();
   });
@@ -271,6 +274,8 @@
       resetListState();
       if (state.enabled && state.badges) { wake(); armAutoScorePass(); }
     }
+    // Read when the next request starts: nothing already on the page needs redoing.
+    if (changes.ratePace) state.ratePace = paceOf(changes.ratePace.newValue);
     if (changes.unitPrice) {
       state.unitPrice = AIR.db.prefs.sanitizeToggles({ unitPrice: changes.unitPrice.newValue }).unitPrice;
       AIR.sort?.refresh();
@@ -309,13 +314,15 @@
       resetListState();
       if (state.enabled && state.badges) wake();
     }
-    if (changes.breakdownDetail || changes.breakdownDelayMs) {
-      Object.assign(state, AIR.db.prefs.sanitizeDisplay({
-        breakdownDetail: changes.breakdownDetail ? changes.breakdownDetail.newValue : state.breakdownDetail,
-        breakdownDelayMs: changes.breakdownDelayMs ? changes.breakdownDelayMs.newValue : state.breakdownDelayMs,
-      }));
+    if (changes.breakdownDetail || changes.breakdownDelayMs || changes.scoreHoverDelayMs) {
+      const shown = { ...state };
+      for (const key of ['breakdownDetail', 'breakdownDelayMs', 'scoreHoverDelayMs']) {
+        if (changes[key]) shown[key] = changes[key].newValue;
+      }
+      Object.assign(state, AIR.db.prefs.sanitizeDisplay(shown));
       AIR.hoverCard?.close();
     }
+    if (changes.panelOpen) state.panelOpen = changes.panelOpen.newValue === true;
     if (changes.ocrLabels) {
       state.ocrLabels = changes.ocrLabels.newValue === true;
       resetListState();

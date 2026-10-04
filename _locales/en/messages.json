@@ -1341,5 +1341,122 @@
   },
   "repStepsPh": {
     "message": "1. Searched Amazon for kefir\n2. Chose Price per ounce in Amazon's Sort by menu\n3. …"
+  },
+  "optNavLevel": {
+    "message": "Detail"
+  },
+  "optLevelH": {
+    "message": "How many settings to show"
+  },
+  "optLevelLede": {
+    "message": "Start small and add more whenever you want. A setting you cannot see keeps its current value and keeps working; this only decides what is on this page."
+  },
+  "optLevelMinimal": {
+    "message": "Minimal"
+  },
+  "optLevelMinimalD": {
+    "message": "Your goals, allergen warnings and diets. Everything else stays at its default."
+  },
+  "optLevelSimple": {
+    "message": "Simple"
+  },
+  "optLevelSimpleD": {
+    "message": "Adds what to rate, search-result scoring and your own avoid list."
+  },
+  "optLevelStandard": {
+    "message": "Standard (default)"
+  },
+  "optLevelStandardD": {
+    "message": "Adds sorting, price per ounce, score on hover, the shared database, backup and stores."
+  },
+  "optLevelAdvanced": {
+    "message": "Advanced"
+  },
+  "optLevelAdvancedD": {
+    "message": "Adds every scoring weight, speed and freshness, timing, sort details and the settings file."
+  },
+  "optLevelExpert": {
+    "message": "Everything"
+  },
+  "optLevelExpertD": {
+    "message": "Also shows diagnostics, contributions to the shared database and Google account sign-in."
+  },
+  "optHoverDelay": {
+    "message": "Wait before scoring"
+  },
+  "optPanelOpen": {
+    "message": "Open the score panel on product pages"
+  },
+  "optNotePanelOpen": {
+    "message": "Off by default: a product page shows the score and verdict, and a click opens the full breakdown. On, the breakdown is already open."
+  },
+  "welLevelH": {
+    "message": "How much do you want to set up?"
+  },
+  "welLevelLede": {
+    "message": "This decides how many settings you see, here and in Settings. Nothing is locked: change it any time, and settings you do not see keep sensible defaults."
+  },
+  "optSortDepth": {
+    "message": "How much to load"
+  },
+  "optSortDepthD": {
+    "message": "More products make a better comparison and take longer. Beyond this page, Ingredient Check reads further Amazon results pages and rates what it can, within the time limit. Saved scores and the shared database are used first, so a repeat search is quick."
+  },
+  "optSortDepthPage": {
+    "message": "Just this page (about 48 products)"
+  },
+  "optSortDepthN": {
+    "message": "About $1 products"
+  },
+  "optSortDepthCustom": {
+    "message": "Custom (set below)"
+  },
+  "optSortTimeLimit": {
+    "message": "Stop gathering after"
+  },
+  "optSortTimeLimitD": {
+    "message": "When time runs out the list is shown with what was gathered; the rest are marked without a score."
+  },
+  "optSortTimeNone": {
+    "message": "No limit"
+  },
+  "optSortSeconds": {
+    "message": "$1 seconds"
+  },
+  "optSortMinutes": {
+    "message": "$1 minutes"
+  },
+  "optPaceH": {
+    "message": "How fast to request product pages"
+  },
+  "optPaceLede": {
+    "message": "Applies to scoring a results page and to building the sorted list. Faster finishes sooner but looks more like automated traffic, so Amazon may refuse sooner; after five refusals in a row everything pauses on its own."
+  },
+  "optPaceGentle": {
+    "message": "Gentle"
+  },
+  "optPaceGentleD": {
+    "message": "Two at a time, 0.4 s apart. Slowest, least likely to be refused."
+  },
+  "optPaceNormal": {
+    "message": "Normal (default)"
+  },
+  "optPaceNormalD": {
+    "message": "Three at a time, 0.25 s apart. How it has always run."
+  },
+  "optPaceQuick": {
+    "message": "Quick"
+  },
+  "optPaceQuickD": {
+    "message": "Four at a time, 0.15 s apart. Roughly a third faster than Normal."
+  },
+  "optPaceFast": {
+    "message": "Fast"
+  },
+  "optPaceFastD": {
+    "message": "Five at a time, 0.1 s apart. Roughly two-thirds faster than Normal, and the most likely to be refused."
+  },
+  "sortTimeLimit": {
+    "message": "Stopped after $1 seconds, the time limit for building this list."
   }
 }

@@ -5,7 +5,7 @@
   root.AIR = root.AIR || {};
   const P = () => root.AIR.page;
 
-  const HOVER_DELAY_MS = 600;
+  const HOVER_DELAY_MS = 600;           // default; the reader's Score on hover delay is state.scoreHoverDelayMs
   const MAX_CONCURRENT = 3;
   const REQUEST_GAP_MS = 250;
   const TILE_FAIL_LIMIT = 5;
@@ -15,6 +15,8 @@
   // 48 organic results plus sponsored rows; the 3-at-a-time pacing and the throttle pause still apply.
   // The speed setting lowers it (AIR.db.speed autoFetches); 60 is the Balanced default.
   const MAX_AUTO_FETCHES = 60;
+  // How many requests at once and the gap between starts: the reader's pace (AIR.db.speed), else the defaults above.
+  const pace = () => (P().pace ? P().pace() : { concurrent: MAX_CONCURRENT, gapMs: REQUEST_GAP_MS });
   const autoFetchCap = () => (P().speed ? P().speed().autoFetches : MAX_AUTO_FETCHES);
 
   // A badge is painted into the tile's title. Results pages also carry [data-asin] carousel cards
@@ -409,13 +411,14 @@
   async function acquireSlot(halted = () => false) {
     for (;;) {
       if (halted() || queue.throttled) return false;
-      const wait = Math.max(0, queue.lastStart + REQUEST_GAP_MS - Date.now());
-      if (queue.active < MAX_CONCURRENT && !wait) {
+      const { concurrent, gapMs } = pace();
+      const wait = Math.max(0, queue.lastStart + gapMs - Date.now());
+      if (queue.active < concurrent && !wait) {
         queue.active++;
         queue.lastStart = Date.now();
         return true;
       }
-      await new Promise(resolve => setTimeout(resolve, wait || REQUEST_GAP_MS));
+      await new Promise(resolve => setTimeout(resolve, wait || gapMs));
     }
   }
   function releaseSlot() {
@@ -427,11 +430,12 @@
 
   function pump() {
     if (queue.throttled) return;
-    while (queue.active < MAX_CONCURRENT && queue.pending.length) {
+    const { concurrent, gapMs } = pace();
+    while (queue.active < concurrent && queue.pending.length) {
       const job = queue.pending.shift();
       if (!job.tile.isConnected) continue;
       queue.active++;
-      const wait = Math.max(0, queue.lastStart + REQUEST_GAP_MS - Date.now());
+      const wait = Math.max(0, queue.lastStart + gapMs - Date.now());
       queue.lastStart = Date.now() + wait;
       setTimeout(() => scoreTile(job.tile, job.asin, job.epoch, job.url).finally(() => { queue.active--; pump(); }), wait);
     }
@@ -453,7 +457,7 @@
       if (!searchAllowed()) return;
       if (tile.querySelector('.air-badge')) return;
       clearTimeout(timer);
-      timer = setTimeout(() => enqueue(tile, asin, { front: true }), HOVER_DELAY_MS);
+      timer = setTimeout(() => enqueue(tile, asin, { front: true }), state.scoreHoverDelayMs ?? HOVER_DELAY_MS);
     };
     const cancel = () => clearTimeout(timer);
     const opts = { signal: ac.signal };
@@ -616,7 +620,7 @@
   }
 
   const search = {
-    queue, TILE_FAIL_LIMIT, MAX_AUTO_FETCHES, MAX_CONCURRENT, autoFetchCap,
+    queue, TILE_FAIL_LIMIT, MAX_AUTO_FETCHES, MAX_CONCURRENT, autoFetchCap, pace,
     readProductPage, knownRead, acquireSlot, releaseSlot,
     searchAllowed, resetSearchGate, standDown, badgeSearchResults,
     armHoverPass, armAutoScorePass, enqueue, scoreTile, cancelTileWork, resolveTiles,

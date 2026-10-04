@@ -644,6 +644,28 @@ test("the sorted list's product pages count toward the per-results-page budget",
   assert.match(stopped, new RegExp(`at ${cap} product pages`));
 });
 
+test("the sorted list's time limit stops rating without a request and says why", async () => {
+  const w = sortSetup();
+  const { scores, stopped, timedOut } = await w.sort.rateByProductPage(['B000000001', 'B000000002'], 0, () => {}, () => 60, () => true);
+  assert.equal(w.fetches.length, 0, 'no product page is requested once time is up');
+  assert.equal(scores.size, 0);
+  assert.equal(timedOut, true);
+  assert.equal(stopped, '', 'the caller words the time-limit message, with the reader\'s own number');
+});
+
+test("the reader's request pace sets how many product pages are in flight", async () => {
+  const w = sortSetup();
+  w.context.AIR.db.speed = require('../src/engine/db/speed.js');
+  w.context.AIR.page.state.ratePace = 'fast';
+  const asins = Array.from({ length: 8 }, (_, i) => `B00000002${i}`);
+  const rating = w.sort.rateByProductPage(asins, 0, () => {}, () => 60);
+  await w.flush();
+  assert.equal(w.fetches.length, 5, 'Fast is five at once');
+  w.S.pauseForThrottle();
+  for (const f of w.fetches) f.resolve({ ok: false, status: 503, text: async () => '' });
+  await rating;
+});
+
 test('one product page view asks Open Food Facts once, however often Amazon updates the page', () => {
   const w = cacheSetup({ sharing: false });
   w.h.state.cacheOptions.useOpenFoodFacts = true;

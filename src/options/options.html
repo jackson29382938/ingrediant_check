@@ -31,6 +31,7 @@
                padding: 5px 11px; font-size: 12px; cursor: pointer; color: #0f1111; }
   .hint-chip:hover { background: #eef0f0; }
   .hint-chip[hidden] { display: none; }
+  .lvl-hidden { display: none !important; }
 
   .presets { display: flex; flex-wrap: wrap; gap: 8px; }
   .preset { border: 1px solid #d5d9d9; background: #f7f8f8; border-radius: 999px;
@@ -183,25 +184,52 @@
   <p class="lede" data-i18n="optLede">Scoring runs on your computer. The shared database and the settings
     backup can be switched off below.</p>
   <nav class="jump" data-i18n-aria="optNavAria" aria-label="Settings sections">
-    <a href="#sec-rate" data-i18n="optNavRate">Rate</a>
-    <a href="#sec-sort" data-i18n="optNavSort">Sort</a>
-    <a href="#sec-speed" data-i18n="optNavSpeed">Speed</a>
+    <a href="#sec-level" data-i18n="optNavLevel">Detail</a>
+    <a href="#sec-rate" data-level="1" data-i18n="optNavRate">Rate</a>
+    <a href="#sec-sort" data-level="2" data-i18n="optNavSort">Sort</a>
+    <a href="#sec-speed" data-level="3" data-i18n="optNavSpeed">Speed</a>
     <a href="#sec-presets" data-i18n="optNavPresets">Presets</a>
-    <a href="#sec-weights" data-i18n="optNavWeights">Weights</a>
+    <a href="#sec-weights" data-level="3" data-i18n="optNavWeights">Weights</a>
     <a href="#sec-warnings" data-i18n="optNavWarnings">Warnings</a>
-    <a href="#sec-avoid" data-i18n="optNavAvoid">Avoid</a>
-    <a href="#sec-database" data-i18n="optNavDatabase">Database</a>
-    <a href="#sec-account" data-i18n="optNavAccount">Backup</a>
-    <a href="#sec-file" data-i18n="optNavFile">File</a>
-    <a href="#sec-stores" data-i18n="optNavStores">Stores</a>
+    <a href="#sec-avoid" data-level="1" data-i18n="optNavAvoid">Avoid</a>
+    <a href="#sec-database" data-level="2" data-i18n="optNavDatabase">Database</a>
+    <a href="#sec-account" data-level="2" data-i18n="optNavAccount">Backup</a>
+    <a href="#sec-file" data-level="3" data-i18n="optNavFile">File</a>
+    <a href="#sec-stores" data-level="2" data-i18n="optNavStores">Stores</a>
   </nav>
 
-  <section id="sec-rate">
+  <section id="sec-level">
+    <h2 data-i18n="optLevelH">How many settings to show</h2>
+    <p class="note" style="margin: -6px 0 12px" data-i18n="optLevelLede">
+      Start small and add more whenever you want. A setting you cannot see keeps its current value and
+      keeps working; this only decides what is on this page.
+    </p>
+    <fieldset class="sort-choices" id="levelChoices">
+      <label class="chip sort-choice"><input type="radio" name="settingsLevel" value="minimal">
+        <span><strong data-i18n="optLevelMinimal">Minimal</strong>
+        <small data-i18n="optLevelMinimalD">Your goals, allergen warnings and diets. Everything else stays at its default.</small></span></label>
+      <label class="chip sort-choice"><input type="radio" name="settingsLevel" value="simple">
+        <span><strong data-i18n="optLevelSimple">Simple</strong>
+        <small data-i18n="optLevelSimpleD">Adds what to rate, search-result scoring and your own avoid list.</small></span></label>
+      <label class="chip sort-choice"><input type="radio" name="settingsLevel" value="standard">
+        <span><strong data-i18n="optLevelStandard">Standard (default)</strong>
+        <small data-i18n="optLevelStandardD">Adds sorting, price per ounce, score on hover, the shared database, backup and stores.</small></span></label>
+      <label class="chip sort-choice"><input type="radio" name="settingsLevel" value="advanced">
+        <span><strong data-i18n="optLevelAdvanced">Advanced</strong>
+        <small data-i18n="optLevelAdvancedD">Adds every scoring weight, speed and freshness, timing, sort details and the settings file.</small></span></label>
+      <label class="chip sort-choice"><input type="radio" name="settingsLevel" value="expert">
+        <span><strong data-i18n="optLevelExpert">Everything</strong>
+        <small data-i18n="optLevelExpertD">Also shows diagnostics, contributions to the shared database and Google account sign-in.</small></span></label>
+    </fieldset>
+  </section>
+
+  <section id="sec-rate" data-level="1">
     <h2 data-i18n="optRateH">What to rate</h2>
     <p class="note" style="margin: -6px 0 12px" data-i18n="optNoteRateSame">
       These settings are the same ones in the toolbar popup. Changing them here updates scores on
       Amazon immediately.
     </p>
+    <div data-level="1">
     <label class="chip" style="margin-bottom:8px">
       <input type="checkbox" id="foodOnly" checked>
       <span data-i18n="optFoodOnly">Only rate food and supplements</span>
@@ -211,6 +239,8 @@
       it was judged as something you could eat. When this is on, a non-food page shows why it was
       skipped instead of a silent blank.
     </p>
+    </div>
+    <div data-level="1">
     <label class="chip" style="margin: 14px 0 8px">
       <input type="checkbox" id="autoScoreSearch" checked>
       <span data-i18n="popupAutoScore">Rate every search result</span>
@@ -222,6 +252,8 @@
       sign-in, so Amazon sees them much as if you had opened each product yourself. Turn this off
       and only products already read (by you, or through the shared database) show a score.
     </p>
+    </div>
+    <div data-level="2">
     <label class="chip" style="margin: 14px 0 8px">
       <input type="checkbox" id="hoverScore">
       <span data-i18n="popupHover">Score on hover</span>
@@ -230,6 +262,12 @@
       Off by default. Hover or tab to one result for half a second and it requests that product page
       from Amazon in the same way, with your Amazon sign-in. Only the result you point at.
     </p>
+    <div class="row" style="margin-top:10px" data-level="3">
+      <label for="scoreHoverDelayMs" class="note" style="margin:0" data-i18n="optHoverDelay">Wait before scoring</label>
+      <input type="range" id="scoreHoverDelayMs" min="200" max="2000" step="100" value="600" style="width:180px">
+      <span class="status" id="scoreHoverDelayVal" style="color:inherit">0.6 s</span>
+    </div>
+    </div>
     <p class="note" id="amazonAccess" style="margin-top: 12px">
       <strong>Amazon access.</strong> When you install Ingredient Check, it asks Chrome for access
       to the Amazon stores it supports:
@@ -239,12 +277,13 @@
       account, cart or checkout. To limit it, open <code>chrome://extensions</code>, choose
       <em>Details</em> under Ingredient Check, and change <em>Site access</em>.
     </p>
-    <p class="note" id="targetAccess" data-i18n="optNoteTarget">
+    <p class="note" id="targetAccess" data-level="2" data-i18n="optNoteTarget">
       Target (preview): Ingredient Check also runs on Target product and search pages. There it only
       reads the page you have open and scores it on your computer. It requests nothing from Target or
       anyone else, and a Target search page shows scores only for products you opened before. The two
       options above apply to Amazon only.
     </p>
+    <div data-level="2">
     <label class="chip" style="margin: 14px 0 8px">
       <input type="checkbox" id="hoverBreakdown" checked>
       <span data-i18n="popupBreakdown">Show why on hover</span>
@@ -254,6 +293,7 @@
       on your computer from what was already read, under your current weights — no extra requests.
       A click pins it open; Esc or a click elsewhere closes it.
     </p>
+    <div data-level="3">
     <div class="row" style="margin-top:10px">
       <label for="breakdownDetail" class="note" style="margin:0" data-i18n="optBreakdownDetail">Show</label>
       <select id="breakdownDetail">
@@ -266,9 +306,21 @@
       <input type="range" id="breakdownDelayMs" min="0" max="1500" step="50" value="200" style="width:180px">
       <span class="status" id="breakdownDelayVal" style="color:inherit">0.2 s</span>
     </div>
+    </div>
+    </div>
+    <div data-level="2">
+    <label class="chip" style="margin: 14px 0 8px">
+      <input type="checkbox" id="panelOpen">
+      <span data-i18n="optPanelOpen">Open the score panel on product pages</span>
+    </label>
+    <p class="note" data-i18n="optNotePanelOpen">
+      Off by default: a product page shows the score and verdict, and a click opens the full
+      breakdown. On, the breakdown is already open.
+    </p>
+    </div>
   </section>
 
-  <section id="sec-sort">
+  <section id="sec-sort" data-level="2">
     <h2 data-i18n="optSortH">Sort by score or price per ounce</h2>
     <p class="note" style="margin: -6px 0 12px" data-i18n="optSortLede">
       On an Amazon grocery search, Amazon's own “Sort by” menu gets “Ingredient Check score: High to
@@ -277,6 +329,7 @@
       score, price per ounce, total price, rating and number of reviews, and Open in new tab shows the
       same list in a tab.
     </p>
+    <div data-level="2">
     <label class="chip" style="margin: 0 0 8px">
       <input type="checkbox" id="unitPrice">
       <span data-i18n="optSortUnitPrice">Price per ounce</span>
@@ -286,6 +339,19 @@
       and a package weight in the title. No extra requests. Coupons and subscription prices are not
       included. Also in the toolbar popup.
     </p>
+    </div>
+    <div data-level="2">
+    <div class="row" style="margin: 14px 0 0">
+      <label for="sortDepth" class="note" style="margin:0" data-i18n="optSortDepth">How much to load</label>
+      <select id="sortDepth"></select>
+    </div>
+    <p class="note" data-i18n="optSortDepthD">
+      More products make a better comparison and take longer. Beyond this page, Ingredient Check reads
+      further Amazon results pages and rates what it can, within the time limit. Saved scores and the
+      shared database are used first, so a repeat search is quick.
+    </p>
+    </div>
+    <div data-level="3">
     <fieldset class="sort-choices" id="unitMissingChoices">
       <legend data-i18n="optUnitMissingH">When Amazon shows no unit price</legend>
       <label class="chip sort-choice"><input type="radio" name="unitMissing" value="calculate-clear">
@@ -321,10 +387,16 @@
       <input type="number" id="sortCount" min="1" max="500" step="1" value="100" inputmode="numeric" style="width:90px">
       <span class="note" style="margin:0">1–500</span>
     </div>
+    <div class="row" style="margin-top:10px">
+      <label for="sortTimeLimit" class="note" style="margin:0" data-i18n="optSortTimeLimit">Stop gathering after</label>
+      <select id="sortTimeLimit"></select>
+    </div>
+    <p class="note" data-i18n="optSortTimeLimitD">When time runs out the list is shown with what was gathered; the rest are marked without a score.</p>
     <p class="note" data-i18n="optSortStorage">The sorted list is kept in memory for this browser session only and is gone when Chrome closes.</p>
+    </div>
   </section>
 
-  <section id="sec-speed">
+  <section id="sec-speed" data-level="3">
     <h2 data-i18n="optSpeedH">Speed and freshness</h2>
     <p class="note" style="margin: -6px 0 12px" data-i18n="optSpeedLede">
       Faster reuses saved scores for longer and requests fewer product pages. Fresher re-reads products
@@ -348,6 +420,26 @@
         <span><strong data-i18n="optSpeedFreshest">Most up to date</strong>
         <small data-i18n="optSpeedFreshestD">Saved scores for 1 day. At most 60 product pages per results page. Never uses shared readings: reads every product page itself, so more requests go to Amazon.</small></span></label>
     </fieldset>
+    <h3 class="store-h" data-i18n="optPaceH">How fast to request product pages</h3>
+    <p class="note" data-i18n="optPaceLede">
+      Applies to scoring a results page and to building the sorted list. Faster finishes sooner but
+      looks more like automated traffic, so Amazon may refuse sooner; after five refusals in a row
+      everything pauses on its own.
+    </p>
+    <fieldset class="sort-choices" id="paceChoices">
+      <label class="chip sort-choice"><input type="radio" name="ratePace" value="gentle">
+        <span><strong data-i18n="optPaceGentle">Gentle</strong>
+        <small data-i18n="optPaceGentleD">Two at a time, 0.4 s apart. Slowest, least likely to be refused.</small></span></label>
+      <label class="chip sort-choice"><input type="radio" name="ratePace" value="normal">
+        <span><strong data-i18n="optPaceNormal">Normal (default)</strong>
+        <small data-i18n="optPaceNormalD">Three at a time, 0.25 s apart. How it has always run.</small></span></label>
+      <label class="chip sort-choice"><input type="radio" name="ratePace" value="quick">
+        <span><strong data-i18n="optPaceQuick">Quick</strong>
+        <small data-i18n="optPaceQuickD">Four at a time, 0.15 s apart. Roughly a third faster than Normal.</small></span></label>
+      <label class="chip sort-choice"><input type="radio" name="ratePace" value="fast">
+        <span><strong data-i18n="optPaceFast">Fast</strong>
+        <small data-i18n="optPaceFastD">Five at a time, 0.1 s apart. Roughly two-thirds faster than Normal, and the most likely to be refused.</small></span></label>
+    </fieldset>
   </section>
 
   <section id="sec-presets">
@@ -369,7 +461,7 @@
     </div>
   </section>
 
-  <section id="sec-weights">
+  <section id="sec-weights" data-level="3">
     <h2 data-i18n="optWeightsH">What counts, and how much</h2>
     <p class="note" style="margin: -6px 0 12px" data-i18n="optNoteWeights">
       1.0 is the default weight. 0 switches a category off entirely. 2.0 makes it matter twice as
@@ -408,7 +500,7 @@
     <div class="chips" id="diets"></div>
   </section>
 
-  <section id="sec-avoid">
+  <section id="sec-avoid" data-level="1">
     <h2 id="avoidHeading" data-i18n="optAvoidH">Your own avoid list</h2>
     <p class="note" id="avoidNote" style="margin: -6px 0 10px" data-i18n="optNoteAvoid">
       One ingredient or phrase per line. Anything matching gets flagged on the panel.
@@ -419,7 +511,7 @@
     <div class="chips" id="avoidHints"></div>
   </section>
 
-  <section id="sec-database">
+  <section id="sec-database" data-level="2">
     <h2 data-i18n="optDatabaseH">Shared online database</h2>
     <p class="note" style="margin: -6px 0 12px">
       Certifications for whole foods (organic, grass-fed, origin) come from tables on a shared,
@@ -434,6 +526,7 @@
     <p class="note" style="margin: 0 0 12px">Off keeps every lookup on this computer. What is sent:
       nothing but a request for the certification tables, a few times a day. Never your settings,
       and nothing about who you are.</p>
+    <div data-level="3">
     <label class="chip" style="margin-bottom:10px">
       <input type="checkbox" id="sharedProducts">
       <span data-i18n="optSharedProducts">Share product readings with other computers (experimental)</span>
@@ -446,17 +539,18 @@
       the label. A product page you open is always read from the page itself. What is sent: the store
       and product IDs of search results this computer cannot answer, and what was read off products
       you scored.</p>
-    <label class="chip" style="margin-bottom:10px">
+    </div>
+    <label class="chip" style="margin-bottom:10px" data-level="4">
       <input type="checkbox" id="shareContributions">
       <span data-i18n="optShare">Send certifications I come across to the shared database</span>
     </label>
-    <div class="row">
+    <div class="row" data-level="4">
       <button class="act" id="refreshSheet" data-i18n="optRefresh">Refresh database now</button>
       <span class="status" id="sheetStatus"></span>
     </div>
   </section>
 
-  <section id="sec-account">
+  <section id="sec-account" data-level="2">
     <h2 data-i18n="optSettingsOnlineH">Your settings online</h2>
     <p class="note" style="margin: -6px 0 12px">
       The settings on this computer are always the ones in use. A copy online only comes back when
@@ -473,7 +567,7 @@
       <button class="act" id="restoreChrome" data-i18n="optRestoreChrome">Restore from my Chrome account</button>
       <span class="status" id="backupStatus"></span>
     </div>
-    <div id="accountBlock" hidden>
+    <div id="accountBlock" data-level="4" hidden>
       <p class="note" style="margin: 16px 0 4px">Or keep a copy with your Google account on the
         Ingredient Check database, for a browser that is not signed into Chrome. Only a hash of your
         account id is stored — not your email.</p>
@@ -485,7 +579,7 @@
     </div>
   </section>
 
-  <section>
+  <section data-level="4">
     <h2 data-i18n="optDiagnosticsH">Accuracy diagnostics</h2>
     <p class="note" style="margin: -6px 0 12px">
       Sends one row per scored product to the shared database, on its own tab. Each row carries
@@ -509,7 +603,7 @@
     </div>
   </section>
 
-  <section>
+  <section data-level="2">
     <h2 data-i18n="optLeavesH">What leaves your computer</h2>
     <p class="note" style="margin: -6px 0 12px">
       Scoring itself is entirely local: the rules, your weights and every score are computed in
@@ -567,7 +661,7 @@
     </ul>
   </section>
 
-  <section id="sec-stores">
+  <section id="sec-stores" data-level="2">
     <h2 data-i18n="optStoresH">Stores and store wishlist</h2>
     <p class="note" style="margin: -6px 0 10px" data-i18n="optStoresLede">
       Where Ingredient Check works today, and which stores are planned. A planned store is not
@@ -601,7 +695,7 @@
     </div>
   </section>
 
-  <section id="sec-file">
+  <section id="sec-file" data-level="3">
     <h2 data-i18n="optFileH">Settings file</h2>
     <div class="row">
       <button class="act" id="export" data-i18n="optExport">Export settings</button>

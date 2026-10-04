@@ -51,24 +51,45 @@ const TOGGLE_DEFAULTS = {
   unitPrice: true,
   // Copy of the settings in the Chrome account (chrome.storage.sync). Never restored on its own.
   settingsBackup: true,
+  // Product pages: open the score panel expanded instead of showing only its header.
+  panelOpen: false,
 };
 
 function db(name) {
   return (typeof AIR !== 'undefined' && AIR.db && AIR.db[name]) || null;
 }
 
-// Non-boolean display settings for the results-page breakdown.
-const DISPLAY_DEFAULTS = { breakdownDetail: 'full', breakdownDelayMs: 200 };
+// How many settings the options page shows, from the fewest to all of them. Each control in
+// options.html carries data-level="N", the first level (index into LEVELS) that shows it. Hiding is
+// display only: a hidden setting keeps its value and keeps working.
+const LEVELS = ['minimal', 'simple', 'standard', 'advanced', 'expert'];
+const DEFAULT_LEVEL = 'standard';
+
+// Non-boolean display settings: the results-page breakdown, the delay before Score on hover starts,
+// and how much of the options page to show.
+const DISPLAY_DEFAULTS = { breakdownDetail: 'full', breakdownDelayMs: 200, scoreHoverDelayMs: 600, settingsLevel: DEFAULT_LEVEL };
 const BREAKDOWN_DELAY_MAX = 1500;
+const SCORE_HOVER_DELAY_MIN = 200;
+const SCORE_HOVER_DELAY_MAX = 2000;
+function stepped(value, min, max, step, fallback) {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.round(Math.min(max, Math.max(min, n)) / step) * step : fallback;
+}
 function sanitizeDisplay(raw) {
   const src = raw && typeof raw === 'object' ? raw : {};
-  const delay = Number(src.breakdownDelayMs);
   return {
     breakdownDetail: src.breakdownDetail === 'compact' ? 'compact' : 'full',
-    breakdownDelayMs: Number.isFinite(delay)
-      ? Math.round(Math.min(BREAKDOWN_DELAY_MAX, Math.max(0, delay)) / 50) * 50
-      : DISPLAY_DEFAULTS.breakdownDelayMs,
+    breakdownDelayMs: stepped(src.breakdownDelayMs, 0, BREAKDOWN_DELAY_MAX, 50, DISPLAY_DEFAULTS.breakdownDelayMs),
+    scoreHoverDelayMs: stepped(src.scoreHoverDelayMs, SCORE_HOVER_DELAY_MIN, SCORE_HOVER_DELAY_MAX, 100, DISPLAY_DEFAULTS.scoreHoverDelayMs),
+    settingsLevel: LEVELS.includes(src.settingsLevel) ? src.settingsLevel : DEFAULT_LEVEL,
   };
+}
+
+// The level to show for stored settings. An install from before the setting existed saw everything,
+// so with none stored (and setup already done) it keeps seeing everything.
+function levelOf(stored) {
+  const src = stored && typeof stored === 'object' ? stored : {};
+  return LEVELS.includes(src.settingsLevel) ? src.settingsLevel : (src.onboarded === true ? 'expert' : DEFAULT_LEVEL);
 }
 
 function asBool(value, fallback) {
@@ -217,7 +238,8 @@ function scoringEqual(a, b) {
 }
 
 const _exports = AIRmodule('prefs', {
-  SETTINGS_FORMAT, SETTINGS_VERSION, TOGGLE_DEFAULTS, DISPLAY_DEFAULTS, BREAKDOWN_DELAY_MAX, sanitizeDisplay,
+  SETTINGS_FORMAT, SETTINGS_VERSION, TOGGLE_DEFAULTS, DISPLAY_DEFAULTS, BREAKDOWN_DELAY_MAX, LEVELS, DEFAULT_LEVEL, levelOf,
+  SCORE_HOVER_DELAY_MIN, SCORE_HOVER_DELAY_MAX, sanitizeDisplay,
   AVOID_MAX_LINES, AVOID_MAX_LEN, ENDPOINT, OAUTH_CLIENT_ID, SYNC_KEYS,
   sanitizeToggles, sanitizeScoring, sanitizeAvoidList, toScriptUrl, endpoint,
   parseImport, exportPayload, looksLikeSettings, scoringEqual,

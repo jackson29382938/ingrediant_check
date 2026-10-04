@@ -79,6 +79,7 @@
       via: meta.via,
       provenanceSource: meta.provenanceSource,
     }), meta.report === false ? null : reporter(data, result));
+    if (state.panelOpen) root.AIR.panel.openCard(host);
     cacheScore(key, result, meta.cacheName || data.title, meta.via, meta.provenanceSource, meta.t);
     if (meta.input && meta.via !== 'manual-paste' && meta.via !== 'food-override') {
       P().rememberProduct(key, { input: meta.input, via: meta.via, confidence: meta.confidence,

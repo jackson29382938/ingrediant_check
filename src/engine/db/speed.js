@@ -25,6 +25,24 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     freshest: Object.freeze({ maxAgeDays: 1, autoFetches: 60, sharedDays: 0 }),
   });
 
+  // How fast product pages are requested, for the badges and the sorted list alike (they share one
+  // queue): how many at once and the least gap between starts. Normal is how it has always run. Faster
+  // finishes sooner but looks more like automated traffic, and Amazon may refuse sooner; the shared
+  // throttle pause still stops everything after five refusals in a row. Never more than five at once.
+  const PACES = ['gentle', 'normal', 'quick', 'fast'];
+  const DEFAULT_PACE = 'normal';
+  const PACE_PROFILES = Object.freeze({
+    gentle: Object.freeze({ concurrent: 2, gapMs: 400 }),
+    normal: Object.freeze({ concurrent: 3, gapMs: 250 }),
+    quick: Object.freeze({ concurrent: 4, gapMs: 150 }),
+    fast: Object.freeze({ concurrent: 5, gapMs: 100 }),
+  });
+  function sanitizePace(raw) {
+    const src = raw && typeof raw === 'object' ? raw : {};
+    return { ratePace: PACES.includes(src.ratePace) ? src.ratePace : DEFAULT_PACE };
+  }
+  const pace = name => PACE_PROFILES[PACES.includes(name) ? name : DEFAULT_PACE];
+
   function sanitizeSpeed(raw) {
     const src = raw && typeof raw === 'object' ? raw : {};
     return { speedMode: MODES.includes(src.speedMode) ? src.speedMode : DEFAULT_MODE };
@@ -44,7 +62,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     return Number.isFinite(t) && now - t < p.sharedMs;
   }
 
-  const api = { MODES, DEFAULT_MODE, PROFILES, DAY, sanitizeSpeed, profile, sharedUsable };
+  const api = { MODES, DEFAULT_MODE, PROFILES, DAY, sanitizeSpeed, profile, sharedUsable,
+    PACES, DEFAULT_PACE, PACE_PROFILES, sanitizePace, pace };
   const out = AIRmodule('speed', api);
   if (typeof module !== 'undefined' && module.exports) module.exports = out;
 })();

@@ -556,6 +556,16 @@
     return shadow;
   }
 
-  root.AIR.panel = { render, renderBreakdown, renderLoading, renderFailure, renderNotFood, renderNotice, mount, shadowOf, BAND_COLOR, NOVA_TEXT, pasteLooksValid, t, sections };
+  // Expand a mounted card, as a click on its header does.
+  function openCard(host) {
+    const shadow = shadowOf(host);
+    const card = shadow && shadow.querySelector('.card');
+    const head = shadow && shadow.querySelector('.head');
+    if (!card || !head) return;
+    card.classList.add('open');
+    head.setAttribute('aria-expanded', 'true');
+  }
+
+  root.AIR.panel = { openCard, render, renderBreakdown, renderLoading, renderFailure, renderNotFood, renderNotice, mount, shadowOf, BAND_COLOR, NOVA_TEXT, pasteLooksValid, t, sections };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.AIR.panel;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

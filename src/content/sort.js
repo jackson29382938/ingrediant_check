@@ -32,7 +32,6 @@
   const CARD = '[data-component-type="s-search-result"][data-asin], .s-result-item[data-asin]';
   const VALUE = { health: 'ingredient-check-score', unitPrice: 'ingredient-check-price-per-ounce' };
   const MARK = 'data-air-sort';
-  const REQUEST_GAP_MS = 250;
   const LOOKUP_BATCH = 100;
   const PUBLISH_GAP_MS = 700;
   const LOAD_MORE_TIMEOUT_MS = 15000;
@@ -414,12 +413,12 @@
   // the same three slots and gap between starts, one request per product whoever asks first, one
   // throttle pause, and one budget per Amazon results page (`budget`, counted with the badges'
   // requests). Stopped by the panel's Stop button, the master switch, Amazon refusing, or the budget.
-  async function rateByProductPage(asins, token, onProgress, budget) {
+  async function rateByProductPage(asins, token, onProgress, budget, timeUp = () => false) {
     const search = S();
     const q = search.queue;
     const out = new Map();
     let next = 0, done = 0, stopped = '';
-    const halted = () => token !== run || !!stopped || !P().state.enabled;
+    const halted = () => token !== run || !!stopped || !P().state.enabled || timeUp();
     const throttled = () => t('sortThrottled', 'Amazon stopped answering product pages, so rating paused.');
     const outOfBudget = () => t('sortBudget', 'Rating stopped at $1 product pages, the limit for the Amazon results pages in this list.', budget());
     async function worker() {
@@ -451,9 +450,9 @@
         }
       }
     }
-    await Promise.all(Array.from({ length: search.MAX_CONCURRENT }, worker));
+    await Promise.all(Array.from({ length: search.pace().concurrent }, worker));
     if (!stopped && q.throttled) stopped = throttled();
-    return { scores: out, stopped };
+    return { scores: out, stopped, timedOut: !stopped && timeUp() };
   }
 
   function findNextPage(doc, currentUrl) {
@@ -495,7 +494,12 @@
     const settings = await getSettings();
     const { state } = P();
     const products = new Map();
-    const add = product => { const key = product.asin || product.url; if (key && !products.has(key)) products.set(key, product); };
+    const add = product => { const key = product.asin || product.url; if (!key || products.has(key)) return false; products.set(key, product); return true; };
+    // The reader's time limit: past it, what is gathered is shown as it stands.
+    const startedAt = Date.now();
+    const timeUp = () => settings.sortTimeLimit > 0 && Date.now() - startedAt >= settings.sortTimeLimit * 1000;
+    const timeMessage = () => t('sortTimeLimit', 'Stopped after $1 seconds, the time limit for building this list.', settings.sortTimeLimit);
+    let stopped = '';
     for (const card of productCardsIn(document)) add(extractProduct(card, 1, settings));
     const scores = new Map();
     const list = () => [...products.values()].map(p => ({ ...p, ...(scores.get(p.asin) || { score: null, verdict: '', source: 'unrated' }) }));
@@ -518,11 +522,11 @@
     if (settings.sortLoadMore && products.size < settings.sortCount) {
       let nextUrl = findNextPage(document, location.href);
       let pageNumber = 1;
-      while (products.size < settings.sortCount && nextUrl && token === run) {
+      while (products.size < settings.sortCount && nextUrl && token === run && !timeUp()) {
         pageNumber += 1;
         await publish(token, list(), true, t('sortLoadingPage', 'Loading Amazon results page $1 ($2 products found)…', pageNumber, products.size), true);
         try {
-          await sleep(REQUEST_GAP_MS);
+          await sleep(S().pace().gapMs);
           const controller = new AbortController();
           controllers.add(controller);
           let response;
@@ -537,10 +541,14 @@
           const cards = productCardsIn(doc);
           if (!cards.length) throw new Error('no product cards on the next page');
           pagesInList = pageNumber;
+          const fresh = [];
           for (const card of cards) {
-            add(extractProduct(card, pageNumber, settings));
+            const product = extractProduct(card, pageNumber, settings);
+            if (add(product) && product.asin) fresh.push(product.asin);
             if (products.size >= settings.sortCount) break;
           }
+          // Saved scores for this page now, so the list fills in as the pages arrive.
+          for (const [a, s] of await knownScores(fresh)) scores.set(a, s);
           nextUrl = findNextPage(doc, nextUrl);
         } catch (error) {
           if (token !== run) return;
@@ -549,13 +557,12 @@
         }
       }
       if (token !== run) return;
-      for (const [a, s] of await knownScores(noScore())) scores.set(a, s);
+      if (timeUp() && nextUrl && products.size < settings.sortCount) stopped = timeMessage();
       for (const [a, s] of await sharedScores(noScore(), token)) scores.set(a, s);
       if (!await publish(token, list(), true, counting(), true)) return;
     }
 
     // Product pages for what is still unscored, when the settings allow it.
-    let stopped = '';
     const rateAllowed = settings.sortMissing === 'rate-first' && state.autoScoreSearch;
     if (rateAllowed && noScore().length && token === run) {
       const asins = noScore();
@@ -563,9 +570,9 @@
       const rated = await rateByProductPage(asins, token, (done, total, got) => {
         for (const [a, s] of got) scores.set(a, s);
         publish(token, list(), true, t('sortRatingMore', 'Rating listings without a score: $1 of $2…', done, total));
-      }, budget);
+      }, budget, timeUp);
       for (const [a, s] of rated.scores) scores.set(a, s);
-      stopped = rated.stopped;
+      stopped = stopped || rated.stopped || (rated.timedOut ? timeMessage() : '');
       // Tiles the badge queue finished meanwhile.
       for (const [a, s] of await knownScores(noScore())) scores.set(a, s);
     }

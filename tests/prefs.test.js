@@ -117,6 +117,49 @@ check('the shared database and the Chrome backup are on by default, sharing extr
   assert.strictEqual(t.sendDiagnostics, false);
 });
 
+console.log('\nsettings level and display');
+check('an unknown level falls back to the default; display values are bounded', () => {
+  assert.deepStrictEqual(prefs.LEVELS, ['minimal', 'simple', 'standard', 'advanced', 'expert']);
+  assert.strictEqual(prefs.sanitizeDisplay({ settingsLevel: 'everything' }).settingsLevel, prefs.DEFAULT_LEVEL);
+  assert.strictEqual(prefs.sanitizeDisplay({ settingsLevel: 'minimal' }).settingsLevel, 'minimal');
+  assert.strictEqual(prefs.sanitizeDisplay({ scoreHoverDelayMs: 5 }).scoreHoverDelayMs, prefs.SCORE_HOVER_DELAY_MIN);
+  assert.strictEqual(prefs.sanitizeDisplay({ scoreHoverDelayMs: 99999 }).scoreHoverDelayMs, prefs.SCORE_HOVER_DELAY_MAX);
+  assert.strictEqual(prefs.sanitizeDisplay({ scoreHoverDelayMs: 'x' }).scoreHoverDelayMs, 600);
+  assert.strictEqual(prefs.sanitizeToggles({}).panelOpen, false);
+});
+check('an install from before the level existed keeps every setting visible; a fresh one gets Standard', () => {
+  assert.strictEqual(prefs.levelOf({ onboarded: true }), 'expert');
+  assert.strictEqual(prefs.levelOf({}), 'standard');
+  assert.strictEqual(prefs.levelOf({ onboarded: true, settingsLevel: 'simple' }), 'simple');
+  assert.strictEqual(prefs.levelOf({ settingsLevel: 'bogus' }), 'standard');
+});
+check('every data-level in the settings page is a real level, and the picker lists each level once', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'src', 'options', 'options.html'), 'utf8');
+  const levels = [...html.matchAll(/data-level="([^"]*)"/g)].map(m => Number(m[1]));
+  assert.ok(levels.length > 20, 'the scan found too few data-level attributes');
+  for (const n of levels) assert.ok(Number.isInteger(n) && n >= 1 && n < prefs.LEVELS.length, `bad data-level ${n}`);
+  for (const level of prefs.LEVELS) {
+    assert.strictEqual(html.split(`name="settingsLevel" value="${level}"`).length, 2, `picker option ${level}`);
+  }
+  // Goals, allergen warnings and diets are what Minimal is for: none of them may be gated.
+  for (const id of ['sec-presets', 'sec-warnings', 'sec-diets']) {
+    assert.ok(!new RegExp(`id="${id}"[^>]*data-level`).test(html), `${id} must show at every level`);
+  }
+});
+
+console.log('\nrequest pace');
+check('pace is bounded: unknown falls back to Normal and nothing exceeds five at once', () => {
+  const speed = require(src('engine/db/speed.js'));
+  assert.strictEqual(speed.sanitizePace({ ratePace: 'warp' }).ratePace, 'normal');
+  assert.deepStrictEqual({ ...speed.pace('normal') }, { concurrent: 3, gapMs: 250 }, 'Normal is how it always ran');
+  assert.deepStrictEqual({ ...speed.pace(undefined) }, { concurrent: 3, gapMs: 250 });
+  for (const name of speed.PACES) {
+    const p = speed.pace(name);
+    assert.ok(p.concurrent >= 1 && p.concurrent <= 5 && p.gapMs >= 100, name);
+  }
+  assert.ok(speed.pace('fast').concurrent > speed.pace('normal').concurrent && speed.pace('gentle').concurrent < speed.pace('normal').concurrent);
+});
+
 console.log('\nbackup');
 check('a backup is the sanitized export plus toggles, never the master switch or stray keys', () => {
   const b = prefs.backupPayload({

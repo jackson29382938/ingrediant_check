@@ -47,7 +47,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
 
   // The sort settings, bounded. `sortMissing`: 'rate-first' rates listings without a score before
   // sorting (only when "Rate every search result" is on); 'end' puts them last with no requests.
-  const SORT_DEFAULTS = { sortMissing: 'rate-first', sortLoadMore: false, sortCount: 100 };
+  // `sortTimeLimit`: seconds to spend building the list before it is shown as it stands (0 = no limit).
+  const TIME_LIMITS = [15, 30, 60, 120, 300, 0];
+  const SORT_DEFAULTS = { sortMissing: 'rate-first', sortLoadMore: false, sortCount: 100, sortTimeLimit: 60 };
   function sanitizeSort(raw) {
     const src = raw && typeof raw === 'object' ? raw : {};
     const count = Math.round(Number(src.sortCount));
@@ -55,6 +57,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
       sortMissing: src.sortMissing === 'end' ? 'end' : 'rate-first',
       sortLoadMore: src.sortLoadMore === true,
       sortCount: Number.isFinite(count) ? Math.min(COUNT_MAX, Math.max(COUNT_MIN, count)) : SORT_DEFAULTS.sortCount,
+      sortTimeLimit: TIME_LIMITS.includes(Number(src.sortTimeLimit)) ? Number(src.sortTimeLimit) : SORT_DEFAULTS.sortTimeLimit,
     };
   }
 
@@ -216,7 +219,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
   const sanitizeStatus = raw => str(raw, 300);
 
   const _exports = AIRmodule('sortedResults', {
-    MAX_RESULTS, COUNT_MIN, COUNT_MAX, SORT_DEFAULTS, FACTORS, WEIGHT_MAX, PRESETS,
+    MAX_RESULTS, COUNT_MIN, COUNT_MAX, TIME_LIMITS, SORT_DEFAULTS, FACTORS, WEIGHT_MAX, PRESETS,
     sortByScore, parseMoney, sanitizeSort, sanitizeProduct, sanitizeResults, sanitizeSourceUrl,
     sanitizeWeights, presetFor, factorValues, rank, sanitizeStatus, sanitizeWhy,
   });
