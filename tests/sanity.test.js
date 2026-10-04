@@ -97,7 +97,10 @@ check('settings messages are sent only from the settings page', () => {
     const p = rel(f).split(path.sep).join('/');
     if (allowed.has(p)) continue;
     const raw = fs.readFileSync(f, 'utf8');
-    for (const t of types) assert.ok(!raw.includes(`'${t}'`), `${p} mentions settings message '${t}'`);
+    for (const t of types) {
+      if (p === 'src/options/welcome.js' && t === 'accountSave') continue;
+      assert.ok(!raw.includes(`'${t}'`), `${p} mentions settings message '${t}'`);
+    }
   }
   for (const page of ['src/options/popup.html', 'src/options/welcome.html']) {
     assert.ok(!read(page).includes('settings-database.js'), `${page} loads settings-database.js`);
@@ -184,11 +187,9 @@ check('a harness page that runs main.js loads every Amazon content script, in ma
   assert.ok(checked >= 2, `only ${checked} harness pages run main.js; the scan is broken`);
 });
 
-check('identity is requested exactly when Google sign-in is configured', () => {
-  // prefs.js OAUTH_CLIENT_ID empty hides sign-in; an unused permission is a store-review rejection.
-  const clientId = read('src/engine/db/prefs.js').match(/const OAUTH_CLIENT_ID = '([^']*)';/)[1];
-  assert.equal(manifest.permissions.includes('identity'), !!clientId,
-    clientId ? 'sign-in is configured but identity is not requested' : 'identity is requested but sign-in is off');
+check('identity is available for explicit Google sign-in without a mandatory permission', () => {
+  assert.ok((manifest.optional_permissions || []).includes('identity'));
+  assert.ok(!manifest.permissions.includes('identity'));
 });
 
 check('content scripts are limited to product and search paths', () => {
@@ -231,7 +232,7 @@ check('every category is reachable by at least one rule or the engine itself', (
     // consumed directly by score.js rather than carried on a rule
     'processing', 'simplicity', 'naturalSugar', 'allergens', 'avoidList', 'hollowClaims',
     'provenanceVerified', 'provenanceClaimed', 'provenanceUnknown',
-    'sodium', 'saturatedFat', 'totalSugar', 'fibre', 'protein',
+    ...engine.NUTRITION.map(r => r.cat),
   ]);
   const orphans = [...ids].filter(id => !used.has(id));
   assert.strictEqual(orphans.length, 0,
@@ -360,7 +361,7 @@ check('every message has a non-empty string', () => {
   assert.strictEqual(bad.length, 0, `empty messages: ${bad.join(', ')}`);
 });
 
-check('Amazon access and default-on auto-rating are disclosed where users look', () => {
+check('Amazon access and the actual auto-rating default are disclosed where users look', () => {
   // The manifest grants every store below at install. Privacy copy that names fewer stores, or a
   // settings page without the switch beside its explanation, under-states what the extension can do.
   const hosts = JSON.parse(read('manifest.json')).host_permissions;
@@ -375,7 +376,8 @@ check('Amazon access and default-on auto-rating are disclosed where users look',
   const missing = stores.filter(tld => !named(tld));
   assert.deepEqual(missing, [], `docs/PRIVACY.md does not name ${missing.join(', ')}`);
   assert.match(privacy, new RegExp(`the ${hosts.length} Amazon stores`), 'PRIVACY.md store count');
-  assert.match(privacy, /Rate every search result is on by default/);
+  const autoRate = require('../src/engine/db/prefs.js').TOGGLE_DEFAULTS.autoScoreSearch;
+  assert.match(privacy, new RegExp(`Rate every search result is ${autoRate ? 'on' : 'off'} by default`));
   const options = read('src/options/options.html');
   for (const id of ['autoScoreSearch', 'hoverScore', 'amazonStores']) {
     assert.match(options, new RegExp(`id="${id}"`), `settings page lost #${id}`);

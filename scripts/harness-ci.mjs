@@ -553,13 +553,13 @@ async function run() {
         auto: document.getElementById('autoScoreSearch').checked,
         hover: document.getElementById('hoverScore').checked,
       }));
-      // Auto-rating search results is off until the reader turns it on (storefront audit, 2026-09-27).
-      if (before.stores !== manifest.host_permissions.length || before.auto || before.hover) {
+      // Auto-rating is recommended by default; the reader can save an explicit opt-out.
+      if (before.stores !== manifest.host_permissions.length || !before.auto || before.hover) {
         throw new Error(`settings search scoring: ${JSON.stringify(before)}`);
       }
       await settingsPage.click('#autoScoreSearch');
-      await settingsPage.waitForFunction(() => window.__stored.autoScoreSearch === true, { timeout: 5000 });
-      console.log(`  ok  settings → auto-rate and hover switches, ${before.stores} stores from the manifest, off by default, saves on`);
+      await settingsPage.waitForFunction(() => window.__stored.autoScoreSearch === false, { timeout: 5000 });
+      console.log(`  ok  settings → auto-rate and hover switches, ${before.stores} stores from the manifest, auto-rate on by default, saves off`);
 
       // Store wishlist: the list comes from the registry, and the draft link only exists once valid.
       const idle = await settingsPage.evaluate(() => ({
@@ -568,7 +568,7 @@ async function run() {
         href: document.getElementById('reqSend').getAttribute('href'),
         disabled: document.getElementById('reqSend').getAttribute('aria-disabled'),
       }));
-      if (idle.rows.join() !== 'Amazon:supported,Target:preview,Walmart:planned,Costco:planned'
+      if (idle.rows.join() !== require('../src/stores/registry.js').STORES.map(s => `${s.name}:${s.status}`).join()
         || idle.href !== '#' || idle.disabled !== 'true') throw new Error(`stores idle: ${JSON.stringify(idle)}`);
       await settingsPage.fill('#reqName', 'Marks & Spencer');
       await settingsPage.fill('#reqUrl', 'https://www.marksandspencer.com/food/p/12345?utm_source=x');
@@ -631,8 +631,7 @@ async function run() {
       const disabled = await settingsPage.evaluate(() => [...document.querySelectorAll('input[name="unitMissing"]')].every(r => r.disabled));
       if (!disabled) throw new Error('unit price off should disable its choices');
       console.log('  ok  settings → price per ounce on, "clear weight", speed Balanced by default; each saves; off disables its choices');
-      // Shared product readings: off by default, and unusable while the shared database is off, which
-      // is itself off by default since the storefront audit (2026-09-27).
+      // Certification lookups default on; product exchange remains closed independently.
       const sharing = () => settingsPage.evaluate(() => ({
         on: document.getElementById('sharedProducts').checked,
         disabled: document.getElementById('sharedProducts').disabled,
@@ -640,12 +639,35 @@ async function run() {
       const first = await sharing();
       if (first.on || !first.disabled) throw new Error(`shared readings should start off and disabled: ${JSON.stringify(first)}`);
       await settingsPage.click('#sharedCache');
-      await settingsPage.waitForFunction(() => window.__stored.sharedCache === true, { timeout: 5000 });
-      if ((await sharing()).disabled) throw new Error('shared readings should be usable once the shared database is on');
-      await settingsPage.click('#sharedCache');
       await settingsPage.waitForFunction(() => window.__stored.sharedCache === false, { timeout: 5000 });
-      if (!(await sharing()).disabled) throw new Error('shared readings should be disabled again');
-      console.log('  ok  settings → shared database and shared readings off by default; readings usable only while the database is on');
+      if (!(await sharing()).disabled) throw new Error('shared readings must stay closed pending trust verification');
+      await settingsPage.click('#sharedCache');
+      await settingsPage.waitForFunction(() => window.__stored.sharedCache === true, { timeout: 5000 });
+      if (!(await sharing()).disabled) throw new Error('shared readings must remain closed');
+      console.log('  ok  settings → certification database on; shared readings off by default; product exchange remains closed pending trust verification');
+      // Goals weighted against each other: a slider per selected goal appears once two are picked, and
+      // moving one saves its weight and re-averages the dials towards that goal.
+      const pickable = await settingsPage.evaluate(() => [...document.querySelectorAll('.preset-card')]
+        .map(b => b.dataset.preset).filter(id => id !== 'balanced').slice(0, 2));
+      if (pickable.length < 2) throw new Error(`goal cards: ${JSON.stringify(pickable)}`);
+      const mixHidden = () => settingsPage.evaluate(() => document.getElementById('goalMix').hidden);
+      await settingsPage.click(`.preset-card[data-preset="${pickable[0]}"]`);
+      if (!(await mixHidden())) throw new Error('goal weights should stay hidden with one goal');
+      await settingsPage.click(`.preset-card[data-preset="${pickable[1]}"]`);
+      await settingsPage.waitForFunction(() => !document.getElementById('goalMix').hidden
+        && document.querySelectorAll('#goalMixRows input[type=range]').length === 2, { timeout: 5000 });
+      const beforeMix = await settingsPage.evaluate(() => JSON.stringify(window.__stored.weights));
+      await settingsPage.evaluate(id => {
+        const input = document.getElementById(`goalMix-${id}`);
+        input.value = '3';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }, pickable[0]);
+      await settingsPage.waitForFunction(id => window.__stored.goalImportance && window.__stored.goalImportance[id] === 3, pickable[0], { timeout: 5000 });
+      const afterMix = await settingsPage.evaluate(() => ({ weights: JSON.stringify(window.__stored.weights),
+        shown: document.querySelector(`#goalMixRows output`).textContent,
+        active: document.getElementById('presetActiveName').textContent }));
+      if (afterMix.weights === beforeMix || /Custom/.test(afterMix.active)) throw new Error(`goal weights: ${JSON.stringify(afterMix)}`);
+      console.log('  ok  settings → a weight per goal once two are picked; moving one saves it and re-averages the dials, and the goals stay selected');
       // Import: a real export is applied; an oversized file is refused without touching the settings.
       const exported = JSON.stringify({ _format: 'ingredient-check-settings', _version: 1, weights: { sugar: 1.7 }, allergens: ['milk'] });
       await settingsPage.setInputFiles('#importFile', { name: 'settings.json', mimeType: 'application/json', buffer: Buffer.from(exported) });
@@ -704,6 +726,25 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
       });
       await page.goto(`chrome-extension://${id}/src/options/${name}`, { waitUntil: 'load', timeout: 20000 });
       await page.waitForTimeout(300);   // let storage callbacks run
+      // Narrow desktop windows and 200% page zoom must keep every named control reachable.
+      for (const shape of [{width:400,height:600,zoom:1}, {width:1280,height:800,zoom:2}]) {
+        await page.setViewportSize({width:shape.width,height:shape.height});
+        await page.evaluate(zoom => { document.body.style.zoom = String(zoom); }, shape.zoom);
+        const sizing = await page.evaluate(() => ({width:document.documentElement.clientWidth, content:document.documentElement.scrollWidth}));
+        if (sizing.content > sizing.width + 2) pageErrors.push(`extension ${name}: horizontal overflow at ${shape.width}px / ${shape.zoom * 100}% (${sizing.content}px)`);
+        const names = await page.evaluate(accessibilityProblems);
+        for (const problem of names) pageErrors.push(`extension ${name} zoom ${shape.zoom}: ${problem}`);
+      }
+      await page.setViewportSize({width:1280,height:800});
+      await page.evaluate(() => { document.body.style.zoom = ''; });
+      const accessibilitySession = await context.newCDPSession(page);
+      const axTree = await accessibilitySession.send('Accessibility.getFullAXTree');
+      for (const node of axTree.nodes) {
+        if (!node.ignored && /^(button|checkbox|radio|combobox|slider|link)$/.test(node.role?.value || '') && !String(node.name?.value || '').trim()) {
+          pageErrors.push(`extension ${name}: browser accessibility tree has unnamed ${node.role.value}`);
+        }
+      }
+      await accessibilitySession.detach();
       const a11y = await page.evaluate(accessibilityProblems);
       for (const problem of a11y) pageErrors.push(`extension ${name}: ${problem}`);
       for (const colorScheme of ['light', 'dark']) {
@@ -723,29 +764,111 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
         await page.click('#back');
         await page.click('#goals .chip');
         const goalPicked = await page.evaluate(() => document.querySelector('#goals .chip').getAttribute('aria-pressed'));
+        if (!/Selected goals \(1\)/.test(await page.locator('#goalSummary').textContent())) throw new Error('setup goal summary did not update');
         await page.click('#next');
         await page.click('#allergens .chip:has-text("Milk")');
         await page.click('#diets .chip:has-text("Vegan")');
         await page.click('#next');
-        await page.fill('#avoidList', 'palm oil');
+        await page.fill('#avoidList', 'palm oil, natural flavors');
+        const palmHint = page.locator('#avoidHints button').filter({ hasText: /^palm oil$/ });
+        if (await palmHint.getAttribute('aria-pressed') !== 'true') throw new Error('typed palm oil did not select its hint');
+        await palmHint.click();
+        if (await page.locator('#avoidList').inputValue() !== 'natural flavors') throw new Error('selected avoid hint did not remove the independent term');
+        await page.fill('#avoidList', 'palm oil, natural flavors');
         await page.click('#next');
+        const defaults = await page.evaluate(() => ['autoScoreSearch', 'sharedCache', 'ocrLabels', 'useOpenFoodFacts'].map(id => document.getElementById(id).checked));
+        if (defaults.some(value => !value)) throw new Error('setup recommendations should all be checked');
+        // Real permission prompts need user interaction. Confirm a saved opt-out here.
+        await page.uncheck('#useOpenFoodFacts');
+        await page.click('#next');
+        if (!(await page.locator('#googleRedirect').textContent()).includes('.chromiumapp.org/')) throw new Error('setup missing installed OAuth redirect URL');
         await page.click('#next');
         await page.waitForFunction(() => !document.getElementById('skip') || document.getElementById('skip').hidden, { timeout: 5000 });
         const saved = await page.evaluate(() => new Promise(r => chrome.storage.local.get(['goals', 'allergens', 'diets', 'avoidList', 'onboarded'], r)));
         if (goalPicked !== 'true' || !saved.onboarded || !(saved.goals || []).length || !(saved.allergens || []).includes('milk')
-          || !(saved.diets || []).includes('vegan') || !JSON.stringify(saved.avoidList || '').includes('palm oil')) {
+          || !(saved.diets || []).includes('vegan') || JSON.stringify(saved.avoidList) !== JSON.stringify(['palm oil', 'natural flavors'])) {
           throw new Error(`setup did not save what was picked: ${JSON.stringify({ goalPicked, saved })}`);
         }
         await page.evaluate(old => new Promise(r => chrome.storage.local.clear(() => chrome.storage.local.set(old, r))), before);
       }
       if (name === 'options.html') {
-        // Google sign-in is off in this build (no OAuth client id), so its block must stay hidden.
-        const account = await page.evaluate(() => ({ hidden: document.getElementById('accountBlock')?.hidden, id: !!(window.AIR && AIR.db.prefs.OAUTH_CLIENT_ID) }));
-        if (!account.id && account.hidden !== true) throw new Error(`settings: the Google account block shows without a client id: ${JSON.stringify(account)}`);
+        const baseline = await page.locator('#w-refinedOil').evaluate(el => el.closest('.cat').querySelector('.baseline').textContent);
+        if (baseline !== 'Balanced default: 0.5') throw new Error('category baseline label must use its actual default');
+        const goalState = await page.evaluate(() => chrome.storage.local.get(['weights', 'goals', 'goalImportance']));
+        await page.evaluate(() => {
+          const goals = ['wholeFood', 'generalWellbeing'];
+          const goalImportance = { wholeFood: 1.33 };
+          return chrome.storage.local.set({ goals, goalImportance, weights: AIR.db.categories.goalWeights(goals, goalImportance) });
+        });
+        await page.reload();
+        await page.locator('#goalMix-wholeFood').waitFor({ state: 'visible' });
+        const importance = await page.locator('#goalMix-wholeFood').inputValue();
+        if (Number(importance) !== 1.33) throw new Error('fractional goal importance was rounded by the slider');
+        await page.evaluate(async saved => {
+          await chrome.storage.local.remove(['weights', 'goals', 'goalImportance']);
+          await chrome.storage.local.set(saved);
+        }, goalState);
+        await page.reload();
+        await page.waitForFunction(() => !!document.getElementById('w-artificialSweetener'));
+        const originalWeights = await page.evaluate(() => chrome.storage.local.get('weights'));
+        await page.evaluate(() => chrome.storage.local.set({weights:{...AIR.db.categories.DEFAULT_WEIGHTS, artificialSweetener:0.35}}));
+        await page.reload();
+        await page.waitForFunction(() => !!document.getElementById('w-artificialSweetener'));
+        const precise = await page.evaluate(() => ({value:Number(document.getElementById('w-artificialSweetener').value), label:document.getElementById('w-artificialSweetener').closest('.cat').querySelector('.val').textContent}));
+        if (precise.value !== 0.35 || !precise.label.includes('0.35')) throw new Error(`goal weights were rounded by the UI: ${JSON.stringify(precise)}`);
+        await page.evaluate(old => old.weights ? chrome.storage.local.set(old) : chrome.storage.local.remove('weights'), originalWeights);
+        await page.reload();
+        await page.waitForFunction(() => document.getElementById('accountSave').disabled || document.getElementById('oauthClientId')?.value.trim());
+        // An unconfigured account offers setup while preventing an unusable sign-in attempt.
+        const account = await page.evaluate(() => ({ hidden: document.getElementById('accountBlock')?.hidden,
+          id: !!AIR.db.prefs.OAUTH_CLIENT_ID, disabled: document.getElementById('accountSave')?.disabled,
+          setup: document.getElementById('accountSetup')?.open, identity: !!chrome.identity }));
+        if (!account.id && (account.hidden || !account.disabled || !account.setup)) {
+          throw new Error(`settings: unconfigured Google sign-in is not explained: ${JSON.stringify(account)}`);
+        }
+        // Configured builds collapse setup; open it before testing a local client override.
+        if (!account.setup) await page.locator('#accountSetup > summary').click();
+        await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', {
+          configurable: true, value: { writeText: async text => { window.__copiedRedirect = text; } },
+        }));
+        await page.click('#copyAccountRedirect');
+        const copied = await page.evaluate(() => window.__copiedRedirect);
+        if (copied !== `https://${id}.chromiumapp.org/`) throw new Error('Google redirect copy used the wrong extension ID');
+        // identity is unavailable until its optional permission is granted. Setup remains usable.
+        await page.fill('#oauthClientId', 'audit-client.apps.googleusercontent.com');
+        await page.click('#saveAccountSetup');
+        await page.waitForFunction(() => !document.getElementById('accountSave').disabled);
+        const client = await worker.evaluate(() => chrome.storage.local.get('oauthClientId'));
+        if (client.oauthClientId !== 'audit-client.apps.googleusercontent.com') throw new Error('Google configuration was not saved');
+        await worker.evaluate(() => chrome.storage.local.remove('oauthClientId'));
+        console.log(`  ok  Google sign-in setup → public client saved; local redirect https://${id}.chromiumapp.org/`);
+        const beforeBackup = await worker.evaluate(() => chrome.storage.local.get(null));
+        const avoid = Array.from({ length: 80 }, (_, i) => String(i).padEnd(80, '漢'));
+        await worker.evaluate(async avoidList => {
+          await chrome.storage.local.set({ avoidList, goals: ['weightLoss'], goalImportance: { weightLoss: 2 },
+            speedMode: 'freshest', sortLoadMore: true, sortCount: 500, settingsBackup: true });
+          const result = await self.backupToChrome();
+          if (!result.ok) throw new Error('real Chrome backup failed');
+        }, avoid);
+        const backup = await page.evaluate(async () => AIR.db.prefs.readSync(chrome.storage.sync));
+        if (!backup.ok || JSON.stringify(backup.values.avoidList) !== JSON.stringify(avoid)
+          || backup.values.speedMode !== 'freshest' || backup.values.sortCount !== 500) throw new Error('Chrome backup lost preferences');
+        await worker.evaluate(() => chrome.storage.local.set({ settingsBackup: false, avoidList: ['changed'], speedMode: 'balanced', sortCount: 100 }));
+        await page.waitForFunction(() => !document.getElementById('restoreChrome').disabled);
+        page.once('dialog', d => d.accept());
+        await page.click('#restoreChrome');
+        await page.waitForFunction(() => document.getElementById('avoidList')?.value.includes('漢'), { timeout: 10000 });
+        const restored = await worker.evaluate(() => chrome.storage.local.get(['goals', 'avoidList', 'speedMode', 'sortCount']));
+        if (!restored.goals.includes('weightLoss') || restored.avoidList.length !== 80
+          || restored.speedMode !== 'freshest' || restored.sortCount !== 500) throw new Error('settings restore did not survive reload');
+        await worker.evaluate(async old => { await chrome.storage.local.clear(); await chrome.storage.local.set(old); }, beforeBackup);
+        console.log('  ok  Chrome profile backup → Unicode list fits real quota; sort, speed and goals survive restore/reload');
+
       }
       await page.close();
     }
     console.log(`  ok  extension → service worker started with every module; ${pages.length} pages open without errors, unnamed controls or low contrast (light and dark); goal tabs work by keyboard; setup saves what was picked`);
+    await retailerEndToEnd(context, worker, pageErrors);
     await amazonEndToEnd(context, worker, pageErrors);
   } finally {
     await context.close();
@@ -932,3 +1055,96 @@ run().catch(err => {
   console.error(err);
   process.exit(1);
 });
+
+async function retailerEndToEnd(context, worker, pageErrors) {
+  await worker.evaluate(() => chrome.storage.local.set({ enabled: true, autoScoreSearch: true, foodOnly: true }));
+  const walmartData = fs.readFileSync(path.join(root, 'tests/pages/walmart-product.json'), 'utf8');
+  const cases = [
+    { url: 'https://www.target.com/p/oats/-/A-79364857', search: 'https://www.target.com/s?searchTerm=oats',
+      html: fs.readFileSync(path.join(root, 'tests/pages/target-p-oats.html'), 'utf8'),
+      tile: '<div data-test="ListingPageProductListing"><a href="/p/oats/-/A-79364857"><h3>Organic oats</h3></a></div>' },
+    { url: 'https://www.walmart.com/ip/oats/10314926', search: 'https://www.walmart.com/search?q=oats',
+      html: `<h1>Great Value Whole Grain Oats</h1><script id="__NEXT_DATA__" type="application/json">${walmartData}</script>`,
+      tile: '<a href="/ip/oats/10314926"><h3>Whole grain oats</h3></a>' },
+    { url: 'https://www.costco.com/p/-/oats/100423971', search: 'https://www.costco.com/s?keyword=oats',
+      html: '<h1>Whole grain rolled oats</h1><section><h3>Ingredients</h3><p>whole grain rolled oats</p></section>',
+      tile: '<a href="/p/-/oats/100423971"><h3>Whole grain oats</h3></a>' },
+  ];
+  for (const domain of ['kroger.com', 'frysfood.com', 'ralphs.com', 'kingsoopers.com', 'smithsfoodanddrug.com',
+    'fredmeyer.com', 'qfc.com', 'harristeeter.com', 'dillons.com', 'instacart.com', 'safeway.com', 'albertsons.com']) {
+    const special = domain === 'instacart.com' ? 'instacart' : ['safeway.com', 'albertsons.com'].includes(domain) ? 'albertsons' : 'kroger';
+    const path = special === 'instacart' ? '/store/products/169289-oats' : special === 'albertsons' ? '/shop/pd/product/184710125' : '/p/oats/0003000001020';
+    const search = special === 'instacart' ? '/store/s?query=oats' : special === 'albertsons' ? '/shop/search-results.html?q=oats' : '/search?query=oats';
+    cases.push({ url: `https://www.${domain}${path}`, search: `https://www.${domain}${search}`,
+      html: '<h1>Whole grain rolled oats</h1><section><h3>Ingredients</h3><p>whole grain rolled oats</p></section>',
+      tile: `<article data-testid="product-card" style="display:grid;grid-template-columns:1fr"><a href="${path}"><h3>Whole grain oats</h3></a></article>` });
+  }
+  for (const item of cases) {
+    const page = await context.newPage();
+    page.on('pageerror', err => pageErrors.push(`retailer ${item.url}: ${err.message}`));
+    await page.route('**/*', route => route.fulfill({ status: 200, contentType: 'text/html', body: `<!doctype html><html lang="en"><head><title>Grocery oats</title></head><body>${new URL(route.request().url()).pathname === new URL(item.search).pathname ? item.tile : item.html}</body></html>` }));
+    const id = new URL(item.url).pathname.match(/(\d+)(?:-oats)?$/)[1];
+    const store = new URL(item.url).hostname.replace(/^www\./, '');
+    await worker.evaluate(async ({ store, id }) => chrome.storage.local.remove(`s:${store}:${id}`), { store, id });
+    await page.goto(item.search);
+    await page.waitForFunction(() => [...document.querySelectorAll('.air-badge')].some(b => b.dataset.airStatus === 'scored'), { timeout: 20000 });
+    const placement = await page.evaluate(() => [...document.querySelectorAll('.air-badge')].every(b =>
+      !b.closest('button') && b.shadowRoot && (!b.parentElement.matches('[data-testid="product-card"], [data-testid="ProductTile"]') || getComputedStyle(b).position === 'absolute')));
+    if (!placement) throw new Error(`retailer badge disrupts card structure: ${store}`);
+    await page.goto(item.url);
+    await page.waitForFunction(() => document.getElementById('air-score-panel')?.dataset.airState === 'scored', { timeout: 20000 });
+    await page.bringToFront();
+    const badge = await worker.evaluate(async () => {
+      const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      return chrome.action.getBadgeText({ tabId: tab.id });
+    });
+    if (!/^\d+$/.test(badge)) throw new Error(`retailer toolbar missing score: ${item.url}`);
+    const oldScore = Number(badge);
+    await page.evaluate(() => {
+      const ingredients = 'whole grain rolled oats, sugar, red 40, salt';
+      const boot = document.getElementById('__NEXT_DATA__');
+      if (boot) {
+        const data = JSON.parse(boot.textContent);
+        data.props.pageProps.initialData.data.idml.ingredients.ingredients.value = ingredients;
+        boot.firstChild.data = JSON.stringify(data);
+      } else {
+        const heading = [...document.querySelectorAll('h3,h4')].find(el => /^Ingredients:?$/i.test(el.textContent.trim()));
+        heading.nextElementSibling.firstChild.data = ingredients;
+      }
+    });
+    await worker.evaluate(async ({ store, id, previous }) => {
+      const key = `s:${store}:${id}`;
+      const until = Date.now() + 10000;
+      while (Date.now() < until) {
+        const hit = (await chrome.storage.local.get(key))[key];
+        if (hit && hit.score !== previous) return;
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      throw new Error(`retailer label hydration did not update saved score: ${store}`);
+    }, { store, id, previous: oldScore });
+
+    await page.goto(item.search);
+    await page.waitForFunction(() => [...document.querySelectorAll('.air-badge')].some(b => /\d/.test(b.textContent)), { timeout: 10000 });
+    await page.close();
+  }
+  const corner = await context.newPage();
+  corner.on('pageerror', err => pageErrors.push(`Costco corner: ${err.message}`));
+  await corner.route('**/*', route => route.fulfill({ status: 200, contentType: 'text/html',
+    body: new URL(route.request().url()).pathname === '/s'
+      ? '<html><body><article data-testid="ProductTile_100493931" style="display:grid;width:260px;grid-template-columns:1fr"><a href="/p/-/coffee/100493931" aria-label="Whole grain oats"><img alt="Whole grain oats" width="120" height="100"></a><button>View item</button></article><script>window.__cardHeight = document.querySelector("article").getBoundingClientRect().height</script></body></html>'
+      : '<html><body><h1>Whole grain oats</h1><p>No published ingredient declaration.</p></body></html>' }));
+  await worker.evaluate(() => chrome.storage.local.remove('s:costco.com:100493931'));
+  await corner.goto('https://www.costco.com/s?keyword=oats');
+  await corner.waitForFunction(() => document.querySelector('.air-badge')?.dataset.airStatus === 'unavailable', { timeout: 20000 });
+  const geometry = await corner.evaluate(() => {
+    const card = document.querySelector('article'), badge = document.querySelector('.air-badge');
+    return { before: window.__cardHeight, after: card.getBoundingClientRect().height,
+      position: getComputedStyle(badge).position, imageLink: !!badge.closest('a'), status: badge.textContent };
+  });
+  if (Math.abs(geometry.before - geometry.after) > 0.5 || geometry.position !== 'absolute' || geometry.imageLink || geometry.status !== 'Label unavailable') {
+    throw new Error(`Costco image-only card layout: ${JSON.stringify(geometry)}`);
+  }
+  await corner.close();
+  console.log('  ok  real extension → 15 retailer previews: uncached search scans, safe badge placement, product scores, late labels and cached search (intercepted fixtures, no retailer network)');
+  console.log('  ok  Costco image-only badge → unchanged card height, outside image link, missing label marked unavailable');
+}

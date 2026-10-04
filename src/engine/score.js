@@ -130,7 +130,7 @@ const GLUTAMATE = /msg|glutamate|yeast extract|hydrolyzed|ribonucleotide|torula/
 const byPts = threshold => r => (r.pts >= threshold ? 'hard' : 'soft');
 
 const PENALTIES = [
-  ...tag(add.ISOLATES, 'hard', 'isolate'),
+  ...tag(add.ISOLATES, r => r.why === 'Dried egg white' ? 'none' : 'hard', 'isolate'),
   ...tag(add.FLAVOURS, 'hard', 'flavour').map(r => (GLUTAMATE.test(r.why) ? { ...r, cat: 'glutamate' } : r)),
   ...tag(add.TEXTURE, byPts(12), 'texture'),
   ...tag(add.PRESERVATIVES, 'hard', 'preservative'),
@@ -140,13 +140,15 @@ const PENALTIES = [
   // "Sodium Benzoate (Preservative)" is a disclosure, not a second additive (see namedFam).
   ...tag(add.UNNAMED, 'none', 'processingAid').map(r => ({ ...r, upf: r.ultra ? 'hard' : r.upf, unnamed: true })),
   ...tag(add.PROCESSING, byPts(12), 'processing', 'processingAid'),
-  ...tag(add.FORTIFICATION, byPts(7), 'fortification'),
-  // Only stripped-and-re-dosed flour marks ultra-processing. Plain wheat flour sat exactly on the
+  ...tag(add.FORTIFICATION, 'none', 'fortification'),
+  // Refined/enriched flour retains the existing processing heuristic; gluten itself is an
+  // optional preference and does not vote on processing. Plain wheat flour sat exactly on the
   // 12-point threshold, so a four-ingredient loaf of whole-wheat bread was NOVA 4 with a base of 60
   // while a bag of sugar was NOVA 2 with a base of 90. The gluten penalty itself is unchanged —
   // that is a weight the user owns — but bread is processed, not ultra-processed.
-  ...tag(add.GRAINS, r => (/enriched|bleached|refined|white/i.test(r.why) ? 'hard' : 'soft'), 'grain'),
-  ...tag(labels.DAIRY_PENALTY, 'soft', 'dairy', 'dairyProcessing'),
+  ...tag(add.GRAINS, r => r.gluten && r.why !== 'Durum semolina' ? 'none' : (/enriched|bleached|refined|white/i.test(r.why) ? 'hard' : 'soft'), 'grain')
+    .map(r => r.gluten && r.why !== 'Durum semolina' ? {...r, cat:'gluten'} : r),
+  ...tag(labels.DAIRY_PENALTY, 'none', 'dairy', 'dairyProcessing'),
   // sugar is penalised, but sugar alone is not ultra-processing. `refined` travels onto the panel
   // row, so the panel can tell added sugar from honey without re-listing rule names.
   ...tag(sugars.REFINED, 'soft', 'sugar').map(r => ({ ...r, refined: true })),
@@ -172,6 +174,10 @@ const saturate = total => Math.round(PENALTY_SATURATION * (1 - Math.exp(-total /
 // collapsed per group like penalties (twelve vitamins are one fact) and capped in total, so a goal
 // can lift a product but never launder it. Hard caps still apply after them.
 const GOAL_REWARD_CAP = 20;
+const PROVENANCE_BONUS_CAP = 22;
+const PROVENANCE_UNKNOWN_COST = 14;
+const PROVENANCE_CLAIM_COST = 10;
+const SINGLE_INGREDIENT_BONUS = 4;
 const goalHead = why => why.split(' — ')[0];
 
 const GROUP_EXTRA = 0.25;
@@ -317,7 +323,7 @@ const COMMON_PANEL = new RegExp('\\b(?:' + [
   'emulgeringsmedel|stabiliseringsmedel|f[äa]rg[äa]mne|barwnik|surhetsreglerande medel|regulator kwasowo[śs]ci|smakf[öo]rst[äa]rkare|wzmacniacz smaku|konserveringsmedel|konserwant',
   // Benign E-numbers, so an EU list written in codes is still recognised as a list. Every E-number
   // that a rule charges is recognised through that rule; these are the ones nothing charges.
-  'e[- ]?(?:100|120|14[01]|16[0-3][a-i]?|262|32[5-7]|33[1-3]|40[1-6]|440a?|50[0-4](?:i{1,3})?|50[89]|524|57[45]|901|903|941|948)',
+  'e[- ]?(?:100|120|14[01]|16[0-3][a-i]?|262|32[5-7]|33[1-3]|40[1-6]|440a?|50[0-4](?:i{1,3})?|50[89]|524|57[45]|49[1-5]|901|903|941|948)',
 ].join('|') + ')\\b'
   + '|(?<![a-zß-ÿ\\u0100-\\u017f])(?:ägg|äggula|äggvita|äpple|äpplen|ärtor|ärter|[śs]mietan[a-zß-ÿ\\u0100-\\u017f]*|łoso[śs]|żyto'
   // Turkish staples: most end or begin in ı, ş, ğ, ç or ü, so they take the same boundaries.
@@ -501,7 +507,7 @@ function splitTopLevel(text) {
 const FUNCTION_HEAD = /^([^:()]{3,40}):(.+)$/;
 const SWEETENER_WORD = /^(?:sweeteners?|edulcorantes?|[ée]dulcorants?|s[üu][ßs]ungsmittel|dolcificanti|zoetstoff(?:en)?|s[öo]tningsmedel|substancje s[łl]odz[ąa]ce|tatland[ıi]r[ıi]c[ıi](?:lar)?|substancja s[łl]odz[ąa]ca)$/i;
 // "flavouring: vanillin", "Aroma: Vanillin", "arôme : vanilline" name the flavouring after the colon.
-const FLAVOUR_WORD = /^(?:flavou?rings?|flavou?rs?|ar[ôo]mes?|aromas?|aromen|aromi|aromat[ya]?|arom(?:er)?|aroma vericiler?|bulking agents?|agents? de charge|agentes? de carga|f[üu]llstoffe?|agent[ei] di carica|vulstof(?:fen)?|fyllnadsmedel|substancj[ae] wype[łl]niaj[ąa]c[ae]|dolgu maddesi|agentes? de volume)$/i;
+const FLAVOUR_WORD = /^(?:flavou?rings?|flavou?rs?|ar[ôo]mes?|aromas?|aromen|aromi|aromat[ya]?|arom(?:er)?|aroma vericiler?|bulking agents?|agents? de charge|agentes? de carga|f[üu]llstoffe?|agent[ei] di carica|vulstof(?:fen)?|fyllnadsmedel|substancj[ae] wype[łl]niaj[ąa]c[ae]|dolgu maddesi|agentes? de volume|binders?|binding agents?|substancj[ae] wi[ąa][żz][ąa]c[ae]|liants?|agentes? aglutinantes?|bindemittel|bindmiddel(?:en)?|bindemedel)$/i;
 function colonAsParenthesis(part) {
   // Only a short head before the colon can be a function word. Checked before the pattern runs, and
   // the pattern has no free whitespace to backtrack over: on 6,000 spaces it once took a second.
@@ -628,6 +634,25 @@ function withoutOrganic(ing) {
 }
 
 // [{ ing, pos }] where pos is the TOP-LEVEL position, shared by an ingredient's own sub-list.
+// "Sugar and salt" is two ingredients the list happened to join with a word, and the anchored sugar rules
+// read the pair as nothing: "water, sugar and salt" scored 90 where "water, sugar, salt" scores 65, in
+// every language. The pair is split only when no rule reads it whole ("mono- and diglycerides",
+// "natural and artificial flavors" stay one), every half is an ingredient the rules read, and a half
+// is charged.
+const CONJUNCTION = /\s(?:and|&|und|et|e|y|i|en|och|ve|oraz)\s/i;
+function splitConjunction(e) {
+  const ing = tidy(e.ing);
+  if (!CONJUNCTION.test(ing) || MAY_CONTAIN.test(ing) || LABEL_NOTE.test(ing)) return [e];
+  if (PENALTIES.some(r => eitherForm(r.m, ing)) || CAPS.some(c => eitherForm(c.m, ing))) return [e];
+  const pieces = ing.split(new RegExp(CONJUNCTION.source, 'gi')).map(p => p.trim());
+  if (pieces.length < 2 || !pieces.every(p => p.length > 1 && recognised(withoutOrganic(p) || p))) return [e];
+  // Only when the split exposes something charged: "orange juice and pulp" or "salt and pepper" stay one
+  // entry, since splitting them changes nothing but the list's length.
+  const charged = p => penaltiesFor(withoutOrganic(p) || p).size > 0 || CAPS.some(c => eitherForm(c.m, p));
+  if (!pieces.some(charged)) return [e];
+  return pieces.map(p => ({ ...e, ing: p }));
+}
+
 function parseEntries(text) {
   // "FD&C Red No. 40" and "Red #40" are how US labels print dyes. The full stop after "No" ended the
   // entry ("fd&c red no" / "40"), so the dye went unread; both now read as "no 40".
@@ -639,9 +664,11 @@ function parseEntries(text) {
     const strain = STRAIN_ENTRY.test(tidy(part));
     if (!(strain && strainRun)) pos++;
     strainRun = strain;
-    for (const e of expandEntry(part, 0, ids)) {
-      const bare = withoutOrganic(e.ing);
-      out.push({ ing: bare || e.ing, pos, fam: e.fam, parent: e.parent, ...(bare ? { organic: true } : {}) });
+    for (const x of expandEntry(part, 0, ids)) {
+      for (const e of splitConjunction(x)) {
+        const bare = withoutOrganic(e.ing);
+        out.push({ ing: bare || e.ing, pos, fam: e.fam, parent: e.parent, ...(bare ? { organic: true } : {}) });
+      }
     }
   }
   return out;
@@ -653,7 +680,8 @@ function parse(text) {
 
 // Earlier ingredients make up more of the product, so they carry more weight. Indexed by TOP-LEVEL
 // position: a sub-ingredient declared inside the first item shares the first item's weight.
-const weight = i => (i === 0 ? 1.5 : i <= 2 ? 1.25 : i <= 6 ? 1.0 : 0.5);
+const POSITION_WEIGHTS = [1.5, 1.25, 1, 0.5];
+const weight = i => POSITION_WEIGHTS[i === 0 ? 0 : i <= 2 ? 1 : i <= 6 ? 2 : 3];
 
 // ---------------------------------------------------------------- NOVA
 function novaClass(list, text, hardHits, softHits) {
@@ -669,7 +697,7 @@ function novaClass(list, text, hardHits, softHits) {
   if (list.length <= 3 && list.every(culinary)) return 2;
   if (softHits >= 1) return 3;
   if (labels.PROCESSED_SIGNAL.test(text)) return 3;
-  if (list.length <= 5 && list.every(whole)) return 1;
+  if (list.length && list.every(whole)) return 1;
   // A short list whose FIRST ingredient is a recognised whole food is overwhelmingly that food —
   // "Atlantic Salmon, Color Added" is salmon with a note, not a manufactured product. Class 2
   // rather than 1, because the trailing ingredients are still doing something.
@@ -684,7 +712,34 @@ function novaClass(list, text, hardHits, softHits) {
 // Off by default (every weight here defaults to 0). When a user turns one on, it scores grams and
 // milligrams from the product's own nutrition facts rather than from the ingredient list, so it is
 // only available when the page actually publishes those numbers.
+const WHOLE_GRAIN = /whole[- ]?(?:grain|wheat|meal)|wholemeal|integral|compl[èe]te|vollkorn|volkoren|fullkorn|pe[łl]noziarn|tam bu[ğg]day/i;
+
+// Pure normalization: never retain a display marker on a product reused under another preset.
+function normaliseNutrition(raw) {
+  if (!raw || typeof raw !== 'object') return {values:{},basis:'missing'};
+  // Older cached beverage readings retained their size text but stored ml in servingGrams.
+  const legacyMl = raw.servingGrams != null && /\d\s*(?:ml|millilit)/i.test(raw.servingSize || '') && !/\d\s*(?:g|grams?)\b/i.test(raw.servingSize || '');
+  const hasGrams = raw.servingGrams != null && !legacyMl;
+  const hasMl = !hasGrams && (raw.servingMl != null || legacyMl);
+  const serving = hasGrams ? raw.servingGrams : hasMl ? raw.servingMl ?? raw.servingGrams : null;
+  if (serving != null && (typeof serving !== 'number' || !Number.isFinite(serving) || serving <= 0 || serving > 10000)) return {values:{},basis:'invalid'};
+  const factor = serving == null ? 1 : 100 / serving;
+  const values = {};
+  for (const field of ['sodium','saturatedFat','sugar','addedSugar','fibre','protein','carbs']) {
+    const value = raw[field];
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) continue;
+    const normalized = value * factor;
+    const limit = field === 'sodium' ? 40000 : serving == null ? 500 : 100;
+    if (normalized > limit) return {values:{},basis:'invalid'};
+    values[field] = normalized;
+  }
+  if (values.addedSugar != null && values.sugar != null && values.addedSugar > values.sugar) delete values.addedSugar;
+  return {values, basis:serving == null ? 'per-serving' : hasGrams ? 'per 100g' : 'per 100ml'};
+}
+
 const NUTRITION = [
+  { cat:'addedSugar', field:'addedSugar', why:'Added sugar quantity', calc:v => Math.min(25, Math.max(0, (v - 5) * 0.9)), unit:'g', sign:-1 },
+  { cat:'carbohydrate', field:'carbs', why:'Total carbohydrate', calc:v => Math.min(25, Math.max(0, (v - 20) * 0.35)), unit:'g', sign:-1 },
   { cat: 'sodium',       field: 'sodium',       why: 'Sodium per serving',
     calc: v => Math.min(20, Math.max(0, (v - 300) / 45)), unit: 'mg', sign: -1 },
   { cat: 'saturatedFat', field: 'saturatedFat', why: 'Saturated fat per serving',
@@ -699,7 +754,7 @@ const NUTRITION = [
 
 // Cross-contact statements in each store language. Matched against a whole entry.
 const MAY_CONTAIN = new RegExp('^(?:(?:this product )?(?:may|can) (?:also )?contain|(?:may )?contains? traces?|traces? of|possible traces?|traces? possibles?|possibles? traces?'
-  + '|(?:produced|made|manufactured|packed) (?:in a (?:factory|facility)|on (?:equipment|a line))'
+  + '|(?:produced|made|manufactured|packed|packaged|processed|prepared|bottled|roasted) (?:in|on|at) (?:a |the |our )?(?:shared |same )?(?:factory|facility|plant|site|premises|equipment|(?:production )?line)'
   + '|peut contenir|traces? (?:[ée]ventuelles? )?d[e\'’]|kann (?:spuren|.*enthalten)|enth[äa]lt spuren|puede contener|trazas de'
   + '|pu[òo] contenere|tracce di|pode conter|vest[íi]gios de|kan (?:sporen|innehålla|spår)|mo[żz]e zawiera[ćc]'
   + '|.*\\bi[çc]erebilir|eser miktarda)', 'i');
@@ -722,6 +777,7 @@ const LABEL_NOTE = new RegExp('^(?:(?:\\*\\s*)?(?:(?:certified )?organic ingredi
 // options: { weights, allergens, diets, avoidList }
 function score(product, options = {}) {
   const W = db.categories ? db.categories.resolveWeights(options.weights) : {};
+  const nutritionInfo = normaliseNutrition(product.nutrition);
   const w_ = id => (id in W ? W[id] : 1);
   // Open Food Facts marks allergens as _WHEAT_ / _SOJA_. An underscore is a word character, so every
   // `\b` rule failed on them: "_wheat_ flour" escaped the flour charge, and "lécithines de _soja_"
@@ -836,7 +892,7 @@ function score(product, options = {}) {
       // Fruit and dairy sugar is exempt by default. Turning the 'naturally occurring sugars'
       // weight up scores it like any other sugar — the exemption alone was not enough, because
       // dates and milk match no sugar rule to begin with, so lifting it changed nothing.
-      const natural = w_('naturalSugar');
+      const natural = nutritionInfo.values.sugar != null && w_('totalSugar') > 0 ? 0 : w_('naturalSugar');
       if (natural > 0) {
         hits.push({ off: Math.round(8 * w * natural), why: 'Naturally occurring sugar', ing,
                     group: 'sugar', cat: 'naturalSugar' });
@@ -874,7 +930,10 @@ function score(product, options = {}) {
         else if (r.upf === 'soft') softHits++;
       }
       if (isFreeSugar && r.group === 'sugar' && w_('naturalSugar') === 0) continue;
-      const cw = w_(r.cat);
+      const wholeGrain = ['Wheat flour','Durum semolina'].includes(r.why) && WHOLE_GRAIN.test(ing);
+      const quantitySugar = r.group === 'sugar' && w_(r.cat) >= 0 && ((w_('addedSugar') > 0 && nutritionInfo.values.addedSugar != null) || (w_('totalSugar') > 0 && nutritionInfo.values.sugar != null));
+      const category = wholeGrain ? 'gluten' : r.cat;
+      const cw = quantitySugar ? 0 : w_(category);
       if (cw < 0) {
         const earned = r.pts * w * -cw * tradRelief;
         if (earned >= 0.5) rewards.push({ off: Math.round(earned), why: r.why, ing, group: r.group, cat: r.cat });
@@ -882,7 +941,7 @@ function score(product, options = {}) {
       }
       const scaled = r.pts * w * cw * tradRelief;
       if (scaled < 0.5) continue;                       // category switched off by the user
-      hits.push({ off: Math.round(scaled), why: r.why, ing, group: r.group, cat: r.cat, refined: !!r.refined });
+      hits.push({ off: Math.round(scaled), why: r.why, ing, group: r.group, cat: category, refined: !!r.refined });
     }
   });
 
@@ -893,17 +952,14 @@ function score(product, options = {}) {
   // seed oils (a culinary ingredient) and the preservative caps (BHA, TBHQ…) do not vote.
   if (CAPS.some(c => ULTRA_CAP.test(c.why) && list.some(i => eitherForm(c.m, i)))) hardHits++;
   const nova = novaClass(list, txt, hardHits, softHits);
-  // Named strains are one ingredient ("cultures") spelled out, not a long recipe.
-  const listLength = list.filter(i => !STRAIN_ENTRY.test(i)).length;
-  const listPenalty = listLength > 20 ? 8 : 0;
-  const rawTotal = rawPenalty + listPenalty;
+    // List length is not an independent defect: twenty herbs are not twenty additives.
+  const rawTotal = rawPenalty;
   const penalty = saturate(rawTotal);
 
   // The panel shows a line per problem. Those lines must add up to the score the user is looking
   // at, so the saturation discount is distributed back across them proportionally rather than
   // applied invisibly at the end. Largest remainder gets the rounding slack.
   const shown = kept.map(h => ({ raw: h.scaled, why: h.why, ing: h.ing, cat: h.cat, refined: h.refined }));
-  if (listPenalty) shown.push({ raw: listPenalty, why: `Very long ingredient list (${listLength} items)` });
   if (rawTotal > 0 && shown.length) {
     // Largest-remainder allocation. Every row gets at least 1 point when there is room for it,
     // and the leftover is corrected against the biggest rows in whichever direction it lands, so
@@ -987,7 +1043,7 @@ function score(product, options = {}) {
     if (add_ <= 0) continue;
     bonus += add_;
     if (titleOnly) titleBonus += add_;
-    good.push({ c: +add_, why: b.cat === 'organic' ? verifiedOrganic ? 'Organic — certified' : 'Organic, unverified'
+    good.push({ c: +add_, why: b.cat === 'organic' ? verifiedOrganic ? 'Organic — verified' : 'Organic, unverified'
       : titleOnly ? `${b.why} (label claim, unverified)` : b.why, organic: b.cat === 'organic' });
   }
   pts += bonus;
@@ -1003,7 +1059,7 @@ function score(product, options = {}) {
   }
 
   // hard caps
-  let cap = 100, capWhy = null;
+  let cap = 100, capWhy = null, capDefault = null;
   for (const c of capsHit) {
     let ceiling = c.cap;
     if (c.unless) {
@@ -1018,12 +1074,16 @@ function score(product, options = {}) {
     // escaped the band lookup entirely and crashed on an undefined verdict.
     const eff = Math.max(SCORE_FLOOR, Math.round(100 - (100 - ceiling) * w_(c.cat)));
     if (eff >= 100) continue;                            // category switched off by the user
-    if (eff < cap) { cap = eff; capWhy = c.why; }
+    if (eff < cap) { cap = eff; capWhy = c.why; capDefault = Math.max(SCORE_FLOOR, Math.round(100 - (100 - ceiling) * (db.categories?.DEFAULT_WEIGHTS[c.cat] ?? 1))); }
   }
+  // Goals scale a cap: at a weight of 1.1 the seed-oil cap of 25 becomes 18. The panel said only
+  // "caps score at 18", which read as a different rule; it now names the default it moved from.
+  const capNote = capDefault !== null && capDefault !== cap
+    ? ` (${capDefault} at default weights; your goals weigh it ${cap < capDefault ? 'more' : 'less'})` : '';
 
   // The bonus is for a whole food that is its own list, not for any lone ingredient: plain sugar
   // and a bottle of sunflower oil used to collect it too, next to their own penalty or cap.
-  const simple = Math.round(4 * w_('simplicity'));
+  const simple = Math.round(SINGLE_INGREDIENT_BONUS * w_('simplicity'));
   const lone = list.length === 1 && (hitsAny(labels.WHOLE, list[0]) || hits1(labels.CULINARY, list[0]))
     && !/\brefined\b/i.test(list[0]) && !HYDROGENATED_OIL.test(list[0]) && !oils.TRANS.m.test(list[0]);
   if (lone && simple > 0 && !hits.length && !capsHit.length) {
@@ -1032,41 +1092,22 @@ function score(product, options = {}) {
   }
 
   // Nutrition-panel categories, when the page supplied numbers and the user enabled them.
-  const nut = product.nutrition || null;
-  if (nut) {
-    // Normalise to 100g where the label declares a serving weight. Without this a cereal declaring
-    // a 28g serving scores better than an identical one declaring 55g, purely on packaging choice.
-    const grams = nut.servingGrams;
-    let per100 = (grams && grams > 0) ? (100 / grams) : 1;
-    // Defence in depth against a serving weight read off the wrong line. No food contains more
-    // than 100g of a macronutrient per 100g, and nothing out-salts pure salt, so a normalisation
-    // that produces one is arithmetic on a parse error rather than a fact about the product.
-    // Seen in the wild shape: a 1g "serving" turned 2g of sugar into 200g per 100g and dropped
-    // plain bread from 54 to 15 under the conventional-nutrition preset.
-    if (per100 !== 1) {
-      const impossible =
-        ['saturatedFat', 'sugar', 'addedSugar', 'fibre', 'protein']
-          .some(f => typeof nut[f] === 'number' && nut[f] * per100 > 100)
-        || (typeof nut.sodium === 'number' && nut.sodium * per100 > 40000);
-      if (impossible) per100 = 1;                     // score per serving instead, and say so
-    }
-    // A declared 100 g basis (an EU panel) is already per 100g, and its rows should say so.
-    if (per100 !== 1 || grams === 100) nut._normalised = true;
-    for (const n of NUTRITION) {
-      const weight = w_(n.cat);
-      if (!weight) continue;
-      const raw = nut[n.field];
-      if (typeof raw !== 'number' || !isFinite(raw)) continue;
-      const v = Math.round(raw * per100 * 10) / 10;
-      const amount = Math.round(n.calc(v) * weight);
-      if (amount < 1) continue;
-      const label = nut._normalised
-        ? `${n.why.replace(/ per serving$/, '')} per 100g`
-        : n.why;
-      const shown = nut._normalised ? `${v}${n.unit}/100g` : `${raw}${n.unit}`;
-      if (n.sign < 0) { pts -= amount; bad.push({ c: -amount, why: label, ing: shown }); }
-      else { pts += amount; good.push({ c: +amount, why: label, ing: shown }); }
-    }
+  const nut = nutritionInfo.values;
+  for (const n of NUTRITION) {
+    const weight = w_(n.cat);
+    if (!weight || nut[n.field] == null) continue;
+    let value = nut[n.field];
+    // When both quantity dials are active, total sugar counts only the remainder, not added sugar twice.
+    const remainder = n.cat === 'totalSugar' && w_('addedSugar') > 0 && nut.addedSugar != null;
+    if (remainder) value = Math.max(0, value - nut.addedSugar);
+    const v = Math.round(value * 10) / 10;
+    const amount = Math.round(n.calc(v) * weight);
+    if (amount < 1) continue;
+    const label = remainder ? 'Other sugars' : n.why.replace(/ per serving$/, '');
+    const suffix = nutritionInfo.basis === 'per-serving' ? 'per serving' : nutritionInfo.basis;
+    const row = {c:n.sign * amount, why:`${label} ${suffix}`, ing:`${v}${n.unit}${suffix === 'per serving' ? '' : '/' + suffix.replace('per ', '')}`, cat:n.cat};
+    if (n.sign < 0) { pts -= amount; bad.push(row); }
+    else { pts += amount; good.push(row); }
   }
 
   // ---- provenance -------------------------------------------------------------------------
@@ -1100,7 +1141,6 @@ function score(product, options = {}) {
     // A whole animal food starts from "we don't know how this was produced" and certifications buy
     // that back. Adding them on top instead left an uncertified "grass-fed" claim and an audited
     // AGA certification both pinned at 100, which defeats the entire point of the distinction.
-    const PROV_CAP = 22;
     // The penalty is for absent VERIFICATION, not for being a whole food, so it clears once a
     // third-party certification exists. A flat cost applied on top of every whole food punished
     // well-sourced products (organic grass-fed milk fell to 75) instead of only silent ones.
@@ -1109,20 +1149,22 @@ function score(product, options = {}) {
     // dairy varies far less, and charging it the same penalty dropped ordinary whole-milk yoghurt
     // to 68, which is a worse answer than the one this feature was added to fix.
     const critical = provenanceOwnsSourcing;
-    const verified = prov.detectCertifications(strong, kindInfo.kind);
-    const claims = prov.detectCertifications(claimed, kindInfo.kind)
+    const verified = prov.detectCertifications(strong, kindInfo.kind).filter(c => c.tier >= 2 && c.id !== 'organicClaim');
+    const claims = prov.detectCertifications(claimed + ' ' + strong, kindInfo.kind)
       .filter(c => !verified.some(v => v.id === c.id || v.id === c.weakerThan || (v.supersedes || []).includes(c.id)));
-    const undisclosed = !critical || verified.length ? 0 : (claims.length ? 10 : 14);
+    const sourcingVerified = verified.some(c => c.pts > 0 && c.id !== 'nonGmoVerified');
+    const sourcingClaimed = claims.some(c => c.pts > 0);
+    const undisclosed = !critical || sourcingVerified ? 0 : (sourcingClaimed ? PROVENANCE_CLAIM_COST : PROVENANCE_UNKNOWN_COST);
     const unknownCost = Math.round(undisclosed * w_('provenanceUnknown'));
     let gained = 0;
     for (const c of verified) {
-      const add = Math.min(Math.round(c.pts * w_('provenanceVerified')), PROV_CAP - gained);
+      const add = Math.min(Math.round(c.pts * w_('provenanceVerified')), PROVENANCE_BONUS_CAP - gained);
       if (add <= 0) continue;
       gained += add;
       good.push({ c: +add, why: `${c.label} — verified`, organic: /^organic/i.test(c.id) });
     }
     for (const c of claims) {
-      const add = Math.min(Math.round((c.pts / 2) * w_('provenanceClaimed')), PROV_CAP - gained);
+      const add = Math.min(Math.round((c.pts / 2) * w_('provenanceClaimed')), PROVENANCE_BONUS_CAP - gained);
       if (add <= 0) continue;
       gained += add;
       good.push({ c: +add, why: `${c.label}, unverified`, organic: /^organic/i.test(c.id) });
@@ -1132,8 +1174,8 @@ function score(product, options = {}) {
     if (unknownCost > 0) {
       pts -= unknownCost;
       bad.push({ c: -unknownCost, why: verified.length || claims.length
-        ? 'Production method not fully disclosed — certifications below earn this back'
-        : 'No sourcing information — feed, confinement and origin are undisclosed' });
+        ? 'Animal production details unverified — sourcing preference'
+        : 'Animal production details unverified — sourcing preference' });
     }
 
     provenance = {
@@ -1149,8 +1191,8 @@ function score(product, options = {}) {
   // Flags never move the score. "Does this contain dairy" is a different question from "is this a
   // good product", and answering both with one number helps nobody.
   const flags = db.allergens
-    ? [...db.allergens.detect([...list, ...declared, ...mayContain], options.allergens || [], options.diets || []),
-       ...db.allergens.matchAvoidList([...list, ...declared], options.avoidList || [])]
+    ? [...(w_('allergens') ? db.allergens.detect([...list, ...declared, ...mayContain], options.allergens || [], options.diets || []) : []),
+       ...(w_('avoidList') ? db.allergens.matchAvoidList([...list, ...declared], options.avoidList || []) : [])]
     : [];
 
   // How much of this list the rulebase could actually read. Reported, never scored — a low number
@@ -1206,16 +1248,14 @@ function score(product, options = {}) {
   // at all beside a red 25, and the CAP row that explained it carried no number. 7 of 47 corpus
   // products were wrong at default weights, more under the presets.
   if (final > cap) {
-    // Organic always earns its benefit, so its credit counts above the ceiling: organic canola oil
-    // scores above conventional canola oil, both still held down by the cap.
-    const organicLift = good.filter(g => g.organic && typeof g.c === 'number' && g.c > 0).reduce((a, g) => a + g.c, 0);
-    const ceiling = Math.min(final, cap + organicLift);
+    // Sourcing and goal rewards cannot bypass a ceiling imposed by an ingredient.
+    const ceiling = cap;
     const drop = final - ceiling;
-    const why = ceiling > cap ? `${capWhy} — caps score at ${cap}, organic counted above it` : `${capWhy} — caps score at ${cap}`;
+    const why = `${capWhy} — caps score at ${cap}${capNote}`;
     bad.push(drop > 0 ? { c: -drop, cap: true, why } : { c: 'CAP', why });
     final = ceiling;
   } else if (cap < 100) {
-    bad.push({ c: 'CAP', why: `${capWhy} — score already below cap of ${cap}` });
+    bad.push({ c: 'CAP', why: `${capWhy} — score already below cap of ${cap}${capNote}` });
   }
   if (final < SCORE_FLOOR) {
     good.push({ c: SCORE_FLOOR - final, why: `Score floor — the scale stops at ${SCORE_FLOOR}` });
@@ -1229,10 +1269,15 @@ function score(product, options = {}) {
     selectedAllergens: options.allergens || [],
     good, bad,
     parsed: list.length,
-    coverage,
+    coverage, nutritionBasis:nutritionInfo.basis,
     ruleCount: PENALTIES.length + CAPS.length + labels.BONUSES.length,
   };
 }
 
-return { score, parse, parseEntries, stripNegations, PENALTIES, CAPS, BANDS, NOVA_BASE };
+const SCORING_POLICY = Object.freeze({floor:SCORE_FLOOR, ceilingKnee:CEIL_KNEE, ceilingSoftness:CEIL_SOFTNESS,
+  penaltySaturation:PENALTY_SATURATION, groupExtra:GROUP_EXTRA, groupCeiling:GROUP_CEIL,
+  goalRewardCap:GOAL_REWARD_CAP, provenanceBonusCap:PROVENANCE_BONUS_CAP,
+  provenanceUnknownCost:PROVENANCE_UNKNOWN_COST, provenanceClaimCost:PROVENANCE_CLAIM_COST,
+  singleIngredientBonus:SINGLE_INGREDIENT_BONUS, positionWeights:POSITION_WEIGHTS});
+return { score, parse, parseEntries, stripNegations, PENALTIES, CAPS, BANDS, NOVA_BASE, NUTRITION, normaliseNutrition, SCORING_POLICY };
 });

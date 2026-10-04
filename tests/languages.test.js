@@ -41,7 +41,7 @@ test('every corpus entry declares its language and evidence', () => {
     assert.ok(EVIDENCE.has(e.evidence), `${e.id}: evidence ${JSON.stringify(e.evidence)}`);
     if (e.evidence === 'live-capture') {
       // A capture that cannot be traced back to a store and an extractor is not evidence.
-      assert.match(String(e.store), /^amazon\.[a-z.]+$/, `${e.id}: live-capture needs a store`);
+      assert.match(String(e.store), /^(?:amazon\.[a-z.]+|target\.com)$/, `${e.id}: live-capture needs a store`);
       assert.ok(typeof e.via === 'string' && e.via, `${e.id}: live-capture needs the extractor (via)`);
       assert.match(String(e.captured), /^\d{4}-\d{2}-\d{2}$/, `${e.id}: live-capture needs a date`);
     }

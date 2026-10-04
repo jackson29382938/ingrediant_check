@@ -64,17 +64,18 @@
     <label class="opt"><input type="radio" name="settingsLevel" value="simple"><span><b data-i18n="optLevelSimple">Simple</b>
       <span data-i18n="optLevelSimpleD">Adds what to rate, search-result scoring and your own avoid list.</span></span></label>
     <label class="opt"><input type="radio" name="settingsLevel" value="standard"><span><b data-i18n="optLevelStandard">Standard (default)</b>
-      <span data-i18n="optLevelStandardD">Adds sorting, price per ounce, score on hover, the shared database, backup and stores.</span></span></label>
+      <span data-i18n="optLevelStandardD">Adds sorting, price per ounce, score on hover, the shared database, backup, Google sign-in and stores.</span></span></label>
     <label class="opt"><input type="radio" name="settingsLevel" value="advanced"><span><b data-i18n="optLevelAdvanced">Advanced</b>
       <span data-i18n="optLevelAdvancedD">Adds every scoring weight, speed and freshness, timing, sort details and the settings file.</span></span></label>
     <label class="opt"><input type="radio" name="settingsLevel" value="expert"><span><b data-i18n="optLevelExpert">Everything</b>
-      <span data-i18n="optLevelExpertD">Also shows diagnostics, contributions to the shared database and Google account sign-in.</span></span></label>
+      <span data-i18n="optLevelExpertD">Also shows diagnostics and contributions to the shared database.</span></span></label>
   </section>
 
   <section data-step="goals" hidden>
     <h1 data-i18n="welGoalsH">What are you aiming for?</h1>
-    <p class="lede" data-i18n="welGoalsLede">Pick any that fit — they combine. Scores change to match: under Weight loss, low-fat dairy becomes a plus; under Vitamins &amp; minerals, added vitamins do. Pick nothing for the balanced default.</p>
+    <p class="lede" data-i18n="welGoalsLede">Pick goals that fit your preferences. They combine; overlapping priorities are averaged according to how much each goal counts. Change those priorities later in Settings. Goals guide ingredient scores; they do not predict weight loss or medical outcomes. Pick nothing for the balanced default.</p>
     <div id="goals"></div>
+    <p class="goal-note" id="goalSummary" aria-live="polite"></p>
     <p class="goal-note" id="goalNote" aria-live="polite"></p>
   </section>
 
@@ -89,31 +90,47 @@
 
   <section data-step="avoid" hidden>
     <h1 data-i18n="welAvoidH">Anything you avoid?</h1>
-    <p class="lede" data-i18n="welAvoidLede">Optional. Products containing these get a red flag. Tap common ones or type your own, one per line.</p>
+    <p class="lede" data-i18n="welAvoidLede">Optional. Products containing these get a red flag, without changing the score. Tap common ones or type your own, separated by commas or new lines. Always check the package.</p>
     <div class="chips" id="avoidHints"></div>
-    <textarea id="avoidList" data-i18n-aria="optAvoidH" aria-label="Your own avoid list" data-i18n-placeholder="welAvoidPh" placeholder="e.g. palm oil"></textarea>
+    <textarea id="avoidList" data-i18n-aria="optAvoidH" aria-label="Your own avoid list" data-i18n-placeholder="welAvoidPh" placeholder="e.g. palm oil, natural flavors" aria-describedby="avoidCount"></textarea>
+    <p class="goal-note" id="avoidCount" aria-live="polite"></p>
   </section>
 
   <section data-step="options" hidden>
     <h1 data-i18n="welOptionsH">A few last choices</h1>
-    <p class="lede" data-i18n="welOptionsLede">Scoring always happens on your computer. These decide what the extension may fetch. You can change them later in the toolbar popup.</p>
-    <label class="opt"><input type="checkbox" id="autoScoreSearch"><span><b data-i18n="popupAutoScore">Rate every search result</b>
+    <p class="lede" data-i18n="welOptionsLede">All four choices are recommended and on by default. Uncheck anything you do not want. Scoring stays on your computer. Chrome will ask for barcode lookup access when you finish. Change these choices later in Settings.</p>
+    <label class="opt"><input type="checkbox" id="autoScoreSearch" checked><span><b data-i18n="popupAutoScore">Rate every search result</b>
       <span data-i18n="popupAutoScoreD">Scores tiles automatically as you scroll a results page.</span></span></label>
-    <label class="opt"><input type="checkbox" id="sharedCache"><span><b data-i18n="optSharedCache">Use the shared online database</b>
+    <label class="opt"><input type="checkbox" id="sharedCache" checked><span><b data-i18n="optSharedCache">Use the shared online database</b>
       <span data-i18n="welSharedD">Certifications for whole foods (organic, grass-fed, origin) from tables the developer keeps. Never sends your settings or anything about you.</span></span></label>
-    <label class="opt"><input type="checkbox" id="ocrLabels"><span><b data-i18n="popupOcr">Read label photos</b>
+    <label class="opt"><input type="checkbox" id="ocrLabels" checked><span><b data-i18n="popupOcr">Read label photos</b>
       <span data-i18n="popupOcrD">When a page has no readable ingredients, read them from the label photo, on your computer.</span></span></label>
-    <label class="opt"><input type="checkbox" id="useOpenFoodFacts"><span><b data-i18n="popupOff">Open Food Facts fallback</b>
+    <label class="opt"><input type="checkbox" id="useOpenFoodFacts" checked><span><b data-i18n="popupOff">Open Food Facts fallback</b>
       <span data-i18n="popupOffD">When a page has a barcode but no readable ingredients, look it up. Chrome will ask first.</span></span></label>
-    <p class="status" id="status" role="status"></p>
+
   </section>
 
+  <section data-step="google" hidden>
+    <h1>Back up with Google</h1>
+    <p class="lede">Optional. Sign in to back up your choices to your Google account when you finish. You can use the extension without signing in.</p>
+    <button type="button" class="primary" id="googleSignIn">Sign in with Google</button>
+    <p id="googleStatus" role="status" aria-live="polite"></p>
+    <details><summary>Google sign-in setup help</summary>
+      <p>If Google reports a redirect URI error, the developer must add this exact URL to the OAuth Web client’s authorized redirect URIs:</p>
+      <p id="googleRedirect" style="overflow-wrap:anywhere"></p>
+      <button type="button" class="ghost" id="copyGoogleRedirect">Copy redirect URL</button>
+      <p><a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Open Google Cloud credentials</a></p>
+    </details>
+  </section>
   <section data-step="done" class="done" hidden>
+    <p id="backupStatus" role="status"></p>
     <h1 data-i18n="welDoneH">You're set</h1>
-    <p class="lede" data-i18n="welDoneLede">Open any grocery product or search on Amazon. Hover a score on a results page to see why. Everything here can be changed later under Settings.</p>
+    <p class="lede" data-i18n="welDoneLede">Open a grocery product or search page on Amazon, Target, Walmart, Costco, Instacart, or the other store previews. Readable labels receive scores; unavailable labels are marked. You can change everything later in Settings.</p>
+    <p><button type="button" class="ghost" id="openChromeProfile">Open Chrome profile settings</button> <button type="button" class="ghost" id="openAccountSettings">Google account backup settings</button></p>
     <p><a href="https://www.amazon.com/s?k=organic+oats&amp;i=grocery" target="_blank" rel="noopener" data-i18n="welTry">Try a grocery search →</a></p>
   </section>
 
+  <p class="status" id="status" role="status"></p>
   <div class="foot">
     <button type="button" class="ghost" id="back" data-i18n="welBack">Back</button>
     <button type="button" class="ghost" id="skip" data-i18n="welSkip">Skip setup</button>
@@ -125,6 +142,7 @@
 <script src="../engine/db/allergens.js"></script>
 <script src="../engine/categories.js"></script>
 <script src="../engine/db/prefs.js"></script>
+<script src="google-auth.js"></script>
 <script src="welcome.js"></script>
 </body>
 </html>

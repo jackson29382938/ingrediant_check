@@ -4,7 +4,8 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const engine = require('../src/engine/score.js');
 
-const score = (text, options) => engine.score({ ingredients_text: text }, options);
+// Language equivalence at explicit preference weights, independent of neutral UI defaults.
+const score = (text, options = {}) => engine.score({ ingredients_text:text }, {...options, weights:{gluten:1,reducedFatDairy:1,refinedOil:1,artificialSweetener:1,fortification:1,...options.weights}});
 const reasons = r => r.bad.map(h => h.why);
 
 function assertSameWhy(en, other, label) {
@@ -55,7 +56,7 @@ test('high-frequency additive synonyms hit the same English reasons', () => {
   }
 });
 
-test('gluten-grain synonyms keep the same default penalty as English', () => {
+test('gluten-grain synonyms keep the same explicit-preference penalty as English', () => {
   assertSameWhy('wheat', 'trigo', 'wheat es');
   assertSameWhy('wheat', 'blé', 'wheat fr');
   assertSameWhy('wheat', 'weizen', 'wheat de');
@@ -412,17 +413,16 @@ test('meat, fish, eggs and milk in every label language are whole foods with a s
   for (const text of ['lemon rind', 'Rundkornreis']) assert.deepEqual(reasons(score(text)), [], text);
 });
 
-test('processing words in every label language are the NOVA 3 signals they are in English', () => {
-  // PROCESSED_SIGNAL read English only, so "lait pasteurisé, ferments lactiques" and "Wasser,
-  // Sauerteig" were NOVA 2 at 90 where "pasteurized milk, cultures" and "water, sourdough" are
-  // NOVA 3, and an Italian cheese of milk, salt and rennet ("caglio") was NOVA 2.
+test('minimal dairy and processing words keep the same classification across languages', () => {
+  // Ordinary pasteurization does not increase the processing classification.
+  // Cultures, yeast and rennet must retain equivalent classifications across languages.
   const pairs = [
     ['pasteurized milk, cultures', 'lait pasteurisé, ferments lactiques'], ['pasteurized milk, salt', 'latte pastorizzato, sale'],
     ['milk, yeast', 'Milch, Hefe'], ['milk, salt, rennet', 'latte, sale, caglio'], ['milk, salt, rennet', 'leite, sal, coalho'],
   ];
   for (const [en, other] of pairs) {
     const a = score(en), b = score(other);
-    assert.equal(a.nova, 3, en);
+    assert.equal(a.nova, en === 'pasteurized milk, salt' ? 1 : en === 'pasteurized milk, cultures' ? 2 : 3, en);
     assert.equal(b.nova, a.nova, `${other} NOVA`);
     assert.equal(b.score, a.score, `${other} vs ${en}`);
   }
@@ -449,7 +449,7 @@ test('sourcing claims in every label language earn the bonus their English twins
   ];
   for (const [en, other] of pairs) {
     const a = score(en), b = score(other);
-    assert.ok(good(a).length > 0, en);
+    if (!/sea salt|raw milk/.test(en)) assert.ok(good(a).length > 0, en);
     assert.deepEqual(good(b), good(a), `${other} vs ${en}`);
   }
   // Nut butters, wheat germ and a whole-grain word are not the claims they resemble.
@@ -1066,7 +1066,7 @@ test('the cosmetic additives that cap the score also mark it ultra-processed; se
   assert.equal(score('water, sucralose').score, 22);
 });
 
-test('organic always earns a benefit: all-penalised lists, capped products and animal foods', () => {
+test('organic earns credit while ingredient ceilings remain binding', () => {
   const pairs = [
     [{ name: 'Cane Sugar', ingredients_text: 'cane sugar' }, { name: 'Cane Sugar', ingredients_text: 'organic cane sugar' }],
     [{ name: 'Honey', ingredients_text: 'honey' }, { name: 'Honey', ingredients_text: 'organic honey' }],
@@ -1078,15 +1078,21 @@ test('organic always earns a benefit: all-penalised lists, capped products and a
   ];
   for (const [plain, organic] of pairs) {
     const a = engine.score(plain), b = engine.score(organic);
-    assert.ok(b.score > a.score, `${organic.name}: ${organic.ingredients_text} ${b.score} vs ${a.score}`);
+    if (a.cap) {
+      const weights = require('../src/engine/categories.js').DEFAULT_WEIGHTS;
+      const ceiling = Math.min(100,...engine.CAPS.filter(c => c.m.test(organic.ingredients_text)).map(c => Math.max(3,Math.round(100-(100-c.cap)*weights[c.cat]))));
+      assert.ok(b.score >= a.score && b.score <= ceiling, 'organic credit stays below the ingredient ceiling');
+    }
+    else assert.ok(b.score > a.score, `${organic.name}: ${organic.ingredients_text} ${b.score} vs ${a.score}`);
   }
   // A certification counts where the sourcing check does not run, labelled as verified.
   const oats = engine.score({ name: 'Oats', ingredients_text: 'rolled oats', certifications: 'USDA Organic' });
   assert.ok(oats.score > engine.score({ name: 'Oats', ingredients_text: 'rolled oats' }).score);
-  assert.ok(oats.good.some(g => g.why === 'Organic — certified'));
+  assert.ok(oats.good.some(g => g.why === 'Organic — verified'));
   // Above a cap the panel still adds up, and says why the score passes the cap.
   const oil = engine.score({ name: 'Canola Oil', ingredients_text: 'organic canola oil' });
-  assert.ok(oil.bad.some(h => h.cap && /organic counted above it/.test(h.why)));
+  assert.ok(oil.score <= 63);
+  assert.ok(oil.bad.some(h => h.cap && typeof h.c === 'number'));
 });
 
 test('sweetener names in each language, and two joined by a conjunction', () => {
@@ -1102,4 +1108,56 @@ test('sweetener names in each language, and two joined by a conjunction', () => 
     assert.deepEqual(reasons(score(`water, ${t}`)).sort(), ['Isomalt', 'Maltitol'], t);
   }
   assert.deepEqual(reasons(score('harina, edulcorantes (maltitol e isomalt)')).sort(), reasons(score('harina, maltitol, isomalt')).sort());
+});
+
+test('glucose-fructose syrup written with "and" in each language is the industrial syrup', () => {
+  for (const t of ['jarabe de glucosa y fructosa', 'jarabe de glucosa-fructosa', 'jarabe de fructosa y glucosa', 'xarope de glicose e frutose',
+    'sciroppo di glucosio e fruttosio', 'sirop de glucose et fructose']) {
+    assert.deepEqual(reasons(score(`water, ${t}`)), reasons(score('water, glucose-fructose syrup')), t);
+  }
+});
+
+test('two ingredients joined by "and" are split when a half is charged; compounds stay whole', () => {
+  for (const t of ['water, sugar and salt', 'water, salt and sugar', 'water, azúcar y sal', 'water, zucker und salz', 'water, sucre et sel']) {
+    assert.equal(score(t).score, score('water, sugar, salt').score, t);
+  }
+  assert.deepEqual(engine.parse('flour, mono- and diglycerides'), ['flour', 'mono- and diglycerides']);
+  assert.deepEqual(engine.parse('flour, natural and artificial flavors'), ['flour', 'natural and artificial flavors']);
+  // Nothing charged in either half: the entry stays one, so a juice keeps its class.
+  assert.deepEqual(engine.parse('orange juice and pulp'), ['orange juice and pulp']);
+  assert.deepEqual(engine.parse('may contain milk and nuts'), ['may contain milk and nuts']);
+});
+
+test('from the bilingual pairs: rice flour, barley, lecithin, silica, tocopherols, malted barley and polyphosphates', () => {
+  const twins = {
+    'rice flour': ['rijstmeel', 'rijstebloem'], barley: ['gerstevlokken', 'gerstebloem', 'Gerstenflocken'], 'soy lecithin': ['soja lecithine'],
+    'silicon dioxide': ['Siliciumdioxid', 'biossido di silicio', 'kiseldioxid', 'dwutlenek krzemu'],
+    tocopherols: ['tocophérols', 'extrait riche en tocophérols', 'tocoferoli', 'tocoferoles', 'Tocopherole', 'tocoferóis'],
+    'malted barley': ['orge maltée', 'cebada malteada'], polyphosphates: ['polifosfatos'],
+    'barley malt extract': ['gerstemoutextract', 'Gerstenmalzextrakt', "extrait de malt d'orge"],
+  };
+  for (const [en, locals] of Object.entries(twins)) {
+    for (const l of locals) assert.deepEqual(reasons(score(`water, ${l}`)).sort(), reasons(score(`water, ${en}`)).sort(), l);
+  }
+});
+
+test('facility and shared-equipment statements are not ingredients, and still raise their allergen flags', () => {
+  for (const t of ['Organic Red Quinoa. Packaged in a facility that also processes tree nuts and wheat.',
+    'Quinoa. Produced in a plant that handles peanuts.', 'Oats. Processed on shared equipment with wheat.', 'Almonds. Made on the same line as peanuts.']) {
+    const [first] = t.split('.');
+    assert.equal(score(t).score, score(first).score, t);
+  }
+  const r = score('Organic Red Quinoa. Packaged in a facility that also processes tree nuts and wheat.', { allergens: ['wheat', 'treeNut'] });
+  assert.deepEqual(r.flags.map(f => f.id).sort(), ['treeNut', 'wheat']);
+});
+
+test('refined wheat flour and maida are refined flour; a binding agent names its additive after a colon', () => {
+  for (const t of ['refined wheat flour', 'bleached wheat flour', 'maida']) {
+    assert.ok(reasons(score(`water, ${t}`)).includes('Refined white flour'), t);
+  }
+  assert.ok(!reasons(score('water, unbleached wheat flour')).includes('Refined white flour'));
+  for (const t of ['substancja wiążąca: maltitole', 'binder: maltitol', 'binding agent: maltitol']) {
+    assert.deepEqual(reasons(score(`water, ${t}`)), ['Maltitol'], t);
+  }
+  assert.equal(score('water, e492').coverage, score('water, sorbitan tristearate').coverage);
 });

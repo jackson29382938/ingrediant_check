@@ -20,7 +20,7 @@
     "message": "Ultra-processed"
   },
   "headDisqualifying": {
-    "message": "Disqualifying",
+    "message": "Score limits",
     "description": "Panel section: ingredients that cap the score."
   },
   "headGood": {
@@ -94,7 +94,9 @@
   "allergenCaveat": {
     "message": "Found in the ingredient text on this page. Absence of a warning is not a safety check — never rely on this for an allergy."
   },
-  "allergenNoFlags": { "message": "No selected warnings were found in the text this page provided. Lists can be incomplete — this does not confirm a product is free of an allergen." },
+  "allergenNoFlags": {
+    "message": "No selected warnings were found in the text this page provided. Lists can be incomplete — this does not confirm a product is free of an allergen."
+  },
   "failTitle": {
     "message": "Zutaten auf dieser Seite konnten nicht gelesen werden."
   },
@@ -153,7 +155,7 @@
     "message": "Search result badges"
   },
   "popupBadgesD": {
-    "message": "Score chips on tiles you've already opened."
+    "message": "Bewertungen für Suchergebnisse mit lesbaren Zutatenlisten."
   },
   "popupFoodOnly": {
     "message": "Only rate food & supplements"
@@ -188,7 +190,7 @@
     "message": "Skip shoes, toys, cosmetics and cleaning products, and say why instead of scoring them. Shampoo has an ingredient list too, and a score on one implies it was judged as something you could eat."
   },
   "popupAutoScoreD": {
-    "message": "Scores results automatically as you scroll. For each one this computer and the shared database cannot already answer, it requests the product page from the Amazon store you are on, a few at a time and at most 60 per results page, with your Amazon sign-in. Amazon sees these requests much as if you had opened the products yourself. Off: only products already read get a score."
+    "message": "Scores results automatically as you scroll. For each one this computer and the shared database cannot already answer, it requests the product page from the Amazon store you are on, a few at a time and at most 60 per results page, with your Amazon sign-in. Amazon sees these requests much as if you had opened the products yourself. Off: only products already read get a score. Shop-Vorschauen lesen zwei öffentliche Produktseiten derselben Website gleichzeitig, ohne Cookies. Fehlende Zutatenlisten bleiben unbekannt."
   },
   "popupHoverD": {
     "message": "Hover or tab to a search result for half a second and it requests that product page from Amazon to score it, with your Amazon sign-in. Only the result you point at."
@@ -217,9 +219,15 @@
   "failOcr": {
     "message": "The label photo was checked too, and no ingredient list could be read from it. "
   },
-  "failOcrNoImages": { "message": "No usable label photo was available to check. " },
-  "failOcrError": { "message": "The label photo could not be checked because the reader failed. " },
-  "failOcrNoMatch": { "message": "The label photo was checked, but no ingredient list could be read from it. " },
+  "failOcrNoImages": {
+    "message": "No usable label photo was available to check. "
+  },
+  "failOcrError": {
+    "message": "The label photo could not be checked because the reader failed. "
+  },
+  "failOcrNoMatch": {
+    "message": "The label photo was checked, but no ingredient list could be read from it. "
+  },
   "failLocale": {
     "message": "This Amazon store’s labels are in a script the on-device English reader will misread, so photo OCR is not used here yet. Paste the list if you can read it. "
   },
@@ -276,7 +284,7 @@
     "message": "Not scored yet. Wait for the panel on this page, then reopen."
   },
   "popupSearchPage": {
-    "message": "Search page — scores show as badges on tiles you have already opened."
+    "message": "Suchseite — lesbare Zutatenlisten erhalten Bewertungen. Fehlende Listen werden am Ergebnis gekennzeichnet."
   },
   "popupClearN": {
     "message": "Clear $N$ cached scores",
@@ -427,7 +435,7 @@
     "message": "Clear filter"
   },
   "optAvoidPh": {
-    "message": "carrageenan\nred 40\nnatural flavors"
+    "message": "e.g. palm oil, natural flavors"
   },
   "optShare": {
     "message": "Gefundene Zertifizierungen an die gemeinsame Datenbank senden"
@@ -499,7 +507,7 @@
     "message": "Amazon doesn't publish readable ingredients for this one"
   },
   "catHelp_grain": {
-    "message": "Default 1.0: gluten grains are a penalty, including whole wheat. Enriched and white flour cost more; wheat, barley and rye still count when they are whole grain, because this dial is gluten as much as refinement. Traditionally prepared grains (sourdough, sprouted, soaked) count half. Lower this weight if you do not want gluten grains counted against a score. NOVA still treats plain flour as processed (3) and enriched as ultra (4) — that mapping is not this dial."
+    "message": "Raffiniertes Mehl, isolierte Stärke und gemahlene Getreidezutaten. Ausdrücklich bezeichnetes Vollkornmehl ist ausgenommen. Gluten ist eine separate Präferenz und standardmäßig ausgeschaltet; zur Vermeidung dienen die Allergenwarnungen."
   },
   "optNoteRateSame": {
     "message": "These settings are the same ones in the toolbar popup. Changing them here updates scores on Amazon immediately."
@@ -508,13 +516,13 @@
     "message": "Skips shoes, toys, cosmetics, medicine and cleaning products. A score on shampoo would imply it was judged as something you could eat. When this is on, a non-food page shows why it was skipped instead of a silent blank."
   },
   "optNoteWeights": {
-    "message": "1.0 is the default weight. 0 switches a category off entirely. 2.0 makes it matter twice as much. Categories set to 0 by default are ones people reasonably disagree about — turn them on if you want them. Press / to jump to the filter."
+    "message": "Each category has its own default. A weight of 1.0 applies the listed rule normally; 0 switches its score effect off, and 2.0 doubles its deduction or credit before score limits. Some categories start at 0 or 0.5. Negative weights, available for selected categories, turn a deduction into a preference credit. Goal presets change these weights. Press / to jump to the filter."
   },
   "optNoteAllergen": {
     "message": "Flagged on the panel. These never change the score — whether a food contains sesame is a different question from whether it is a good food."
   },
   "optNoteAvoid": {
-    "message": "One ingredient or phrase per line. Anything matching gets flagged on the panel."
+    "message": "Separate ingredients or phrases with commas or new lines. Each entry creates its own warning; these warnings do not change the score. Matches come from the text provided by the page, so always check the package."
   },
   "optNoteAvoidHint": {
     "message": "Add a common one:"
@@ -602,16 +610,16 @@
     }
   },
   "popupAutoScoreNet": {
-    "message": "Requests product pages from Amazon, signed in as you."
+    "message": "Fordert Produktseiten des geöffneten Shops an. Amazon nutzt Ihre Anmeldung; Shop-Vorschauen lesen öffentliche Seiten ohne Cookies."
   },
   "popupHoverNet": {
     "message": "Requests that product page from Amazon, signed in as you."
   },
   "popupNetworkLink": {
-    "message": "Amazon access and what is sent"
+    "message": "Shop-Zugriff und übertragene Daten"
   },
   "optNoteAutoScore": {
-    "message": "On by default. As you scroll a results page, each result that this computer and the shared database cannot already answer is scored by requesting its product page from the Amazon store you are on: three at a time, at most 60 per results page. The requests carry your Amazon sign-in, so Amazon sees them much as if you had opened each product yourself. Turn this off and only products already read (by you, or through the shared database) show a score."
+    "message": "On by default. As you scroll a results page, each result that this computer and the shared database cannot already answer is scored by requesting its product page from the Amazon store you are on: three at a time, at most 60 per results page. The requests carry your Amazon sign-in, so Amazon sees them much as if you had opened each product yourself. Turn this off and only products already read (by you, or through the shared database) show a score. Shop-Vorschauen lesen zwei öffentliche Produktseiten derselben Website gleichzeitig, ohne Cookies. Fehlende Zutatenlisten bleiben unbekannt."
   },
   "optNoteHover": {
     "message": "Off by default. Hover or tab to one result for half a second and it requests that product page from Amazon in the same way, with your Amazon sign-in. Only the result you point at."
@@ -632,7 +640,7 @@
     "message": "Ziele kombiniert: Wo zwei denselben Regler setzen, wird gemittelt."
   },
   "optNotePresets": {
-    "message": "Wähle ein Ziel oder mehrere — sie werden kombiniert, und wo zwei denselben Regler setzen, wird gemittelt. Manche Ziele machen aus einem Minus ein Plus: fettreduzierte Milchprodukte bei Abnehmen, zugesetzte Vitamine bei Vitamine & Mineralstoffe. Harte Obergrenzen wie Red 40 werden nie zum Plus. Du kannst danach jeden Regler verschieben; dann steht dort Benutzerdefiniert. Ein erneuter Klick entfernt ein Ziel; Ausgewogen setzt alle zurück."
+    "message": "Pick one goal or several. Their priorities combine; where goals overlap, their weights are averaged. A goal focused on a category takes priority over another goal’s incidental setting. Adjust how much each selected goal counts below. Some goals turn deductions into preference credits; hard score limits stay limits. Moving a category slider makes the active label Custom. Click a selected goal to remove it; Balanced clears them all."
   },
   "welTitle": {
     "message": "Ingredient Check einrichten"
@@ -641,7 +649,7 @@
     "message": "Was ist dein Ziel?"
   },
   "welGoalsLede": {
-    "message": "Wähle alle, die passen — sie werden kombiniert. Die Bewertungen passen sich an: Bei Abnehmen werden fettarme Milchprodukte zum Plus, bei Vitamine & Mineralstoffe zugesetzte Vitamine. Nichts wählen heißt ausgewogener Standard."
+    "message": "Pick goals that fit your preferences. They combine; overlapping priorities are averaged according to how much each goal counts. Change those priorities later in Settings. Goals guide ingredient scores; they do not predict weight loss or medical outcomes. Pick nothing for the balanced default."
   },
   "welWarnH": {
     "message": "Wovor sollen wir dich warnen?"
@@ -656,13 +664,13 @@
     "message": "Vermeidest du etwas?"
   },
   "welAvoidLede": {
-    "message": "Optional. Produkte, die das enthalten, bekommen eine rote Markierung. Tippe gängige an oder schreibe eigene, eine pro Zeile."
+    "message": "Optional. Products containing these get a red flag, without changing the score. Tap common ones or type your own, separated by commas or new lines. Always check the package."
   },
   "welOptionsH": {
     "message": "Noch ein paar Entscheidungen"
   },
   "welOptionsLede": {
-    "message": "Bewertet wird immer auf deinem Computer. Hier legst du fest, was die Erweiterung abrufen darf. Du kannst das später im Symbolleisten-Popup ändern."
+    "message": "All four choices are recommended and on by default. Uncheck anything you do not want. Scoring stays on your computer. Chrome will ask for barcode lookup access when you finish. Change these choices later in Settings."
   },
   "welSharedD": {
     "message": "Zertifizierungen für unverarbeitete Lebensmittel (Bio, Weidehaltung, Herkunft) aus Tabellen, die der Entwickler pflegt. Sendet nie deine Einstellungen oder etwas über dich."
@@ -671,7 +679,7 @@
     "message": "Fertig"
   },
   "welDoneLede": {
-    "message": "Öffne ein Lebensmittel oder eine Suche bei Amazon. Fahre über eine Bewertung in den Ergebnissen, um die Begründung zu sehen. Alles hier lässt sich später in den Einstellungen ändern."
+    "message": "Öffnen Sie ein Lebensmittel oder Suchergebnisse bei Amazon, Target, Walmart, Costco, Instacart oder den weiteren Shop-Vorschauen. Lesbare Zutatenlisten erhalten Bewertungen; fehlende Listen werden gekennzeichnet. Alles kann später in den Einstellungen geändert werden."
   },
   "welTry": {
     "message": "Probiere eine Lebensmittelsuche →"
@@ -760,7 +768,7 @@
     "message": "Preview — works on the pages you open; still being checked"
   },
   "optNoteTarget": {
-    "message": "Target (preview): Ingredient Check also runs on Target product and search pages. There it only reads the page you have open and scores it on your computer. It requests nothing from Target or anyone else, and a Target search page shows scores only for products you opened before. The two options above apply to Amazon only."
+    "message": "Shop-Vorschauen: Target, Walmart, Costco, Instacart und weitere aufgeführte Lebensmittelshops lesen öffentliche Produktseiten derselben Website ohne Cookies, um Suchergebnisse zu bewerten. Alle Suchergebnisse bewerten ist standardmäßig aktiv. Deaktivieren Sie es, um nur gespeicherte Bewertungen zu sehen. Zwei Anfragen laufen gleichzeitig, bis zum Seitenlimit der Geschwindigkeitseinstellung (20–60). Blockierte oder fehlende Zutatenlisten bleiben unbekannt. Bewertungen bleiben lokal; Vorschau-Daten werden nicht geteilt. Bewerten beim Überfahren gilt nur für Amazon."
   },
   "sortThrottled": {
     "message": "Amazon stopped answering product pages, so rating paused."
@@ -995,7 +1003,9 @@
   "sortedOpenTab": {
     "message": "Open in new tab"
   },
-  "sortedOpenTabFail": { "message": "Could not open a new tab. Try again from Chrome." },
+  "sortedOpenTabFail": {
+    "message": "Could not open a new tab. Try again from Chrome."
+  },
   "sortedStop": {
     "message": "Stop rating"
   },
@@ -1332,7 +1342,7 @@
     "message": "Zweite zwischengespeicherte Bewertung"
   },
   "welAvoidPh": {
-    "message": "z. B. Palmöl"
+    "message": "e.g. palm oil, natural flavors"
   },
   "repTitlePh": {
     "message": "z. B. Die Seitenleiste zeigt für Kefir keinen Preis pro Unze"
@@ -1365,7 +1375,7 @@
     "message": "Standard (Voreinstellung)"
   },
   "optLevelStandardD": {
-    "message": "Dazu: Sortierung, Preis pro Unze, Bewertung beim Überfahren, die gemeinsame Datenbank, Sicherung und Shops."
+    "message": "Dazu: Sortierung, Preis pro Unze, Bewertung beim Überfahren, die gemeinsame Datenbank, Sicherung, Google-Anmeldung und Shops."
   },
   "optLevelAdvanced": {
     "message": "Erweitert"
@@ -1377,7 +1387,7 @@
     "message": "Alles"
   },
   "optLevelExpertD": {
-    "message": "Zeigt außerdem Diagnosen, Beiträge zur gemeinsamen Datenbank und die Anmeldung mit dem Google-Konto."
+    "message": "Zeigt außerdem Diagnosen und Beiträge zur gemeinsamen Datenbank."
   },
   "optHoverDelay": {
     "message": "Wartezeit vor der Bewertung"
@@ -1456,5 +1466,26 @@
   },
   "sortTimeLimit": {
     "message": "Nach $1 Sekunden beendet, dem Zeitlimit für diese Liste."
+  },
+  "optGoalMixTitle": {
+    "message": "Wie stark jedes Ziel zählt"
+  },
+  "optGoalMixNote": {
+    "message": "These importance weights decide how selected goals combine where their priorities overlap. At 1 each they count equally. Focused priorities take precedence over incidental settings. Higher values give a goal more influence, not a guarantee about the final score."
+  },
+  "optGoalMixAria": {
+    "message": "Wie stark $1 zählt"
+  },
+  "welGoalsSelected": {
+    "message": "Selected goals"
+  },
+  "welGoalsBalanced": {
+    "message": "No goals selected: use the balanced defaults."
+  },
+  "welGoalsCustom": {
+    "message": "Your custom weights are kept unless you change goals."
+  },
+  "optBalancedDefault": {
+    "message": "Balanced default"
   }
 }

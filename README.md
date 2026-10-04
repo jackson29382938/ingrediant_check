@@ -10,7 +10,7 @@ You do not need a build step.
 
 1. `chrome://extensions` → enable **Developer mode**
 2. **Load unpacked** → select this folder
-3. Expect **Ingredient Check 1.1.0** with no errors on the card
+3. Expect **Ingredient Check 1.4.4** with no errors on the card
 
 Optional local session (Chrome for Testing, extension preloaded):
 
@@ -33,13 +33,7 @@ After editing `src/`, `manifest.json`, or `icons/`, run `npm run chrome:reload`.
 
 ## What it does
 
-Stores: **Amazon** (21 storefronts) and, as a preview, **Target**. On Target it reads only the page
-you open and makes no network requests. Walmart and Costco are planned but blocked: their pages
-could not be inspected without getting past a bot check. Per-store status, dates and limits are in
-[docs/STORES.md](docs/STORES.md). Settings → *Stores* has a **Request a store** form that opens an
-email draft in your own mail app. The toolbar popup's **Report a problem or suggest an improvement** opens a report page that
-adds a screenshot, the page, your settings and your recent clicks, shows all of it, lets you leave any
-part out, and gives you one file to attach to an email draft (nothing is sent by the extension).
+Stores: **Amazon** (21 storefronts), plus **15 retailer previews**, including Target, Walmart, Costco, Instacart, Kroger and Fry’s. Search previews reuse saved scores and request uncached public product pages from the same site when automatic rating is enabled. Readable labels receive scores; missing labels are marked and offer a paste fallback on the product page. Live validation is still incomplete; see [store checks](docs/STORES.md). Settings → Stores lets you request another store through an email draft. The toolbar’s report form previews a screenshot, settings and recent extension actions before you choose what to attach; the extension sends nothing.
 
 On an Amazon product page it reads the ingredient list (page text, optional on-device OCR, optional Open Food Facts barcode, or a paste box) and scores it. Search pages can show score chips. Non-food listings are skipped. The toolbar icon shows the current product’s score.
 
@@ -53,7 +47,7 @@ Ingredient headings are recognised in English and several EU languages (Zutaten,
 
 ## Goals
 
-A new install opens a one-minute setup (goals, allergens and diets, an avoid list, and four fetch choices); **Run setup again** in the popup or settings reopens it. Goals can be combined — where two set the same dial they are averaged — and some turn a minus into a plus: fat-reduced dairy under **Weight loss**, added vitamins under **Vitamins & minerals**, honey under **Animal-based (Paul Saladino)**. Those rows are marked "a plus for your goals" and capped at +20 in total; hard caps such as Red 40 never become pluses. Definitions live in `src/engine/categories.js` (`PRESETS`, `goalWeights`).
+A new install opens a one-minute setup (goals, allergens and diets, an avoid list, and four fetch choices); **Run setup again** in the popup or settings reopens it. Goals can be combined — where two set the same dial they are averaged, weighted by how much each goal counts (a slider per goal in settings, 1 each by default) — and some turn a minus into a plus: fat-reduced dairy under **Weight loss**, added vitamins under **Vitamins & minerals**, honey under **Animal-based (Paul Saladino)**. Those rows are marked "a plus for your goals" and capped at +20 in total; hard caps such as Red 40 never become pluses. Definitions live in `src/engine/categories.js` (`PRESETS`, `goalWeights`).
 
 ## Tests
 
@@ -85,19 +79,19 @@ Live Amazon checks are in [docs/VERIFY.md](docs/VERIFY.md). When a rule changes,
 
 ## Network
 
-Scoring is always local. The shared database's certification tables, the settings backup and **Rate every search result** are on by default and can be switched off; everything else, including sharing product readings, is off until you turn it on. Hover a score on a results page to see why it scored that way (**Show why on hover**, computed locally).
+Scoring is always local. Chrome profile settings backup is on by default. The four final setup choices are recommended and checked by default: **Rate every search result**, certification-table lookups, on-device label OCR, and barcode fallback. Barcode fallback requires Chrome’s optional permission. Existing saved opt-outs are preserved. Diagnostics and shared product readings remain off. Hover a score on a results page to see why it scored that way (**Show why on hover**, computed locally).
 
 **Rate every search result** requests product pages from the Amazon store you are on, a few at a time and at most 60 per results page. The sorted side-panel list uses the same queue and the same limit (60 for each results page it collected, counting what the badges already requested), and never requests a product twice. The requests use your Amazon sign-in. This is shown under the switch in the popup, in Settings → *What to rate*, and once on the first results page it rates, with a **Turn off automatic rating** button. The extension has access to the 21 supported Amazon stores, granted by Chrome at install. Settings lists them and explains how to limit that access. See [docs/PRIVACY.md](docs/PRIVACY.md).
 
 - **Open Food Facts fallback** — barcode only, after Chrome grants the host
 - **Read label photos** — local Tesseract; fetches the product image already on the page
-- **Shared online database** (on by default) — certification tables for whole foods, kept by the developer on a private Google Sheet behind one Apps Script ([docs/SETTINGS-SYNC.md](docs/SETTINGS-SYNC.md)). Inert until `ENDPOINT` in `src/engine/db/prefs.js` is set. Diagnostics use the same endpoint: [docs/DIAGNOSTICS.md](docs/DIAGNOSTICS.md).
-- **Share product readings with other computers** (off by default, experimental) — what was read off each product, before weighting, so a product is read from Amazon about once a month instead of once per person. Anyone can upload a reading and nothing yet checks that it is true, so it is off in the extension and closed on the receiver until the owner opens it ([docs/CACHE.md](docs/CACHE.md), *Trust*).
-- **Settings backup** (on by default) — Chrome's own sync; optional Google sign-in copy on the shared database.
+- **Shared online database** (on by default) — certification tables for whole foods, kept by the developer on a private Google Sheet behind one Apps Script ([docs/SETTINGS-SYNC.md](docs/SETTINGS-SYNC.md)). This build has a configured endpoint, used only when the relevant feature is enabled. Diagnostics use the same endpoint: [docs/DIAGNOSTICS.md](docs/DIAGNOSTICS.md).
+- **Share product readings with other computers** (closed in this build) — what was read off each product, before weighting, so a product is read from Amazon about once a month instead of once per person. Anyone can upload a reading and nothing yet checks that it is true, so it is off in the extension and closed on the receiver until the owner opens it ([docs/CACHE.md](docs/CACHE.md), *Trust*).
+- **Settings backup** (on by default) — Chrome's own sync; optional Google sign-in copy on the shared database. Google sign-in needs a registered OAuth client ID and a matching backend configuration; it does not sign Chrome itself into a profile.
 
 ## Accuracy
 
-The test suite proves the engine matches its spec. To see whether scores match a careful reading of real labels, turn on diagnostics, shop a grocery search, and sort by `coverage`, `source`, and `cap`. Promote misses into `tests/corpus.json` before changing rules. Every corpus entry records its language and whether it is a live capture, modelled on a real product, or synthetic. None is a live capture yet. See [docs/ACCURACY.md](docs/ACCURACY.md).
+The test suite proves the engine matches its spec. To see whether scores match a careful reading of real labels, turn on diagnostics, shop a grocery search, and sort by `coverage`, `source`, and `cap`. Promote misses into `tests/corpus.json` before changing rules. Every corpus entry records its language and whether it is a live capture, modelled on a real product, or synthetic. Three English entries are live captures; non-English corpus evidence remains synthetic. See [docs/ACCURACY.md](docs/ACCURACY.md).
 
 Chrome Web Store submit checklist: [docs/store-listing/README.md](docs/store-listing/README.md).
 Owner live checks: [docs/VERIFY.md](docs/VERIFY.md). Historical audit logs and plans live under
@@ -106,3 +100,7 @@ Licensed under [MIT](LICENSE).
 
 The GitHub folder spelling `ingrediant_check` is historical. The product name is **Ingredient Check**.
 Renaming the GitHub repository is an owner action in GitHub settings (not a code change).
+
+Release evidence and outstanding owner checks: [October 1 validation](docs/RELEASE-VALIDATION-2026-10-01.md).
+
+Scoring and preset decisions: [complete calibration review](docs/SCORING-CALIBRATION-2026-10-01.md), including an inventory of every factor and default.

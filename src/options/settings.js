@@ -34,6 +34,23 @@ function msg(key, fallback, sub) {
 const state = PREFS.sanitizeScoring({});
 let saveTimer = null;
 let writing = false;
+let restoringSettings = false;
+let settingsReady = false;
+let pendingWrites = 0;
+const restoreWaiters = [];
+
+// A restore must follow pending local saves and suppress old scoring writes until reload.
+AIR.settingsRestore = {
+  begin() {
+    restoringSettings = true;
+    clearTimeout(saveTimer);
+    return new Promise(resolve => {
+      if (!pendingWrites) resolve();
+      else restoreWaiters.push(resolve);
+    });
+  },
+  complete() { restoringSettings = false; },
+};
 
 function flash(msg, kind) {
   const el = document.getElementById('status');
@@ -44,6 +61,7 @@ function flash(msg, kind) {
 }
 
 function persist(values, done) {
+  pendingWrites++;
   writing = true;
   // Which settings changed, for "Report a problem"'s recent actions (names and short values only).
   if (AIR.db.activity) {
@@ -51,7 +69,9 @@ function persist(values, done) {
       (typeof v === 'object' ? k : `${k}=${String(v).slice(0, 20)}`)).join(', '));
   }
   chrome.storage.local.set(values, () => {
-    writing = false;
+    pendingWrites--;
+    writing = pendingWrites > 0;
+    if (!pendingWrites) restoreWaiters.splice(0).forEach(resolve => resolve());
     if (chrome.runtime.lastError) {
       flash(msg('optCouldNotSave', 'Could not save') + ' — ' + chrome.runtime.lastError.message, 'error');
       if (done) done(false);
@@ -66,6 +86,7 @@ function scoringPayload() {
 }
 
 function save({ immediate = false } = {}) {
+  if (restoringSettings) return;
   clearTimeout(saveTimer);
   const write = () => persist(scoringPayload(), ok => { if (ok) flash(msg('optSaved', 'Saved')); });
   if (immediate) write(); else saveTimer = setTimeout(write, 250);
@@ -75,6 +96,7 @@ function applyScoring(next) {
   const clean = PREFS.sanitizeScoring(next);
   state.weights = clean.weights;
   state.goals = clean.goals;
+  state.goalImportance = clean.goalImportance;
   state.allergens = clean.allergens;
   state.diets = clean.diets;
   state.avoidList = clean.avoidList;
@@ -159,12 +181,15 @@ function renderCategories() {
     const help = document.createElement('div');
     help.className = 'help';
     help.textContent = msg(`catHelp_${c.id}`, c.help);
-    label.append(name, help);
+    const baseline = document.createElement('div');
+    baseline.className = 'help baseline';
+    baseline.textContent = `${msg('optBalancedDefault', 'Balanced default')}: ${CATS.DEFAULT_WEIGHTS[c.id]}`;
+    label.append(name, baseline, help);
 
     const slider = document.createElement('input');
     slider.type = 'range';
     // Signed categories go below zero: a goal can make them count in a product's favour.
-    slider.min = CATS.SIGNED && CATS.SIGNED.has(c.id) ? '-2' : '0'; slider.max = '2'; slider.step = '0.1';
+    slider.min = CATS.SIGNED && CATS.SIGNED.has(c.id) ? '-2' : '0'; slider.max = '2'; slider.step = 'any';
     slider.value = String(weightOf(c.id));
     slider.id = `w-${c.id}`;
     slider.setAttribute('aria-label', `${c.label} weight`);
@@ -173,7 +198,8 @@ function renderCategories() {
     val.className = 'val';
     const paint = v => {
       const n = Number(v);
-      val.textContent = n === 0 ? 'off' : n < 0 ? `+${Math.abs(n).toFixed(1)}× plus` : `${n.toFixed(1)}×`;
+      const shown = Math.abs(n).toLocaleString('en', {maximumFractionDigits:3});
+      val.textContent = n === 0 ? 'off' : n < 0 ? `+${shown}× plus` : `${shown}×`;
       val.className = 'val' + (n === 0 ? ' zero' : n < 0 ? ' plus' : n > 1 ? ' high' : '');
     };
     paint(slider.value);
@@ -211,7 +237,7 @@ function presetCategories() {
 
 // { ids, custom } — the selected goals, and whether a slider has since moved off them.
 function currentGoals() {
-  return CATS.describeGoals(state.weights, state.goals);
+  return CATS.describeGoals(state.weights, state.goals, state.goalImportance);
 }
 
 function renderPresetCategories() {
@@ -349,7 +375,7 @@ function paintPresetActive(goals) {
 function applyPreset(id) {
   if (!CATS.PRESETS[id]) return;
   const goals = CATS.toggleGoal(currentGoals().ids, id);
-  applyScoring({ ...state, goals, weights: CATS.goalWeights(goals) });
+  applyScoring({ ...state, goals, weights: CATS.goalWeights(goals, state.goalImportance) });
   // Goals combine across tabs: stay on the tab that was clicked instead of jumping to the first
   // selected goal's tab, which hid the goal just picked.
   const host = document.getElementById('presets');
@@ -358,8 +384,66 @@ function applyPreset(id) {
   renderCategories();
   renderPresetCategories();
   renderPresets();
+  renderGoalMix();
   showPresetDetail(id);
   save({ immediate: true });
+}
+
+// One slider per selected goal, shown once two or more are picked: how much that goal counts where
+// goals set the same dial. 1 each is a plain average; moving one re-averages the weights.
+function renderGoalMix() {
+  const box = document.getElementById('goalMix');
+  const rows = document.getElementById('goalMixRows');
+  if (!box || !rows) return;
+  const goals = currentGoals();
+  const ids = goals.ids.filter(id => CATS.PRESETS[id]);
+  box.hidden = ids.length < 2 || goals.custom;
+  if (box.hidden) { rows.textContent = ''; delete rows.dataset.ids; return; }
+  // The same goals: update the values in place, so a save while a slider is being dragged does not
+  // rebuild it under the pointer.
+  if (rows.dataset.ids === ids.join(',')) {
+    for (const input of rows.querySelectorAll('input[data-goal-mix]')) {
+      if (input === document.activeElement) continue;
+      const v = (state.goalImportance && state.goalImportance[input.dataset.goalMix]) || 1;
+      input.value = String(v);
+      input.nextElementSibling.textContent = `×${v}`;
+    }
+    return;
+  }
+  rows.dataset.ids = ids.join(',');
+  rows.textContent = '';
+  for (const id of ids) {
+    const label = CATS.PRESETS[id].label;
+    const value = (state.goalImportance && state.goalImportance[id]) || 1;
+    const row = document.createElement('div');
+    row.className = 'goal-mix-row';
+    const name = document.createElement('label');
+    name.htmlFor = `goalMix-${id}`;
+    name.textContent = label;
+    const input = document.createElement('input');
+    input.type = 'range';
+    input.id = `goalMix-${id}`;
+    input.dataset.goalMix = id;
+    input.min = String(CATS.IMPORTANCE_MIN);
+    input.max = String(CATS.IMPORTANCE_MAX);
+    input.step = '0.01';
+    input.value = String(value);
+    input.setAttribute('aria-label', msg('optGoalMixAria', `How much ${label} counts`, label));
+    const out = document.createElement('output');
+    out.htmlFor = input.id;
+    out.textContent = `×${value}`;
+    input.addEventListener('input', () => {
+      const v = Number(input.value);
+      out.textContent = `×${v}`;
+      const imp = { ...(state.goalImportance || {}), [id]: v };
+      applyScoring({ ...state, goalImportance: imp, weights: CATS.goalWeights(currentGoals().ids, imp) });
+      renderCategories();
+      markPresetDirty();
+      save();
+    });
+    row.append(name, input, out);
+    rows.appendChild(row);
+  }
 }
 
 function markActivePreset(goals) {
@@ -471,18 +555,14 @@ function wireFileActions() {
 
 
 // ---------------------------------------------------------------- boot
-const AVOID_HINTS = [
-  'carrageenan', 'red 40', 'yellow 5', 'yellow 6', 'blue 1',
-  'titanium dioxide', 'BHT', 'BHA', 'TBHQ',
-  'natural flavors', 'artificial flavors', 'sucralose',
-];
+const AVOID_HINTS = PREFS.AVOID_HINTS;
 
 function paintAvoidCount() {
   const el = document.getElementById('avoidCount');
   if (!el) return;
   const max = PREFS.AVOID_MAX_LINES || 80;
   const n = state.avoidList.length;
-  el.textContent = n ? `${n} / ${max} lines` : `Up to ${max} lines.`;
+  el.textContent = n ? `${n} / ${max} entries` : `Up to ${max} entries.`;
 }
 
 function paintAvoidHints() {
@@ -500,7 +580,7 @@ function paintAvoidHints() {
     b.addEventListener('click', () => {
       state.avoidList = PREFS.sanitizeAvoidList([...state.avoidList, term]);
       const ta = document.getElementById('avoidList');
-      if (ta) ta.value = state.avoidList.join('\n');
+      if (ta) ta.value = state.avoidList.join(', ');
       paintAvoidHints();
       save({ immediate: true });
     });
@@ -560,10 +640,11 @@ function renderAll() {
   renderCategories();
   renderPresetCategories();
   renderPresets();
+  renderGoalMix();
   renderChips('allergens', ALLERGENS.ALLERGENS, state.allergens, (id, on) => toggleIn(state.allergens, id, on));
   renderChips('diets', ALLERGENS.DIETS, state.diets, (id, on) => toggleIn(state.diets, id, on));
   const avoid = document.getElementById('avoidList');
-  if (document.activeElement !== avoid) avoid.value = state.avoidList.join('\n');
+  if (document.activeElement !== avoid) avoid.value = state.avoidList.join(', ');
   paintAvoidHints();
   const fo = document.getElementById('foodOnly');
   if (fo) fo.checked = state.foodOnly;
@@ -788,7 +869,13 @@ function wirePanelAndHover() {
 // Called from settings-database.js, the options page's second classic script, once it has loaded.
 /* exported startSettingsPage */
 function startSettingsPage() {
-  chrome.storage.local.get(['weights', 'goals', 'allergens', 'diets', 'avoidList', 'foodOnly'], o => {
+  chrome.storage.local.get(['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly'], o => {
+    if (chrome.runtime.lastError) {
+      document.getElementById('status').textContent = 'Could not load your settings. Reload this page before making changes.';
+      document.getElementById('status').className = 'status error';
+      return;
+    }
+    settingsReady = true;
     applyScoring(o);
     if (!PREFS.scoringEqual(o, state)) persist(scoringPayload());
     const first = currentGoals().ids[0];
@@ -811,7 +898,7 @@ function startSettingsPage() {
     });
     document.getElementById('avoidList').addEventListener('blur', e => {
       state.avoidList = PREFS.sanitizeAvoidList(e.target.value);
-      e.target.value = state.avoidList.join('\n');
+      e.target.value = state.avoidList.join(', ');
       paintAvoidHints();
       save({ immediate: true });
     });
@@ -829,7 +916,7 @@ function startSettingsPage() {
 
 window.addEventListener('pagehide', () => {
   clearTimeout(saveTimer);
-  persist(scoringPayload());
+  if (settingsReady && !restoringSettings) persist(scoringPayload());
 });
 
 // Stay in sync if the popup flips the same keys while this page is open.
@@ -840,8 +927,8 @@ chrome.storage.onChanged.addListener(changes => {
     const fo = document.getElementById('foodOnly');
     if (fo) fo.checked = state.foodOnly;
   }
-  if (changes.weights || changes.goals || changes.allergens || changes.diets || changes.avoidList) {
-    chrome.storage.local.get(['weights', 'goals', 'allergens', 'diets', 'avoidList', 'foodOnly'], o => {
+  if (changes.weights || changes.goals || changes.goalImportance || changes.allergens || changes.diets || changes.avoidList) {
+    chrome.storage.local.get(['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly'], o => {
       applyScoring(o);
       renderAll();
     });

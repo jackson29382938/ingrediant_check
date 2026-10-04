@@ -35,7 +35,7 @@ const SIZES = [
 for (const [size, expected, why] of SIZES) {
   check(why, () => {
     const out = parsePanel('Nutrition Facts Serving size ' + size);
-    assert.strictEqual(out && out.servingGrams, expected,
+    assert.strictEqual(out && (size.includes('ml') ? out.servingMl : out.servingGrams), expected,
       `"${size}" -> ${out && out.servingGrams}, expected ${expected}`);
   });
 }

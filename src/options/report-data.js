@@ -43,7 +43,7 @@
     if (prefs) {
       Object.assign(out, prefs.sanitizeToggles(o), prefs.sanitizeDisplay(o));
       const s = prefs.sanitizeScoring(o);
-      Object.assign(out, { weights: s.weights, goals: s.goals, allergens: s.allergens, diets: s.diets, avoidList: s.avoidList });
+      Object.assign(out, { weights: s.weights, goals: s.goals, goalImportance: s.goalImportance, allergens: s.allergens, diets: s.diets, avoidList: s.avoidList });
     }
     if (sortedResults) Object.assign(out, sortedResults.sanitizeSort(o));
     if (unitPrice) Object.assign(out, unitPrice.sanitizeUnit(o));

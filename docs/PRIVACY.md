@@ -1,20 +1,18 @@
 # Privacy (Chrome Web Store)
 
-Ingredient Check scores grocery labels on Amazon, and as a preview on Target, **on your computer**. By default three things go online: a request for the certification tables of the shared database, a settings backup to your own Chrome account, and — to put a number on every search result — requests for product pages to Amazon itself. All three can be switched off. Sharing product readings with other computers is off until you turn it on.
+Ingredient Check scores grocery labels on Amazon, and as previews on Target, Walmart, Costco, Instacart and eleven additional grocery banners, **on your computer**. By default, settings backup uses your Chrome profile storage; Chrome syncs it to your own account when browser sync is enabled. Automatic search rating, owner-kept certification lookups, and on-device label OCR are enabled by default. Barcode lookup is recommended and checked in setup but requires Chrome’s optional permission. Diagnostics and sharing product readings stay off. Backup can also be switched off.
 
 This page is the one-screen note for a store listing. Settings copy and [DIAGNOSTICS.md](DIAGNOSTICS.md) say the same things at more length.
 
 ## What the extension reads
 
-On Amazon product, search, browse, and store pages it already has permission to run on, it reads the product title, department crumbs, published ingredient text, nutrition table, barcode/ASIN, and (if you turn the option on) the product image URL already on the page.
+On Amazon product, search, browse, and store pages it already has permission to run on, it reads the product title, department crumbs, published ingredient text, nutrition table, barcode/ASIN, and (unless you switch label OCR off) the product image URL already on the page.
 
 It does not read your Amazon password, payment details, cart, orders, or account pages. Content scripts are not injected there.
 
-On Target (preview) it reads the same kind of thing from the product page you have open: the title,
-the breadcrumbs, and the *Label info* section with the ingredient list and nutrition numbers. On a
-Target search page it reads the product id and title of each result, to show scores you already
-have. The content script is matched only on Target product (`/p/…`) and search (`/s…`) routes; it
-does not run on cart, checkout, account, order or login pages.
+Retailer previews read the product title, published ingredients, allergen warnings, nutrition and product identity on narrowly scoped public product/search pages. With **Rate every search result** enabled (the default), they request each uncached result’s public product page on the same origin, without cookies (`credentials: omit`). Two requests run concurrently; the existing speed setting caps requests at 20–60 per search page. Requests stop on recognized challenges or rate-limit responses; no internal retailer APIs or access controls are bypassed. Missing labels remain unknown. Turning automatic rating off uses saved local scores only.
+
+These previews do not share readings, call barcode/OCR services, or upload product data to Google. Only public apex/www product/search routes are matched. Account, order, cart and checkout pages are outside those routes.
 
 ## Access to Amazon
 
@@ -55,9 +53,9 @@ Scoring is always local: the rules, your weights and every score are computed in
 
 | Feature | What is sent | Who sees it |
 |---|---|---|
-| **Shared online database** (on by default; off in settings) | A request for the certification tables (organic, grass-fed, origin), a few times a day. Nothing about the products you look at. | The Ingredient Check Apps Script, which keeps a **private** spreadsheet (nobody can open it). |
+| **Shared online database** (on by default; can be disabled in settings) | A request for the certification tables (organic, grass-fed, origin), a few times a day. Nothing about the products you look at. | The Ingredient Check Apps Script, which keeps a **private** spreadsheet (nobody can open it). |
 | **Share product readings with other computers** (off by default; experimental) | The store and product IDs of search tiles this computer cannot already answer (one batched request per page), and of a product page whose ingredients Amazon did not publish as text. For products you score: what was read off the page — ingredient text, title, feature bullets, certifications, nutrition numbers, how it was read — and when. One pull count when a shared read is used. Never your settings, your scores, or anything that identifies you. Readings from other computers are not checked, so a badge could show a score for text that is not on the label (product pages you open are always read from the page). | The Ingredient Check Apps Script, as above. It learns which products are being looked at, not by whom. See [CACHE.md](CACHE.md). |
-| **Back up my settings** (on by default) | Weights, allergen and diet choices, avoid list, toggles | Chrome's own sync, for the Google account signed into Chrome. Not the Ingredient Check database. |
+| **Back up my settings** (on by default) | Weights, goals and their importance, allergen and diet choices, avoid list, toggles, sort, speed and display preferences | Chrome's own sync, for the Google account signed into Chrome. Not the Ingredient Check database. |
 | **Sign in with Google** (only when you click it) | A Google access token (checked with Google, never stored) and the same settings | The Ingredient Check database, keyed by a SHA-256 of your Google account id — not your email. |
 | **Rate every search result** (on by default) or **Score on hover** | Ordinary `GET` of `/dp/ASIN` on the Amazon store you are on, using your Amazon session (`credentials: same-origin`), three at a time and at most 60 per results page — only for tiles this computer and the shared database cannot already answer | **Amazon.** Each auto-scored or hovered tile looks like you opened that product. See *Access to Amazon* above. |
 | **Sort menu → Rate them** (the default sort setting; only when *Rate every search result* is on) | After you choose an Ingredient Check option in Amazon's sort menu: the same product-page `GET`s as *Rate every search result*, for listings in the list without a score. They go through the same queue as the badges: three at a time in total, never twice for one product, paused for both when Amazon refuses, and inside the same limit — 60 product pages (fewer under *Speed*) for each Amazon results page in the list, counting the ones the badges already requested. It stops at that limit or when you press *Stop rating* | **Amazon**, as above. |
@@ -68,7 +66,7 @@ Scoring is always local: the rules, your weights and every score are computed in
 | **Read label photos** | Fetch of the product image on `m.media-amazon.com` | The image is read **on your computer** (Tesseract). The pixels are not uploaded. |
 | **Open Food Facts fallback** | The **barcode only** | Open Food Facts, after Chrome grants the host. |
 | **Send certifications** / "Looks wrong?" | Product identifiers and certification text; a report adds what the score was | The Ingredient Check database. |
-| **Report a problem or suggest an improvement** (only when you attach the file and send the draft yourself) | Nothing from the extension. Your email app sends what you wrote, and the report file if you attach it: a screenshot of the Amazon or Target tab you were on (no other tab is captured), that page's address (path and search term only), its score and the side panel list, your Ingredient Check settings, your recent clicks in the extension, and the extension and browser version. Every part is shown first and can be left out | The maintainer, by email from your address. See *Reporting a problem* below. |
+| **Report a problem or suggest an improvement** (only when you attach the file and send the draft yourself) | Nothing from the extension. Your email app sends what you wrote, and the report file if you attach it: a screenshot of the Amazon or a retailer preview tab you were on (no other tab is captured), that page's address (path and search term only), its score and the side panel list, your Ingredient Check settings, your recent clicks in the extension, and the extension and browser version. Every part is shown first and can be left out | The maintainer, by email from your address. See *Reporting a problem* below. |
 | **Request a store** (only when you open the draft and send it yourself) | Nothing from the extension. Your email app sends the store name and optional site address, if you press Send | The maintainer, by email from your address. See *Requesting a store* below. |
 | **Accuracy diagnostics** (off by default) | One row per scored product (ASIN, store, ingredient text, score, source) | The Ingredient Check database. That is a trace of products you scored — with auto-score on, of tiles that scrolled into view. |
 
@@ -81,7 +79,7 @@ There is no Ingredient Check account, no analytics SDK, and no third-party ad or
 ## Reporting a problem or suggesting an improvement
 
 The toolbar popup has **Report a problem or suggest an improvement**. When the tab you are on is an
-Amazon or Target page, clicking it takes a screenshot of that tab (Chrome allows this only right after
+Amazon or a retailer preview page, clicking it takes a screenshot of that tab (Chrome allows this only right after
 you click the toolbar button, which is what the `activeTab` permission is for; it grants nothing on any
 other tab or at any other time). On any other tab — your email, your bank — it takes no screenshot and
 notes no address; you can add an image yourself. Then it opens a report page. That page shows
@@ -92,7 +90,7 @@ everything that would be included:
 - the page's address, cut to its path and search term, the score shown for it, and a summary of the
   side panel list (option, how many listings, how many with a score or a price per ounce, its status)
 - your Ingredient Check settings, read through the same checks the extension uses: switches, weights,
-  goals, allergens, diets, avoid list, sort and speed settings, and how many scores are cached. Never
+  goals and how much each counts, allergens, diets, avoid list, sort and speed settings, and how many scores are cached. Never
   the cached scores themselves, a sign-in token, queued diagnostics, or anything another page stored
 - your recent clicks in the extension this browser session (up to 60 short lines, such as "popup:
   autoScoreSearch off" or "Amazon sort menu: chose Price per ounce on /s"), kept in memory only
@@ -130,4 +128,18 @@ browser session only, gone when Chrome closes.
 
 ## Single purpose
 
-Help you read grocery ingredient lists on Amazon and, as a preview, Target. Network hosts are Amazon (the page itself), Google (the Ingredient Check Apps Script, Chrome sync, and sign-in if you use it), and Open Food Facts (barcode lookup you grant).
+Help you read grocery ingredient lists on Amazon and, as previews, Target, Walmart and Costco. Network hosts are Amazon (the page itself), Google (the Ingredient Check Apps Script, Chrome sync, and sign-in if you use it), and Open Food Facts (barcode lookup you grant).
+
+
+## Google and Chrome profile sign-in
+
+Chrome profile sign-in is managed by Chrome itself; settings includes a link to Chrome profile settings.
+The separate Google save/restore flow requests the optional `identity` permission only when you use it.
+It requests the `openid` scope and selects a Google account for one operation. Tokens stay in memory
+and are not saved in extension storage, reports, backups, or the account spreadsheet. OAuth client IDs
+are public configuration, stored locally and excluded from backups. Google backups are keyed by a
+hash of the verified account ID and contain settings, not your email, browsing cookies, or product cache.
+
+## Grocery retailer previews
+
+Target, Walmart, Costco, Instacart, Kroger, Fry’s, Ralphs, King Soopers, Smith’s, Fred Meyer, QFC, Harris Teeter, Dillons, Safeway and Albertsons use the shared local-scoring runner described above. Store adapters identify each current product and search card before accepting a label. Scores are kept in local storage. The same-site public-page requests are visible to the retailer and carry your normal browser connection metadata, but omit cookies. Costco Same-Day is outside scope. New content-script sites may cause Chrome to request approval of site access when updating.

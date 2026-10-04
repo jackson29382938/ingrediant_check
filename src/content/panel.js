@@ -259,7 +259,7 @@
       ${flagsHTML(result.flags, !!result.selectedAllergens?.length)}
       ${provenanceHTML(result.provenance, meta)}
       <div class="body" id="air-panel-details">
-        ${caps.length ? `<h4>${esc(t('headDisqualifying', 'Disqualifying'))}</h4>${rowsHTML(caps, 'minus')}` : ''}
+        ${caps.length ? `<h4>${esc(t('headDisqualifying', 'Score limits'))}</h4>${rowsHTML(caps, 'minus')}` : ''}
         ${plus.length ? `<h4>${esc(t('headGood', "What's good"))}</h4>${rowsHTML(plus, 'plus')}` : ''}
         ${minus.length ? `<h4>${esc(t('headHurt', 'What hurt'))}</h4>${rowsHTML(minus, 'minus')}` : ''}
         ${neutral.length ? `<h4>${esc(t('headNeutral', 'Not counted against it'))}</h4>${rowsHTML(neutral, 'plus')}` : ''}
@@ -322,7 +322,7 @@
       const top = (rows, n) => (compact ? rows.slice().sort((a, b) => Math.abs(b.c) - Math.abs(a.c)).slice(0, n) : rows);
       body = `${flagsHTML(result.flags, !!result.selectedAllergens?.length)}
         ${compact ? '' : provenanceHTML(result.provenance, meta)}
-        ${caps.length ? `<h4>${esc(t('headDisqualifying', 'Disqualifying'))}</h4>${rowsHTML(caps, 'minus')}` : ''}
+        ${caps.length ? `<h4>${esc(t('headDisqualifying', 'Score limits'))}</h4>${rowsHTML(caps, 'minus')}` : ''}
         ${plus.length ? `<h4>${esc(t('headGood', "What's good"))}</h4>${rowsHTML(top(plus, 3), 'plus')}` : ''}
         ${minus.length ? `<h4>${esc(t('headHurt', 'What hurt'))}</h4>${rowsHTML(top(minus, 5), 'minus')}` : ''}
         ${!compact && neutral.length ? `<h4>${esc(t('headNeutral', 'Not counted against it'))}</h4>${rowsHTML(neutral, 'plus')}` : ''}

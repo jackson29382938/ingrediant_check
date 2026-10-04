@@ -48,16 +48,21 @@
   );
   const isRelevantPage = () => isProductPage() || isListPage();
 
-  // Cheap fingerprint of published ingredient text so a settled score can detect late NIC hydration
-  // without re-running the full extract on every Amazon ad mutation.
+  // Read all published scoring evidence, including late Nutrition Facts hydration. Keeping the
+  // complete text matters: additives near the end of a long list must invalidate a settled score.
+  // This avoids running extraction on unrelated ad mutations while retaining every label change.
   function ingredientSig(doc = document) {
     try {
-      const el = doc.querySelector(
-        '#nic-ingredients-content, #important-information, #productFactsDesktop_feature_div, '
-        + '[data-a-expander-name="ingredient_text"], .a-expander-content'
-      );
-      const t = el && (el.innerText || '').replace(/\s+/g, ' ').trim();
-      return t ? t.slice(0, 320) : '';
+      const selectors = [
+        '#nic-ingredients-content', '#important-information', '#productFactsDesktop_feature_div',
+        '#nutritionalInfoAndIngredients_feature_div', '[id^="nutritionalInfoAndIngredientsEU_feature_div"]',
+        '.nicDesktop', '[data-a-expander-name="ingredient_text"]', '.a-expander-content',
+        '#nic-nutrition-facts-content', '#nic-nutrition-summary-serving',
+        '#nic-diet-type-logos-wrapper', '[id^="nic-allergens-"]', '#feature-bullets', '#productTitle',
+      ];
+      const nodes = doc.querySelectorAll(selectors.join(', '));
+      const texts = [...nodes].map(el => (el.innerText || '').replace(/\s+/g, ' ').trim()).filter(Boolean);
+      return texts.length ? JSON.stringify(texts) : '';
     } catch (e) { return ''; }
   }
 

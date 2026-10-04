@@ -1,0 +1,292 @@
+[
+  {
+    "name": "amazon-us-product",
+    "url": "https://www.amazon.com/dp/B0DX45213W",
+    "checked": "2026-10-01T20:17:53.336Z",
+    "http": 200,
+    "title": "Lifeway Organic Whole Milk Kefir, Plain, 8 Fl Oz, 10g Protein, 12 Live Active Cultures",
+    "panelState": "scored",
+    "extracted": {
+      "ok": true,
+      "asin": "B0DX45213W",
+      "upc": "017077085083",
+      "title": "Lifeway Organic Whole Milk Kefir, Plain, 8 Fl Oz, 10g Protein, 12 Live Active Cultures",
+      "brand": "Lifeway",
+      "certifications": "USDA Organic, Kosher, Vegetarian, Gluten Free",
+      "labels": "12 Live and Active Probiotic Cultures USDA Certified Organic, Oregon Tilth Certified Organic Lactose Free, Gluten Free High in Protein, Excellent Source of Calcium and Vitamin D",
+      "nutrition": null,
+      "ingestible": {
+        "ok": true,
+        "score": 16,
+        "kind": "nutritionCard",
+        "reason": "Amazon's grocery nutrition and ingredients card is present",
+        "positives": [
+          "nutritionCard",
+          "foodDept",
+          "edibleWords",
+          "edibleFood"
+        ],
+        "negatives": []
+      },
+      "text": "B, BREVE, B, LACTIS, B, LONGUM, L, ACIDOPHILUS, L, CASEI, L, CREMORIS, L, LACTIS, L, PLANTARUM, L, REUTERI, L, RHAMNOSUS, S, DIACETYLACTIS, S, FLORENTINUS, PASTEURIZED ORGANIC MILK, ORGANIC NONFAT MILK, PECTIN, LACTASE ENZYME, VITAMIN D3, CULTURES",
+      "advisoryText": "",
+      "via": "nic-ingredients-content",
+      "confidence": 0.98
+    }
+  },
+  {
+    "name": "amazon-us-search",
+    "url": "https://www.amazon.com/s?k=organic+oats",
+    "checked": "2026-10-01T20:17:56.729Z",
+    "http": 503,
+    "title": "",
+    "panelState": null,
+    "extracted": {
+      "ok": false,
+      "asin": null,
+      "upc": null,
+      "title": "Sorry! Something went wrong!",
+      "brand": "",
+      "certifications": "",
+      "labels": "",
+      "nutrition": null,
+      "ingestible": {
+        "ok": false,
+        "score": 0,
+        "kind": "unknown",
+        "reason": "No evidence this is food, a supplement, or otherwise ingestible",
+        "positives": [],
+        "negatives": []
+      },
+      "reason": "not-ingestible"
+    }
+  },
+  {
+    "name": "amazon-uk-product",
+    "url": "https://www.amazon.co.uk/dp/B0168UUHQ2",
+    "checked": "2026-10-01T20:17:58.902Z",
+    "http": 200,
+    "title": "Jordans Granola Crunchy Simply Oat Breakfast Cereal - British Baked Source of Fibre Cereal - No Artificial Flavours or Preservatives - 750g (Pack of 4 x 750g)",
+    "panelState": "scored",
+    "extracted": {
+      "ok": true,
+      "asin": "B0168UUHQ2",
+      "upc": null,
+      "title": "Jordans Granola Crunchy Simply Oat Breakfast Cereal - British Baked Source of Fibre Cereal - No Artificial Flavours or Preservatives - 750g (Pack of 4 x 750g)",
+      "brand": "JORDANS",
+      "certifications": "Vegetarian",
+      "labels": "GOLDEN CRUNCHY OAT GRANOLA: Start your day with a golden blend of wholegrain oats, rolled in honey and seeds, oven-baked for natural sweetness and a crunchy texture in every spoonful of this breakfast cereal SOURCE OF FIBRE GRANOLA CEREAL: A nutritious mix of oats and seeds is designed to support digestion VERSATILE HEALTHY GRANOLA SNACK: Enjoy this with milk or yoghurt or sprinkled over smoothie bowls - This healthy cereal comes in a family-friendly multi-pack, ideal for stocking up and sharing FREE FROM ARTIFICIAL FLAVOURS: Free from artificial flavours and preservatives - Suitable for vegetarians and those seeking a wholesome cereal BRITISH-MADE GRANOLA CEREAL: Carefully produced in the UK to ensure freshness, quality and delicious taste in every pack of these Jordans Cereal",
+      "nutrition": null,
+      "ingestible": {
+        "ok": true,
+        "score": 15,
+        "kind": "nutritionCard",
+        "reason": "Amazon's grocery nutrition and ingredients card is present",
+        "positives": [
+          "nutritionCard",
+          "foodDept",
+          "foodForm",
+          "edibleWords"
+        ],
+        "negatives": []
+      },
+      "text": "Wholegrain OAT flakes (81%), sugar, vegetable oil rapeseed and sunflower in varying proportions, honey (1%), sunflower seeds, natural flavouring",
+      "advisoryText": "",
+      "via": "nic-ingredients-content",
+      "confidence": 0.98
+    }
+  },
+  {
+    "name": "amazon-uk-search",
+    "url": "https://www.amazon.co.uk/s?k=organic+oats",
+    "checked": "2026-10-01T20:18:02.340Z",
+    "http": 202,
+    "title": "",
+    "panelState": null,
+    "extracted": {
+      "ok": false,
+      "asin": null,
+      "upc": null,
+      "title": "500 - Amazon.co.uk",
+      "brand": "",
+      "certifications": "",
+      "labels": "",
+      "nutrition": null,
+      "ingestible": {
+        "ok": false,
+        "score": 0,
+        "kind": "unknown",
+        "reason": "No evidence this is food, a supplement, or otherwise ingestible",
+        "positives": [],
+        "negatives": []
+      },
+      "reason": "not-ingestible"
+    }
+  },
+  {
+    "name": "amazon-ca-product",
+    "url": "https://www.amazon.ca/dp/B08KQM8K62",
+    "checked": "2026-10-01T20:18:04.629Z",
+    "http": 500,
+    "title": "",
+    "panelState": null,
+    "extracted": {
+      "ok": false,
+      "asin": "B08KQM8K62",
+      "upc": null,
+      "title": "503 - Service Unavailable Error",
+      "brand": "",
+      "certifications": "",
+      "labels": "",
+      "nutrition": null,
+      "ingestible": {
+        "ok": false,
+        "score": 0,
+        "kind": "unknown",
+        "reason": "No evidence this is food, a supplement, or otherwise ingestible",
+        "positives": [],
+        "negatives": []
+      },
+      "reason": "not-ingestible"
+    }
+  },
+  {
+    "name": "amazon-ca-search",
+    "url": "https://www.amazon.ca/s?k=organic+oats",
+    "checked": "2026-10-01T20:18:37.038Z",
+    "http": 503,
+    "title": "",
+    "panelState": null,
+    "extracted": {
+      "ok": false,
+      "asin": null,
+      "upc": null,
+      "title": "500 - Amazon.ca",
+      "brand": "",
+      "certifications": "",
+      "labels": "",
+      "nutrition": null,
+      "ingestible": {
+        "ok": false,
+        "score": 0,
+        "kind": "unknown",
+        "reason": "No evidence this is food, a supplement, or otherwise ingestible",
+        "positives": [],
+        "negatives": []
+      },
+      "reason": "not-ingestible"
+    }
+  },
+  {
+    "name": "target-product",
+    "url": "https://www.target.com/p/organic-old-fashioned-oats-18oz-good-38-gather-8482/-/A-79364857",
+    "checked": "2026-10-01T20:18:39.177Z",
+    "http": 200,
+    "title": "Organic Old Fashioned Oats - 18oz - Good & Gather™",
+    "panelState": "scored",
+    "extracted": {
+      "id": "79364857",
+      "title": "Organic Old Fashioned Oats - 18oz - Good & Gather™",
+      "crumbs": [
+        "Grocery",
+        "Breakfast & Cereal",
+        "Cereal",
+        "Oatmeal"
+      ],
+      "label": "collapsed",
+      "ingredients": "",
+      "labelText": "Label info",
+      "nutrition": null
+    }
+  },
+  {
+    "name": "target-search",
+    "url": "https://www.target.com/s?searchTerm=organic+oats",
+    "checked": "2026-10-01T20:18:48.499Z",
+    "http": 200,
+    "title": "organic oats",
+    "panelState": null,
+    "extracted": {
+      "id": "",
+      "title": "\"organic oats\"",
+      "crumbs": [],
+      "label": "missing",
+      "ingredients": "",
+      "labelText": "",
+      "nutrition": null
+    }
+  },
+  {
+    "name": "amazon-de-product",
+    "url": "https://www.amazon.de/dp/B0168UUHQ2",
+    "checked": "2026-10-01T20:18:52.469Z",
+    "http": 503,
+    "title": "",
+    "panelState": null,
+    "extracted": {
+      "ok": false,
+      "asin": "B0168UUHQ2",
+      "upc": null,
+      "title": "500 - Amazon.de",
+      "brand": "",
+      "certifications": "",
+      "labels": "",
+      "nutrition": null,
+      "ingestible": {
+        "ok": false,
+        "score": 0,
+        "kind": "unknown",
+        "reason": "No evidence this is food, a supplement, or otherwise ingestible",
+        "positives": [],
+        "negatives": []
+      },
+      "reason": "not-ingestible"
+    }
+  },
+  {
+    "name": "target-product",
+    "url": "https://www.target.com/p/organic-old-fashioned-oats-18oz-good-38-gather-8482/-/A-79364857",
+    "checked": "2026-10-01T20:25:19.830Z",
+    "http": 200,
+    "title": "Organic Old Fashioned Oats - 18oz - Good & Gather™",
+    "panelState": "scored",
+    "extracted": {
+      "id": "79364857",
+      "title": "Organic Old Fashioned Oats - 18oz - Good & Gather™",
+      "crumbs": [
+        "Grocery",
+        "Breakfast & Cereal",
+        "Cereal",
+        "Oatmeal"
+      ],
+      "label": "open",
+      "ingredients": "Organic Whole Grain Rolled Oats.",
+      "labelText": "Label info Serving Size: 1/2 cup Serving Per Container: about 13 Amount Calories: 150 % Daily Value* Total Fat 2.5g 3% Saturated Fat 0.5g 3% Trans Fat 0g Polyunsaturated Fat 1g Monounsaturated Fat 1g Cholesterol 0mg 0% Sodium 0mg 0% Total Carbohydrate 27g 10% Dietary Fiber 4g 14% Soluble Fiber 2g Insoluble Fiber 2g Sugars 0g Added Sugars 0g 0% Protein 5g Vitamin D 0mcg 0% Calcium 20mg 2% Iron 1.4mg 8% Potassium 130mg 2% * Percentage of Daily Values are based on a 2,000 calorie diet. Show all nutritional info Ingredients: Organic Whole Grain Rolled Oats. Allergens & Warnings: CAUTION: BOWL WILL BE HOT., MAY CONTAIN WHEAT",
+      "nutrition": {
+        "saturatedFat": 0.5,
+        "sodium": 0,
+        "fibre": 4,
+        "sugar": 0,
+        "addedSugar": 0,
+        "protein": 5
+      }
+    }
+  },
+  {
+    "name": "target-search",
+    "url": "https://www.target.com/s?searchTerm=organic+oats",
+    "checked": "2026-10-01T20:25:28.904Z",
+    "http": 200,
+    "title": "organic oats",
+    "panelState": null,
+    "extracted": {
+      "id": "",
+      "title": "\"organic oats\"",
+      "crumbs": [],
+      "label": "missing",
+      "ingredients": "",
+      "labelText": "",
+      "nutrition": null
+    }
+  }
+]

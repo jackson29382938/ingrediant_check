@@ -11,12 +11,12 @@ const score = (text, goals) => engine.score({ ingredients_text: text }, { weight
 const row = (r, re) => [...r.good, ...r.bad].find(h => re.test(h.why));
 const KEFIR = 'Cultured pasteurized lowfat milk, cane sugar, natural flavors, pectin, vitamin A palmitate, vitamin D3';
 
-test('Weight loss: fat-reduced dairy becomes a big plus, natural flavors barely count', () => {
+test('Weight loss: fat-reduced dairy becomes a modest plus, natural flavors barely count', () => {
   const plain = score(KEFIR, []);
   const cut = score(KEFIR, ['weightLoss']);
-  assert.ok(row(plain, /^Fat-reduced dairy/).c < 0);
+  assert.equal(row(plain, /^Fat-reduced dairy/), undefined, 'neutral by default');
   const dairy = row(cut, /^Fat-reduced dairy/);
-  assert.ok(dairy.c >= 12, `fat-reduced dairy should be a big plus, got ${dairy.c}`);
+  assert.ok(dairy.c >= 6 && dairy.c <= 10, `fat-reduced dairy should be a modest plus, got ${dairy.c}`);
   assert.match(dairy.why, /a plus for your goals/);
   assert.ok(Math.abs(row(cut, /Natural flavors/).c) <= 3, 'natural flavors nearly off');
   assert.ok(Math.abs(row(plain, /Natural flavors/).c) >= 10);
@@ -42,7 +42,8 @@ test('fat-reduced dairy still counts when it leads, or only milk fractions or pl
   for (const text of ['Cultured pasteurized nonfat milk, live cultures', 'Skim milk, vitamin A palmitate, vitamin D3',
     'Water, milk protein concentrate, nonfat milk, sucralose', 'Oat milk, nonfat milk, coffee', 'Whey protein, nonfat dry milk, cocoa']) {
     assert.ok(row(score(text, ['weightLoss']), /^Fat-reduced dairy — a plus/), text);
-    assert.ok(row(score(text, []), /^Fat-reduced dairy/).c < 0, text);
+    assert.equal(row(score(text, []), /^Fat-reduced dairy/), undefined, text);
+    assert.ok(row(engine.score({ingredients_text:text},{weights:{reducedFatDairy:1}}), /^Fat-reduced dairy/).c < 0, text);
   }
 });
 
@@ -126,4 +127,51 @@ test('toggling and describing goals; goals travel with exports', () => {
   const exported = prefs.exportPayload({ weights: C.goalWeights(g), goals: [...g, 'nope'] });
   assert.deepEqual(exported.goals, g);
   assert.deepEqual(prefs.parseImport(JSON.stringify(exported)).prefs.goals, g);
+});
+
+test('goals can be weighted: the one that counts more wins where they disagree; 1 each is a plain average', () => {
+  const g = ['weightLoss', 'generalWellbeing'];
+  // naturalFlavour: Weight loss 0.15, General wellbeing 1.2.
+  assert.deepEqual(C.goalWeights(g, {}), C.goalWeights(g), 'no importance is 1 each');
+  assert.deepEqual(C.goalWeights(g, { weightLoss: 1, generalWellbeing: 1 }), C.goalWeights(g));
+  assert.ok(Math.abs(C.goalWeights(g).naturalFlavour - (0.15 + 1.2) / 2) < 0.001);
+  const leanLoss = C.goalWeights(g, { weightLoss: 3 });
+  assert.ok(Math.abs(leanLoss.naturalFlavour - (0.15 * 3 + 1.2) / 4) < 0.001, `weighted 3:1 → ${leanLoss.naturalFlavour}`);
+  const leanWell = C.goalWeights(g, { generalWellbeing: 3 });
+  assert.ok(leanWell.naturalFlavour > C.goalWeights(g).naturalFlavour && leanLoss.naturalFlavour < C.goalWeights(g).naturalFlavour);
+  // A dial only one goal sets keeps that goal's value, whatever the weights.
+  const only = Object.keys(C.PRESETS.weightLoss.weights).find(k => !(k in C.PRESETS.generalWellbeing.weights));
+  if (only) assert.equal(C.goalWeights(g, { weightLoss: 0.25 })[only], C.goalWeights(g)[only]);
+  // A focused dial is still decided by its focused goal alone.
+  assert.equal(C.goalWeights(['vitamins', 'weightLoss'], { weightLoss: 4 }).fortification, -1.5);
+  // Scores follow: the goal that counts more pulls the score its way.
+  const text = 'oats, natural flavors';
+  const s = w => engine.score({ ingredients_text: text }, { weights: C.goalWeights(g, w) }).score;
+  assert.ok(s({ weightLoss: 4 }) >= s({}) && s({}) >= s({ generalWellbeing: 4 }));
+});
+
+test('goal importance is sanitised, saved, exported and matched', () => {
+  assert.deepEqual(C.sanitizeGoalImportance({ weightLoss: 9, vitamins: 0.01, nope: 2, generalWellbeing: 1, strength: 'x' }),
+    { weightLoss: C.IMPORTANCE_MAX, vitamins: C.IMPORTANCE_MIN });
+  assert.deepEqual(C.sanitizeGoalImportance(null), {});
+  const imp = { weightLoss: 2 };
+  const g = ['weightLoss', 'generalWellbeing'];
+  const clean = prefs.sanitizeScoring({ weights: C.goalWeights(g, imp), goals: g, goalImportance: imp });
+  assert.deepEqual(clean.goalImportance, imp);
+  assert.deepEqual(prefs.exportPayload(clean).goalImportance, imp);
+  assert.deepEqual(prefs.parseImport(JSON.stringify(prefs.exportPayload(clean))).prefs.goalImportance, imp);
+  // The weighted weights still read as those goals, not Custom; the plain average does not match them.
+  assert.deepEqual(C.describeGoals(C.goalWeights(g, imp), g, imp), { ids: g, custom: false });
+  assert.equal(C.describeGoals(C.goalWeights(g), g, imp).custom, true);
+  // The Chrome backup carries the goals and their weights.
+  const back = prefs.parseBackup(prefs.backupPayload(clean));
+  assert.deepEqual([back.values.goals, back.values.goalImportance], [g, imp]);
+});
+
+test('Balanced is a baseline, never a hidden extra goal in imports or labels', () => {
+  assert.deepEqual(C.sanitizeGoals(['balanced']), []);
+  assert.deepEqual(C.sanitizeGoals(['balanced', 'weightLoss', 'weightLoss']), ['weightLoss']);
+  assert.equal(C.goalsLabel(['balanced', 'weightLoss']), C.PRESETS.weightLoss.label);
+  assert.deepEqual(C.describeGoals(C.DEFAULT_WEIGHTS, ['balanced']), { ids: [], custom: false });
+  assert.deepEqual(C.goalWeights(['balanced', 'weightLoss']), C.goalWeights(['weightLoss']));
 });

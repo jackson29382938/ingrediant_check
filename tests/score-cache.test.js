@@ -70,13 +70,15 @@ test('fingerprints track weights, food gate, provenance revisions; OCR/OFF only 
   assert.equal(cache.fingerprint({ ocrLabels: true }), cache.fingerprint({}));
   assert.equal(cache.fingerprint({ useOpenFoodFacts: true }), cache.fingerprint({}));
   assert.notEqual(
-    cache.fingerprint({ ocrLabels: true }, 'label-ocr'),
+    cache.fingerprint({ ocrLabels: false }, 'label-ocr'),
     cache.fingerprint({}, 'label-ocr'));
-  assert.notEqual(cache.fingerprint({ ocrLabels: true }, 'ocr'), cache.fingerprint({}, 'ocr'));
+  assert.notEqual(cache.fingerprint({ ocrLabels: false }, 'ocr'), cache.fingerprint({}, 'ocr'));
   assert.notEqual(
-    cache.fingerprint({ useOpenFoodFacts: true }, 'open-food-facts'),
+    cache.fingerprint({ useOpenFoodFacts: false }, 'open-food-facts'),
     cache.fingerprint({}, 'open-food-facts'));
-  assert.equal(cache.fingerprint({ ocrLabels: true }, 'page'), cache.fingerprint({}, 'page'));
+  assert.equal(cache.fingerprint({ ocrLabels: false }, 'page'), cache.fingerprint({}, 'page'));
+  assert.equal(cache.fingerprint({ ocrLabels: true }, 'ocr'), cache.fingerprint({}, 'ocr'));
+  assert.equal(cache.fingerprint({ useOpenFoodFacts: true }, 'open-food-facts'), cache.fingerprint({}, 'open-food-facts'));
 });
 
 test('storedKeys lists keys without reading values when Chrome can, and falls back when it cannot', async () => {
@@ -101,13 +103,15 @@ test('listScores follows the speed setting age it is given', () => {
     'Fastest keeps 90 days, and the popup lists it');
 });
 
-test('listScores includes Amazon ASINs and Target TCINs only', () => {
+test('listScores includes Amazon and all retailer previews', () => {
   const target = { ...entry, store: 'target.com', asin: '1234567890', prefs: cache.fingerprint({}), t: now };
   const all = {
     [cache.key('amazon.com', 'B000000001')]: entry,
     [cache.key('target.com', '1234567890')]: target,
     [cache.key('target.com', '16600402')]: { ...target, asin: '16600402' },
+    [cache.key('walmart.com', '10314926')]: { ...target, store: 'walmart.com', asin: '10314926' },
+    [cache.key('costco.com', '100423971')]: { ...target, store: 'costco.com', asin: '100423971' },
   };
   const listed = cache.listScores(all, { version: context.version, prefs: {} }, now);
-  assert.deepEqual(listed.map(x => x.asin).sort(), ['1234567890', '16600402', 'B000000001']);
+  assert.deepEqual(listed.map(x => x.asin).sort(), ['100423971', '10314926', '1234567890', '16600402', 'B000000001']);
 });

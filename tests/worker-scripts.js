@@ -20,6 +20,7 @@ function workerScripts() {
 // Runs each worker script in the context, calling `before(file)` first so a test can set a constant
 // (a build endpoint) before the script that reads it.
 function loadWorker(vm, context, { before } = {}) {
+  if (!context.crypto) context.crypto = require('node:crypto').webcrypto;
   for (const file of workerScripts()) {
     if (before) before(file);
     vm.runInContext(fs.readFileSync(path.join(SRC, file), 'utf8'), context, { filename: file });

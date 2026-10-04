@@ -28,8 +28,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
     };
     // Toggling OCR / OFF must not retire DOM-extracted chips. Only entries produced by those
     // paths include the matching flag in the fingerprint.
-    if (source === 'label-ocr' || source === 'ocr') out.ocrLabels = raw.ocrLabels === true;
-    if (source === 'open-food-facts') out.useOpenFoodFacts = raw.useOpenFoodFacts === true;
+    if (source === 'label-ocr' || source === 'ocr') out.ocrLabels = AIR.db.prefs.sanitizeToggles(raw).ocrLabels;
+    if (source === 'open-food-facts') out.useOpenFoodFacts = AIR.db.prefs.sanitizeToggles(raw).useOpenFoodFacts;
     return JSON.stringify(out);
   }
 
@@ -46,12 +46,12 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
   }
 
   function parseKey(raw) {
-    const m = String(raw || '').match(/^s:([^:]+):([A-Z0-9]{6,12})$/i);
+    const m = String(raw || '').match(/^s:([^:]+):([A-Z0-9]{5,15})$/i);
     return m ? { store: m[1], asin: m[2].toUpperCase() } : null;
   }
 
   // maxAgeMs: the speed setting's age limit, as for valid().
-  const COMPARABLE_STORE = /^(?:amazon\.[a-z.]+|target\.com)$/;
+  const COMPARABLE_STORE = /^(?:amazon\.[a-z.]+|target\.com|walmart\.com|costco\.com)$/;
   function listScores(all, { version, prefs, maxAgeMs = TTL_MS } = {}, now = Date.now()) {
     const out = [];
     for (const [cacheKey, hit] of Object.entries(all || {})) {

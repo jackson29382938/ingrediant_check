@@ -29,7 +29,7 @@
 
 // OAuth client id for the optional Google sign-in; the same value as OAUTH_CLIENT_ID in prefs.js.
 // Empty turns account storage off.
-var OAUTH_CLIENT_ID = '';
+var OAUTH_CLIENT_ID = '483888107675-hofgo4a3uh1g2khv4hja9ci8nhama6tk.apps.googleusercontent.com';
 
 var DIAGNOSTIC_COLUMNS = ["ts","version","store","asin","upc","brand","product_name","source","via","confidence","gate","coverage","parsed","score","verdict","nova","base","cap","penalties","bonuses","flags","provenance","weights","ingredients"];
 
@@ -49,6 +49,33 @@ var ACCOUNT_MAX_CHARS = 20000;
 // Script Properties, not code, so opening product rows needs no redeploy and no code edit.
 function productsOpen() {
   return PropertiesService.getScriptProperties().getProperty('PRODUCTS_OPEN') === 'true';
+}
+
+// Owner-only maintenance: run these from the Apps Script editor, never via doPost.
+function closeSharedProducts() {
+  PropertiesService.getScriptProperties().deleteProperty('PRODUCTS_OPEN');
+}
+function purgeSharedProduct(store, asin) {
+  if (!/^amazon\.[a-z.]+$/.test(String(store)) || !/^[A-Z0-9]{10}$/.test(String(asin))) {
+    throw new Error('invalid product key');
+  }
+  closeSharedProducts();
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(15000)) throw new Error('busy; retry later');
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('products');
+    if (!sheet || sheet.getLastRow() < 2) return 0;
+    var keys = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
+    var removed = 0;
+    for (var i = keys.length - 1; i >= 0; i--) {
+      if (String(keys[i][0]) === store + ':' + asin) { sheet.deleteRow(i + 2); removed++; }
+    }
+    SpreadsheetApp.flush();
+    return removed;
+  } finally { lock.releaseLock(); }
+}
+function purgeHistoricalPolishReading() {
+  return purgeSharedProduct('amazon.pl', 'B00MCJ3180');
 }
 
 // One structured line per request, for measuring load during a pilot (docs/SETTINGS-SYNC.md,
@@ -243,14 +270,20 @@ function writeProducts(body) {
 
 // Google says who the token belongs to; the row is keyed by a hash of that id, never the email.
 function accountId(token) {
-  if (!OAUTH_CLIENT_ID) throw new Error('accounts are not configured');
+  var clientId = PropertiesService.getScriptProperties().getProperty('OAUTH_CLIENT_ID') || OAUTH_CLIENT_ID;
+  if (!clientId) throw new Error('accounts are not configured');
   if (typeof token !== 'string' || token.length < 20 || token.length > 4096) throw new Error('no token');
   var res = UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo?access_token=' + encodeURIComponent(token),
     { muteHttpExceptions: true });
   if (res.getResponseCode() !== 200) throw new Error('token rejected');
   var info = JSON.parse(res.getContentText());
   // A token issued to some other app must not open this user's row.
-  if ((info.aud !== OAUTH_CLIENT_ID && info.azp !== OAUTH_CLIENT_ID) || !info.sub) throw new Error('token rejected');
+  var audience = info.aud || info.azp;
+  if (audience !== clientId || (info.azp && info.azp !== clientId)
+      || typeof info.sub !== 'string' || !info.sub) throw new Error('token rejected');
+  if (info.expires_in != null && (!isFinite(Number(info.expires_in)) || Number(info.expires_in) <= 0)) {
+    throw new Error('token rejected');
+  }
   var digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, 'ingredient-check:' + info.sub);
   return digest.map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('');
 }

@@ -15,7 +15,7 @@ var PAGE_MESSAGE_TYPES = new Set([
   'logAction',
 ]);
 // Sent only by the settings page (settings-database.js, loaded by options.html alone), so only the
-// settings page may send them. The popup and the setup page have no control for any of them:
+// settings page may send them, with accountSave also allowed from onboarding:
 // flushing POSTs queued diagnostic rows (a trace of scored products), refreshSheet fetches the
 // shared database, and the account pair carries a Google token and overwrites local settings.
 // The housekeeping alarm and a full diagnostics batch flush from inside the worker; neither is a
@@ -26,10 +26,10 @@ var SETTINGS_MESSAGE_TYPES = new Set([
 ]);
 var OFFSCREEN_MESSAGE_TYPES = new Set(['ocrIdle']);
 var AMAZON_HOST = /(^|\.)amazon\.(com|co\.uk|ca|com\.au|ie|in|sg|ae|sa|de|fr|es|it|nl|se|pl|com\.be|com\.tr|com\.mx|com\.br|co\.jp)$/i;
-// Other stores (src/content/retailer.js) work on the page alone. The only thing their tabs may ask
-// the worker for is the toolbar badge; every network path above stays Amazon-only.
+// Retailer previews perform their public same-origin reads in the content script.
+// Their tabs may ask the worker only for toolbar badges; worker network paths stay Amazon-only.
 var RETAILER_MESSAGE_TYPES = new Set(['pageScore']);
-var RETAILER_HOST = /^www\.target\.com$/i;
+var RETAILER_HOST = /^(?:www\.)?(?:target\.com|walmart\.com|costco\.com|instacart\.com|kroger\.com|frysfood\.com|ralphs\.com|kingsoopers\.com|smithsfoodanddrug\.com|fredmeyer\.com|qfc\.com|harristeeter\.com|dillons\.com|safeway\.com|albertsons\.com)$/i;
 
 function isOwnExtension(sender) {
   const id = chrome.runtime && chrome.runtime.id;
@@ -75,6 +75,7 @@ function allowMessage(msg, sender) {
   if (PAGE_MESSAGE_TYPES.has(msg.type)) {
     return isAmazonTabSender(sender) || (RETAILER_MESSAGE_TYPES.has(msg.type) && isRetailerTabSender(sender));
   }
+  if (msg.type === 'accountSave' && extensionPagePath(sender) === '/src/options/welcome.html') return true;
   if (SETTINGS_MESSAGE_TYPES.has(msg.type)) return isOptionsPageSender(sender);
   if (OFFSCREEN_MESSAGE_TYPES.has(msg.type)) return isOffscreenSender(sender);
   if (msg.type === 'ping') return true;

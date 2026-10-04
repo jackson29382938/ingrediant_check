@@ -5,6 +5,28 @@
 const ONLINE = !!PREFS.endpoint();
 // The toggles this section owns. They go online, so they live here beside what they send.
 const DB_KEYS = ['sharedCache', 'sharedProducts', 'shareContributions', 'sendDiagnostics', 'settingsBackup'];
+let backupBusy = false;
+let chromeRestoreAvailable = false;
+let accountAvailable = false;
+
+function paintBackupControls() {
+  const restore = document.getElementById('restoreChrome');
+  if (restore) restore.disabled = backupBusy || !chromeRestoreAvailable;
+  for (const id of ['accountSave', 'accountLoad']) {
+    const element = document.getElementById(id);
+    if (element) element.disabled = backupBusy || !accountAvailable;
+  }
+  for (const id of ['oauthClientId', 'saveAccountSetup']) {
+    const element = document.getElementById(id);
+    if (element) element.disabled = backupBusy;
+  }
+}
+
+function setBackupBusy(on) {
+  backupBusy = on;
+  paintBackupControls();
+}
+
 
 function say(id, text, kind) {
   const el = document.getElementById(id);
@@ -19,7 +41,11 @@ function paintSharedProducts() {
   const main = document.getElementById('sharedCache');
   const box = document.getElementById('sharedProducts');
   if (!main || !box) return;
-  box.disabled = !ONLINE || !main.checked;
+  box.disabled = !PREFS.SHARED_PRODUCTS_ALLOWED || !ONLINE || !main.checked;
+  if (!PREFS.SHARED_PRODUCTS_ALLOWED) {
+    box.checked = false;
+    box.title = 'Shared product exchange is closed pending verification of trust controls.';
+  }
   const chip = box.closest('label');
   if (chip) chip.classList.toggle('disabled', box.disabled);
 }
@@ -95,86 +121,158 @@ function paintDiag() {
 // what is now stored first: the pagehide handler in settings.js saves that state on the way out,
 // and with the old values still in it, it wrote them straight back over the restore.
 function reloadWithStored() {
-  chrome.storage.local.get(['weights', 'allergens', 'diets', 'avoidList', 'foodOnly'], o => {
-    applyScoring(o);
-    flash(msg('optRestored', 'Restored'));
-    setTimeout(() => location.reload(), 400);
+  return new Promise(resolve => {
+    chrome.storage.local.get(['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly'], o => {
+      // A committed restore must never leave an old scoring state ready to write on pagehide.
+      // Reload immediately while the restore guard still suppresses that old write.
+      if (chrome.runtime.lastError) { location.reload(); resolve(); return; }
+      applyScoring(o);
+      flash(msg('optRestored', 'Restored'));
+      setTimeout(() => { location.reload(); resolve(); }, 400);
+    });
   });
 }
 
 function applyRestored(values) {
-  persist(values, ok => { if (ok) reloadWithStored(); });
+  return new Promise((resolve, reject) => {
+    persist(values, ok => {
+      if (!ok) { reject(new Error('storage-error')); return; }
+      reloadWithStored().then(resolve, reject);
+    });
+  });
 }
 
 function wireBackup() {
+  document.getElementById('openChromeProfile')?.addEventListener('click', () => {
+    chrome.tabs.create({ url: 'chrome://settings/people' }).catch(() => say('backupStatus', 'Could not open Chrome profile settings', 'error'));
+  });
   const restore = document.getElementById('restoreChrome');
   const sync = chrome.storage && chrome.storage.sync;
+  let paintVersion = 0;
   const paint = () => {
+    const version = ++paintVersion;
     if (!sync) { say('backupStatus', 'Chrome sync is not available here', 'error'); return; }
-    sync.get(PREFS.SYNC_KEYS, items => {
-      const got = PREFS.fromSyncItems(items || {});
-      if (restore) restore.disabled = !got.ok;
-      say('backupStatus', got.ok && got.ts ? `Last backup ${new Date(got.ts).toLocaleString()}` : 'No backup yet');
+    PREFS.readSync(sync).then(got => {
+      if (version !== paintVersion) return;
+      chromeRestoreAvailable = got.ok;
+      paintBackupControls();
+      chrome.storage.local.get('backupStatus', local => {
+        if (version !== paintVersion) return;
+        const failed = local.backupStatus && local.backupStatus.ok === false;
+        say('backupStatus', failed ? 'Latest backup failed. Your previous copy is retained; check Chrome sync and try changing a setting again.'
+          : got.reason === 'incomplete-backup' ? 'Chrome is still syncing this backup. Try again shortly.'
+          : got.ok && got.ts ? `Last backup ${new Date(got.ts).toLocaleString()}` : 'No backup yet', failed ? 'error' : '');
+      });
+    }).catch(() => {
+      if (version !== paintVersion) return;
+      chromeRestoreAvailable = false;
+      paintBackupControls();
+      say('backupStatus', 'Could not read your Chrome backup', 'error');
     });
   };
   paint();
-  if (sync && sync.onChanged) sync.onChanged.addListener(paint);
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'sync' || (area === 'local' && changes.backupStatus)) paint();
+  });
   if (restore) {
-    restore.addEventListener('click', () => {
-      sync.get(PREFS.SYNC_KEYS, items => {
-        const got = PREFS.fromSyncItems(items || {});
-        if (!got.ok) { say('backupStatus', 'No backup yet', 'error'); return; }
+    restore.disabled = true;
+    restore.addEventListener('click', async () => {
+      if (backupBusy || !sync) return;
+      setBackupBusy(true);
+      try {
+        const got = await PREFS.readSync(sync);
+        if (!got.ok) { say('backupStatus', got.reason === 'incomplete-backup' ? 'Backup is still syncing. Try again shortly.' : 'No readable backup yet', 'error'); return; }
         if (!window.confirm('Replace the settings on this computer with the copy from your Chrome account?')) return;
-        applyRestored(got.values);
-      });
+        await AIR.settingsRestore?.begin();
+        await applyRestored(got.values);
+      } catch (e) {
+        say('backupStatus', e.message === 'storage-error' ? 'Could not restore settings on this computer. Please try again.' : 'Could not read your Chrome backup', 'error');
+      } finally { AIR.settingsRestore?.complete(); setBackupBusy(false); }
     });
   }
   wireAccount();
 }
 
-// Optional Google sign-in. The token goes to the worker for one request and is never stored.
-function googleToken() {
-  return new Promise((resolve, reject) => {
-    const state = crypto.getRandomValues(new Uint32Array(2)).join('-');
-    const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-    url.search = new URLSearchParams({
-      client_id: PREFS.OAUTH_CLIENT_ID, response_type: 'token', scope: 'openid',
-      redirect_uri: chrome.identity.getRedirectURL(), prompt: 'select_account', state,
-    });
-    chrome.identity.launchWebAuthFlow({ url: url.href, interactive: true }, redirect => {
-      if (chrome.runtime.lastError || !redirect) { reject(new Error('cancelled')); return; }
-      const got = new URLSearchParams(new URL(redirect).hash.slice(1));
-      if (got.get('state') !== state || !got.get('access_token')) { reject(new Error('no-token')); return; }
-      resolve(got.get('access_token'));
-    });
-  });
-}
-
+// Sign-in is scoped to a single explicit save/restore. Tokens remain in memory only.
 function wireAccount() {
   const block = document.getElementById('accountBlock');
-  if (!block || !ONLINE || !PREFS.OAUTH_CLIENT_ID || !chrome.identity) return;
+  if (!block) return;
   block.hidden = false;
-  const run = (type, done) => {
-    say('accountStatus', 'Signing in…');
-    googleToken().then(token => {
-      say('accountStatus', type === 'accountSave' ? 'Saving…' : 'Loading…');
-      chrome.runtime.sendMessage({ type, token }, res => {
-        if (chrome.runtime.lastError || !res) { say('accountStatus', 'Could not reach the database', 'error'); return; }
-        done(res);
-      });
-    }, () => say('accountStatus', 'Sign-in cancelled', 'error'));
+  const save = document.getElementById('accountSave');
+  const load = document.getElementById('accountLoad');
+  const setup = document.getElementById('accountSetup');
+  const field = document.getElementById('oauthClientId');
+  let clientId = '';
+  const paint = () => {
+    accountAvailable = ONLINE && !!clientId;
+    paintBackupControls();
   };
-  document.getElementById('accountSave').addEventListener('click', () => run('accountSave', res =>
-    say('accountStatus', res.ok ? 'Saved to your Google account' : `Could not save — ${res.reason}`, res.ok ? '' : 'error')));
-  document.getElementById('accountLoad').addEventListener('click', () => {
-    if (!window.confirm('Replace the settings on this computer with the copy saved to your Google account?')) return;
-    run('accountLoad', res => {
-      if (!res.ok) {
-        say('accountStatus', res.reason === 'no-backup' ? 'Nothing saved to this account yet' : `Could not load — ${res.reason}`, 'error');
-        return;
-      }
-      reloadWithStored();
+  const read = () => chrome.storage.local.get('oauthClientId', o => {
+    if (chrome.runtime.lastError) {
+      clientId = ''; paint();
+      say('accountStatus', 'Could not read your Google sign-in configuration. Reload this page to retry.', 'error');
+      return;
+    }
+    clientId = PREFS.oauthClientId(o.oauthClientId) || PREFS.oauthClientId(PREFS.OAUTH_CLIENT_ID);
+    field.value = clientId;
+    setup.open = !clientId;
+    paint();
+    if (!ONLINE) say('accountStatus', 'The account database is not configured in this build.', 'error');
+    else if (!clientId) say('accountStatus', 'Google sign-in needs a registered OAuth client ID. Chrome profile backup works independently.');
+  });
+  const redirect = chrome.identity ? chrome.identity.getRedirectURL() : `https://${chrome.runtime.id}.chromiumapp.org/`;
+  document.getElementById('accountRedirect').textContent = 'Redirect address: ' + redirect;
+  document.getElementById('copyAccountRedirect').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(redirect);
+      say('accountStatus', 'Redirect address copied. Add it to the OAuth client’s authorized redirect URIs.');
+    } catch (e) {
+      say('accountStatus', 'Could not copy. Select and copy the redirect address shown above.', 'error');
+    }
+  });
+  document.getElementById('saveAccountSetup').addEventListener('click', () => {
+    if (backupBusy) return;
+    const id = PREFS.oauthClientId(field.value);
+    if (!id) { say('accountStatus', 'Enter a Google client ID ending in .apps.googleusercontent.com', 'error'); return; }
+    setBackupBusy(true); paint();
+    persist({ oauthClientId: id }, ok => {
+      setBackupBusy(false);
+      if (ok) { read(); say('accountStatus', 'Configuration saved. The database owner must configure this same client ID.'); }
+      else { paint(); say('accountStatus', 'Could not save sign-in configuration. Please try again.', 'error'); }
     });
+  });
+  read();
+  const run = async type => {
+    if (backupBusy || !ONLINE || !clientId) return;
+    setBackupBusy(true); paint(); say('accountStatus', 'Signing in…');
+    try {
+      // Request optional identity access directly from the button's user gesture.
+      if (!await chrome.permissions.request({ permissions: ['identity'] })) throw new Error('permission-denied');
+      const token = await AIR.googleAuth.token(chrome, clientId);
+      say('accountStatus', type === 'accountSave' ? 'Saving…' : 'Loading…');
+      if (type === 'accountLoad') await AIR.settingsRestore?.begin();
+      const res = await chrome.runtime.sendMessage({ type, token });
+      if (!res || !res.ok) throw new Error(res && res.reason || 'network');
+      if (type === 'accountLoad') await reloadWithStored();
+      else say('accountStatus', 'Saved to your Google account');
+    } catch (e) {
+      const messages = { cancelled: 'Sign-in cancelled. Your settings are unchanged.',
+        'permission-denied': 'Google sign-in permission was not granted.',
+        'auth-failed': 'Google sign-in could not start or complete. Register the redirect address in Configure Google sign-in and check the app’s test-user access.',
+        'invalid-redirect': 'Google returned an unexpected redirect. Check the registered redirect address.',
+        'no-token': 'Google did not return a valid sign-in token.',
+        'no-backup': 'Nothing saved to this Google account yet.',
+        'storage-error': 'Could not save settings on this computer. Please try again.',
+        'Error: accounts are not configured': 'The database owner must configure Google account storage before sign-in can save or restore.',
+        'Error: token rejected': 'The database did not accept this Google sign-in. Check that its OAuth client ID matches this extension.' };
+      say('accountStatus', messages[e.message] || 'Could not complete the account request. Check the OAuth client, database deployment, and connection.', 'error');
+    } finally { if (type === 'accountLoad') AIR.settingsRestore?.complete(); setBackupBusy(false); paint(); }
+  };
+  save.addEventListener('click', () => run('accountSave'));
+  load.addEventListener('click', () => {
+    if (backupBusy || !ONLINE || !clientId) return;
+    if (!window.confirm('Replace the settings on this computer with the copy saved to your Google account?')) return;
+    run('accountLoad');
   });
 }
 

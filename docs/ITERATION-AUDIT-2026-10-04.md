@@ -1,0 +1,24 @@
+# Extended parallel iteration — October 4, 2026
+
+Continued the five independent audit tracks from version 1.5.1, with the parent reviewing shared label reading, warning persistence, backup commits and combined checks. The requested iteration window started at 13:22 EDT (17:22 UTC) and runs for at least 20 minutes, including integration, regressions, browser checks and release validation.
+
+## Corrections
+
+- **Amazon:** search and cached readings preserve separately published allergen/advisory statements, including the actual Amazon UK `nic-allergens` widget. Product identity and redirects are checked before scoring/cache writes. Recycled search tiles cannot accept old asynchronous replies. Nutrition tables remain tied to their declared serving basis; ambiguous dual-column tables decline. Multi-paragraph ingredients stop at Directions/legal headings. Current page nutrition/warnings can supplement saved ingredients while retaining their original scan age, without uploading that mixed-age refresh.
+- **Target:** collapsed labels remain actionable when auxiliary text is present. Hidden variants and ambiguous nutrition quantities/panels are excluded. Complete ingredient paragraphs and separately declared Contains/May contain warnings remain distinct from scoring inputs. Beauty and pet department evidence reaches the food gate. Canonical/search identity checks handle contradictory and hidden variants.
+- **Walmart:** comparison symbols such as `<2%` cannot erase ingredient/allergen text. HTML comments are removed. Current-product boot identity/title cannot be mixed with stale DOM label/nutrition data. Parsed malformed product models fail closed. Search supports accessible names on image-only cards and excludes navigation/promotions.
+- **Costco:** accessible card titles belong to the same product link, not decorative or foreign-linked images. Recommendation/sponsored cards cannot suppress actual results. Observed direct Product JSON-LD URL provides an additional current-product identity guard; warehouse SKU is deliberately not confused with the URL product ID. Title preference follows observed product-description markup.
+- **Setup and settings:** Google/Chrome restores and OAuth configuration share an operation lock. Restores wait for pending writes, cancel old debounce timers and suppress pagehide writes. Failed startup reads cannot save defaults over prior preferences; setup offers retry. Failed restores unlock controls; stale backup status callbacks cannot overwrite a newer successful state.
+- **Shared code:** preserved advisory text roundtrips through product readings; legacy readings that dropped it are reread. Malformed or oversized warnings are not silently truncated into cached data. Label readers handle multiple paragraphs and semantic definition/table labels, ignore hidden/account/recommendation sections, reject contradictory canonicals, and keep negated allergen claims out of positive warnings. Warning-only hydration refreshes panels. Disabling Chrome backup during staging preserves the prior committed backup.
+
+## Public-page evidence and limits
+
+Ordinary public GETs succeeded without challenges for four Amazon examples (US chips, plain and strawberry kefir, UK granola), additional Walmart food products/search, Target shampoo/banana/search, and Costco protein bars/coffee/search. Each agent distinguished public extraction from synthetic regression fixtures. No challenges or internal retailer APIs were bypassed.
+
+Amazon UK’s separate May contain widget was verified after the extraction fix. Strawberry kefir’s ingredient field remains misleading title/spec text and declines honestly. Walmart’s sampled nested ingredient schema remained consistent; its image-only fallback was tested synthetically and in isolated Chrome DOM. Target’s initial labels remained collapsed or absent, and its initial search HTML had no rendered result tiles. Costco’s initial pages exposed product identity but no usable ingredient/nutrition declaration; live Chrome navigation failed proxy certificate trust, and TLS verification was kept enabled.
+
+Target, Walmart and Costco remain previews. Fixture/isolated-browser validation does not establish complete live shopping support. Google Console redirect registration and production account backup still require authenticated management access unavailable here. No new permissions, automatic sharing or personal-data collection were enabled.
+
+## Validation
+
+Targeted regressions cover label boundaries, allergen persistence, stale identity/async replies, serving-basis conflicts, restore/storage errors and permission/default behavior. All 768 Node tests, lint, preflight, packaging and the Chromium harness verify the integrated build. GitHub CI validates Node 20/22, lint and the Chrome harness; release validation confirms the notes, version, tag and uploaded ZIP agree.

@@ -47,6 +47,13 @@
                          text-transform: uppercase; color: #0f7b3f; }
   .preset-active-name { font-weight: 700; font-size: 14px; }
   .preset-active-name.is-custom { color: #565959; font-weight: 600; }
+  .goal-mix { margin: -6px 0 14px; padding: 10px 12px; border-radius: 8px; border: 1px solid #d5d9d9; }
+  .goal-mix-title { font-weight: 700; font-size: 13px; margin: 0 0 2px; }
+  .goal-mix-note { margin: 0 0 8px; }
+  .goal-mix-row { display: flex; align-items: center; gap: 10px; margin: 4px 0; flex-wrap: wrap; }
+  .goal-mix-row label { min-width: 150px; font-size: 13px; }
+  .goal-mix-row input[type=range] { flex: 1 1 160px; max-width: 280px; }
+  .goal-mix-row output { min-width: 3.5em; font-variant-numeric: tabular-nums; font-weight: 600; }
   .preset-cats { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
   .preset-cat { border: 1px solid #d5d9d9; background: #fff; border-radius: 8px;
                 padding: 6px 12px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
@@ -151,6 +158,7 @@
     .jump a:hover, .preset:hover, button.act:hover, .hint-chip:hover { background: #2d2f2f; }
     .preset, button.act { background: #2d2f2f; border-color: #3a3c3c; color: #f3f3f3; }
     .preset-active { background: #1e2a22; border-color: #2f5a40; }
+    .goal-mix { border-color: #3a3c3c; }
     .preset-active-label { color: #6fdf9a; }
     .preset-active-name.is-custom { color: #aeaeae; }
     .preset-cat { background: #232525; border-color: #3a3c3c; color: #f3f3f3; }
@@ -213,13 +221,13 @@
         <small data-i18n="optLevelSimpleD">Adds what to rate, search-result scoring and your own avoid list.</small></span></label>
       <label class="chip sort-choice"><input type="radio" name="settingsLevel" value="standard">
         <span><strong data-i18n="optLevelStandard">Standard (default)</strong>
-        <small data-i18n="optLevelStandardD">Adds sorting, price per ounce, score on hover, the shared database, backup and stores.</small></span></label>
+        <small data-i18n="optLevelStandardD">Adds sorting, price per ounce, score on hover, the shared database, backup, Google sign-in and stores.</small></span></label>
       <label class="chip sort-choice"><input type="radio" name="settingsLevel" value="advanced">
         <span><strong data-i18n="optLevelAdvanced">Advanced</strong>
         <small data-i18n="optLevelAdvancedD">Adds every scoring weight, speed and freshness, timing, sort details and the settings file.</small></span></label>
       <label class="chip sort-choice"><input type="radio" name="settingsLevel" value="expert">
         <span><strong data-i18n="optLevelExpert">Everything</strong>
-        <small data-i18n="optLevelExpertD">Also shows diagnostics, contributions to the shared database and Google account sign-in.</small></span></label>
+        <small data-i18n="optLevelExpertD">Also shows diagnostics and contributions to the shared database.</small></span></label>
     </fieldset>
   </section>
 
@@ -277,11 +285,8 @@
       account, cart or checkout. To limit it, open <code>chrome://extensions</code>, choose
       <em>Details</em> under Ingredient Check, and change <em>Site access</em>.
     </p>
-    <p class="note" id="targetAccess" data-level="2" data-i18n="optNoteTarget">
-      Target (preview): Ingredient Check also runs on Target product and search pages. There it only
-      reads the page you have open and scores it on your computer. It requests nothing from Target or
-      anyone else, and a Target search page shows scores only for products you opened before. The two
-      options above apply to Amazon only.
+    <p class="note" id="targetAccess" data-level="2">
+Retailer previews: Target, Walmart, Costco, Instacart and the other listed grocery stores can rate search results by requesting public product pages from the same site, without cookies. Rate every search result is on by default; turn it off to use saved scores only. Two requests run at a time, up to the speed setting’s page limit (20–60). Blocked or missing labels stay unavailable. Scores remain on your computer; no preview data is shared. Score on hover applies to Amazon only.
     </p>
     <div data-level="2">
     <label class="chip" style="margin: 14px 0 8px">
@@ -444,12 +449,15 @@
 
   <section id="sec-presets">
     <h2 data-i18n="optPresetsH">Goal-based scoring</h2>
-    <p class="note" style="margin: -6px 0 12px" data-i18n="optNotePresets">
-      Pick one goal or several — they combine, and where two set the same dial they are averaged. Some goals turn a minus into a plus: fat-reduced dairy under Weight loss, added vitamins under Vitamins & minerals. Hard ceilings like Red 40 never become pluses. You can still move any slider afterwards; the active label then shows Custom. Click a selected goal again to remove it; Balanced clears them all.
-    </p>
+    <p class="note" style="margin: -6px 0 12px" data-i18n="optNotePresets">Pick one goal or several. Their priorities combine; where goals overlap, their weights are averaged. A goal focused on a category takes priority over another goal’s incidental setting. Adjust how much each selected goal counts below. Some goals turn deductions into preference credits; hard score limits stay limits. Moving a category slider makes the active label Custom. Click a selected goal to remove it; Balanced clears them all.</p>
     <div class="preset-active" id="presetActive" aria-live="polite">
       <span class="preset-active-label" data-i18n="optPresetActive">Active</span>
       <span class="preset-active-name" id="presetActiveName">Balanced</span>
+    </div>
+    <div class="goal-mix" id="goalMix" hidden>
+      <p class="goal-mix-title" data-i18n="optGoalMixTitle">How much each goal counts</p>
+      <p class="note goal-mix-note" data-i18n="optGoalMixNote">These importance weights decide how selected goals combine where their priorities overlap. At 1 each they count equally. Focused priorities take precedence over incidental settings. Higher values give a goal more influence, not a guarantee about the final score.</p>
+      <div id="goalMixRows"></div>
     </div>
     <div class="preset-cats" id="presetCats" role="tablist" data-i18n-aria="optPresetCatsAria" aria-label="Preset categories"></div>
     <p class="preset-cat-blurb" id="presetCatBlurb"></p>
@@ -463,11 +471,7 @@
 
   <section id="sec-weights" data-level="3">
     <h2 data-i18n="optWeightsH">What counts, and how much</h2>
-    <p class="note" style="margin: -6px 0 12px" data-i18n="optNoteWeights">
-      1.0 is the default weight. 0 switches a category off entirely. 2.0 makes it matter twice as
-      much. Categories set to 0 by default are ones people reasonably disagree about — turn them on
-      if you want them. Press <kbd>/</kbd> to jump to the filter.
-    </p>
+    <p class="note" style="margin: -6px 0 12px" data-i18n="optNoteWeights">Each category has its own default. A weight of 1.0 applies the listed rule normally; 0 switches its score effect off, and 2.0 doubles its deduction or credit before score limits. Some categories start at 0 or 0.5. Negative weights, available for selected categories, turn a deduction into a preference credit. Goal presets change these weights. Press / to jump to the filter.</p>
     <div class="cat-tools">
       <input type="search" id="catFilter" data-i18n-placeholder="optFilterPh" data-i18n-aria="optFilterAria" placeholder="Filter categories" aria-label="Filter categories">
       <div class="chips" id="catModes">
@@ -502,10 +506,8 @@
 
   <section id="sec-avoid" data-level="1">
     <h2 id="avoidHeading" data-i18n="optAvoidH">Your own avoid list</h2>
-    <p class="note" id="avoidNote" style="margin: -6px 0 10px" data-i18n="optNoteAvoid">
-      One ingredient or phrase per line. Anything matching gets flagged on the panel.
-    </p>
-    <textarea id="avoidList" aria-labelledby="avoidHeading" aria-describedby="avoidNote avoidCount" data-i18n-placeholder="optAvoidPh" placeholder="carrageenan&#10;red 40&#10;natural flavors"></textarea>
+    <p class="note" id="avoidNote" style="margin: -6px 0 10px" data-i18n="optNoteAvoid">Separate ingredients or phrases with commas or new lines. Each entry creates its own warning; these warnings do not change the score. Matches come from the text provided by the page, so always check the package.</p>
+    <textarea id="avoidList" aria-labelledby="avoidHeading" aria-describedby="avoidNote avoidCount" data-i18n-placeholder="optAvoidPh" placeholder="e.g. palm oil, natural flavors"></textarea>
     <p class="note" id="avoidCount" style="margin: 6px 0 0"></p>
     <p class="note" style="margin: 8px 0 6px" data-i18n="optNoteAvoidHint">Add a common one:</p>
     <div class="chips" id="avoidHints"></div>
@@ -564,18 +566,32 @@
     <p class="note" style="margin: 0 0 4px">Uses Chrome's own sync for the Google account signed into
       Chrome. Private to you. If Chrome sync is off, the copy stays on this computer.</p>
     <div class="row">
+      <button class="act" id="openChromeProfile">Open Chrome profile settings</button>
       <button class="act" id="restoreChrome" data-i18n="optRestoreChrome">Restore from my Chrome account</button>
       <span class="status" id="backupStatus"></span>
     </div>
-    <div id="accountBlock" data-level="4" hidden>
+    <div id="accountBlock" data-level="2" hidden>
+      <details id="accountSetup">
+        <summary>Configure Google sign-in</summary>
+        <p class="note">Use the public OAuth client ID configured by the database owner. Register
+          the redirect address below in that client's Google Cloud settings. No client secret is needed.</p>
+        <label for="oauthClientId">Google OAuth client ID</label>
+        <input type="text" id="oauthClientId" autocomplete="off" spellcheck="false">
+        <button class="act" id="saveAccountSetup">Save sign-in configuration</button>
+        <p class="note" id="accountRedirect"></p>
+        <button class="act" id="copyAccountRedirect">Copy redirect address</button>
+        <a class="act" href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Open Google Cloud credentials</a>
+      </details>
       <p class="note" style="margin: 16px 0 4px">Or keep a copy with your Google account on the
         Ingredient Check database, for a browser that is not signed into Chrome. Only a hash of your
         account id is stored — not your email.</p>
       <div class="row">
         <button class="act" id="accountSave" data-i18n="optAccountSave">Sign in with Google and save</button>
         <button class="act" id="accountLoad" data-i18n="optAccountLoad">Sign in with Google and restore</button>
-        <span class="status" id="accountStatus"></span>
+        <span class="status" id="accountStatus" role="status"></span>
       </div>
+      <p class="note">Chrome profile sync and Google account backup are separate. Each Google save or restore lets you choose an account; signing in here does not sign Chrome in.</p>
+      <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener">Manage your Google app connections</a>
     </div>
   </section>
 
@@ -630,8 +646,9 @@
         as <strong>Rate every search result</strong>. <strong>Load more results</strong> (off by default)
         also requests further Amazon search pages and product pages, with your Amazon sign-in. See
         <a href="#sec-sort">Sort by score or price per ounce</a>.</li>
-      <li><strong>Target (preview)</strong> — nothing. The page you open is read and scored on your
-        computer; no request is made to Target, the shared database or anyone else.</li>
+      <li><strong>Retailer previews</strong> — automatic search rating requests public product pages
+        from the same store, without cookies. Scores stay local; no preview readings go to Google
+        or the shared database. Turn off <em>Rate every search result</em> for saved scores only.</li>
       <li><strong>Request a store</strong> — nothing is sent by the extension. It opens a draft
         in your email app with the store name and website you typed; you decide whether to send it.</li>
       <li><strong>Accuracy diagnostics</strong> — one row per scored product. This one does record
@@ -718,6 +735,7 @@
 <script src="../engine/db/activity.js"></script>
 <script src="tabs.js"></script>
 <script src="settings.js"></script>
+<script src="google-auth.js"></script>
 <script src="settings-database.js"></script>
 <script src="../stores/registry.js"></script>
 <script src="store-request.js"></script>

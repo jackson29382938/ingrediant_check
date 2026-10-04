@@ -75,7 +75,7 @@ function textOf(node, asInnerText) {
   if (node.nodeType === 3) return node.textContent || '';
   if (node.nodeType !== 1) return '';
   const tag = node.tagName && node.tagName.toLowerCase();
-  if (tag === 'script' || tag === 'style' || tag === 'noscript') return '';
+  if (asInnerText && (tag === 'script' || tag === 'style' || tag === 'noscript')) return '';
   let out = '';
   for (const child of node.childNodes) {
     if (child.nodeType === 3) out += child.textContent;

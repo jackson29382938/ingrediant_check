@@ -26,7 +26,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // Pasted lists and the food-gate override belong to one tab, never to anyone else.
   const PRIVATE_VIA = new Set(['manual-paste', 'food-override']);
   const NUTRIENTS = ['sodium', 'saturatedFat', 'transFat', 'sugar', 'addedSugar', 'fibre', 'protein',
-    'calories', 'fat', 'carbs', 'servingGrams'];
+    'calories', 'fat', 'carbs', 'servingGrams', 'servingMl'];
 
   const str = (v, n) => String(v == null ? '' : v).replace(/^'/, '').replace(/\s+/g, ' ').trim().slice(0, n);
   const normalizeStore = s => str(s, 60).toLowerCase().replace(/^www\./, '');
@@ -48,6 +48,10 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
       confidence: Math.min(1, Math.max(0, Number(src.confidence) || 0)),
       food: src.food !== false,
     };
+    if (Object.hasOwn(src, 'advisory_text')) {
+      if (typeof src.advisory_text !== 'string' || src.advisory_text.length > 6000) return null;
+      out.advisory_text = str(src.advisory_text, 6000);
+    }
     const n = src.nutrition;
     if (n && typeof n === 'object' && !Array.isArray(n)) {
       const nut = {};
@@ -79,17 +83,19 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
 
   // maxAgeMs: the speed setting's age limit (AIR.db.speed); MAX_AGE_MS when not given.
   function stale(row, now = Date.now(), maxAgeMs = MAX_AGE_MS) {
+    // Older readings dropped separately published cross-contact warnings. Read them again.
+    if (row?.status === 'ok' && !Object.hasOwn(row.data || {}, 'advisory_text')) return true;
     const t = Date.parse(row && row.scanned_at);
     if (!Number.isFinite(t)) return true;
     return (Number(row.pulls) || 0) >= MAX_PULLS || now - t >= maxAgeMs;
   }
 
-  // Engine input from a row. A fresh object each call: score() writes `_normalised` into nutrition.
+  // Engine input from a row, copied so consumers cannot alter the stored reading.
   function toInput(row) {
     const d = row.data;
     return {
       name: d.title, labels: d.labels, certifications: d.certifications,
-      nutrition: d.nutrition ? { ...d.nutrition } : undefined, ingredients_text: d.text,
+      nutrition: d.nutrition ? { ...d.nutrition } : undefined, ingredients_text: d.text, advisory_text: d.advisory_text,
     };
   }
 
@@ -98,7 +104,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     return sanitize({
       store, asin, status, scanned_at: t, pulls: 0,
       data: { title: input.name, text: input.ingredients_text, labels: input.labels,
-        certifications: input.certifications, nutrition: input.nutrition, via, confidence, food },
+        certifications: input.certifications, nutrition: input.nutrition, advisory_text: typeof input.advisory_text === 'string' ? input.advisory_text : '', via, confidence, food },
     }, now);
   }
 

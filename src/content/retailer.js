@@ -2,10 +2,9 @@
 // (src/stores/<store>.js): the adapter knows the store's pages, this knows what to do with them.
 // Amazon keeps its own pipeline (page/product/search/main.js) and does not load this file.
 //
-// Everything here is local. It reads the page the visitor has open, scores it on this computer,
-// and keeps the score in chrome.storage.local. It never fetches: no product pages in the background,
-// no shared database, no Open Food Facts, no label photos. A search results page shows a score only
-// for products the visitor has already opened on this computer.
+// Scores are computed locally. Search can request public same-origin product pages when
+// autoScoreSearch is enabled. No internal store APIs, shared database or label-photo services.
+// Missing/blocked declarations remain unavailable rather than receiving an invented score.
 
 (function (root) {
   const adapter = Object.values(root.AIR.storeAdapters || {}).find(a => a.matchesHost(location.hostname));
@@ -21,7 +20,7 @@
   const VERSION = (() => { try { return chrome.runtime.getManifest().version; } catch (e) { return '0'; } })();
   const STORE = CACHE.normalizeStore(location.hostname);
 
-  const state = { enabled: true, badges: true, foodOnly: true, prefs: {}, raw: {}, url: '', pageScore: null,
+  const state = { requests: new Map(), controllers: new Set(), queue: [], active: 0, fetchCount: 0, searchAllowed: true, throttled: false, enabled: true, badges: true, foodOnly: true, prefs: {}, raw: {}, url: '', pageScore: null,
     manual: null, override: false, started: 0, done: false, observer: null, timer: null };
 
   const t = (key, fallback, sub) => {
@@ -35,12 +34,14 @@
     state.enabled = toggles.enabled;
     state.badges = toggles.badges;
     state.foodOnly = toggles.foodOnly;
+    state.autoScoreSearch = toggles.autoScoreSearch;
     const scoring = PREFS.sanitizeScoring(o);
     state.prefs = { weights: scoring.weights, allergens: scoring.allergens, diets: scoring.diets, avoidList: scoring.avoidList };
     // The same fingerprint inputs the popup validates with, so its "This page" card accepts these.
     state.raw = { weights: o.weights, foodOnly: toggles.foodOnly,
       sheetIndexRev: o.sheetIndexRev, producerIndexRev: o.producerIndexRev };
     // How old a saved score may be: the speed setting's age (1 to 90 days), as on Amazon.
+    state.fetchLimit = root.AIR.db.speed ? root.AIR.db.speed.profile(o.speedMode).autoFetches : 60;
     state.maxAgeMs = root.AIR.db.speed ? root.AIR.db.speed.profile(o.speedMode).maxAgeMs : CACHE.TTL_MS;
   }
 
@@ -78,8 +79,8 @@
   }
 
   function scoreText(host, data, text, via) {
-    const result = root.AIR.engine.score({ name: data.title, ingredients_text: text, nutrition: data.nutrition }, state.prefs);
-    if (result.parsed > 0 && result.coverage < MIN_COVERAGE) {
+    const result = root.AIR.engine.score({ name: data.title, ingredients_text: text, advisory_text: data.advisoryText, nutrition: data.nutrition }, state.prefs);
+    if (!result.parsed || result.coverage < MIN_COVERAGE) {
       show(host, P.renderFailure({ lowCoverage: true, storeName: adapter.name }), 'fail', { paste: onPaste(host, data) });
       badge({ status: 'fail' });
       return;
@@ -101,7 +102,17 @@
   function productPass() {
     const data = adapter.readProduct(document, location);
     if (!data.id) return true;
-    const anchor = document.querySelector('h1[data-test="product-title"]') || document.querySelector('h1');
+    const signature = JSON.stringify([data.id, data.title, data.crumbs, data.ingredients, data.labelText, data.advisoryText, data.department, data.nutrition, data.label]);
+    if (state.done && state.signature === signature) return 'watch';
+    if (state.done && state.signature !== signature) {
+      // A changed declaration invalidates its prior saved score as well as this tab.
+      if (typeof chrome.storage.local.remove === 'function') chrome.storage.local.remove(CACHE.key(STORE, data.id), () => void chrome.runtime.lastError);
+      badge(null);
+      document.getElementById(HOST_ID)?.remove();
+      state.done = false;
+    }
+    state.signature = signature;
+    const anchor = adapter.productAnchor?.(document) || document.querySelector('h1[data-test="product-title"]') || document.querySelector('h1');
     if (!anchor || !anchor.parentNode) return false; // not rendered yet
     // Created on first use, so a page still rendering its label gets no empty card.
     const host = () => hostEl(anchor);
@@ -110,7 +121,7 @@
 
     if (state.foodOnly && !state.override) {
       const verdict = root.AIR.db.ingestible.assess({ querySelector: () => null },
-        { title: data.title, text: [data.crumbs.join(' › '), data.title, data.labelText].join(' \n ') });
+        { title: data.title, text: [data.department || root.AIR.retailerLabels?.department(data.crumbs), data.crumbs.join(' › '), data.title, data.labelText].join(' \n ') });
       if (!verdict.ok && verdict.negatives.length) {
         show(host(), P.renderNotFood({ title: data.title, ingestible: verdict }), 'not-food', {
           after: shadow => shadow.querySelector('button.anyway')?.addEventListener('click', () => {
@@ -127,13 +138,13 @@
     if (data.label === 'collapsed') {
       if (host().dataset.airState === 'waiting') return 'watch';
       show(host(), P.renderNotice({
-        title: t('labelClosedTitle', 'Open “Label info” to score this product.'),
+        title: adapter.labelName ? `Open “${adapter.labelName}” to score this product.` : t('labelClosedTitle', 'Open “Label info” to score this product.'),
         body: t('labelClosedBody', 'This store only shows the ingredient list once that section is open. Ingredient Check reads it from this page on your computer; nothing is sent anywhere.'),
-        action: t('labelClosedAction', 'Open Label info'),
+        action: adapter.labelName ? `Open ${adapter.labelName}` : t('labelClosedAction', 'Open Label info'),
       }), 'waiting', {
         after: shadow => shadow.querySelector('button.notice-action')?.addEventListener('click', () => {
           const toggle = adapter.labelToggle(document);
-          if (toggle && toggle.getAttribute('aria-expanded') === 'false') toggle.click();
+          if (toggle && toggle.getAttribute('aria-expanded') !== 'true') toggle.click();
           watch();                                  // the list renders a moment after it opens
         }),
       });
@@ -148,27 +159,143 @@
   }
 
   // ------------------------------------------------------------------ search page
-  function paintBadge(anchor, hit) {
+  function currentTile(tile) {
+    return tile.anchor && tile.anchor.isConnected && adapter.searchTiles(document).some(now =>
+      now.id === tile.id && now.anchor === tile.anchor);
+  }
+
+  function paintBadge(tile, hit, status = '') {
+    const anchor = tile.anchor;
     let b = anchor.querySelector('.' + BADGE_CLASS);
+    // Image-only links cannot contain a badge: it would change the image box/grid tracks.
+    // Adapters choose the title heading/text container, never the outer product grid.
     if (!b) {
       b = document.createElement('span');
       b.className = BADGE_CLASS;
-      anchor.insertBefore(b, anchor.firstChild);
+      anchor.appendChild(b);
+      if (tile.badgePlacement === 'corner') {
+        if (typeof getComputedStyle === 'function' && getComputedStyle(anchor).position === 'static') anchor.style.position = 'relative';
+      }
+      b.style.cssText = 'display:inline-flex!important;position:static!important;float:none!important;'
+        + 'vertical-align:middle!important;margin:4px 0 4px 6px!important;max-width:100%!important;';
+      if (tile.badgePlacement === 'corner') b.style.cssText = 'display:inline-flex!important;position:absolute!important;'
+        + 'top:6px!important;left:6px!important;z-index:2!important;max-width:calc(100% - 12px)!important;pointer-events:none!important;';
+      if (b.attachShadow) {
+        const shadow = b.attachShadow({ mode: 'open' });
+        shadow.innerHTML = '<style>:host{line-height:normal}span{display:inline-flex;align-items:center;'
+          + 'justify-content:center;box-sizing:border-box;min-width:26px;min-height:26px;padding:3px 7px;'
+          + 'border-radius:999px;font:700 12px/1.3 sans-serif;color:var(--air-fg,#374151);'
+          + 'background:var(--air-bg,#f3f4f6);border:2px solid var(--air-ring,#9ca3af);white-space:normal}</style>'
+          + '<span><slot></slot></span>';
+      }
     }
-    const text = String(hit.score);
-    const title = `Ingredient Check: ${hit.score}/100 — ${hit.verdict}`;
-    // Setting the same text again still replaces the text node, which the page watcher sees as a
-    // change: it ran another pass 400 ms later, which repainted, for as long as the tab stayed open.
-    if (b.textContent === text && b.title === title) return;
-    const c = P.BAND_COLOR(hit.score);
+    const text = hit ? String(hit.score) : status === 'checking' ? 'Checking label…'
+      : status === 'unavailable' ? 'Label unavailable' : status === 'not-food' ? 'Not a food'
+      : status === 'limited' ? 'Open to rate' : 'Open to rate';
+    const title = hit ? `Ingredient Check: ${hit.score}/100 — ${hit.verdict}`
+      : status === 'unavailable' ? 'Ingredient Check: no readable ingredient label was returned. Open the product to expand its label or paste ingredients.'
+      : status === 'checking' ? 'Ingredient Check: reading the public product label.'
+      : status === 'not-food' ? 'Ingredient Check: this product appears to be outside food scoring.'
+      : 'Ingredient Check: open this product to rate it, or enable Rate every search result in Settings.';
+    if (b.textContent === text && b.title === title && b.dataset.airProduct === tile.id) return;
     b.textContent = text;
     b.title = title;
-    // aria-label on a plain span is ignored; as an image the label is the badge's name (search.js too).
-    b.setAttribute('aria-label', b.title);
+    b.dataset.airProduct = tile.id;
+    b.dataset.airStatus = hit ? 'scored' : status;
+    b.setAttribute('aria-label', title);
     b.setAttribute('role', 'img');
-    b.style.cssText = `display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;`
-      + `padding:0 6px;margin-right:8px;border-radius:999px;font:700 12px/1 sans-serif;vertical-align:middle;`
-      + `box-sizing:border-box;color:${c.fg};background:${c.bg};border:2px solid ${c.ring};`;
+    const c = hit ? P.BAND_COLOR(hit.score) : { fg: '#374151', bg: '#f3f4f6', ring: '#9ca3af' };
+    if (b.style.setProperty) {
+      b.style.setProperty('--air-fg', c.fg);
+      b.style.setProperty('--air-bg', c.bg);
+      b.style.setProperty('--air-ring', c.ring);
+    }
+  }
+
+  async function publicDocument(response, signal) {
+    if (!response.ok) throw new Error('unavailable');
+    const type = response.headers?.get('content-type') || '';
+    if (type && !/text\/html|application\/xhtml\+xml/i.test(type)) throw new Error('unavailable');
+    const limit = 8 * 1024 * 1024;
+    const size = Number(response.headers?.get('content-length'));
+    if (size > limit) throw new Error('unavailable');
+    let html;
+    if (response.body?.getReader) {
+      const reader = response.body.getReader(), chunks = [];
+      let bytes = 0;
+      try {
+        while (true) {
+          const part = await reader.read();
+          if (part.done) break;
+          bytes += part.value.byteLength;
+          if (bytes > limit || signal.aborted) throw new Error('unavailable');
+          chunks.push(part.value);
+        }
+      } finally { await reader.cancel().catch(() => {}); }
+      const joined = new Uint8Array(bytes);
+      let offset = 0;
+      for (const chunk of chunks) { joined.set(chunk, offset); offset += chunk.byteLength; }
+      html = new TextDecoder().decode(joined);
+    } else {
+      html = await response.text();
+      if (html.length > limit) throw new Error('unavailable');
+    }
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const challenge = [doc.title, doc.querySelector('h1')?.textContent].join(' ');
+    if (/robot or human|verify you are human|access denied|just a moment|security verification/i.test(challenge)) throw new Error('blocked');
+    return doc;
+  }
+
+  function drain() {
+    while (state.active < 2 && state.queue.length && state.enabled && state.badges && state.autoScoreSearch && state.searchAllowed && !state.throttled && location.href === state.url && adapter.isSearchPage(location)) {
+      const job = state.queue.shift();
+      const generation = state.generation;
+      if (job.generation !== generation) continue;
+      state.active++;
+      const controller = new AbortController();
+      state.controllers.add(controller);
+      const timer = setTimeout(() => controller.abort(), 15000);
+      (async () => {
+        const url = new URL(adapter.productUrl(job.id, location), location.href);
+        if (url.origin !== location.origin || adapter.productId(url.href) !== job.id) throw new Error('unavailable');
+        const response = await fetch(url.href, { credentials: 'omit', signal: controller.signal });
+        if (generation !== state.generation || location.href !== state.url || controller.signal.aborted) return;
+        if ([403, 429, 503].includes(response.status)) state.throttled = true;
+        const final = new URL(response.url || url.href);
+        if (final.origin !== url.origin || adapter.productId(final.href) !== job.id) throw new Error('unavailable');
+        const doc = await publicDocument(response, controller.signal);
+        if (generation !== state.generation || location.href !== state.url || controller.signal.aborted) return;
+        const data = adapter.readProduct(doc, final);
+        if (data.id !== job.id || !data.ingredients) throw new Error('unavailable');
+        const context = { title: data.title, text: [data.department || root.AIR.retailerLabels?.department(data.crumbs || []),
+          (data.crumbs || []).join(' › '), data.title, data.labelText].join(' \n ') };
+        const food = root.AIR.db.ingestible.assess({ querySelector: () => null }, context);
+        if (state.foodOnly && !food.ok && food.negatives.length) {
+          state.requests.set(job.id, { status: 'not-food' }); return;
+        }
+        const result = root.AIR.engine.score({ name: data.title, ingredients_text: data.ingredients,
+          advisory_text: data.advisoryText, nutrition: data.nutrition }, state.prefs);
+        if (!result.parsed || result.coverage < MIN_COVERAGE) throw new Error('unavailable');
+        const entry = cacheEntry(job.id, result, data.title, 'page');
+        state.requests.set(job.id, { hit: entry });
+        try { await chrome.storage.local.set({ [CACHE.key(STORE, job.id)]: entry }); }
+        catch (e) { /* The score can still be displayed on this tab if persistence fails. */ }
+      })().catch(error => {
+        if (generation === state.generation && error.message === 'blocked') state.throttled = true;
+        if (generation === state.generation) state.requests.set(job.id, { status: 'unavailable' });
+      }).finally(() => {
+        clearTimeout(timer);
+        state.controllers.delete(controller);
+        if (generation !== state.generation) return;
+        state.active--;
+        if (state.throttled) {
+          for (const pending of state.queue) state.requests.set(pending.id, { status: 'unavailable' });
+          state.queue = [];
+        }
+        if (state.enabled && adapter.isSearchPage(location)) searchPass();
+        drain();
+      });
+    }
   }
 
   function searchPass() {
@@ -178,21 +305,36 @@
       const verdict = gate.assessSearch({ query: adapter.searchQuery(location), alias: '', label: '' });
       const titles = tiles.map(x => x.title);
       if (!verdict.ok || (titles.length >= gate.RESULT_SAMPLE_MIN && gate.looksNonFoodFromResults(titles))) {
+        state.searchAllowed = false; state.queue = [];
+        for (const controller of state.controllers) controller.abort();
         clearBadges();
-        return true;                                // stand down on a non-food search
+        return true;
       }
     }
+    state.searchAllowed = true;
     if (!state.badges || !tiles.length) return false;
+    const generation = state.generation;
     const keys = tiles.map(x => CACHE.key(STORE, x.id));
     chrome.storage.local.get(keys, got => {
+      if (generation !== state.generation || !state.enabled || !state.badges || location.href !== state.url) return;
       for (const x of tiles) {
+        if (!currentTile(x)) continue;
         const hit = got && got[CACHE.key(STORE, x.id)];
-        if (x.anchor.isConnected && CACHE.valid(hit, { store: STORE, asin: x.id, version: VERSION, prefs: state.raw, maxAgeMs: state.maxAgeMs })) {
-          paintBadge(x.anchor, hit);
+        if (CACHE.valid(hit, { store: STORE, asin: x.id, version: VERSION, prefs: state.raw, maxAgeMs: state.maxAgeMs })) {
+          paintBadge(x, hit); continue;
         }
+        let job = state.requests.get(x.id);
+        if (!job && state.autoScoreSearch && adapter.productUrl && !state.throttled && state.fetchCount < state.fetchLimit) {
+          job = { status: 'checking' };
+          state.requests.set(x.id, job);
+          state.fetchCount++;
+          state.queue.push({ id: x.id, generation });
+        }
+        paintBadge(x, job?.hit || null, job?.status || (state.throttled ? 'unavailable' : 'limited'));
       }
+      drain();
     });
-    return false;                                   // results keep loading as the visitor scrolls
+    return false;
   }
 
   function clearBadges() { document.querySelectorAll('.' + BADGE_CLASS).forEach(b => b.remove()); }
@@ -211,7 +353,7 @@
     // so a timer makes sure the give-up point is reached even if the page goes quiet.
     // Search pages keep watching for more tiles.
     clearTimeout(state.timer);
-    if (product && done === true) { state.done = true; stopWatching(); }
+    if (product && done === true) { state.done = true; watch(); }
     else if (product && done === false) {
       state.timer = setTimeout(pass, Math.max(500, WAIT_FOR_LABEL_MS - (Date.now() - state.started) + 50));
     }
@@ -224,16 +366,22 @@
       if (pending) return;
       pending = setTimeout(() => { pending = null; pass(); }, 400);
     });
-    state.observer.observe(document.body || document.documentElement, { childList: true, subtree: true });
+    state.observer.observe(document.body || document.documentElement, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['href', 'hidden', 'aria-hidden', 'aria-expanded', 'data-test', 'data-testid'] });
   }
 
   function reset() {
+    state.generation = (state.generation || 0) + 1;
+    for (const controller of state.controllers) controller.abort();
+    state.controllers.clear(); state.requests.clear(); state.queue = []; state.active = 0;
+    state.fetchCount = 0; state.searchAllowed = true; state.throttled = false;
+    send({ type: 'pageScore', status: null });
     stopWatching();
     document.getElementById(HOST_ID)?.remove();
     clearBadges();
+    state.signature = null;
     state.pageScore = null; state.override = false; state.done = false; state.started = Date.now();
     state.url = location.href;
-    if (!state.enabled) { send({ type: 'pageScore', status: null }); return; }
+    if (!state.enabled) return;
     if (!adapter.isProductPage(location) && !adapter.isSearchPage(location)) return;
     pass();
     if (!state.done) watch();
@@ -243,11 +391,14 @@
   setInterval(() => { if (location.href !== state.url) { state.manual = null; reset(); } }, 1000);
 
   const KEYS = ['enabled', 'badges', 'foodOnly', 'weights', 'allergens', 'diets', 'avoidList',
-    'sheetIndexRev', 'producerIndexRev', 'speedMode'];
+    'sheetIndexRev', 'producerIndexRev', 'speedMode', 'autoScoreSearch'];
   chrome.storage.local.get(KEYS, o => { readSettings(o || {}); reset(); });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area && area !== 'local') return;
-    if (!KEYS.some(k => changes[k])) return;
+    if (!KEYS.some(k => changes[k])) {
+      if (Object.keys(changes).some(k => k.startsWith(`s:${STORE}:`)) && adapter.isSearchPage(location)) pass();
+      return;
+    }
     chrome.storage.local.get(KEYS, o => { readSettings(o || {}); reset(); });
   });
 

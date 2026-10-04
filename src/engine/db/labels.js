@@ -26,7 +26,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { pts:  8, cat: 'organic', why: 'Organic label claim', provenanceIds: ['organic', 'organicClaim'], m: inLanguages(/\b(certified )?organic\b/i, [
       'bio', 'biologiques?', 'biol[óo]gic[oa]s?', 'biologic[oaie]', 'biologiche', 'biologisch(?:e[mnrs]?)?', 'ecol[óo]gic[oa]s?', 'eco',
       '[öo]kologisch(?:e[mnrs]?)?', '[öo]ko', 'ekologisk[at]?', 'ekologiczn[a-zęąó]*', 'eko', 'organik', 'biyolojik'] ) },
-    { pts:  8, cat: 'dairyProcessing', why: 'Raw / unpasteurised dairy', applies: ['dairy'], m: inLanguages(/\braw (milk|cream|cheese|dairy|butter)\b|\bunpasteurized\b/i, [
+    { pts:  0, cat: 'dairyProcessing', why: 'Raw / unpasteurised dairy', applies: ['dairy'], m: inLanguages(/\braw (milk|cream|cheese|dairy|butter)\b|\bunpasteurized\b/i, [
       'lait cru', 'au lait cru', 'rohmilch[a-z]*', 'leche cruda', 'latte crudo', 'leite cru', 'rauwe melk', 'opast[öo]riserad[a-z]*',
       'mleko surowe', 'mleka surowego', '[çc]i[ğg] s[üu]t', 'non pastoris[ée]e?', 'no pasteurizad[oa]', 'non pastorizzat[oa]', 'unpasteurisiert[a-z]*'] ) },
     { pts:  7, cat: 'animalWelfare', why: 'Regeneratively farmed', provenanceIds: ['regenerative'], m: /\bregenerativ(e|ely)\b/i },
@@ -38,13 +38,13 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
       'olio (?:extra )?vergine di oliva', 'olio di oliva', 'olijfolie', 'olivolja', 'oliwa z oliwek', 'zeytinya[ğg][ıi]', 'azeite(?: de oliva)?', 'kokosolie', 'kokosolja',
       'olej kokosowy', '[óo]leo de coco', 'hindistan cevizi ya[ğg][ıi]', 'roomboter', 'boter', 'sm[öo]r', 'mas[łl]o(?! (?:kakaowe|orzechowe|shea))', 'tereya[ğg][ıi]', 'manteiga(?! de (?:caca[ou]|amendoim|karit[ée]|coco))',
       'butterreinfett', 'butterschmalz', 'butterfett', 'boterconcentraat', 'boterolie', 'gesmolten boter', 'sm[öo]rolja', 'sm[öo]rfett', 'koncentrat mas[łl]a', 'mas[łl]o klarowane', 'burro (?:concentrato|anidro|chiarificato)', 'mantequilla (?:concentrada|clarificada)', 'manteiga (?:concentrada|clarificada)', 'tereya[ğg][ıi] konsantresi', 'sade ya[ğg]', 'saindoux', 'schmalz', 'manteca de cerdo', 'strutto', 'reuzel', 'ister', 'smalec', 'banha'] ) },
-    { pts:  5, cat: 'dairyProcessing', why: 'A2 dairy',                  m: /\ba2\b/i },
+    { pts:  0, cat: 'dairyProcessing', why: 'A2 dairy',                  m: /\ba2\b/i },
     { pts:  5, cat: 'traditionalPrep', why: 'Sourdough / sprouted grain', m: inLanguages(/\b(sourdough|sprouted|naturally leavened|einkorn|soaked)\b/i, [
       'levain', 'masa madre', 'lievito madre', '(?:roggen|weizen|dinkel|natur)?[- ]?sauerteig[a-z]*', 'zuurdesem', 'surdeg', 'zakwas(?:u|ie|em)?', 'ek[şs]i maya',
       'massa m[ãa]e', 'germée?s?', 'gekeimt[a-z]*', 'germinad[oa]s', 'germogliat[oaie]', 'gekiemd[a-z]*', 'groddad[a-z]*', 'kie[łl]kowan[a-zęąó]*', 'engrain', 'einkorn', 'tremp[ée]e?s', 'eingeweicht[a-z]*', 'remojad[oa]s', 'ammollat[oaie]', 'geweekt[a-z]*', 'bl[öo]tlagd[a-z]*', 'namoczon[a-zęąó]*', 'demolhad[oa]s', '[ıi]slat[ıi]lm[ıi][şs]'] ) },
-    { pts:  5, cat: 'nonGmo', why: 'Non-GMO verified', provenanceIds: ['nonGmoVerified'], m: inLanguages(/\bnon[- ]?gmo\b/i, [
+    { pts:  5, cat: 'nonGmo', why: 'Non-GMO claim', provenanceIds: ['nonGmoVerified'], m: inLanguages(/\bnon[- ]?gmo\b/i, [
       'sans ogm', 'sin ogm', 'senza ogm', 'sem ogm', 'ohne gentechnik', 'gentechnikfrei', 'bez gmo', 'gdo[\'’]?suz', 'zonder gmo', 'utan gmo'] ) },
-    { pts:  5, cat: 'unrefined', why: 'Unrefined salt',                  m: inLanguages(/\b(sea salt|redmond|celtic|real salt|himalayan salt)\b/i, [
+    { pts:  0, cat: 'unrefined', why: 'Unrefined salt',                  m: inLanguages(/\b(sea salt|redmond|celtic|real salt|himalayan salt)\b/i, [
       'sel marin', 'sel de mer', 'fleur de sel', 'sel de gu[ée]rande', 'gu[ée]rande salt', 'sal marina', 'sal de mar', 'sale marino', 'meersalz', 'zeezout', 'havssalt', 'havsalt',
       's[óo]l morska', 'deniz tuzu', 'sal marinho', 'flor de sal', 'sel de l[\'’]himalaya', 'sal del himalaya', 'sale dell[\'’]himalaya', 'himalayasalz', 'himalayazout', 'himalayasalt'] ) },
     { pts:  4, cat: 'animalWelfare', why: 'Heritage / heirloom breed',   applies: ['beef', 'pork', 'poultry', 'lamb'], claimSurfaceOnly: true, m: /\b(heritage|heirloom|berkshire|wagyu)\b/i },
@@ -66,6 +66,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   const DERIVED = '(?!\\s+(?:flavou?r(?:ing|ed)?|stock|broth|bouillon|base|fat|extract|powder|solids|substitute|replacer|protein|seasoning|chocolate|sauce|oil)s?\\b)';
   const NOT_DAIRY = '(?<!(?:peanut|almond|cashew|sunflower|seed|nut|cocoa|cacao|shea|apple|soy|soya|coconut|oat|rice|hemp|pea|macadamia|pistachio|walnut|hazelnut|pecan|sesame) )';
   const WHOLE = [
+    // Minimal dairy treatment and declared fat percentages do not make milk ultra-processed.
+    new RegExp('^(?:(?:ultra[- ]pasteuri[sz]ed|pasteuri[sz]ed|homogeni[sz]ed|non[- ]?fat|fat[- ]free|low[- ]?fat|skim(?:med)?|semi[- ]skimmed|whole|full[- ](?:fat|cream)|organic|grade a|fresh|filtered|raw|uht|[0-9]+(?:\\.[0-9]+)?%)\\s+)*(?:milk|cream|kefir|yogh?urt|cheese|butter)\\b' + DERIVED, 'i'),
     new RegExp('^[\\w\' -]{0,28}\\b(beef|bison|lamb|mutton|goat|venison|elk|pork|chicken|turkey|duck)\\b' + DERIVED, 'i'),
     new RegExp('^[\\w\' -]{0,24}\\b(salmon|tuna|sardines?|anchov(y|ies)|mackerel|cod|halibut|trout|herring|shrimp|oysters?|mussels?)\\b' + DERIVED, 'i'),
     /^(organic |pasture[- ]?raised )*(eggs?|egg yolks?|egg whites?)$/i,
@@ -160,14 +162,12 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // pasteurisé, ferments lactiques" or "Sauerteig" signalled nothing. Explicit boundaries, because
   // \b does not see the accented letters these words start and end with.
   const PROCESSED_SIGNAL = new RegExp(PL + '(?:' + [
-    'cultured|fermented|smoked|cured|canned|pasteurized|celery (?:juice )?powder|cheese cultures|rennet|yeast|sourdough|brined|pickled|roasted|dried',
+    'cultured|fermented|smoked|cured|canned|celery (?:juice )?powder|cheese cultures|rennet|yeast|sourdough|brined|pickled|roasted|dried',
     // fermented, as an adjective: the nouns ("ferments", "Kulturen") are English "cultures", which
     // is not a signal either
     'ferment[ée]e?s?|fermentad[oa]s?|fermentat[oaie]|fermentiert[a-z]*|gefermenteerd[a-z]*|fermenterad[a-z]*|fermentowan[a-zęąó]*|fermente|kiszon[a-zęąó]*',
     // smoked and cured
     'fum[ée]e?s?|ahumad[oa]s?|affumicat[oaie]|ger[äa]uchert[a-z]*|gerookt[a-z]*|rökt[a-z]*|w[ęe]dzon[a-zęąó]*|füme|fumad[oa]s?|curad[oa]s?|stagionat[oaie]',
-    // pasteurised
-    'pasteuris[ée]e?s?|pasteurizad[oa]s?|pastorizzat[oaie]|pasteurisiert[a-z]*|gepasteuriseerd[a-z]*|past[öo]riserad[a-z]*|pasteryzowan[a-zęąó]*|past[öo]rize',
     // rennet
     'pr[ée]sure|cuajo|caglio|stremsel|löpe|ystenzym|podpuszczk[a-zęąó]*|peynir mayas[ıi]|coalho|labferment',
     // yeast and sourdough

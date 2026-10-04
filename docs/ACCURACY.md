@@ -6,7 +6,7 @@ checks the evidence table below against `tests/corpus.json`, so this page cannot
 more than the corpus holds.
 
 The test suite proves the engine matches its spec. It does **not** prove that the spec matches
-real labels. Only real labels read off live pages can show that, and the corpus has none yet.
+real labels. Only real labels read off live pages can show that, and three English labels were captured on 2026-10-01. These establish extraction evidence, not clinical validation.
 
 ## Evidence types
 
@@ -14,7 +14,7 @@ Every corpus entry declares `lang` and `evidence`:
 
 | Evidence | Meaning |
 |---|---|
-| `live-capture` | Verbatim, sanitized text read off a live Amazon page. Must also record `store`, `via` (the extractor) and `captured` (date). |
+| `live-capture` | Verbatim, sanitized text read off a live retailer page. Must also record `store`, `via` (the extractor) and `captured` (date). |
 | `representative` | Modelled on a named real product and typed in by hand. Not a verbatim capture. |
 | `synthetic` | Written to exercise a rule, or a translation of an English list. |
 
@@ -22,19 +22,20 @@ Every corpus entry declares `lang` and `evidence`:
 
 | Lang | Evidence | Entries |
 |---|---|---|
+| `en` | live-capture | 3 |
 | `en` | representative | 40 |
 | `en` | synthetic | 11 |
 | `es` | synthetic | 4 |
 | `de` | synthetic | 2 |
 | `und` | synthetic | 1 |
 
-There are no `live-capture` entries in any language. Every non-English entry is `synthetic`.
+Three English live captures include Amazon US kefir, Amazon UK granola and Target oats, with public source URLs in the corpus. Every non-English entry remains `synthetic`.
 
 ## By language
 
 | Language | Stores | What exists | Status |
 |---|---|---|---|
-| English | .com, .co.uk, .ca, .com.au, .ie, .in, .sg, .ae, .sa | 40 representative + 11 synthetic corpus entries; the live checks in [history/LIVE-TEST-2026-09-05.md](history/LIVE-TEST-2026-09-05.md) | Strongest. Still no verbatim captures in the corpus. |
+| English | .com, .co.uk, .ca, .com.au, .ie, .in, .sg, .ae, .sa | 40 representative + 11 synthetic corpus entries; the live checks in [history/LIVE-TEST-2026-09-05.md](history/LIVE-TEST-2026-09-05.md) | Strongest. Three verbatim captures are now in the corpus; Canada live requests returned errors. |
 | German, Spanish | .de, .es, .com.mx | Synthetic corpus entries (2 de, 4 es); translated twins in `tests/synonyms.test.js` | **Under-tested.** The synonym pack maps the common words onto English rules. No real German or Spanish label has been checked. |
 | French, Italian, Portuguese, Dutch | .fr, .it, .com.br, .nl, .com.be | Translated twins in `tests/synonyms.test.js` only | **Under-tested.** No corpus entries. The twins show the synonyms match the English rules, not that real labels score well. |
 | Swedish, Polish, Turkish | .se, .pl, .com.tr | Ten translated twins each in `tests/synonyms.test.js` (since 2026-09-26), plus the twins in `tests/languages.test.js` | **Under-tested.** No corpus entries. Every twin gives the English reasons, score and NOVA class. Before 2026-09-26 there was no synonym pack, and a list that cleared the gate on a few recognised words could score far too well (a Swedish biscuit 80 against 25 in English). |
@@ -181,7 +182,7 @@ What it found, and what changed:
 
   With every fix since, the three samples together decline 36 of 2,007 (1.8%): 14 of 631, 11 of 661
   and 11 of 715. These are the lists the words came from, so this is the in-sample figure; the 3.5%
-  and 3.6% above are the out-of-sample ones. (Measured 2026-09-27, `RULES_REVISION` 2026-09-28.2.)
+  and 3.6% above are the out-of-sample ones. (Measured 2026-09-27, `RULES_REVISION` 2026-09-28.10.)
 
 ### The same product in two languages (2026-09-27)
 
@@ -264,3 +265,7 @@ the flags, and the probe lists above are where a new miss belongs.
 4. If it fails, you have found a miss. Keep the entry, then fix the rules and bump
    `RULES_REVISION`. `tests/rules-revision.test.js` tells you how.
 5. Update the tables on this page. The test tells you which row changed.
+
+## October 1 scoring calibration
+
+[The scoring review](SCORING-CALIBRATION-2026-10-01.md) separates optional gluten and carbohydrate preferences, makes fortification and dairy treatment neutral by default, prevents duplicate sugar deductions and binding-ceiling bypasses, and tests every rule/preset combination. Revised bands guard those documented model decisions. They do not add real multilingual or clinical evidence.
