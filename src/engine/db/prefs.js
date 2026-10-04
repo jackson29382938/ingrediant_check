@@ -65,6 +65,8 @@ const TOGGLE_DEFAULTS = {
   settingsBackup: true,
   // Product pages: open the score panel expanded instead of showing only its header.
   panelOpen: false,
+  // The sorted list reopens with the priorities the reader last set for that menu option.
+  sortRemember: true,
 };
 
 function db(name) {
@@ -194,7 +196,8 @@ function parseImport(text) {
   try { parsed = JSON.parse(text); }
   catch { return { ok: false, reason: 'not-json' }; }
   if (!looksLikeSettings(parsed)) return { ok: false, reason: 'not-settings' };
-  return { ok: true, prefs: sanitizeScoring(parsed) };
+  // `prefs` is the scoring part; `values` is everything the file holds, ready for chrome.storage.
+  return { ok: true, prefs: sanitizeScoring(parsed), values: parseBackup(parsed).values };
 }
 
 function exportPayload(prefs) {
@@ -212,10 +215,10 @@ function exportPayload(prefs) {
   };
 }
 
-const WORKFLOW_KEYS = ['speedMode', 'sortMissing', 'sortLoadMore', 'sortCount', 'unitMissing'];
+const WORKFLOW_KEYS = ['speedMode', 'ratePace', 'sortMissing', 'sortLoadMore', 'sortCount', 'sortTimeLimit', 'sortPriorities', 'unitMissing'];
 function sanitizeWorkflow(raw) {
-  return { ...db('speed').sanitizeSpeed(raw), ...db('sortedResults').sanitizeSort(raw),
-    ...db('unitPrice').sanitizeUnit(raw) };
+  return { ...db('speed').sanitizeSpeed(raw), ...db('speed').sanitizePace(raw), ...db('sortedResults').sanitizeSort(raw),
+    ...db('sortedResults').sanitizePriorities(raw), ...db('unitPrice').sanitizeUnit(raw) };
 }
 
 function oauthClientId(raw) {
@@ -240,10 +243,18 @@ function parseBackup(obj) {
   const toggles = sanitizeToggles(obj.toggles);
   delete toggles.enabled;
   const ts = Date.parse(obj.ts);
-  return { ok: true, values: { ...sanitizeScoring(obj), ...toggles, ...sanitizeDisplay(obj.display),
-    ...(obj.workflow && typeof obj.workflow === 'object' ? sanitizeWorkflow(obj.workflow) : {}) },
+  // A group the file does not have (an older backup, or a scoring-only export) leaves the stored
+  // values alone instead of resetting them to defaults.
+  const group = (raw, clean) => (raw && typeof raw === 'object' && !Array.isArray(raw)
+    ? Object.fromEntries(Object.entries(clean).filter(([key]) => key in raw)) : {});
+  return { ok: true, values: { ...sanitizeScoring(obj), ...group(obj.toggles, toggles), ...group(obj.display, sanitizeDisplay(obj.display)),
+    ...group(obj.workflow, sanitizeWorkflow(obj.workflow)) },
     ts: Number.isFinite(ts) ? ts : null };
 }
+
+// Every key a settings file or backup can carry; the worker watches these to refresh its backup.
+const SETTING_KEYS = ['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly',
+  ...WORKFLOW_KEYS, ...Object.keys(TOGGLE_DEFAULTS), ...Object.keys(DISPLAY_DEFAULTS)];
 
 // Two banks keep the previous backup readable if staging a new one fails. Only the final
 // icBackup pointer is committed after all its parts have been stored successfully.
@@ -329,7 +340,7 @@ const _exports = AIRmodule('prefs', {
   AVOID_MAX_LINES, AVOID_MAX_LEN, AVOID_HINTS, ENDPOINT, OAUTH_CLIENT_ID, SHARED_PRODUCTS_ALLOWED, SYNC_KEYS,
   sanitizeToggles, sanitizeScoring, sanitizeAvoidList, toScriptUrl, endpoint,
   parseImport, exportPayload, looksLikeSettings, scoringEqual,
-  backupPayload, parseBackup, toSyncItems, fromSyncItems, readSync, WORKFLOW_KEYS, sanitizeWorkflow, oauthClientId,
+  backupPayload, parseBackup, SETTING_KEYS, toSyncItems, fromSyncItems, readSync, WORKFLOW_KEYS, sanitizeWorkflow, oauthClientId,
 });
 if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 

@@ -47,7 +47,7 @@
     }
     if (sortedResults) Object.assign(out, sortedResults.sanitizeSort(o));
     if (unitPrice) Object.assign(out, unitPrice.sanitizeUnit(o));
-    if (speed) Object.assign(out, speed.sanitizeSpeed(o));
+    if (speed) Object.assign(out, speed.sanitizeSpeed(o), speed.sanitizePace(o));
     const keys = Object.keys(o);
     out.cached = {
       scores: keys.filter(k => k.startsWith('s:')).length,

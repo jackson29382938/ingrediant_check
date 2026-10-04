@@ -528,7 +528,7 @@
     "message": "Add a common one:"
   },
   "optNoteExport": {
-    "message": "Exports as a plain JSON file you can keep, edit, or move to another computer."
+    "message": "Exportiert alle Einstellungen als einfache JSON-Datei, die du aufbewahren, bearbeiten oder auf einen anderen Computer mitnehmen kannst. Der Hauptschalter und deine Google-Anmeldung sind nicht enthalten."
   },
   "optSharedCache": {
     "message": "Gemeinsame Online-Datenbank verwenden"
@@ -543,10 +543,10 @@
     "message": "Aus meinem Chrome-Konto wiederherstellen"
   },
   "optAccountSave": {
-    "message": "Mit Google anmelden und speichern"
+    "message": "Meine Einstellungen bei Google speichern"
   },
   "optAccountLoad": {
-    "message": "Mit Google anmelden und wiederherstellen"
+    "message": "Aus meinem Google-Konto wiederherstellen"
   },
   "optNavAccount": {
     "message": "Sicherung"
@@ -1487,5 +1487,29 @@
   },
   "optBalancedDefault": {
     "message": "Balanced default"
+  },
+  "optGoogleSignedIn": {
+    "message": "Mit Google angemeldet"
+  },
+  "optGoogleSignOut": {
+    "message": "Abmelden"
+  },
+  "optAccountIntro": {
+    "message": "Oder bewahre eine Kopie bei deinem Google-Konto in der Ingredient-Check-Datenbank auf, für einen Browser, der nicht bei Chrome angemeldet ist. Dort wird nur ein Hash deiner Konto-ID gespeichert — nicht deine E-Mail. Name, E-Mail und Bild werden hier erst nach der Anmeldung gezeigt und bleiben auf diesem Computer."
+  },
+  "optAccountSignIn": {
+    "message": "Mit Google anmelden"
+  },
+  "optAccountSignedInAs": {
+    "message": "Angemeldet als"
+  },
+  "optAccountSignedInD": {
+    "message": "Speichere eine Kopie aller deiner Einstellungen in diesem Google-Konto oder hole die gespeicherte Kopie auf einem anderen Computer zurück."
+  },
+  "optSortRemember": {
+    "message": "Meine Prioritäten merken"
+  },
+  "optSortRememberD": {
+    "message": "In der sortierten Liste öffnen die Prioritäts-Regler so, wie du sie zuletzt eingestellt hast, getrennt für die Optionen Bewertung und Preis pro Unze in Amazons Menü. Aus: Jede Liste beginnt mit dem Standard der gewählten Option."
   }
 }

@@ -307,7 +307,11 @@ function openSortedPanel(msg, sender, reply) {
     runId, mode, unitEnabled, loading: true, status: '', items: [],
     sourceUrl: R.sanitizeSourceUrl(msg.sourceUrl), sourceTabId: tab.id, sourceWindowId: tab.windowId, t: Date.now(),
   };
-  const saving = chrome.storage.session.set({ sortedResults: list, sortWeights: R.sanitizeWeights(R.presetFor(mode), { unitEnabled }) });
+  // The priorities the reader last set for this menu option, when they asked to keep them.
+  const saving = chrome.storage.local.get(['sortRemember', 'sortPriorities']).catch(() => ({})).then(conf => {
+    const kept = self.AIR.db.prefs.sanitizeToggles(conf).sortRemember && R.sanitizePriorities(conf).sortPriorities[mode];
+    return chrome.storage.session.set({ sortedResults: list, sortWeights: R.sanitizeWeights(kept || R.presetFor(mode), { unitEnabled }) });
+  });
   Promise.allSettled([opening, saving]).then(([opened, saved]) => {
     if (saved.status !== 'fulfilled') { reply({ ok: false, reason: 'no-session-storage' }); return; }
     reply(opened.status === 'fulfilled' ? { ok: true, runId }
@@ -746,8 +750,7 @@ async function sendProducts() {
 //   - the user's own row on the shared sheet, keyed by a hash of their Google account id, written
 //     and read only through the optional Google sign-in (the options page supplies the token)
 
-const BACKUP_SOURCE_KEYS = ['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly',
-  ...self.AIR.db.prefs.WORKFLOW_KEYS, ...Object.keys(self.AIR.db.prefs.TOGGLE_DEFAULTS), ...Object.keys(self.AIR.db.prefs.DISPLAY_DEFAULTS)];
+const BACKUP_SOURCE_KEYS = self.AIR.db.prefs.SETTING_KEYS;
 let backupTimer = null;
 let backupChain = Promise.resolve();
 const BACKUP_ALARM = 'ic-backup-retry';

@@ -203,7 +203,7 @@ test('the list keeps price per ounce, rating and reviews, bounded', () => {
 });
 
 // ------------------------------------------------------------------ worker
-function worker({ panelFails = false } = {}) {
+function worker({ panelFails = false, local = {} } = {}) {
   const session = {};
   const created = [];
   const calls = [];
@@ -222,7 +222,7 @@ function worker({ panelFails = false } = {}) {
       sidePanel: { open: o => { calls.push(['sidePanel.open', o.tabId]); return panelFails ? Promise.reject(new Error('user gesture')) : Promise.resolve(); } },
       storage: {
         onChanged: { addListener() {} },
-        local: { get: async () => ({}), set: async () => {}, remove: async () => {} },
+        local: { get: async () => ({ ...local }), set: async () => {}, remove: async () => {} },
         sync: { get: async () => ({}), set: async () => {} },
         session: {
           set: async v => { calls.push(['session.set', Object.keys(v).join()]); Object.assign(session, JSON.parse(JSON.stringify(v))); },
@@ -285,6 +285,29 @@ test('choosing a menu option opens the side panel before anything else, then sto
   assert.equal(w.session.sortedResults.mode, 'health');
   assert.equal(w.session.sortedResults.sourceUrl, '', 'a non-Amazon source link is dropped');
   assert.notEqual(odd.reply.runId, reply.runId);
+});
+
+test('the list reopens with the priorities last set for that menu option, unless remembering is off', async () => {
+  const mine = { health: 3, unitPrice: 9, price: 0, rating: 0, reviews: 0 };
+  const local = { sortPriorities: { unitPrice: mine } };
+  const open = async (mode, conf) => {
+    const w = worker({ local: conf });
+    await w.send({ type: 'openSortedPanel', mode, sourceUrl: 'https://www.amazon.com/s?k=oats', unitEnabled: true }, amazonTab);
+    return w.session.sortWeights;
+  };
+  assert.deepEqual(await open('unitPrice', local), mine, 'remembered for this option');
+  assert.deepEqual(await open('health', local), R.presetFor('health'), 'another option keeps its own default');
+  assert.deepEqual(await open('unitPrice', { ...local, sortRemember: false }), R.presetFor('unitPrice'), 'off: the default again');
+  assert.deepEqual(await open('unitPrice', { sortPriorities: { unitPrice: { health: 'x', unitPrice: 99 } } }),
+    R.sanitizeWeights({ unitPrice: 99 }), 'what is stored is re-bounded on the way out');
+});
+
+test('priorities are kept per menu option, bounded, and unknown options dropped', () => {
+  const clean = R.sanitizePriorities({ sortPriorities: { health: { health: 50, price: -3 }, unitPrice: 'x', rating: { health: 1 } } }).sortPriorities;
+  assert.deepEqual(Object.keys(clean), ['health']);
+  assert.equal(clean.health.health, 10);
+  assert.equal(clean.health.price, 0);
+  assert.deepEqual(R.sanitizePriorities(null), { sortPriorities: {} });
 });
 
 test('no side panel: the reply says so and the content script opens a tab instead', async () => {

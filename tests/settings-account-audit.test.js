@@ -26,7 +26,9 @@ function page(options = {}, settings = false) {
   const air = { ...globalThis.AIR, db: { ...globalThis.AIR.db, prefs: { ...prefs,
     endpoint: () => options.offline ? '' : 'https://example.test/db',
     readSync: async () => options.readSync ? options.readSync() : { ok: true, ts: 1, values: { avoidList: ['restored'] } } } },
-    googleAuth: { token: async () => { if (options.authPending) await options.authPending; return 'a'.repeat(30); } },
+    googleAuth: { token: async () => { if (options.authPending) await options.authPending; return 'a'.repeat(30); },
+      cleanProfile: require('../src/options/google-auth.js').cleanProfile,
+      ...(options.profile !== undefined ? { profile: async () => { if (options.profile instanceof Error) throw options.profile; return options.profile; } } : {}) },
     settingsRestore: { async begin() { guards.push('begin'); }, complete() { guards.push('complete'); } } };
   const context = vm.createContext({ AIR: air, console,
     document: { getElementById: get, querySelectorAll: () => [] },
@@ -38,6 +40,7 @@ function page(options = {}, settings = false) {
     chrome: { runtime: { id: 'id', async sendMessage(message) { calls.push(message); if (options.requestPending) await options.requestPending; return options.result || { ok: true }; } },
       identity: { getRedirectURL: () => 'https://test.chromiumapp.org/' }, permissions: { async request() { return true; } },
       storage: { sync: {}, onChanged: { addListener(fn) { changed.push(fn); } }, local: {
+        remove(key, cb) { delete data[key]; cb(); },
         get(keys, cb) { if (options.localReadError) context.chrome.runtime.lastError = { message: 'unavailable' }; cb(data); delete context.chrome.runtime.lastError; }, set(values, cb) { writes.push({ values, cb }); if (!options.deferredWrites) { Object.assign(data, values); cb(); } },
       } }, tabs: { async create() {} } },
   });
@@ -198,4 +201,61 @@ test('late failed Chrome sync reads cannot overwrite a newer successful backup s
   await tick();
   assert.equal(p.get('backupStatus').textContent, status);
   assert.equal(p.get('restoreChrome').disabled, false);
+});
+
+const ann = { email: 'ann@example.com', name: 'Ann', picture: 'https://lh3.googleusercontent.com/a/x' };
+
+test('signing in shows who is signed in at the top, hides the sign-in prompt, and keeps the profile on this computer', async () => {
+  const p = page({ profile: ann });
+  p.run('wireAccount()');
+  await tick();
+  assert.equal(p.get('googleHeader').hidden, true, 'nobody signed in yet');
+  assert.equal(p.get('accountSignedOut').hidden, false);
+  p.get('accountSignIn').click();
+  await tick(); await tick();
+  assert.equal(p.get('googleHeader').hidden, false);
+  assert.equal(p.get('googleEmail').textContent, 'ann@example.com');
+  assert.equal(p.get('googleAvatar').src, ann.picture);
+  assert.equal(p.get('accountSignedOut').hidden, true, 'the sign-in prompt is gone');
+  assert.equal(p.get('accountSignedIn').hidden, false);
+  assert.match(p.get('accountStatus').textContent, /Signed in with Google \(ann@example.com\)/);
+  assert.equal(p.data.googleProfile.email, 'ann@example.com');
+  assert.equal(p.calls.length, 0, 'signing in alone never touches the database or any saved copy');
+});
+
+test('the database not being set up is reported separately: sign-in still shows as a success', async () => {
+  const p = page({ profile: ann, result: { ok: false, reason: 'Error: accounts are not configured' } });
+  p.run('wireAccount()');
+  await tick();
+  p.get('accountSave').click();
+  await tick(); await tick();
+  assert.equal(p.get('googleHeader').hidden, false, 'the profile is shown even though storage is not ready');
+  assert.match(p.get('accountStatus').textContent, /signed in \(ann@example.com\).*not been set up.*nothing can be saved/i);
+  assert.equal(p.get('accountStatus').className, 'status error');
+  assert.equal(p.get('accountSave').disabled, false, 'locks are released');
+});
+
+test('a profile Google will not share does not fail the sign-in', async () => {
+  const p = page({ profile: new Error('profile-failed') });
+  p.run('wireAccount()');
+  await tick();
+  p.get('accountSignIn').click();
+  await tick(); await tick();
+  assert.match(p.get('accountStatus').textContent, /did not share your email/);
+  assert.equal(p.get('googleHeader').hidden, true);
+  assert.equal(p.data.googleProfile, undefined);
+});
+
+test('a signed-in reader is shown on load, and signing out clears only the profile', async () => {
+  const p = page({ initial: { googleProfile: { ...ann, at: 1 }, weights: { sugar: 1 } } });
+  p.run('wireAccount()');
+  await tick();
+  assert.equal(p.get('googleHeader').hidden, false);
+  assert.equal(p.get('accountSignedOut').hidden, true);
+  p.get('googleSignOut').click();
+  await tick();
+  assert.equal(p.get('googleHeader').hidden, true);
+  assert.equal(p.get('accountSignedOut').hidden, false);
+  assert.equal(p.data.googleProfile, undefined);
+  assert.deepEqual(p.data.weights, { sugar: 1 }, 'settings are untouched');
 });

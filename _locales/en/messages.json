@@ -546,7 +546,7 @@
     "message": "Add a common one:"
   },
   "optNoteExport": {
-    "message": "Exports as a plain JSON file you can keep, edit, or move to another computer."
+    "message": "Exports every setting as a plain JSON file you can keep, edit, or move to another computer. It leaves out the master switch and your Google sign-in."
   },
   "optSharedCache": {
     "message": "Use the shared online database"
@@ -561,10 +561,10 @@
     "message": "Restore from my Chrome account"
   },
   "optAccountSave": {
-    "message": "Sign in with Google and save"
+    "message": "Save my settings to Google"
   },
   "optAccountLoad": {
-    "message": "Sign in with Google and restore"
+    "message": "Restore from my Google account"
   },
   "optNavAccount": {
     "message": "Backup"
@@ -1487,5 +1487,29 @@
   },
   "optBalancedDefault": {
     "message": "Balanced default"
+  },
+  "optGoogleSignedIn": {
+    "message": "Signed in with Google"
+  },
+  "optGoogleSignOut": {
+    "message": "Sign out"
+  },
+  "optAccountIntro": {
+    "message": "Or keep a copy with your Google account on the Ingredient Check database, for a browser that is not signed into Chrome. Only a hash of your account id is stored there — not your email. Your name, email and picture are shown here only after you sign in, and stay on this computer."
+  },
+  "optAccountSignIn": {
+    "message": "Sign in with Google"
+  },
+  "optAccountSignedInAs": {
+    "message": "Signed in as"
+  },
+  "optAccountSignedInD": {
+    "message": "Save a copy of all your settings to this Google account, or bring the saved copy back on another computer."
+  },
+  "optSortRemember": {
+    "message": "Remember my priorities"
+  },
+  "optSortRememberD": {
+    "message": "In the sorted list, the Prioritize sliders reopen the way you last set them, separately for the score and price-per-ounce options in Amazon's menu. Off: each list starts from that option's default."
   }
 }

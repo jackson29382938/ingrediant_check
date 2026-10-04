@@ -160,6 +160,37 @@ check('pace is bounded: unknown falls back to Normal and nothing exceeds five at
   assert.ok(speed.pace('fast').concurrent > speed.pace('normal').concurrent && speed.pace('gentle').concurrent < speed.pace('normal').concurrent);
 });
 
+console.log('\nevery setting is saved');
+check('the backup carries every setting, including level, pace, sort depth, time limit and remembered priorities', () => {
+  const stored = {
+    panelOpen: true, sortRemember: false, settingsLevel: 'simple', scoreHoverDelayMs: 1200, breakdownDetail: 'compact',
+    speedMode: 'fast', ratePace: 'quick', sortMissing: 'end', sortLoadMore: true, sortCount: 300, sortTimeLimit: 120,
+    sortPriorities: { unitPrice: { health: 2, unitPrice: 8, price: 0, rating: 0, reviews: 0 } }, unitMissing: 'infer-more',
+  };
+  const back = prefs.parseBackup(JSON.parse(JSON.stringify(prefs.backupPayload(stored)))).values;
+  for (const [k, v] of Object.entries(stored)) assert.deepStrictEqual(back[k], v, k);
+  for (const k of Object.keys(stored)) assert.ok(prefs.SETTING_KEYS.includes(k), `${k} is watched for backup`);
+  assert.ok(!prefs.SETTING_KEYS.includes('googleProfile') && !prefs.SETTING_KEYS.includes('oauthClientId'), 'sign-in details are never backed up');
+});
+check('a file without a group leaves those stored settings alone instead of resetting them', () => {
+  const scoringOnly = prefs.parseBackup({ _format: prefs.SETTINGS_FORMAT, weights: { sugar: 0.5 } }).values;
+  for (const k of ['panelOpen', 'settingsLevel', 'ratePace', 'sortCount', 'speedMode', 'hoverScore']) assert.ok(!(k in scoringOnly), k);
+  assert.strictEqual(scoringOnly.weights.sugar, 0.5);
+  const partial = prefs.parseBackup({ _format: prefs.SETTINGS_FORMAT, weights: {}, display: { settingsLevel: 'minimal' } }).values;
+  assert.strictEqual(partial.settingsLevel, 'minimal');
+  assert.ok(!('scoreHoverDelayMs' in partial), 'an older backup without the key does not reset it');
+});
+check('an exported file re-imports every setting', () => {
+  const file = JSON.stringify(prefs.backupPayload({ ratePace: 'gentle', sortTimeLimit: 15, hoverScore: true, allergens: ['milk'] }));
+  const got = prefs.parseImport(file);
+  assert.ok(got.ok);
+  assert.strictEqual(got.values.ratePace, 'gentle');
+  assert.strictEqual(got.values.sortTimeLimit, 15);
+  assert.strictEqual(got.values.hoverScore, true);
+  assert.deepStrictEqual(got.prefs.allergens, ['milk']);
+  assert.ok(!('enabled' in got.values), 'the master switch is never carried');
+});
+
 console.log('\nbackup');
 check('a backup is the sanitized export plus toggles, never the master switch or stray keys', () => {
   const b = prefs.backupPayload({

@@ -318,6 +318,14 @@ document.getElementById('googleSignIn').addEventListener('click', async () => {
     if (!granted) { status.textContent = 'Google sign-in access was not granted. You can continue without it.'; return; }
     setupToken = await AIR.googleAuth.token(chrome, setupClientId);
     status.textContent = 'Google approved sign-in. Finish will save your choices and attempt an account backup.';
+    // Who signed in, kept on this computer and shown at the top of Settings. Not needed to continue.
+    if (AIR.googleAuth.profile) {
+      try {
+        const who = await AIR.googleAuth.profile(setupToken);
+        await saveChoices({ googleProfile: { ...who, at: Date.now() } });
+        status.textContent = `Signed in with Google as ${who.email}. Finish will save your choices and attempt an account backup.`;
+      } catch (e) { /* signed in; the profile is just not shown */ }
+    }
   } catch (e) {
     setupToken = null;
     status.textContent = e.message === 'cancelled' ? 'Sign-in cancelled. You can continue without it.' : 'Google sign-in could not finish. Check setup help below: register the exact redirect URL in the Google Cloud OAuth Web client.';

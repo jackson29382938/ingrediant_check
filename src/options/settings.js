@@ -501,15 +501,18 @@ function toggleIn(arr, id, on) {
 
 // ---------------------------------------------------------------- import / export
 function wireFileActions() {
+  // Every setting, as stored: the same set a Chrome or Google backup carries (not the master switch).
   document.getElementById('export').addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify(PREFS.exportPayload(state), null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'ingredient-check-settings.json';
-    a.click();
-    // Revoking at once can cancel the download before Chrome has read the blob.
-    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
-    flash(msg('optExported', 'Exported'));
+    chrome.storage.local.get(PREFS.SETTING_KEYS, stored => {
+      const blob = new Blob([JSON.stringify(PREFS.backupPayload({ ...stored, ...scoringPayload() }), null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'ingredient-check-settings.json';
+      a.click();
+      // Revoking at once can cancel the download before Chrome has read the blob.
+      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+      flash(msg('optExported', 'Exported'));
+    });
   });
 
   const file = document.getElementById('importFile');
@@ -534,6 +537,10 @@ function wireFileActions() {
       applyScoring(parsed.prefs);
       renderAll();
       save({ immediate: true });
+      // Everything else the file holds (switches, sort, speed, display); the controls follow storage.
+      const scoringKeys = Object.keys(PREFS.sanitizeScoring({}));
+      const rest = Object.fromEntries(Object.entries(parsed.values || {}).filter(([k]) => !scoringKeys.includes(k)));
+      if (Object.keys(rest).length) persist(rest);
       flash(msg('optImported', 'Imported'));
     } catch (e) {
       flash(msg('optImportFailed', 'That file could not be read'), 'error');
@@ -851,6 +858,7 @@ function wireLevel() {
 // Product-page panel and the wait before Score on hover starts.
 function wirePanelAndHover() {
   bindToggle('panelOpen');
+  bindToggle('sortRemember');
   const delay = document.getElementById('scoreHoverDelayMs');
   const val = document.getElementById('scoreHoverDelayVal');
   if (!delay) return;

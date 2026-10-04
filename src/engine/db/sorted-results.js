@@ -171,6 +171,16 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
     if (!FACTORS.some(f => out[f] > 0)) out.health = WEIGHT_MAX;
     return out;
   }
+  // The priorities the reader last set in the sorted list, one set per way of opening it (Amazon's
+  // two menu options), so each option reopens as it was tuned. Only known modes, each bounded.
+  const PRIORITY_MODES = ['health', 'unitPrice'];
+  function sanitizePriorities(raw) {
+    const held = raw && typeof raw === 'object' ? raw.sortPriorities : null;
+    const src = held && typeof held === 'object' ? held : {};
+    const out = {};
+    for (const mode of PRIORITY_MODES) if (src[mode] && typeof src[mode] === 'object') out[mode] = sanitizeWeights(src[mode]);
+    return { sortPriorities: out };
+  }
   const presetFor = mode => ({ ...(PRESETS[mode] || PRESETS.health) });
 
   // Each listing's value per factor, 0 (worst in this list) to 1 (best), or null when missing.
@@ -221,7 +231,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
   const _exports = AIRmodule('sortedResults', {
     MAX_RESULTS, COUNT_MIN, COUNT_MAX, TIME_LIMITS, SORT_DEFAULTS, FACTORS, WEIGHT_MAX, PRESETS,
     sortByScore, parseMoney, sanitizeSort, sanitizeProduct, sanitizeResults, sanitizeSourceUrl,
-    sanitizeWeights, presetFor, factorValues, rank, sanitizeStatus, sanitizeWhy,
+    sanitizeWeights, sanitizePriorities, PRIORITY_MODES, presetFor, factorValues, rank, sanitizeStatus, sanitizeWhy,
   });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 })();

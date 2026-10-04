@@ -8,6 +8,7 @@ const DB_KEYS = ['sharedCache', 'sharedProducts', 'shareContributions', 'sendDia
 let backupBusy = false;
 let chromeRestoreAvailable = false;
 let accountAvailable = false;
+let accountSignInAvailable = false;
 
 function paintBackupControls() {
   const restore = document.getElementById('restoreChrome');
@@ -16,6 +17,8 @@ function paintBackupControls() {
     const element = document.getElementById(id);
     if (element) element.disabled = backupBusy || !accountAvailable;
   }
+  const signIn = document.getElementById('accountSignIn');
+  if (signIn) signIn.disabled = backupBusy || !accountSignInAvailable;
   for (const id of ['oauthClientId', 'saveAccountSetup']) {
     const element = document.getElementById(id);
     if (element) element.disabled = backupBusy;
@@ -193,20 +196,50 @@ function wireBackup() {
   wireAccount();
 }
 
-// Sign-in is scoped to a single explicit save/restore. Tokens remain in memory only.
+// Google sign-in. Signing in and storing a backup are separate: sign-in only proves who the reader is
+// (shown at the top of this page), and a backup needs the database to be set up as well. Tokens stay
+// in memory; only the profile (email, name, picture) is kept, on this computer, to show who is signed in.
 function wireAccount() {
   const block = document.getElementById('accountBlock');
   if (!block) return;
   block.hidden = false;
-  const save = document.getElementById('accountSave');
-  const load = document.getElementById('accountLoad');
-  const setup = document.getElementById('accountSetup');
-  const field = document.getElementById('oauthClientId');
+  const el = id => document.getElementById(id);
+  const save = el('accountSave');
+  const load = el('accountLoad');
+  const setup = el('accountSetup');
+  const field = el('oauthClientId');
+  const auth = AIR.googleAuth;
   let clientId = '';
+  let profile = null;
+
+  const paintProfile = () => {
+    const header = el('googleHeader');
+    if (header) header.hidden = !profile;
+    for (const id of ['accountSignedOut']) if (el(id)) el(id).hidden = !!profile;
+    for (const id of ['accountSignedIn']) if (el(id)) el(id).hidden = !profile;
+    if (setup) setup.hidden = !!profile;
+    if (!profile) return;
+    el('googleEmail').textContent = profile.email;
+    el('googleName').textContent = profile.name;
+    el('googleName').hidden = !profile.name;
+    el('accountWho').textContent = profile.email;
+    const pic = el('googleAvatar');
+    if (pic) {
+      // A picture Google cannot serve (offline, blocked) just disappears; the email still shows.
+      pic.onerror = () => { pic.hidden = true; };
+      if (profile.picture) pic.src = profile.picture; else pic.removeAttribute?.('src');
+      pic.hidden = !profile.picture;
+    }
+  };
   const paint = () => {
     accountAvailable = ONLINE && !!clientId;
+    accountSignInAvailable = !!clientId;
     paintBackupControls();
   };
+  const readProfile = () => chrome.storage.local.get('googleProfile', o => {
+    profile = auth && auth.cleanProfile ? auth.cleanProfile(o && o.googleProfile) : null;
+    paintProfile();
+  });
   const read = () => chrome.storage.local.get('oauthClientId', o => {
     if (chrome.runtime.lastError) {
       clientId = ''; paint();
@@ -221,8 +254,8 @@ function wireAccount() {
     else if (!clientId) say('accountStatus', 'Google sign-in needs a registered OAuth client ID. Chrome profile backup works independently.');
   });
   const redirect = chrome.identity ? chrome.identity.getRedirectURL() : `https://${chrome.runtime.id}.chromiumapp.org/`;
-  document.getElementById('accountRedirect').textContent = 'Redirect address: ' + redirect;
-  document.getElementById('copyAccountRedirect').addEventListener('click', async () => {
+  el('accountRedirect').textContent = 'Redirect address: ' + redirect;
+  el('copyAccountRedirect').addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(redirect);
       say('accountStatus', 'Redirect address copied. Add it to the OAuth client’s authorized redirect URIs.');
@@ -230,7 +263,7 @@ function wireAccount() {
       say('accountStatus', 'Could not copy. Select and copy the redirect address shown above.', 'error');
     }
   });
-  document.getElementById('saveAccountSetup').addEventListener('click', () => {
+  el('saveAccountSetup').addEventListener('click', () => {
     if (backupBusy) return;
     const id = PREFS.oauthClientId(field.value);
     if (!id) { say('accountStatus', 'Enter a Google client ID ending in .apps.googleusercontent.com', 'error'); return; }
@@ -242,30 +275,69 @@ function wireAccount() {
     });
   });
   read();
+  readProfile();
+  chrome.storage.onChanged.addListener((changes, area) => { if (area === 'local' && changes.googleProfile) readProfile(); });
+
+  // A token for one request. Already signed in: try Google's session without a window first.
+  const getToken = async () => {
+    // Request optional identity access directly from the button's user gesture.
+    if (!await chrome.permissions.request({ permissions: ['identity'] })) throw new Error('permission-denied');
+    if (profile) { try { return await auth.token(chrome, clientId, { silent: true }); } catch (e) { /* ask with a window */ } }
+    return auth.token(chrome, clientId);
+  };
+  // Keep who signed in. Returns false when Google signed the reader in but shared no usable profile.
+  const rememberProfile = async token => {
+    if (!auth.profile) return true;
+    try { profile = await auth.profile(token); } catch (e) { return false; }
+    await new Promise(resolve => persist({ googleProfile: { ...profile, at: Date.now() } }, resolve));
+    paintProfile();
+    return true;
+  };
+  const who = () => (profile ? ` (${profile.email})` : '');
+  const errorText = e => ({
+    cancelled: 'Sign-in cancelled. Your settings are unchanged.',
+    'permission-denied': 'Google sign-in permission was not granted.',
+    'auth-failed': 'Google sign-in could not start or complete. Register the redirect address in Configure Google sign-in and check the app’s test-user access.',
+    'invalid-redirect': 'Google returned an unexpected redirect. Check the registered redirect address.',
+    'no-token': 'Google did not return a valid sign-in token.',
+    'no-backup': 'Nothing saved to this Google account yet.',
+    'storage-error': 'Could not save settings on this computer. Please try again.',
+    'Error: accounts are not configured': `You are signed in${who()}, but Ingredient Check's database has not been set up for Google accounts yet, so nothing can be saved or restored online. Your settings are unchanged. The database owner needs to finish that one setup step.`,
+    'Error: token rejected': 'The database did not accept this Google sign-in. Check that its OAuth client ID matches this extension.',
+  })[e.message] || 'Could not complete the account request. Check the OAuth client, database deployment, and connection.';
+
+  // Sign in only: shows who is signed in, and changes nothing else.
+  el('accountSignIn')?.addEventListener('click', async () => {
+    if (backupBusy || !clientId) return;
+    setBackupBusy(true); paint(); say('accountStatus', 'Signing in…');
+    try {
+      const token = await getToken();
+      say('accountStatus', await rememberProfile(token) ? `Signed in with Google${who()}.`
+        : 'Signed in, but Google did not share your email, so it cannot be shown here.');
+    } catch (e) { say('accountStatus', errorText(e), 'error'); }
+    finally { setBackupBusy(false); paint(); }
+  });
+  el('googleSignOut')?.addEventListener('click', () => {
+    chrome.storage.local.remove('googleProfile', () => {
+      profile = null; paintProfile();
+      say('accountStatus', 'Signed out. Your settings on this computer and in Chrome sync are unchanged.');
+    });
+  });
+
   const run = async type => {
     if (backupBusy || !ONLINE || !clientId) return;
     setBackupBusy(true); paint(); say('accountStatus', 'Signing in…');
     try {
-      // Request optional identity access directly from the button's user gesture.
-      if (!await chrome.permissions.request({ permissions: ['identity'] })) throw new Error('permission-denied');
-      const token = await AIR.googleAuth.token(chrome, clientId);
+      const token = await getToken();
+      const known = await rememberProfile(token);
       say('accountStatus', type === 'accountSave' ? 'Saving…' : 'Loading…');
       if (type === 'accountLoad') await AIR.settingsRestore?.begin();
       const res = await chrome.runtime.sendMessage({ type, token });
       if (!res || !res.ok) throw new Error(res && res.reason || 'network');
       if (type === 'accountLoad') await reloadWithStored();
-      else say('accountStatus', 'Saved to your Google account');
+      else say('accountStatus', `Saved to your Google account${who()}${known ? '' : '. Google did not share your email, so it is not shown here'}`);
     } catch (e) {
-      const messages = { cancelled: 'Sign-in cancelled. Your settings are unchanged.',
-        'permission-denied': 'Google sign-in permission was not granted.',
-        'auth-failed': 'Google sign-in could not start or complete. Register the redirect address in Configure Google sign-in and check the app’s test-user access.',
-        'invalid-redirect': 'Google returned an unexpected redirect. Check the registered redirect address.',
-        'no-token': 'Google did not return a valid sign-in token.',
-        'no-backup': 'Nothing saved to this Google account yet.',
-        'storage-error': 'Could not save settings on this computer. Please try again.',
-        'Error: accounts are not configured': 'The database owner must configure Google account storage before sign-in can save or restore.',
-        'Error: token rejected': 'The database did not accept this Google sign-in. Check that its OAuth client ID matches this extension.' };
-      say('accountStatus', messages[e.message] || 'Could not complete the account request. Check the OAuth client, database deployment, and connection.', 'error');
+      say('accountStatus', errorText(e), 'error');
     } finally { if (type === 'accountLoad') AIR.settingsRestore?.complete(); setBackupBusy(false); paint(); }
   };
   save.addEventListener('click', () => run('accountSave'));

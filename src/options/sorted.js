@@ -249,12 +249,27 @@
     ui.title.textContent = HEADING_TEXT[active]();
   }
 
+  // Kept across searches and restarts, one set per way the list was opened, unless the reader turned
+  // "Remember my priorities" off. The next list opened the same way starts from them (background.js).
+  async function rememberWeights(current) {
+    const mode = saved && R.PRIORITY_MODES.includes(saved.mode) ? saved.mode : null;
+    if (!mode) return;
+    try {
+      const conf = await chrome.storage.local.get(['sortRemember', 'sortPriorities']);
+      if (!AIR.db.prefs.sanitizeToggles(conf).sortRemember) return;
+      const all = R.sanitizePriorities(conf).sortPriorities;
+      all[mode] = R.sanitizeWeights(current);
+      await chrome.storage.local.set({ sortPriorities: all });
+    } catch (e) { /* not an extension page, or storage unavailable: this list still keeps them */ }
+  }
+
   // Kept for the other view (panel <-> tab) while the browser is open.
   function saveWeights() {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
       lastSaved = JSON.stringify(weights);
       try { chrome.storage.session.set({ sortWeights: weights }); } catch (e) { /* not an extension page */ }
+      rememberWeights(weights);
     }, 250);
   }
 

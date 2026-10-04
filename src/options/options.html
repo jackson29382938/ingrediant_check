@@ -32,6 +32,14 @@
   .hint-chip:hover { background: #eef0f0; }
   .hint-chip[hidden] { display: none; }
   .lvl-hidden { display: none !important; }
+  .who { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px 14px; margin: 0 0 14px;
+         background: #f0faf4; border: 1px solid #b7e0c5; border-radius: 10px; }
+  .who[hidden] { display: none; }
+  .who-pic { width: 44px; height: 44px; border-radius: 50%; flex: 0 0 auto; background: #eef0f0; }
+  .who-text { flex: 1 1 160px; min-width: 0; }
+  .who-status { font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: #0f7b3f; }
+  .who-name { font-weight: 700; }
+  .who-email { font-size: 13px; color: #565959; overflow-wrap: anywhere; }
 
   .presets { display: flex; flex-wrap: wrap; gap: 8px; }
   .preset { border: 1px solid #d5d9d9; background: #f7f8f8; border-radius: 999px;
@@ -147,6 +155,10 @@
   }
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   @media (prefers-color-scheme: dark) {
+    .who { background: #1e2a22; border-color: #2f5a40; }
+    .who-pic { background: #2d2f2f; }
+    .who-status { color: #6fdf9a; }
+    .who-email { color: #aeaeae; }
     .preset-cat.has-picks:not([aria-selected="true"]) { border-color: #3fa66b; color: #bfe8cf; }
     body, .jump { background: #1b1c1c; color: #f3f3f3; }
     .lede, .note, .preset-note, .cat .help, h2 { color: #aeaeae; }
@@ -187,6 +199,15 @@
 </head>
 <body>
 <div class="wrap">
+  <div class="who" id="googleHeader" hidden role="status">
+    <img id="googleAvatar" class="who-pic" alt="" width="44" height="44" referrerpolicy="no-referrer" hidden>
+    <div class="who-text">
+      <div class="who-status"><span aria-hidden="true">✓</span> <span data-i18n="optGoogleSignedIn">Signed in with Google</span></div>
+      <div class="who-name" id="googleName" hidden></div>
+      <div class="who-email" id="googleEmail"></div>
+    </div>
+    <button type="button" class="act" id="googleSignOut" data-i18n="optGoogleSignOut">Sign out</button>
+  </div>
   <h1 data-i18n="appName">Ingredient Check</h1>
   <p class="note" style="margin:0 0 10px"><a href="welcome.html" data-i18n="popupSetupAgain">Run setup again</a></p>
   <p class="lede" data-i18n="optLede">Scoring runs on your computer. The shared database and the settings
@@ -354,6 +375,14 @@ Retailer previews: Target, Walmart, Costco, Instacart and the other listed groce
       More products make a better comparison and take longer. Beyond this page, Ingredient Check reads
       further Amazon results pages and rates what it can, within the time limit. Saved scores and the
       shared database are used first, so a repeat search is quick.
+    </p>
+    <label class="chip" style="margin: 14px 0 8px">
+      <input type="checkbox" id="sortRemember">
+      <span data-i18n="optSortRemember">Remember my priorities</span>
+    </label>
+    <p class="note" data-i18n="optSortRememberD">
+      In the sorted list, the Prioritize sliders reopen the way you last set them, separately for the
+      score and price-per-ounce options in Amazon's menu. Off: each list starts from that option's default.
     </p>
     </div>
     <div data-level="3">
@@ -582,14 +611,24 @@ Retailer previews: Target, Walmart, Costco, Instacart and the other listed groce
         <button class="act" id="copyAccountRedirect">Copy redirect address</button>
         <a class="act" href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Open Google Cloud credentials</a>
       </details>
-      <p class="note" style="margin: 16px 0 4px">Or keep a copy with your Google account on the
-        Ingredient Check database, for a browser that is not signed into Chrome. Only a hash of your
-        account id is stored — not your email.</p>
-      <div class="row">
-        <button class="act" id="accountSave" data-i18n="optAccountSave">Sign in with Google and save</button>
-        <button class="act" id="accountLoad" data-i18n="optAccountLoad">Sign in with Google and restore</button>
-        <span class="status" id="accountStatus" role="status"></span>
+      <div id="accountSignedOut">
+        <p class="note" style="margin: 16px 0 4px" data-i18n="optAccountIntro">Or keep a copy with your Google account on the
+          Ingredient Check database, for a browser that is not signed into Chrome. Only a hash of your
+          account id is stored there — not your email. Your name, email and picture are shown here only
+          after you sign in, and stay on this computer.</p>
+        <div class="row">
+          <button class="act" id="accountSignIn" data-i18n="optAccountSignIn">Sign in with Google</button>
+        </div>
       </div>
+      <div id="accountSignedIn" hidden>
+        <p class="note" style="margin: 16px 0 4px"><span data-i18n="optAccountSignedInAs">Signed in as</span> <strong id="accountWho"></strong>.
+          <span data-i18n="optAccountSignedInD">Save a copy of all your settings to this Google account, or bring the saved copy back on another computer.</span></p>
+        <div class="row">
+          <button class="act" id="accountSave" data-i18n="optAccountSave">Save my settings to Google</button>
+          <button class="act" id="accountLoad" data-i18n="optAccountLoad">Restore from my Google account</button>
+        </div>
+      </div>
+      <p class="status" id="accountStatus" role="status"></p>
       <p class="note">Chrome profile sync and Google account backup are separate. Each Google save or restore lets you choose an account; signing in here does not sign Chrome in.</p>
       <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener">Manage your Google app connections</a>
     </div>
@@ -638,7 +677,7 @@ Retailer previews: Target, Walmart, Costco, Instacart and the other listed groce
         world.openfoodfacts.org when a page has one but no readable ingredients. The barcode and
         nothing else.</li>
       <li><strong>Back up my settings</strong> (on by default) — Chrome's own sync, for your Chrome
-        account only. <strong>Sign in with Google</strong> stores a copy on the Ingredient Check
+        account only. <strong>Sign in with Google</strong> asks Google for your name, email and picture to show who is signed in (kept on this computer only; <strong>Sign out</strong> deletes them). Saving a copy stores your settings on the Ingredient Check
         database keyed by a hash of your account id, only when you click it.</li>
       <li><strong>Send certifications</strong> and "Looks wrong?" reports — product identifiers and
         certification text. Never anything about you.</li>
