@@ -127,13 +127,13 @@
     if (data.label === 'collapsed') {
       if (host().dataset.airState === 'waiting') return 'watch';
       show(host(), P.renderNotice({
-        title: t('labelClosedTitle', 'Open “Label info” to score this product.'),
+        title: adapter.labelName ? `Open “${adapter.labelName}” to score this product.` : t('labelClosedTitle', 'Open “Label info” to score this product.'),
         body: t('labelClosedBody', 'This store only shows the ingredient list once that section is open. Ingredient Check reads it from this page on your computer; nothing is sent anywhere.'),
-        action: t('labelClosedAction', 'Open Label info'),
+        action: adapter.labelName ? `Open ${adapter.labelName}` : t('labelClosedAction', 'Open Label info'),
       }), 'waiting', {
         after: shadow => shadow.querySelector('button.notice-action')?.addEventListener('click', () => {
           const toggle = adapter.labelToggle(document);
-          if (toggle && toggle.getAttribute('aria-expanded') === 'false') toggle.click();
+          if (toggle && toggle.getAttribute('aria-expanded') !== 'true') toggle.click();
           watch();                                  // the list renders a moment after it opens
         }),
       });

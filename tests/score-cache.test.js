@@ -103,13 +103,15 @@ test('listScores follows the speed setting age it is given', () => {
     'Fastest keeps 90 days, and the popup lists it');
 });
 
-test('listScores includes Amazon ASINs and Target TCINs only', () => {
+test('listScores includes Amazon and all retailer previews', () => {
   const target = { ...entry, store: 'target.com', asin: '1234567890', prefs: cache.fingerprint({}), t: now };
   const all = {
     [cache.key('amazon.com', 'B000000001')]: entry,
     [cache.key('target.com', '1234567890')]: target,
     [cache.key('target.com', '16600402')]: { ...target, asin: '16600402' },
+    [cache.key('walmart.com', '10314926')]: { ...target, store: 'walmart.com', asin: '10314926' },
+    [cache.key('costco.com', '100423971')]: { ...target, store: 'costco.com', asin: '100423971' },
   };
   const listed = cache.listScores(all, { version: context.version, prefs: {} }, now);
-  assert.deepEqual(listed.map(x => x.asin).sort(), ['1234567890', '16600402', 'B000000001']);
+  assert.deepEqual(listed.map(x => x.asin).sort(), ['100423971', '10314926', '1234567890', '16600402', 'B000000001']);
 });

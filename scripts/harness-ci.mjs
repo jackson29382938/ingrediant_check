@@ -568,7 +568,7 @@ async function run() {
         href: document.getElementById('reqSend').getAttribute('href'),
         disabled: document.getElementById('reqSend').getAttribute('aria-disabled'),
       }));
-      if (idle.rows.join() !== 'Amazon:supported,Target:preview,Walmart:planned,Costco:planned'
+      if (idle.rows.join() !== 'Amazon:supported,Target:preview,Walmart:preview,Costco:preview'
         || idle.href !== '#' || idle.disabled !== 'true') throw new Error(`stores idle: ${JSON.stringify(idle)}`);
       await settingsPage.fill('#reqName', 'Marks & Spencer');
       await settingsPage.fill('#reqUrl', 'https://www.marksandspencer.com/food/p/12345?utm_source=x');
@@ -781,6 +781,8 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
         // Real permission prompts need user interaction. Confirm a saved opt-out here.
         await page.uncheck('#useOpenFoodFacts');
         await page.click('#next');
+        if (!(await page.locator('#googleRedirect').textContent()).includes('.chromiumapp.org/')) throw new Error('setup missing installed OAuth redirect URL');
+        await page.click('#next');
         await page.waitForFunction(() => !document.getElementById('skip') || document.getElementById('skip').hidden, { timeout: 5000 });
         const saved = await page.evaluate(() => new Promise(r => chrome.storage.local.get(['goals', 'allergens', 'diets', 'avoidList', 'onboarded'], r)));
         if (goalPicked !== 'true' || !saved.onboarded || !(saved.goals || []).length || !(saved.allergens || []).includes('milk')
@@ -866,6 +868,7 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
       await page.close();
     }
     console.log(`  ok  extension → service worker started with every module; ${pages.length} pages open without errors, unnamed controls or low contrast (light and dark); goal tabs work by keyboard; setup saves what was picked`);
+    await retailerEndToEnd(context, worker, pageErrors);
     await amazonEndToEnd(context, worker, pageErrors);
   } finally {
     await context.close();
@@ -1052,3 +1055,36 @@ run().catch(err => {
   console.error(err);
   process.exit(1);
 });
+
+async function retailerEndToEnd(context, worker, pageErrors) {
+  await worker.evaluate(() => chrome.storage.local.set({ enabled: true, autoScoreSearch: true, foodOnly: true }));
+  const walmartData = fs.readFileSync(path.join(root, 'tests/pages/walmart-product.json'), 'utf8');
+  const cases = [
+    { url: 'https://www.target.com/p/oats/-/A-79364857', search: 'https://www.target.com/s?searchTerm=oats',
+      html: fs.readFileSync(path.join(root, 'tests/pages/target-p-oats.html'), 'utf8'),
+      tile: '<div data-test="ListingPageProductListing"><a href="/p/oats/-/A-79364857"><h3>Organic oats</h3></a></div>' },
+    { url: 'https://www.walmart.com/ip/oats/10314926', search: 'https://www.walmart.com/search?q=oats',
+      html: `<h1>Great Value Whole Grain Oats</h1><script id="__NEXT_DATA__" type="application/json">${walmartData}</script>`,
+      tile: '<a href="/ip/oats/10314926"><h3>Whole grain oats</h3></a>' },
+    { url: 'https://www.costco.com/p/-/oats/100423971', search: 'https://www.costco.com/s?keyword=oats',
+      html: '<h1>Whole grain rolled oats</h1><section><h3>Ingredients</h3><p>whole grain rolled oats</p></section>',
+      tile: '<a href="/p/-/oats/100423971"><h3>Whole grain oats</h3></a>' },
+  ];
+  for (const item of cases) {
+    const page = await context.newPage();
+    page.on('pageerror', err => pageErrors.push(`retailer ${item.url}: ${err.message}`));
+    await page.route('**/*', route => route.fulfill({ status: 200, contentType: 'text/html', body: `<!doctype html><html lang="en"><head><title>Grocery oats</title></head><body>${route.request().url() === item.url ? item.html : item.tile}</body></html>` }));
+    await page.goto(item.url);
+    await page.waitForFunction(() => document.getElementById('air-score-panel')?.dataset.airState === 'scored', { timeout: 20000 });
+    await page.bringToFront();
+    const badge = await worker.evaluate(async () => {
+      const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      return chrome.action.getBadgeText({ tabId: tab.id });
+    });
+    if (!/^\d+$/.test(badge)) throw new Error(`retailer toolbar missing score: ${item.url}`);
+    await page.goto(item.search);
+    await page.waitForFunction(() => [...document.querySelectorAll('.air-badge')].some(b => /\d/.test(b.textContent)), { timeout: 10000 });
+    await page.close();
+  }
+  console.log('  ok  real extension → Target, Walmart and Costco product scores, toolbar badges and saved-score search badges (intercepted fixtures, no retailer network)');
+}

@@ -1,6 +1,6 @@
 # Privacy (Chrome Web Store)
 
-Ingredient Check scores grocery labels on Amazon, and as a preview on Target, **on your computer**. By default, settings backup uses your Chrome profile storage; Chrome syncs it to your own account when browser sync is enabled. Automatic search rating, owner-kept certification lookups, and on-device label OCR are enabled by default. Barcode lookup is recommended and checked in setup but requires Chrome’s optional permission. Diagnostics and sharing product readings stay off. Backup can also be switched off.
+Ingredient Check scores grocery labels on Amazon, and as previews on Target, Walmart and Costco, **on your computer**. By default, settings backup uses your Chrome profile storage; Chrome syncs it to your own account when browser sync is enabled. Automatic search rating, owner-kept certification lookups, and on-device label OCR are enabled by default. Barcode lookup is recommended and checked in setup but requires Chrome’s optional permission. Diagnostics and sharing product readings stay off. Backup can also be switched off.
 
 This page is the one-screen note for a store listing. Settings copy and [DIAGNOSTICS.md](DIAGNOSTICS.md) say the same things at more length.
 
@@ -68,7 +68,7 @@ Scoring is always local: the rules, your weights and every score are computed in
 | **Read label photos** | Fetch of the product image on `m.media-amazon.com` | The image is read **on your computer** (Tesseract). The pixels are not uploaded. |
 | **Open Food Facts fallback** | The **barcode only** | Open Food Facts, after Chrome grants the host. |
 | **Send certifications** / "Looks wrong?" | Product identifiers and certification text; a report adds what the score was | The Ingredient Check database. |
-| **Report a problem or suggest an improvement** (only when you attach the file and send the draft yourself) | Nothing from the extension. Your email app sends what you wrote, and the report file if you attach it: a screenshot of the Amazon or Target tab you were on (no other tab is captured), that page's address (path and search term only), its score and the side panel list, your Ingredient Check settings, your recent clicks in the extension, and the extension and browser version. Every part is shown first and can be left out | The maintainer, by email from your address. See *Reporting a problem* below. |
+| **Report a problem or suggest an improvement** (only when you attach the file and send the draft yourself) | Nothing from the extension. Your email app sends what you wrote, and the report file if you attach it: a screenshot of the Amazon or a retailer preview tab you were on (no other tab is captured), that page's address (path and search term only), its score and the side panel list, your Ingredient Check settings, your recent clicks in the extension, and the extension and browser version. Every part is shown first and can be left out | The maintainer, by email from your address. See *Reporting a problem* below. |
 | **Request a store** (only when you open the draft and send it yourself) | Nothing from the extension. Your email app sends the store name and optional site address, if you press Send | The maintainer, by email from your address. See *Requesting a store* below. |
 | **Accuracy diagnostics** (off by default) | One row per scored product (ASIN, store, ingredient text, score, source) | The Ingredient Check database. That is a trace of products you scored — with auto-score on, of tiles that scrolled into view. |
 
@@ -81,7 +81,7 @@ There is no Ingredient Check account, no analytics SDK, and no third-party ad or
 ## Reporting a problem or suggesting an improvement
 
 The toolbar popup has **Report a problem or suggest an improvement**. When the tab you are on is an
-Amazon or Target page, clicking it takes a screenshot of that tab (Chrome allows this only right after
+Amazon or a retailer preview page, clicking it takes a screenshot of that tab (Chrome allows this only right after
 you click the toolbar button, which is what the `activeTab` permission is for; it grants nothing on any
 other tab or at any other time). On any other tab — your email, your bank — it takes no screenshot and
 notes no address; you can add an image yourself. Then it opens a report page. That page shows
@@ -130,7 +130,7 @@ browser session only, gone when Chrome closes.
 
 ## Single purpose
 
-Help you read grocery ingredient lists on Amazon and, as a preview, Target. Network hosts are Amazon (the page itself), Google (the Ingredient Check Apps Script, Chrome sync, and sign-in if you use it), and Open Food Facts (barcode lookup you grant).
+Help you read grocery ingredient lists on Amazon and, as previews, Target, Walmart and Costco. Network hosts are Amazon (the page itself), Google (the Ingredient Check Apps Script, Chrome sync, and sign-in if you use it), and Open Food Facts (barcode lookup you grant).
 
 
 ## Google and Chrome profile sign-in
@@ -141,3 +141,9 @@ It requests the `openid` scope and selects a Google account for one operation. T
 and are not saved in extension storage, reports, backups, or the account spreadsheet. OAuth client IDs
 are public configuration, stored locally and excluded from backups. Google backups are keyed by a
 hash of the verified account ID and contain settings, not your email, browsing cookies, or product cache.
+
+## Walmart and Costco previews
+
+These read only the product or search page you open, through narrowly scoped content scripts on the apex and www hosts. Walmart can read the current product’s embedded ingredient declaration after checking its numeric product ID against the URL. Costco reads visible labels; absent labels offer a paste fallback. No retailer preview makes network requests, fetches other products, or sends product data to Google or the shared database. Saved scores stay in local storage. Account, cart, checkout and login pages are excluded by the match routes. Costco Same-Day is outside scope.
+
+Google sign-in is optional during onboarding and uses the same one-request token handling as Settings. Choices save locally before an account backup is attempted; tokens are never persisted.

@@ -8,7 +8,9 @@ const PREFS = AIR.db.prefs;
 const OFF_PERMISSION = { origins: ['https://world.openfoodfacts.org/*'] };
 const AVOID_HINTS = PREFS.AVOID_HINTS;
 const OPTIONS = ['autoScoreSearch', 'sharedCache', 'ocrLabels', 'useOpenFoodFacts'];
-const LAST = 4;
+const LAST = 5;
+let setupToken = null;
+let setupClientId = PREFS.OAUTH_CLIENT_ID;
 
 const msg = (key, fallback) => {
   try { return (chrome.i18n && chrome.i18n.getMessage(key)) || fallback; } catch (e) { return fallback; }
@@ -171,12 +173,22 @@ async function finish() {
   const values = { weights: scoring.weights, goals: scoring.goals, goalImportance: scoring.goalImportance, allergens: scoring.allergens,
     diets: scoring.diets, avoidList: scoring.avoidList, onboarded: true };
   for (const id of OPTIONS) values[id] = document.getElementById(id).checked;
-  chrome.storage.local.set(values, () => {
-    next.disabled = false;
+  chrome.storage.local.set(values, async () => {
     if (chrome.runtime.lastError) {
+      next.disabled = false;
       status.textContent = 'Could not save your choices. Please try again.';
       return;
     }
+    if (setupToken) {
+      const token = setupToken;
+      setupToken = null;
+      try {
+        const result = await chrome.runtime.sendMessage({ type: 'accountSave', token });
+        status.textContent = result && result.ok ? 'Your choices are saved and backed up.' : 'Choices saved locally. Google backup could not be completed; try again in Settings.';
+      } catch (e) { status.textContent = 'Choices saved locally. Google backup could not be completed; try again in Settings.'; }
+      document.getElementById('backupStatus').textContent = status.textContent;
+    }
+    next.disabled = false;
     show(LAST + 1);
   });
 }
@@ -228,4 +240,29 @@ document.getElementById('openChromeProfile').addEventListener('click', () => {
 });
 document.getElementById('openAccountSettings').addEventListener('click', () => {
   chrome.tabs.create({ url: chrome.runtime.getURL('src/options/options.html#sec-account') });
+});
+
+const setupRedirect = () => chrome.identity ? chrome.identity.getRedirectURL() : `https://${chrome.runtime.id}.chromiumapp.org/`;
+try { document.getElementById('googleRedirect').textContent = setupRedirect(); }
+catch (e) { document.getElementById('googleRedirect').textContent = 'Open this page in the installed extension to see its redirect URL.'; }
+chrome.storage.local.get(['oauthClientId'], values => { setupClientId = PREFS.oauthClientId(values.oauthClientId) || PREFS.OAUTH_CLIENT_ID; });
+document.getElementById('copyGoogleRedirect').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(setupRedirect()); document.getElementById('googleStatus').textContent = 'Redirect URL copied.'; }
+  catch (e) { document.getElementById('googleStatus').textContent = 'Select and copy the redirect URL above.'; }
+});
+document.getElementById('googleSignIn').addEventListener('click', async () => {
+  const button = document.getElementById('googleSignIn');
+  if (button.disabled) return;
+  button.disabled = true;
+  document.getElementById('next').disabled = true;
+  const status = document.getElementById('googleStatus');
+  try {
+    const granted = await new Promise(resolve => chrome.permissions.request({ permissions: ['identity'] }, ok => resolve(!chrome.runtime.lastError && ok)));
+    if (!granted) { status.textContent = 'Google sign-in access was not granted. You can continue without it.'; return; }
+    setupToken = await AIR.googleAuth.token(chrome, setupClientId);
+    status.textContent = 'Google approved sign-in. Finish will save your choices and attempt an account backup.';
+  } catch (e) {
+    setupToken = null;
+    status.textContent = e.message === 'cancelled' ? 'Sign-in cancelled. You can continue without it.' : 'Google sign-in could not finish. Check setup help below: register the exact redirect URL in the Google Cloud OAuth Web client.';
+  } finally { button.disabled = false; document.getElementById('next').disabled = false; }
 });

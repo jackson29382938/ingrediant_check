@@ -33,13 +33,7 @@ After editing `src/`, `manifest.json`, or `icons/`, run `npm run chrome:reload`.
 
 ## What it does
 
-Stores: **Amazon** (21 storefronts) and, as a preview, **Target**. On Target it reads only the page
-you open and makes no network requests. Walmart and Costco are planned but blocked: their pages
-could not be inspected without getting past a bot check. Per-store status, dates and limits are in
-[docs/STORES.md](docs/STORES.md). Settings → *Stores* has a **Request a store** form that opens an
-email draft in your own mail app. The toolbar popup's **Report a problem or suggest an improvement** opens a report page that
-adds a screenshot, the page, your settings and your recent clicks, shows all of it, lets you leave any
-part out, and gives you one file to attach to an email draft (nothing is sent by the extension).
+Stores: **Amazon** (21 storefronts), plus **Target, Walmart and Costco previews**. Previews read only the page you open and show saved product scores on searches. Missing labels offer a paste fallback. Live validation is still incomplete; see [store checks](docs/STORES.md). Settings → Stores lets you request another store through an email draft. The toolbar’s report form previews a screenshot, settings and recent extension actions before you choose what to attach; the extension sends nothing.
 
 On an Amazon product page it reads the ingredient list (page text, optional on-device OCR, optional Open Food Facts barcode, or a paste box) and scores it. Search pages can show score chips. Non-food listings are skipped. The toolbar icon shows the current product’s score.
 

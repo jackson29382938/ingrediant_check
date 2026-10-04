@@ -289,3 +289,9 @@ test('Target removes invalid badges and clears the toolbar on SPA navigation', (
   product.sandbox.module.exports.reset();
   assert.equal(product.messages.at(-1).status, null);
 });
+
+test('Target rejects stale canonical product labels and foreign product links', () => {
+  const html = '<link rel="canonical" href="https://www.target.com/p/oats/-/A-79364857"><section data-test="@web/site-top-of-funnel/ProductDetailCollapsible-LabelInfo"><h4>Ingredients:</h4><div>whole grain oats</div></section>';
+  assert.equal(T.readProduct(createDocument(html), at(CHIPS_URL)).ingredients, '');
+  assert.equal(T.productId('https://evil.example/p/oats/-/A-79364857'), '');
+});

@@ -394,7 +394,7 @@ test('only the settings page can send settings messages; the popup and pages can
   for (const type of ['flushDiagnostics', 'diagnosticsStatus', 'refreshSheet', 'accountSave', 'accountLoad']) {
     assert.equal(w.call(`allowMessage({type:"${type}"}, ${JSON.stringify(settingsSender)})`), true, type);
     for (const other of [popupSender, setupSender]) {
-      assert.equal(w.call(`allowMessage({type:"${type}"}, ${JSON.stringify(other)})`), false, `${type} from ${other.url}`);
+      assert.equal(w.call(`allowMessage({type:"${type}"}, ${JSON.stringify(other)})`), type === 'accountSave' && other === setupSender, `${type} from ${other.url}`);
     }
   }
   const res = await w.send({ type: 'flushDiagnostics' }, settingsSender);
@@ -595,4 +595,16 @@ test('barcode lookup never contacts Open Food Facts without its Chrome host perm
   const w = worker({}, async () => { requests++; throw new Error('must not fetch'); }, { offPermission: false });
   assert.equal(await w.call('lookupBarcode("12345678")'), null);
   assert.equal(requests, 0);
+});
+
+test('retailer previews can update toolbar scores but cannot invoke network or account handlers', () => {
+  const w = worker();
+  for (const host of ['www.target.com', 'target.com', 'www.walmart.com', 'walmart.com', 'www.costco.com', 'costco.com']) {
+    const sender = { id: 'ext', tab: { url: `https://${host}/p/oats` } };
+    assert.equal(w.call(`allowMessage({type:"pageScore"}, ${JSON.stringify(sender)})`), true);
+    for (const type of ['ocrLabels', 'lookupBarcode', 'productsLookup', 'productsQueue', 'diagnostic', 'accountSave', 'accountLoad']) {
+      assert.equal(w.call(`allowMessage({type:"${type}"}, ${JSON.stringify(sender)})`), false, `${type} on ${host}`);
+    }
+  }
+  assert.equal(w.call('allowMessage({type:"pageScore"}, {id:"ext", tab:{url:"https://sameday.costco.com/p/oats"}})'), false);
 });

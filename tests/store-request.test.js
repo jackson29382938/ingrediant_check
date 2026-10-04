@@ -104,6 +104,6 @@ test('supported stores are not requested again; planned ones are noted', () => {
   assert.ok(target.notes.includes('already-preview'), 'Target runs as a preview');
   const walmart = build('Walmart', '');
   assert.equal(walmart.ok, true);
-  assert.ok(walmart.notes.includes('already-planned'));
+  assert.ok(walmart.notes.includes('already-preview'));
   assert.ok(R.MESSAGES['already-supported'] && Object.keys(R.MESSAGES).every(k => R.MESSAGES[k]));
 });

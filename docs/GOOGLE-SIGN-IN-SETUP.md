@@ -33,3 +33,13 @@ Settings backups contain scoring choices, goals and their importance, warnings, 
 The byte-sized sync format reads legacy backups. New writes stage an alternate set of avoid-list chunks and commit the main pointer last. Failed writes retain the prior backup, show a status, and retry through a Chrome alarm. Checksums reject parts arriving out of order; an incomplete backup must finish syncing before restore. Chrome sync conflict behavior across simultaneously editing devices still needs real multi-device validation.
 
 Product readings and diagnostics are independent opt-ins. Their existing queued-write tests verify offline retention, confirmed receipts, duplicate handling, and pause behavior. These tests use controlled receivers. The live shared backend was not populated with synthetic products or diagnostic rows during this task; live Google account writes also remain unverified until the console setup above is completed.
+
+## Redirect error reported October 4, 2026
+
+For the installed extension reported by the owner, add this exact **authorized redirect URI** to the existing **Web application** OAuth client in Google Cloud Credentials:
+
+`https://kimgmdjgfaoccgibnpklgcgillegenpd.chromiumapp.org/`
+
+Keep the trailing slash. This is an authorized redirect URI, not a JavaScript origin. Use the public client ID configured in the extension. Other unpacked installations may have a different extension ID: setup displays the actual `chrome.identity.getRedirectURL()` and can copy it. Register each installation’s actual URI or use a stable published extension ID. A Google account email or a client secret does not register redirects.
+
+Onboarding now offers optional Google sign-in. It stores choices locally first, then attempts account backup with an ephemeral token; a failed login or backend request leaves the choices local. No token or client secret is stored. Google Cloud registration and the account-backup backend deployment remain owner-console tasks until an authenticated management connection is available.

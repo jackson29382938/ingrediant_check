@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "1.4.4",
+  "version": "1.5.0",
   "minimum_chrome_version": "116",
   "description": "__MSG_appDescription__",
   "permissions": [
@@ -35,7 +35,9 @@
     "*://*.amazon.com.br/*",
     "*://*.amazon.co.jp/*"
   ],
-  "optional_permissions": ["identity"],
+  "optional_permissions": [
+    "identity"
+  ],
   "optional_host_permissions": [
     "https://world.openfoodfacts.org/*"
   ],
@@ -780,7 +782,29 @@
         "https://www.target.com/p/*",
         "https://www.target.com/s",
         "https://www.target.com/s?*",
-        "https://www.target.com/s/*"
+        "https://www.target.com/s/*",
+        "https://target.com/p/*",
+        "https://target.com/s",
+        "https://target.com/s?*",
+        "https://target.com/s/*",
+        "https://www.walmart.com/ip/*",
+        "https://www.walmart.com/search",
+        "https://www.walmart.com/search?*",
+        "https://walmart.com/ip/*",
+        "https://walmart.com/search",
+        "https://walmart.com/search?*",
+        "https://www.costco.com/p/*",
+        "https://www.costco.com/*.product.*.html",
+        "https://www.costco.com/s",
+        "https://www.costco.com/s?*",
+        "https://www.costco.com/CatalogSearch",
+        "https://www.costco.com/CatalogSearch?*",
+        "https://costco.com/p/*",
+        "https://costco.com/*.product.*.html",
+        "https://costco.com/s",
+        "https://costco.com/s?*",
+        "https://costco.com/CatalogSearch",
+        "https://costco.com/CatalogSearch?*"
       ],
       "run_at": "document_idle",
       "js": [
@@ -800,6 +824,9 @@
         "src/engine/score.js",
         "src/content/panel.js",
         "src/stores/target.js",
+        "src/stores/label-reader.js",
+        "src/stores/walmart.js",
+        "src/stores/costco.js",
         "src/content/retailer.js"
       ]
     }

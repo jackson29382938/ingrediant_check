@@ -20,8 +20,8 @@
     // Reads the product page you open; search shows scores only for products opened before.
     // Live pages were read correctly on 2026-09-25, but behind Target's bot check (docs/STORES.md).
     { id: 'target', name: 'Target', status: 'preview', domains: ['target.com'] },
-    { id: 'walmart', name: 'Walmart', status: 'planned', domains: ['walmart.com'] },
-    { id: 'costco', name: 'Costco', status: 'planned', domains: ['costco.com'] },
+    { id: 'walmart', name: 'Walmart', status: 'preview', domains: ['walmart.com'] },
+    { id: 'costco', name: 'Costco', status: 'preview', domains: ['costco.com'] },
   ];
 
   const bareHost = host => String(host || '').toLowerCase().replace(/^www\./, '').replace(/\.$/, '');
@@ -48,7 +48,12 @@
     try { u = new URL(String(url || '')); } catch (e) { return false; }
     if (u.protocol !== 'https:') return false;
     const store = storeForHost(u.hostname);
-    return !!store && (store.status === 'supported' || store.status === 'preview');
+    if (!store || store.status === 'planned') return false;
+    if (/\/(?:cart|checkout|account|login|orders|your-account|gp\/(?:cart|buy|css)|ap)(?:[/.]|$)/i.test(u.pathname)) return false;
+    if (store.id === 'target') return /^(?:www\.)?target\.com$/i.test(u.hostname) && /^\/(?:p\/|s(?:\/|$))/.test(u.pathname);
+    if (store.id === 'walmart') return /^(?:www\.)?walmart\.com$/i.test(u.hostname) && (/^\/ip\/(?:[^/]+\/)?\d{5,15}\/?$/.test(u.pathname) || u.pathname === '/search');
+    if (store.id === 'costco') return /^(?:www\.)?costco\.com$/i.test(u.hostname) && (/^\/[^/]+\.product\.\d{5,15}\.html$/.test(u.pathname) || /^\/p\/(?:[^/]+\/)+\d{5,15}\/?$/.test(u.pathname) || ['/s', '/CatalogSearch'].includes(u.pathname));
+    return true;
   }
 
   const api = { STORES, storeForHost, storeForName, reportMayCapture };

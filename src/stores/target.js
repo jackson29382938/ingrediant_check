@@ -25,13 +25,13 @@
   const kids = el => Array.from((el && el.children) || []);
 
   function matchesHost(host) {
-    return /^www\.target\.com$/i.test(String(host || ''));
+    return /^(?:www\.)?target\.com$/i.test(String(host || ''));
   }
 
   function productId(url) {
     try {
       const u = new URL(String(url), 'https://www.target.com');
-      if (!u.pathname.startsWith('/p/')) return '';
+      if (!matchesHost(u.hostname) || !u.pathname.startsWith('/p/')) return '';
       return (u.pathname.match(TCIN) || [])[1] || '';
     } catch (e) { return ''; }
   }
@@ -71,6 +71,7 @@
     ['sodium', /^sodium$/i, 'mg'], ['saturatedFat', /^saturated fat$/i, 'g'],
     ['sugar', /^(?:total )?sugars$/i, 'g'], ['addedSugar', /^(?:includes )?added sugars?$/i, 'g'],
     ['carbs', /^(?:total )?carbohydrates?$/i, 'g'],
+    ['transFat', /^trans fat$/i, 'g'],
     ['fibre', /^dietary fiber$/i, 'g'], ['protein', /^protein$/i, 'g'],
   ];
   function nutritionFacts(section) {
@@ -100,6 +101,10 @@
     const title = text(doc.querySelector('h1[data-test="product-title"]'))
       || clean(String(doc.title || '').replace(/\s*:\s*Target\s*$/i, ''));
     const crumbs = Array.from(doc.querySelectorAll(CRUMB)).map(text).filter(c => c && !/^target$/i.test(c));
+    const canonical = doc.querySelector('link[rel="canonical"]');
+    const canonicalId = canonical && productId(canonical.getAttribute('href'));
+    const id = productId(loc ? loc.href : doc.URL);
+    if (canonicalId && canonicalId !== id) return { id, title, crumbs, ingredients: '', labelText: '', nutrition: null, label: 'missing' };
     const section = doc.querySelector(LABEL);
     const toggle = section && kids(section).find(el => el.tagName && el.tagName.toLowerCase() === 'button');
     const collapsed = !!toggle && toggle.getAttribute('aria-expanded') === 'false';
@@ -137,7 +142,7 @@
 
   const adapter = {
     id: 'target', name: 'Target', matchesHost, productId, isProductPage, isSearchPage, searchQuery,
-    readProduct, labelToggle, searchTiles, LABEL, TILE,
+    readProduct, labelToggle, searchTiles, nutritionFacts, LABEL, TILE,
   };
   root.AIR = root.AIR || {};
   root.AIR.storeAdapters = root.AIR.storeAdapters || {};

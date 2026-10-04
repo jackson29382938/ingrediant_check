@@ -52,7 +52,7 @@
 </head>
 <body>
 <main class="card">
-  <div class="progress" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+  <div class="progress" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
   <p class="kicker" id="stepCount"></p>
 
   <section data-step="1">
@@ -91,16 +91,30 @@
       <span data-i18n="popupOcrD">When a page has no readable ingredients, read them from the label photo, on your computer.</span></span></label>
     <label class="opt"><input type="checkbox" id="useOpenFoodFacts" checked><span><b data-i18n="popupOff">Open Food Facts fallback</b>
       <span data-i18n="popupOffD">When a page has a barcode but no readable ingredients, look it up. Chrome will ask first.</span></span></label>
-    <p class="status" id="status" role="status"></p>
+
   </section>
 
-  <section data-step="5" class="done" hidden>
+  <section data-step="5" hidden>
+    <h1>Back up with Google</h1>
+    <p class="lede">Optional. Sign in to back up your choices to your Google account when you finish. You can use the extension without signing in.</p>
+    <button type="button" class="primary" id="googleSignIn">Sign in with Google</button>
+    <p id="googleStatus" role="status" aria-live="polite"></p>
+    <details><summary>Google sign-in setup help</summary>
+      <p>If Google reports a redirect URI error, the developer must add this exact URL to the OAuth Web client’s authorized redirect URIs:</p>
+      <p id="googleRedirect" style="overflow-wrap:anywhere"></p>
+      <button type="button" class="ghost" id="copyGoogleRedirect">Copy redirect URL</button>
+      <p><a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Open Google Cloud credentials</a></p>
+    </details>
+  </section>
+  <section data-step="6" class="done" hidden>
+    <p id="backupStatus" role="status"></p>
     <h1 data-i18n="welDoneH">You're set</h1>
-    <p class="lede" data-i18n="welDoneLede">Open any grocery product or search on Amazon. Hover a score on a results page to see why. Everything here can be changed later under Settings.</p>
+    <p class="lede" data-i18n="welDoneLede">Open a grocery product on Amazon, or try the Target, Walmart and Costco previews. Preview searches show scores for products you have already opened. Everything here can be changed later in Settings.</p>
     <p><button type="button" class="ghost" id="openChromeProfile">Open Chrome profile settings</button> <button type="button" class="ghost" id="openAccountSettings">Google account backup settings</button></p>
     <p><a href="https://www.amazon.com/s?k=organic+oats&amp;i=grocery" target="_blank" rel="noopener" data-i18n="welTry">Try a grocery search →</a></p>
   </section>
 
+  <p class="status" id="status" role="status"></p>
   <div class="foot">
     <button type="button" class="ghost" id="back" data-i18n="welBack">Back</button>
     <button type="button" class="ghost" id="skip" data-i18n="welSkip">Skip setup</button>
@@ -112,6 +126,7 @@
 <script src="../engine/db/allergens.js"></script>
 <script src="../engine/categories.js"></script>
 <script src="../engine/db/prefs.js"></script>
+<script src="google-auth.js"></script>
 <script src="welcome.js"></script>
 </body>
 </html>

@@ -15,8 +15,8 @@ that check is not complete yet.
 |---|---|---|---|---|---|
 | Amazon | supported | yes | pass (`npm test`, `npm run harness:ci`) | amazon.com product and search pages, 2026-09-05 and again 2026-09-25, including label-photo OCR, Open Food Facts and the shared database ([VERIFY.md](VERIFY.md)) | Only amazon.com has been live checked. The other 20 Amazon stores share its code and markup but were not checked one by one. |
 | Target | preview | yes, 2026-09-25 (`src/stores/target.js`, `src/content/retailer.js`) | pass (`tests/target.test.js`, `tests/stores.test.js`) | **partly**, 2026-09-25: live product and search pages were read correctly, but behind Target's bot check | See *Target* below. Needs one check in your own Chrome to become supported. |
-| Walmart | planned | no | — | **blocked** 2026-09-25 | Every page answered with Walmart's "Robot or human?" challenge. Not implemented. |
-| Costco | planned | no | — | **blocked** 2026-09-25 | Product and search pages would not render (bot management script blocked, page scripts 404). Not implemented. |
+| Walmart | preview | yes | adapter and identity checks | Public product HTML retrieved 2026-10-04 (HTTP 200), product 10314926 | Current-page embedded ingredient declaration; search shows saved scores only. Live browser validation remains incomplete. |
+| Costco | preview | yes | adapter and identity checks | Public product HTML retrieved 2026-10-04 (HTTP 200), product 100423971 | Visible labels only; retrieved initial page had no ingredient declaration. Paste fallback available. Live browser validation remains incomplete. |
 
 ## Amazon: sorting by store
 
@@ -85,7 +85,7 @@ number, and the product's tile on the search page gets a badge. Then change `sta
 
 ## Walmart and Costco
 
-Inspected 2026-09-25, signed out, as a normal visitor would.
+Historical check (2026-09-25), superseded in part by the October 4 check below.
 
 - **Walmart.** A plain request was redirected to `walmart.com/blocked` ("Robot or human?"). In a
   real Chromium the product page showed *"Activate and hold the button to confirm that you're
@@ -97,7 +97,7 @@ Inspected 2026-09-25, signed out, as a normal visitor would.
   separate site and would need its own adapter.
 
 Both results come from a datacenter address with an automated browser, and ordinary shoppers may
-not see either block. Neither store can be inspected or checked from there, and the extension will
+not see either block. Full live browser validation remains incomplete, and the extension will
 never work around a challenge. To continue, save each page from your own Chrome, signed out
 (*Save page as… → Webpage, HTML only*): a grocery product with an ingredient list, one without, a
 non-food product and a grocery search. Adapters can then be built and tested from those, and
@@ -152,3 +152,9 @@ For each store:
   why in the popup, settings and [PRIVACY.md](PRIVACY.md) first.
 - Change the store's row here with a date for each step: implemented, automated checks passed,
   live checked, or blocked.
+
+## October 4, 2026 retailer checks
+
+Normal public GET requests returned HTTP 200 for Target product 79364857, Walmart product 10314926, and Costco product 100423971. Target’s initial HTML did not expose its ingredient label. Walmart’s current-product `__NEXT_DATA__` contained `WHOLE GRAIN ROLLED OATS.`; the reader verifies `product.usItemId` against the URL before accepting that declaration. Costco redirected an older oats slug to a protein-bar product with the same numeric ID; its initial nutrition model was empty. These checks establish access and parsing evidence, not complete live browser support. No challenge was bypassed and no internal retailer APIs were called.
+
+All three previews read only pages you open, offer a paste-label fallback, and show previously saved scores on search results. They do not fetch other product pages, share product readings, or call OCR/Google services. Cart, login, account and checkout routes are outside the content-script matches. Missing nutrition stays unknown.

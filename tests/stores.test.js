@@ -30,10 +30,8 @@ test('a preview store runs through a content script only, with no host permissio
   // Target's script is scoped directly to product and search routes. Private routes are out of
   // scope by construction, rather than protected by an ever-growing exclusion list.
   const target = manifest.content_scripts.find(cs => cs.matches.includes('https://www.target.com/p/*'));
-  assert.deepEqual(target.matches, [
-    'https://www.target.com/p/*', 'https://www.target.com/s',
-    'https://www.target.com/s?*', 'https://www.target.com/s/*',
-  ]);
+  assert.ok(target.matches.includes('https://target.com/p/*'));
+  assert.ok(target.matches.every(match => !/cart|checkout|account|login/.test(match)));
   assert.equal(target.exclude_globs, undefined);
   // And it loads none of Amazon's pipeline: no page fetches, no shared database, no OCR.
   for (const f of ['src/content/main.js', 'src/content/search.js', 'src/content/product.js', 'src/engine/db/product-cache.js', 'src/engine/db/ocr-text.js']) {
@@ -70,14 +68,17 @@ test('host lookup matches subdomains, not look-alikes', () => {
   assert.equal(stores.storeForName('Walmart Grocery'), null);
 });
 
-test('"Report a problem" captures only Amazon and Target tabs', () => {
+test('"Report a problem" captures only public pages of implemented stores', () => {
   for (const url of ['https://www.amazon.com/dp/B00LOAW7U6', 'https://www.amazon.co.uk/s?k=oats',
-    'https://smile.amazon.de/dp/B000000001', 'https://www.target.com/p/oats/-/A-79364857']) {
+    'https://smile.amazon.de/dp/B000000001', 'https://www.target.com/p/oats/-/A-79364857', 'https://www.walmart.com/ip/oats/10314926', 'https://www.costco.com/p/-/bars/100423971']) {
     assert.equal(stores.reportMayCapture(url), true, url);
   }
   for (const url of ['https://mail.google.com/mail/u/0/', 'https://www.chase.com/', 'https://www.walmart.com/ip/1',
     'http://www.amazon.com/dp/B00LOAW7U6', 'https://notamazon.com/', 'chrome://settings', 'file:///tmp/x.html', '', null]) {
     assert.equal(stores.reportMayCapture(url), false, String(url));
+  }
+  for (const domain of ['target.com', 'walmart.com', 'costco.com', 'amazon.com']) {
+    for (const route of ['account', 'login', 'cart', 'checkout', 'orders']) assert.equal(stores.reportMayCapture(`https://www.${domain}/${route}`), false);
   }
   // The popup asks before it captures, and records no address for any other tab.
   const popup = fs.readFileSync(require.resolve('../src/options/popup.js'), 'utf8');
