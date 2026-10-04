@@ -158,3 +158,7 @@ For each store:
 Normal public GET requests returned HTTP 200 for Target product 79364857, Walmart product 10314926, and Costco product 100423971. Target’s initial HTML did not expose its ingredient label. Walmart’s current-product `__NEXT_DATA__` contained `WHOLE GRAIN ROLLED OATS.`; the reader verifies `product.usItemId` against the URL before accepting that declaration. Costco redirected an older oats slug to a protein-bar product with the same numeric ID; its initial nutrition model was empty. These checks establish access and parsing evidence, not complete live browser support. No challenge was bypassed and no internal retailer APIs were called.
 
 All three previews read only pages you open, offer a paste-label fallback, and show previously saved scores on search results. They do not fetch other product pages, share product readings, or call OCR/Google services. Cart, login, account and checkout routes are outside the content-script matches. Missing nutrition stays unknown.
+
+## Parallel audit follow-up
+
+The [October 4 parallel audit](PARALLEL-AUDIT-2026-10-04.md) records fresh public product/search evidence and fixes for all four stores. Target, Walmart and Costco remain previews; successful public responses and fixture-based browser tests do not establish complete live-site support.

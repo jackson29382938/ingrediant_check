@@ -5,6 +5,7 @@ const vm = require('node:vm');
 const fs = require('node:fs');
 
 function setup() {
+  const observations = [];
   const timers = [], badges = [], fetches = [], writes = [], rendered = [], messages = [], notices = [];
   let changed, pasted, failMeta;
   let host = { dataset: {}, isConnected: true, remove() { this.isConnected = false; } };
@@ -24,7 +25,7 @@ function setup() {
     location: { hostname: 'www.amazon.com', href: 'https://www.amazon.com/dp/B000000001', pathname: '/dp/B000000001', search: '' },
     setTimeout: f => { timers.push(f); return timers.length; }, clearTimeout() {},
     setInterval: () => 1, clearInterval() {}, addEventListener() {},
-    MutationObserver: class { observe() {} disconnect() {} },
+    MutationObserver: class { observe(root, options) { observations.push(options); } disconnect() {} },
     IntersectionObserver: class { observe() {} disconnect() {} },
     DOMParser: class { parseFromString() { return {}; } },
     document: {
@@ -102,7 +103,7 @@ function setup() {
   const h = context.AIR.page;
   h.state.enabled = true; h.state.badges = true; h.state.foodOnly = false;
   h.state.autoScoreSearch = true;
-  return { h, context, tile, get host() { return host; }, timers, fetches, badges, writes, rendered,
+  return { h, context, tile, observations, get host() { return host; }, timers, fetches, badges, writes, rendered,
     messages, notices, get failMeta() { return failMeta; },
     change: values => changed(values), paste: text => pasted(text) };
 }
@@ -697,4 +698,41 @@ test('a list read from the label photo keeps the nutrition numbers the page publ
   assert.equal(input.nutrition.sodium, 900);
   const kept = w.writes.map(x => x['p:amazon.com:B000000001']).filter(Boolean).at(-1);
   assert.equal(kept.data.nutrition.sodium, 900, 'the saved reading keeps them too');
+});
+
+
+test('late additives beyond the old 320-character prefix invalidate the Amazon page score', () => {
+  const w = setup();
+  let ingredients = Array(65).fill('organic oats').join(', ');
+  w.context.document.querySelectorAll = () => [{ innerText: ingredients }];
+  w.context.AIR.extract.extract = () => ({ ok: true, title: 'Oats', asin: 'B000000001', text: ingredients });
+  w.h.scoreCurrentPage();
+  assert.equal(w.rendered.length, 1);
+  w.h.scoreCurrentPage();
+  assert.equal(w.rendered.length, 1, 'unrelated mutations leave unchanged evidence idle');
+  ingredients += ', sucralose, red 40';
+  w.h.scoreCurrentPage();
+  assert.equal(w.rendered.length, 2);
+  assert.match(w.rendered.at(-1).input.ingredients_text, /sucralose, red 40$/);
+});
+
+test('late Nutrition Facts hydration updates the Amazon score without changing ingredients', () => {
+  const w = setup();
+  let sodium = 10;
+  w.context.document.querySelectorAll = () => [{ innerText: 'oats, salt' }, { innerText: `Nutrition Facts Sodium ${sodium}mg` }];
+  w.context.AIR.extract.extract = () => ({ ok: true, title: 'Oats', asin: 'B000000001', text: 'oats, salt', nutrition: { sodium, calories: 150 } });
+  w.h.scoreCurrentPage();
+  sodium = 900;
+  w.h.scoreCurrentPage();
+  assert.equal(w.rendered.length, 2);
+  assert.equal(w.rendered.at(-1).input.nutrition.sodium, 900);
+});
+
+test('Amazon hydration observer detects text-node updates as well as inserted nodes', () => {
+  const w = setup();
+  w.h.resume();
+  assert.ok(w.observations.length);
+  assert.equal(w.observations.at(-1).characterData, true);
+  assert.equal(w.observations.at(-1).childList, true);
+  assert.equal(w.observations.at(-1).subtree, true);
 });

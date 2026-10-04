@@ -10,6 +10,7 @@ const AVOID_HINTS = PREFS.AVOID_HINTS;
 const OPTIONS = ['autoScoreSearch', 'sharedCache', 'ocrLabels', 'useOpenFoodFacts'];
 const LAST = 5;
 let setupToken = null;
+let busy = false;
 let setupClientId = PREFS.OAUTH_CLIENT_ID;
 
 const msg = (key, fallback) => {
@@ -144,63 +145,82 @@ function closeTab() {
   catch (e) { window.close(); }
 }
 
-async function finish() {
-  const next = document.getElementById('next');
-  if (next.disabled) return;
-  next.disabled = true;
-  const status = document.getElementById('status');
-  status.textContent = '';
-  // Request optional barcode access directly from Finish's user gesture.
-  // A checked recommendation is not itself a Chrome permission grant.
-  if (document.getElementById('useOpenFoodFacts').checked) {
-    const granted = await new Promise(resolve => chrome.permissions.request(OFF_PERMISSION,
-      ok => resolve(!chrome.runtime.lastError && ok)));
-    if (!granted) {
-      document.getElementById('useOpenFoodFacts').checked = false;
-      status.textContent = msg('popupOffDenied', 'Chrome did not grant Open Food Facts access.');
-      next.disabled = false;
-      return;
-    }
-  }
-  const goals = CATS.sanitizeGoals(picked.goals);
-  const sameGoals = goals.length === startGoals.length && goals.every(g => startGoals.includes(g));
-  // Unchanged goals keep whatever sliders were already set; new goals load their weights.
-  const weights = sameGoals && startWeights ? startWeights : CATS.goalWeights(goals, startImportance);
-  const scoring = PREFS.sanitizeScoring({
-    weights, goals, goalImportance: startImportance, allergens: picked.allergens, diets: picked.diets,
-    avoidList: document.getElementById('avoidList').value, foodOnly: true,
+function setBusy(on) {
+  busy = on;
+  for (const id of ['next', 'back', 'skip', 'googleSignIn']) document.getElementById(id).disabled = on;
+}
+
+function saveChoices(values) {
+  return new Promise((resolve, reject) => {
+    chrome.storage.local.set(values, () => {
+      if (chrome.runtime.lastError) reject(new Error('save-failed'));
+      else resolve();
+    });
   });
-  const values = { weights: scoring.weights, goals: scoring.goals, goalImportance: scoring.goalImportance, allergens: scoring.allergens,
-    diets: scoring.diets, avoidList: scoring.avoidList, onboarded: true };
-  for (const id of OPTIONS) values[id] = document.getElementById(id).checked;
-  chrome.storage.local.set(values, async () => {
-    if (chrome.runtime.lastError) {
-      next.disabled = false;
-      status.textContent = 'Could not save your choices. Please try again.';
-      return;
+}
+
+async function finish() {
+  if (busy) return;
+  setBusy(true);
+  const status = document.getElementById('status');
+  status.textContent = 'Saving your choices…';
+  try {
+    // Request optional barcode access directly from Finish's user gesture.
+    // A checked recommendation is not itself a Chrome permission grant.
+    if (document.getElementById('useOpenFoodFacts').checked) {
+      const granted = await new Promise(resolve => chrome.permissions.request(OFF_PERMISSION,
+        ok => resolve(!chrome.runtime.lastError && ok)));
+      if (!granted) {
+        document.getElementById('useOpenFoodFacts').checked = false;
+        status.textContent = msg('popupOffDenied', 'Chrome did not grant Open Food Facts access.');
+        return;
+      }
     }
+    const goals = CATS.sanitizeGoals(picked.goals);
+    const sameGoals = goals.length === startGoals.length && goals.every(g => startGoals.includes(g));
+    // Unchanged goals keep whatever sliders were already set; new goals load their weights.
+    const weights = sameGoals && startWeights ? startWeights : CATS.goalWeights(goals, startImportance);
+    const scoring = PREFS.sanitizeScoring({
+      weights, goals, goalImportance: startImportance, allergens: picked.allergens, diets: picked.diets,
+      avoidList: document.getElementById('avoidList').value, foodOnly: true,
+    });
+    const values = { weights: scoring.weights, goals: scoring.goals, goalImportance: scoring.goalImportance, allergens: scoring.allergens,
+      diets: scoring.diets, avoidList: scoring.avoidList, onboarded: true };
+    for (const id of OPTIONS) values[id] = document.getElementById(id).checked;
+    await saveChoices(values);
     if (setupToken) {
       const token = setupToken;
       setupToken = null;
+      status.textContent = 'Choices saved. Backing up with Google…';
       try {
         const result = await chrome.runtime.sendMessage({ type: 'accountSave', token });
         status.textContent = result && result.ok ? 'Your choices are saved and backed up.' : 'Choices saved locally. Google backup could not be completed; try again in Settings.';
       } catch (e) { status.textContent = 'Choices saved locally. Google backup could not be completed; try again in Settings.'; }
       document.getElementById('backupStatus').textContent = status.textContent;
+    } else {
+      status.textContent = 'Your choices are saved on this computer.';
+      document.getElementById('backupStatus').textContent = status.textContent;
     }
-    next.disabled = false;
     show(LAST + 1);
-  });
+  } catch (e) {
+    status.textContent = 'Could not save your choices. Please try again.';
+  } finally { setBusy(false); }
 }
 
 document.getElementById('next').addEventListener('click', () => {
+  if (busy) return;
   if (step > LAST) { closeTab(); return; }
   if (step === LAST) { finish(); return; }
   show(step + 1);
 });
-document.getElementById('back').addEventListener('click', () => show(Math.max(1, step - 1)));
-document.getElementById('skip').addEventListener('click', () => {
-  chrome.storage.local.set({ onboarded: true }, closeTab);
+document.getElementById('back').addEventListener('click', () => { if (!busy) show(Math.max(1, step - 1)); });
+document.getElementById('skip').addEventListener('click', async () => {
+  if (busy) return;
+  setBusy(true);
+  setupToken = null;
+  try { await saveChoices({ onboarded: true }); closeTab(); }
+  catch (e) { document.getElementById('status').textContent = 'Could not save setup status. Please try again.'; }
+  finally { setBusy(false); }
 });
 
 // Chrome only grants an optional host permission in response to a click, so ask right here.
@@ -251,11 +271,11 @@ document.getElementById('copyGoogleRedirect').addEventListener('click', async ()
   catch (e) { document.getElementById('googleStatus').textContent = 'Select and copy the redirect URL above.'; }
 });
 document.getElementById('googleSignIn').addEventListener('click', async () => {
-  const button = document.getElementById('googleSignIn');
-  if (button.disabled) return;
-  button.disabled = true;
-  document.getElementById('next').disabled = true;
+  if (busy) return;
+  setBusy(true);
+  setupToken = null;
   const status = document.getElementById('googleStatus');
+  status.textContent = 'Waiting for Google sign-in…';
   try {
     const granted = await new Promise(resolve => chrome.permissions.request({ permissions: ['identity'] }, ok => resolve(!chrome.runtime.lastError && ok)));
     if (!granted) { status.textContent = 'Google sign-in access was not granted. You can continue without it.'; return; }
@@ -264,5 +284,5 @@ document.getElementById('googleSignIn').addEventListener('click', async () => {
   } catch (e) {
     setupToken = null;
     status.textContent = e.message === 'cancelled' ? 'Sign-in cancelled. You can continue without it.' : 'Google sign-in could not finish. Check setup help below: register the exact redirect URL in the Google Cloud OAuth Web client.';
-  } finally { button.disabled = false; document.getElementById('next').disabled = false; }
+  } finally { setBusy(false); }
 });

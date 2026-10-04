@@ -64,7 +64,7 @@
     if (observer && observerRoot === root) return;
     stopObserving();
     observer = new MutationObserver(schedule);
-    observer.observe(root, { childList: true, subtree: true });
+    observer.observe(root, { childList: true, characterData: true, subtree: true });
     observerRoot = root;
     state.settled = null;
   }

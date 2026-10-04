@@ -1082,9 +1082,33 @@ async function retailerEndToEnd(context, worker, pageErrors) {
       return chrome.action.getBadgeText({ tabId: tab.id });
     });
     if (!/^\d+$/.test(badge)) throw new Error(`retailer toolbar missing score: ${item.url}`);
+    const oldScore = Number(badge);
+    await page.evaluate(() => {
+      const ingredients = 'whole grain rolled oats, sugar, red 40, salt';
+      const boot = document.getElementById('__NEXT_DATA__');
+      if (boot) {
+        const data = JSON.parse(boot.textContent);
+        data.props.pageProps.initialData.data.idml.ingredients.ingredients.value = ingredients;
+        boot.firstChild.data = JSON.stringify(data);
+      } else {
+        const heading = [...document.querySelectorAll('h3,h4')].find(el => /^Ingredients:?$/i.test(el.textContent.trim()));
+        heading.nextElementSibling.firstChild.data = ingredients;
+      }
+    });
+    await worker.evaluate(async ({ store, id, previous }) => {
+      const key = `s:${store}:${id}`;
+      const until = Date.now() + 10000;
+      while (Date.now() < until) {
+        const hit = (await chrome.storage.local.get(key))[key];
+        if (hit && hit.score !== previous) return;
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      throw new Error(`retailer label hydration did not update saved score: ${store}`);
+    }, { store: new URL(item.url).hostname.replace(/^www\./, ''), id: item.url.match(/(\d+)$/)[1], previous: oldScore });
+
     await page.goto(item.search);
     await page.waitForFunction(() => [...document.querySelectorAll('.air-badge')].some(b => /\d/.test(b.textContent)), { timeout: 10000 });
     await page.close();
   }
-  console.log('  ok  real extension → Target, Walmart and Costco product scores, toolbar badges and saved-score search badges (intercepted fixtures, no retailer network)');
+  console.log('  ok  real extension → Target, Walmart and Costco product scores, late-label updates, toolbar badges and saved-score search badges (intercepted fixtures, no retailer network)');
 }

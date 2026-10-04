@@ -149,7 +149,7 @@
     }
     const key = data.asin || earlyKey;
     if (key === state.lastKey && existingState === 'scored' && data.ok
-        && data.text && data.text.slice(0, 320) === state.lastTextSig) return;
+        && !sig && data.text && data.text === state.lastTextSig) return;
 
     const anchor = mountPoint();
     if (!anchor) return;
@@ -198,7 +198,7 @@
     if (!presentResult(host, data, key, result, {
       input,   // sanitize() keeps only known reading and nutrition fields
       title: data.title, confidence: data.confidence, via: data.via,
-      text: data.text, textSig: (data.text || '').slice(0, 320),
+      text: data.text, textSig: data.text || '',
     })) return;
 
     if (result.provenance) enrichProvenance(host, data, key, result, requestId);
@@ -378,7 +378,7 @@
         presentResult(host, data, key, better, {
           title: data.title, confidence: data.confidence, via: data.via,
           provenanceSource: record.source || 'shared database',
-          text: data.text, textSig: (data.text || '').slice(0, 320),
+          text: data.text, textSig: data.text || '',
           sendDiag: false, report: false, checkCoverage: false,
         });
       });

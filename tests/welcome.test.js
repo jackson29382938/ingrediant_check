@@ -21,12 +21,12 @@ function setup(initial = {}, permission = true, auth = {}) {
   const data = structuredClone(initial);
   let requests = 0;
   const backups = [];
-  const air = { ...globalThis.AIR, googleAuth: { token: async () => { if (auth.error) throw new Error(auth.error); return 'ephemeral-access-token'; } } };
+  const air = { ...globalThis.AIR, googleAuth: { token: async () => { if (auth.pending) await auth.pending; if (auth.error) throw new Error(auth.error); return 'ephemeral-access-token'; } } };
   const context = vm.createContext({ AIR: air, console,
     document: { getElementById: get, querySelectorAll: () => [], querySelector: () => element(), createElement: element },
-    chrome: { identity: { getRedirectURL: () => 'https://test.chromiumapp.org/' }, runtime: { getURL: p => p, async sendMessage(message) { backups.push({ ...message, onboarded: data.onboarded }); return { ok: auth.backup !== false }; } }, i18n: { getMessage: () => '' }, tabs: { create() {} },
-      permissions: { request(_p, cb) { requests++; cb(permission); }, remove(_p, cb) { cb(); } },
-      storage: { local: { get(_keys, cb) { cb(data); }, set(values, cb) { Object.assign(data, values); cb(); } } } },
+    chrome: { identity: { getRedirectURL: () => 'https://test.chromiumapp.org/' }, runtime: { getURL: p => p, async sendMessage(message) { backups.push({ ...message, onboarded: data.onboarded }); if (auth.backupPending) await auth.backupPending; if (auth.backupError) throw new Error('offline'); return { ok: auth.backup !== false }; } }, i18n: { getMessage: () => '' }, tabs: { create() {}, getCurrent(cb) { cb({ id: 7 }); }, remove(id) { auth.closedTab = id; } },
+      permissions: { request(_p, cb) { requests++; cb(auth.permission === undefined ? permission : auth.permission); }, remove(_p, cb) { cb(); } },
+      storage: { local: { get(_keys, cb) { cb(data); }, set(values, cb) { if (!auth.saveError) Object.assign(data, values); if (auth.saveError) context.chrome.runtime.lastError = { message: 'storage quota' }; cb(); delete context.chrome.runtime.lastError; } } } },
   });
   vm.runInContext(fs.readFileSync('src/options/welcome.js', 'utf8'), context);
   return { get, data, context, backups, requests: () => requests, finish: () => vm.runInContext('finish()', context) };
@@ -122,4 +122,88 @@ test('Google cancellation, permission denial and backend failure keep setup usab
   assert.match(failed.get('backupStatus').textContent, /saved locally/);
   assert.equal(vm.runInContext('setupToken', failed.context), null);
   assert.equal(failed.get('next').disabled, false);
+});
+
+
+test('setup blocks navigation and duplicate operations while Google sign-in is pending', async () => {
+  let release;
+  const pending = new Promise(resolve => { release = resolve; });
+  const s = setup({ useOpenFoodFacts: false }, true, { pending });
+  const signIn = s.get('googleSignIn').click();
+  for (const id of ['next', 'back', 'skip', 'googleSignIn']) assert.equal(s.get(id).disabled, true);
+  s.get('back').click();
+  await s.get('skip').click();
+  await s.finish();
+  await s.get('googleSignIn').click();
+  assert.equal(s.data.onboarded, undefined);
+  assert.equal(s.requests(), 1);
+  assert.equal(vm.runInContext('step', s.context), 1);
+  release();
+  await signIn;
+  for (const id of ['next', 'back', 'skip', 'googleSignIn']) assert.equal(s.get(id).disabled, false);
+});
+
+test('retrying sign-in cannot back up with an earlier account token after permission denial', async () => {
+  const auth = {};
+  const s = setup({ useOpenFoodFacts: false }, true, auth);
+  await s.get('googleSignIn').click();
+  auth.permission = false;
+  await s.get('googleSignIn').click();
+  await s.finish();
+  assert.equal(s.backups.length, 0);
+  assert.equal(vm.runInContext('setupToken', s.context), null);
+  assert.match(s.get('backupStatus').textContent, /saved on this computer/);
+});
+
+test('local save failure keeps setup open and prevents account backup until retry succeeds', async () => {
+  const auth = { saveError: true };
+  const s = setup({ useOpenFoodFacts: false }, true, auth);
+  await s.get('googleSignIn').click();
+  await s.finish();
+  assert.equal(s.data.onboarded, undefined);
+  assert.equal(s.backups.length, 0);
+  assert.match(s.get('status').textContent, /Could not save your choices/);
+  assert.equal(s.get('next').disabled, false);
+  auth.saveError = false;
+  await s.finish();
+  assert.equal(s.backups.length, 1);
+  assert.equal(s.data.onboarded, true);
+});
+
+test('Skip clears the pending Google token and reports a failed setup-status save', async () => {
+  const auth = { saveError: true };
+  const s = setup({ useOpenFoodFacts: false }, true, auth);
+  await s.get('googleSignIn').click();
+  await s.get('skip').click();
+  assert.equal(vm.runInContext('setupToken', s.context), null);
+  assert.equal(auth.closedTab, undefined);
+  assert.match(s.get('status').textContent, /Could not save setup status/);
+  auth.saveError = false;
+  await s.get('skip').click();
+  assert.equal(auth.closedTab, 7);
+  assert.equal(s.data.onboarded, true);
+  assert.equal(s.backups.length, 0);
+});
+
+
+test('Finish keeps saved choices safe while Google backup is pending or throws', async () => {
+  let release;
+  const backupPending = new Promise(resolve => { release = resolve; });
+  const s = setup({ useOpenFoodFacts: false }, true, { backupPending, backupError: true });
+  await s.get('googleSignIn').click();
+  const finishing = s.finish();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(s.data.onboarded, true);
+  assert.equal(s.backups.length, 1);
+  assert.match(s.get('status').textContent, /Backing up/);
+  for (const id of ['next', 'back', 'skip', 'googleSignIn']) assert.equal(s.get(id).disabled, true);
+  await s.finish();
+  await s.get('skip').click();
+  assert.equal(s.backups.length, 1);
+  release();
+  await finishing;
+  assert.match(s.get('backupStatus').textContent, /saved locally/);
+  assert.equal(vm.runInContext('step', s.context), 6);
+  assert.equal(vm.runInContext('setupToken', s.context), null);
+  assert.equal(s.get('next').disabled, false);
 });

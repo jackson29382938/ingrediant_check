@@ -4,12 +4,18 @@
     let url, expected;
     try { url = new URL(raw); expected = new URL(expectedRedirect); }
     catch (e) { throw new Error('invalid-redirect'); }
-    if (url.origin !== expected.origin || url.pathname !== expected.pathname || url.username || url.password) {
+    if (url.origin !== expected.origin || url.pathname !== expected.pathname || url.search !== expected.search || url.username || url.password) {
       throw new Error('invalid-redirect');
     }
     const got = new URLSearchParams(url.hash.slice(1));
+    for (const name of ['state', 'access_token', 'token_type', 'error', 'expires_in']) {
+      if (got.getAll(name).length > 1) throw new Error('invalid-redirect');
+    }
     if (got.get('state') !== state) throw new Error('invalid-redirect');
     if (got.get('error')) throw new Error(got.get('error') === 'access_denied' ? 'cancelled' : 'no-token');
+    if (got.has('expires_in') && (!/^\d+$/.test(got.get('expires_in')) || Number(got.get('expires_in')) <= 0)) {
+      throw new Error('no-token');
+    }
     const value = got.get('access_token');
     if (!value || !/^[\w.~+/-]{20,4096}={0,2}$/.test(value)
       || (got.get('token_type') || '').toLowerCase() !== 'bearer') throw new Error('no-token');

@@ -79,7 +79,7 @@
 
   function scoreText(host, data, text, via) {
     const result = root.AIR.engine.score({ name: data.title, ingredients_text: text, nutrition: data.nutrition }, state.prefs);
-    if (result.parsed > 0 && result.coverage < MIN_COVERAGE) {
+    if (!result.parsed || result.coverage < MIN_COVERAGE) {
       show(host, P.renderFailure({ lowCoverage: true, storeName: adapter.name }), 'fail', { paste: onPaste(host, data) });
       badge({ status: 'fail' });
       return;
@@ -101,6 +101,16 @@
   function productPass() {
     const data = adapter.readProduct(document, location);
     if (!data.id) return true;
+    const signature = JSON.stringify([data.id, data.title, data.crumbs, data.ingredients, data.labelText, data.nutrition, data.label]);
+    if (state.done && state.signature === signature) return 'watch';
+    if (state.done && state.signature !== signature) {
+      // A changed declaration invalidates its prior saved score as well as this tab.
+      if (typeof chrome.storage.local.remove === 'function') chrome.storage.local.remove(CACHE.key(STORE, data.id), () => void chrome.runtime.lastError);
+      badge(null);
+      document.getElementById(HOST_ID)?.remove();
+      state.done = false;
+    }
+    state.signature = signature;
     const anchor = document.querySelector('h1[data-test="product-title"]') || document.querySelector('h1');
     if (!anchor || !anchor.parentNode) return false; // not rendered yet
     // Created on first use, so a page still rendering its label gets no empty card.
@@ -215,7 +225,7 @@
     // so a timer makes sure the give-up point is reached even if the page goes quiet.
     // Search pages keep watching for more tiles.
     clearTimeout(state.timer);
-    if (product && done === true) { state.done = true; stopWatching(); }
+    if (product && done === true) { state.done = true; watch(); }
     else if (product && done === false) {
       state.timer = setTimeout(pass, Math.max(500, WAIT_FOR_LABEL_MS - (Date.now() - state.started) + 50));
     }
@@ -228,7 +238,7 @@
       if (pending) return;
       pending = setTimeout(() => { pending = null; pass(); }, 400);
     });
-    state.observer.observe(document.body || document.documentElement, { childList: true, subtree: true });
+    state.observer.observe(document.body || document.documentElement, { childList: true, subtree: true, characterData: true });
   }
 
   function reset() {
@@ -237,6 +247,7 @@
     stopWatching();
     document.getElementById(HOST_ID)?.remove();
     clearBadges();
+    state.signature = null;
     state.pageScore = null; state.override = false; state.done = false; state.started = Date.now();
     state.url = location.href;
     if (!state.enabled) return;

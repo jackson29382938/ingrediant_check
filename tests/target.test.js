@@ -295,3 +295,75 @@ test('Target rejects stale canonical product labels and foreign product links', 
   assert.equal(T.readProduct(createDocument(html), at(CHIPS_URL)).ingredients, '');
   assert.equal(T.productId('https://evil.example/p/oats/-/A-79364857'), '');
 });
+
+test('Target uses explicit serving weights and volumes without guessing cups or pieces', () => {
+  const facts = size => T.nutritionFacts(createDocument(`<section><p>Serving Size: ${size}</p>
+    <div><b>Sodium</b> 120mg</div><div><b>Saturated Fat</b> .5g</div></section>`));
+  assert.equal(facts('1 oz').servingGrams, 28.349523125, 'the live chips serving size is usable');
+  assert.equal(facts('40 grams').servingGrams, 40);
+  assert.equal(facts('1 cup (240ml)').servingMl, 240);
+  assert.equal(facts('8 fl oz').servingMl, 236.5882365, 'fluid ounces are volume, not weight');
+  assert.equal(facts('8 fl. oz (240 ml)').servingMl, 240, 'printed metric value takes precedence');
+  assert.equal(facts('1 cup').servingGrams, undefined);
+  assert.equal(facts('1/2 oz').servingGrams, undefined, 'an unsupported fraction must not become 2 oz');
+  assert.equal(facts('1 oz').saturatedFat, 0.5);
+  assert.equal(read('target-p-chips.html', CHIPS_URL).nutrition.servingGrams, 28.349523125);
+});
+
+test('Target nutrition conflicts remain unknown instead of overwriting values from another panel', () => {
+  const facts = html => T.nutritionFacts(createDocument(`<section>${html}</section>`));
+  const repeated = facts('<div><b>Sodium</b> 120mg</div><div><b>Sodium</b> .12g</div>');
+  assert.equal(repeated.sodium, 120, 'equivalent units are consistent');
+  const conflicting = facts('<div><b>Sodium</b> 120mg</div><div><b>Sodium</b> 240mg</div><div><b>Protein</b> 3g</div>');
+  assert.equal(conflicting.sodium, undefined);
+  assert.equal(conflicting.protein, 3);
+  assert.equal(facts('<p>Serving Size: 1 oz</p><p>Serving Size: 2 oz</p><div><b>Sodium</b> 120mg</div>'), null);
+  assert.equal(facts('<div><b>Sodium</b> 1,20mg</div><div><b>Protein</b> -3g</div>'), null);
+});
+
+test('Target missing ingredients cannot consume the next label heading or warning text', () => {
+  const readLabel = inner => T.readProduct(createDocument(`<section data-test="@web/site-top-of-funnel/ProductDetailCollapsible-LabelInfo">
+    <h4>Ingredients:</h4>${inner}</section>`), at(CHIPS_URL));
+  assert.equal(readLabel('<h4>Allergens &amp; Warnings:</h4><div>Contains wheat, soy</div>').ingredients, '');
+  assert.equal(readLabel('<h4>Nutrition Facts:</h4><div>Protein 3g</div>').ingredients, '');
+  assert.equal(readLabel('<div>whole grain oats. Allergens & Warnings: May contain wheat.</div>').ingredients, 'whole grain oats.');
+  assert.equal(readLabel('<div>whole grain oats, contains 2% or less of salt.</div>').ingredients, 'whole grain oats, contains 2% or less of salt.');
+});
+
+test('Target badges identify the visible title rather than an unrelated first product link', () => {
+  const tile = inner => createDocument(`<div data-test="ListingPageProductListing">${inner}</div>`);
+  const image = '<a href="/p/other/-/A-11111111">Image</a>';
+  assert.deepEqual(T.searchTiles(tile(`${image}<a href="/p/oats/-/A-79364857"><h3>Oats</h3></a>`)).map(t => t.id), ['79364857']);
+  assert.deepEqual(T.searchTiles(tile(`${image}<a href="/p/oats/-/A-79364857">Oats</a><h3>Unknown title</h3>`)), []);
+  assert.deepEqual(T.searchTiles(tile(`${image}<a href="https://evil.example/p/oats/-/A-79364857"><h3>Foreign link</h3></a>`)), []);
+  assert.deepEqual(T.searchTiles(tile('<a href="/p/oats/-/A-79364857"><h3> </h3></a>')), []);
+});
+
+test('Target refuses labels with a foreign or invalid declared canonical identity', () => {
+  const label = '<section data-test="@web/site-top-of-funnel/ProductDetailCollapsible-LabelInfo"><h4>Ingredients:</h4><div>whole grain oats</div><div><b>Sodium</b> 120mg</div></section>';
+  for (const href of ['https://evil.example/p/oats/-/A-16600402', '/s?searchTerm=oats', '', 'ftp://www.target.com/p/oats/-/A-16600402']) {
+    const product = T.readProduct(createDocument(`<link rel="canonical" href="${href}">${label}`), at(CHIPS_URL));
+    assert.equal(product.ingredients, '', href);
+    assert.equal(product.nutrition, null, href);
+  }
+  for (const href of ['ftp://www.target.com/p/oats/-/A-16600402', 'https://user:password@www.target.com/p/oats/-/A-16600402']) {
+    assert.equal(T.productId(href), '', href);
+  }
+  assert.equal(T.readProduct(createDocument(`<link rel="canonical" href="/p/chips/-/A-16600402">${label}`), at(CHIPS_URL)).ingredients, 'whole grain oats');
+});
+
+test('fresh Target public HTML keeps its grocery label collapsed until the visitor opens it', () => {
+  const url = 'https://www.target.com/p/oats/-/A-79364857';
+  const data = read('target-p-oats-collapsed-2026-10-04.html', url);
+  assert.equal(data.id, '79364857');
+  assert.equal(data.label, 'collapsed');
+  assert.equal(data.ingredients, '');
+  assert.equal(data.nutrition, null);
+  assert.ok(food(data).ok);
+  const w = runner('target-p-oats-collapsed-2026-10-04.html', url, {});
+  assert.equal(w.host.dataset.airState, 'waiting');
+  assert.equal(w.writes.length, 0);
+  assert.equal(w.fetches.length, 0);
+  w.shadow.handlers['notice-action']();
+  assert.deepEqual(w.clicks, ['label']);
+});

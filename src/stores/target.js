@@ -31,7 +31,7 @@
   function productId(url) {
     try {
       const u = new URL(String(url), 'https://www.target.com');
-      if (!matchesHost(u.hostname) || !u.pathname.startsWith('/p/')) return '';
+      if (!/^https?:$/.test(u.protocol) || u.username || u.password || !matchesHost(u.hostname) || !u.pathname.startsWith('/p/')) return '';
       return (u.pathname.match(TCIN) || [])[1] || '';
     } catch (e) { return ''; }
   }
@@ -55,8 +55,12 @@
     const parent = heading.parentNode;
     const siblings = kids(parent);
     const next = siblings[siblings.indexOf(heading) + 1];
-    if (next) return text(next);
-    return clean(text(parent).slice(text(heading).length));
+    // A heading immediately after Ingredients means the list was not published. Do not score
+    // allergens, directions or nutrition as if they were declared ingredients.
+    if (next && /^(?:H[1-6]|B|STRONG)$/.test(next.tagName || '')) return '';
+    const value = next ? text(next) : clean(text(parent).slice(text(heading).length));
+    const declaration = value.split(/(?:allergens?\s*(?:&|and)\s*warnings?|nutrition(?:al)? facts|directions(?: for use)?)\s*:/i)[0].trim();
+    return declaration.length <= 6000 ? declaration : '';
   }
 
   function findHeading(section, re) {
@@ -77,22 +81,36 @@
   function nutritionFacts(section) {
     if (!section) return null;
     const out = {};
+    const conflicts = new Set();
     for (const b of section.querySelectorAll('b')) {
       const name = text(b);
       const row = NUTRIENTS.find(([, re]) => re.test(name));
       if (!row) continue;
       // "1,200mg": a thousands comma, which "[\d.]+" stopped at, reading 1 mg of sodium.
-      const m = clean(text(b.parentNode).slice(name.length)).match(/^(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?\s*(mg|g|mcg)\b/i);
+      const m = clean(text(b.parentNode).slice(name.length)).match(/^((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?|\.\d+)\s*(mg|g|mcg)\b/i);
       if (!m) continue;
-      const v = Number(m[1].replace(/,/g, '') + (m[2] || ''));
+      const v = Number(m[1].replace(/,/g, ''));
       const units = {g:1000, mg:1, mcg:0.001};
-      out[row[0]] = v * units[m[3].toLowerCase()] / units[row[2]];
+      const value = v * units[m[2].toLowerCase()] / units[row[2]];
+      if (out[row[0]] != null && out[row[0]] !== value) conflicts.add(row[0]);
+      out[row[0]] = value;
     }
-    const size = Array.from(section.querySelectorAll('p')).map(text).find(t => /^serving size:/i.test(t)) || '';
-    const grams = size.match(/\((\d+(?:\.\d+)?)\s*g\)/i);
-    if (grams) out.servingGrams = Number(grams[1]);
-    const ml = size.match(/\((\d+(?:\.\d+)?)\s*ml\)/i);
-    if (!grams && ml) out.servingMl = Number(ml[1]);
+    for (const field of conflicts) delete out[field];
+    const sizes = Array.from(section.querySelectorAll('p')).map(text).filter(t => /^serving size:/i.test(t));
+    const measures = sizes.map(size => {
+      // Prefer the explicitly printed metric amount. Never infer grams from cups or pieces.
+      const metric = size.match(/(?:^|[\s(])(\d+(?:\.\d+)?|\.\d+)\s*(g|grams?|ml|millilit(?:er|re)s?)\b/i);
+      if (metric) return { field: /^(?:g|gram)/i.test(metric[2]) ? 'servingGrams' : 'servingMl', value: Number(metric[1]) };
+      const ounce = size.match(/(?:^|[\s(])(\d+(?:\.\d+)?|\.\d+)\s*(fl\.?\s*oz|oz|ounces?)\b/i);
+      if (ounce) return { field: /^fl/i.test(ounce[2]) ? 'servingMl' : 'servingGrams', value: Number(ounce[1]) * (/^fl/i.test(ounce[2]) ? 29.5735295625 : 28.349523125) };
+      return null;
+    }).filter(Boolean);
+    if (measures.length) {
+      const first = measures[0];
+      // Different serving panels cannot be combined into one reliable nutrition profile.
+      if (measures.some(m => m.field !== first.field || Math.abs(m.value - first.value) > 0.001)) return null;
+      out[first.field] = first.value;
+    }
     return Object.keys(out).length ? out : null;
   }
 
@@ -104,7 +122,7 @@
     const canonical = doc.querySelector('link[rel="canonical"]');
     const canonicalId = canonical && productId(canonical.getAttribute('href'));
     const id = productId(loc ? loc.href : doc.URL);
-    if (canonicalId && canonicalId !== id) return { id, title, crumbs, ingredients: '', labelText: '', nutrition: null, label: 'missing' };
+    if (canonical && (!canonicalId || canonicalId !== id)) return { id, title, crumbs, ingredients: '', labelText: '', nutrition: null, label: 'missing' };
     const section = doc.querySelector(LABEL);
     const toggle = section && kids(section).find(el => el.tagName && el.tagName.toLowerCase() === 'button');
     const collapsed = !!toggle && toggle.getAttribute('aria-expanded') === 'false';
@@ -131,10 +149,15 @@
   function searchTiles(doc) {
     const out = [];
     for (const tile of doc.querySelectorAll(TILE)) {
-      const link = Array.from(tile.querySelectorAll('a')).find(a => productId(a.getAttribute('href')));
       const heading = tile.querySelector('h3');
-      const id = link ? productId(link.getAttribute('href')) : '';
-      if (!id || !heading) continue;
+      if (!heading || !text(heading)) continue;
+      const titleLink = heading.closest('a');
+      const ids = Array.from(new Set(Array.from(tile.querySelectorAll('a'))
+        .map(a => productId(a.getAttribute('href'))).filter(Boolean)));
+      // The visible title's own link is authoritative. An unlinked title needs a single
+      // unambiguous product, rather than the first image/recommendation link in the tile.
+      const id = titleLink ? productId(titleLink.getAttribute('href')) : ids.length === 1 ? ids[0] : '';
+      if (!id) continue;
       out.push({ tile, id, title: text(heading), anchor: heading });
     }
     return out;

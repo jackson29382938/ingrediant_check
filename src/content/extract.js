@@ -309,25 +309,55 @@
     let tables;
     try { tables = [...doc.querySelectorAll('#nutritionalInfoAndIngredients_feature_div table, .nicDesktop table')]; }
     catch (e) { return null; }
+    // The complete Nutrition Facts table can publish fields absent from the summary. Read both:
+    // returning just the summary silently dropped saturated/trans fat and carbohydrates.
+    const detailed = {};
+    const readValue = (key, match) => {
+      const value = match && toNumber(match[1]);
+      if (!Number.isFinite(value)) return null;
+      const unit = (match[2] || '').toLowerCase();
+      if (key === 'calories') return !unit || unit === 'kcal' ? value : null;
+      if (!['g', 'mg', 'mcg'].includes(unit)) return null;
+      return key === 'sodium'
+        ? value * (unit === 'g' ? 1000 : unit === 'mcg' ? 0.001 : 1)
+        : value * (unit === 'mg' ? 0.001 : unit === 'mcg' ? 0.000001 : 1);
+    };
+    for (const table of tables) {
+      for (const row of table.querySelectorAll('tr')) {
+        const cells = [...row.querySelectorAll('td, th')].map(c => clean(c.innerText));
+        cells.forEach((cell, index) => {
+          // Amazon puts the label and amount in adjacent spans: "Saturated Fat1.5g".
+          // Anchoring excludes percent Daily Value cells and the outer nested-table wrapper.
+          const combined = cell.match(/^(.+?)(\d+(?:[.,]\d+)?\s*(?:mg|mcg|g|kcal)?)$/i);
+          const label = combined ? clean(combined[1]) : cell;
+          const hit = SUMMARY_LABELS.find(([re]) => re.test(label));
+          if (!hit) return;
+          const amount = (combined ? combined[2] : cells[index + 1] || '').match(VALUE_CELL);
+          const value = readValue(hit[1], amount);
+          if (value != null) detailed[hit[1]] = value;
+        });
+      }
+    }
     for (const table of tables) {
       const rows = [...table.querySelectorAll('tr')];
       for (let i = 0; i < rows.length - 1; i++) {
         const values = [...rows[i].querySelectorAll('td, th')].map(c => clean(c.innerText));
         const labels = [...rows[i + 1].querySelectorAll('td, th')].map(c => clean(c.innerText));
         if (values.length < 2 || values.length !== labels.length) continue;
-        if (!values.every(v => VALUE_CELL.test(v))) continue;
+        if (values.filter(v => VALUE_CELL.test(v)).length < 2) continue;
         const out = {};
         labels.forEach((label, col) => {
           const hit = SUMMARY_LABELS.find(([re]) => re.test(label));
           if (!hit) return;
           const m = values[col].match(VALUE_CELL);
-          const n = m && toNumber(m[1]);
-          if (Number.isFinite(n)) out[hit[1]] = n;
+          const n = readValue(hit[1], m);
+          if (n != null) out[hit[1]] = n;
         });
-        if (Object.keys(out).length >= 2) return out;
+        const merged = { ...out, ...detailed };
+        if (Object.keys(merged).length >= 2) return merged;
       }
     }
-    return null;
+    return Object.keys(detailed).length >= 2 ? detailed : null;
   }
 
   // "19.0 servings per container | 0.5 cup" — Amazon's own serving line, which sits outside the

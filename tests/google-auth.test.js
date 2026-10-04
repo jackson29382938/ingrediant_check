@@ -32,3 +32,16 @@ test('Google configuration errors are not reported as user cancellation', async 
     identity: { getRedirectURL: () => redirect, launchWebAuthFlow(_opts, cb) { cb(); } } };
   await assert.rejects(token(api, 'public.apps.googleusercontent.com'), /auth-failed/);
 });
+
+
+test('Google redirect rejects duplicate OAuth fields, unexpected query parameters and expired tokens', () => {
+  const good = `${redirect}#state=nonce&access_token=${access}&token_type=Bearer`;
+  for (const suffix of ['&state=other', `&access_token=${access}`, '&token_type=Bearer', '&error=a&error=b', '&expires_in=10&expires_in=20']) {
+    assert.throws(() => redirectToken(good + suffix, redirect, 'nonce'), /invalid-redirect/);
+  }
+  assert.throws(() => redirectToken(good.replace('/#', '/?unexpected=1#'), redirect, 'nonce'), /invalid-redirect/);
+  for (const expiry of ['0', '-10', 'Infinity', '1.5', '']) {
+    assert.throws(() => redirectToken(good + `&expires_in=${expiry}`, redirect, 'nonce'), /no-token/);
+  }
+  assert.equal(redirectToken(good + '&expires_in=3600', redirect, 'nonce'), access);
+});
