@@ -26,10 +26,10 @@ var SETTINGS_MESSAGE_TYPES = new Set([
 ]);
 var OFFSCREEN_MESSAGE_TYPES = new Set(['ocrIdle']);
 var AMAZON_HOST = /(^|\.)amazon\.(com|co\.uk|ca|com\.au|ie|in|sg|ae|sa|de|fr|es|it|nl|se|pl|com\.be|com\.tr|com\.mx|com\.br|co\.jp)$/i;
-// Other stores (src/content/retailer.js) work on the page alone. The only thing their tabs may ask
-// the worker for is the toolbar badge; every network path above stays Amazon-only.
+// Retailer previews perform their public same-origin reads in the content script.
+// Their tabs may ask the worker only for toolbar badges; worker network paths stay Amazon-only.
 var RETAILER_MESSAGE_TYPES = new Set(['pageScore']);
-var RETAILER_HOST = /^(?:www\.)?(?:target|walmart|costco)\.com$/i;
+var RETAILER_HOST = /^(?:www\.)?(?:target\.com|walmart\.com|costco\.com|instacart\.com|kroger\.com|frysfood\.com|ralphs\.com|kingsoopers\.com|smithsfoodanddrug\.com|fredmeyer\.com|qfc\.com|harristeeter\.com|dillons\.com|safeway\.com|albertsons\.com)$/i;
 
 function isOwnExtension(sender) {
   const id = chrome.runtime && chrome.runtime.id;

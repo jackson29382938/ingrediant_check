@@ -9,6 +9,30 @@
       return (u.pathname.match(/^\/[^/]+\.product\.(\d{5,15})\.html$/) || u.pathname.match(/^\/p\/(?:[^/]+\/)+(\d{5,15})\/?$/) || [])[1] || '';
     } catch { return ''; }
   }
+  function productUrl(id, loc) {
+    try {
+      if (!/^\d{5,15}$/.test(String(id))) return '';
+      const u = new URL(loc.href);
+      if (!/^https?:$/.test(u.protocol) || u.username || u.password || !matchesHost(u.hostname)) return '';
+      // Normal public GET verified this legacy route redirects to the current
+      // canonical product. Preserve the exact page origin and add no tracking data.
+      return `${u.origin}/product.product.${id}.html`;
+    } catch { return ''; }
+  }
+  function productAnchor(doc) {
+    return doc.querySelector('[data-testid="product-description"]') || doc.querySelector('h1');
+  }
+  function titleText(node) {
+    if (!node?.querySelector('.air-badge')) return L.text(node);
+    // Extension badges are deliberately excluded from the vendor product name.
+    const collect = el => {
+      if (el.nodeType === 3) return el.textContent || '';
+      if (el.nodeType !== 1 || /^(?:SCRIPT|STYLE)$/i.test(el.tagName) ||
+        String(el.getAttribute('class') || '').split(/\s+/).includes('air-badge')) return '';
+      return Array.from(el.childNodes || []).map(collect).join(' ');
+    };
+    return L.clean(collect(node));
+  }
   function structuredIdentityMatches(doc, id) {
     // Observed public Costco pages provide a direct Product.url declaration.
     // Its SKU is a warehouse item number, not the URL's product ID. Only the URL
@@ -53,8 +77,8 @@
     for (const link of doc.querySelectorAll('a[href]')) {
       const id = productId(link.getAttribute('href'));
       if (!id || seen.has(id) || link.closest('header, nav, footer, aside') || inRecommendations(link)) continue;
-      // Costco cards often separate their image and title links. Keep badges on the
-      // complete tile and use its declared accessible title when the link is image-only.
+      // Costco cards often separate their image and title links. Keep card identity
+      // separate from the title anchor so a badge does not become a new grid cell.
       const tile = link.closest('[data-testid^="ProductTile"]') || link;
       // A reused/malformed card can contain links for multiple products during
       // hydration. Do not borrow one product's title or badge container for another.
@@ -70,16 +94,18 @@
       });
       // Prefer the title link over generic image/accessibility text. An unrelated
       // decorative image elsewhere in the card must never supply the product name.
-      const title = L.text(heading) || ownLinks.map(L.text).find(Boolean) ||
+      const titleLink = ownLinks.find(other => titleText(other));
+      const title = titleText(heading) || titleText(titleLink) ||
         ownLinks.map(other => L.clean(other.getAttribute('aria-label'))).find(Boolean) ||
         ownLinks.map(other => L.clean(other.querySelector('img')?.getAttribute('alt'))).find(Boolean);
       if (!title || title.length > 300) continue;
       seen.add(id);
-      out.push({ id, title, tile, anchor: tile });
+      const anchor = titleText(heading) ? heading : titleLink || tile;
+      out.push({ id, title, tile, el: tile, anchor, badgePlacement: anchor === tile && !titleLink ? 'corner' : 'inline' });
     }
     return out;
   }
-  const adapter = { id: 'costco', name: 'Costco', matchesHost, productId,
+  const adapter = { id: 'costco', name: 'Costco', matchesHost, productId, productUrl, productAnchor,
     isProductPage: loc => !!productId(loc.href), isSearchPage,
     searchQuery: loc => { try { if (!isSearchPage(loc)) return ''; const u = new URL(loc.href); return u.searchParams.get('keyword') || u.searchParams.get('searchTerm') || ''; } catch { return ''; } },
     readProduct, labelToggle: L.labelToggle, labelName: 'Nutritional Facts', searchTiles };

@@ -6,8 +6,7 @@ disagree.
 
 A store is **supported** only after its product page and its search results have been checked in a
 real browser on the live site, in normal use. Tests against saved HTML do not count, and neither does
-a local harness. **Preview** means the extension runs there and read the live pages correctly, but
-that check is not complete yet.
+a local harness. **Preview** means a public-page adapter is implemented and tested, while live shopping/browser coverage remains incomplete. Each row states the evidence available.
 
 ## Status
 
@@ -15,8 +14,21 @@ that check is not complete yet.
 |---|---|---|---|---|---|
 | Amazon | supported | yes | pass (`npm test`, `npm run harness:ci`) | amazon.com product and search pages, 2026-09-05 and again 2026-09-25, including label-photo OCR, Open Food Facts and the shared database ([VERIFY.md](VERIFY.md)) | Only amazon.com has been live checked. The other 20 Amazon stores share its code and markup but were not checked one by one. |
 | Target | preview | yes, 2026-09-25 (`src/stores/target.js`, `src/content/retailer.js`) | pass (`tests/target.test.js`, `tests/stores.test.js`) | **partly**, 2026-09-25: live product and search pages were read correctly, but behind Target's bot check | See *Target* below. Needs one check in your own Chrome to become supported. |
-| Walmart | preview | yes | adapter and identity checks | Public product HTML retrieved 2026-10-04 (HTTP 200), product 10314926 | Current-page embedded ingredient declaration; search shows saved scores only. Live browser validation remains incomplete. |
+| Walmart | preview | yes | adapter and identity checks | Public product HTML retrieved 2026-10-04 (HTTP 200), product 10314926 | Current-page embedded ingredient declaration; search can scan public product pages. Live browser validation remains incomplete. |
 | Costco | preview | yes | adapter and identity checks | Public product HTML retrieved 2026-10-04 (HTTP 200), product 100423971 | Visible labels only; retrieved initial page had no ingredient declaration. Paste fallback available. Live browser validation remains incomplete. |
+
+| Instacart | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Initial product page retrieved; no usable label | instacart.com; readable public labels scored, missing labels remain unknown. |
+| Kroger | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Public oats page ingredients/nutrition read 2026-10-04 | kroger.com; readable public labels scored, missing labels remain unknown. |
+| Fry’s | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Public oats page ingredients/nutrition read 2026-10-04 | frysfood.com; readable public labels scored, missing labels remain unknown. |
+| Ralphs | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Public oats HTML ingredients/nutrition read 2026-10-04; live browser pending | ralphs.com; readable public labels scored, missing labels remain unknown. |
+| King Soopers | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Public oats HTML ingredients/nutrition read 2026-10-04; live browser pending | kingsoopers.com; readable public labels scored, missing labels remain unknown. |
+| Smith’s | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Public oats HTML ingredients/nutrition read 2026-10-04; live browser pending | smithsfoodanddrug.com; readable public labels scored, missing labels remain unknown. |
+| Fred Meyer | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Public oats HTML ingredients/nutrition read 2026-10-04; live browser pending | fredmeyer.com; readable public labels scored, missing labels remain unknown. |
+| QFC | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Public oats HTML ingredients/nutrition read 2026-10-04; live browser pending | qfc.com; readable public labels scored, missing labels remain unknown. |
+| Harris Teeter | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Public oats HTML ingredients/nutrition read 2026-10-04; live browser pending | harristeeter.com; readable public labels scored, missing labels remain unknown. |
+| Dillons | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Public oats HTML ingredients/nutrition read 2026-10-04; live browser pending | dillons.com; readable public labels scored, missing labels remain unknown. |
+| Safeway | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Initial product page retrieved; no usable label | safeway.com; readable public labels scored, missing labels remain unknown. |
+| Albertsons | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Public oats HTML ingredients/nutrition read 2026-10-04; live browser pending | albertsons.com; readable public labels scored, missing labels remain unknown. |
 
 ## Amazon: sorting by store
 
@@ -36,21 +48,9 @@ there.
 
 ## Target
 
-**What it does.** On a Target product page (`/p/…/-/A-<TCIN>`) it reads the title, the breadcrumbs
-and the list under *Label info → Ingredients:*. It runs the food gate and scores the product on your
-computer, like Amazon. On a search page (`/s?searchTerm=…`, `/s/<words>`) it puts a score on any
-result you have already opened on this computer.
+**What it does.** Target reads visible ingredient labels or an identity-bound product declaration in the public page’s hydration data. Search badges use saved scores first, then request public same-origin product pages when automatic rating is on. Only the matching TCIN/child variant is accepted; contradictory canonical/product identity stays unknown. Missing labels receive a visible status and can be expanded or pasted on the product page.
 
-**What it does not do.** It never requests anything from Target or anyone else. There is no
-background rating of search results, no shared database, no Open Food Facts and no label photos.
-The worker accepts only the toolbar-badge message from a Target tab. It has no host permission for
-Target. Its content script is matched only on product (`/p/*`) and search (`/s…`) routes; cart,
-checkout, account, order and login pages do not match at all.
-
-**Why search results are not rated automatically.** Target's server HTML does not contain the
-ingredient list, only a JSON blob inside a script, and Target runs bot detection on its pages.
-Fetching product pages in the background would mean parsing that blob or calling Target's internal
-API. Both are brittle, and both are the kind of automated traffic Target challenges.
+**Network behavior.** Retailer previews run two signed-out public-page requests at a time, limited by the existing speed setting to 20–60 per results page. They stop on recognized challenges/rate limits. They do not call internal APIs, execute page scripts, or share product readings. No additional host permission is required: same-origin content-script requests follow ordinary browser origin restrictions. Automatic search rating can be disabled in Settings.
 
 **Known limits.**
 
@@ -148,8 +148,7 @@ For each store:
   content-script match, makes Chrome ask existing users to approve it on update.
 - Add sanitized fixtures under `tests/pages/` covering a product with a list, one without, a non-food
   product, a search page, and a known layout change. Add focused adapter and runner tests.
-- Scoring stays local. The shared runner makes no requests. If a store ever needs one, say what and
-  why in the popup, settings and [PRIVACY.md](PRIVACY.md) first.
+- Scoring stays local. Public same-origin search scans are disclosed in the popup, settings and [PRIVACY.md](PRIVACY.md). No internal APIs or account cookies are used.
 - Change the store's row here with a date for each step: implemented, automated checks passed,
   live checked, or blocked.
 
@@ -157,8 +156,16 @@ For each store:
 
 Normal public GET requests returned HTTP 200 for Target product 79364857, Walmart product 10314926, and Costco product 100423971. Target’s initial HTML did not expose its ingredient label. Walmart’s current-product `__NEXT_DATA__` contained `WHOLE GRAIN ROLLED OATS.`; the reader verifies `product.usItemId` against the URL before accepting that declaration. Costco redirected an older oats slug to a protein-bar product with the same numeric ID; its initial nutrition model was empty. These checks establish access and parsing evidence, not complete live browser support. No challenge was bypassed and no internal retailer APIs were called.
 
-All three previews read only pages you open, offer a paste-label fallback, and show previously saved scores on search results. They do not fetch other product pages, share product readings, or call OCR/Google services. Cart, login, account and checkout routes are outside the content-script matches. Missing nutrition stays unknown.
+The original previews offer paste-label fallback. Version 1.6.0 adds public same-origin scans for uncached search results, while keeping saved-score reuse. They do not share product readings or call OCR/Google services. Cart, login, account and checkout routes are outside the content-script matches. Missing nutrition stays unknown.
 
 ## Parallel audit follow-up
 
 The [October 4 parallel audit](PARALLEL-AUDIT-2026-10-04.md) records fresh public product/search evidence and fixes for all four stores. Target, Walmart and Costco remain previews; successful public responses and fixture-based browser tests do not establish complete live-site support.
+
+## Search expansion and placement — October 4, 2026
+
+Version 1.6.0 adds twelve grocery previews and uncached public-page rating on all fifteen non-Amazon retailer adapters. Target chips TCIN16600402 was retrieved by an ordinary GET: the identity-bound core module contains POTATOES, AVOCADO OIL, SEA SALT and nutrient quantities. Ordinary public GETs on all nine Kroger-family banners (Kroger, Fry’s, Ralphs, King Soopers, Smith’s, Fred Meyer, QFC, Harris Teeter and Dillons) returned HTTP200. Oats UPC0003000001020 exposes Whole Grain Rolled Oats, an allergen declaration and an explicit 40g serving. These are public HTML declarations, not internal API calls. Instacart, Safeway and Albertsons returned HTTP200 but lacked a readable initial declaration in the sampled pages. Their fallbacks have controlled DOM/Chrome tests; they are not claims of complete live shopping support.
+
+Walmart’s public search cards use overlay links beside product-title spans. Costco badges now mount in title content rather than as grid/flex children; image-only cards use an out-of-flow corner badge, and product panels sit outside the title/wishlist row. Badge styles use a shadow root. Cached, first-visit and missing-label results all have a visible state.
+
+Search results depend on published readable declarations. Blocked pages, store/location-dependent hydration, absent labels and results beyond the speed budget cannot receive honest numeric scores; open those products to expand/paste a label. Amazon retains its existing separate search pipeline.

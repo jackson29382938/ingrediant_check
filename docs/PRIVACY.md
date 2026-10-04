@@ -1,6 +1,6 @@
 # Privacy (Chrome Web Store)
 
-Ingredient Check scores grocery labels on Amazon, and as previews on Target, Walmart and Costco, **on your computer**. By default, settings backup uses your Chrome profile storage; Chrome syncs it to your own account when browser sync is enabled. Automatic search rating, owner-kept certification lookups, and on-device label OCR are enabled by default. Barcode lookup is recommended and checked in setup but requires Chrome’s optional permission. Diagnostics and sharing product readings stay off. Backup can also be switched off.
+Ingredient Check scores grocery labels on Amazon, and as previews on Target, Walmart, Costco, Instacart and eleven additional grocery banners, **on your computer**. By default, settings backup uses your Chrome profile storage; Chrome syncs it to your own account when browser sync is enabled. Automatic search rating, owner-kept certification lookups, and on-device label OCR are enabled by default. Barcode lookup is recommended and checked in setup but requires Chrome’s optional permission. Diagnostics and sharing product readings stay off. Backup can also be switched off.
 
 This page is the one-screen note for a store listing. Settings copy and [DIAGNOSTICS.md](DIAGNOSTICS.md) say the same things at more length.
 
@@ -10,11 +10,9 @@ On Amazon product, search, browse, and store pages it already has permission to 
 
 It does not read your Amazon password, payment details, cart, orders, or account pages. Content scripts are not injected there.
 
-On Target (preview) it reads the same kind of thing from the product page you have open: the title,
-the breadcrumbs, and the *Label info* section with the ingredient list and nutrition numbers. On a
-Target search page it reads the product id and title of each result, to show scores you already
-have. The content script is matched only on Target product (`/p/…`) and search (`/s…`) routes; it
-does not run on cart, checkout, account, order or login pages.
+Retailer previews read the product title, published ingredients, allergen warnings, nutrition and product identity on narrowly scoped public product/search pages. With **Rate every search result** enabled (the default), they request each uncached result’s public product page on the same origin, without cookies (`credentials: omit`). Two requests run concurrently; the existing speed setting caps requests at 20–60 per search page. Requests stop on recognized challenges or rate-limit responses; no internal retailer APIs or access controls are bypassed. Missing labels remain unknown. Turning automatic rating off uses saved local scores only.
+
+These previews do not share readings, call barcode/OCR services, or upload product data to Google. Only public apex/www product/search routes are matched. Account, order, cart and checkout pages are outside those routes.
 
 ## Access to Amazon
 
@@ -142,8 +140,6 @@ and are not saved in extension storage, reports, backups, or the account spreads
 are public configuration, stored locally and excluded from backups. Google backups are keyed by a
 hash of the verified account ID and contain settings, not your email, browsing cookies, or product cache.
 
-## Walmart and Costco previews
+## Grocery retailer previews
 
-These read only the product or search page you open, through narrowly scoped content scripts on the apex and www hosts. Walmart can read the current product’s embedded ingredient declaration after checking its numeric product ID against the URL. Costco reads visible labels; absent labels offer a paste fallback. No retailer preview makes network requests, fetches other products, or sends product data to Google or the shared database. Saved scores stay in local storage. Account, cart, checkout and login pages are excluded by the match routes. Costco Same-Day is outside scope.
-
-Google sign-in is optional during onboarding and uses the same one-request token handling as Settings. Choices save locally before an account backup is attempted; tokens are never persisted.
+Target, Walmart, Costco, Instacart, Kroger, Fry’s, Ralphs, King Soopers, Smith’s, Fred Meyer, QFC, Harris Teeter, Dillons, Safeway and Albertsons use the shared local-scoring runner described above. Store adapters identify each current product and search card before accepting a label. Scores are kept in local storage. The same-site public-page requests are visible to the retailer and carry your normal browser connection metadata, but omit cookies. Costco Same-Day is outside scope. New content-script sites may cause Chrome to request approval of site access when updating.

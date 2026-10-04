@@ -568,7 +568,7 @@ async function run() {
         href: document.getElementById('reqSend').getAttribute('href'),
         disabled: document.getElementById('reqSend').getAttribute('aria-disabled'),
       }));
-      if (idle.rows.join() !== 'Amazon:supported,Target:preview,Walmart:preview,Costco:preview'
+      if (idle.rows.join() !== require('../src/stores/registry.js').STORES.map(s => `${s.name}:${s.status}`).join()
         || idle.href !== '#' || idle.disabled !== 'true') throw new Error(`stores idle: ${JSON.stringify(idle)}`);
       await settingsPage.fill('#reqName', 'Marks & Spencer');
       await settingsPage.fill('#reqUrl', 'https://www.marksandspencer.com/food/p/12345?utm_source=x');
@@ -1070,10 +1070,27 @@ async function retailerEndToEnd(context, worker, pageErrors) {
       html: '<h1>Whole grain rolled oats</h1><section><h3>Ingredients</h3><p>whole grain rolled oats</p></section>',
       tile: '<a href="/p/-/oats/100423971"><h3>Whole grain oats</h3></a>' },
   ];
+  for (const domain of ['kroger.com', 'frysfood.com', 'ralphs.com', 'kingsoopers.com', 'smithsfoodanddrug.com',
+    'fredmeyer.com', 'qfc.com', 'harristeeter.com', 'dillons.com', 'instacart.com', 'safeway.com', 'albertsons.com']) {
+    const special = domain === 'instacart.com' ? 'instacart' : ['safeway.com', 'albertsons.com'].includes(domain) ? 'albertsons' : 'kroger';
+    const path = special === 'instacart' ? '/store/products/169289-oats' : special === 'albertsons' ? '/shop/pd/product/184710125' : '/p/oats/0003000001020';
+    const search = special === 'instacart' ? '/store/s?query=oats' : special === 'albertsons' ? '/shop/search-results.html?q=oats' : '/search?query=oats';
+    cases.push({ url: `https://www.${domain}${path}`, search: `https://www.${domain}${search}`,
+      html: '<h1>Whole grain rolled oats</h1><section><h3>Ingredients</h3><p>whole grain rolled oats</p></section>',
+      tile: `<article data-testid="product-card" style="display:grid;grid-template-columns:1fr"><a href="${path}"><h3>Whole grain oats</h3></a></article>` });
+  }
   for (const item of cases) {
     const page = await context.newPage();
     page.on('pageerror', err => pageErrors.push(`retailer ${item.url}: ${err.message}`));
-    await page.route('**/*', route => route.fulfill({ status: 200, contentType: 'text/html', body: `<!doctype html><html lang="en"><head><title>Grocery oats</title></head><body>${route.request().url() === item.url ? item.html : item.tile}</body></html>` }));
+    await page.route('**/*', route => route.fulfill({ status: 200, contentType: 'text/html', body: `<!doctype html><html lang="en"><head><title>Grocery oats</title></head><body>${new URL(route.request().url()).pathname === new URL(item.search).pathname ? item.tile : item.html}</body></html>` }));
+    const id = new URL(item.url).pathname.match(/(\d+)(?:-oats)?$/)[1];
+    const store = new URL(item.url).hostname.replace(/^www\./, '');
+    await worker.evaluate(async ({ store, id }) => chrome.storage.local.remove(`s:${store}:${id}`), { store, id });
+    await page.goto(item.search);
+    await page.waitForFunction(() => [...document.querySelectorAll('.air-badge')].some(b => b.dataset.airStatus === 'scored'), { timeout: 20000 });
+    const placement = await page.evaluate(() => [...document.querySelectorAll('.air-badge')].every(b =>
+      !b.closest('button') && b.shadowRoot && (!b.parentElement.matches('[data-testid="product-card"], [data-testid="ProductTile"]') || getComputedStyle(b).position === 'absolute')));
+    if (!placement) throw new Error(`retailer badge disrupts card structure: ${store}`);
     await page.goto(item.url);
     await page.waitForFunction(() => document.getElementById('air-score-panel')?.dataset.airState === 'scored', { timeout: 20000 });
     await page.bringToFront();
@@ -1104,11 +1121,30 @@ async function retailerEndToEnd(context, worker, pageErrors) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       throw new Error(`retailer label hydration did not update saved score: ${store}`);
-    }, { store: new URL(item.url).hostname.replace(/^www\./, ''), id: item.url.match(/(\d+)$/)[1], previous: oldScore });
+    }, { store, id, previous: oldScore });
 
     await page.goto(item.search);
     await page.waitForFunction(() => [...document.querySelectorAll('.air-badge')].some(b => /\d/.test(b.textContent)), { timeout: 10000 });
     await page.close();
   }
-  console.log('  ok  real extension → Target, Walmart and Costco product scores, late-label updates, toolbar badges and saved-score search badges (intercepted fixtures, no retailer network)');
+  const corner = await context.newPage();
+  corner.on('pageerror', err => pageErrors.push(`Costco corner: ${err.message}`));
+  await corner.route('**/*', route => route.fulfill({ status: 200, contentType: 'text/html',
+    body: new URL(route.request().url()).pathname === '/s'
+      ? '<html><body><article data-testid="ProductTile_100493931" style="display:grid;width:260px;grid-template-columns:1fr"><a href="/p/-/coffee/100493931" aria-label="Whole grain oats"><img alt="Whole grain oats" width="120" height="100"></a><button>View item</button></article><script>window.__cardHeight = document.querySelector("article").getBoundingClientRect().height</script></body></html>'
+      : '<html><body><h1>Whole grain oats</h1><p>No published ingredient declaration.</p></body></html>' }));
+  await worker.evaluate(() => chrome.storage.local.remove('s:costco.com:100493931'));
+  await corner.goto('https://www.costco.com/s?keyword=oats');
+  await corner.waitForFunction(() => document.querySelector('.air-badge')?.dataset.airStatus === 'unavailable', { timeout: 20000 });
+  const geometry = await corner.evaluate(() => {
+    const card = document.querySelector('article'), badge = document.querySelector('.air-badge');
+    return { before: window.__cardHeight, after: card.getBoundingClientRect().height,
+      position: getComputedStyle(badge).position, imageLink: !!badge.closest('a'), status: badge.textContent };
+  });
+  if (Math.abs(geometry.before - geometry.after) > 0.5 || geometry.position !== 'absolute' || geometry.imageLink || geometry.status !== 'Label unavailable') {
+    throw new Error(`Costco image-only card layout: ${JSON.stringify(geometry)}`);
+  }
+  await corner.close();
+  console.log('  ok  real extension → 15 retailer previews: uncached search scans, safe badge placement, product scores, late labels and cached search (intercepted fixtures, no retailer network)');
+  console.log('  ok  Costco image-only badge → unchanged card height, outside image link, missing label marked unavailable');
 }

@@ -10,6 +10,14 @@
       return (u.pathname.match(/^\/ip\/(?:[^/]+\/)?(\d{5,15})\/?$/) || [])[1] || '';
     } catch { return ''; }
   }
+  function productUrl(id, loc) {
+    try {
+      const u = new URL(loc.href);
+      if (!/^https?:$/.test(u.protocol) || u.username || u.password || !matchesHost(u.hostname) || !/^\d{5,15}$/.test(String(id))) return '';
+      // Use the public item route on the currently open origin, without ad/tracking parameters.
+      return new URL(`/ip/${id}`, u.origin).href;
+    } catch { return ''; }
+  }
   let lastNode, lastText, lastData;
   const record = value => value && typeof value === 'object' && !Array.isArray(value);
   // Decode text without inserting retailer HTML into the page or executing its scripts.
@@ -68,19 +76,28 @@
         }
       }
       if (excluded) continue;
-      // Public Walmart cards currently expose product-title text. Accessible names also
-      // cover an image-only link, without borrowing a sibling card's product name or image.
+      // The public grid uses role=group cards with an overlay link and a separate title span.
+      // item-stack is the entire grid. Never borrow that grid's first product title.
+      const card = link.closest('[role="group"]');
+      if (card && Array.from(card.querySelectorAll('a[href]')).some(other => {
+        const otherId = productId(other.getAttribute('href'));
+        return otherId && otherId !== id;
+      })) continue;
+      const titleNode = (card || link).querySelector('h2, h3, [data-automation-id="product-title"]');
+      const titleOwner = titleNode && titleNode.closest('a[href]');
+      const heading = !titleOwner || productId(titleOwner.getAttribute('href')) === id ? titleNode : null;
+      // Accessible names cover image-only links without borrowing another product's image.
       const image = link.querySelector('img[alt]');
-      const title = L.text(link.querySelector('h2, h3, [data-automation-id="product-title"]'))
+      const title = L.text(heading)
         || L.clean(link.getAttribute('aria-label')) || L.text(link)
         || L.clean(image && image.getAttribute('alt'));
       if (!title || title.length > 300) continue;
       seen.add(id);
-      out.push({ id, title, tile: link, anchor: link });
+      out.push({ id, title, tile: card || link, el: card || undefined, anchor: heading || link });
     }
     return out;
   }
-  const adapter = { id: 'walmart', name: 'Walmart', matchesHost, productId,
+  const adapter = { id: 'walmart', name: 'Walmart', matchesHost, productId, productUrl,
     isProductPage: loc => !!productId(loc.href), isSearchPage: loc => matchesHost(loc.hostname) && /^\/search\/?$/.test(loc.pathname),
     searchQuery: loc => { try { return new URL(loc.href).searchParams.get('q') || ''; } catch { return ''; } },
     readProduct, labelToggle: L.labelToggle, labelName: 'Ingredients', searchTiles };

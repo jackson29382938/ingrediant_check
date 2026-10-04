@@ -73,14 +73,18 @@ test('Costco second live grocery sample remains unknown without assuming coffee 
   assert.equal(data.label, 'missing');
 });
 
-test('Costco hydrated fixture cards keep one badge on the whole tile with an image-only link', () => {
+test('Costco hydrated fixture cards separate title badge anchors from image and card containers', () => {
   const doc = createDocument(`<main><article data-testid="ProductTile_100423971"><a href="/p/-/bars/100423971"><img alt="Protein bars"></a><a href="/p/-/bars/100423971">Protein bars</a></article><article data-testid="ProductTile_10055555"><a href="/old.product.10055555.html" aria-label="Rolled oats"></a></article></main>`);
   const tiles = C.searchTiles(doc);
   assert.equal(tiles.length, 2);
   assert.deepEqual(tiles.map(t => t.title), ['Protein bars', 'Rolled oats']);
   assert.equal(tiles[0].tile.getAttribute('data-testid'), 'ProductTile_100423971');
-  assert.equal(tiles[0].anchor, tiles[0].tile);
-  assert.equal(tiles[0].anchor.tagName, 'ARTICLE');
+  assert.equal(tiles[0].el, tiles[0].tile);
+  assert.equal(tiles[0].anchor.tagName, 'A');
+  assert.equal(tiles[0].anchor.innerText, 'Protein bars');
+  assert.equal(tiles[0].badgePlacement, 'inline');
+  assert.equal(tiles[1].anchor, tiles[1].tile);
+  assert.equal(tiles[1].badgePlacement, 'corner');
 });
 
 test('Costco skips mixed-product cards instead of borrowing a title across item IDs', () => {
@@ -89,7 +93,8 @@ test('Costco skips mixed-product cards instead of borrowing a title across item 
   assert.equal(tiles.length, 1);
   assert.equal(tiles[0].id, '10066666');
   assert.equal(tiles[0].title, 'Almonds');
-  assert.equal(tiles[0].anchor, tiles[0].tile);
+  assert.equal(tiles[0].anchor.tagName, 'H3');
+  assert.equal(tiles[0].el, tiles[0].tile);
 });
 
 test('Costco accepts a mixed card only after hydration resolves all links to one product', () => {
@@ -100,7 +105,7 @@ test('Costco accepts a mixed card only after hydration resolves all links to one
   assert.equal(tiles.length, 1);
   assert.equal(tiles[0].id, '100423971');
   assert.equal(tiles[0].title, 'Protein bars');
-  assert.equal(tiles[0].anchor.tagName, 'ARTICLE');
+  assert.equal(tiles[0].anchor.tagName, 'H3');
 });
 
 test('Costco card title links take precedence over generic image labels and decoration', () => {
@@ -128,6 +133,40 @@ test('Costco nested ProductTile wrappers do not blend independent product identi
   const tiles = C.searchTiles(doc);
   assert.deepEqual(tiles.map(tile => [tile.id, tile.title]), [['100423971', 'Protein bars'], ['10055555', 'Rolled oats']]);
   assert.notEqual(tiles[0].anchor, tiles[1].anchor);
+});
+
+test('Costco image-only cards request corner placement without inserting badges inside image links', () => {
+  const doc = createDocument('<article data-testid="ProductTile_100423971"><a href="/p/-/bars/100423971"><img alt="Protein bars"></a></article>');
+  const tile = C.searchTiles(doc)[0];
+  assert.equal(tile.badgePlacement, 'corner');
+  assert.equal(tile.anchor.tagName, 'ARTICLE');
+  assert.equal(tile.anchor, tile.el);
+});
+
+test('Costco badge text does not become part of product identity on a later search pass', () => {
+  const doc = createDocument('<article data-testid="ProductTile_100423971"><a href="/p/-/bars/100423971"><h3><span class="air-badge">96</span>Protein bars</h3></a></article>');
+  const tile = C.searchTiles(doc)[0];
+  assert.equal(tile.title, 'Protein bars');
+  assert.equal(tile.anchor.tagName, 'H3');
+  assert.equal(tile.badgePlacement, 'inline');
+});
+
+test('Costco same-origin public product URL helper strips search tracking and rejects invalid origins or IDs', () => {
+  assert.equal(C.productUrl('100493931', at('https://www.costco.com/s?keyword=coffee&utm_source=tracking')), 'https://www.costco.com/product.product.100493931.html');
+  assert.equal(C.productUrl('100493931', at('https://costco.com/s?keyword=coffee')), 'https://costco.com/product.product.100493931.html');
+  for (const id of ['12', '100493931/checkout', '100493931?email=private', '1e8', ' 100493931', {}, null]) {
+    assert.equal(C.productUrl(id, at('https://www.costco.com/s')), '');
+  }
+  for (const url of ['https://sameday.costco.com/s', 'https://evil.example/s', 'https://user@www.costco.com/s', 'ftp://www.costco.com/s']) {
+    assert.equal(C.productUrl('100493931', at(url)), '');
+  }
+});
+
+test('Costco product panel anchor stays outside the immediate title and wishlist flex row', () => {
+  const doc = createDocument('<div data-testid="product-description"><div class="title-row"><h1>Protein bars</h1><button>Add to list</button></div></div>');
+  assert.equal(C.productAnchor(doc).getAttribute('data-testid'), 'product-description');
+  assert.notEqual(C.productAnchor(doc), doc.querySelector('h1'));
+  assert.equal(C.productAnchor(createDocument('<h1>Protein bars</h1>')).tagName, 'H1');
 });
 
 test('Costco search ignores off-store links and navigation even when they have valid item IDs', () => {

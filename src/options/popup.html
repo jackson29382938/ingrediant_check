@@ -104,13 +104,13 @@
  <p id="kept" data-i18n="popupKept">Paused. Everything below is kept and comes back when you switch it on.</p>
  <div class="sub-toggles">
  <label><input type="checkbox" id="badges" checked><span><span class="t" data-i18n="popupBadges">Search result badges</span>
-   <span class="d" data-i18n="popupBadgesD">Score chips on tiles you've already opened.</span></span></label>
+   <span class="d" data-i18n="popupBadgesD">Score badges on search results with readable labels.</span></span></label>
  <label><input type="checkbox" id="foodOnly" checked><span><span class="t" data-i18n="popupFoodOnly">Only rate food &amp; supplements</span>
    <span class="d" data-i18n="popupFoodOnlyD">Skip shoes, toys, cosmetics and cleaning products, and say why instead of
    scoring them. Shampoo has an ingredient list too, and a score on one implies it was judged as
    something you could eat.</span></span></label>
  <label><input type="checkbox" id="autoScoreSearch" checked><span><span class="t" data-i18n="popupAutoScore">Rate every search result</span>
-   <span class="net" data-i18n="popupAutoScoreNet">Requests product pages from Amazon, signed in as you.</span>
+   <span class="net" data-i18n="popupAutoScoreNet">Requests product pages from the store you are browsing. Amazon requests use your sign-in; retailer previews request public pages without cookies.</span>
    <span class="d" data-i18n="popupAutoScoreD">Scores results automatically as you scroll. For each one this computer and the
    shared database cannot already answer, it requests the product page from the Amazon store you are
    on, a few at a time and at most 60 per results page, with your Amazon sign-in. Amazon sees these
@@ -178,6 +178,7 @@
  <script src="../stores/label-reader.js"></script>
  <script src="../stores/walmart.js"></script>
  <script src="../stores/costco.js"></script>
+ <script src="../stores/grocery.js"></script>
  <script src="../stores/registry.js"></script>
  <script src="tabs.js"></script>
  <script src="popup.js"></script>

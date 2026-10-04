@@ -94,7 +94,9 @@
   "allergenCaveat": {
     "message": "Found in the ingredient text on this page. Absence of a warning is not a safety check — never rely on this for an allergy."
   },
-  "allergenNoFlags": { "message": "No selected warnings were found in the text this page provided. Lists can be incomplete — this does not confirm a product is free of an allergen." },
+  "allergenNoFlags": {
+    "message": "No selected warnings were found in the text this page provided. Lists can be incomplete — this does not confirm a product is free of an allergen."
+  },
   "failTitle": {
     "message": "Zutaten auf dieser Seite konnten nicht gelesen werden."
   },
@@ -153,7 +155,7 @@
     "message": "Search result badges"
   },
   "popupBadgesD": {
-    "message": "Score chips on tiles you've already opened."
+    "message": "Bewertungen für Suchergebnisse mit lesbaren Zutatenlisten."
   },
   "popupFoodOnly": {
     "message": "Only rate food & supplements"
@@ -188,7 +190,7 @@
     "message": "Skip shoes, toys, cosmetics and cleaning products, and say why instead of scoring them. Shampoo has an ingredient list too, and a score on one implies it was judged as something you could eat."
   },
   "popupAutoScoreD": {
-    "message": "Scores results automatically as you scroll. For each one this computer and the shared database cannot already answer, it requests the product page from the Amazon store you are on, a few at a time and at most 60 per results page, with your Amazon sign-in. Amazon sees these requests much as if you had opened the products yourself. Off: only products already read get a score."
+    "message": "Scores results automatically as you scroll. For each one this computer and the shared database cannot already answer, it requests the product page from the Amazon store you are on, a few at a time and at most 60 per results page, with your Amazon sign-in. Amazon sees these requests much as if you had opened the products yourself. Off: only products already read get a score. Shop-Vorschauen lesen zwei öffentliche Produktseiten derselben Website gleichzeitig, ohne Cookies. Fehlende Zutatenlisten bleiben unbekannt."
   },
   "popupHoverD": {
     "message": "Hover or tab to a search result for half a second and it requests that product page from Amazon to score it, with your Amazon sign-in. Only the result you point at."
@@ -217,9 +219,15 @@
   "failOcr": {
     "message": "The label photo was checked too, and no ingredient list could be read from it. "
   },
-  "failOcrNoImages": { "message": "No usable label photo was available to check. " },
-  "failOcrError": { "message": "The label photo could not be checked because the reader failed. " },
-  "failOcrNoMatch": { "message": "The label photo was checked, but no ingredient list could be read from it. " },
+  "failOcrNoImages": {
+    "message": "No usable label photo was available to check. "
+  },
+  "failOcrError": {
+    "message": "The label photo could not be checked because the reader failed. "
+  },
+  "failOcrNoMatch": {
+    "message": "The label photo was checked, but no ingredient list could be read from it. "
+  },
   "failLocale": {
     "message": "This Amazon store’s labels are in a script the on-device English reader will misread, so photo OCR is not used here yet. Paste the list if you can read it. "
   },
@@ -276,7 +284,7 @@
     "message": "Not scored yet. Wait for the panel on this page, then reopen."
   },
   "popupSearchPage": {
-    "message": "Search page — scores show as badges on tiles you have already opened."
+    "message": "Suchseite — lesbare Zutatenlisten erhalten Bewertungen. Fehlende Listen werden am Ergebnis gekennzeichnet."
   },
   "popupClearN": {
     "message": "Clear $N$ cached scores",
@@ -602,16 +610,16 @@
     }
   },
   "popupAutoScoreNet": {
-    "message": "Requests product pages from Amazon, signed in as you."
+    "message": "Fordert Produktseiten des geöffneten Shops an. Amazon nutzt Ihre Anmeldung; Shop-Vorschauen lesen öffentliche Seiten ohne Cookies."
   },
   "popupHoverNet": {
     "message": "Requests that product page from Amazon, signed in as you."
   },
   "popupNetworkLink": {
-    "message": "Amazon access and what is sent"
+    "message": "Shop-Zugriff und übertragene Daten"
   },
   "optNoteAutoScore": {
-    "message": "On by default. As you scroll a results page, each result that this computer and the shared database cannot already answer is scored by requesting its product page from the Amazon store you are on: three at a time, at most 60 per results page. The requests carry your Amazon sign-in, so Amazon sees them much as if you had opened each product yourself. Turn this off and only products already read (by you, or through the shared database) show a score."
+    "message": "On by default. As you scroll a results page, each result that this computer and the shared database cannot already answer is scored by requesting its product page from the Amazon store you are on: three at a time, at most 60 per results page. The requests carry your Amazon sign-in, so Amazon sees them much as if you had opened each product yourself. Turn this off and only products already read (by you, or through the shared database) show a score. Shop-Vorschauen lesen zwei öffentliche Produktseiten derselben Website gleichzeitig, ohne Cookies. Fehlende Zutatenlisten bleiben unbekannt."
   },
   "optNoteHover": {
     "message": "Off by default. Hover or tab to one result for half a second and it requests that product page from Amazon in the same way, with your Amazon sign-in. Only the result you point at."
@@ -671,7 +679,7 @@
     "message": "Fertig"
   },
   "welDoneLede": {
-    "message": "Öffne ein Lebensmittelprodukt auf Amazon oder teste die Vorschau für Target, Walmart und Costco. Die Suche in der Vorschau zeigt Bewertungen für bereits geöffnete Produkte. Alle Einstellungen lassen sich später ändern."
+    "message": "Öffnen Sie ein Lebensmittel oder Suchergebnisse bei Amazon, Target, Walmart, Costco, Instacart oder den weiteren Shop-Vorschauen. Lesbare Zutatenlisten erhalten Bewertungen; fehlende Listen werden gekennzeichnet. Alles kann später in den Einstellungen geändert werden."
   },
   "welTry": {
     "message": "Probiere eine Lebensmittelsuche →"
@@ -760,7 +768,7 @@
     "message": "Preview — works on the pages you open; still being checked"
   },
   "optNoteTarget": {
-    "message": "Target (preview): Ingredient Check also runs on Target product and search pages. There it only reads the page you have open and scores it on your computer. It requests nothing from Target or anyone else, and a Target search page shows scores only for products you opened before. The two options above apply to Amazon only."
+    "message": "Shop-Vorschauen: Target, Walmart, Costco, Instacart und weitere aufgeführte Lebensmittelshops lesen öffentliche Produktseiten derselben Website ohne Cookies, um Suchergebnisse zu bewerten. Alle Suchergebnisse bewerten ist standardmäßig aktiv. Deaktivieren Sie es, um nur gespeicherte Bewertungen zu sehen. Zwei Anfragen laufen gleichzeitig, bis zum Seitenlimit der Geschwindigkeitseinstellung (20–60). Blockierte oder fehlende Zutatenlisten bleiben unbekannt. Bewertungen bleiben lokal; Vorschau-Daten werden nicht geteilt. Bewerten beim Überfahren gilt nur für Amazon."
   },
   "sortThrottled": {
     "message": "Amazon stopped answering product pages, so rating paused."
@@ -995,7 +1003,9 @@
   "sortedOpenTab": {
     "message": "Open in new tab"
   },
-  "sortedOpenTabFail": { "message": "Could not open a new tab. Try again from Chrome." },
+  "sortedOpenTabFail": {
+    "message": "Could not open a new tab. Try again from Chrome."
+  },
   "sortedStop": {
     "message": "Stop rating"
   },
@@ -1349,8 +1359,16 @@
   "optGoalMixAria": {
     "message": "Wie stark $1 zählt"
   },
-  "welGoalsSelected": { "message": "Selected goals" },
-  "welGoalsBalanced": { "message": "No goals selected: use the balanced defaults." },
-  "welGoalsCustom": { "message": "Your custom weights are kept unless you change goals." },
-  "optBalancedDefault": { "message": "Balanced default" }
+  "welGoalsSelected": {
+    "message": "Selected goals"
+  },
+  "welGoalsBalanced": {
+    "message": "No goals selected: use the balanced defaults."
+  },
+  "welGoalsCustom": {
+    "message": "Your custom weights are kept unless you change goals."
+  },
+  "optBalancedDefault": {
+    "message": "Balanced default"
+  }
 }

@@ -141,3 +141,32 @@ test('Walmart search refuses hidden/navigation/promotional links and never borro
   const doc = createDocument('<div data-testid="item-stack"><a href="/ip/oats/10314926"></a><a href="/ip/almonds/10314925"><img alt="Almonds"></a></div>');
   assert.deepEqual(W.searchTiles(doc).map(hit => [hit.id, hit.title]), [['10314925', 'Almonds']]);
 });
+
+test('Walmart public overlay-link cards expose their own visible title and safe badge container', () => {
+  const doc = createDocument('<div data-testid="item-stack">'
+    + '<div role="group"><a href="/ip/oats/10314926?athbdg=L1102">10K+ bought since yesterday, Rolled oats</a>'
+    + '<div><span data-automation-id="product-title">Rolled oats</span></div><button>Add to cart</button></div>'
+    + '<div role="group"><a href="/ip/almonds/10314925">Overall pick, Whole almonds</a>'
+    + '<span data-automation-id="product-title">Whole almonds</span></div></div>');
+  const hits = W.searchTiles(doc);
+  assert.deepEqual(hits.map(hit => [hit.id, hit.title]), [['10314926', 'Rolled oats'], ['10314925', 'Whole almonds']]);
+  for (const hit of hits) {
+    assert.equal(hit.el.getAttribute('role'), 'group');
+    assert.equal(hit.anchor.getAttribute('data-automation-id'), 'product-title');
+    assert.equal(hit.anchor.closest('a, button'), null);
+    assert.equal(hit.el.querySelectorAll('a[href]').length, 1);
+  }
+});
+
+test('Walmart search rejects reused cards containing contradictory product IDs', () => {
+  const doc = createDocument('<div role="group"><a href="/ip/oats/10314926">Oats</a>'
+    + '<a href="/ip/almonds/10314925">Almonds</a><span data-automation-id="product-title">Oats</span></div>');
+  assert.deepEqual(W.searchTiles(doc), []);
+});
+
+test('Walmart public product URL stays on the current origin and drops tracking or private-route input', () => {
+  assert.equal(W.productUrl('10314926', at('https://www.walmart.com/search?q=oats&session=ignored')), 'https://www.walmart.com/ip/10314926');
+  assert.equal(W.productUrl('10314926', at('https://walmart.com/search?q=oats')), 'https://walmart.com/ip/10314926');
+  for (const id of ['10314926/checkout', '../cart', '10314926?tracking=value', '1031', null]) assert.equal(W.productUrl(id, at(url)), '');
+  for (const href of ['https://evil.example/search', 'ftp://www.walmart.com/search', 'https://user:password@www.walmart.com/search']) assert.equal(W.productUrl('10314926', at(href)), '');
+});

@@ -33,7 +33,7 @@ After editing `src/`, `manifest.json`, or `icons/`, run `npm run chrome:reload`.
 
 ## What it does
 
-Stores: **Amazon** (21 storefronts), plus **Target, Walmart and Costco previews**. Previews read only the page you open and show saved product scores on searches. Missing labels offer a paste fallback. Live validation is still incomplete; see [store checks](docs/STORES.md). Settings → Stores lets you request another store through an email draft. The toolbar’s report form previews a screenshot, settings and recent extension actions before you choose what to attach; the extension sends nothing.
+Stores: **Amazon** (21 storefronts), plus **15 retailer previews**, including Target, Walmart, Costco, Instacart, Kroger and Fry’s. Search previews reuse saved scores and request uncached public product pages from the same site when automatic rating is enabled. Readable labels receive scores; missing labels are marked and offer a paste fallback on the product page. Live validation is still incomplete; see [store checks](docs/STORES.md). Settings → Stores lets you request another store through an email draft. The toolbar’s report form previews a screenshot, settings and recent extension actions before you choose what to attach; the extension sends nothing.
 
 On an Amazon product page it reads the ingredient list (page text, optional on-device OCR, optional Open Food Facts barcode, or a paste box) and scores it. Search pages can show score chips. Non-food listings are skipped. The toolbar icon shows the current product’s score.
 

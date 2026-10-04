@@ -17,11 +17,23 @@
         'amazon.nl', 'amazon.se', 'amazon.pl', 'amazon.com.be', 'amazon.com.tr', 'amazon.com.mx',
         'amazon.com.br', 'amazon.co.jp'],
     },
-    // Reads the product page you open; search shows scores only for products opened before.
+    // Public product/search previews; search scans can fetch same-origin public declarations.
     // Live pages were read correctly on 2026-09-25, but behind Target's bot check (docs/STORES.md).
     { id: 'target', name: 'Target', status: 'preview', domains: ['target.com'] },
     { id: 'walmart', name: 'Walmart', status: 'preview', domains: ['walmart.com'] },
     { id: 'costco', name: 'Costco', status: 'preview', domains: ['costco.com'] },
+    {"id": "instacart", "name": "Instacart", "status": "preview", "domains": ["instacart.com"]},
+    {"id": "kroger", "name": "Kroger", "status": "preview", "domains": ["kroger.com"]},
+    {"id": "frys", "name": "Fry’s", "status": "preview", "domains": ["frysfood.com"]},
+    {"id": "ralphs", "name": "Ralphs", "status": "preview", "domains": ["ralphs.com"]},
+    {"id": "kingsoopers", "name": "King Soopers", "status": "preview", "domains": ["kingsoopers.com"]},
+    {"id": "smiths", "name": "Smith’s", "status": "preview", "domains": ["smithsfoodanddrug.com"]},
+    {"id": "fredmeyer", "name": "Fred Meyer", "status": "preview", "domains": ["fredmeyer.com"]},
+    {"id": "qfc", "name": "QFC", "status": "preview", "domains": ["qfc.com"]},
+    {"id": "harristeeter", "name": "Harris Teeter", "status": "preview", "domains": ["harristeeter.com"]},
+    {"id": "dillons", "name": "Dillons", "status": "preview", "domains": ["dillons.com"]},
+    {"id": "safeway", "name": "Safeway", "status": "preview", "domains": ["safeway.com"]},
+    {"id": "albertsons", "name": "Albertsons", "status": "preview", "domains": ["albertsons.com"]},
   ];
 
   const bareHost = host => String(host || '').toLowerCase().replace(/^www\./, '').replace(/\.$/, '');
@@ -53,6 +65,13 @@
     if (store.id === 'target') return /^(?:www\.)?target\.com$/i.test(u.hostname) && /^\/(?:p\/|s(?:\/|$))/.test(u.pathname);
     if (store.id === 'walmart') return /^(?:www\.)?walmart\.com$/i.test(u.hostname) && (/^\/ip\/(?:[^/]+\/)?\d{5,15}\/?$/.test(u.pathname) || u.pathname === '/search');
     if (store.id === 'costco') return /^(?:www\.)?costco\.com$/i.test(u.hostname) && (/^\/[^/]+\.product\.\d{5,15}\.html$/.test(u.pathname) || /^\/p\/(?:[^/]+\/)+\d{5,15}\/?$/.test(u.pathname) || ['/s', '/CatalogSearch'].includes(u.pathname));
+    if (store.id !== 'amazon') {
+      if (!store.domains.some(domain => u.hostname === domain || u.hostname === 'www.' + domain)) return false;
+      if (store.id === 'instacart') return /^\/(?:store\/)?products\/\d{5,15}(?:-[^/]+)?\/?$/.test(u.pathname)
+        || /^\/store\/(?:[^/]+\/)?items\/\d{5,15}(?:-[^/]+)?\/?$/.test(u.pathname) || /^\/store\/(?:[^/]+\/)?s\/?$/.test(u.pathname);
+      if (['safeway', 'albertsons'].includes(store.id)) return /^\/shop\/(?:product-details\.\d{5,15}\.html|pd\/product\/\d{5,15}\/?|search-results\.html)$/.test(u.pathname);
+      return /^\/p\/[^/]+\/\d{10,14}\/?$/.test(u.pathname) || /^\/search\/?$/.test(u.pathname);
+    }
     return true;
   }
 

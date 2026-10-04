@@ -31,7 +31,7 @@ test('a preview store runs through a content script only, with no host permissio
   // scope by construction, rather than protected by an ever-growing exclusion list.
   const target = manifest.content_scripts.find(cs => cs.matches.includes('https://www.target.com/p/*'));
   assert.ok(target.matches.includes('https://target.com/p/*'));
-  assert.ok(target.matches.every(match => !/cart|checkout|account|login/.test(match)));
+  assert.ok(target.matches.every(match => !/(?:^|\/)(?:cart|checkout|account|login)(?:[/*?]|$)/.test(new URL(match.replace('*', 'sample')).pathname)));
   assert.equal(target.exclude_globs, undefined);
   // And it loads none of Amazon's pipeline: no page fetches, no shared database, no OCR.
   for (const f of ['src/content/main.js', 'src/content/search.js', 'src/content/product.js', 'src/engine/db/product-cache.js', 'src/engine/db/ocr-text.js']) {

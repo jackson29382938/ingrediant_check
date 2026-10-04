@@ -1,0 +1,120 @@
+{
+  "tcin": "16600402",
+  "item": {
+    "product_description": {
+      "title": "Boulder Canyon Avocado Oil Kettle Cooked Sea Salt Potato Chips - 5.25oz"
+    },
+    "enrichment": {
+      "buy_url": "https://www.target.com/p/boulder-kettle-cooked-avocado-oil-canyon-cut-sea-salt-potato-chips-5-25oz/-/A-16600402",
+      "nutrition_facts": {
+        "ingredients": "POTATOES, AVOCADO OIL, SEA SALT. ",
+        "nutrition_label_type_code": "LEGACY_FORMAT",
+        "value_prepared_list": [
+          {
+            "nutrients": [
+              {
+                "name": "Calories",
+                "quantity": 160,
+                "unit_of_measurement": "Cal"
+              },
+              {
+                "name": "Total Fat",
+                "percentage": 12,
+                "quantity": 9,
+                "unit_of_measurement": "g"
+              },
+              {
+                "name": "Saturated Fat",
+                "percentage": 7,
+                "quantity": 1.5,
+                "unit_of_measurement": "g"
+              },
+              {
+                "name": "Trans Fat",
+                "quantity": 0,
+                "unit_of_measurement": "g"
+              },
+              {
+                "name": "Polyunsaturated Fat",
+                "quantity": 1,
+                "unit_of_measurement": "g"
+              },
+              {
+                "name": "Monounsaturated Fat",
+                "quantity": 6,
+                "unit_of_measurement": "g"
+              },
+              {
+                "name": "Cholesterol",
+                "percentage": 0,
+                "quantity": 0,
+                "unit_of_measurement": "mg"
+              },
+              {
+                "name": "Sodium",
+                "percentage": 5,
+                "quantity": 120,
+                "unit_of_measurement": "mg"
+              },
+              {
+                "name": "Total Carbohydrate",
+                "percentage": 6,
+                "quantity": 16,
+                "unit_of_measurement": "g"
+              },
+              {
+                "name": "Dietary Fiber",
+                "percentage": 5,
+                "quantity": 1,
+                "unit_of_measurement": "g"
+              },
+              {
+                "name": "Sugars",
+                "quantity": 0,
+                "unit_of_measurement": "g"
+              },
+              {
+                "name": "Added Sugars",
+                "percentage": 0,
+                "quantity": 0,
+                "unit_of_measurement": "g"
+              },
+              {
+                "name": "Protein",
+                "quantity": 3,
+                "unit_of_measurement": "g"
+              },
+              {
+                "name": "Vitamin D",
+                "percentage": 0,
+                "quantity": 0.1,
+                "unit_of_measurement": "mcg"
+              },
+              {
+                "name": "Calcium",
+                "percentage": 0,
+                "quantity": 10,
+                "unit_of_measurement": "mg"
+              },
+              {
+                "name": "Iron",
+                "percentage": 2,
+                "quantity": 0.5,
+                "unit_of_measurement": "mg"
+              },
+              {
+                "name": "Potassium",
+                "percentage": 10,
+                "quantity": 450,
+                "unit_of_measurement": "mg"
+              }
+            ],
+            "serving_size": "1",
+            "serving_size_unit_of_measurement": "oz",
+            "servings_per_container": "about 5.5"
+          }
+        ]
+      }
+    }
+  }
+}

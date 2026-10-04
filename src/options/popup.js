@@ -350,7 +350,7 @@ function paintPageScore() {
       card.className = 'page-score empty';
       const p = document.createElement('div');
       p.className = 'ps-empty';
-      p.textContent = msg('popupSearchPage', 'Search page — scores show as badges on tiles you have already opened.');
+      p.textContent = msg('popupSearchPage', 'Search page — readable product labels receive score badges. Unavailable labels are marked on each result.');
       card.appendChild(p);
       return;
     }

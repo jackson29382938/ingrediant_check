@@ -1,7 +1,11 @@
 // Shared, local-only label reading for retailer previews. No fetches or script execution.
 (function(root) {
   const clean = value => String(value || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
-  const text = el => clean(el && (el.innerText != null ? el.innerText : el.textContent));
+  const text = el => {
+    let value = el && (el.innerText != null ? el.innerText : el.textContent) || '';
+    for (const badge of el?.querySelectorAll?.('.air-badge') || []) value = value.replace(badge.textContent || '', '');
+    return clean(value);
+  };
   const EXCLUDED = 'aside, footer, nav, form, [hidden], [aria-hidden="true"]';
   function excluded(el) {
     if (el && el.closest && el.closest(EXCLUDED)) return true;
@@ -39,6 +43,28 @@
     siblings.slice(start + 1).forEach(collect);
     return clean(parts.join(''));
   }
+  function warningText(warning) {
+    if (typeof warning !== 'string' || warning.length > 6000) return '';
+    const marker = /\b(?:(?:this product )?(?:may|can) (?:also )?contain|(?:may )?contains? traces?|contains?|traces? of|(?:produced|made|manufactured|packed|packaged|processed|prepared|bottled|roasted) (?:in|on|at) (?:a |the |our )?(?:shared |same )?(?:factory|facility|plant|site|premises|equipment|(?:production )?line))\b/gi;
+    const statements = [];
+    for (const sentence of warning.split(/[.!?;]+/)) {
+      const matches = Array.from(sentence.matchAll(marker));
+      for (let i = 0; i < matches.length; i++) {
+        const match = matches[i];
+        if (/\b(?:not|never|no)\s*$/i.test(sentence.slice(0, match.index))) continue;
+        let end = i + 1 < matches.length ? matches[i + 1].index : sentence.length;
+        // Keep a following negated claim out of this positive warning, too.
+        const preceding = sentence.slice(match.index, end);
+        const negation = /\s*(?:(?:and|but|however)\s+)?(?:(?:does|do|is|are)\s+)?(?:not|never|no)\s*$/i.exec(preceding);
+        if (negation) end = match.index + negation.index;
+        const statement = clean(sentence.slice(match.index, end)).replace(/[,\s]+$/, '');
+        if (/^(?:(?:may|can) (?:also )?)?contains?\s*:?\s*(?:no|none)\b/i.test(statement)) continue;
+        if (statement) statements.push(statement);
+      }
+    }
+    return Array.from(new Set(statements)).join('. ');
+  }
+
   function readLabel(doc) {
     let ingredients = '';
     const warnings = [];
@@ -101,6 +127,6 @@
     return out;
   }
   root.AIR = root.AIR || {};
-  root.AIR.retailerLabels = { clean, text, readLabel, labelToggle, sameCanonical, searchTiles, department };
+  root.AIR.retailerLabels = { clean, text, warningText, readLabel, labelToggle, sameCanonical, searchTiles, department };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.AIR.retailerLabels;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

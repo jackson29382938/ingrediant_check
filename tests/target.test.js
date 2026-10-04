@@ -111,7 +111,12 @@ function runner(file, url, stored = {}) {
   let host = null;
   const clicks = [];
   // The loader's elements lack isConnected and insertBefore; real DOM elements have both.
-  const insertInto = el => { el.isConnected = true; el.insertBefore = (child) => { (el.inserted = el.inserted || []).push(child); child.isConnected = true; }; };
+  const insertInto = el => {
+    el.isConnected = true;
+    const original = el.querySelector.bind(el);
+    el.querySelector = selector => selector === '.air-badge' ? el.inserted?.find(child => !child.removed) || null : original(selector);
+    el.appendChild = child => { (el.inserted = el.inserted || []).push(child); child.isConnected = true; };
+  };
   const title = page.querySelector('h1[data-test="product-title"]');
   if (title) title.parentNode.insertBefore = child => { host = child; child.isConnected = true; };
   for (const h3 of page.querySelectorAll('h3')) insertInto(h3);
@@ -123,7 +128,7 @@ function runner(file, url, stored = {}) {
     return { addEventListener: (type, fn) => { shadow.handlers[cls] = fn; } };
   } });
   shadow.handlers = {};
-  const data = { ...stored };
+  const data = { autoScoreSearch: false, ...stored };
   const sandbox = {
     console, URL, Date, Math, JSON, Object, Array, String, Number,
     location: { href: loc.href, hostname: loc.hostname, pathname: loc.pathname, search: loc.search },
@@ -135,7 +140,7 @@ function runner(file, url, stored = {}) {
       querySelector: s => page.querySelector(s), querySelectorAll: s => page.querySelectorAll(s),
       getElementById: id => (id === 'air-score-panel' ? host : null),
       createElement: tag => ({ tagName: tag, style: {}, dataset: {}, attrs: {}, setAttribute(k, v) { this.attrs[k] = String(v); }, querySelector: () => null,
-        remove() { if (host === this) host = null; } }),
+        remove() { this.removed = true; if (host === this) host = null; } }),
       body: {}, documentElement: {}, title: page.title, URL: url,
     },
     chrome: {
@@ -217,7 +222,7 @@ test('runner: search badges come only from this computer\'s cache; nothing is re
     prefs: scoreCache.fingerprint({}, 'page'), score: oats.score, verdict: oats.verdict, nova: oats.nova, source: 'page',
     provenanceSource: '', name: 'Oats' };
   const w = runner('target-s-oats.html', 'https://www.target.com/s?searchTerm=organic+oats', { 's:target.com:79364857': entry });
-  const painted = [...w.page.querySelectorAll('h3')].filter(h => h.inserted && h.inserted.length);
+  const painted = [...w.page.querySelectorAll('h3')].filter(h => h.inserted?.some(b => /^\d+$/.test(b.textContent)));
   assert.equal(painted.length, 1, 'only the product opened before gets a badge');
   assert.equal(painted[0].inserted[0].textContent, String(oats.score));
   assert.equal(painted[0].inserted[0].attrs.role, 'img', 'named for screen readers, not a bare number');
@@ -266,7 +271,7 @@ test('runner: search badges keep a saved score as long as the speed setting says
     provenanceSource: '', name: 'Oats' };
   const painted = speedMode => {
     const w = runner('target-s-oats.html', 'https://www.target.com/s?searchTerm=organic+oats', { 's:target.com:79364857': entry, speedMode });
-    return [...w.page.querySelectorAll('h3')].filter(h => h.inserted && h.inserted.length).length;
+    return [...w.page.querySelectorAll('h3')].filter(h => h.inserted?.some(b => /^\d+$/.test(b.textContent))).length;
   };
   assert.equal(painted('balanced'), 0, 'Balanced: 45 days is past 30');
   assert.equal(painted('fastest'), 1, 'Fastest keeps 90 days');
@@ -282,7 +287,8 @@ test('Target removes invalid badges and clears the toolbar on SPA navigation', (
   badge.remove = () => { removed = true; };
   anchor.querySelector = s => s === '.air-badge' ? badge : null;
   delete w.data[key]; w.pass();
-  assert.equal(removed, true);
+  assert.equal(removed, false, 'replace a stale score with a visible open-to-rate status');
+  assert.equal(badge.textContent, 'Open to rate');
   const product = runner('target-p-chips.html', CHIPS_URL, {});
   product.sandbox.location.href = 'https://www.target.com/c/grocery/-/N-5xt1a';
   product.sandbox.location.pathname = '/c/grocery/-/N-5xt1a';
