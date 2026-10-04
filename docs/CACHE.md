@@ -154,3 +154,7 @@ under the script lock. These functions have no public request route.
 The deployed endpoint did not return `closed: true` during the 2026-10-01 lookup check;
 its actual deployment still needs owner verification. The local build gate protects
 this extension without assuming that deployment has been updated.
+
+## Warning preservation (1.5.2)
+
+Product input includes separately published `advisory_text` for allergen/Contains/May contain statements. It is bounded, stored independently from ingredients, and affects warning flags rather than the score. Readings created before this field existed are due for a fresh scan because an absent field cannot establish that no warning was published. Current page nutrition/advisories can supplement cached ingredients locally without refreshing the original scan age or uploading a mixed-age record.

@@ -23,6 +23,7 @@
   const clean = t => String(t || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
   const text = el => clean(el && (el.innerText != null ? el.innerText : el.textContent));
   const kids = el => Array.from((el && el.children) || []);
+  const hidden = el => !!(el && typeof el.closest === 'function' && el.closest('[hidden], [aria-hidden="true"]'));
 
   function matchesHost(host) {
     return /^(?:www\.)?target\.com$/i.test(String(host || ''));
@@ -37,7 +38,7 @@
   }
 
   const isProductPage = loc => !!productId(loc.href);
-  const isSearchPage = loc => loc.pathname === '/s' || loc.pathname.startsWith('/s/');
+  const isSearchPage = loc => matchesHost(loc.hostname) && (loc.pathname === '/s' || loc.pathname.startsWith('/s/'));
 
   function searchQuery(loc) {
     try {
@@ -49,24 +50,43 @@
     } catch (e) { return ''; }
   }
 
-  // The text right after the "Ingredients:" heading: the heading's next sibling, or loose text in
-  // the same parent after it.
+  // Read the declaration up to the next label heading. Target can split ingredients across
+  // paragraphs or put loose text directly after the heading; neither may drop later ingredients.
   function afterHeading(heading) {
     const parent = heading.parentNode;
-    const siblings = kids(parent);
-    const next = siblings[siblings.indexOf(heading) + 1];
-    // A heading immediately after Ingredients means the list was not published. Do not score
-    // allergens, directions or nutrition as if they were declared ingredients.
-    if (next && /^(?:H[1-6]|B|STRONG)$/.test(next.tagName || '')) return '';
-    const value = next ? text(next) : clean(text(parent).slice(text(heading).length));
-    const declaration = value.split(/(?:allergens?\s*(?:&|and)\s*warnings?|nutrition(?:al)? facts|directions(?: for use)?)\s*:/i)[0].trim();
+    const siblings = Array.from((parent && parent.childNodes) || kids(parent));
+    const start = siblings.indexOf(heading);
+    if (start < 0) return '';
+    const parts = [];
+    let stopped = false;
+    const boundary = /^(?:ingredients|allergens?(?:\s*(?:&(?:amp;)?|and)\s*warnings?)?|warnings?|nutrition(?:al)? facts|directions(?: for use)?)\s*:?$/i;
+    function collect(node) {
+      if (stopped || hidden(node)) return;
+      if (node.nodeType === 3) { parts.push(node.textContent || ''); return; }
+      if (node.nodeType !== 1) return;
+      const value = text(node);
+      const nutritionName = NUTRIENTS.some(([, re]) => re.test(value));
+      if (/^H[1-6]$/.test(node.tagName || '') || /^serving size\s*:/i.test(value) ||
+        (/^(?:B|STRONG)$/.test(node.tagName || '') && (boundary.test(value) || nutritionName))) {
+        stopped = true;
+        return;
+      }
+      const children = Array.from(node.childNodes || []);
+      const block = /^(?:DIV|P|LI|UL|OL|BR|SECTION)$/.test(node.tagName || '');
+      if (block) parts.push(' ');
+      if (children.length) children.forEach(collect);
+      else parts.push(text(node));
+      if (block) parts.push(' ');
+    }
+    siblings.slice(start + 1).forEach(collect);
+    const declaration = clean(parts.join('')).split(/(?:allergens?\s*(?:&(?:amp;)?|and)\s*warnings?|nutrition(?:al)? facts|directions(?: for use)?)\s*:/i)[0].trim();
     return declaration.length <= 6000 ? declaration : '';
   }
 
   function findHeading(section, re) {
     if (!section) return null;
     return Array.from(section.querySelectorAll('h4, h3, b, strong'))
-      .find(el => re.test(text(el))) || null;
+      .find(el => !hidden(el) && re.test(text(el))) || null;
   }
 
   // Grams per serving and the few numbers the engine can use, read from the rows Target renders as
@@ -79,24 +99,30 @@
     ['fibre', /^dietary fiber$/i, 'g'], ['protein', /^protein$/i, 'g'],
   ];
   function nutritionFacts(section) {
-    if (!section) return null;
+    if (!section || hidden(section)) return null;
     const out = {};
     const conflicts = new Set();
     for (const b of section.querySelectorAll('b')) {
+      if (hidden(b)) continue;
       const name = text(b);
       const row = NUTRIENTS.find(([, re]) => re.test(name));
       if (!row) continue;
       // "1,200mg": a thousands comma, which "[\d.]+" stopped at, reading 1 mg of sodium.
-      const m = clean(text(b.parentNode).slice(name.length)).match(/^((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?|\.\d+)\s*(mg|g|mcg)\b/i);
+      const amount = clean(text(b.parentNode).slice(name.length));
+      const m = amount.match(/^((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?|\.\d+)\s*(mg|g|mcg)\b/i);
       if (!m) continue;
+      // A row with more than one quantity may be a per-serving/per-container comparison.
+      // Neither column is identified here, so keep this nutrient unknown.
+      if (/(?:\d|\.)\d*\s*(?:mg|g|mcg)\b/i.test(amount.slice(m[0].length))) { conflicts.add(row[0]); continue; }
       const v = Number(m[1].replace(/,/g, ''));
+      if (!Number.isFinite(v)) continue;
       const units = {g:1000, mg:1, mcg:0.001};
       const value = v * units[m[2].toLowerCase()] / units[row[2]];
       if (out[row[0]] != null && out[row[0]] !== value) conflicts.add(row[0]);
       out[row[0]] = value;
     }
     for (const field of conflicts) delete out[field];
-    const sizes = Array.from(section.querySelectorAll('p')).map(text).filter(t => /^serving size:/i.test(t));
+    const sizes = Array.from(section.querySelectorAll('p')).filter(el => !hidden(el)).map(text).filter(t => /^serving size:/i.test(t));
     const measures = sizes.map(size => {
       // Prefer the explicitly printed metric amount. Never infer grams from cups or pieces.
       const metric = size.match(/(?:^|[\s(])(\d+(?:\.\d+)?|\.\d+)\s*(g|grams?|ml|millilit(?:er|re)s?)\b/i);
@@ -105,6 +131,7 @@
       if (ounce) return { field: /^fl/i.test(ounce[2]) ? 'servingMl' : 'servingGrams', value: Number(ounce[1]) * (/^fl/i.test(ounce[2]) ? 29.5735295625 : 28.349523125) };
       return null;
     }).filter(Boolean);
+    if (new Set(sizes).size > 1 && measures.length < sizes.length) return null;
     if (measures.length) {
       const first = measures[0];
       // Different serving panels cannot be combined into one reliable nutrition profile.
@@ -114,27 +141,57 @@
     return Object.keys(out).length ? out : null;
   }
 
+  // Published allergen declarations and cross-contact statements are warnings, not scored ingredients.
+  function advisoryText(section) {
+    const heading = findHeading(section, /^(?:allergens?(?:\s*(?:&(?:amp;)?|and)\s*warnings?)?|warnings?)\s*:?$/i);
+    if (!heading) return '';
+    const warning = afterHeading(heading);
+    const marker = /\b(?:(?:this product )?(?:may|can) (?:also )?contain|(?:may )?contains? traces?|contains?|traces? of|(?:produced|made|manufactured|packed|packaged|processed|prepared|bottled|roasted) (?:in|on|at) (?:a |the |our )?(?:shared |same )?(?:factory|facility|plant|site|premises|equipment|(?:production )?line))\b/gi;
+    const statements = [];
+    for (const sentence of warning.split(/[.!?;]+/)) {
+      const matches = Array.from(sentence.matchAll(marker));
+      for (let i = 0; i < matches.length; i++) {
+        const match = matches[i];
+        if (/\b(?:not|never|no)\s*$/i.test(sentence.slice(0, match.index))) continue;
+        let end = i + 1 < matches.length ? matches[i + 1].index : sentence.length;
+        // Keep a following negated claim out of this positive warning, too.
+        const preceding = sentence.slice(match.index, end);
+        const negation = /\s*(?:(?:and|but|however)\s+)?(?:(?:does|do|is|are)\s+)?(?:not|never|no)\s*$/i.exec(preceding);
+        if (negation) end = match.index + negation.index;
+        const statement = clean(sentence.slice(match.index, end)).replace(/[,\s]+$/, '');
+        if (/^(?:(?:may|can) (?:also )?)?contains?\s*:?\s*(?:no|none)\b/i.test(statement)) continue;
+        if (statement) statements.push(statement);
+      }
+    }
+    return Array.from(new Set(statements)).join('. ');
+  }
+
+  function department(crumbs) {
+    if (crumbs.some(c => /^(?:beauty|hair care|skin care|personal care|bath (?:&(?:amp;)?|and) body)$/i.test(c))) return 'Beauty & Personal Care';
+    if (crumbs.some(c => /^(?:pets|pet supplies)$/i.test(c))) return 'Pet Supplies';
+    return '';
+  }
+
   // -> { id, title, crumbs, label: 'open' | 'collapsed' | 'missing', ingredients, labelText, nutrition }
   function readProduct(doc, loc) {
     const title = text(doc.querySelector('h1[data-test="product-title"]'))
       || clean(String(doc.title || '').replace(/\s*:\s*Target\s*$/i, ''));
     const crumbs = Array.from(doc.querySelectorAll(CRUMB)).map(text).filter(c => c && !/^target$/i.test(c));
-    const canonical = doc.querySelector('link[rel="canonical"]');
-    const canonicalId = canonical && productId(canonical.getAttribute('href'));
+    const canonicals = Array.from(doc.querySelectorAll('link[rel="canonical"]'));
     const id = productId(loc ? loc.href : doc.URL);
-    if (canonical && (!canonicalId || canonicalId !== id)) return { id, title, crumbs, ingredients: '', labelText: '', nutrition: null, label: 'missing' };
+    if (!id || canonicals.some(c => productId(c.getAttribute('href')) !== id)) return { id, title, crumbs, department: department(crumbs), ingredients: '', advisoryText: '', labelText: '', nutrition: null, label: 'missing' };
     const section = doc.querySelector(LABEL);
     const toggle = section && kids(section).find(el => el.tagName && el.tagName.toLowerCase() === 'button');
     const collapsed = !!toggle && toggle.getAttribute('aria-expanded') === 'false';
     const ingHead = findHeading(section, /^ingredients\s*:?$/i);
-    const labelText = section ? text(section).slice(0, 4000) : '';
+    const labelText = section && !hidden(section) ? text(section).slice(0, 4000) : '';
+    const ingredients = ingHead ? afterHeading(ingHead) : '';
+    const nutrition = nutritionFacts(section);
     return {
       id: productId(loc ? loc.href : doc.URL),
-      title, crumbs,
-      label: !section ? 'missing' : (collapsed && !labelText.replace(/^label info/i, '').trim()) ? 'collapsed' : 'open',
-      ingredients: ingHead ? afterHeading(ingHead) : '',
-      labelText,
-      nutrition: nutritionFacts(section),
+      title, crumbs, department: department(crumbs), advisoryText: advisoryText(section),
+      label: !section || hidden(section) ? 'missing' : collapsed && !ingredients ? 'collapsed' : 'open',
+      ingredients, labelText, nutrition,
     };
   }
 
@@ -149,8 +206,9 @@
   function searchTiles(doc) {
     const out = [];
     for (const tile of doc.querySelectorAll(TILE)) {
+      if (hidden(tile)) continue;
       const heading = tile.querySelector('h3');
-      if (!heading || !text(heading)) continue;
+      if (!heading || hidden(heading) || !text(heading)) continue;
       const titleLink = heading.closest('a');
       const ids = Array.from(new Set(Array.from(tile.querySelectorAll('a'))
         .map(a => productId(a.getAttribute('href'))).filter(Boolean)));

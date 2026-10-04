@@ -78,7 +78,7 @@
   }
 
   function scoreText(host, data, text, via) {
-    const result = root.AIR.engine.score({ name: data.title, ingredients_text: text, nutrition: data.nutrition }, state.prefs);
+    const result = root.AIR.engine.score({ name: data.title, ingredients_text: text, advisory_text: data.advisoryText, nutrition: data.nutrition }, state.prefs);
     if (!result.parsed || result.coverage < MIN_COVERAGE) {
       show(host, P.renderFailure({ lowCoverage: true, storeName: adapter.name }), 'fail', { paste: onPaste(host, data) });
       badge({ status: 'fail' });
@@ -101,7 +101,7 @@
   function productPass() {
     const data = adapter.readProduct(document, location);
     if (!data.id) return true;
-    const signature = JSON.stringify([data.id, data.title, data.crumbs, data.ingredients, data.labelText, data.nutrition, data.label]);
+    const signature = JSON.stringify([data.id, data.title, data.crumbs, data.ingredients, data.labelText, data.advisoryText, data.department, data.nutrition, data.label]);
     if (state.done && state.signature === signature) return 'watch';
     if (state.done && state.signature !== signature) {
       // A changed declaration invalidates its prior saved score as well as this tab.
@@ -120,7 +120,7 @@
 
     if (state.foodOnly && !state.override) {
       const verdict = root.AIR.db.ingestible.assess({ querySelector: () => null },
-        { title: data.title, text: [data.crumbs.join(' › '), data.title, data.labelText].join(' \n ') });
+        { title: data.title, text: [data.department || root.AIR.retailerLabels?.department(data.crumbs), data.crumbs.join(' › '), data.title, data.labelText].join(' \n ') });
       if (!verdict.ok && verdict.negatives.length) {
         show(host(), P.renderNotFood({ title: data.title, ingestible: verdict }), 'not-food', {
           after: shadow => shadow.querySelector('button.anyway')?.addEventListener('click', () => {

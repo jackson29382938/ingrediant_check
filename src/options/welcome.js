@@ -11,6 +11,7 @@ const OPTIONS = ['autoScoreSearch', 'sharedCache', 'ocrLabels', 'useOpenFoodFact
 const LAST = 5;
 let setupToken = null;
 let busy = false;
+let setupReady = false;
 let setupClientId = PREFS.OAUTH_CLIENT_ID;
 
 const msg = (key, fallback) => {
@@ -147,7 +148,8 @@ function closeTab() {
 
 function setBusy(on) {
   busy = on;
-  for (const id of ['next', 'back', 'skip', 'googleSignIn']) document.getElementById(id).disabled = on;
+  document.getElementById('next').disabled = on;
+  for (const id of ['back', 'skip', 'googleSignIn']) document.getElementById(id).disabled = on || !setupReady;
 }
 
 function saveChoices(values) {
@@ -160,7 +162,7 @@ function saveChoices(values) {
 }
 
 async function finish() {
-  if (busy) return;
+  if (busy || !setupReady) return;
   setBusy(true);
   const status = document.getElementById('status');
   status.textContent = 'Saving your choices…';
@@ -209,13 +211,14 @@ async function finish() {
 
 document.getElementById('next').addEventListener('click', () => {
   if (busy) return;
+  if (!setupReady) { location.reload(); return; }
   if (step > LAST) { closeTab(); return; }
   if (step === LAST) { finish(); return; }
   show(step + 1);
 });
-document.getElementById('back').addEventListener('click', () => { if (!busy) show(Math.max(1, step - 1)); });
+document.getElementById('back').addEventListener('click', () => { if (!busy && setupReady) show(Math.max(1, step - 1)); });
 document.getElementById('skip').addEventListener('click', async () => {
-  if (busy) return;
+  if (busy || !setupReady) return;
   setBusy(true);
   setupToken = null;
   try { await saveChoices({ onboarded: true }); closeTab(); }
@@ -237,7 +240,16 @@ document.getElementById('useOpenFoodFacts').addEventListener('change', e => {
   });
 });
 
-chrome.storage.local.get(['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', ...OPTIONS], o => {
+setBusy(true);
+chrome.storage.local.get(['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'oauthClientId', ...OPTIONS], o => {
+  if (chrome.runtime.lastError) {
+    document.getElementById('status').textContent = 'Could not load your saved choices. Retry before changing settings.';
+    document.getElementById('next').textContent = 'Retry loading';
+    setBusy(false);
+    return;
+  }
+  setupReady = true;
+  setupClientId = PREFS.oauthClientId(o.oauthClientId) || PREFS.OAUTH_CLIENT_ID;
   const scoring = PREFS.sanitizeScoring(o);
   const toggles = PREFS.sanitizeToggles(o);
   startImportance = scoring.goalImportance;
@@ -253,6 +265,7 @@ chrome.storage.local.get(['weights', 'goals', 'goalImportance', 'allergens', 'di
   renderWarnings();
   renderAvoid();
   show(1);
+  setBusy(false);
 });
 
 document.getElementById('openChromeProfile').addEventListener('click', () => {
@@ -265,13 +278,12 @@ document.getElementById('openAccountSettings').addEventListener('click', () => {
 const setupRedirect = () => chrome.identity ? chrome.identity.getRedirectURL() : `https://${chrome.runtime.id}.chromiumapp.org/`;
 try { document.getElementById('googleRedirect').textContent = setupRedirect(); }
 catch (e) { document.getElementById('googleRedirect').textContent = 'Open this page in the installed extension to see its redirect URL.'; }
-chrome.storage.local.get(['oauthClientId'], values => { setupClientId = PREFS.oauthClientId(values.oauthClientId) || PREFS.OAUTH_CLIENT_ID; });
 document.getElementById('copyGoogleRedirect').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText(setupRedirect()); document.getElementById('googleStatus').textContent = 'Redirect URL copied.'; }
   catch (e) { document.getElementById('googleStatus').textContent = 'Select and copy the redirect URL above.'; }
 });
 document.getElementById('googleSignIn').addEventListener('click', async () => {
-  if (busy) return;
+  if (busy || !setupReady) return;
   setBusy(true);
   setupToken = null;
   const status = document.getElementById('googleStatus');

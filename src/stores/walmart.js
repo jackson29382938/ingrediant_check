@@ -21,7 +21,7 @@
       const number = entity[1].toLowerCase() === 'x' ? parseInt(entity.slice(2), 16) : Number(entity.slice(1));
       return number > 0 && number <= 0x10ffff && !(number >= 0xd800 && number <= 0xdfff) ? String.fromCodePoint(number) : match;
     });
-    return L.clean(decoded.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, ' ').replace(/<[^>]*>/g, ' '));
+    return L.clean(decoded.replace(/<!--[\s\S]*?-->/g, ' ').replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, ' ').replace(/<\/?[a-z][^>]*>/gi, ' '));
   }
   function embedded(doc) {
     const node = doc.querySelector('#__NEXT_DATA__');
@@ -40,21 +40,50 @@
     const id = productId(loc.href);
     const model = embedded(doc);
     const product = record(model?.product) ? model.product : null;
-    const title = L.text(doc.querySelector('h1')) || (typeof product?.name === 'string' ? L.clean(product.name) : '');
+    const heading = L.text(doc.querySelector('h1'));
+    const modelTitle = typeof product?.name === 'string' ? L.clean(product.name) : '';
+    const title = modelTitle || heading;
     const base = { id, title, crumbs: [], ingredients: '', labelText: '', nutrition: null, label: 'missing' };
     const declaredId = product?.usItemId;
-    if (!id || !L.sameCanonical(doc, id, productId) || (product &&
+    if (!id || !L.sameCanonical(doc, id, productId) || (model && !product) || (product &&
       !((typeof declaredId === 'string' || typeof declaredId === 'number') && String(declaredId) === id))) return base;
-    const visible = L.readLabel(doc);
+    // SPA navigation can update the matching boot model before the previous product's DOM.
+    // Do not combine the new product's declaration with the previous title or nutrient table.
+    const aligned = !heading || !modelTitle || heading.toLowerCase() === modelTitle.toLowerCase();
+    const visible = aligned ? L.readLabel(doc) : { ingredients: '', labelText: '', nutrition: null, label: 'missing' };
     const declared = product && model.idml?.ingredients?.ingredients?.value;
     const ingredients = declaration(declared) || visible.ingredients;
     return { ...base, ...visible, ingredients, labelText: ingredients, label: ingredients ? 'open' : visible.label,
       crumbs: (Array.isArray(product?.category?.path) ? product.category.path : []).map(item => typeof item?.name === 'string' ? L.clean(item.name) : '').filter(Boolean) };
   }
+  function searchTiles(doc) {
+    const out = [], seen = new Set();
+    for (const link of doc.querySelectorAll('a[href]')) {
+      const id = productId(link.getAttribute('href'));
+      if (!id || seen.has(id) || link.closest('nav, aside, footer, form, [hidden], [aria-hidden="true"]')) continue;
+      let excluded = false;
+      for (let parent = link; parent && parent.getAttribute; parent = parent.parentNode) {
+        if (['data-testid', 'data-test', 'data-automation-id', 'aria-label'].some(attr => /recommend|promot|sponsored|advertis/i.test(parent.getAttribute(attr) || ''))) {
+          excluded = true; break;
+        }
+      }
+      if (excluded) continue;
+      // Public Walmart cards currently expose product-title text. Accessible names also
+      // cover an image-only link, without borrowing a sibling card's product name or image.
+      const image = link.querySelector('img[alt]');
+      const title = L.text(link.querySelector('h2, h3, [data-automation-id="product-title"]'))
+        || L.clean(link.getAttribute('aria-label')) || L.text(link)
+        || L.clean(image && image.getAttribute('alt'));
+      if (!title || title.length > 300) continue;
+      seen.add(id);
+      out.push({ id, title, tile: link, anchor: link });
+    }
+    return out;
+  }
   const adapter = { id: 'walmart', name: 'Walmart', matchesHost, productId,
     isProductPage: loc => !!productId(loc.href), isSearchPage: loc => matchesHost(loc.hostname) && /^\/search\/?$/.test(loc.pathname),
     searchQuery: loc => { try { return new URL(loc.href).searchParams.get('q') || ''; } catch { return ''; } },
-    readProduct, labelToggle: L.labelToggle, labelName: 'Ingredients', searchTiles: doc => L.searchTiles(doc, productId) };
+    readProduct, labelToggle: L.labelToggle, labelName: 'Ingredients', searchTiles };
   root.AIR.storeAdapters = root.AIR.storeAdapters || {}; root.AIR.storeAdapters.walmart = adapter;
   if (typeof module !== 'undefined' && module.exports) module.exports = adapter;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

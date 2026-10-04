@@ -187,10 +187,19 @@
       // the tail of any list Amazon split across two <p> elements — and the tail is exactly where
       // the additives live, so a product could read 100/100 while its second paragraph held
       // sucralose, Red 40 and partially hydrogenated oil.
-      const blocks = [...sec.querySelectorAll('p, span, div')]
-        .filter(el => !el.querySelector('p, span, div'))          // leaf blocks only, no double-count
-        .map(p => clean(p.innerText))
-        .filter(t => t && !INGREDIENT_HEADING.test(t) && !NEXT_SECTION.test(t));
+      const blocks = [];
+      let afterHeading = false;
+      for (const node of sec.querySelectorAll('h1,h2,h3,h4,h5,h6,.a-text-bold,b,strong,p,span,div')) {
+        if (node === head) { afterHeading = true; continue; }
+        if (!afterHeading) continue;
+        const text = clean(node.innerText);
+        // Stop at the next section rather than merely omitting its heading. Otherwise preparation
+        // suggestions (e.g. adding sugar) become false ingredients of the product itself.
+        if (NEXT_SECTION.test(text) && !INGREDIENT_HEADING.test(text)) break;
+        if (!['P', 'SPAN', 'DIV'].includes(node.tagName)
+            || !text || INGREDIENT_HEADING.test(text) || node.querySelector('p, span, div')) continue;
+        blocks.push(text);
+      }
       const seenBlocks = new Set();
       const text = norm(blocks.filter(b => !seenBlocks.has(b) && seenBlocks.add(b)).join(' '));
       const split = splitAdvisory(text);
@@ -309,9 +318,8 @@
     let tables;
     try { tables = [...doc.querySelectorAll('#nutritionalInfoAndIngredients_feature_div table, .nicDesktop table')]; }
     catch (e) { return null; }
-    // The complete Nutrition Facts table can publish fields absent from the summary. Read both:
-    // returning just the summary silently dropped saturated/trans fat and carbohydrates.
-    const detailed = {};
+    // Read each table on its own basis. A per-serving summary cannot fill missing fields in a
+    // per-100g Facts table: mixing those amounts invents a nutritional composition.
     const readValue = (key, match) => {
       const value = match && toNumber(match[1]);
       if (!Number.isFinite(value)) return null;
@@ -322,8 +330,17 @@
         ? value * (unit === 'g' ? 1000 : unit === 'mcg' ? 0.001 : 1)
         : value * (unit === 'mg' ? 0.001 : unit === 'mcg' ? 0.000001 : 1);
     };
+    const readings = [];
     for (const table of tables) {
-      for (const row of table.querySelectorAll('tr')) {
+      const tableText = norm(table.innerText);
+      const declaredBasis = tableText.match(PER_100);
+      // Two differently based amount columns need column-aware parsing. Decline this table until
+      // it is available rather than treating a portion amount as 100g or mixing both columns.
+      if (declaredBasis && /\bper (?:serving|portion)\b|amount per serving/i.test(tableText)) continue;
+      const basis = declaredBasis ? (/ml/i.test(declaredBasis[0]) ? 'servingMl' : 'servingGrams') : '';
+      const detailed = {}, summary = {};
+      const rows = [...table.querySelectorAll('tr')];
+      for (const row of rows) {
         const cells = [...row.querySelectorAll('td, th')].map(c => clean(c.innerText));
         cells.forEach((cell, index) => {
           // Amazon puts the label and amount in adjacent spans: "Saturated Fat1.5g".
@@ -337,27 +354,32 @@
           if (value != null) detailed[hit[1]] = value;
         });
       }
-    }
-    for (const table of tables) {
-      const rows = [...table.querySelectorAll('tr')];
       for (let i = 0; i < rows.length - 1; i++) {
         const values = [...rows[i].querySelectorAll('td, th')].map(c => clean(c.innerText));
         const labels = [...rows[i + 1].querySelectorAll('td, th')].map(c => clean(c.innerText));
         if (values.length < 2 || values.length !== labels.length) continue;
         if (values.filter(v => VALUE_CELL.test(v)).length < 2) continue;
-        const out = {};
         labels.forEach((label, col) => {
           const hit = SUMMARY_LABELS.find(([re]) => re.test(label));
           if (!hit) return;
-          const m = values[col].match(VALUE_CELL);
-          const n = readValue(hit[1], m);
-          if (n != null) out[hit[1]] = n;
+          const value = readValue(hit[1], values[col].match(VALUE_CELL));
+          if (value != null) summary[hit[1]] = value;
         });
-        const merged = { ...out, ...detailed };
-        if (Object.keys(merged).length >= 2) return merged;
       }
+      const nutrients = { ...summary, ...detailed };
+      if (Object.keys(nutrients).length >= 2) readings.push({ nutrients, basis, detailed: Object.keys(detailed).length });
     }
-    return Object.keys(detailed).length >= 2 ? detailed : null;
+    if (!readings.length) return null;
+    // Prefer the complete Facts table, then supplement only with tables declaring the same basis.
+    const chosen = readings.find(reading => reading.detailed >= 2) || readings[0];
+    const combined = {};
+    for (const reading of readings) if (reading.basis === chosen.basis) Object.assign(combined, reading.nutrients);
+    Object.assign(combined, chosen.nutrients);
+    if (chosen.basis) {
+      combined[chosen.basis] = 100;
+      combined.servingSize = chosen.basis === 'servingMl' ? 'per 100 ml' : 'per 100 g';
+    }
+    return combined;
   }
 
   // "19.0 servings per container | 0.5 cup" — Amazon's own serving line, which sits outside the
@@ -365,12 +387,21 @@
   function servingFromCard(doc) {
     let el;
     try { el = doc.querySelector('#nic-nutrition-summary-serving'); } catch (e) { return null; }
-    return el ? norm(el.innerText) : null;
+    if (el) return norm(el.innerText);
+    // Expanded Facts can contain the only serving declaration, outside Amazon's summary widget.
+    try {
+      for (const row of doc.querySelectorAll('#nutritionalInfoAndIngredients_feature_div table tr, .nicDesktop table tr')) {
+        const cells = [...row.querySelectorAll('td, th')].map(cell => norm(cell.innerText));
+        if (/^serving size\s*:?$/i.test(cells[0] || '') && cells[1] && cells[1].length <= 120) return cells[1];
+      }
+    } catch (e) { /* not every lightweight document implements table selectors */ }
+    return null;
   }
 
   function nutritionFacts(doc) {
     const fromTable = nutritionSummaryTable(doc);
     if (fromTable) {
+      if (fromTable.servingGrams === 100 || fromTable.servingMl === 100) return fromTable;
       const serving = servingFromCard(doc);
       if (serving) {
         fromTable.servingSize = serving;
@@ -386,6 +417,7 @@
       const el = doc.querySelector(sel);
       if (!el) continue;
       const text = clean(el.innerText);
+      if (PER_100.test(text) && /\bper (?:serving|portion)\b|amount per serving/i.test(text)) continue;
       if (!/\bcalories\b|\bnutrition facts\b|\bserving size\b|\bn[äa]hrwert|\benergie\b|\bvaleurs nutritionnelles\b|\binformaci[oó]n nutricional\b|\bvalori nutrizionali\b|\bvoedingswaarde|\bn[äa]ringsv[äa]rde|\binforma[çc][ãa]o nutricional\b|\bwarto[śs][ćc] od[żz]ywcza|\bbesin de[ğg]erleri|\bkcal\b/i.test(text)) continue;
       const out = {};
       for (const [key, re] of NUTRIENTS) {
@@ -439,6 +471,27 @@
   }
 
   // ---- Tier 4 inputs: barcode + identity --------------------------------------------------
+  function declaredAsin(doc) {
+    // A selected variant's own ASIN takes precedence over the parent canonical link.
+    const field = doc.querySelector('input#ASIN, input[name="ASIN"]');
+    const value = String(field?.value || field?.getAttribute?.('value') || '').trim();
+    if (/^[A-Z0-9]{10}$/.test(value)) return value;
+    const canonical = doc.querySelector('link[rel="canonical"]')?.getAttribute?.('href') || '';
+    return (canonical.match(/\/(?:dp|gp\/product|gp\/aw\/d)\/([A-Z0-9]{10})(?:[/?#]|$)/) || [])[1] || null;
+  }
+
+  function publishedAdvisory(doc) {
+    const selectors = '#nutritionalInfoAndIngredients_feature_div [id^="nic-allergens-"], '
+      + '[id^="nutritionalInfoAndIngredientsEU_feature_div"] [id^="nic-allergens-"], '
+      + '.nicDesktop [id^="nic-allergens-"]';
+    const warnings = [];
+    for (const node of doc.querySelectorAll(selectors)) {
+      const text = norm(node.innerText);
+      if (text && text.length <= 2000 && ADVISORY.test(text)) warnings.push(text);
+    }
+    return [...new Set(warnings)].join(' ');
+  }
+
   function productIdentity(doc, asinHint) {
     const bullets = doc.querySelector('#detailBullets_feature_div, #productDetails_detailBullets_sections1');
     const bulletText = bullets ? bullets.innerText : '';
@@ -472,7 +525,8 @@
       .map(e => clean(e.innerText)).filter(Boolean).join(', ');
     const bulletClaims = [...doc.querySelectorAll('#feature-bullets li')]
       .map(e => clean(e.innerText)).join(' ');
-    return { asin, upc, title, brand, certifications, labels: bulletClaims, nutrition: nutritionFacts(doc) };
+    return { asin, upc, title, brand, certifications, labels: bulletClaims, nutrition: nutritionFacts(doc),
+      advisoryText: publishedAdvisory(doc) };
   }
 
   // ---- helpers ----------------------------------------------------------------------------
@@ -522,6 +576,12 @@
     const opts = (asinOrOpts && typeof asinOrOpts === 'object')
       ? asinOrOpts
       : { asin: asinOrOpts };
+    const declared = declaredAsin(doc);
+    if (opts.asin && declared && opts.asin !== declared) {
+      // Amazon can redirect to a substitute, or leave the previous product's DOM during soft nav.
+      // Never attach its label, barcode or title to the requested product's cache key.
+      return { ok: false, asin: opts.asin, reason: 'product-identity-mismatch' };
+    }
     const identity = productIdentity(doc, opts.asin || null);
     // Decided before any ingredient parsing: shampoo has an ingredient list and parses cleanly,
     // and a score on a bottle of shampoo implies it was assessed as something you could eat.
@@ -536,12 +596,13 @@
       let hit = null;
       // The title is passed in so a tier can tell a real list from the product name echoed back.
       try { hit = tier(doc, identity.title); } catch (e) { /* a broken tier must never break the page */ }
-      if (hit) return { ok: true, ...identity, ...hit };
+      if (hit) return { ok: true, ...identity, ...hit,
+        advisoryText: [...new Set([identity.advisoryText, hit.advisoryText].filter(Boolean))].join(' ') };
     }
     // Honest failure. A wrong score is worse than no score.
     return { ok: false, ...identity, reason: identity.upc ? 'no-dom-match-barcode-available' : 'no-dom-match' };
   }
 
-  root.AIR.extract = { extract, looksLikeIngredients, splitAdvisory, stripBoilerplate, echoesTitle, LINE_BLOCK, LINE_INLINE, INGREDIENT_HEADING, productIdentity, nutritionFacts, nutritionSummaryTable, ocrReadyForHost, localeStatus };
+  root.AIR.extract = { extract, looksLikeIngredients, splitAdvisory, stripBoilerplate, echoesTitle, LINE_BLOCK, LINE_INLINE, INGREDIENT_HEADING, productIdentity, declaredAsin, publishedAdvisory, nutritionFacts, nutritionSummaryTable, ocrReadyForHost, localeStatus };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.AIR.extract;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

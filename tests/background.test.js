@@ -239,7 +239,7 @@ const provenanceBody = (rows, producers = [['brand', 'certifications']]) =>
   ({ ok: true, text: async () => JSON.stringify({ ok: true, provenance: rows, producers }) });
 const scan = (i, over = {}) => ({ store: 'amazon.com', asin: `B00TEST${String(i).padStart(3, '0')}`, status: 'ok',
   scanned_at: new Date(Date.now() - 1000).toISOString(), pulls: 0,
-  data: { title: 'Oats', text: 'Organic rolled oats', via: 'nic-ingredients-content', confidence: 0.98 }, ...over });
+  data: { title: 'Oats', text: 'Organic rolled oats', advisory_text: '', via: 'nic-ingredients-content', confidence: 0.98 }, ...over });
 
 test('provenance comes from the endpoint, never from a sheet URL, and revisions follow content', async () => {
   const urls = [];
@@ -607,4 +607,18 @@ test('retailer previews can update toolbar scores but cannot invoke network or a
     }
   }
   assert.equal(w.call('allowMessage({type:"pageScore"}, {id:"ext", tab:{url:"https://sameday.costco.com/p/oats"}})'), false);
+});
+
+test('disabling Chrome backup during staging preserves the last committed copy', async () => {
+  const w = worker({ settingsBackup: true, avoidList: ['palm oil'] });
+  assert.equal((await w.call('backupToChrome()')).ok, true);
+  const old = structuredClone(w.synced.icBackup);
+  w.data.avoidList = ['natural flavors'];
+  w.failSync(values => {
+    if (!values.icBackup) w.data.settingsBackup = false;
+    return false;
+  });
+  const result = await w.call('backupToChrome()');
+  assert.equal(result.reason, 'not-enabled');
+  assert.deepEqual(w.synced.icBackup, old);
 });

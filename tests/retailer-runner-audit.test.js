@@ -109,3 +109,24 @@ test('retailer runner refuses an unparsed label instead of publishing a default 
   assert.equal(w.writes.length, 1, 'invalid hydrated data is never cached');
   assert.equal(w.data['s:target.com:16600402'], undefined, 'prior saved score is invalidated');
 });
+
+test('retailer warning-only hydration refreshes flags without changing the ingredient score', () => {
+  const w = runner('target-p-oats.html', 'https://www.target.com/p/oats/-/A-79364857', { allergens: ['milk', 'peanut'] });
+  const old = w.sandbox.module.exports.state.pageScore.score;
+  const heading = [...w.page.querySelectorAll('h4')].find(el => /Allergens.*Warnings/i.test(el.textContent));
+  const warningNode = [...heading.parentNode.childNodes].find(node => node.nodeType === 3);
+  warningNode.textContent = 'May contain milk and peanuts.';
+  warningNode.data = warningNode.textContent;
+  w.pass();
+  assert.equal(w.sandbox.module.exports.state.pageScore.score, old);
+  assert.equal(w.writes.length, 2, 'warning hydration invalidates the settled view');
+  const input = T.readProduct(w.page, { href: 'https://www.target.com/p/oats/-/A-79364857' });
+  assert.match(input.advisoryText, /milk and peanuts/);
+});
+test('published retailer beauty department prevents scoring edible-sounding body butter', () => {
+  const w = runner('target-p-shampoo.html', 'https://www.target.com/p/x/-/A-75570641');
+  w.page.querySelector('h1[data-test="product-title"]').textContent = 'Body Butter';
+  w.pass();
+  assert.equal(w.host.dataset.airState, 'not-food');
+  assert.equal(w.writes.length, 0);
+});

@@ -21,7 +21,7 @@ function setup() {
   };
   const documentElement = { appendChild(el) { el.isConnected = true; notices.push(el); return el; } };
   const context = vm.createContext({
-    AbortController, URLSearchParams, console,
+    AbortController, URL, URLSearchParams, console,
     location: { hostname: 'www.amazon.com', href: 'https://www.amazon.com/dp/B000000001', pathname: '/dp/B000000001', search: '' },
     setTimeout: f => { timers.push(f); return timers.length; }, clearTimeout() {},
     setInterval: () => 1, clearInterval() {}, addEventListener() {},
@@ -683,7 +683,7 @@ test('a failed product-page request is not held: the next caller asks again', as
 test('a list read from the label photo keeps the nutrition numbers the page published', () => {
   const w = cacheSetup({ sharing: false });
   w.h.state.ocrLabels = true;
-  w.context.AIR.extract.extract = () => ({ ok: false, title: 'Soup', asin: 'B000000001', nutrition: { sodium: 900, servingGrams: 245 } });
+  w.context.AIR.extract.extract = () => ({ ok: false, title: 'Soup', asin: 'B000000001', nutrition: { sodium: 900, servingGrams: 245 }, advisoryText: 'May contain peanuts.' });
   w.context.AIR.extract.looksLikeIngredients = () => true;
   w.context.AIR.db.ocrText = { imageCandidates: () => ['https://m.media-amazon.com/images/I/label._SL1600_.jpg'],
     bestBlock: results => (results && results[0] ? { text: results[0] } : null) };
@@ -696,6 +696,7 @@ test('a list read from the label photo keeps the nutrition numbers the page publ
   const input = w.rendered.at(-1).input;
   assert.equal(input.ingredients_text, 'water, chicken, salt');
   assert.equal(input.nutrition.sodium, 900);
+  assert.equal(input.advisory_text, 'May contain peanuts.', 'published warnings also apply to photo readings');
   const kept = w.writes.map(x => x['p:amazon.com:B000000001']).filter(Boolean).at(-1);
   assert.equal(kept.data.nutrition.sodium, 900, 'the saved reading keeps them too');
 });
@@ -735,4 +736,101 @@ test('Amazon hydration observer detects text-node updates as well as inserted no
   assert.equal(w.observations.at(-1).characterData, true);
   assert.equal(w.observations.at(-1).childList, true);
   assert.equal(w.observations.at(-1).subtree, true);
+});
+
+
+test('search product readings retain declared cross-contact warnings', () => {
+  const w = setup();
+  w.context.DOMParser = class { parseFromString() { return { querySelector: () => ({}) }; } };
+  w.context.AIR.extract.extract = () => ({ ok: true, title: 'Oats', text: 'oats', advisoryText: 'May contain peanuts.' });
+  const reading = w.context.AIR.search.readProductHtml('B000000001', '<html></html>');
+  assert.equal(reading.input.advisory_text, 'May contain peanuts.');
+  assert.equal(reading.result.input.advisory_text, 'May contain peanuts.');
+});
+
+test('an Amazon product redirect never records a different product under the requested ASIN', async () => {
+  const w = setup();
+  const run = w.h.scoreTile(w.tile, 'B000000001', w.h.queue.epoch, w.context.location.href);
+  w.fetches[0].resolve({ ok: true, url: 'https://www.amazon.com/dp/B000000002', text: async () => '<html></html>' });
+  await run;
+  assert.equal(w.writes.length, 0);
+  assert.equal(w.h.queue.readings.size, 0);
+  assert.equal(w.h.queue.failStreak, 0, 'a substitute product is not HTTP throttling');
+});
+
+test('a product response without a product title never scores or enters the cache', async () => {
+  const w = setup();
+  w.context.DOMParser = class { parseFromString() { return { querySelector: () => null }; } };
+  const run = w.h.scoreTile(w.tile, 'B000000001', w.h.queue.epoch, w.context.location.href);
+  w.fetches[0].resolve({ ok: true, text: async () => '<html>Robot check</html>' });
+  await run;
+  assert.equal(w.writes.length, 0);
+  assert.equal(w.h.queue.readings.get('B000000001').outcome, 'unreadable');
+});
+
+test('old Amazon product DOM during soft navigation cannot score or trigger barcode lookup', () => {
+  const w = setup();
+  w.host.dataset.airState = 'scored';
+  w.h.state.pageScore = { score: 90 };
+  w.context.AIR.extract.extract = () => ({ ok: false, asin: 'B000000001', reason: 'product-identity-mismatch' });
+  w.h.scoreCurrentPage();
+  assert.equal(w.h.state.pageScore, null);
+  assert.equal(w.h.state.lastKey, null);
+  assert.equal(w.rendered.length, 0);
+  assert.equal(w.messages.filter(m => ['lookupBarcode', 'productsLookup', 'ocrLabels'].includes(m.type)).length, 0);
+});
+
+
+test('a connected Amazon tile reused for another ASIN cannot receive a stale score', async () => {
+  const w = setup();
+  let asin = 'B000000001';
+  w.tile.getAttribute = () => asin;
+  const run = w.h.scoreTile(w.tile, asin, w.h.queue.epoch, w.context.location.href);
+  asin = 'B000000002';
+  w.fetches[0].resolve({ ok: true, text: async () => '<html></html>' });
+  await run;
+  assert.equal(w.badges.filter(b => b.textContent === 90).length, 0);
+  assert.equal(w.writes.some(v => v['s:amazon.com:B000000002']), false);
+});
+
+test('a delayed local cache reply cannot badge an Amazon tile whose ASIN changed', () => {
+  const w = setup();
+  let reply;
+  let asin = 'B000000001';
+  w.tile.getAttribute = () => asin;
+  w.context.chrome.storage.local.get = (_keys, cb) => { reply = cb; };
+  const misses = [];
+  w.context.AIR.search.resolveTiles([{ tile: w.tile, asin }], item => misses.push(item));
+  asin = 'B000000002';
+  reply({});
+  assert.equal(w.badges.length, 0);
+  assert.equal(misses.length, 0, 'a stale miss must not start a request for the old product');
+});
+
+test('Amazon observes product ID attribute changes while ignoring its own badge attributes', () => {
+  const w = setup();
+  w.h.resume();
+  const observed = w.observations.at(-1);
+  assert.equal(observed.attributes, true);
+  assert.equal(observed.attributeFilter.includes('data-asin'), true);
+  assert.equal(observed.attributeFilter.includes('value'), true);
+  assert.equal(observed.attributeFilter.includes('data-air-badge'), false);
+});
+
+
+test('saved Amazon ingredients use newly published nutrition and allergy warnings without renewing age', () => {
+  const row = cachedRow('B000000001', { input: { name: 'Oats', ingredients_text: 'oats, salt',
+    nutrition: { sodium: 10 }, advisory_text: '' } });
+  const w = cacheSetup({ local: { [PC.localKey('amazon.com', 'B000000001')]: row }, sharing: false });
+  w.context.AIR.extract.extract = () => ({ ok: false, title: 'Oats', asin: 'B000000001',
+    nutrition: { sodium: 900, calories: 180 }, advisoryText: 'May contain peanuts.' });
+  w.h.scoreCurrentPage();
+  assert.equal(w.rendered.at(-1).input.ingredients_text, 'oats, salt');
+  assert.equal(w.rendered.at(-1).input.nutrition.sodium, 900);
+  assert.equal(w.rendered.at(-1).input.advisory_text, 'May contain peanuts.');
+  const updated = w.writes.map(v => v['p:amazon.com:B000000001']).filter(Boolean).at(-1);
+  assert.equal(updated.scanned_at, row.scanned_at, 'old ingredient evidence retains its expiry');
+  assert.equal(updated.data.advisory_text, 'May contain peanuts.');
+  assert.equal(updated.data.nutrition.sodium, 900);
+  assert.equal(w.messages.some(m => m.type === 'productsQueue'), false, 'local refresh does not upload a mixed-age reading');
 });

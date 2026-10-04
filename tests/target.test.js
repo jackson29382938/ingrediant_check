@@ -367,3 +367,96 @@ test('fresh Target public HTML keeps its grocery label collapsed until the visit
   w.shadow.handlers['notice-action']();
   assert.deepEqual(w.clicks, ['label']);
 });
+
+test('Target keeps collapsed accordions actionable despite auxiliary text and retained hidden labels', () => {
+  const doc = createDocument(`<section data-test="@web/site-top-of-funnel/ProductDetailCollapsible-LabelInfo">
+    <button aria-expanded="false">Label info</button><p>Show nutrition details</p>
+    <div hidden><h4>Ingredients:</h4><div>old product sugar, palm oil</div><p>Serving Size: 20g</p><div><b>Sodium</b> 500mg</div></div>
+    <div aria-hidden="true"><h4>Ingredients:</h4><div>other variant salt</div><div><b>Protein</b> 3g</div></div></section>`);
+  const data = T.readProduct(doc, at(CHIPS_URL));
+  assert.equal(data.label, 'collapsed');
+  assert.equal(data.ingredients, '');
+  assert.equal(data.nutrition, null);
+  const label = doc.querySelector('[hidden]');
+  delete label.attributes.hidden;
+  T.labelToggle(doc).setAttribute('aria-expanded', 'true');
+  const expanded = T.readProduct(doc, at(CHIPS_URL));
+  assert.equal(expanded.label, 'open');
+  assert.equal(expanded.ingredients, 'old product sugar, palm oil');
+  assert.equal(expanded.nutrition.sodium, 500);
+  assert.equal(expanded.nutrition.protein, undefined, 'another hidden variant remains excluded');
+});
+
+test('Target multi-column nutrition rows cannot mix serving and container quantities', () => {
+  const facts = T.nutritionFacts(createDocument(`<section><p>Serving Size: 40g</p>
+    <div><b>Sodium</b> 120mg 240mg</div><div><b>Total Sugars</b> 2g / 4g</div>
+    <div><b>Protein</b> 3g 6%</div><div><b>Saturated Fat</b> .5g 3%</div></section>`));
+  assert.equal(facts.sodium, undefined);
+  assert.equal(facts.sugar, undefined);
+  assert.equal(facts.protein, 3, 'a percent daily value is not a second quantity');
+  assert.equal(facts.saturatedFat, 0.5);
+  assert.equal(facts.servingGrams, 40);
+});
+
+test('Target ingredient extraction retains later paragraphs and loose text until the next label heading', () => {
+  const readLabel = inner => T.readProduct(createDocument(`<section data-test="@web/site-top-of-funnel/ProductDetailCollapsible-LabelInfo">
+    <div><h4>Ingredients:</h4>${inner}</div></section>`), at(CHIPS_URL)).ingredients;
+  assert.equal(readLabel('water, oats<h4>Allergens:</h4><p>Contains wheat</p>'), 'water, oats');
+  assert.equal(readLabel('<p>whole grain oats,</p><p>sugar, palm oil, salt.</p><h4>Allergens & Warnings</h4><p>Contains wheat</p>'), 'whole grain oats, sugar, palm oil, salt.');
+  assert.equal(readLabel('<div><span>oats, </span><strong>sugar</strong><span>, salt.</span><h4>Nutrition Facts</h4><p>Protein 3g</p></div>'), 'oats, sugar, salt.');
+  assert.equal(readLabel('<p>oats, <span>su</span><strong>gar</strong>, <span>palm</span> oil.</p>'), 'oats, sugar, palm oil.');
+  assert.equal(readLabel('<div hidden>old product milk</div><p>oats, salt</p><strong>Warnings:</strong><p>Keep away from children</p>'), 'oats, salt');
+});
+
+test('Target separately exposes allergen and cross-contact warnings without nutrition or unrelated cautions', () => {
+  const oats = read('target-p-oats.html', 'https://www.target.com/p/oats/-/A-79364857');
+  assert.equal(oats.advisoryText, 'MAY CONTAIN WHEAT', 'the captured hot-bowl caution is excluded');
+  const readWarnings = value => T.readProduct(createDocument(`<section data-test="@web/site-top-of-funnel/ProductDetailCollapsible-LabelInfo">
+    <div><h4>Ingredients:</h4><p>organic whole grain oats.</p></div>
+    <div><h4>Allergens & Warnings:</h4><p>${value}</p></div></section>`), at(CHIPS_URL));
+  const data = readWarnings('May contain wheat, milk and soy. Made on shared equipment that processes peanuts. Keep refrigerated.');
+  assert.equal(data.advisoryText, 'May contain wheat, milk and soy. Made on shared equipment that processes peanuts');
+  assert.equal(data.ingredients, 'organic whole grain oats.');
+  assert.equal(readWarnings('Contains milk. Keep refrigerated.').advisoryText, 'Contains milk');
+  assert.equal(readWarnings('Contains: milk and soy.').advisoryText, 'Contains: milk and soy');
+  assert.equal(readWarnings('Contains no milk. Does not contain peanuts.').advisoryText, '');
+  assert.equal(readWarnings('Contains soy but does not contain milk.').advisoryText, 'Contains soy');
+  assert.equal(readWarnings('Contains no peanuts, may contain milk.').advisoryText, 'may contain milk');
+  assert.equal(readWarnings('Not made in a facility that processes milk. May contain no wheat.').advisoryText, '');
+  const baseline = engine.score({ ingredients_text: data.ingredients }, {});
+  const warned = engine.score({ ingredients_text: data.ingredients, advisory_text: data.advisoryText }, { allergens: ['wheat', 'milk', 'soy', 'peanut'] });
+  assert.equal(warned.score, baseline.score, 'cross-contact does not change ingredient scoring');
+  assert.ok(warned.flags.some(f => f.id === 'milk' && /may contain/i.test(f.ingredient)), JSON.stringify(warned.flags));
+  assert.ok(warned.flags.some(f => f.id === 'peanut'), 'shared-equipment peanuts stay visible');
+  const declared = engine.score({ ingredients_text: data.ingredients, advisory_text: readWarnings('Contains: milk and soy.').advisoryText }, { allergens: ['milk', 'soy'] });
+  assert.equal(declared.score, baseline.score);
+  assert.deepEqual(declared.flags.map(f => f.id).sort(), ['milk', 'soy']);
+});
+
+test('Target department provenance recognizes nonfood categories while preserving published crumbs', () => {
+  const shampoo = read('target-p-shampoo.html', 'https://www.target.com/p/shampoo/-/A-75570641');
+  assert.equal(shampoo.department, 'Beauty & Personal Care');
+  assert.deepEqual(shampoo.crumbs.slice(0, 2), ['Beauty', 'Hair Care']);
+  const cosmetic = T.readProduct(createDocument('<a data-test="@web/Breadcrumbs/BreadcrumbLink">Beauty</a><h1 data-test="product-title">Avocado Body Butter</h1>'), at(CHIPS_URL));
+  const gate = ingestible.assess({ querySelector: () => null }, { title: cosmetic.title, text: cosmetic.department });
+  assert.equal(gate.ok, false);
+  assert.ok(gate.negatives.includes('nonFoodDept'));
+  assert.equal(read('target-p-oats.html', 'https://www.target.com/p/oats/-/A-79364857').department, '');
+});
+
+test('Target cannot borrow a known serving basis for a different unconvertible panel', () => {
+  const data = T.nutritionFacts(createDocument(`<section><p>Serving Size: 40g</p><p>Serving Size: 1 cup prepared</p>
+    <div><b>Sodium</b> 120mg</div><div><b>Protein</b> 3g</div></section>`));
+  assert.equal(data, null, 'the cup panel cannot be normalized using the other panel\'s 40 grams');
+});
+
+test('Target contradictory canonical identities and hidden search variants stay unscored', () => {
+  const doc = createDocument(`<link rel="canonical" href="/p/chips/-/A-16600402"><link rel="canonical" href="/p/oats/-/A-79364857">
+    <section data-test="@web/site-top-of-funnel/ProductDetailCollapsible-LabelInfo"><h4>Ingredients:</h4><p>salt, sugar</p></section>`);
+  assert.equal(T.readProduct(doc, at(CHIPS_URL)).ingredients, '');
+  const search = createDocument(`<div hidden data-test="ListingPageProductListing"><a href="/p/oats/-/A-79364857"><h3>Hidden old variant</h3></a></div>
+    <div data-test="ListingPageProductListing"><a href="/p/oats/-/A-79364857"><h3 aria-hidden="true">Hidden title</h3></a></div>
+    <div data-test="ListingPageProductListing"><a href="/p/chips/-/A-16600402"><h3>Visible chips</h3></a></div>`);
+  assert.deepEqual(T.searchTiles(search).map(t => t.id), ['16600402']);
+  assert.equal(T.isSearchPage(at('https://evil.example/s?searchTerm=oats')), false);
+});

@@ -22,11 +22,11 @@ function setup(initial = {}, permission = true, auth = {}) {
   let requests = 0;
   const backups = [];
   const air = { ...globalThis.AIR, googleAuth: { token: async () => { if (auth.pending) await auth.pending; if (auth.error) throw new Error(auth.error); return 'ephemeral-access-token'; } } };
-  const context = vm.createContext({ AIR: air, console,
+  const context = vm.createContext({ AIR: air, console, location: { reload() { auth.reloaded = true; } },
     document: { getElementById: get, querySelectorAll: () => [], querySelector: () => element(), createElement: element },
     chrome: { identity: { getRedirectURL: () => 'https://test.chromiumapp.org/' }, runtime: { getURL: p => p, async sendMessage(message) { backups.push({ ...message, onboarded: data.onboarded }); if (auth.backupPending) await auth.backupPending; if (auth.backupError) throw new Error('offline'); return { ok: auth.backup !== false }; } }, i18n: { getMessage: () => '' }, tabs: { create() {}, getCurrent(cb) { cb({ id: 7 }); }, remove(id) { auth.closedTab = id; } },
       permissions: { request(_p, cb) { requests++; cb(auth.permission === undefined ? permission : auth.permission); }, remove(_p, cb) { cb(); } },
-      storage: { local: { get(_keys, cb) { cb(data); }, set(values, cb) { if (!auth.saveError) Object.assign(data, values); if (auth.saveError) context.chrome.runtime.lastError = { message: 'storage quota' }; cb(); delete context.chrome.runtime.lastError; } } } },
+      storage: { local: { get(_keys, cb) { if (auth.initialReadError) context.chrome.runtime.lastError = { message: 'unavailable' }; cb(data); delete context.chrome.runtime.lastError; }, set(values, cb) { if (!auth.saveError) Object.assign(data, values); if (auth.saveError) context.chrome.runtime.lastError = { message: 'storage quota' }; cb(); delete context.chrome.runtime.lastError; } } } },
   });
   vm.runInContext(fs.readFileSync('src/options/welcome.js', 'utf8'), context);
   return { get, data, context, backups, requests: () => requests, finish: () => vm.runInContext('finish()', context) };
@@ -206,4 +206,21 @@ test('Finish keeps saved choices safe while Google backup is pending or throws',
   assert.equal(vm.runInContext('step', s.context), 6);
   assert.equal(vm.runInContext('setupToken', s.context), null);
   assert.equal(s.get('next').disabled, false);
+});
+
+
+test('setup startup storage failure cannot replace existing choices with defaults', async () => {
+  const auth = { initialReadError: true };
+  const s = setup({ avoidList: ['existing preference'], useOpenFoodFacts: false }, true, auth);
+  assert.match(s.get('status').textContent, /Could not load/);
+  assert.equal(s.get('next').textContent, 'Retry loading');
+  for (const id of ['back', 'skip', 'googleSignIn']) assert.equal(s.get(id).disabled, true);
+  await s.finish();
+  await s.get('skip').click();
+  await s.get('googleSignIn').click();
+  assert.equal(s.data.onboarded, undefined);
+  assert.deepEqual(s.data.avoidList, ['existing preference']);
+  assert.equal(s.requests(), 0);
+  s.get('next').click();
+  assert.equal(auth.reloaded, true);
 });

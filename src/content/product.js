@@ -13,6 +13,7 @@
     return {
       name: data.title, labels: data.labels, certifications: data.certifications,
       nutrition: data.nutrition ? { ...data.nutrition } : undefined,
+      advisory_text: data.advisoryText,
       ...over,
     };
   }
@@ -137,6 +138,14 @@
     }
 
     const data = root.AIR.extract.extract(document, { asin: urlAsin, foodOnly: state.foodOnly });
+    if (data.reason === 'product-identity-mismatch') {
+      existing?.remove();
+      state.lastKey = null;
+      state.pageScore = null;
+      state.requestId++;
+      P().publishActionBadge(null);
+      return;
+    }
     if (!data.ok) {
       state.failedExtracts++;
       state.lastFailSig = sig;
@@ -272,14 +281,20 @@
       if ((row.data.via === 'label-ocr' || row.data.via === 'ocr') && !state.ocrLabels) { miss(); return; }
       if (row.data.via === 'open-food-facts' && (state.cacheOptions || {}).useOpenFoodFacts !== true) { miss(); return; }
       done();
-      const result = root.AIR.engine.score(C.toInput(row), state.prefs);
+      // The saved list can answer missing ingredients, while this open page supplies newer label
+      // nutrition and cross-contact warnings. Preserve the ingredient reading's original age.
+      const updated = { ...row, data: { ...row.data,
+        ...(data.nutrition ? { nutrition: data.nutrition } : {}),
+        ...(data.advisoryText ? { advisory_text: data.advisoryText } : {}),
+      } };
+      const result = root.AIR.engine.score(C.toInput(updated), state.prefs);
       if (!presentResult(host, data, key, result, {
         title: data.title || row.data.title, confidence: row.data.confidence, via: row.data.via,
         text: row.data.text, textSig: row.data.text.slice(0, 320), t: Date.parse(row.scanned_at),
       })) return;
       refreshAfterSaved(host, data, key, result, row.data.text);
+      if (shared || data.nutrition || data.advisoryText) rememberProduct(key, updated, { share: false });
       if (!shared) return;
-      rememberProduct(key, row, { share: false });
       try {
         chrome.runtime.sendMessage({ type: 'productsQueue', pulls: [{ key: row.key, scanned_at: row.scanned_at }] },
           () => void chrome.runtime.lastError);

@@ -34,7 +34,7 @@ test('sanitize keeps the columns and bounded engine input, and nothing else', ()
   assert.equal(r.status, 'ok');
   assert.equal(r.pulls, 0);
   assert.deepEqual(Object.keys(r.data).sort(),
-    ['certifications', 'confidence', 'food', 'labels', 'nutrition', 'text', 'title', 'via']);
+    ['advisory_text', 'certifications', 'confidence', 'food', 'labels', 'nutrition', 'text', 'title', 'via']);
   const dirty = C.sanitize({ ...r, data: { ...r.data, text: 'x'.repeat(9000), notes: 'mine', email: 'a@b.c',
     nutrition: { protein: 5, _normalised: true, sodium: -1, junk: 'x' } } }, NOW);
   assert.equal(dirty.data.text.length, 6000);
@@ -89,4 +89,32 @@ test('mergeQueue: newest scan wins per key, pulls add up only for the same scan'
   q = C.mergeQueue(q, { pulls: [{ key, scanned_at: new Date(NOW).toISOString() }] }, NOW);
   assert.equal(q.pulls[key].n, 1, 'a pull of a different scan starts over');
   assert.equal(C.queueSize(q), 2);
+});
+
+test('cached product readings preserve separately published cross-contact warnings', () => {
+  const product = input({ ingredients_text: 'whole grain oats', advisory_text: 'May contain peanuts and milk.' });
+  const row = scanned({ input: product });
+  const again = C.sanitize(JSON.parse(JSON.stringify(row)), NOW);
+  const prefs = { allergens: ['peanut', 'milk'] };
+  const fresh = engine.score(product, prefs);
+  const cached = engine.score(C.toInput(again), prefs);
+  assert.equal(C.toInput(again).advisory_text, product.advisory_text);
+  assert.deepEqual(cached.flags, fresh.flags);
+  assert.ok(cached.flags.some(flag => flag.id === 'milk'));
+  assert.equal(cached.score, fresh.score, 'warnings do not alter the ingredient score');
+  assert.equal(C.stale(again, NOW), false);
+});
+test('older product rows that discarded advisory text must be reread', () => {
+  const old = scanned();
+  delete old.data.advisory_text;
+  const legacy = C.sanitize(old, NOW);
+  assert.ok(legacy, 'old row remains understandable for migration');
+  assert.equal(C.stale(legacy, NOW), true, 'absence cannot imply no cross-contact statement');
+  assert.equal(C.stale(scanned(), NOW), false, 'explicit empty advisory is a current checked reading');
+});
+test('malformed or oversized advisory text cannot become a partial cached warning', () => {
+  const row = scanned();
+  for (const advisory_text of ['x'.repeat(6001), [], { text: 'May contain milk' }]) {
+    assert.equal(C.sanitize({ ...row, data: { ...row.data, advisory_text } }, NOW), null);
+  }
 });

@@ -775,6 +775,9 @@ function backupToChrome() {
       const bank = old.icBackup?._syncBank === 'a' ? 'b' : 'a';
       const { icBackup, ...parts } = P.toSyncItems(P.backupPayload(conf), bank, device);
       await chrome.storage.sync.set(parts);
+      // A user can turn backup off while the staged parts are being written.
+      // Keep the prior committed backup instead of publishing the in-flight snapshot.
+      if ((await chrome.storage.local.get('settingsBackup')).settingsBackup === false) return { ok: false, reason: 'not-enabled' };
       await chrome.storage.sync.set({ icBackup });
       await chrome.storage.local.set({ backupStatus: { ok: true, t: Date.now() } });
       return { ok: true };

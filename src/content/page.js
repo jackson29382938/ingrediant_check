@@ -56,7 +56,7 @@
         '#nutritionalInfoAndIngredients_feature_div', '[id^="nutritionalInfoAndIngredientsEU_feature_div"]',
         '.nicDesktop', '[data-a-expander-name="ingredient_text"]', '.a-expander-content',
         '#nic-nutrition-facts-content', '#nic-nutrition-summary-serving',
-        '#nic-diet-type-logos-wrapper', '#feature-bullets', '#productTitle',
+        '#nic-diet-type-logos-wrapper', '[id^="nic-allergens-"]', '#feature-bullets', '#productTitle',
       ];
       const nodes = doc.querySelectorAll(selectors.join(', '));
       const texts = [...nodes].map(el => (el.innerText || '').replace(/\s+/g, ' ').trim()).filter(Boolean);

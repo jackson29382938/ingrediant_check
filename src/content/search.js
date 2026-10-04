@@ -34,6 +34,8 @@
   let tileObserver = null;
   let badgeStyleReady = false;
   const hoverAborts = new Set();
+  const hoverByTile = new WeakMap();
+  const tileIdentities = new WeakMap();
 
   function searchContext() {
     const params = new URLSearchParams(location.search);
@@ -108,7 +110,7 @@
       if (!live()) return;
       const misses = [];
       for (const it of items) {
-        if (!it.tile.isConnected) continue;
+        if (!it.tile.isConnected || it.tile.getAttribute('data-asin') !== it.asin) continue;
         const hit = obj[cacheKey(it.asin)];
         if (usableCache(hit, it.asin)) { paintBadge(it.tile, hit); queue.seen.add(it.asin); continue; }
         const local = C.sanitize(obj[localKey(it.asin)]);
@@ -126,7 +128,7 @@
           const rows = (reply && reply.rows) || {};
           const pulls = [];
           for (const it of misses) {
-            if (!it.tile.isConnected || it.tile.querySelector('.air-badge')) continue;
+            if (!it.tile.isConnected || it.tile.getAttribute('data-asin') !== it.asin || it.tile.querySelector('.air-badge')) continue;
             const row = C.sanitize(rows[it.asin]);
             if (!row || !sharedOk(row) || !applyRow(it.tile, it.asin, row)) { if (onMiss) onMiss(it); continue; }
             rememberProduct(it.asin, row, { share: false });
@@ -142,12 +144,24 @@
 
   function badgeSearchResults() {
     const { state, BADGE_ATTR } = P();
+    // React can reuse a connected result tile for a different product. Clear its old badge and
+    // arming flags before checking caches again; connectedness alone does not prove identity.
+    document.querySelectorAll('[data-asin]').forEach(tile => {
+      const previous = tileIdentities.get(tile);
+      if (!previous || previous === tile.getAttribute('data-asin')) return;
+      tile.querySelector('.air-badge')?.remove();
+      for (const attr of [BADGE_ATTR, 'data-air-auto', 'data-air-hover']) tile.removeAttribute(attr);
+      hoverByTile.get(tile)?.abort();
+      tileIdentities.delete(tile);
+      root.AIR.hoverCard?.close();
+    });
     const tiles = document.querySelectorAll('[data-asin]:not([' + BADGE_ATTR + '])');
     const pending = [];
     tiles.forEach(tile => {
       const asin = tile.getAttribute('data-asin');
       if (!asin || asin.length !== 10 || !badgeable(tile)) return;
       tile.setAttribute(BADGE_ATTR, '1');
+      tileIdentities.set(tile, asin);
       if (state.foodOnly && root.AIR.db.ingestible && root.AIR.db.ingestible.looksNonFoodFromTitle(tileTitle(tile))) {
         return;
       }
@@ -185,6 +199,7 @@
   }
 
   function paintBadge(tile, hit) {
+    tileIdentities.set(tile, tile.getAttribute('data-asin'));
     ensureBadgeStyle();
     const titleEl = tile.querySelector(TITLE_SEL);
     if (!titleEl) return null;
@@ -442,14 +457,16 @@
     if (tile.hasAttribute('data-air-hover')) return;
     tile.setAttribute('data-air-hover', '1');
     let timer = null;
+    hoverByTile.get(tile)?.abort();
     const ac = new AbortController();
+    hoverByTile.set(tile, ac);
     hoverAborts.add(ac);
     ac.signal.addEventListener('abort', () => {
       clearTimeout(timer);
       hoverAborts.delete(ac);
     });
     const start = () => {
-      if (!state.enabled || !state.badges || !state.hoverScore) return;
+      if (!state.enabled || !state.badges || !state.hoverScore || tile.getAttribute('data-asin') !== asin) return;
       if (!searchAllowed()) return;
       if (tile.querySelector('.air-badge')) return;
       clearTimeout(timer);
@@ -506,13 +523,14 @@
     const doc = new DOMParser().parseFromString(html, 'text/html');
     const data = root.AIR.extract.extract(doc, { asin, foodOnly: state.foodOnly });
     // A robot check or an error page is not an answer about the product; never record it.
-    const real = !!doc.querySelector('#productTitle');
+    const real = !!doc.querySelector('#productTitle') && data.reason !== 'product-identity-mismatch';
+    if (!real) return { outcome: 'unreadable', real: false, food: false, data };
     const food = !(data.ingestible && data.ingestible.ok === false);
     if (state.foodOnly && !food) return { outcome: 'not-food', real, food, data };
     if (!data.ok) return { outcome: 'unreadable', real, food, data };
     const input = {
       name: data.title, labels: data.labels, certifications: data.certifications,
-      nutrition: data.nutrition, ingredients_text: data.text,
+      nutrition: data.nutrition, ingredients_text: data.text, advisory_text: data.advisoryText,
     };
     const result = root.AIR.engine.score(input, state.prefs);
     return { outcome: unreadable(result) ? 'low-coverage' : 'scored', real, food, data, input, result };
@@ -560,6 +578,13 @@
           if (res.status >= 400) noteTileFailure();
           throw Object.assign(new Error(String(res.status)), { httpStatus: res.status });
         }
+        if (res.url) {
+          const finalUrl = new URL(res.url, location.href);
+          const finalAsin = (finalUrl.pathname.match(/\/(?:dp|gp\/product|gp\/aw\/d)\/([A-Z0-9]{10})(?:\/|$)/) || [])[1];
+          if (finalUrl.origin !== new URL(location.href).origin || (finalAsin && finalAsin !== asin)) {
+            throw new Error('Product redirect does not match the requested product');
+          }
+        }
         const html = await res.text();
         if (stale()) throw abortError();
         const reading = readProductHtml(asin, html);
@@ -587,7 +612,7 @@
   async function scoreTile(tile, asin, epoch, url) {
     const { state } = P();
     const current = () => epoch === queue.epoch && url === location.href && state.enabled
-      && state.badges && tile.isConnected && searchAllowed();
+      && state.badges && tile.isConnected && tile.getAttribute('data-asin') === asin && searchAllowed();
     if (!current()) return;
     const done = queue.readings.get(asin);
     if (done) { paintReading(tile, done); return; }

@@ -34,6 +34,23 @@ function msg(key, fallback, sub) {
 const state = PREFS.sanitizeScoring({});
 let saveTimer = null;
 let writing = false;
+let restoringSettings = false;
+let settingsReady = false;
+let pendingWrites = 0;
+const restoreWaiters = [];
+
+// A restore must follow pending local saves and suppress old scoring writes until reload.
+AIR.settingsRestore = {
+  begin() {
+    restoringSettings = true;
+    clearTimeout(saveTimer);
+    return new Promise(resolve => {
+      if (!pendingWrites) resolve();
+      else restoreWaiters.push(resolve);
+    });
+  },
+  complete() { restoringSettings = false; },
+};
 
 function flash(msg, kind) {
   const el = document.getElementById('status');
@@ -44,6 +61,7 @@ function flash(msg, kind) {
 }
 
 function persist(values, done) {
+  pendingWrites++;
   writing = true;
   // Which settings changed, for "Report a problem"'s recent actions (names and short values only).
   if (AIR.db.activity) {
@@ -51,7 +69,9 @@ function persist(values, done) {
       (typeof v === 'object' ? k : `${k}=${String(v).slice(0, 20)}`)).join(', '));
   }
   chrome.storage.local.set(values, () => {
-    writing = false;
+    pendingWrites--;
+    writing = pendingWrites > 0;
+    if (!pendingWrites) restoreWaiters.splice(0).forEach(resolve => resolve());
     if (chrome.runtime.lastError) {
       flash(msg('optCouldNotSave', 'Could not save') + ' — ' + chrome.runtime.lastError.message, 'error');
       if (done) done(false);
@@ -66,6 +86,7 @@ function scoringPayload() {
 }
 
 function save({ immediate = false } = {}) {
+  if (restoringSettings) return;
   clearTimeout(saveTimer);
   const write = () => persist(scoringPayload(), ok => { if (ok) flash(msg('optSaved', 'Saved')); });
   if (immediate) write(); else saveTimer = setTimeout(write, 250);
@@ -766,6 +787,12 @@ function wireBreakdown() {
 /* exported startSettingsPage */
 function startSettingsPage() {
   chrome.storage.local.get(['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly'], o => {
+    if (chrome.runtime.lastError) {
+      document.getElementById('status').textContent = 'Could not load your settings. Reload this page before making changes.';
+      document.getElementById('status').className = 'status error';
+      return;
+    }
+    settingsReady = true;
     applyScoring(o);
     if (!PREFS.scoringEqual(o, state)) persist(scoringPayload());
     const first = currentGoals().ids[0];
@@ -804,7 +831,7 @@ function startSettingsPage() {
 
 window.addEventListener('pagehide', () => {
   clearTimeout(saveTimer);
-  persist(scoringPayload());
+  if (settingsReady && !restoringSettings) persist(scoringPayload());
 });
 
 // Stay in sync if the popup flips the same keys while this page is open.
