@@ -267,7 +267,7 @@ function parseBackup(obj) {
 // Switches that send data off this computer. A settings file never turns these on: a file is
 // something a reader may have been handed, and each of these is a decision the reader makes on this
 // computer (a Chrome or Google restore of the reader's own copy still carries them, after a confirm).
-const SHARING_KEYS = ['sharedProducts', 'shareContributions', 'sendDiagnostics'];
+const SHARING_KEYS = ['sharedProducts', 'shareContributions', 'sendDiagnostics', 'googleAutoSave', 'settingsBackup'];
 
 // The settings as a backup would carry them: one sanitized value per key, defaults filled in.
 function settingsSnapshot(stored) { return parseBackup(backupPayload(stored)).values; }

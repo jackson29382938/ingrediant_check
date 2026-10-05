@@ -481,7 +481,7 @@ test('importing a settings file never turns on a switch that sends data, but app
   for (const k of ['sendDiagnostics', 'shareContributions', 'sharedProducts']) {
     assert.notEqual(p.data[k], true, `${k} stays as this reader set it`);
   }
-  assert.deepEqual(prefs.SHARING_KEYS.slice().sort(), ['sendDiagnostics', 'shareContributions', 'sharedProducts']);
+  assert.deepEqual(prefs.SHARING_KEYS.slice().sort(), ['googleAutoSave', 'sendDiagnostics', 'settingsBackup', 'shareContributions', 'sharedProducts']);
 });
 
 test('the sharing checkboxes follow storage when a restore or another page changes them', async () => {
@@ -558,7 +558,7 @@ test('a link to a section the level already shows changes nothing but the scroll
 });
 
 test('no link, an unknown anchor, or an anchor with no level never moves the level', async () => {
-  for (const [hash, section] of [['', null], ['#nowhere', null], ['#sec-level', { id: 'sec-level', level: 0 }]]) {
+  for (const [hash, section] of [['', null], ['#%', null], ['#nowhere', null], ['#sec-level', { id: 'sec-level', level: 0 }]]) {
     const { p } = levelPage('simple', hash, section);
     await tick();
     assert.equal(p.data.settingsLevel, 'simple', hash || 'no hash');

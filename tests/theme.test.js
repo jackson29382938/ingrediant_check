@@ -12,7 +12,7 @@ const theme = require('../src/engine/db/theme.js');
 const panel = require('../src/content/panel.js');
 
 const AA = 4.5;
-const SURFACES = { light: ['#ffffff', '#f7f8f8', '#eef0f0'], dark: ['#1b1c1c', '#232525', '#2d2f2f'] };
+const SURFACES = { light: ['#ffffff', '#f7f8f8', '#eef0f0'], dark: ['#1b1c1c', '#232525', '#2d2f2f', '#3a3c3c'] };
 const read = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
 
 test('the appearance settings are sanitized: unknown values fall back, the accent is a lower-case #rrggbb', () => {
@@ -43,9 +43,6 @@ test('every score palette reads: text on its fill and on white (light), and on t
         assert.ok(theme.contrast(dfg, surface) >= AA, `${name} dark band ${i}: ${dfg} on ${surface} = ${theme.contrast(dfg, surface).toFixed(2)}`);
       }
     });
-  }
-  for (const [name, [good, mid, poor]] of Object.entries(theme.PALETTES).map(([n]) => [n, theme.toolbar ? [95, 60, 10].map(s => theme.toolbar(s, n)) : []])) {
-    for (const bg of [good, mid, poor]) assert.ok(theme.contrast('#ffffff', bg) >= AA, `${name} toolbar badge ${bg}`);
   }
 });
 

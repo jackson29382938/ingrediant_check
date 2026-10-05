@@ -18,7 +18,7 @@
             padding: 4px 10px; border-radius: 999px; background: #fff; border: 1px solid #d5d9d9; }
   .jump a:hover { background: #eef0f0; }
   section { background: #fff; border: 1px solid #d5d9d9; border-radius: 10px;
-            padding: 18px 20px; margin-bottom: 18px; scroll-margin-top: 56px; }
+            padding: 18px 20px; margin-bottom: 18px; scroll-margin-top: 110px; }
   h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .7px; color: #565959;
        margin: 0 0 14px; font-weight: 700; }
   h2.cat-group { font-size: 13px; text-transform: none; letter-spacing: 0; color: #0f1111;
@@ -38,7 +38,7 @@
   .status.toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 10; margin: 0;
                   max-width: min(92vw, 560px); padding: 9px 16px; border-radius: 999px; font-size: 13px;
                   background: #0f1111; color: #fff; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
-  .status.toast:empty { display: none; }
+  .status.toast:empty { opacity: 0; pointer-events: none; }   /* stays rendered, so a screen reader hears it */
   .status.toast.error { background: #a4161a; color: #fff; }
   kbd { font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 3px 7px; border-radius: 5px;
         border: 1px solid #d5d9d9; border-bottom-width: 2px; background: #fff; }
@@ -171,6 +171,8 @@
   @media (prefers-color-scheme: dark) {
     .status.toast { background: #f3f3f3; color: #0f1111; }
     .status.toast.error { background: #ff8a8a; color: #0f1111; }
+    .chip:focus-within { outline-color: var(--u-link-d, #4db6c8); }
+    input[type=range], .chip input { accent-color: var(--u-accent-d, #5cc98a); }
     kbd { background: #1b1c1c; border-color: #3a3c3c; color: #f3f3f3; }
     #backupCheck li.bad, #backupCheck li.bad::before { color: #ff8a8a; }
     .who { background: var(--u-accent-bg-d, #1e2a22); border-color: var(--u-accent-line-d, #2f5a40); }

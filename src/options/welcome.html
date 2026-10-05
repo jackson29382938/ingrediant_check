@@ -9,7 +9,7 @@
           --line: #d5d9d9; --accent: var(--u-accent, #0f7b3f); --accent-bg: var(--u-accent-bg, #e8f5ec); --link: var(--u-link, #007185); }
   @media (prefers-color-scheme: dark) {
     :root { --fg: #f3f3f3; --muted: #aeaeae; --bg: #131414; --card: #1b1c1c; --line: #3a3c3c;
-            --accent: var(--u-accent-d, #5cc98a); --accent-bg: var(--u-accent-bg-d, #1d3326); --link: var(--u-link-d, #4db6c8); }
+            --status: #ff8a8a; --accent: var(--u-accent-d, #5cc98a); --accent-bg: var(--u-accent-bg-d, #1d3326); --link: var(--u-link-d, #4db6c8); }
   }
   * { box-sizing: border-box; }
   body { margin: 0; padding: 32px 16px 64px; background: var(--bg); color: var(--fg);
@@ -50,7 +50,7 @@
   button.primary:hover { background: #f7ca00; }
   button.ghost { background: none; border: 0; color: var(--link); font: inherit; cursor: pointer; padding: 6px 4px; }
   button.ghost:hover { text-decoration: underline; }
-  .status { color: #a4161a; font-size: 13px; min-height: 1.3em; margin: 8px 0 0; }
+  .status { color: var(--status, #a4161a); font-size: 13px; min-height: 1.3em; margin: 8px 0 0; }
   .done a { color: var(--link); }
   [hidden] { display: none !important; }
   @media (max-width: 520px) { .card { padding: 20px 16px 16px; } }

@@ -395,7 +395,7 @@
   setInterval(() => { if (location.href !== state.url) { state.manual = null; reset(); } }, 1000);
 
   const KEYS = ['enabled', 'badges', 'foodOnly', 'weights', 'allergens', 'diets', 'avoidList',
-    'sheetIndexRev', 'producerIndexRev', 'speedMode', 'autoScoreSearch', 'panelOpen', 'theme', 'palette', 'accent'];
+    'sheetIndexRev', 'producerIndexRev', 'speedMode', 'autoScoreSearch', 'panelOpen', 'theme', 'palette'];
   chrome.storage.local.get(KEYS, o => { readSettings(o || {}); reset(); });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area && area !== 'local') return;

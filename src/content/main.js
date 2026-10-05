@@ -278,7 +278,7 @@
       if (state.enabled && state.badges) { wake(); armAutoScorePass(); }
     }
     // A new palette or theme: badges and the panel are painted again under it.
-    if (changes.theme || changes.palette || changes.accent) {
+    if (changes.theme || changes.palette) {
       chrome.storage.local.get(['theme', 'palette', 'accent'], o => {
         AIR.db.theme?.use(o);
         resetListState();

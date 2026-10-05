@@ -828,7 +828,7 @@ function noteGoogleChange() {
 
 // The alarm is the fallback for a suspended worker. Once the save is done, or there is nothing to save,
 // clear it; a failure that may pass (the network) leaves it for one more try a minute later.
-const GOOGLE_DONE = new Set(['off', 'needs-sign-in', 'no-client']);
+const GOOGLE_DONE = new Set(['off', 'no-client']);   // a silent-token failure may be the network: one more try
 function googleAutoSave() {
   const attempt = googleSaveOnce().then(res => {
     if (res.ok || GOOGLE_DONE.has(res.reason)) chrome.alarms.clear(GOOGLE_ALARM);

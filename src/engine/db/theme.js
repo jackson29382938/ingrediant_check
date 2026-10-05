@@ -33,8 +33,6 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
       dark: [['#4a8fe0', '#4a8fe0'], ['#8cc8f0', '#8cc8f0'], ['#e3b505', '#e3b505'], ['#e8742f', '#e8742f'], ['#d68aa4', '#d68aa4']],
     },
   };
-  // The toolbar badge: white text on each (>= 4.5:1).
-  const TOOLBAR = { standard: ['#15803d', '#b45309', '#d73027'], cvd: ['#1f6fbd', '#b45309', '#9e3a5c'] };
 
   const state = { theme: 'system', palette: 'standard', accent: DEFAULT_ACCENT };
   const P = () => AIR.db.prefs;
@@ -55,7 +53,6 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
     const [dfg, dring] = table.dark[i];
     return { fg, bg, ring, dfg, dring };
   }
-  const toolbar = (score, palette = state.palette) => (TOOLBAR[palette] || TOOLBAR.standard)[score >= 75 ? 0 : score >= 50 ? 1 : 2];
 
   // ---------------------------------------------------------------- colour maths
   const rgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
@@ -68,7 +65,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
   const mix = (a, b, t) => { const [p, q] = [rgb(a), rgb(b)]; return hex(p.map((v, i) => v + (q[i] - v) * t)); };
 
   // The surfaces text in the accent can sit on, worst first.
-  const SURFACES = { light: ['#eef0f0', '#f7f8f8', '#ffffff'], dark: ['#2d2f2f', '#232525', '#1b1c1c'] };
+  const SURFACES = { light: ['#eef0f0', '#f7f8f8', '#ffffff'], dark: ['#3a3c3c', '#2d2f2f', '#232525', '#1b1c1c'] };
   const CARD = { light: '#ffffff', dark: '#232525' };
 
   // The accent as used in one scheme: nudged toward black (light) or white (dark) until it reads on
@@ -163,7 +160,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
     window.addEventListener('load', () => force(document));
   }
 
-  const api = { DEFAULT_ACCENT, PALETTES, state, use, band, toolbar, accentFor, vars, force, applyVars, page, boot, contrast, mix };
+  const api = { DEFAULT_ACCENT, PALETTES, state, use, band, accentFor, vars, force, applyVars, page, boot, contrast, mix };
   const out = AIRmodule('theme', api);
   if (typeof module !== 'undefined' && module.exports) module.exports = out;
 })();

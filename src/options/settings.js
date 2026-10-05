@@ -841,13 +841,19 @@ function applyLevel(level) {
 }
 
 // The picker. The first load writes the level back, so it is stored from then on.
+// The link's anchor, tolerant of a malformed escape such as #%.
+function hashId() {
+  const raw = location.hash.slice(1);
+  try { return decodeURIComponent(raw); } catch (e) { return raw; }
+}
+
 function wireLevel() {
   chrome.storage.local.get(['settingsLevel', 'onboarded'], o => {
     let stored = PREFS.levelOf(o);
     // A link to a section the level hides (the popup, setup and the sorted list link to Settings
     // sections) would land on nothing. The reader asked for that section, so show it: raise the level
     // to what it needs, say so, and scroll there once the layout has settled.
-    const target = location.hash.length > 1 ? document.getElementById(decodeURIComponent(location.hash.slice(1))) : null;
+    const target = location.hash.length > 1 ? document.getElementById(hashId()) : null;
     const needs = target && target.dataset && target.dataset.level ? Number(target.dataset.level) : 0;
     const raised = needs > PREFS.LEVELS.indexOf(stored);
     if (raised) stored = PREFS.LEVELS[Math.min(needs, PREFS.LEVELS.length - 1)];
