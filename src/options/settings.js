@@ -874,6 +874,32 @@ function wirePanelAndHover() {
       ok => { if (ok) flash(msg('optSaved', 'Saved')); }));
 }
 
+// The keyboard shortcuts for the sorted list. Chrome owns the keys (chrome://extensions/shortcuts);
+// this shows what they are now and opens that page. Repainted when the reader returns to this tab.
+function wireShortcuts() {
+  const list = document.getElementById('shortcutList');
+  const change = document.getElementById('changeShortcuts');
+  if (!list || !chrome.commands || typeof chrome.commands.getAll !== 'function') return;
+  const labels = { 'sort-health': msg('optShortcutHealth', 'Sort by Ingredient Check score'),
+    'sort-price': msg('optShortcutPrice', 'Sort by price per ounce') };
+  const paint = () => chrome.commands.getAll(all => {
+    list.textContent = '';
+    for (const c of all || []) {
+      if (!labels[c.name]) continue;
+      const li = document.createElement('li');
+      const name = document.createElement('strong');
+      name.textContent = labels[c.name];
+      li.append(name, document.createTextNode(' '));
+      if (c.shortcut) { const k = document.createElement('kbd'); k.textContent = c.shortcut; li.append(k); }
+      else li.append(document.createTextNode(msg('optShortcutNone', 'not set')));
+      list.append(li);
+    }
+  });
+  paint();
+  window.addEventListener('focus', paint);
+  if (change) change.addEventListener('click', () => chrome.tabs.create({ url: 'chrome://extensions/shortcuts' }));
+}
+
 // Called from settings-database.js, the options page's second classic script, once it has loaded.
 /* exported startSettingsPage */
 function startSettingsPage() {
@@ -897,6 +923,7 @@ function startSettingsPage() {
     wireSpeed();
     wireBreakdown();
     wirePanelAndHover();
+    wireShortcuts();
     wireLevel();
 
     document.getElementById('avoidList').addEventListener('input', e => {

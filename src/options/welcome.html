@@ -38,6 +38,11 @@
   .opt span span { display: block; color: var(--muted); font-size: 13px; }
   textarea { width: 100%; min-height: 70px; margin-top: 12px; padding: 8px 10px; border: 1px solid var(--line);
              border-radius: 8px; font: inherit; font-size: 14px; background: var(--card); color: var(--fg); }
+  .keys { margin: 14px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--bg); color: var(--muted);
+          font-size: 12px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; }
+  .keys-h { font-weight: 700; letter-spacing: .5px; text-transform: uppercase; font-size: 11px; }
+  kbd { font: 600 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 2px 6px; border-radius: 4px;
+        border: 1px solid var(--line); border-bottom-width: 2px; background: var(--card); color: var(--fg); }
   .foot { display: flex; align-items: center; gap: 10px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line); }
   .foot .spacer { flex: 1; }
   button.primary { background: #ffd814; border: 1px solid #fcd200; color: #0f1111; border-radius: 999px;
@@ -131,6 +136,17 @@
   </section>
 
   <p class="status" id="status" role="status"></p>
+  <p class="keys" id="keys" aria-label="Keyboard shortcuts" data-i18n-aria="welKeysAria">
+    <span class="keys-h" data-i18n="welKeysH">Keyboard</span>
+    <span class="key"><kbd>Enter</kbd> <span data-i18n="welKeyNext">next</span></span>
+    <span class="key"><kbd>B</kbd> <span data-i18n="welKeyBack">back</span></span>
+    <span class="key"><kbd>Shift</kbd>+<kbd>S</kbd> <span data-i18n="welKeySkip">skip setup</span></span>
+    <span class="key" data-for="level"><kbd>1</kbd>–<kbd>5</kbd> <span data-i18n="welKeyLevel">pick a level</span></span>
+    <span class="key" data-for="level"><kbd>↑</kbd> <kbd>↓</kbd> <span data-i18n="welKeyArrows">move between levels</span></span>
+    <span class="key" data-for="not-level"><kbd>Tab</kbd> <span data-i18n="welKeyTab">move to the next choice</span></span>
+    <span class="key" data-for="not-level"><kbd>Space</kbd> <span data-i18n="welKeySpace">turn a choice on or off</span></span>
+    <span class="key"><kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Enter</kbd> <span data-i18n="welKeyBox">next, even from a text box</span></span>
+  </p>
   <div class="foot">
     <button type="button" class="ghost" id="back" data-i18n="welBack">Back</button>
     <button type="button" class="ghost" id="skip" data-i18n="welSkip">Skip setup</button>

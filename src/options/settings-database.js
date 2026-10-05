@@ -9,6 +9,8 @@ let backupBusy = false;
 let chromeRestoreAvailable = false;
 let accountAvailable = false;
 let accountSignInAvailable = false;
+// Set by wireAccount while signed in: fetches the Google copy (not applying it) for "Check my backups".
+let googleCopy = null;
 
 function paintBackupControls() {
   const restore = document.getElementById('restoreChrome');
@@ -194,6 +196,51 @@ function wireBackup() {
     });
   }
   wireAccount();
+  wireBackupCheck();
+}
+
+// Check every setting against each saved copy for this Chrome profile: this browser's storage, the
+// Chrome profile backup (chrome.storage.sync) and, when signed in, the Google copy. Names the
+// settings that differ. A change made a moment ago reaches the Chrome copy within a few seconds.
+function wireBackupCheck() {
+  const button = document.getElementById('checkBackups');
+  const out = document.getElementById('backupCheck');
+  if (!button || !out) return;
+  const line = (text, bad) => {
+    const li = document.createElement('li');
+    li.textContent = text;
+    if (bad) li.className = 'bad';
+    out.appendChild(li);
+  };
+  const report = (label, got, stored) => {
+    if (!got || !got.ok) {
+      line(`${label}: ${got && got.reason === 'no-backup' ? 'nothing saved yet' : got && got.reason === 'incomplete-backup' ? 'still syncing, check again shortly' : 'could not be read'}.`, true);
+      return;
+    }
+    const d = PREFS.diffSettings(stored, got.values);
+    const when = got.ts ? ` (saved ${new Date(got.ts).toLocaleString()})` : '';
+    if (d.differing.length) line(`${label}: ${d.differing.length} of ${d.total} settings differ: ${d.differing.join(', ')}.`, true);
+    else line(`${label}: all ${d.total} settings match${when}.`);
+  };
+  button.addEventListener('click', async () => {
+    if (backupBusy) return;
+    button.disabled = true;
+    out.textContent = '';
+    try {
+      const stored = await chrome.storage.local.get(PREFS.SETTING_KEYS);
+      line(`This browser: ${Object.keys(PREFS.settingsSnapshot(stored)).length} settings are stored and readable.`);
+      const sync = chrome.storage && chrome.storage.sync;
+      if (!sync) line('Chrome profile backup: Chrome sync is not available here.', true);
+      else report('Chrome profile backup', await PREFS.readSync(sync).catch(() => null), stored);
+      if (googleCopy) {
+        try {
+          const copy = await googleCopy();
+          if (copy) report('Google copy', copy, stored);
+        } catch (e) { line('Google copy: sign-in did not complete.', true); }
+      }
+    } catch (e) { line('The check could not finish. Please try again.', true); }
+    finally { button.disabled = false; }
+  });
 }
 
 // Google sign-in. Signing in and storing a backup are separate: sign-in only proves who the reader is
@@ -276,7 +323,24 @@ function wireAccount() {
   });
   read();
   readProfile();
-  chrome.storage.onChanged.addListener((changes, area) => { if (area === 'local' && changes.googleProfile) readProfile(); });
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return;
+    if (changes.googleProfile) readProfile();
+    if (changes.googleBackupStatus || changes.googleLinked) paintGoogleStatus();
+  });
+  if (typeof bindToggle === 'function') bindToggle('googleAutoSave');
+  // When the Google copy was last written, and why automatic saving has paused if it has.
+  const paintGoogleStatus = () => chrome.storage.local.get(['googleLinked', 'googleBackupStatus'], o => {
+    const s = (o && o.googleBackupStatus) || null;
+    const when = s && s.t ? new Date(s.t).toLocaleString() : '';
+    say('googleSaveStatus', !o || o.googleLinked !== true
+      ? 'Automatic saving starts after you first save to, or restore from, your Google account on this computer.'
+      : !s ? 'Automatic saving is on.'
+      : s.ok ? `Last saved to Google ${when}.`
+      : s.reason === 'needs-sign-in' ? `Automatic saving paused ${when}: Google needs you to sign in again. Click Save my settings to Google.`
+      : `Could not save to Google ${when} (${s.reason}).`, s && !s.ok ? 'error' : '');
+  });
+  paintGoogleStatus();
 
   // A token for one request. Already signed in: try Google's session without a window first.
   const getToken = async () => {
@@ -306,6 +370,12 @@ function wireAccount() {
     'Error: token rejected': 'The database did not accept this Google sign-in. Check that its OAuth client ID matches this extension.',
   })[e.message] || 'Could not complete the account request. Check the OAuth client, database deployment, and connection.';
 
+  googleCopy = async () => {
+    if (!profile || !clientId) return null;
+    const token = await getToken();
+    return (await chrome.runtime.sendMessage({ type: 'accountFetch', token })) || { ok: false, reason: 'network' };
+  };
+
   // Sign in only: shows who is signed in, and changes nothing else.
   el('accountSignIn')?.addEventListener('click', async () => {
     if (backupBusy || !clientId) return;
@@ -318,7 +388,7 @@ function wireAccount() {
     finally { setBackupBusy(false); paint(); }
   });
   el('googleSignOut')?.addEventListener('click', () => {
-    chrome.storage.local.remove('googleProfile', () => {
+    chrome.storage.local.remove(['googleProfile', 'googleLinked', 'googleBackupStatus'], () => {
       profile = null; paintProfile();
       say('accountStatus', 'Signed out. Your settings on this computer and in Chrome sync are unchanged.');
     });

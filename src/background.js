@@ -13,7 +13,7 @@ if (typeof importScripts === 'function') {
     'engine/db/ingestible.js', 'engine/db/prefs.js',
     'engine/db/ocr-text.js', 'engine/db/product-cache.js', 'engine/db/storefronts.js', 'engine/db/sorted-results.js',
     'engine/db/speed.js', 'engine/db/unit-price.js',
-    'engine/db/activity.js', 'worker/messages.js', 'worker/sheet-store.js');
+    'engine/db/activity.js', 'options/google-auth.js', 'worker/messages.js', 'worker/sheet-store.js');
 }
 
 const OFF_ENDPOINT = 'https://world.openfoodfacts.org/api/v2/product/';
@@ -319,6 +319,49 @@ function openSortedPanel(msg, sender, reply) {
   });
 }
 
+// ---- keyboard shortcuts
+//
+// Declared in the manifest ("commands"); the reader changes the keys at chrome://extensions/shortcuts.
+// A key press is a user action, so sidePanel.open runs first, before any await, exactly as for a click
+// in Amazon's menu. The tab's content script is then told to start gathering. When there is nobody to
+// answer (the page is not a food search on a supported store, or Ingredient Check is switched off)
+// the panel says so instead of staying on "loading".
+function isAmazonSearchUrl(raw) {
+  try {
+    const u = new URL(String(raw || ''));
+    return AMAZON_HOST.test(u.hostname) && (/^\/s(?:\/|$)/.test(u.pathname) || u.searchParams.has('k'));
+  } catch (e) { return false; }
+}
+
+async function endSortedList(runId, key, fallback) {
+  const { sortedResults: list } = await chrome.storage.session.get('sortedResults');
+  if (!list || list.runId !== runId) return;
+  let text = fallback;
+  try { text = chrome.i18n.getMessage(key) || fallback; } catch (e) { /* no locale */ }
+  await chrome.storage.session.set({ sortedResults: { ...list, loading: false, status: self.AIR.db.sortedResults.sanitizeStatus(text), t: Date.now() } });
+}
+
+function sortFromCommand(command, tab) {
+  const mode = command === 'sort-health' ? 'health' : command === 'sort-price' ? 'unitPrice' : null;
+  if (!mode || !tab || typeof tab.id !== 'number' || !isAmazonSearchUrl(tab.url)) return;
+  openSortedPanel({ mode, sourceUrl: tab.url, unitEnabled: true }, { tab }, async reply => {
+    if (!reply || !reply.runId) return;
+    const conf = await chrome.storage.local.get('unitPrice');
+    if (mode === 'unitPrice' && conf.unitPrice === false) {
+      await endSortedList(reply.runId, 'sortUnitOff', 'Price per ounce is switched off in Ingredient Check settings.');
+      return;
+    }
+    // No side panel (an older Chrome): the same list in a tab, as Amazon's menu does.
+    if (!reply.ok) await chrome.tabs.create({ url: chrome.runtime.getURL('src/options/sorted.html') }).catch(() => {});
+    let answer = null;
+    try { answer = await chrome.tabs.sendMessage(tab.id, { type: 'sortStart', mode, runId: reply.runId }); } catch (e) { /* no listener */ }
+    if (!answer || answer.ok !== true) {
+      await endSortedList(reply.runId, 'sortNotHere', 'Ingredient Check is not sorting this page: it is switched off, or this is not a food search on a supported Amazon store.');
+    }
+  });
+}
+chrome.commands?.onCommand?.addListener((command, tab) => sortFromCommand(command, tab));
+
 // A newer list (another choice, in this tab or another) wins: updates for an older run are refused
 // and the content script stops working on it.
 async function updateSortedResults(msg, sender) {
@@ -352,6 +395,7 @@ function ensureHousekeepingAlarm() {
 ensureHousekeepingAlarm();
 chrome.alarms.onAlarm.addListener(a => {
   if (a.name === BACKUP_ALARM) { backupToChrome().catch(() => {}); return; }
+  if (a.name === GOOGLE_ALARM) { googleAutoSave().catch(() => {}); return; }
   if (a.name !== HOUSEKEEPING) return;
   sweepCache();
   // A partial batch would otherwise sit until enough new products were scored to fill it.
@@ -762,6 +806,48 @@ function noteBackupChange(changes) {
   chrome.alarms.create(BACKUP_ALARM, { delayInMinutes: 1 });
   // Debounced: a slider drag is dozens of writes, and chrome.storage.sync allows 120 a minute.
   backupTimer = setTimeout(() => { backupTimer = null; backupToChrome().catch(() => {}); }, 2000);
+  noteGoogleChange();
+}
+
+// ---- the Google copy, kept up to date on every change
+//
+// Only while the reader is signed in (googleProfile), has not turned googleAutoSave off, and this
+// computer has already saved to or restored from the account once (googleLinked): a new computer
+// must not overwrite the saved copy with its defaults before the reader has chosen. The token is
+// asked for without a window (prompt=none); when Google needs the reader, the status says so and
+// nothing is opened. Local settings always win, as with the Chrome backup.
+const GOOGLE_ALARM = 'ic-google-save';
+let googleTimer = null;
+let googleChain = Promise.resolve();
+
+function noteGoogleChange() {
+  clearTimeout(googleTimer);
+  chrome.alarms.create(GOOGLE_ALARM, { delayInMinutes: 1 });
+  googleTimer = setTimeout(() => { googleTimer = null; googleAutoSave().catch(() => {}); }, 8000);
+}
+
+function googleAutoSave() {
+  const attempt = googleChain.catch(() => {}).then(async () => {
+    const P = self.AIR.db.prefs;
+    const conf = await chrome.storage.local.get([...BACKUP_SOURCE_KEYS, 'googleProfile', 'googleLinked', 'oauthClientId']);
+    if (!P.sanitizeToggles(conf).googleAutoSave || !conf.googleProfile || conf.googleLinked !== true || !P.endpoint()) {
+      return { ok: false, reason: 'off' };
+    }
+    const clientId = P.oauthClientId(conf.oauthClientId) || P.oauthClientId(P.OAUTH_CLIENT_ID);
+    const auth = self.AIR.googleAuth;
+    if (!clientId || !auth) return { ok: false, reason: 'no-client' };
+    let token;
+    try {
+      if (!await chrome.permissions.contains({ permissions: ['identity'] })) throw new Error('permission');
+      token = await auth.token(chrome, clientId, { silent: true });
+    } catch (e) {
+      await chrome.storage.local.set({ googleBackupStatus: { ok: false, t: Date.now(), reason: 'needs-sign-in' } });
+      return { ok: false, reason: 'needs-sign-in' };
+    }
+    return accountSave(token);
+  });
+  googleChain = attempt;
+  return attempt;
 }
 
 function backupToChrome() {
@@ -812,20 +898,36 @@ async function accountRequest(kind, token, payload) {
   }
 }
 
+// Saving or restoring marks this computer as linked to the account (so later changes are saved
+// automatically) and records when, for the status line on the settings page.
+async function noteGoogleResult(res) {
+  await chrome.storage.local.set(res.ok
+    ? { googleLinked: true, googleBackupStatus: { ok: true, t: Date.now() } }
+    : { googleBackupStatus: { ok: false, t: Date.now(), reason: String(res.reason || 'failed').slice(0, 80) } });
+}
+
 async function accountSave(token) {
   const P = self.AIR.db.prefs;
   const conf = await chrome.storage.local.get(BACKUP_SOURCE_KEYS);
   const res = await accountRequest('account', token, P.backupPayload(conf));
-  return res.ok === true && res.tab === 'accounts' ? { ok: true } : { ok: false, reason: res.reason || res.error || 'write-not-confirmed' };
+  const out = res.ok === true && res.tab === 'accounts' ? { ok: true } : { ok: false, reason: res.reason || res.error || 'write-not-confirmed' };
+  await noteGoogleResult(out);
+  return out;
 }
 
-async function accountLoad(token) {
+// The saved copy, parsed and sanitized, not applied.
+async function accountFetch(token) {
   const res = await accountRequest('accountGet', token);
   if (res.ok !== true) return { ok: false, reason: res.reason || res.error || 'network' };
   if (!res.payload) return { ok: false, reason: 'no-backup' };
-  const parsed = self.AIR.db.prefs.parseBackup(res.payload);
+  return self.AIR.db.prefs.parseBackup(res.payload);
+}
+
+async function accountLoad(token) {
+  const parsed = await accountFetch(token);
   if (!parsed.ok) return parsed;
   await chrome.storage.local.set(parsed.values);
+  await noteGoogleResult({ ok: true });
   return { ok: true, ts: parsed.ts };
 }
 
@@ -894,9 +996,13 @@ function handleSharedDbMessage(msg, reply) {
     accountLoad(msg.token).then(reply, () => reply({ ok: false }));
     return true;
   }
+  if (msg.type === 'accountFetch') {
+    accountFetch(msg.token).then(reply, () => reply({ ok: false }));
+    return true;
+  }
   return false;
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { indexRows, lookupRecord, sweepCache, sweepAges, isOpenFoodFactsFood, batchIdFor, revisionOf, ensureHousekeepingAlarm, allowMessage, isOwnExtension, isAmazonTabSender, isRetailerTabSender, isOptionsPageSender, isOffscreenSender, allowedOcrUrls, openSortedPanel, updateSortedResults, MAX_SHEET_BYTES, MAX_SHEET_ROWS };
+  module.exports = { sortFromCommand, googleAutoSave, accountFetch, indexRows, lookupRecord, sweepCache, sweepAges, isOpenFoodFactsFood, batchIdFor, revisionOf, ensureHousekeepingAlarm, allowMessage, isOwnExtension, isAmazonTabSender, isRetailerTabSender, isOptionsPageSender, isOffscreenSender, allowedOcrUrls, openSortedPanel, updateSortedResults, MAX_SHEET_BYTES, MAX_SHEET_ROWS };
 }

@@ -60,10 +60,24 @@ The settings on the computer are always the ones in use. Nothing is ever applied
   Chrome syncs that privately to the Google account signed into Chrome. **Restore from my Chrome
   account** brings it back after a confirmation. No setup, and nothing goes to the shared sheet.
 - **Sign in with Google** (optional, disabled until configured). For a browser that is not signed
-  into Chrome. The options page gets an OAuth access token (scope `openid`) through
+  into Chrome. The options page gets an OAuth access token (scopes `openid email profile`) through
   `chrome.identity.launchWebAuthFlow` and hands it to the worker for one request. The script asks
   Google who the token belongs to, refuses a token issued to any other app, and keys the row by a
-  SHA-256 of the account id — not the email. The token is never stored.
+  SHA-256 of the account id — not the email. The token is never stored. Only the signed-in name,
+  email and picture are kept, in this browser's local storage, to show who is signed in at the top of
+  Settings; they are never backed up or exported, and **Sign out** deletes them.
+- **Automatic Google saving** (default on while signed in). After every settings change the worker
+  waits about eight seconds, asks Google for a token without opening a window (`prompt=none`) and
+  writes the same copy as **Save my settings to Google**. It runs only once this computer has saved
+  to or restored from the account (`googleLinked`), so a new computer cannot overwrite a saved copy
+  with its defaults. If Google needs the reader again, saving pauses with a status on the settings
+  page and nothing is opened; pressing **Save my settings to Google** resumes it. The master switch
+  stops it like every other request.
+- **Check my backups** (Settings → Your settings online). Compares every setting on this computer
+  with the Chrome profile backup and, when signed in, the Google copy, and names any that differ.
+  The Google copy is fetched and compared, never applied. `tests/settings-saved-e2e.test.js` runs the
+  real worker and the real Apps Script against in-memory storage and a simulated Gmail account, changes
+  every setting one at a time, and reads each copy back.
 
 To turn sign-in on:
 

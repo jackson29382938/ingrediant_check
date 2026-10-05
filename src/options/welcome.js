@@ -153,6 +153,7 @@ function show(n, { focus = true } = {}) {
     : n === last - 1 ? msg('welFinish', 'Finish') : msg('welNext', 'Next');
   // Focus the new step's heading, so a screen reader announces the step. A heading takes focus only
   // with a tabindex; without one this call did nothing and focus stayed on the Next button.
+  for (const k of document.querySelectorAll('.key[data-for]')) k.hidden = (k.dataset.for === 'level') !== (id === 'level');
   const heading = document.querySelector(`[data-step="${id}"] h1`);
   if (heading && focus) { heading.tabIndex = -1; heading.focus(); }
 }
@@ -236,9 +237,47 @@ document.getElementById('next').addEventListener('click', () => {
 });
 document.getElementById('back').addEventListener('click', () => { if (!busy && setupReady) show(Math.max(0, step - 1)); });
 
+// Setup works from the keyboard alone (the shortcuts are listed under the buttons). Enter is "next"
+// unless the focus is somewhere Enter already means something (the footer buttons, a link, a text box).
+// A choice chip is a toggle button, but there Space toggles and Enter moves on, so a keyboard reader
+// can tick choices and press Enter without leaving the keys. The single-letter keys are ignored while
+// typing, and Shift+S, not S, skips so a stray key cannot.
+function onKey(e) {
+  if (e.defaultPrevented || e.altKey || !e.key) return;
+  const t = e.target || {};
+  const tag = String(t.tagName || '').toUpperCase();
+  const toggle = tag === 'INPUT' && (t.type === 'radio' || t.type === 'checkbox');
+  const typing = !toggle && (tag === 'TEXTAREA' || tag === 'INPUT' || tag === 'SELECT' || !!t.isContentEditable);
+  const chip = tag === 'BUTTON' && !!t.classList && typeof t.classList.contains === 'function' && t.classList.contains('chip');
+  const press = !chip && (tag === 'BUTTON' || tag === 'A' || tag === 'SUMMARY');
+  const mod = e.ctrlKey || e.metaKey;
+  const click = id => { e.preventDefault(); document.getElementById(id).click(); };
+  if (e.key === 'Enter') {
+    if (mod || !(typing || press)) click('next');   // preventDefault on a chip also stops its own Enter toggle
+    return;
+  }
+  if (mod || typing) return;
+  const key = e.key.toLowerCase();
+  if (key === 'b' && !e.shiftKey && !document.getElementById('back').hidden) click('back');
+  else if (key === 's' && e.shiftKey && !document.getElementById('skip').hidden) click('skip');
+  else if (/^[1-5]$/.test(e.key) && plan()[step] === 'level') { e.preventDefault(); chooseLevel(PREFS.LEVELS[Number(e.key) - 1], true); }
+}
+if (typeof document.addEventListener === 'function') document.addEventListener('keydown', onKey);
+document.getElementById('next').setAttribute('aria-keyshortcuts', 'Enter');
+document.getElementById('back').setAttribute('aria-keyshortcuts', 'B');
+document.getElementById('skip').setAttribute('aria-keyshortcuts', 'Shift+S');
+
 // Choosing a level changes how many steps follow, so the progress bars are redrawn.
+function chooseLevel(level, fromKey = false) {
+  picked.level = level;
+  for (const r of document.querySelectorAll('input[name="settingsLevel"]')) {
+    r.checked = r.value === level;
+    if (fromKey && r.checked && typeof r.focus === 'function') r.focus();
+  }
+  show(step, { focus: false });
+}
 for (const r of document.querySelectorAll('input[name="settingsLevel"]')) {
-  r.addEventListener('change', () => { picked.level = r.value; show(step, { focus: false }); });
+  r.addEventListener('change', () => chooseLevel(r.value));
 }
 document.getElementById('skip').addEventListener('click', async () => {
   if (busy || !setupReady) return;

@@ -1511,5 +1511,74 @@
   },
   "optSortRememberD": {
     "message": "In the sorted list, the Prioritize sliders reopen the way you last set them, separately for the score and price-per-ounce options in Amazon's menu. Off: each list starts from that option's default."
+  },
+  "cmdSortHealth": {
+    "message": "Sort this Amazon search by Ingredient Check score"
+  },
+  "cmdSortPrice": {
+    "message": "Sort this Amazon search by price per ounce"
+  },
+  "sortUnitOff": {
+    "message": "Price per ounce is switched off in Ingredient Check settings."
+  },
+  "sortNotHere": {
+    "message": "Ingredient Check is not sorting this page: it is switched off, or this is not a food search on a supported Amazon store."
+  },
+  "welKeysAria": {
+    "message": "Keyboard shortcuts"
+  },
+  "welKeysH": {
+    "message": "Keyboard"
+  },
+  "welKeyNext": {
+    "message": "next"
+  },
+  "welKeyBack": {
+    "message": "back"
+  },
+  "welKeySkip": {
+    "message": "skip setup"
+  },
+  "welKeyLevel": {
+    "message": "pick a level"
+  },
+  "welKeyArrows": {
+    "message": "move between levels"
+  },
+  "welKeyTab": {
+    "message": "move to the next choice"
+  },
+  "welKeySpace": {
+    "message": "turn a choice on or off"
+  },
+  "welKeyBox": {
+    "message": "next, even from a text box"
+  },
+  "optShortcutH": {
+    "message": "Keyboard shortcuts"
+  },
+  "optShortcutD": {
+    "message": "On an Amazon search results page, open the sorted list without the mouse. These keys are Chrome's extension shortcuts, so you can change or clear them."
+  },
+  "optShortcutChange": {
+    "message": "Change shortcuts"
+  },
+  "optShortcutHealth": {
+    "message": "Sort by Ingredient Check score"
+  },
+  "optShortcutPrice": {
+    "message": "Sort by price per ounce"
+  },
+  "optShortcutNone": {
+    "message": "not set"
+  },
+  "optGoogleAuto": {
+    "message": "Keep my Google copy up to date automatically"
+  },
+  "optGoogleAutoD": {
+    "message": "Saves every settings change to your Google account a few seconds later. It starts after this computer has saved to, or restored from, your account once, so a new computer cannot overwrite your saved copy with its defaults."
+  },
+  "optCheckBackups": {
+    "message": "Check my backups"
   }
 }

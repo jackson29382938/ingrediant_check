@@ -11,7 +11,9 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
 function page(options = {}, settings = false) {
   const elements = new Map();
   const get = id => {
-    if (!elements.has(id)) elements.set(id, { disabled: false, value: '', textContent: '', hidden: false,
+    if (!elements.has(id)) elements.set(id, { disabled: false, value: '', hidden: false, children: [], _t: '',
+      get textContent() { return this._t; }, set textContent(v) { this._t = v; if (v === '') this.children = []; },
+      appendChild(child) { this.children.push(child); }, append(...kids) { this.children.push(...kids); },
       classList: { toggle() {} }, addEventListener(type, fn) { this[type] = fn; } });
     return elements.get(id);
   };
@@ -31,7 +33,7 @@ function page(options = {}, settings = false) {
       ...(options.profile !== undefined ? { profile: async () => { if (options.profile instanceof Error) throw options.profile; return options.profile; } } : {}) },
     settingsRestore: { async begin() { guards.push('begin'); }, complete() { guards.push('complete'); } } };
   const context = vm.createContext({ AIR: air, console,
-    document: { getElementById: get, querySelectorAll: () => [] },
+    document: { getElementById: get, querySelectorAll: () => [], createElement: () => ({ textContent: '', className: '' }) },
     window: { addEventListener(type, fn) { this[type] = fn; }, confirm() { confirms++; return options.confirm !== false; } },
     location: { reload() { reloads++; } },
     setTimeout(fn) { const id = timers.size + 1; timers.set(id, fn); return id; }, clearTimeout(id) { timers.delete(id); },
@@ -40,8 +42,8 @@ function page(options = {}, settings = false) {
     chrome: { runtime: { id: 'id', async sendMessage(message) { calls.push(message); if (options.requestPending) await options.requestPending; return options.result || { ok: true }; } },
       identity: { getRedirectURL: () => 'https://test.chromiumapp.org/' }, permissions: { async request() { return true; } },
       storage: { sync: {}, onChanged: { addListener(fn) { changed.push(fn); } }, local: {
-        remove(key, cb) { delete data[key]; cb(); },
-        get(keys, cb) { if (options.localReadError) context.chrome.runtime.lastError = { message: 'unavailable' }; cb(data); delete context.chrome.runtime.lastError; }, set(values, cb) { writes.push({ values, cb }); if (!options.deferredWrites) { Object.assign(data, values); cb(); } },
+        remove(key, cb) { [].concat(key).forEach(k => delete data[k]); cb(); },
+        get(keys, cb) { if (typeof cb !== 'function') return Promise.resolve({ ...data }); if (options.localReadError) context.chrome.runtime.lastError = { message: 'unavailable' }; cb(data); delete context.chrome.runtime.lastError; return undefined; }, set(values, cb) { writes.push({ values, cb }); if (!options.deferredWrites) { Object.assign(data, values); cb(); } },
       } }, tabs: { async create() {} } },
   });
   if (settings) {
@@ -258,4 +260,203 @@ test('a signed-in reader is shown on load, and signing out clears only the profi
   assert.equal(p.get('accountSignedOut').hidden, false);
   assert.equal(p.data.googleProfile, undefined);
   assert.deepEqual(p.data.weights, { sugar: 1 }, 'settings are untouched');
+});
+
+// ---------------------------------------------------------------- Check my backups
+const backupOf = (data, over = {}) => ({ ok: true, ts: Date.parse('2026-10-05T01:00:00Z'), ...prefs.parseBackup(prefs.backupPayload({ ...data, ...over })) });
+const lines = p => p.get('backupCheck').children.map(li => ({ text: li.textContent, bad: li.className === 'bad' }));
+
+test('Check my backups: this browser and a matching Chrome profile copy are reported as all matching', async () => {
+  const data = { ratePace: 'fast', sortCount: 250, allergens: ['milk'] };
+  const p = page({ initial: data, readSync: () => backupOf({ ...prefs.sanitizeToggles({}), ...data, ratePace: 'fast', sortCount: 250, allergens: ['milk'] }) });
+  p.run('wireBackup()');
+  await tick();
+  await p.get('checkBackups').click();
+  const out = lines(p);
+  assert.match(out[0].text, /^This browser: \d+ settings are stored and readable\.$/);
+  assert.match(out[1].text, /^Chrome profile backup: all \d+ settings match \(saved .+\)\.$/);
+  assert.deepEqual(out.map(l => l.bad), [false, false], 'nothing is flagged');
+  assert.equal(out.length, 2, 'not signed in: no Google line');
+  assert.equal(p.calls.filter(c => c.type === 'accountFetch').length, 0);
+  assert.equal(p.get('checkBackups').disabled, false);
+});
+
+test('Check my backups: a Chrome profile copy that is behind names exactly the settings that differ', async () => {
+  const data = { ratePace: 'fast', sortCount: 250, allergens: ['milk'], panelOpen: true };
+  const stale = backupOf({}, { ratePace: 'fast', allergens: ['milk'] });   // saved before sortCount and panelOpen changed
+  const p = page({ initial: data, readSync: () => stale });
+  p.run('wireBackup()');
+  await tick();
+  await p.get('checkBackups').click();
+  const chrome = lines(p)[1];
+  assert.equal(chrome.bad, true);
+  assert.match(chrome.text, /^Chrome profile backup: 2 of \d+ settings differ: .*panelOpen.*sortCount|sortCount.*panelOpen/);
+  assert.ok(!chrome.text.includes('ratePace') && !chrome.text.includes('allergens'), 'matching settings are not named');
+});
+
+test('Check my backups: no backup yet, still syncing and unreadable are each said plainly', async () => {
+  for (const [got, expect] of [[{ ok: false, reason: 'no-backup' }, /nothing saved yet/], [{ ok: false, reason: 'incomplete-backup' }, /still syncing/], [{ ok: false, reason: 'invalid-backup' }, /could not be read/]]) {
+    const p = page({ readSync: () => got });
+    p.run('wireBackup()');
+    await tick();
+    await p.get('checkBackups').click();
+    const l = lines(p)[1];
+    assert.match(l.text, expect);
+    assert.equal(l.bad, true);
+  }
+});
+
+test('Check my backups: when signed in it also fetches and compares the Google copy, without applying it', async () => {
+  const data = { ratePace: 'fast', googleProfile: { ...ann, at: 1 } };
+  const copy = backupOf(data);
+  const p = page({ initial: data, result: copy, readSync: () => backupOf(data) });
+  p.run('wireBackup()');
+  await tick(); await tick();
+  await p.get('checkBackups').click();
+  const out = lines(p);
+  assert.equal(out.length, 3);
+  assert.match(out[2].text, /^Google copy: all \d+ settings match/);
+  assert.equal(out[2].bad, false);
+  const fetched = p.calls.filter(c => c.type === 'accountFetch');
+  assert.equal(fetched.length, 1);
+  assert.equal(fetched[0].token.length, 30, 'a token is used for this one request');
+  assert.equal(p.calls.filter(c => c.type === 'accountLoad').length, 0, 'checking never restores');
+  assert.equal(p.reloads(), 0);
+});
+
+test('Check my backups: a Google copy that is behind is named, and a failed sign-in is reported', async () => {
+  const data = { ratePace: 'fast', hoverScore: true, googleProfile: { ...ann, at: 1 } };
+  const behind = page({ initial: data, result: backupOf({}, { ratePace: 'fast' }), readSync: () => backupOf(data) });
+  behind.run('wireBackup()');
+  await tick(); await tick();
+  await behind.get('checkBackups').click();
+  const g = lines(behind)[2];
+  assert.equal(g.bad, true);
+  assert.match(g.text, /^Google copy: 1 of \d+ settings differ: hoverScore\.$/);
+
+  const none = page({ initial: data, result: { ok: false, reason: 'no-backup' }, readSync: () => backupOf(data) });
+  none.run('wireBackup()');
+  await tick(); await tick();
+  await none.get('checkBackups').click();
+  assert.match(lines(none)[2].text, /^Google copy: nothing saved yet\.$/);
+
+  const refused = page({ initial: data, readSync: () => backupOf(data) });
+  refused.context.AIR.googleAuth.token = async () => { throw new Error('cancelled'); };
+  refused.run('wireBackup()');
+  await tick(); await tick();
+  await refused.get('checkBackups').click();
+  assert.match(lines(refused)[2].text, /^Google copy: sign-in did not complete\.$/);
+  assert.equal(refused.get('checkBackups').disabled, false, 'the button is usable again');
+});
+
+test('Check my backups: running it twice replaces the report instead of stacking it', async () => {
+  const p = page({ readSync: () => backupOf({}) });
+  p.run('wireBackup()');
+  await tick();
+  await p.get('checkBackups').click();
+  const first = lines(p).length;
+  await p.get('checkBackups').click();
+  assert.equal(lines(p).length, first);
+});
+
+// ---------------------------------------------------------------- automatic Google saving: what the page says
+test('the Google status line says when automatic saving starts, when it last ran, and when it has paused', async () => {
+  const status = async initial => {
+    const p = page({ initial: { googleProfile: { ...ann, at: 1 }, ...initial } });
+    p.run('wireAccount()');
+    await tick();
+    return p.get('googleSaveStatus');
+  };
+  assert.match((await status({})).textContent, /starts after you first save to, or restore from/);
+  assert.match((await status({ googleLinked: true })).textContent, /Automatic saving is on/);
+  const ok = await status({ googleLinked: true, googleBackupStatus: { ok: true, t: Date.UTC(2026, 9, 5, 1, 0) } });
+  assert.match(ok.textContent, /^Last saved to Google /);
+  assert.equal(ok.className, 'status');
+  const paused = await status({ googleLinked: true, googleBackupStatus: { ok: false, t: 1, reason: 'needs-sign-in' } });
+  assert.match(paused.textContent, /paused.*sign in again.*Save my settings to Google/);
+  assert.equal(paused.className, 'status error');
+  const failed = await status({ googleLinked: true, googleBackupStatus: { ok: false, t: 1, reason: 'network' } });
+  assert.match(failed.textContent, /Could not save to Google .*\(network\)/);
+});
+
+test('the status line follows the worker: a new result repaints it, and signing out clears the link', async () => {
+  const p = page({ initial: { googleProfile: { ...ann, at: 1 }, googleLinked: true } });
+  p.run('wireAccount()');
+  await tick();
+  const listener = p.changed[p.changed.length - 1];
+  p.data.googleBackupStatus = { ok: true, t: Date.UTC(2026, 9, 5, 2, 0) };
+  listener({ googleBackupStatus: { newValue: p.data.googleBackupStatus } }, 'local');
+  await tick();
+  assert.match(p.get('googleSaveStatus').textContent, /^Last saved to Google /);
+  p.get('googleSignOut').click();
+  await tick();
+  for (const key of ['googleProfile', 'googleLinked', 'googleBackupStatus']) assert.equal(p.data[key], undefined, `${key} is cleared`);
+});
+
+// ---------------------------------------------------------------- keyboard shortcuts on the settings page
+function shortcutsPage(commands) {
+  const p = page({}, true);
+  const c = p.context;
+  const made = [];
+  c.document.createElement = tag => { const el = { tag, textContent: '', children: [], append(...kids) { this.children.push(...kids); } }; made.push(el); return el; };
+  c.document.createTextNode = text => ({ text });
+  const created = [];
+  c.chrome.tabs.create = async o => { created.push(o.url); };
+  c.chrome.commands = { getAll: cb => cb(commands()) };
+  p.run('wireShortcuts()');
+  const rows = () => p.get('shortcutList').children.map(li => ({
+    label: li.children[0].textContent,
+    key: li.children[2] && li.children[2].tag === 'kbd' ? li.children[2].textContent : (li.children[2] || {}).text }));
+  return { p, rows, created };
+}
+
+test('shortcuts: the settings page shows the keys Chrome has assigned, and "not set" for an empty one', () => {
+  const { rows } = shortcutsPage(() => [
+    { name: '_execute_action', shortcut: '' },
+    { name: 'sort-health', shortcut: 'Alt+Shift+H' },
+    { name: 'sort-price', shortcut: '' },
+  ]);
+  assert.deepEqual(rows(), [
+    { label: 'Sort by Ingredient Check score', key: 'Alt+Shift+H' },
+    { label: 'Sort by price per ounce', key: 'not set' },
+  ]);
+});
+
+test('shortcuts: coming back from chrome://extensions/shortcuts repaints the list, and the button opens that page', () => {
+  let assigned = '';
+  const { p, rows, created } = shortcutsPage(() => [{ name: 'sort-health', shortcut: 'Alt+Shift+H' }, { name: 'sort-price', shortcut: assigned }]);
+  assert.equal(rows()[1].key, 'not set');
+  assigned = 'Ctrl+Shift+P';
+  p.context.window.focus();
+  assert.equal(rows()[1].key, 'Ctrl+Shift+P', 'the new key shows when the reader returns to the tab');
+  assert.equal(rows().length, 2, 'repainting replaces the rows');
+  p.get('changeShortcuts').click();
+  assert.deepEqual(created, ['chrome://extensions/shortcuts']);
+});
+
+test('shortcuts: a browser without the commands API leaves the page working', () => {
+  const p = page({}, true);
+  delete p.context.chrome.commands;
+  assert.doesNotThrow(() => p.run('wireShortcuts()'));
+});
+
+test('Check my backups: a database that does not answer is reported, not silently skipped', async () => {
+  const data = { googleProfile: { ...ann, at: 1 } };
+  const p = page({ initial: data, readSync: () => backupOf(data) });
+  p.context.chrome.runtime.sendMessage = async () => undefined;
+  p.run('wireBackup()');
+  await tick(); await tick();
+  await p.get('checkBackups').click();
+  const out = lines(p);
+  assert.equal(out.length, 3);
+  assert.match(out[2].text, /^Google copy: could not be read\.$/);
+  assert.equal(out[2].bad, true);
+});
+
+test('the automatic-saving switch lives with the signed-in controls, so it is not offered before signing in', () => {
+  const html = fs.readFileSync('src/options/options.html', 'utf8');
+  const signedIn = html.slice(html.indexOf('id="accountSignedIn"'), html.indexOf('id="accountStatus"'));
+  for (const id of ['googleAutoSave', 'googleSaveStatus', 'accountSave', 'accountLoad']) assert.ok(signedIn.includes(`id="${id}"`), `${id} is inside the signed-in block`);
+  const signedOut = html.slice(html.indexOf('id="accountSignedOut"'), html.indexOf('id="accountSignedIn"'));
+  assert.ok(signedOut.includes('id="accountSignIn"') && !signedOut.includes('googleAutoSave'));
 });

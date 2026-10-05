@@ -41,6 +41,18 @@
   "optional_host_permissions": [
     "https://world.openfoodfacts.org/*"
   ],
+  "commands": {
+    "sort-health": {
+      "suggested_key": {
+        "default": "Alt+Shift+H",
+        "mac": "Alt+Shift+H"
+      },
+      "description": "__MSG_cmdSortHealth__"
+    },
+    "sort-price": {
+      "description": "__MSG_cmdSortPrice__"
+    }
+  },
   "action": {
     "default_popup": "src/options/popup.html",
     "default_title": "__MSG_appName__",

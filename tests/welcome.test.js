@@ -8,6 +8,7 @@ require('../src/engine/db/allergens.js');
 require('../src/engine/categories.js');
 const prefs = require('../src/engine/db/prefs.js');
 function setup(initial = {}, permission = true, auth = {}) {
+  let keydown = null;
   const elements = new Map();
   function element() {
     return { value: '', checked: false, disabled: false, hidden: false, dataset: {}, children: [],
@@ -23,13 +24,22 @@ function setup(initial = {}, permission = true, auth = {}) {
   const backups = [];
   const air = { ...globalThis.AIR, googleAuth: { token: async () => { if (auth.pending) await auth.pending; if (auth.error) throw new Error(auth.error); return 'ephemeral-access-token'; } } };
   const context = vm.createContext({ AIR: air, console, location: { reload() { auth.reloaded = true; } },
-    document: { getElementById: get, querySelectorAll: () => [], querySelector: () => element(), createElement: element },
+    document: { getElementById: get, querySelectorAll: () => [], querySelector: () => element(), createElement: element,
+      addEventListener(type, fn) { if (type === 'keydown') keydown = fn; } },
     chrome: { identity: { getRedirectURL: () => 'https://test.chromiumapp.org/' }, runtime: { getURL: p => p, async sendMessage(message) { backups.push({ ...message, onboarded: data.onboarded }); if (auth.backupPending) await auth.backupPending; if (auth.backupError) throw new Error('offline'); return { ok: auth.backup !== false }; } }, i18n: { getMessage: () => '' }, tabs: { create() {}, getCurrent(cb) { cb({ id: 7 }); }, remove(id) { auth.closedTab = id; } },
       permissions: { request(_p, cb) { requests++; cb(auth.permission === undefined ? permission : auth.permission); }, remove(_p, cb) { cb(); } },
       storage: { local: { get(_keys, cb) { if (auth.initialReadError) context.chrome.runtime.lastError = { message: 'unavailable' }; cb(data); delete context.chrome.runtime.lastError; }, set(values, cb) { if (!auth.saveError) Object.assign(data, values); if (auth.saveError) context.chrome.runtime.lastError = { message: 'storage quota' }; cb(); delete context.chrome.runtime.lastError; } } } },
   });
   vm.runInContext(fs.readFileSync('src/options/welcome.js', 'utf8'), context);
-  return { get, data, context, backups, requests: () => requests, finish: () => vm.runInContext('finish()', context) };
+  // A key press: returns whether the page took it (preventDefault) so a test can tell "handled" from "left alone".
+  const key = (k, over = {}) => {
+    let taken = false;
+    keydown({ key: k, target: { tagName: 'BODY' }, preventDefault() { taken = true; }, ...over });
+    return taken;
+  };
+  return { get, data, context, backups, requests: () => requests, finish: () => vm.runInContext('finish()', context), key,
+    at: () => vm.runInContext('plan()[step]', context), level: () => vm.runInContext('picked.level', context),
+    steps: () => vm.runInContext('plan()', context) };
 }
 test('setup recommendations start checked and preserve existing opt-outs', () => {
   const fresh = setup();
@@ -223,4 +233,120 @@ test('setup startup storage failure cannot replace existing choices with default
   assert.equal(s.requests(), 0);
   s.get('next').click();
   assert.equal(auth.reloaded, true);
+});
+
+// ---------------------------------------------------------------- the keyboard
+// Setup can be done without the mouse; the shortcuts are listed on the page.
+const pageEl = s => s.get('keys');
+
+test('keyboard: Enter moves through every step to Finish, saving the same choices a click would', async () => {
+  const s = setup({}, true, {});
+  assert.equal(s.at(), 'level');
+  const seen = [s.at()];
+  for (let i = 0; i < 10 && s.at() !== 'done'; i++) {
+    const took = s.key('Enter');
+    assert.equal(took, true, `Enter is handled on ${s.at()}`);
+    await new Promise(r => setImmediate(r));
+    await new Promise(r => setImmediate(r));
+    seen.push(s.at());
+  }
+  assert.deepEqual(seen.slice(0, 5), ['level', 'goals', 'warn', 'avoid', 'options']);
+  assert.equal(s.data.onboarded, true);
+  assert.equal(s.data.settingsLevel, 'standard');
+});
+
+test('keyboard: B goes back, and does nothing on the first step', () => {
+  const s = setup();
+  assert.equal(s.key('b'), false, 'nothing to go back to');
+  s.key('Enter'); s.key('Enter');
+  assert.equal(s.at(), 'warn');
+  assert.equal(s.key('b'), true);
+  assert.equal(s.at(), 'goals');
+  assert.equal(s.key('B', { shiftKey: true }), false, 'Shift+B is not a shortcut');
+});
+
+test('keyboard: Shift+S skips setup; a plain S never does', async () => {
+  const s = setup();
+  assert.equal(s.key('s'), false);
+  assert.equal(s.data.onboarded, undefined, 'a stray S did not skip');
+  assert.equal(s.key('S', { shiftKey: true }), true);
+  await new Promise(r => setImmediate(r));
+  await new Promise(r => setImmediate(r));
+  assert.equal(s.data.onboarded, true);
+  assert.equal(s.data.settingsLevel, 'standard', 'skipping still records the level');
+});
+
+test('keyboard: 1 to 5 pick the level, and the steps that follow change with it', () => {
+  const s = setup();
+  const expected = { 1: ['level', 'goals', 'warn'], 2: ['level', 'goals', 'warn', 'avoid'], 3: ['level', 'goals', 'warn', 'avoid', 'options', 'google'] };
+  for (const [n, steps] of Object.entries(expected)) {
+    assert.equal(s.key(n), true);
+    assert.deepEqual([...s.steps()], steps, `key ${n}`);
+  }
+  s.key('4'); s.key('5');
+  assert.equal(s.level(), 'expert');
+  s.key('1');
+  assert.equal(s.level(), 'minimal');
+  assert.equal(s.key('6'), false);
+  assert.equal(s.key('0'), false);
+  s.key('Enter');
+  assert.equal(s.key('3'), false, 'the number keys only mean something on the level step');
+  assert.equal(s.level(), 'minimal');
+});
+
+test('keyboard: Enter is left alone where it already means something, and Ctrl/Cmd+Enter always moves on', () => {
+  const s = setup();
+  for (const tagName of ['BUTTON', 'A', 'SUMMARY', 'TEXTAREA', 'SELECT']) {
+    assert.equal(s.key('Enter', { target: { tagName } }), false, `${tagName} keeps its own Enter`);
+  }
+  assert.equal(s.key('Enter', { target: { tagName: 'INPUT', type: 'text' } }), false);
+  assert.equal(s.at(), 'level', 'none of those moved on');
+  assert.equal(s.key('Enter', { target: { tagName: 'INPUT', type: 'radio' } }), true, 'a radio button has no Enter of its own');
+  assert.equal(s.at(), 'goals');
+  assert.equal(s.key('Enter', { target: { tagName: 'INPUT', type: 'checkbox' } }), true);
+  assert.equal(s.at(), 'warn');
+  assert.equal(s.key('Enter', { ctrlKey: true, target: { tagName: 'TEXTAREA' } }), true);
+  assert.equal(s.at(), 'avoid');
+  assert.equal(s.key('Enter', { metaKey: true, target: { tagName: 'TEXTAREA' } }), true);
+  assert.equal(s.at(), 'options');
+});
+
+test('keyboard: on a choice chip Space toggles (the browser does that) and Enter moves on instead of toggling again', () => {
+  const s = setup();
+  s.key('Enter');
+  const chipTarget = { tagName: 'BUTTON', classList: { contains: c => c === 'chip' } };
+  assert.equal(s.key('Enter', { target: chipTarget }), true, 'taken, so the chip does not also toggle');
+  assert.equal(s.at(), 'warn');
+  const footerButton = { tagName: 'BUTTON', classList: { contains: () => false } };
+  assert.equal(s.key('Enter', { target: footerButton }), false, 'the footer buttons keep their own Enter');
+  assert.equal(s.at(), 'warn');
+});
+
+test('keyboard: single-letter and number keys are ignored while typing, and with Ctrl, Cmd or Alt held', () => {
+  const s = setup();
+  s.key('Enter'); s.key('Enter'); s.key('Enter');
+  const at = s.at();
+  assert.equal(at, 'avoid');
+  for (const k of ['b', 'S', '1']) assert.equal(s.key(k, { target: { tagName: 'TEXTAREA' }, shiftKey: k === 'S' }), false, `${k} in the avoid box`);
+  for (const over of [{ ctrlKey: true }, { metaKey: true }, { altKey: true }]) assert.equal(s.key('b', over), false, JSON.stringify(over));
+  assert.equal(s.key('Enter', { altKey: true }), false, 'Alt+Enter is the browser\'s, not ours');
+  assert.equal(s.at(), at, 'nothing moved');
+});
+
+test('keyboard: a key another handler already took is left alone', () => {
+  const s = setup();
+  assert.equal(s.key('Enter', { defaultPrevented: true }), false);
+  assert.equal(s.at(), 'level');
+});
+
+test('keyboard: the buttons announce their shortcuts and the page lists them', () => {
+  const s = setup();
+  assert.equal(s.get('next').attributes['aria-keyshortcuts'], 'Enter');
+  assert.equal(s.get('back').attributes['aria-keyshortcuts'], 'B');
+  assert.equal(s.get('skip').attributes['aria-keyshortcuts'], 'Shift+S');
+  const html = fs.readFileSync('src/options/welcome.html', 'utf8');
+  for (const shown of ['<kbd>Enter</kbd>', '<kbd>B</kbd>', '<kbd>Shift</kbd>+<kbd>S</kbd>', '<kbd>1</kbd>–<kbd>5</kbd>', '<kbd>Tab</kbd>', '<kbd>Space</kbd>']) {
+    assert.ok(html.includes(shown), `${shown} is shown on the page`);
+  }
+  assert.ok(pageEl(s));
 });

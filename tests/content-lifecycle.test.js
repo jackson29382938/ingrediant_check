@@ -856,3 +856,72 @@ test('saved Amazon ingredients use newly published nutrition and allergy warning
   assert.equal(updated.data.nutrition.sodium, 900);
   assert.equal(w.messages.some(m => m.type === 'productsQueue'), false, 'local refresh does not upload a mixed-age reading');
 });
+
+// ---------------------------------------------------------------- keyboard shortcut reaches the page (sort.js)
+// The worker (background.js sortFromCommand) opens the panel and tells this page to start gathering.
+function mountedSort({ enabled = true } = {}) {
+  const w = sortSetup();
+  const c = w.context;
+  w.listener = null;
+  w.updates = [];
+  c.chrome.runtime.id = 'ext';
+  c.chrome.runtime.onMessage = { addListener: fn => { w.listener = fn; } };
+  const send = c.chrome.runtime.sendMessage;
+  c.chrome.runtime.sendMessage = (m, cb) => { if (m.type === 'updateSortedResults') w.updates.push(m); return send(m, cb); };
+  c.window = c.window || {};
+  c.window.addEventListener = c.window.addEventListener || (() => {});
+  c.MutationObserver = class { observe() {} disconnect() {} };
+  w.h.state.enabled = enabled;
+  w.sort.mount();
+  w.ask = (msg, sender = { id: 'ext' }) => {
+    let answer;
+    const kept = w.listener(msg, sender, a => { answer = a; });
+    return { answer, kept };
+  };
+  return w;
+}
+const flushAll = async () => { for (let i = 0; i < 30; i++) await new Promise(r => setImmediate(r)); };
+
+test('shortcut: the page starts gathering for the list the worker made, and answers that it did', async () => {
+  const w = mountedSort();
+  assert.equal(typeof w.listener, 'function', 'a mounted page listens for the worker');
+  const { answer } = w.ask({ type: 'sortStart', mode: 'health', runId: 'abc-123' });
+  assert.deepEqual(JSON.parse(JSON.stringify(answer)), { ok: true });
+  assert.equal(w.sort.runId, 'abc-123');
+  await flushAll();
+  assert.ok(w.updates.length >= 1, 'it published to that list');
+  assert.ok(w.updates.every(u => u.runId === 'abc-123'));
+});
+
+test('shortcut: only this extension\'s worker may start a list, and only with a plain run id', async () => {
+  const w = mountedSort();
+  for (const [msg, sender] of [
+    [{ type: 'sortStart', mode: 'health', runId: 'abc-123' }, { id: 'ext', tab: { id: 9 } }],      // another page's script
+    [{ type: 'sortStart', mode: 'health', runId: 'abc-123' }, { id: 'other-extension' }],
+    [{ type: 'sortStart', mode: 'health', runId: 'abc-123' }, null],
+    [{ type: 'sortStart', mode: 'health', runId: '"><script>' }, { id: 'ext' }],
+    [{ type: 'sortStart', mode: 'health', runId: 'x'.repeat(200) }, { id: 'ext' }],
+    [{ type: 'sortStart', mode: 'health' }, { id: 'ext' }],
+    [{ type: 'sortStart', mode: 'health', runId: 12345 }, { id: 'ext' }],
+  ]) {
+    const { answer } = w.ask(msg, sender);
+    assert.deepEqual(JSON.parse(JSON.stringify(answer)), { ok: false }, JSON.stringify([msg.runId, sender]));
+  }
+  await flushAll();
+  assert.equal(w.updates.length, 0, 'nothing was gathered or published');
+  assert.notEqual(w.sort.runId, 'abc-123');
+});
+
+test('shortcut: a page where Ingredient Check stands down does not answer, so the worker can say why', () => {
+  const w = mountedSort({ enabled: false });
+  assert.equal(w.listener, null, 'switched off: no listener, so the worker\'s message gets no answer');
+});
+
+test('shortcut: a second key press supersedes the first list', async () => {
+  const w = mountedSort();
+  w.ask({ type: 'sortStart', mode: 'health', runId: 'first-1' });
+  w.ask({ type: 'sortStart', mode: 'unitPrice', runId: 'second-2' });
+  assert.equal(w.sort.runId, 'second-2');
+  await flushAll();
+  assert.ok(w.updates.some(u => u.runId === 'second-2'));
+});

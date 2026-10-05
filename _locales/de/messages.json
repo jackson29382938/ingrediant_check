@@ -1511,5 +1511,74 @@
   },
   "optSortRememberD": {
     "message": "In der sortierten Liste öffnen die Prioritäts-Regler so, wie du sie zuletzt eingestellt hast, getrennt für die Optionen Bewertung und Preis pro Unze in Amazons Menü. Aus: Jede Liste beginnt mit dem Standard der gewählten Option."
+  },
+  "cmdSortHealth": {
+    "message": "Diese Amazon-Suche nach Ingredient-Check-Bewertung sortieren"
+  },
+  "cmdSortPrice": {
+    "message": "Diese Amazon-Suche nach Preis pro Unze sortieren"
+  },
+  "sortUnitOff": {
+    "message": "Preis pro Unze ist in den Ingredient-Check-Einstellungen ausgeschaltet."
+  },
+  "sortNotHere": {
+    "message": "Ingredient Check sortiert diese Seite nicht: Es ist ausgeschaltet, oder dies ist keine Lebensmittelsuche in einem unterstützten Amazon-Shop."
+  },
+  "welKeysAria": {
+    "message": "Tastaturkürzel"
+  },
+  "welKeysH": {
+    "message": "Tastatur"
+  },
+  "welKeyNext": {
+    "message": "weiter"
+  },
+  "welKeyBack": {
+    "message": "zurück"
+  },
+  "welKeySkip": {
+    "message": "Einrichtung überspringen"
+  },
+  "welKeyLevel": {
+    "message": "Umfang wählen"
+  },
+  "welKeyArrows": {
+    "message": "zwischen Umfängen wechseln"
+  },
+  "welKeyTab": {
+    "message": "zur nächsten Auswahl"
+  },
+  "welKeySpace": {
+    "message": "Auswahl an- oder ausschalten"
+  },
+  "welKeyBox": {
+    "message": "weiter, auch aus einem Textfeld"
+  },
+  "optShortcutH": {
+    "message": "Tastaturkürzel"
+  },
+  "optShortcutD": {
+    "message": "Öffne auf einer Amazon-Suchergebnisseite die sortierte Liste ohne Maus. Das sind die Erweiterungs-Kürzel von Chrome; du kannst sie ändern oder löschen."
+  },
+  "optShortcutChange": {
+    "message": "Kürzel ändern"
+  },
+  "optShortcutHealth": {
+    "message": "Nach Ingredient-Check-Bewertung sortieren"
+  },
+  "optShortcutPrice": {
+    "message": "Nach Preis pro Unze sortieren"
+  },
+  "optShortcutNone": {
+    "message": "nicht festgelegt"
+  },
+  "optGoogleAuto": {
+    "message": "Meine Google-Kopie automatisch aktuell halten"
+  },
+  "optGoogleAutoD": {
+    "message": "Speichert jede Änderung der Einstellungen wenige Sekunden später in deinem Google-Konto. Das beginnt, sobald dieser Computer einmal in dein Konto gespeichert oder daraus wiederhergestellt hat, damit ein neuer Computer deine gespeicherte Kopie nicht mit seinen Standardwerten überschreibt."
+  },
+  "optCheckBackups": {
+    "message": "Meine Sicherungen prüfen"
   }
 }

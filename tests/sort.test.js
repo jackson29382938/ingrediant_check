@@ -203,11 +203,13 @@ test('the list keeps price per ounce, rating and reviews, bounded', () => {
 });
 
 // ------------------------------------------------------------------ worker
-function worker({ panelFails = false, local = {} } = {}) {
+function worker({ panelFails = false, local = {}, answer = 'ok' } = {}) {
   const session = {};
   const created = [];
   const calls = [];
+  const sent = [];
   let onMessage = null;
+  let onCommand = null;
   const event = { addListener() {} };
   const sandbox = {
     console, URL, URLSearchParams, AbortSignal, AbortController, setTimeout, clearTimeout, Promise,
@@ -218,7 +220,13 @@ function worker({ panelFails = false, local = {} } = {}) {
         onMessage: { addListener(fn) { onMessage = fn; } }, onStartup: event, onInstalled: event },
       alarms: { create() {}, get: (n, cb) => cb({}), onAlarm: event },
       action: { setBadgeText() {}, setBadgeBackgroundColor() {} },
-      tabs: { create: async o => { created.push(o.url); return { id: 9 }; } },
+      tabs: { create: async o => { created.push(o.url); return { id: 9 }; },
+        sendMessage: async (id, m) => {
+          sent.push([id, m]);
+          if (answer === 'throw') throw new Error('Could not establish connection. Receiving end does not exist.');
+          return answer === 'ok' ? { ok: true } : undefined;
+        } },
+      commands: { onCommand: { addListener(fn) { onCommand = fn; } } },
       sidePanel: { open: o => { calls.push(['sidePanel.open', o.tabId]); return panelFails ? Promise.reject(new Error('user gesture')) : Promise.resolve(); } },
       storage: {
         onChanged: { addListener() {} },
@@ -234,7 +242,10 @@ function worker({ panelFails = false, local = {} } = {}) {
   sandbox.self = sandbox;
   const context = vm.createContext(sandbox);
   loadWorker(vm, context);   // exactly the scripts the worker imports (tests/worker-scripts.js)
-  return { session, created, calls, call: e => vm.runInContext(e, context),
+  return { session, created, calls, sent, call: e => vm.runInContext(e, context),
+    // A key press: the browser hands the command and the tab; what runs first is recorded in `calls`.
+    command: (name, tab) => { onCommand(name, tab); return new Promise(r => setImmediate(r)).then(() => new Promise(r => setImmediate(r))).then(() => new Promise(r => setImmediate(r))); },
+    hasCommandListener: () => typeof onCommand === 'function',
     // Returns the synchronous calls made before the listener returned, then the reply.
     send: (msg, sender) => {
       let sync;
@@ -308,6 +319,110 @@ test('priorities are kept per menu option, bounded, and unknown options dropped'
   assert.equal(clean.health.health, 10);
   assert.equal(clean.health.price, 0);
   assert.deepEqual(R.sanitizePriorities(null), { sortPriorities: {} });
+});
+
+// ------------------------------------------------------------------ keyboard shortcuts
+const searchTab = { id: 3, windowId: 1, url: 'https://www.amazon.com/s?k=oats' };
+const nextTick = async () => { for (let i = 0; i < 12; i++) await new Promise(r => setImmediate(r)); };
+
+test('shortcut: the worker listens for the two commands the manifest declares', () => {
+  const manifest = require('../manifest.json');
+  assert.deepEqual(Object.keys(manifest.commands).sort(), ['sort-health', 'sort-price']);
+  assert.ok(manifest.commands['sort-health'].suggested_key.default, 'the health sort has a default key');
+  assert.ok(!manifest.commands['sort-price'].suggested_key, 'price per ounce has no default key, so it cannot collide with another extension');
+  assert.ok(worker().hasCommandListener(), 'chrome.commands.onCommand is wired');
+});
+
+test('shortcut: the health sort opens the side panel first, then tells the page to start gathering', async () => {
+  const w = worker();
+  await w.command('sort-health', searchTab);
+  await nextTick();
+  assert.deepEqual(w.calls[0], ['sidePanel.open', 3], 'sidePanel.open is the very first call, while the key press still counts');
+  const list = w.session.sortedResults;
+  assert.equal(list.mode, 'health');
+  assert.equal(list.loading, true);
+  assert.equal(list.sourceTabId, 3);
+  assert.equal(list.sourceUrl, 'https://www.amazon.com/s?k=oats');
+  assert.deepEqual(w.sent.map(([id, m]) => [id, m.type, m.mode, m.runId]), [[3, 'sortStart', 'health', list.runId]]);
+  assert.deepEqual(w.session.sortWeights, R.presetFor('health'));
+});
+
+test('shortcut: the price shortcut sorts by price per ounce', async () => {
+  const w = worker();
+  await w.command('sort-price', searchTab);
+  await nextTick();
+  assert.equal(w.session.sortedResults.mode, 'unitPrice');
+  assert.deepEqual(w.session.sortWeights, R.presetFor('unitPrice'));
+  assert.equal(w.sent[0][1].mode, 'unitPrice');
+});
+
+test('shortcut: it does nothing off Amazon search pages, and ignores commands it does not know', async () => {
+  const w = worker();
+  for (const url of ['https://www.amazon.com/dp/B000000001', 'https://www.target.com/s?searchTerm=oats', 'https://example.com/s?k=oats',
+    'https://www.amazon.com.evil.example/s?k=oats', 'chrome://extensions', '']) {
+    await w.command('sort-health', { id: 3, url });
+  }
+  await w.command('something-else', searchTab);
+  await w.command('sort-health', undefined);
+  await w.command('sort-health', { url: searchTab.url });
+  await nextTick();
+  assert.deepEqual(w.calls, [], 'no side panel was opened');
+  assert.deepEqual(w.sent, []);
+  assert.equal(w.session.sortedResults, undefined);
+  await w.command('sort-health', { id: 4, url: 'https://www.amazon.de/s?k=hafer' });
+  await w.command('sort-health', { id: 5, url: 'https://www.amazon.co.uk/b/?node=123&k=oats' });
+  await nextTick();
+  assert.equal(w.calls.filter(c => c[0] === 'sidePanel.open').length, 2, 'other Amazon stores work, including a search carrying only k=');
+});
+
+test('shortcut: with nobody to answer on the page, the panel says why instead of staying on "loading"', async () => {
+  for (const answer of ['throw', 'none', 'no']) {
+    const w = worker({ answer });
+    await w.command('sort-health', searchTab);
+    await nextTick();
+    const list = w.session.sortedResults;
+    assert.equal(list.loading, false, `${answer}: not left loading`);
+    assert.match(list.status, /not sorting this page/);
+  }
+});
+
+test('shortcut: price per ounce switched off says so and sends nothing to the page', async () => {
+  const w = worker({ local: { unitPrice: false } });
+  await w.command('sort-price', searchTab);
+  await nextTick();
+  assert.equal(w.sent.length, 0);
+  assert.equal(w.session.sortedResults.loading, false);
+  assert.match(w.session.sortedResults.status, /switched off/);
+  const health = worker({ local: { unitPrice: false } });
+  await health.command('sort-health', searchTab);
+  await nextTick();
+  assert.equal(health.sent.length, 1, 'the health sort does not depend on price per ounce');
+});
+
+test('shortcut: no side panel (older Chrome) opens the list in a tab and still starts gathering', async () => {
+  const w = worker({ panelFails: true });
+  await w.command('sort-health', searchTab);
+  await nextTick();
+  assert.deepEqual(w.created, ['chrome-extension://ext/src/options/sorted.html']);
+  assert.equal(w.sent.length, 1);
+});
+
+test('shortcut: it starts from the priorities the reader last set for that option, like the menu', async () => {
+  const mine = { health: 1, unitPrice: 9, price: 0, rating: 0, reviews: 0 };
+  const w = worker({ local: { sortPriorities: { unitPrice: mine } } });
+  await w.command('sort-price', searchTab);
+  await nextTick();
+  assert.deepEqual(w.session.sortWeights, mine);
+});
+
+test('shortcut: pressing it twice starts a newer list; only the newest run id is told to the page', async () => {
+  const w = worker();
+  await w.command('sort-health', searchTab);
+  await w.command('sort-health', searchTab);
+  await nextTick();
+  assert.equal(w.sent.length, 2);
+  assert.notEqual(w.sent[0][1].runId, w.sent[1][1].runId);
+  assert.equal(w.session.sortedResults.runId, w.sent[1][1].runId);
 });
 
 test('no side panel: the reply says so and the content script opens a tab instead', async () => {

@@ -22,7 +22,7 @@ var PAGE_MESSAGE_TYPES = new Set([
 // message, so neither is affected. tests/sanity.test.js fails if another page starts sending one.
 var SETTINGS_MESSAGE_TYPES = new Set([
   'flushDiagnostics', 'diagnosticsStatus', 'refreshSheet',
-  'accountSave', 'accountLoad',
+  'accountSave', 'accountLoad', 'accountFetch',
 ]);
 var OFFSCREEN_MESSAGE_TYPES = new Set(['ocrIdle']);
 var AMAZON_HOST = /(^|\.)amazon\.(com|co\.uk|ca|com\.au|ie|in|sg|ae|sa|de|fr|es|it|nl|se|pl|com\.be|com\.tr|com\.mx|com\.br|co\.jp)$/i;

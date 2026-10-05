@@ -230,14 +230,29 @@
         P().logAction?.('Amazon sort menu', `side panel did not open (${reply.reason || 'unknown'}); opened a tab`);
         send({ type: 'openSortedTab' });
       }
-      try {
-        await collect(token);
-      } catch (e) {
-        // Never leave the panel on "Reading Amazon listings…": say what went wrong.
-        publish(token, [], false, t('sortFailed', 'Could not read this results page ($1). Refresh the Amazon page and choose the option again.',
-          String((e && e.message) || e).slice(0, 120)), true);
-      }
+      await gather(token);
     });
+  }
+
+  // Never leave the panel on "Reading Amazon listings…": say what went wrong.
+  async function gather(token) {
+    try {
+      await collect(token);
+    } catch (e) {
+      publish(token, [], false, t('sortFailed', 'Could not read this results page ($1). Refresh the Amazon page and choose the option again.',
+        String((e && e.message) || e).slice(0, 120)), true);
+    }
+  }
+
+  // The keyboard shortcut (background.js sortFromCommand) has already opened the panel and made the
+  // list; this starts gathering for it, as a click in the menu would.
+  function startFromCommand(msg) {
+    for (const c of controllers) c.abort();
+    controllers.clear();
+    const token = ++run;
+    runId = msg.runId;
+    P().logAction?.('keyboard shortcut', `sorted ${msg.mode === 'unitPrice' ? 'by price per ounce' : 'by Ingredient Check score'} on ${location.pathname}`);
+    return gather(token);
   }
 
   // ------------------------------------------------------------------ listings
@@ -592,7 +607,15 @@
   }
 
   // The panel's Stop button (sorted.js) asks this tab directly.
-  function onPanelMessage(msg, sender) {
+  function onPanelMessage(msg, sender, respond) {
+    if (msg && msg.type === 'sortStart') {
+      // From this extension's worker only, for a page this extension is sorting.
+      const own = sender && sender.id === chrome.runtime.id && !sender.tab;
+      const ok = !!own && mounted && typeof msg.runId === 'string' && /^[\w-]{1,64}$/.test(msg.runId);
+      if (typeof respond === 'function') respond({ ok });
+      if (ok) startFromCommand({ mode: msg.mode === 'unitPrice' ? 'unitPrice' : 'health', runId: msg.runId });
+      return false;
+    }
     if (!msg || msg.type !== 'sortStop') return false;
     let fromList = false;
     try {

@@ -32,6 +32,12 @@
   .hint-chip:hover { background: #eef0f0; }
   .hint-chip[hidden] { display: none; }
   .lvl-hidden { display: none !important; }
+  kbd { font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 3px 7px; border-radius: 5px;
+        border: 1px solid #d5d9d9; border-bottom-width: 2px; background: #fff; }
+  #backupCheck { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+  #backupCheck li::before { content: "✓ "; color: #0f7b3f; font-weight: 700; }
+  #backupCheck li.bad::before { content: "✗ "; color: #a4161a; }
+  #backupCheck li.bad { color: #a4161a; }
   .who { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px 14px; margin: 0 0 14px;
          background: #f0faf4; border: 1px solid #b7e0c5; border-radius: 10px; }
   .who[hidden] { display: none; }
@@ -155,6 +161,8 @@
   }
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   @media (prefers-color-scheme: dark) {
+    kbd { background: #1b1c1c; border-color: #3a3c3c; color: #f3f3f3; }
+    #backupCheck li.bad, #backupCheck li.bad::before { color: #ff8a8a; }
     .who { background: #1e2a22; border-color: #2f5a40; }
     .who-pic { background: #2d2f2f; }
     .who-status { color: #6fdf9a; }
@@ -384,6 +392,10 @@ Retailer previews: Target, Walmart, Costco, Instacart and the other listed groce
       In the sorted list, the Prioritize sliders reopen the way you last set them, separately for the
       score and price-per-ounce options in Amazon's menu. Off: each list starts from that option's default.
     </p>
+    <h3 class="store-h" data-i18n="optShortcutH">Keyboard shortcuts</h3>
+    <p class="note" data-i18n="optShortcutD">On an Amazon search results page, open the sorted list without the mouse. These keys are Chrome's extension shortcuts, so you can change or clear them.</p>
+    <ul class="store-list" id="shortcutList"></ul>
+    <div class="row"><button type="button" class="act" id="changeShortcuts" data-i18n="optShortcutChange">Change shortcuts</button></div>
     </div>
     <div data-level="3">
     <fieldset class="sort-choices" id="unitMissingChoices">
@@ -599,6 +611,10 @@ Retailer previews: Target, Walmart, Costco, Instacart and the other listed groce
       <button class="act" id="restoreChrome" data-i18n="optRestoreChrome">Restore from my Chrome account</button>
       <span class="status" id="backupStatus"></span>
     </div>
+    <div class="row">
+      <button class="act" id="checkBackups" data-i18n="optCheckBackups">Check my backups</button>
+    </div>
+    <ul id="backupCheck" aria-live="polite"></ul>
     <div id="accountBlock" data-level="2" hidden>
       <details id="accountSetup">
         <summary>Configure Google sign-in</summary>
@@ -626,6 +642,14 @@ Retailer previews: Target, Walmart, Costco, Instacart and the other listed groce
         <div class="row">
           <button class="act" id="accountSave" data-i18n="optAccountSave">Save my settings to Google</button>
           <button class="act" id="accountLoad" data-i18n="optAccountLoad">Restore from my Google account</button>
+        </div>
+        <div id="accountAuto">
+          <label class="chip" style="margin: 12px 0 6px">
+            <input type="checkbox" id="googleAutoSave">
+            <span data-i18n="optGoogleAuto">Keep my Google copy up to date automatically</span>
+          </label>
+          <p class="note" data-i18n="optGoogleAutoD">Saves every settings change to your Google account a few seconds later. It starts after this computer has saved to, or restored from, your account once, so a new computer cannot overwrite your saved copy with its defaults.</p>
+          <p class="status" id="googleSaveStatus" role="status"></p>
         </div>
       </div>
       <p class="status" id="accountStatus" role="status"></p>

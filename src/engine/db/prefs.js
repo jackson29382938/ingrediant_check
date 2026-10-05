@@ -67,6 +67,10 @@ const TOGGLE_DEFAULTS = {
   panelOpen: false,
   // The sorted list reopens with the priorities the reader last set for that menu option.
   sortRemember: true,
+  // While signed in with Google, keep the Google copy up to date on every change. Only acts once
+  // this computer has saved to or restored from that account, so a new computer cannot overwrite
+  // the saved copy with its defaults.
+  googleAutoSave: true,
 };
 
 function db(name) {
@@ -252,9 +256,23 @@ function parseBackup(obj) {
     ts: Number.isFinite(ts) ? ts : null };
 }
 
+// The settings as a backup would carry them: one sanitized value per key, defaults filled in.
+function settingsSnapshot(stored) { return parseBackup(backupPayload(stored)).values; }
+
+// Which settings differ between this browser's stored settings and a saved copy's values (from
+// parseBackup). A key the copy lacks counts as different. -> { total, differing: [key] }.
+function diffSettings(stored, copyValues) {
+  const stable = v => JSON.stringify(v, (_k, x) => (x && typeof x === 'object' && !Array.isArray(x)
+    ? Object.fromEntries(Object.entries(x).sort(([a], [b]) => (a < b ? -1 : 1))) : x));
+  const mine = settingsSnapshot(stored);
+  const copy = copyValues && typeof copyValues === 'object' ? copyValues : {};
+  const keys = Object.keys(mine);
+  return { total: keys.length, differing: keys.filter(k => !(k in copy) || stable(copy[k]) !== stable(mine[k])) };
+}
+
 // Every key a settings file or backup can carry; the worker watches these to refresh its backup.
-const SETTING_KEYS = ['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly',
-  ...WORKFLOW_KEYS, ...Object.keys(TOGGLE_DEFAULTS), ...Object.keys(DISPLAY_DEFAULTS)];
+const SETTING_KEYS = [...new Set(['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly',
+  ...WORKFLOW_KEYS, ...Object.keys(TOGGLE_DEFAULTS), ...Object.keys(DISPLAY_DEFAULTS)])];
 
 // Two banks keep the previous backup readable if staging a new one fails. Only the final
 // icBackup pointer is committed after all its parts have been stored successfully.
@@ -340,7 +358,7 @@ const _exports = AIRmodule('prefs', {
   AVOID_MAX_LINES, AVOID_MAX_LEN, AVOID_HINTS, ENDPOINT, OAUTH_CLIENT_ID, SHARED_PRODUCTS_ALLOWED, SYNC_KEYS,
   sanitizeToggles, sanitizeScoring, sanitizeAvoidList, toScriptUrl, endpoint,
   parseImport, exportPayload, looksLikeSettings, scoringEqual,
-  backupPayload, parseBackup, SETTING_KEYS, toSyncItems, fromSyncItems, readSync, WORKFLOW_KEYS, sanitizeWorkflow, oauthClientId,
+  backupPayload, parseBackup, SETTING_KEYS, settingsSnapshot, diffSettings, toSyncItems, fromSyncItems, readSync, WORKFLOW_KEYS, sanitizeWorkflow, oauthClientId,
 });
 if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 
