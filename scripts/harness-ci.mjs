@@ -525,7 +525,9 @@ async function run() {
     const settingsPage = await browser.newPage();
     try {
       await settingsPage.addInitScript(({ hosts }) => {
-        const data = {};
+        // Every control is checked below, so the page starts at the level that shows them all
+        // (src/options/options.html hides settings above the reader's level).
+        const data = { settingsLevel: 'expert' };
         window.__stored = data;
         window.chrome = {
           runtime: { lastError: null, getManifest: () => ({ version: '0', host_permissions: hosts }),
@@ -726,6 +728,13 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
       });
       await page.goto(`chrome-extension://${id}/src/options/${name}`, { waitUntil: 'load', timeout: 20000 });
       await page.waitForTimeout(300);   // let storage callbacks run
+      if (name === 'options.html') {
+        // A new install shows the Standard level; the layout and accessibility checks below should
+        // cover every control, so show them all.
+        await page.evaluate(() => chrome.storage.local.set({ settingsLevel: 'expert' }));
+        await page.reload({ waitUntil: 'load', timeout: 20000 });
+        await page.waitForTimeout(300);
+      }
       // Narrow desktop windows and 200% page zoom must keep every named control reachable.
       for (const shape of [{width:400,height:600,zoom:1}, {width:1280,height:800,zoom:2}]) {
         await page.setViewportSize({width:shape.width,height:shape.height});
@@ -754,14 +763,30 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
       await page.emulateMedia({ colorScheme: 'light' });
       if (name === 'popup.html' || name === 'options.html') await checkTabs(page, name);
       if (name === 'welcome.html') {
+        // Setup opens with how many settings to show; Next moves to the goals and focuses their heading.
+        const step = () => page.evaluate(() => ({
+          shown: [...document.querySelectorAll('[data-step]')].filter(s => !s.hidden).map(s => s.dataset.step).join(),
+          count: document.getElementById('stepCount').textContent,
+          level: document.querySelector('input[name="settingsLevel"]:checked')?.value,
+        }));
+        if ((await step()).shown !== 'level') throw new Error(`setup should open on the level question: ${JSON.stringify(await step())}`);
         await page.click('#next');
         const focused = await page.evaluate(() => document.activeElement && document.activeElement.closest('[data-step]')?.dataset.step
           + ':' + document.activeElement.tagName);
-        if (focused !== '2:H1') throw new Error(`setup: Next should focus step 2's heading, focus is on ${focused}`);
+        if (focused !== 'goals:H1') throw new Error(`setup: Next should focus the goals heading, focus is on ${focused}`);
         // The whole setup, through the real chrome.storage: a goal, an allergen, a diet and an avoid word
         // are saved when it finishes. The settings it found are put back afterwards.
         const before = await page.evaluate(() => new Promise(r => chrome.storage.local.get(null, r)));
+        // Real key presses: 2 picks Simple (fewer steps follow), 3 picks Standard, Enter moves on.
         await page.click('#back');
+        await page.keyboard.press('2');
+        let now = await step();
+        if (now.level !== 'simple' || now.count !== 'Step 1 / 4') throw new Error(`setup: key 2 should pick Simple with 4 steps: ${JSON.stringify(now)}`);
+        await page.keyboard.press('3');
+        now = await step();
+        if (now.level !== 'standard' || now.count !== 'Step 1 / 6') throw new Error(`setup: key 3 should pick Standard with 6 steps: ${JSON.stringify(now)}`);
+        await page.keyboard.press('Enter');
+        if ((await step()).shown !== 'goals') throw new Error('setup: Enter should move on to the goals');
         await page.click('#goals .chip');
         const goalPicked = await page.evaluate(() => document.querySelector('#goals .chip').getAttribute('aria-pressed'));
         if (!/Selected goals \(1\)/.test(await page.locator('#goalSummary').textContent())) throw new Error('setup goal summary did not update');
@@ -785,6 +810,8 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
         await page.click('#next');
         await page.waitForFunction(() => !document.getElementById('skip') || document.getElementById('skip').hidden, { timeout: 5000 });
         const saved = await page.evaluate(() => new Promise(r => chrome.storage.local.get(['goals', 'allergens', 'diets', 'avoidList', 'onboarded'], r)));
+        saved.settingsLevel = await page.evaluate(() => new Promise(r => chrome.storage.local.get('settingsLevel', o => r(o.settingsLevel))));
+        if (saved.settingsLevel !== 'standard') throw new Error(`setup should save the chosen level: ${saved.settingsLevel}`);
         if (goalPicked !== 'true' || !saved.onboarded || !(saved.goals || []).length || !(saved.allergens || []).includes('milk')
           || !(saved.diets || []).includes('vegan') || JSON.stringify(saved.avoidList) !== JSON.stringify(['palm oil', 'natural flavors'])) {
           throw new Error(`setup did not save what was picked: ${JSON.stringify({ goalPicked, saved })}`);
