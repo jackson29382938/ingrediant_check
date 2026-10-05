@@ -153,7 +153,10 @@ function handleGet(e) {
       return json({ ok: false, error: String(err) });
     }
   }
-  return json({ ok: true, service: 'ingredient-check',
+  // `accounts` says whether Google account storage has a client id, so a deployment can be checked
+  // by opening the /exec URL: `"accounts":true` means this version is live and configured.
+  var clientId = PropertiesService.getScriptProperties().getProperty('OAUTH_CLIENT_ID') || OAUTH_CLIENT_ID;
+  return json({ ok: true, service: 'ingredient-check', accounts: !!clientId,
     accepts: ['lookup', 'products', 'diagnostics', 'report', 'account', 'accountGet', 'contribution'] });
 }
 

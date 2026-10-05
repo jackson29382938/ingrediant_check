@@ -178,6 +178,7 @@ test('GET ?kind=provenance serves the first tab and the producers tab as text', 
   assert.deepEqual(res.provenance, [['asin', 'upc', 'certifications'], ['B000000001', '12345678', 'USDA Organic']]);
   assert.deepEqual(res.producers, [['brand', 'certifications'], ['Acme', 'AGA']]);
   assert.equal(r.get({}).service, 'ingredient-check');
+  assert.equal(r.get({}).accounts, true, 'the health reply says account storage has a client id');
 });
 test('accounts: a verified token opens only its own row, keyed by a hash, never the email', () => {
   const tokens = {
