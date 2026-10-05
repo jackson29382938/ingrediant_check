@@ -5,15 +5,14 @@
 // mode also keeps host.shadowRoot null so page JS cannot walk the card. Tests and the harness use
 // AIR.panel.shadowOf(host) — a second attachShadow on a closed root throws.
 
+if (typeof require !== 'undefined' && typeof module !== 'undefined') require('../engine/db/theme.js');
+
 (function (root) {
   root.AIR = root.AIR || {};
 
-  const BAND_COLOR = score =>
-    score >= 90 ? { fg: '#0f7b3f', bg: '#e8f5ec', ring: '#1a9850' }
-    : score >= 75 ? { fg: '#4a7c1f', bg: '#eef6e4', ring: '#66bd63' }
-    : score >= 50 ? { fg: '#9a6206', bg: '#fdf3e2', ring: '#f0a02a' }
-    : score >= 25 ? { fg: '#a8480f', bg: '#fdeee5', ring: '#f46d43' }
-    : { fg: '#a4161a', bg: '#fdecec', ring: '#d73027' };
+  // The score colours: the reader's palette (engine/db/theme.js). fg, bg and ring are the light-scheme
+  // text, fill and ring; dfg and dring are the text and ring on the dark surfaces.
+  const BAND_COLOR = score => root.AIR.db.theme.band(score);
 
   // chrome.i18n where it exists, the English string otherwise. The fallback keeps this file
   // runnable under Node — the test suites render the panel — and keeps the source readable, so a
@@ -140,7 +139,8 @@
     .pop { color: #f3f3f3; }
     .fail { color: #f3f3f3; }
     .foot { border-top-color: #3a3c3c; }
-    .score { background: #1b1c1c; }
+    .score { background: #1b1c1c; border-color: var(--dring, var(--ring)); color: var(--dfg, var(--fg)); }
+    .verdict { color: var(--dfg, var(--fg)); }
     textarea { background: #232525; border-color: #3a3c3c; color: #f3f3f3; }
     button.go:disabled { background: #2d2f2f; border-color: #3a3c3c; color: #8a8a8a; }
     .flag { background: #3d2e14; color: #f3d19c; border-color: #8a6a2a; }
@@ -239,7 +239,7 @@
 
     return `
     <style>${CSS}</style>
-    <div class="card" style="--fg:${c.fg};--bg:${c.bg};--ring:${c.ring}" role="status" aria-live="polite">
+    <div class="card" style="--fg:${c.fg};--bg:${c.bg};--ring:${c.ring};--dfg:${c.dfg};--dring:${c.dring}" role="status" aria-live="polite">
       <button class="head" part="head" type="button" aria-expanded="false" aria-controls="air-panel-details">
         <span class="score" title="${esc(verdictText(result.verdict))} · ${esc(NOVA_TEXT[result.nova])}">${result.score}</span>
         <span class="meta">
@@ -332,7 +332,7 @@
     }
     return `<style>${CSS}${POP_CSS}</style>
     <div class="pop" role="dialog" aria-label="${esc(t('breakdownLabel', 'Why this scored $1', shown.score))}"
-         style="--fg:${c.fg};--bg:${c.bg};--ring:${c.ring}">${head}${body}${more}</div>`;
+         style="--fg:${c.fg};--bg:${c.bg};--ring:${c.ring};--dfg:${c.dfg};--dring:${c.dring}">${head}${body}${more}</div>`;
   }
 
   function renderLoading(meta) {
@@ -341,7 +341,7 @@
     if (meta && meta.cache) {
       return `
     <style>${CSS}</style>
-    <div class="card" style="--fg:#565959;--bg:#f7f8f8;--ring:#d5d9d9">
+    <div class="card" style="--fg:#565959;--bg:#f7f8f8;--ring:#d5d9d9;--dfg:#aeaeae;--dring:#5a5c5c">
       <div class="fail loading" role="status" aria-live="polite">
         <b>${esc(t('loadingCacheTitle', 'Looking for a saved reading…'))}</b>
         ${esc(t('loadingCacheBody', "Amazon didn't publish the ingredients as text. Checking whether this product was already read, here or in the shared database."))}
@@ -360,7 +360,7 @@
       : t('loadingBody', "Amazon didn't publish readable ingredients, so the optional barcode fallback is looking for this product. No Amazon page or browsing data is sent.");
     return `
     <style>${CSS}</style>
-    <div class="card" style="--fg:#565959;--bg:#f7f8f8;--ring:#d5d9d9">
+    <div class="card" style="--fg:#565959;--bg:#f7f8f8;--ring:#d5d9d9;--dfg:#aeaeae;--dring:#5a5c5c">
       <div class="fail loading" role="status" aria-live="polite">
         <b>${esc(title)}</b>
         ${esc(body)}
@@ -376,7 +376,7 @@
     const title = meta && meta.title ? meta.title : '';
     return `
     <style>${CSS}</style>
-    <div class="card" style="--fg:#565959;--bg:#f7f8f8;--ring:#d5d9d9">
+    <div class="card" style="--fg:#565959;--bg:#f7f8f8;--ring:#d5d9d9;--dfg:#aeaeae;--dring:#5a5c5c">
       <div class="fail" role="status" aria-live="polite">
         <b>${esc(t('notFoodTitle', 'Not scored — this does not look like food.'))}</b>
         ${esc(reason)}. ${esc(t('notFoodBody', 'A score here would treat it as something you eat.'))}
@@ -396,7 +396,7 @@
   function renderNotice(meta) {
     return `
     <style>${CSS}</style>
-    <div class="card" style="--fg:#565959;--bg:#f7f8f8;--ring:#d5d9d9">
+    <div class="card" style="--fg:#565959;--bg:#f7f8f8;--ring:#d5d9d9;--dfg:#aeaeae;--dring:#5a5c5c">
       <div class="fail" role="status" aria-live="polite">
         <b>${esc(meta.title || '')}</b>
         ${esc(meta.body || '')}
@@ -409,7 +409,7 @@
   function renderFailure(meta) {
     return `
     <style>${CSS}</style>
-    <div class="card" style="--fg:#565959;--bg:#f7f8f8;--ring:#d5d9d9">
+    <div class="card" style="--fg:#565959;--bg:#f7f8f8;--ring:#d5d9d9;--dfg:#aeaeae;--dring:#5a5c5c">
       <div class="fail" role="status" aria-live="polite">
         <b>${esc(t('failTitle', "Couldn't read the ingredients on this page."))}</b>
         ${meta && meta.lowCoverage
@@ -524,6 +524,7 @@
   function mount(host, html, onReport, onPaste) {
     const shadow = attach(host);
     shadow.innerHTML = html;
+    root.AIR.db.theme.force(shadow);          // light or dark as the reader chose, not only the system's
     const card = shadow.querySelector('.card');
     const report = shadow.querySelector('.report');
     if (report) {

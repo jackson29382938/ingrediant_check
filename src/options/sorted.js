@@ -521,6 +521,10 @@
   build();
   // New listings (or a new choice in Amazon's menu) while this page is open.
   try {
+    // A new score palette while the list is open: the chips are painted again under it.
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === 'local' && changes.palette) { AIR.db.theme.use({ ...AIR.db.theme.state, palette: changes.palette.newValue }); scheduleRender(); }
+    });
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area !== 'session') return;
       if (changes.sortedResults) saved = changes.sortedResults.newValue || null;

@@ -313,6 +313,8 @@ function paintStoreCard(card, live, adapter) {
     card.style.setProperty('--fg', c.fg);
     card.style.setProperty('--bg', c.bg);
     card.style.setProperty('--ring', c.ring);
+    card.style.setProperty('--dfg', c.dfg);
+    card.style.setProperty('--dring', c.dring);
     const kicker = document.createElement('div');
     kicker.className = 'ps-kicker';
     kicker.textContent = `${msg('popupThisPage', 'This page')} · ${adapter.name}`;
@@ -388,6 +390,8 @@ function paintPageScore() {
       card.style.setProperty('--fg', c.fg);
       card.style.setProperty('--bg', c.bg);
       card.style.setProperty('--ring', c.ring);
+      card.style.setProperty('--dfg', c.dfg);
+      card.style.setProperty('--dring', c.dring);
       const kicker = document.createElement('div');
       kicker.className = 'ps-kicker';
       kicker.textContent = msg('popupThisPage', 'This page');
@@ -432,6 +436,8 @@ function paintCompareCard(hit) {
   card.style.setProperty('--fg', c.fg);
   card.style.setProperty('--bg', c.bg);
   card.style.setProperty('--ring', c.ring);
+  card.style.setProperty('--dfg', c.dfg);
+  card.style.setProperty('--dring', c.dring);
   const num = document.createElement('div');
   num.className = 'ps-num';
   num.textContent = String(hit.score);

@@ -886,6 +886,45 @@ function wirePanelAndHover() {
       ok => { if (ok) flash(msg('optSaved', 'Saved')); }));
 }
 
+// Appearance (engine/db/theme.js): colour scheme, score palette and accent. Each saves on its own key;
+// the accent previews live while the picker is open and saves when it closes. The accent is nudged until
+// text in it is readable, and the note says so when it was.
+function wireAppearance() {
+  const T = AIR.db.theme;
+  const radios = name => [...document.querySelectorAll(`input[name="${name}"]`)];
+  const accent = document.getElementById('accent');
+  const note = document.getElementById('accentNote');
+  if (!T || !accent) return;
+  const keys = ['theme', 'palette', 'accent'];
+  for (const host of document.querySelectorAll('.swatches')) {
+    host.textContent = '';
+    for (const [fg, bg, ring] of (T.PALETTES[host.dataset.palette] || T.PALETTES.standard).light) {
+      const dot = document.createElement('i');
+      dot.style.background = bg; dot.style.borderColor = ring; dot.style.color = fg;
+      host.append(dot);
+    }
+  }
+  const paint = o => {
+    const v = PREFS.sanitizeDisplay(o);
+    for (const name of ['theme', 'palette']) radios(name).forEach(r => { r.checked = r.value === v[name]; });
+    accent.value = v.accent;
+    const used = T.accentFor(v.accent, 'light').accent;
+    if (note) note.textContent = used !== v.accent ? msg('optAccentAdjusted', 'Adjusted to $1 so text stays readable.', used) : '';
+  };
+  const save = values => persist(values, ok => { if (ok) flash(msg('optSaved', 'Saved')); });
+  chrome.storage.local.get(keys, paint);
+  chrome.storage.onChanged.addListener(changes => {
+    if (keys.some(k => changes[k])) chrome.storage.local.get(keys, paint);
+  });
+  for (const name of ['theme', 'palette']) {
+    radios(name).forEach(r => r.addEventListener('change', () => save({ [name]: PREFS.sanitizeDisplay({ [name]: r.value })[name] })));
+  }
+  accent.addEventListener('input', () => { T.use({ ...T.state, accent: accent.value }); T.page(document); });
+  accent.addEventListener('change', () => save({ accent: PREFS.sanitizeDisplay({ accent: accent.value }).accent }));
+  const reset = document.getElementById('accentReset');
+  if (reset) reset.addEventListener('click', () => save({ accent: PREFS.DEFAULT_ACCENT }));
+}
+
 // The keyboard shortcuts for the sorted list. Chrome owns the keys (chrome://extensions/shortcuts);
 // this shows what they are now and opens that page. Repainted when the reader returns to this tab.
 function wireShortcuts() {
@@ -935,6 +974,7 @@ function startSettingsPage() {
     wireSpeed();
     wireBreakdown();
     wirePanelAndHover();
+    wireAppearance();
     wireShortcuts();
     wireLevel();
 

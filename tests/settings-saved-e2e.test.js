@@ -164,6 +164,9 @@ const VARIANTS = {
   breakdownDelayMs: 500,
   scoreHoverDelayMs: 1000,
   settingsLevel: 'simple',
+  theme: 'dark',
+  palette: 'cvd',
+  accent: '#7a3fa6',
   ...TOGGLE_FLIPS,
 };
 // Turning these off changes what is saved, so each has its own test below.
@@ -175,11 +178,11 @@ const LOOP_KEYS = SETTINGS.filter(k => !OWN_TEST.has(k));
 // The settings, spelled out. Written by hand on purpose: if a setting is dropped from the code that
 // builds backups, it would also vanish from every list derived from that code and nothing would
 // notice. Adding a setting means adding it here, with a test value above.
-const EXPECTED_KEYS = ['allergens', 'autoScoreSearch', 'avoidList', 'badges', 'breakdownDelayMs', 'breakdownDetail',
+const EXPECTED_KEYS = ['accent', 'allergens', 'autoScoreSearch', 'avoidList', 'badges', 'breakdownDelayMs', 'breakdownDetail',
   'diets', 'foodOnly', 'goalImportance', 'goals', 'googleAutoSave', 'hoverBreakdown', 'hoverScore', 'ocrLabels',
-  'panelOpen', 'ratePace', 'scoreHoverDelayMs', 'sendDiagnostics', 'settingsBackup', 'settingsLevel',
+  'palette', 'panelOpen', 'ratePace', 'scoreHoverDelayMs', 'sendDiagnostics', 'settingsBackup', 'settingsLevel',
   'shareContributions', 'sharedCache', 'sharedProducts', 'sortCount', 'sortLoadMore', 'sortMissing',
-  'sortPriorities', 'sortRemember', 'sortTimeLimit', 'speedMode', 'unitMissing', 'unitPrice', 'useOpenFoodFacts', 'weights'];
+  'sortPriorities', 'sortRemember', 'sortTimeLimit', 'speedMode', 'theme', 'unitMissing', 'unitPrice', 'useOpenFoodFacts', 'weights'];
 
 // What a saved copy must hold for `key` after VARIANTS[key] was set, judged against the test value
 // itself rather than against the code under test. A key missing from the copy fails here.

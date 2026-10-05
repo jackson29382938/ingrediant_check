@@ -6,10 +6,10 @@
 <title data-i18n="welTitle">Set up Ingredient Check</title>
 <style>
   :root { color-scheme: light dark; --fg: #0f1111; --muted: #565959; --bg: #f7f8f8; --card: #fff;
-          --line: #d5d9d9; --accent: #0f7b3f; --accent-bg: #e8f5ec; --link: #007185; }
+          --line: #d5d9d9; --accent: var(--u-accent, #0f7b3f); --accent-bg: var(--u-accent-bg, #e8f5ec); --link: var(--u-link, #007185); }
   @media (prefers-color-scheme: dark) {
     :root { --fg: #f3f3f3; --muted: #aeaeae; --bg: #131414; --card: #1b1c1c; --line: #3a3c3c;
-            --accent: #5cc98a; --accent-bg: #1d3326; --link: #4db6c8; }
+            --accent: var(--u-accent-d, #5cc98a); --accent-bg: var(--u-accent-bg-d, #1d3326); --link: var(--u-link-d, #4db6c8); }
   }
   * { box-sizing: border-box; }
   body { margin: 0; padding: 32px 16px 64px; background: var(--bg); color: var(--fg);
@@ -160,6 +160,7 @@
 <script src="../engine/db/allergens.js"></script>
 <script src="../engine/categories.js"></script>
 <script src="../engine/db/prefs.js"></script>
+<script src="../engine/db/theme.js"></script>
 <script src="google-auth.js"></script>
 <script src="welcome.js"></script>
 </body>

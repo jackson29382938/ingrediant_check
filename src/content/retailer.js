@@ -36,6 +36,7 @@
     state.foodOnly = toggles.foodOnly;
     state.autoScoreSearch = toggles.autoScoreSearch;
     state.panelOpen = toggles.panelOpen;
+    if (root.AIR.db.theme) root.AIR.db.theme.use(o);   // the reader's score palette and light/dark
     const scoring = PREFS.sanitizeScoring(o);
     state.prefs = { weights: scoring.weights, allergens: scoring.allergens, diets: scoring.diets, avoidList: scoring.avoidList };
     // The same fingerprint inputs the popup validates with, so its "This page" card accepts these.
@@ -394,7 +395,7 @@
   setInterval(() => { if (location.href !== state.url) { state.manual = null; reset(); } }, 1000);
 
   const KEYS = ['enabled', 'badges', 'foodOnly', 'weights', 'allergens', 'diets', 'avoidList',
-    'sheetIndexRev', 'producerIndexRev', 'speedMode', 'autoScoreSearch', 'panelOpen'];
+    'sheetIndexRev', 'producerIndexRev', 'speedMode', 'autoScoreSearch', 'panelOpen', 'theme', 'palette', 'accent'];
   chrome.storage.local.get(KEYS, o => { readSettings(o || {}); reset(); });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area && area !== 'local') return;

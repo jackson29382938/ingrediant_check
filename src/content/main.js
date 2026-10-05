@@ -224,7 +224,7 @@
   }
 
   chrome.storage.local.get(['enabled', 'badges', 'hoverScore', 'autoScoreSearch', 'hoverBreakdown',
-    'breakdownDetail', 'breakdownDelayMs', 'scoreHoverDelayMs', 'panelOpen', 'foodOnly', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList', 'useOpenFoodFacts', 'sharedCache', 'sharedProducts', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'ratePace', 'unitPrice'], o => {
+    'breakdownDetail', 'breakdownDelayMs', 'scoreHoverDelayMs', 'panelOpen', 'foodOnly', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList', 'useOpenFoodFacts', 'sharedCache', 'sharedProducts', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'ratePace', 'unitPrice', 'theme', 'palette', 'accent'], o => {
     const toggles = AIR.db.prefs.sanitizeToggles(o);
     state.cacheOptions = { ...o, ...toggles };
     state.enabled = toggles.enabled;
@@ -240,6 +240,7 @@
     state.unitPrice = toggles.unitPrice;
     state.speedMode = speedModeOf(o.speedMode);
     state.ratePace = paceOf(o.ratePace);
+    AIR.db.theme?.use(o);      // the reader's score palette and light/dark (engine/db/theme.js)
     readPrefs(o);
     if (state.enabled) resume(); else suspend();
   });
@@ -275,6 +276,16 @@
       state.speedMode = speedModeOf(changes.speedMode.newValue);
       resetListState();
       if (state.enabled && state.badges) { wake(); armAutoScorePass(); }
+    }
+    // A new palette or theme: badges and the panel are painted again under it.
+    if (changes.theme || changes.palette || changes.accent) {
+      chrome.storage.local.get(['theme', 'palette', 'accent'], o => {
+        AIR.db.theme?.use(o);
+        resetListState();
+        removePanel();
+        state.lastKey = null;
+        if (state.enabled) { wake(); schedule(); armAutoScorePass(); }
+      });
     }
     // Read when the next request starts: nothing already on the page needs redoing.
     if (changes.ratePace) state.ratePace = paceOf(changes.ratePace.newValue);

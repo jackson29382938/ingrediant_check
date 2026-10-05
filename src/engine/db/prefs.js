@@ -85,7 +85,12 @@ const DEFAULT_LEVEL = 'standard';
 
 // Non-boolean display settings: the results-page breakdown, the delay before Score on hover starts,
 // and how much of the options page to show.
-const DISPLAY_DEFAULTS = { breakdownDetail: 'full', breakdownDelayMs: 200, scoreHoverDelayMs: 600, settingsLevel: DEFAULT_LEVEL };
+// Appearance (engine/db/theme.js): light/dark, the score palette, and one accent colour.
+const THEMES = ['system', 'light', 'dark'];
+const PALETTE_NAMES = ['standard', 'cvd'];
+const DEFAULT_ACCENT = '#0f7b3f';
+const DISPLAY_DEFAULTS = { breakdownDetail: 'full', breakdownDelayMs: 200, scoreHoverDelayMs: 600, settingsLevel: DEFAULT_LEVEL,
+  theme: 'system', palette: 'standard', accent: DEFAULT_ACCENT };
 const BREAKDOWN_DELAY_MAX = 1500;
 const SCORE_HOVER_DELAY_MIN = 200;
 const SCORE_HOVER_DELAY_MAX = 2000;
@@ -100,6 +105,9 @@ function sanitizeDisplay(raw) {
     breakdownDelayMs: stepped(src.breakdownDelayMs, 0, BREAKDOWN_DELAY_MAX, 50, DISPLAY_DEFAULTS.breakdownDelayMs),
     scoreHoverDelayMs: stepped(src.scoreHoverDelayMs, SCORE_HOVER_DELAY_MIN, SCORE_HOVER_DELAY_MAX, 100, DISPLAY_DEFAULTS.scoreHoverDelayMs),
     settingsLevel: LEVELS.includes(src.settingsLevel) ? src.settingsLevel : DEFAULT_LEVEL,
+    theme: THEMES.includes(src.theme) ? src.theme : 'system',
+    palette: PALETTE_NAMES.includes(src.palette) ? src.palette : 'standard',
+    accent: typeof src.accent === 'string' && /^#[0-9a-f]{6}$/i.test(src.accent) ? src.accent.toLowerCase() : DEFAULT_ACCENT,
   };
 }
 
@@ -359,7 +367,7 @@ function scoringEqual(a, b) {
 
 const _exports = AIRmodule('prefs', {
   SETTINGS_FORMAT, SETTINGS_VERSION, TOGGLE_DEFAULTS, DISPLAY_DEFAULTS, BREAKDOWN_DELAY_MAX, LEVELS, DEFAULT_LEVEL, levelOf,
-  SCORE_HOVER_DELAY_MIN, SCORE_HOVER_DELAY_MAX, sanitizeDisplay,
+  SCORE_HOVER_DELAY_MIN, SCORE_HOVER_DELAY_MAX, THEMES, PALETTE_NAMES, DEFAULT_ACCENT, sanitizeDisplay,
   AVOID_MAX_LINES, AVOID_MAX_LEN, AVOID_HINTS, ENDPOINT, OAUTH_CLIENT_ID, SHARED_PRODUCTS_ALLOWED, SYNC_KEYS,
   sanitizeToggles, sanitizeScoring, sanitizeAvoidList, toScriptUrl, endpoint,
   parseImport, exportPayload, looksLikeSettings, scoringEqual,

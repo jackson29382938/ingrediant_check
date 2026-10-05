@@ -7,6 +7,7 @@ require('../src/engine/db/_module.js');
 require('../src/engine/db/allergens.js');
 require('../src/engine/categories.js');
 const prefs = require('../src/engine/db/prefs.js');
+require('../src/engine/db/theme.js');
 const tick = () => new Promise(resolve => setImmediate(resolve));
 function page(options = {}, settings = false) {
   const elements = new Map();
@@ -562,4 +563,87 @@ test('no link, an unknown anchor, or an anchor with no level never moves the lev
     await tick();
     assert.equal(p.data.settingsLevel, 'simple', hash || 'no hash');
   }
+});
+
+// ---------------------------------------------------------------- appearance
+function appearancePage(initial = {}) {
+  const p = page({ initial }, true);
+  const c = p.context;
+  const radio = (name, value) => ({ name, value, checked: false, addEventListener(type, fn) { this[type] = fn; } });
+  const radios = { theme: ['system', 'light', 'dark'].map(v => radio('theme', v)), palette: ['standard', 'cvd'].map(v => radio('palette', v)) };
+  const hosts = ['standard', 'cvd'].map(name => ({ dataset: { palette: name }, textContent: '', children: [], append(...kids) { this.children.push(...kids); } }));
+  c.document.querySelectorAll = sel => {
+    const m = sel.match(/input\[name="(\w+)"\]/);
+    return m ? radios[m[1]] : sel === '.swatches' ? hosts : [];
+  };
+  c.document.createElement = () => ({ style: {} });
+  const props = {};
+  c.document.documentElement = { style: { setProperty(k, v) { props[k] = v; }, removeProperty(k) { delete props[k]; } } };
+  c.document.styleSheets = [];
+  c.chrome.storage.local.set = (values, cb) => { p.writes.push({ values }); Object.assign(p.data, values); if (cb) cb(); };
+  p.run('wireAppearance()');
+  return { p, radios, hosts, props, checked: name => (radios[name].find(r => r.checked) || {}).value };
+}
+
+test('appearance: the controls show the stored choices and the swatches show each palette', async () => {
+  const { radios, hosts, checked, p } = appearancePage({ theme: 'dark', palette: 'cvd', accent: '#7a3fa6' });
+  await tick();
+  assert.equal(checked('theme'), 'dark');
+  assert.equal(checked('palette'), 'cvd');
+  assert.equal(p.get('accent').value, '#7a3fa6');
+  assert.equal(p.get('accentNote').textContent, '', 'a readable accent is shown as picked');
+  assert.deepEqual(hosts.map(h => h.children.length), [5, 5], 'five bands per palette');
+  assert.notEqual(hosts[0].children[0].style.borderColor, hosts[1].children[0].style.borderColor);
+  assert.equal(radios.theme.length, 3);
+  const defaults = appearancePage({});
+  await tick();
+  assert.equal(defaults.checked('theme'), 'system');
+  assert.equal(defaults.checked('palette'), 'standard');
+});
+
+test('appearance: choosing a scheme or palette saves only that setting', async () => {
+  const { radios, p } = appearancePage({ theme: 'system', sortCount: 222 });
+  await tick();
+  radios.theme[2].change();
+  assert.equal(p.data.theme, 'dark');
+  radios.palette[1].change();
+  assert.equal(p.data.palette, 'cvd');
+  assert.equal(p.data.sortCount, 222, 'nothing else was written');
+  const keys = p.writes.filter(w => w.values).flatMap(w => Object.keys(w.values));
+  assert.ok(keys.includes('theme') && keys.includes('palette'));
+  assert.ok(!keys.includes('settingsLevel') && !keys.includes('breakdownDetail'), 'the other display settings are not rewritten');
+});
+
+test('appearance: the accent previews while the picker is open, saves when it closes, and says when it was adjusted', async () => {
+  const { p, props } = appearancePage({});
+  await tick();
+  const accent = p.get('accent');
+  accent.value = '#ffee00';                     // a yellow no text could sit on
+  accent.input();
+  assert.ok(props['--u-accent'], 'the page shows it at once');
+  assert.equal(p.data.accent, undefined, 'but nothing is saved while the picker is open');
+  accent.change();
+  assert.equal(p.data.accent, '#ffee00');
+  p.changed.at(-1)({ accent: { newValue: '#ffee00' } }, 'local');
+  await tick();
+  assert.match(p.get('accentNote').textContent, /^Adjusted to #[0-9a-f]{6} so text stays readable\.$/);
+  p.get('accentReset').click();
+  assert.equal(p.data.accent, '#0f7b3f');
+  accent.value = 'not a colour; background:red';
+  accent.change();
+  assert.equal(p.data.accent, '#0f7b3f', 'garbage is saved as the default, never as typed');
+});
+
+test('appearance: the section is on the settings page at Simple, its accent row at Standard, and the controls are named', () => {
+  const html = fs.readFileSync('src/options/options.html', 'utf8');
+  assert.match(html, /<section id="sec-appearance" data-level="1">/);
+  assert.match(html, /<div class="row" data-level="2">\s*<label for="accent"/);
+  for (const group of ['themeChoices', 'paletteChoices']) {
+    const tag = html.match(new RegExp(`<fieldset[^>]*id="${group}"[^>]*>`))[0];
+    const ref = tag.match(/aria-labelledby="(\w+)"/)[1];
+    assert.ok(html.includes(`id="${ref}"`), `${group} is named by ${ref}`);
+  }
+  for (const v of ['system', 'light', 'dark']) assert.ok(html.includes(`name="theme" value="${v}"`));
+  for (const v of ['standard', 'cvd']) assert.ok(html.includes(`name="palette" value="${v}"`));
+  assert.ok(html.includes('href="#sec-appearance"'), 'the jump nav links to it');
 });

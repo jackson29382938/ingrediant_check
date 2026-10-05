@@ -1586,5 +1586,44 @@
   },
   "popupSettingsLinkLow": {
     "message": "Einstellungen: Ziele, Allergene & Ernährungsformen"
+  },
+  "optNavAppearance": {
+    "message": "Darstellung"
+  },
+  "optAppearanceH": {
+    "message": "Darstellung"
+  },
+  "optAppearanceLede": {
+    "message": "Farben für Einstellungen, das Symbolleisten-Popup, die Einrichtung, die sortierte Liste sowie die Bewertungsplaketten und das Feld auf Shop-Seiten. Text bleibt immer lesbar: Zahl und Urteil nennen die Bewertung stets, die Farbe ergänzt sie nur."
+  },
+  "optThemeH": {
+    "message": "Farbschema"
+  },
+  "optThemeSystem": {
+    "message": "Wie mein System"
+  },
+  "optThemeLight": {
+    "message": "Hell"
+  },
+  "optThemeDark": {
+    "message": "Dunkel"
+  },
+  "optPaletteH": {
+    "message": "Bewertungsfarben"
+  },
+  "optPaletteStandard": {
+    "message": "Standard (Grün bis Rot)"
+  },
+  "optPaletteCvd": {
+    "message": "Farbenblind-sicher (Blau bis Weinrot)"
+  },
+  "optAccentLabel": {
+    "message": "Akzentfarbe"
+  },
+  "optAccentReset": {
+    "message": "Zurücksetzen"
+  },
+  "optAccentAdjusted": {
+    "message": "Auf $1 angepasst, damit der Text lesbar bleibt."
   }
 }

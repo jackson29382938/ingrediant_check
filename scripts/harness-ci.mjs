@@ -761,6 +761,20 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
         for (const problem of await page.evaluate(contrastProblems)) pageErrors.push(`extension ${name} (${colorScheme}): ${problem}`);
       }
       await page.emulateMedia({ colorScheme: 'light' });
+      if (['popup.html', 'options.html', 'welcome.html', 'sorted.html'].includes(name)) {
+        // The reader's own colours: a forced theme must beat the system's (light here), and an accent at
+        // the extremes (pure yellow, black, red) must still leave every text readable.
+        for (const look of [{ theme: 'dark', palette: 'cvd', accent: '#ffff00' }, { theme: 'light', palette: 'cvd', accent: '#000000' },
+          { theme: 'dark', palette: 'standard', accent: '#ff0000' }]) {
+          await page.evaluate(v => new Promise(r => chrome.storage.local.set(v, r)), look);
+          await page.waitForTimeout(200);
+          const level = await page.evaluate(() => { const m = getComputedStyle(document.body).backgroundColor.match(/\d+/g).map(Number); return (m[0] + m[1] + m[2]) / 3; });
+          if (look.theme === 'dark' ? level > 90 : level < 200) pageErrors.push(`extension ${name}: theme ${look.theme} did not win over the system scheme (background ${level})`);
+          for (const problem of await page.evaluate(contrastProblems)) pageErrors.push(`extension ${name} (${look.theme}, accent ${look.accent}): ${problem}`);
+        }
+        await page.evaluate(() => new Promise(r => chrome.storage.local.remove(['theme', 'palette', 'accent'], r)));
+        await page.waitForTimeout(150);
+      }
       if (name === 'popup.html' || name === 'options.html') await checkTabs(page, name);
       if (name === 'welcome.html') {
         // Setup opens with how many settings to show; Next moves to the goals and focuses their heading.
