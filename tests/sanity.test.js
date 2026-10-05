@@ -98,7 +98,7 @@ check('settings messages are sent only from the settings page', () => {
     if (allowed.has(p)) continue;
     const raw = fs.readFileSync(f, 'utf8');
     for (const t of types) {
-      if (p === 'src/options/welcome.js' && t === 'accountSave') continue;
+      if (p === 'src/options/welcome.js' && (t === 'accountSave' || t === 'accountFetch')) continue;
       assert.ok(!raw.includes(`'${t}'`), `${p} mentions settings message '${t}'`);
     }
   }

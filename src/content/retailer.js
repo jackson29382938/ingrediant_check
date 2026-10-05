@@ -35,6 +35,7 @@
     state.badges = toggles.badges;
     state.foodOnly = toggles.foodOnly;
     state.autoScoreSearch = toggles.autoScoreSearch;
+    state.panelOpen = toggles.panelOpen;
     const scoring = PREFS.sanitizeScoring(o);
     state.prefs = { weights: scoring.weights, allergens: scoring.allergens, diets: scoring.diets, avoidList: scoring.avoidList };
     // The same fingerprint inputs the popup validates with, so its "This page" card accepts these.
@@ -75,6 +76,8 @@
   function show(host, html, state_, wire) {
     host.dataset.airState = state_;
     const shadow = P.mount(host, html, null, wire && wire.paste);
+    // "Open the score panel on product pages" applies here too, for a score (not a failure card).
+    if (state_ === 'scored' && state.panelOpen && typeof P.openCard === 'function') P.openCard(host);
     if (wire && wire.after) wire.after(shadow);
   }
 
@@ -391,7 +394,7 @@
   setInterval(() => { if (location.href !== state.url) { state.manual = null; reset(); } }, 1000);
 
   const KEYS = ['enabled', 'badges', 'foodOnly', 'weights', 'allergens', 'diets', 'avoidList',
-    'sheetIndexRev', 'producerIndexRev', 'speedMode', 'autoScoreSearch'];
+    'sheetIndexRev', 'producerIndexRev', 'speedMode', 'autoScoreSearch', 'panelOpen'];
   chrome.storage.local.get(KEYS, o => { readSettings(o || {}); reset(); });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area && area !== 'local') return;

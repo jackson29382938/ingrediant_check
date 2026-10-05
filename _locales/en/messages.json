@@ -1580,5 +1580,11 @@
   },
   "optCheckBackups": {
     "message": "Check my backups"
+  },
+  "optLevelRaised": {
+    "message": "Showing more settings so you can see this section."
+  },
+  "popupSettingsLinkLow": {
+    "message": "Settings: goals, allergens & diets"
   }
 }

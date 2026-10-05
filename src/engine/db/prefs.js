@@ -256,6 +256,11 @@ function parseBackup(obj) {
     ts: Number.isFinite(ts) ? ts : null };
 }
 
+// Switches that send data off this computer. A settings file never turns these on: a file is
+// something a reader may have been handed, and each of these is a decision the reader makes on this
+// computer (a Chrome or Google restore of the reader's own copy still carries them, after a confirm).
+const SHARING_KEYS = ['sharedProducts', 'shareContributions', 'sendDiagnostics'];
+
 // The settings as a backup would carry them: one sanitized value per key, defaults filled in.
 function settingsSnapshot(stored) { return parseBackup(backupPayload(stored)).values; }
 
@@ -358,7 +363,7 @@ const _exports = AIRmodule('prefs', {
   AVOID_MAX_LINES, AVOID_MAX_LEN, AVOID_HINTS, ENDPOINT, OAUTH_CLIENT_ID, SHARED_PRODUCTS_ALLOWED, SYNC_KEYS,
   sanitizeToggles, sanitizeScoring, sanitizeAvoidList, toScriptUrl, endpoint,
   parseImport, exportPayload, looksLikeSettings, scoringEqual,
-  backupPayload, parseBackup, SETTING_KEYS, settingsSnapshot, diffSettings, toSyncItems, fromSyncItems, readSync, WORKFLOW_KEYS, sanitizeWorkflow, oauthClientId,
+  backupPayload, parseBackup, SETTING_KEYS, SHARING_KEYS, settingsSnapshot, diffSettings, toSyncItems, fromSyncItems, readSync, WORKFLOW_KEYS, sanitizeWorkflow, oauthClientId,
 });
 if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 

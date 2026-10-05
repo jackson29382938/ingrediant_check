@@ -68,6 +68,7 @@ function runner(file, url, stored = {}) {
         renderNotice: meta => `notice notice-action ${meta.title}`,
         renderFailure: meta => `fail:${JSON.stringify(meta)}`,
         mount: (h, html, onReport, onPaste) => { h.html = html; h.onReport = onReport; h.onPaste = onPaste; return shadow(html); },
+        openCard: h => { h.opened = true; },
       },
     },
   };
@@ -129,4 +130,21 @@ test('published retailer beauty department prevents scoring edible-sounding body
   w.pass();
   assert.equal(w.host.dataset.airState, 'not-food');
   assert.equal(w.writes.length, 0);
+});
+
+test('"Open the score panel" opens a retailer product panel too, only when asked and only for a score', () => {
+  const closed = runner('target-p-chips.html', CHIPS_URL);
+  assert.equal(closed.host.dataset.airState, 'scored');
+  assert.equal(closed.host.opened, undefined, 'off by default: the header only');
+  const open = runner('target-p-chips.html', CHIPS_URL, { panelOpen: true });
+  assert.equal(open.host.dataset.airState, 'scored');
+  assert.equal(open.host.opened, true);
+  const failed = runner('target-p-chips.html', CHIPS_URL, { panelOpen: true });
+  const heading = [...failed.page.querySelectorAll('h4')].find(el => /^Ingredients:/i.test(el.textContent));
+  const kids = [...heading.parentNode.children];
+  kids[kids.indexOf(heading) + 1].textContent = '%%%%';
+  failed.host.opened = undefined;
+  failed.pass();
+  assert.equal(failed.host.dataset.airState, 'fail');
+  assert.equal(failed.host.opened, undefined, 'a failure card is never forced open');
 });

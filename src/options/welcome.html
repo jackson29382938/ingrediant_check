@@ -62,8 +62,9 @@
   <p class="kicker" id="stepCount"></p>
 
   <section data-step="level">
-    <h1 data-i18n="welLevelH">How much do you want to set up?</h1>
+    <h1 id="levelH" data-i18n="welLevelH">How much do you want to set up?</h1>
     <p class="lede" data-i18n="welLevelLede">This decides how many settings you see, here and in Settings. Nothing is locked: change it any time, and settings you do not see keep sensible defaults.</p>
+    <div role="radiogroup" aria-labelledby="levelH">
     <label class="opt"><input type="radio" name="settingsLevel" value="minimal"><span><b data-i18n="optLevelMinimal">Minimal</b>
       <span data-i18n="optLevelMinimalD">Your goals, allergen warnings and diets. Everything else stays at its default.</span></span></label>
     <label class="opt"><input type="radio" name="settingsLevel" value="simple"><span><b data-i18n="optLevelSimple">Simple</b>
@@ -74,6 +75,7 @@
       <span data-i18n="optLevelAdvancedD">Adds every scoring weight, speed and freshness, timing, sort details and the settings file.</span></span></label>
     <label class="opt"><input type="radio" name="settingsLevel" value="expert"><span><b data-i18n="optLevelExpert">Everything</b>
       <span data-i18n="optLevelExpertD">Also shows diagnostics and contributions to the shared database.</span></span></label>
+    </div>
   </section>
 
   <section data-step="goals" hidden>

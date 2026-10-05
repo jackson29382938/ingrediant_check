@@ -26,7 +26,7 @@ function setup(initial = {}, permission = true, auth = {}) {
   const context = vm.createContext({ AIR: air, console, location: { reload() { auth.reloaded = true; } },
     document: { getElementById: get, querySelectorAll: () => [], querySelector: () => element(), createElement: element,
       addEventListener(type, fn) { if (type === 'keydown') keydown = fn; } },
-    chrome: { identity: { getRedirectURL: () => 'https://test.chromiumapp.org/' }, runtime: { getURL: p => p, async sendMessage(message) { backups.push({ ...message, onboarded: data.onboarded }); if (auth.backupPending) await auth.backupPending; if (auth.backupError) throw new Error('offline'); return { ok: auth.backup !== false }; } }, i18n: { getMessage: () => '' }, tabs: { create() {}, getCurrent(cb) { cb({ id: 7 }); }, remove(id) { auth.closedTab = id; } },
+    chrome: { identity: { getRedirectURL: () => 'https://test.chromiumapp.org/' }, runtime: { getURL: p => p, async sendMessage(message) { backups.push({ ...message, onboarded: data.onboarded }); if (auth.backupPending) await auth.backupPending; if (auth.backupError) throw new Error('offline'); if (message.type === 'accountFetch') return auth.existingCopy ? { ok: true, values: {} } : { ok: false, reason: 'no-backup' }; return { ok: auth.backup !== false }; } }, i18n: { getMessage: () => '' }, tabs: { create() {}, getCurrent(cb) { cb({ id: 7 }); }, remove(id) { auth.closedTab = id; } },
       permissions: { request(_p, cb) { requests++; cb(auth.permission === undefined ? permission : auth.permission); }, remove(_p, cb) { cb(); } },
       storage: { local: { get(_keys, cb) { if (auth.initialReadError) context.chrome.runtime.lastError = { message: 'unavailable' }; cb(data); delete context.chrome.runtime.lastError; }, set(values, cb) { if (!auth.saveError) Object.assign(data, values); if (auth.saveError) context.chrome.runtime.lastError = { message: 'storage quota' }; cb(); delete context.chrome.runtime.lastError; } } } },
   });
@@ -37,7 +37,7 @@ function setup(initial = {}, permission = true, auth = {}) {
     keydown({ key: k, target: { tagName: 'BODY' }, preventDefault() { taken = true; }, ...over });
     return taken;
   };
-  return { get, data, context, backups, requests: () => requests, finish: () => vm.runInContext('finish()', context), key,
+  return { get, data, context, backups, saves: () => backups.filter(b => b.type === 'accountSave'), requests: () => requests, finish: () => vm.runInContext('finish()', context), key,
     at: () => vm.runInContext('plan()[step]', context), level: () => vm.runInContext('picked.level', context),
     steps: () => vm.runInContext('plan()', context) };
 }
@@ -108,9 +108,8 @@ test('Google setup signs in optionally and backs up only after choices are saved
   assert.equal(s.backups.length, 0);
   await s.finish();
   await new Promise(resolve => setImmediate(resolve));
-  assert.equal(s.backups.length, 1);
-  assert.equal(s.backups[0].type, 'accountSave');
-  assert.equal(s.backups[0].onboarded, true);
+  assert.deepEqual(s.backups.map(b => b.type), ['accountFetch', 'accountSave'], 'it checks for a saved copy first');
+  assert.equal(s.saves()[0].onboarded, true);
   assert.equal(s.data.token, undefined);
   assert.equal(vm.runInContext('setupToken', s.context), null);
 });
@@ -176,7 +175,7 @@ test('local save failure keeps setup open and prevents account backup until retr
   assert.equal(s.get('next').disabled, false);
   auth.saveError = false;
   await s.finish();
-  assert.equal(s.backups.length, 1);
+  assert.equal(s.saves().length, 1);
   assert.equal(s.data.onboarded, true);
 });
 
@@ -349,4 +348,24 @@ test('keyboard: the buttons announce their shortcuts and the page lists them', (
     assert.ok(html.includes(shown), `${shown} is shown on the page`);
   }
   assert.ok(pageEl(s));
+});
+
+test('setup never replaces a Google copy that already exists; it says so and leaves the choice to Settings', async () => {
+  const s = setup({ useOpenFoodFacts: false }, true, { existingCopy: true });
+  await s.get('googleSignIn').click();
+  await s.finish();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(s.backups.map(b => b.type), ['accountFetch'], 'it looked, and wrote nothing');
+  assert.equal(s.saves().length, 0);
+  assert.equal(s.data.onboarded, true, 'the choices are still saved on this computer');
+  assert.match(s.get('backupStatus').textContent, /already has a saved copy.*left as it is.*Restore.*Save to replace/);
+  assert.equal(vm.runInContext('setupToken', s.context), null, 'the token is dropped');
+});
+
+test('setup that cannot tell whether a Google copy exists writes nothing', async () => {
+  const s = setup({ useOpenFoodFacts: false }, true, { backupError: true });
+  await s.get('googleSignIn').click();
+  await s.finish();
+  assert.equal(s.saves().length, 0);
+  assert.match(s.get('backupStatus').textContent, /saved locally/);
 });

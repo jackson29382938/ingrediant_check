@@ -80,6 +80,15 @@ function wireDatabase() {
     paintDiag();
     paintSharedProducts();
     wireBackup();
+    // An import, a restore or another page can change these while this one is open.
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area && area !== 'local') return;
+      const changed = DB_KEYS.filter(id => changes[id]);
+      if (!changed.length) return;
+      const now = PREFS.sanitizeToggles(Object.fromEntries(changed.map(id => [id, changes[id].newValue])));
+      for (const id of changed) { const box = document.getElementById(id); if (box) box.checked = now[id]; }
+      paintSharedProducts();
+    });
   });
 
   const flushBtn = document.getElementById('flushDiagnostics');

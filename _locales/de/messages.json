@@ -1580,5 +1580,11 @@
   },
   "optCheckBackups": {
     "message": "Meine Sicherungen prüfen"
+  },
+  "optLevelRaised": {
+    "message": "Mehr Einstellungen werden angezeigt, damit du diesen Abschnitt siehst."
+  },
+  "popupSettingsLinkLow": {
+    "message": "Einstellungen: Ziele, Allergene & Ernährungsformen"
   }
 }

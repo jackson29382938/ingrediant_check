@@ -71,6 +71,7 @@ account = GMAIL, local = {}, signedIn = true } = {}) {
   const timers = [];
   let timerId = 0;
   const alarms = [];
+  const cleared = [];
   const state = { account, silentWorks: signedIn, permission: true, authCalls: [], posts: [], network: true, onMessage: null, hold: false, holds: [] };
   const localArea = area('local', local, 0, fire);
   const syncArea = area('sync', profile.sync, 8192, fire);
@@ -92,7 +93,7 @@ account = GMAIL, local = {}, signedIn = true } = {}) {
       runtime: { id: 'ext', lastError: undefined, getManifest: () => ({ version: '9.9.9' }), getURL: p => `chrome-extension://ext/${p}`,
         sendMessage: async () => ({}), getContexts: async () => [],
         onMessage: { addListener(fn) { state.onMessage = fn; } }, onStartup: { addListener() {} }, onInstalled: { addListener() {} } },
-      alarms: { create: name => alarms.push(name), clear: async () => true, get: (n, cb) => cb(undefined), onAlarm: { addListener(fn) { state.onAlarm = fn; } } },
+      alarms: { create: name => alarms.push(name), clear: async name => { cleared.push(name); return true; }, get: (n, cb) => cb(undefined), onAlarm: { addListener(fn) { state.onAlarm = fn; } } },
       action: { setBadgeText() {}, setBadgeBackgroundColor() {} },
       tabs: { create: async () => ({ id: 1 }), sendMessage: async () => ({ ok: true }) },
       sidePanel: { open: async () => {} },
@@ -116,7 +117,7 @@ account = GMAIL, local = {}, signedIn = true } = {}) {
   const context = vm.createContext(sandbox);
   loadWorker(vm, context);
   const w = {
-    state, db, profile, local: localArea, sync: syncArea, alarms,
+    state, db, profile, local: localArea, sync: syncArea, alarms, cleared,
     // A change made on the settings page: written, then the worker's debounce timers run.
     async change(values) { await localArea.set(values); await w.settle(); },
     async settle() { await drain(); while (timers.length) { const t = timers.shift(); t.fn(); await drain(); } await drain(); },
@@ -555,8 +556,9 @@ test('account messages carry a Google token, so only the pages meant to send the
   assert.equal(await heard('accountSave', welcome), true, 'setup may save after its Google step');
   for (const type of ['accountLoad', 'accountFetch']) {
     assert.equal(await heard(type, settings), true, `${type} from settings`);
-    assert.equal(await heard(type, welcome), false, `${type} from setup`);
   }
+  assert.equal(await heard('accountFetch', welcome), true, 'setup may look for a saved copy before writing one');
+  assert.equal(await heard('accountLoad', welcome), false, 'but never restores: that overwrites this computer');
   for (const type of ['accountSave', 'accountLoad', 'accountFetch']) {
     for (const [name, sender] of [['popup', popup], ['an Amazon page', amazon], ['another extension', stranger]]) {
       assert.equal(await heard(type, sender), false, `${type} from ${name} is ignored`);
@@ -626,4 +628,61 @@ test('Chrome profile: the same alarm fallback keeps the profile backup too', asy
   await w.fireAlarm('ic-backup-retry');
   await drain();
   assert.equal((await prefs.readSync(w.sync)).values.sortCount, 456);
+});
+
+test('fallback alarms are cleared once a save is done, so a change is never saved twice', async () => {
+  const w = world();
+  await linked(w);
+  const before = w.state.posts.length;
+  await w.change({ sortCount: 150 });
+  assert.equal(w.state.posts.length - before, 1, 'one save for the change');
+  assert.ok(w.cleared.includes('ic-backup-retry'), 'the Chrome profile alarm was cleared after its save');
+  assert.ok(w.cleared.includes('ic-google-save'), 'and so was the Google one');
+  // The alarms were only there for a suspended worker; with them cleared, Chrome never fires them.
+  assert.equal((await w.googleCopy()).values.sortCount, 150);
+});
+
+test('an unsigned or unlinked computer does not keep a Google alarm waiting', async () => {
+  const w = world({ signedIn: false });
+  await w.change({ sortCount: 151 });
+  assert.deepEqual(w.state.posts, []);
+  assert.ok(w.cleared.includes('ic-google-save'), 'nothing to save, so the alarm is cleared');
+});
+
+test('a Google save that failed on the network keeps its alarm for one more try, which then succeeds', async () => {
+  const w = world();
+  await linked(w);
+  w.state.network = false;
+  w.cleared.length = 0;
+  await w.change({ sortCount: 152 });
+  assert.equal(w.cleared.includes('ic-google-save'), false, 'a failure that may pass leaves the alarm');
+  w.state.network = true;
+  await w.fireAlarm('ic-google-save');
+  await drain();
+  assert.equal((await w.googleCopy()).values.sortCount, 152);
+  assert.ok(w.cleared.includes('ic-google-save'), 'cleared after the retry succeeded');
+});
+
+test('Chrome profile: turning the backup off clears its alarm instead of leaving it to fire', async () => {
+  const w = world({ signedIn: false });
+  await w.change({ settingsBackup: false });
+  w.cleared.length = 0;
+  await w.change({ sortCount: 153 });
+  assert.ok(w.cleared.includes('ic-backup-retry'));
+});
+
+test('first-run setup on a second computer cannot overwrite the Gmail copy another computer saved', async () => {
+  const a = world();
+  await a.change({ allergens: ['milk', 'egg'], sortCount: 321 });
+  await linked(a);
+  const b = world({ db: a.db, profile: newProfile(), signedIn: false });
+  const welcome = { id: 'ext', url: 'chrome-extension://ext/src/options/welcome.html' };
+  // What welcome.js does after Finish: look first; write only when there is no copy.
+  const found = await b.send({ type: 'accountFetch', token: GMAIL.token }, welcome);
+  assert.equal(found.ok, true, 'the existing copy is found');
+  assert.deepEqual((await a.googleCopy()).values.allergens, ['milk', 'egg']);
+  assert.equal(b.local.data.googleLinked, undefined, 'looking does not link the computer');
+  // A first-ever account has nothing: that is the only case setup writes.
+  const fresh = await b.send({ type: 'accountFetch', token: OTHER.token }, welcome);
+  assert.equal(fresh.reason, 'no-backup');
 });

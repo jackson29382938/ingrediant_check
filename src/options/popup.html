@@ -23,6 +23,8 @@
  #kept{display:none;margin:8px 0 0;padding:8px 10px;background:#fdf3e2;border:1px solid #ffd8a8;
    border-radius:6px;color:#8a4b00;font-size:11px;line-height:1.4}
  body.paused #kept{display:block}
+ /* Hidden by the settings level (popup.js applyLevel), and a [hidden] element stays hidden whatever display it was given. */
+ .lvl-hidden,[hidden]{display:none!important}
  input{margin-top:2px}
  .t{font-weight:600}
  .d{color:#565959;font-size:11px;display:none;margin-top:1px}
@@ -96,16 +98,16 @@
  }
 </style></head><body>
  <h1 data-i18n="appName">Ingredient Check</h1>
- <div class="sub" data-i18n="popupTagline">Ingredient quality, additives and processing — scored on your computer.</div>
+ <div class="sub" data-level="2" data-i18n="popupTagline">Ingredient quality, additives and processing — scored on your computer.</div>
  <div id="pageScore" class="page-score" hidden></div>
  <label class="master"><input type="checkbox" id="enabled" checked><span><span class="t" data-i18n="popupShowRatings">Ingredient Check is on</span>
    <span class="d" data-i18n="popupShowRatingsD">The master switch. Off stops everything on Amazon pages — no panel,
    no badges, no page watching. Nothing below is forgotten.</span></span></label>
  <p id="kept" data-i18n="popupKept">Paused. Everything below is kept and comes back when you switch it on.</p>
  <div class="sub-toggles">
- <label><input type="checkbox" id="badges" checked><span><span class="t" data-i18n="popupBadges">Search result badges</span>
+ <label data-level="1"><input type="checkbox" id="badges" checked><span><span class="t" data-i18n="popupBadges">Search result badges</span>
    <span class="d" data-i18n="popupBadgesD">Score badges on search results with readable labels.</span></span></label>
- <label><input type="checkbox" id="foodOnly" checked><span><span class="t" data-i18n="popupFoodOnly">Only rate food &amp; supplements</span>
+ <label data-level="1"><input type="checkbox" id="foodOnly" checked><span><span class="t" data-i18n="popupFoodOnly">Only rate food &amp; supplements</span>
    <span class="d" data-i18n="popupFoodOnlyD">Skip shoes, toys, cosmetics and cleaning products, and say why instead of
    scoring them. Shampoo has an ingredient list too, and a score on one implies it was judged as
    something you could eat.</span></span></label>
@@ -116,45 +118,45 @@
    on, a few at a time and at most 60 per results page, with your Amazon sign-in. Amazon sees these
    requests much as if you had opened the products yourself. Off: only products already read get a
    score.</span></span></label>
- <label><input type="checkbox" id="hoverBreakdown" checked><span><span class="t" data-i18n="popupBreakdown">Show why on hover</span>
+ <label data-level="2"><input type="checkbox" id="hoverBreakdown" checked><span><span class="t" data-i18n="popupBreakdown">Show why on hover</span>
    <span class="d" data-i18n="popupBreakdownD">Hover, tab to or click a score on a results page to see what raised and
    lowered it. Worked out on your computer from what was already read — no extra requests.</span></span></label>
- <label><input type="checkbox" id="hoverScore"><span><span class="t" data-i18n="popupHover">Score on hover</span>
+ <label data-level="2"><input type="checkbox" id="hoverScore"><span><span class="t" data-i18n="popupHover">Score on hover</span>
    <span class="net" data-i18n="popupHoverNet">Requests that product page from Amazon, signed in as you.</span>
    <span class="d" data-i18n="popupHoverD">Hover or tab to a search result for half a second and it requests that product
    page from Amazon to score it, with your Amazon sign-in. Only the result you point at.</span></span></label>
- <label><input type="checkbox" id="unitPrice" checked><span><span class="t" data-i18n="popupUnitPrice">Price per ounce</span>
+ <label data-level="2"><input type="checkbox" id="unitPrice" checked><span><span class="t" data-i18n="popupUnitPrice">Price per ounce</span>
    <span class="d" data-i18n="popupUnitPriceD">Adds "Price per ounce: Low to High" to Amazon's sort menu and price per ounce to the
    sorted list, worked out from the results page. No extra requests.</span></span></label>
- <a href="#" id="openNetwork" data-i18n="popupNetworkLink">Amazon access and what is sent</a>
- <label><input type="checkbox" id="ocrLabels"><span><span class="t" data-i18n="popupOcr">Read label photos</span>
+ <a href="#" id="openNetwork" data-level="1" data-i18n="popupNetworkLink">Amazon access and what is sent</a>
+ <label data-level="2"><input type="checkbox" id="ocrLabels"><span><span class="t" data-i18n="popupOcr">Read label photos</span>
    <span class="d" data-i18n="popupOcrD">When a page has no readable ingredients, read them from the product's
    label photo. Runs on your computer and takes a few seconds per product — nothing is sent anywhere.</span></span></label>
- <label><input type="checkbox" id="useOpenFoodFacts"><span><span class="t" data-i18n="popupOff">Open Food Facts fallback</span>
+ <label data-level="2"><input type="checkbox" id="useOpenFoodFacts"><span><span class="t" data-i18n="popupOff">Open Food Facts fallback</span>
    <span class="d" data-i18n="popupOffD">When a page has a barcode but no readable ingredients, look it up. Sends the
    barcode to Open Food Facts and nothing else — no page content, no browsing history.</span></span></label>
  </div>
  <div class="preset-block">
    <div class="ps-kicker" data-i18n="popupPresets">Goal-based scoring</div>
-   <p class="preset-hint" data-i18n="popupPresetsHint">Pick one or several, on any tab. They combine.</p>
+   <p class="preset-hint" data-level="2" data-i18n="popupPresetsHint">Pick one or several, on any tab. They combine.</p>
    <div class="preset-active" aria-live="polite">
      <span class="preset-active-kicker" data-i18n="optPresetActive">Active</span>
      <span class="preset-active-name" id="presetActiveName">Balanced</span>
    </div>
    <div class="preset-cats" id="presetCats" role="tablist" data-i18n-aria="optPresetCatsAria" aria-label="Preset categories"></div>
    <div class="presets" id="presets" role="tabpanel"></div>
-   <p class="preset-note" id="presetNote"></p>
+   <p class="preset-note" id="presetNote" data-level="2"></p>
  </div>
- <button type="button" id="toggleWhy" data-i18n="popupShowWhy">Why these matter</button>
+ <button type="button" id="toggleWhy" data-level="1" data-i18n="popupShowWhy">Why these matter</button>
  <a href="#" id="openSettings" data-i18n="popupSettingsLink">Scoring weights, allergens &amp; avoid list</a>
- <a href="#" id="openSetup" data-i18n="popupSetupAgain">Run setup again</a>
- <a href="#" id="openStores" data-i18n="popupRequestStore">Request a store</a>
+ <a href="#" id="openSetup" data-level="2" data-i18n="popupSetupAgain">Run setup again</a>
+ <a href="#" id="openStores" data-level="2" data-i18n="popupRequestStore">Request a store</a>
  <a href="#" id="openReport" data-i18n="popupReport">Report a problem or suggest an improvement</a>
  <div class="sub" data-i18n="popupDisclaimer" style="margin-top:10px;font-size:11px">Scores are a guide, not health or allergy
    advice. Always read the label.</div>
  <button type="button" id="clear" data-i18n="popupClear">Clear cached entries</button>
  <p id="status" class="d" role="status" aria-live="polite" style="margin-top:8px;min-height:1.3em;display:block"></p>
- <div class="compare-block" id="compareBlock" hidden>
+ <div class="compare-block" id="compareBlock" data-level="2" hidden>
    <div class="ps-kicker" data-i18n="popupCompare">Compare cached scores</div>
    <p class="compare-empty" id="compareEmpty" data-i18n="popupCompareEmpty">Score two products on Amazon, then pick them here. Uses the cache only — no extra requests.</p>
    <div id="comparePick" hidden>
@@ -165,7 +167,7 @@
      <div class="compare-grid" id="compareGrid"></div>
    </div>
  </div>
- <p id="version" class="sub" style="margin:10px 0 0;font-size:10px;opacity:.7"></p>
+ <p id="version" data-level="2" class="sub" style="margin:10px 0 0;font-size:10px;opacity:.7"></p>
  <script src="../engine/db/_module.js"></script>
  <script src="../engine/categories.js"></script>
  <script src="../engine/db/prefs.js"></script>

@@ -13,7 +13,7 @@ function page(options = {}, settings = false) {
   const get = id => {
     if (!elements.has(id)) elements.set(id, { disabled: false, value: '', hidden: false, children: [], _t: '',
       get textContent() { return this._t; }, set textContent(v) { this._t = v; if (v === '') this.children = []; },
-      appendChild(child) { this.children.push(child); }, append(...kids) { this.children.push(...kids); },
+      appendChild(child) { this.children.push(child); }, append(...kids) { this.children.push(...kids); }, closest: () => null,
       classList: { toggle() {} }, addEventListener(type, fn) { this[type] = fn; } });
     return elements.get(id);
   };
@@ -459,4 +459,107 @@ test('the automatic-saving switch lives with the signed-in controls, so it is no
   for (const id of ['googleAutoSave', 'googleSaveStatus', 'accountSave', 'accountLoad']) assert.ok(signedIn.includes(`id="${id}"`), `${id} is inside the signed-in block`);
   const signedOut = html.slice(html.indexOf('id="accountSignedOut"'), html.indexOf('id="accountSignedIn"'));
   assert.ok(signedOut.includes('id="accountSignIn"') && !signedOut.includes('googleAutoSave'));
+});
+
+// ---------------------------------------------------------------- importing a settings file
+test('importing a settings file never turns on a switch that sends data, but applies everything else', async () => {
+  const p = page({ initial: { sendDiagnostics: false, sharedProducts: false, shareContributions: false } }, true);
+  const file = JSON.stringify(prefs.backupPayload({
+    ratePace: 'fast', sortCount: 300, hoverScore: true, allergens: ['milk'],
+    sendDiagnostics: true, shareContributions: true, sharedProducts: true,
+  }));
+  const input = p.get('importFile');
+  p.run('renderAll = () => {}');   // painting the page is not what is under test
+  p.run('wireFileActions()');
+  input.files = [{ size: file.length, text: async () => file }];
+  await input.change();
+  await tick(); await tick();
+  assert.equal(p.data.ratePace, 'fast');
+  assert.equal(p.data.sortCount, 300);
+  assert.equal(p.data.hoverScore, true);
+  for (const k of ['sendDiagnostics', 'shareContributions', 'sharedProducts']) {
+    assert.notEqual(p.data[k], true, `${k} stays as this reader set it`);
+  }
+  assert.deepEqual(prefs.SHARING_KEYS.slice().sort(), ['sendDiagnostics', 'shareContributions', 'sharedProducts']);
+});
+
+test('the sharing checkboxes follow storage when a restore or another page changes them', async () => {
+  const p = page({ initial: {} });
+  p.run('wireDatabase()');
+  await tick();
+  const listener = p.changed[p.changed.length - 1];
+  listener({ sharedCache: { newValue: false }, sendDiagnostics: { newValue: true } }, 'local');
+  assert.equal(p.get('sharedCache').checked, false);
+  assert.equal(p.get('sendDiagnostics').checked, true);
+  listener({ sharedCache: { newValue: 'garbage' } }, 'local');
+  assert.equal(p.get('sharedCache').checked, true, 'a bad value heals to the default');
+  listener({ sharedCache: { newValue: false } }, 'sync');
+  assert.equal(p.get('sharedCache').checked, true, 'sync storage changes are not these');
+});
+
+// ---------------------------------------------------------------- feedback every level can see
+test('"Saved" and errors go to a toast outside every level-gated section, announced to screen readers', () => {
+  const html = fs.readFileSync('src/options/options.html', 'utf8');
+  const at = html.indexOf('id="status"');
+  assert.ok(at > html.lastIndexOf('</section>'), 'the status line is not inside any section a level can hide');
+  const tag = html.slice(html.lastIndexOf('<p', at), html.indexOf('>', at));
+  assert.match(tag, /role="status"/);
+  assert.match(tag, /aria-live="polite"/);
+  assert.match(tag, /class="status toast"/);
+  const p = page({}, true);
+  p.run("flash('Could not save', 'error')");
+  assert.equal(p.get('status').className, 'status toast error');
+  assert.equal(p.get('status').textContent, 'Could not save');
+  p.run("flash('Saved')");
+  assert.equal(p.get('status').className, 'status toast');
+});
+
+test('every radio group on the settings and setup pages has an accessible name', () => {
+  for (const file of ['src/options/options.html', 'src/options/welcome.html']) {
+    const html = fs.readFileSync(file, 'utf8');
+    for (const m of html.matchAll(/<(?:fieldset|div)\b[^>]*?(?:role="radiogroup"|class="sort-choices")[^>]*>/g)) {
+      const tag = m[0];
+      const hasLegend = /<fieldset/.test(tag) && html.slice(m.index, m.index + 400).includes('<legend');
+      const labelled = /aria-labelledby="([^"]+)"/.exec(tag);
+      assert.ok(hasLegend || labelled, `${file}: unnamed group ${tag.slice(0, 70)}`);
+      if (labelled) assert.ok(html.includes(`id="${labelled[1]}"`), `${file}: ${labelled[1]} exists`);
+    }
+  }
+});
+
+// ---------------------------------------------------------------- links into level-hidden sections
+function levelPage(level, hash, section) {
+  const p = page({ initial: { settingsLevel: level, onboarded: true } }, true);
+  const c = p.context;
+  c.location.hash = hash;
+  const scrolled = [];
+  const real = c.document.getElementById;
+  c.document.getElementById = id => (section && id === section.id ? { dataset: { level: String(section.level) }, scrollIntoView: () => scrolled.push(id) } : real(id));
+  c.chrome.storage.local.set = (values, cb) => { p.writes.push({ values }); Object.assign(p.data, values); if (cb) cb(); };
+  p.run('wireLevel()');
+  return { p, scrolled };
+}
+
+test('a link into a section the level hides raises the level just enough, says so, and scrolls there', async () => {
+  const { p, scrolled } = levelPage('minimal', '#sec-sort', { id: 'sec-sort', level: 2 });
+  await tick();
+  assert.equal(p.data.settingsLevel, 'standard', 'raised to what the section needs, no further');
+  assert.deepEqual(scrolled, ['sec-sort']);
+  assert.match(p.get('status').textContent, /Showing more settings/);
+});
+
+test('a link to a section the level already shows changes nothing but the scroll', async () => {
+  const { p, scrolled } = levelPage('advanced', '#sec-sort', { id: 'sec-sort', level: 2 });
+  await tick();
+  assert.equal(p.data.settingsLevel, 'advanced');
+  assert.deepEqual(scrolled, ['sec-sort']);
+  assert.equal(p.get('status').textContent, '');
+});
+
+test('no link, an unknown anchor, or an anchor with no level never moves the level', async () => {
+  for (const [hash, section] of [['', null], ['#nowhere', null], ['#sec-level', { id: 'sec-level', level: 0 }]]) {
+    const { p } = levelPage('simple', hash, section);
+    await tick();
+    assert.equal(p.data.settingsLevel, 'simple', hash || 'no hash');
+  }
 });

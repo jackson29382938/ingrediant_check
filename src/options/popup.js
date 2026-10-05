@@ -181,7 +181,20 @@ function applyPreset(id) {
   AIR.db.activity && AIR.db.activity.log('popup', `goal ${goals.includes(id) ? 'picked' : 'removed'}: ${id} (now: ${goals.join(', ') || 'balanced'})`);
 }
 
-chrome.storage.local.get([...KEYS, 'weights', 'goals', 'goalImportance'], options => {
+// How much of the popup to show: the same level as the settings page (PREFS.LEVELS). Elements carry
+// data-level="N", the first level that shows them; Minimal keeps the master switch, this page's score,
+// goals, the disclosure for automatic rating, Settings, Report and Clear. A hidden control keeps its
+// value and keeps working. levelOf, not the sanitizer: an install from before levels saw everything.
+function applyLevel(level) {
+  const at = Math.max(0, PREFS.LEVELS.indexOf(level));
+  for (const el of document.querySelectorAll('[data-level]')) el.classList.toggle('lvl-hidden', Number(el.dataset.level) > at);
+  // Below Advanced the settings page has no weights to fine-tune; say what is there.
+  const link = document.getElementById('openSettings');
+  if (link) link.textContent = at < 3 ? msg('popupSettingsLinkLow', 'Settings: goals, allergens & diets') : msg('popupSettingsLink', 'Scoring weights, allergens & avoid list');
+}
+
+chrome.storage.local.get([...KEYS, 'weights', 'goals', 'goalImportance', 'settingsLevel', 'onboarded'], options => {
+  applyLevel(PREFS.levelOf(options));
   popupImportance = PREFS.sanitizeScoring({ goalImportance: options.goalImportance }).goalImportance;
   const toggles = cleanToggles(options);
   const healed = {};
@@ -525,6 +538,8 @@ function paintWhy(on) {
 }
 
 chrome.storage.onChanged.addListener(changes => {
+  // The popup never writes the level, so the writing guard below must not swallow a change to it.
+  if (changes.settingsLevel || changes.onboarded) chrome.storage.local.get(['settingsLevel', 'onboarded'], o => applyLevel(PREFS.levelOf(o)));
   if (writing) return;
   for (const key of TOGGLE_KEYS) {
     if (!changes[key]) continue;

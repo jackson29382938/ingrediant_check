@@ -826,8 +826,20 @@ function noteGoogleChange() {
   googleTimer = setTimeout(() => { googleTimer = null; googleAutoSave().catch(() => {}); }, 8000);
 }
 
+// The alarm is the fallback for a suspended worker. Once the save is done, or there is nothing to save,
+// clear it; a failure that may pass (the network) leaves it for one more try a minute later.
+const GOOGLE_DONE = new Set(['off', 'needs-sign-in', 'no-client']);
 function googleAutoSave() {
-  const attempt = googleChain.catch(() => {}).then(async () => {
+  const attempt = googleSaveOnce().then(res => {
+    if (res.ok || GOOGLE_DONE.has(res.reason)) chrome.alarms.clear(GOOGLE_ALARM);
+    return res;
+  });
+  googleChain = attempt;
+  return attempt;
+}
+
+function googleSaveOnce() {
+  return googleChain.catch(() => {}).then(async () => {
     const P = self.AIR.db.prefs;
     const conf = await chrome.storage.local.get([...BACKUP_SOURCE_KEYS, 'googleProfile', 'googleLinked', 'oauthClientId']);
     if (!P.sanitizeToggles(conf).googleAutoSave || !conf.googleProfile || conf.googleLinked !== true || !P.endpoint()) {
@@ -846,15 +858,13 @@ function googleAutoSave() {
     }
     return accountSave(token);
   });
-  googleChain = attempt;
-  return attempt;
 }
 
 function backupToChrome() {
   const attempt = backupChain.catch(() => {}).then(async () => {
     if (!chrome.storage.sync) return { ok: false, reason: 'no-sync' };
     const conf = await chrome.storage.local.get(BACKUP_SOURCE_KEYS);
-    if (conf.settingsBackup === false) return { ok: false, reason: 'not-enabled' };
+    if (conf.settingsBackup === false) { chrome.alarms.clear(BACKUP_ALARM); return { ok: false, reason: 'not-enabled' }; }
     const P = self.AIR.db.prefs;
     try {
       const local = await chrome.storage.local.get('backupDeviceId');
@@ -869,6 +879,7 @@ function backupToChrome() {
       if ((await chrome.storage.local.get('settingsBackup')).settingsBackup === false) return { ok: false, reason: 'not-enabled' };
       await chrome.storage.sync.set({ icBackup });
       await chrome.storage.local.set({ backupStatus: { ok: true, t: Date.now() } });
+      chrome.alarms.clear(BACKUP_ALARM);   // the fallback alarm is only for a suspended worker; done, so no second save
       return { ok: true };
     } catch (e) {
       chrome.alarms.create(BACKUP_ALARM, { delayInMinutes: 5 });

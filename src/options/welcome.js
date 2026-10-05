@@ -212,10 +212,20 @@ async function finish() {
       const token = setupToken;
       setupToken = null;
       status.textContent = 'Choices saved. Backing up with Google…';
+      const local = 'Choices saved locally. Google backup could not be completed; try again in Settings.';
       try {
-        const result = await chrome.runtime.sendMessage({ type: 'accountSave', token });
-        status.textContent = result && result.ok ? 'Your choices are saved and backed up.' : 'Choices saved locally. Google backup could not be completed; try again in Settings.';
-      } catch (e) { status.textContent = 'Choices saved locally. Google backup could not be completed; try again in Settings.'; }
+        // Never replace a copy that is already there: a new computer or a reinstall would overwrite what
+        // another computer saved with its own first choices. Setup writes only when the account has none.
+        const existing = await chrome.runtime.sendMessage({ type: 'accountFetch', token });
+        if (existing && existing.ok === true) {
+          status.textContent = 'Your choices are saved on this computer. This Google account already has a saved copy, so it was left as it is. In Settings you can Restore it here, or Save to replace it.';
+        } else if (existing && existing.reason === 'no-backup') {
+          const result = await chrome.runtime.sendMessage({ type: 'accountSave', token });
+          status.textContent = result && result.ok ? 'Your choices are saved and backed up.' : local;
+        } else {
+          status.textContent = local;
+        }
+      } catch (e) { status.textContent = local; }
       document.getElementById('backupStatus').textContent = status.textContent;
     } else {
       status.textContent = 'Your choices are saved on this computer.';

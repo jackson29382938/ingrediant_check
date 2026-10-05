@@ -25,7 +25,7 @@ function worker(initial = {}, fetcher, { alarms, endpoint = ENDPOINT, productsAl
         onStartup: event, onInstalled: event },
       permissions: { contains: async () => offPermission },
       offscreen: { createDocument: async () => { created++; } },
-      alarms: alarms || { create() {}, onAlarm: event },
+      alarms: alarms || { create() {}, clear() {}, onAlarm: event },
       action: {
         setBadgeText(opts) { badges.push({ kind: 'text', ...opts }); },
         setBadgeBackgroundColor(opts) { badges.push({ kind: 'color', ...opts }); },

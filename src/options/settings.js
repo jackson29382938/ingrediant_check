@@ -55,9 +55,10 @@ AIR.settingsRestore = {
 function flash(msg, kind) {
   const el = document.getElementById('status');
   el.textContent = msg;
-  el.className = 'status' + (kind === 'error' ? ' error' : '');
+  el.className = 'status toast' + (kind === 'error' ? ' error' : '');
   clearTimeout(flash.t);
-  flash.t = setTimeout(() => { el.textContent = ''; el.className = 'status'; }, 2800);
+  // An error stays long enough to read; "Saved" does not need to.
+  flash.t = setTimeout(() => { el.textContent = ''; el.className = 'status toast'; }, kind === 'error' ? 8000 : 2800);
 }
 
 function persist(values, done) {
@@ -539,7 +540,9 @@ function wireFileActions() {
       save({ immediate: true });
       // Everything else the file holds (switches, sort, speed, display); the controls follow storage.
       const scoringKeys = Object.keys(PREFS.sanitizeScoring({}));
-      const rest = Object.fromEntries(Object.entries(parsed.values || {}).filter(([k]) => !scoringKeys.includes(k)));
+      // Not the switches that send data off this computer: those stay as this reader set them.
+      const rest = Object.fromEntries(Object.entries(parsed.values || {})
+        .filter(([k]) => !scoringKeys.includes(k) && !PREFS.SHARING_KEYS.includes(k)));
       if (Object.keys(rest).length) persist(rest);
       flash(msg('optImported', 'Imported'));
     } catch (e) {
@@ -840,9 +843,18 @@ function applyLevel(level) {
 // The picker. The first load writes the level back, so it is stored from then on.
 function wireLevel() {
   chrome.storage.local.get(['settingsLevel', 'onboarded'], o => {
-    const stored = PREFS.levelOf(o);
+    let stored = PREFS.levelOf(o);
+    // A link to a section the level hides (the popup, setup and the sorted list link to Settings
+    // sections) would land on nothing. The reader asked for that section, so show it: raise the level
+    // to what it needs, say so, and scroll there once the layout has settled.
+    const target = location.hash.length > 1 ? document.getElementById(decodeURIComponent(location.hash.slice(1))) : null;
+    const needs = target && target.dataset && target.dataset.level ? Number(target.dataset.level) : 0;
+    const raised = needs > PREFS.LEVELS.indexOf(stored);
+    if (raised) stored = PREFS.LEVELS[Math.min(needs, PREFS.LEVELS.length - 1)];
     if (stored !== o.settingsLevel) persist({ settingsLevel: stored });
     applyLevel(stored);
+    if (raised) flash(msg('optLevelRaised', 'Showing more settings so you can see this section.'));
+    if (target && typeof target.scrollIntoView === 'function') target.scrollIntoView();
   });
   chrome.storage.onChanged.addListener(changes => {
     if (changes.settingsLevel) applyLevel(PREFS.sanitizeDisplay({ settingsLevel: changes.settingsLevel.newValue }).settingsLevel);
@@ -906,7 +918,7 @@ function startSettingsPage() {
   chrome.storage.local.get(['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly'], o => {
     if (chrome.runtime.lastError) {
       document.getElementById('status').textContent = 'Could not load your settings. Reload this page before making changes.';
-      document.getElementById('status').className = 'status error';
+      document.getElementById('status').className = 'status toast error';
       return;
     }
     settingsReady = true;

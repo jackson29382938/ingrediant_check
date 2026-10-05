@@ -75,7 +75,8 @@ function allowMessage(msg, sender) {
   if (PAGE_MESSAGE_TYPES.has(msg.type)) {
     return isAmazonTabSender(sender) || (RETAILER_MESSAGE_TYPES.has(msg.type) && isRetailerTabSender(sender));
   }
-  if (msg.type === 'accountSave' && extensionPagePath(sender) === '/src/options/welcome.html') return true;
+  // Setup may check for a saved copy and, only when there is none, write one (welcome.js).
+  if ((msg.type === 'accountSave' || msg.type === 'accountFetch') && extensionPagePath(sender) === '/src/options/welcome.html') return true;
   if (SETTINGS_MESSAGE_TYPES.has(msg.type)) return isOptionsPageSender(sender);
   if (OFFSCREEN_MESSAGE_TYPES.has(msg.type)) return isOffscreenSender(sender);
   if (msg.type === 'ping') return true;
