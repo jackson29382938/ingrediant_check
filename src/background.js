@@ -10,7 +10,7 @@
 
 if (typeof importScripts === 'function') {
   importScripts('engine/db/_module.js', 'engine/db/allergens.js', 'engine/categories.js',
-    'engine/db/ingestible.js', 'engine/db/prefs.js',
+    'engine/db/ingestible.js', 'engine/db/prefs.js', 'engine/db/theme.js',
     'engine/db/ocr-text.js', 'engine/db/product-cache.js', 'engine/db/storefronts.js', 'engine/db/sorted-results.js',
     'engine/db/speed.js', 'engine/db/unit-price.js',
     'engine/db/activity.js', 'options/google-auth.js', 'worker/messages.js', 'worker/sheet-store.js');
@@ -53,6 +53,11 @@ chrome.storage.onChanged?.addListener((changes, area) => {
   // Turning shared product readings off drops anything still waiting to upload.
   if (changes.sharedProducts && changes.sharedProducts.newValue !== true) dropProductsQueue();
   noteBackupChange(changes);
+  if (changes.palette) {
+    badgePaletteRevision++;
+    badgePalette = self.AIR.db.prefs.sanitizeDisplay({ palette: changes.palette.newValue }).palette;
+    refreshActionBadges();
+  }
 });
 
 // The test VM preloads ingestible.js; Chrome loads it via importScripts above. One implementation.
@@ -200,37 +205,72 @@ async function closeOffscreenIfIdle() {
   try { await chrome.offscreen.closeDocument(); } catch (e) { /* already gone */ }
 }
 
-// White text on each: every pair is at least 4.5:1 (WCAG AA). The old amber (#f0a02a) was 2.15:1
-// and the old green (#1a9850) 3.72:1, on a number a few pixels tall.
-function badgeColor(score) {
-  return score >= 75 ? '#15803d' : score >= 50 ? '#b45309' : '#d73027';
-}
-function badgeText(tabId) {
-  if (typeof chrome.action.setBadgeTextColor === 'function') chrome.action.setBadgeTextColor({ tabId, color: '#ffffff' });
-}
+// The action badge follows the selected score palette, independently of the page's scheme/accent.
+// Keep exact scores while awake; Chrome retains badge text across worker suspension, so startup
+// can recover existing tab badges without persisting browsing records or requesting a rescan.
+let badgePalette = 'standard';
+let badgePaletteRevision = 0;
+const actionStates = new Map();
+const actionRevisions = new Map();
 
+function badgeAction(method, options) {
+  try { chrome.action?.[method]?.(options)?.catch?.(() => {}); }
+  catch (e) { /* A tab may close while its badge is being updated. */ }
+}
+function badgeText(tabId, color = '#ffffff') {
+  badgeAction('setBadgeTextColor', { tabId, color });
+}
 function paintActionBadge(tabId, score, status) {
   if (!chrome.action || typeof tabId !== 'number') return;
-  if (status === 'fail') {
-    chrome.action.setBadgeText({ tabId, text: '?' });
-    chrome.action.setBadgeBackgroundColor({ tabId, color: '#767676' });
-    badgeText(tabId);
-    return;
-  }
-  if (status === 'not-food') {
-    chrome.action.setBadgeText({ tabId, text: '–' });
-    chrome.action.setBadgeBackgroundColor({ tabId, color: '#565959' });
+  actionRevisions.set(tabId, (actionRevisions.get(tabId) || 0) + 1);
+  actionStates.set(tabId, { score, status });
+  if (status === 'fail' || status === 'not-food') {
+    badgeAction('setBadgeText', { tabId, text: status === 'fail' ? '?' : '–' });
+    badgeAction('setBadgeBackgroundColor', { tabId, color: status === 'fail' ? '#767676' : '#565959' });
     badgeText(tabId);
     return;
   }
   if (typeof score !== 'number' || !isFinite(score)) {
-    chrome.action.setBadgeText({ tabId, text: '' });
+    badgeAction('setBadgeText', { tabId, text: '' });
     return;
   }
-  chrome.action.setBadgeText({ tabId, text: String(Math.round(score)) });
-  chrome.action.setBadgeBackgroundColor({ tabId, color: badgeColor(score) });
-  badgeText(tabId);
+  const colors = self.AIR.db.theme.toolbar(score, badgePalette);
+  badgeAction('setBadgeText', { tabId, text: String(Math.round(score)) });
+  badgeAction('setBadgeBackgroundColor', { tabId, color: colors.bg });
+  badgeText(tabId, colors.fg);
 }
+
+async function refreshActionBadges() {
+  for (const [tabId, value] of actionStates) paintActionBadge(tabId, value.score, value.status);
+  if (!chrome.tabs?.query || !chrome.action?.getBadgeText) return;
+  const paletteRevision = badgePaletteRevision;
+  try {
+    const tabs = await chrome.tabs.query({});
+    await Promise.all(tabs.map(async tab => {
+      if (actionStates.has(tab.id)) return;
+      const revision = actionRevisions.get(tab.id) || 0;
+      try {
+        const text = await chrome.action.getBadgeText({ tabId: tab.id });
+        if (paletteRevision !== badgePaletteRevision || revision !== (actionRevisions.get(tab.id) || 0) || actionStates.has(tab.id)) return;
+        if (/^\d{1,3}$/.test(text) && Number(text) <= 100) paintActionBadge(tab.id, Number(text));
+      } catch (e) { /* Closed tab. */ }
+    }));
+  } catch (e) { /* Chrome may be shutting down. */ }
+}
+chrome.tabs?.onRemoved?.addListener(tabId => {
+  actionStates.delete(tabId);
+  actionRevisions.set(tabId, (actionRevisions.get(tabId) || 0) + 1);
+});
+async function loadActionPalette() {
+  const revision = badgePaletteRevision;
+  try {
+    const stored = await chrome.storage.local.get('palette');
+    if (revision !== badgePaletteRevision) return;
+    badgePalette = self.AIR.db.prefs.sanitizeDisplay(stored).palette;
+    await refreshActionBadges();
+  } catch (e) { /* Keep readable defaults if storage is unavailable. */ }
+}
+loadActionPalette();
 
 // Message allowlist lives in worker/messages.js (importScripts above / test harness preload).
 

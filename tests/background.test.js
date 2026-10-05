@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const { loadWorker } = require('./worker-scripts.js');
 const ENDPOINT = 'https://script.google.com/macros/s/abcdefghijklmnopqrstuvwxyz1234567890/exec';
-function worker(initial = {}, fetcher, { alarms, endpoint = ENDPOINT, productsAllowed = true, offPermission = true } = {}) {
+function worker(initial = {}, fetcher, { alarms, endpoint = ENDPOINT, productsAllowed = true, offPermission = true, badgeTexts, badgeReader, paletteRead } = {}) {
   const data = structuredClone(initial);
   const synced = {};
   const event = { addListener() {} };
@@ -29,9 +29,13 @@ function worker(initial = {}, fetcher, { alarms, endpoint = ENDPOINT, productsAl
       action: {
         setBadgeText(opts) { badges.push({ kind: 'text', ...opts }); },
         setBadgeBackgroundColor(opts) { badges.push({ kind: 'color', ...opts }); },
+        setBadgeTextColor(opts) { badges.push({ kind: 'textColor', ...opts }); },
+        getBadgeText: async opts => badgeReader ? badgeReader(opts) : badgeTexts?.[opts.tabId] || '',
       },
+      tabs: badgeTexts ? { query: async () => Object.keys(badgeTexts).map(id => ({ id: Number(id) })), onRemoved: event } : undefined,
       storage: { onChanged: { addListener(fn) { changed = fn; } }, local: {
         async get(keys) {
+          if (keys === 'palette' && paletteRead) return paletteRead();
           const result = keys == null ? data : Object.fromEntries(
             (Array.isArray(keys) ? keys : [keys]).map(k => [k, data[k]]));
           return structuredClone(result);
@@ -524,7 +528,7 @@ test('toolbar badge colours keep white text readable (WCAG AA, 4.5:1)', () => {
   const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
   const w = worker({});
   for (const score of [96, 80, 60, 30, 5]) {
-    const bg = w.call(`badgeColor(${score})`);
+    const bg = w.call(`self.AIR.db.theme.toolbar(${score}).bg`);
     assert.ok(contrast('#ffffff', bg) >= 4.5, `score ${score}: white on ${bg} is ${contrast('#ffffff', bg).toFixed(2)}:1`);
   }
   for (const bg of ['#767676', '#565959']) assert.ok(contrast('#ffffff', bg) >= 4.5, bg);
@@ -621,4 +625,55 @@ test('disabling Chrome backup during staging preserves the last committed copy',
   const result = await w.call('backupToChrome()');
   assert.equal(result.reason, 'not-enabled');
   assert.deepEqual(w.synced.icBackup, old);
+});
+
+// Palette integration exercises the worker's actual startup/storage/message paths.
+const settleBadges = () => new Promise(resolve => setImmediate(resolve));
+test('toolbar uses stored colour-blind palette and readable text at all five band thresholds', async () => {
+  const w = worker({ palette: 'cvd' }); await settleBadges();
+  for (const score of [100, 90, 89, 75, 74, 50, 49, 25, 24, 0]) {
+    await w.send({ type: 'pageScore', score }, amazonTab);
+    const expected = w.call(`self.AIR.db.theme.toolbar(${score}, 'cvd')`);
+    assert.equal(w.badges.filter(b => b.kind === 'color').at(-1).color, expected.bg);
+    assert.equal(w.badges.filter(b => b.kind === 'textColor').at(-1).color, expected.fg);
+    assert.ok(w.call(`self.AIR.db.theme.contrast('${expected.bg}', '${expected.fg}')`) >= 4.5);
+  }
+});
+test('palette changes repaint existing tab badges without another page-score message', async () => {
+  const w = worker({ palette: 'standard' }); await settleBadges();
+  w.call('paintActionBadge(7, 89.8)'); w.call('paintActionBadge(8, null, "fail")');
+  const old = w.badges.filter(b => b.kind === 'color' && b.tabId === 7).at(-1).color;
+  w.change({ palette: { newValue: 'cvd' } }); await settleBadges();
+  assert.notEqual(w.badges.filter(b => b.kind === 'color' && b.tabId === 7).at(-1).color, old);
+  assert.equal(w.badges.filter(b => b.kind === 'color' && b.tabId === 7).at(-1).color, w.call('self.AIR.db.theme.toolbar(89.8, "cvd").bg'), 'keep the exact band despite rounding text');
+  assert.equal(w.badges.filter(b => b.kind === 'text' && b.tabId === 8).at(-1).text, '?');
+  assert.equal(w.badges.filter(b => b.kind === 'color' && b.tabId === 8).at(-1).color, '#767676');
+  const count = w.badges.length;
+  w.change({ accent: { newValue: '#ff0000' }, theme: { newValue: 'dark' } }); await settleBadges();
+  assert.equal(w.badges.length, count, 'theme/accent do not change toolbar score bands');
+});
+test('worker restart recovers numeric badges already held by Chrome without rescanning or persisting tab records', async () => {
+  const w = worker({ palette: 'cvd' }, undefined, { badgeTexts: { 7: '95', 8: '?', 9: '–', 10: '', 11: 'invalid' } });
+  await settleBadges();
+  assert.deepEqual(w.badges.filter(b => b.kind === 'color').map(b => b.tabId), [7]);
+  assert.equal(w.badges.find(b => b.kind === 'color').color, w.call('self.AIR.db.theme.toolbar(95, "cvd").bg'));
+  assert.deepEqual(Object.keys(w.data), ['palette'], 'no browsing metadata is saved');
+});
+test('a pending Chrome badge read cannot resurrect a cleared or newly scored badge', async () => {
+  for (const newer of [null, 30]) {
+    let release;
+    const waiting = new Promise(resolve => { release = resolve; });
+    const w = worker({ palette: 'cvd' }, undefined, { badgeTexts: { 7: '95' }, badgeReader: () => waiting });
+    await settleBadges();
+    w.call(`paintActionBadge(7, ${newer})`); release('95'); await settleBadges();
+    assert.equal(w.badges.filter(b => b.kind === 'text' && b.tabId === 7).at(-1).text, newer == null ? '' : '30');
+  }
+});
+test('a late startup settings read cannot replace a newly selected toolbar palette', async () => {
+  let release;
+  const initial = new Promise(resolve => { release = resolve; });
+  const w = worker({}, undefined, { paletteRead: () => initial });
+  w.call('paintActionBadge(7, 95)'); w.change({ palette: { newValue: 'cvd' } });
+  release({ palette: 'standard' }); await settleBadges();
+  assert.equal(w.badges.filter(b => b.kind === 'color' && b.tabId === 7).at(-1).color, w.call('self.AIR.db.theme.toolbar(95, "cvd").bg'));
 });

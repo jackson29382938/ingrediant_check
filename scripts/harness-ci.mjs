@@ -909,6 +909,7 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
       await page.close();
     }
     console.log(`  ok  extension → service worker started with every module; ${pages.length} pages open without errors, unnamed controls or low contrast (light and dark); goal tabs work by keyboard; setup saves what was picked`);
+    await appearanceEndToEnd(context, worker, id, pageErrors);
     await retailerEndToEnd(context, worker, pageErrors);
     await amazonEndToEnd(context, worker, pageErrors);
   } finally {
@@ -1188,4 +1189,126 @@ async function retailerEndToEnd(context, worker, pageErrors) {
   await corner.close();
   console.log('  ok  real extension → 15 retailer previews: uncached search scans, safe badge placement, product scores, late labels and cached search (intercepted fixtures, no retailer network)');
   console.log('  ok  Costco image-only badge → unchanged card height, outside image link, missing label marked unavailable');
+}
+
+// Real extension pages/storage events, followed by the real content script's closed shadow panel.
+async function appearanceEndToEnd(context, worker, extensionId, pageErrors) {
+  const keys = ['settingsLevel', 'onboarded', 'badges', 'hoverScore', 'theme', 'palette', 'accent', 'enabled', 'foodOnly'];
+  const before = await worker.evaluate(keys => chrome.storage.local.get(keys), keys);
+  const popup = await context.newPage();
+  const product = await context.newPage();
+  popup.on('pageerror', e => pageErrors.push(`popup level integration: ${e.message}`));
+  product.on('pageerror', e => pageErrors.push(`panel theme integration: ${e.message}`));
+  let session;
+  try {
+    await worker.evaluate(() => chrome.storage.local.set({ onboarded: true, badges: false, hoverScore: true }));
+    for (const [at, level] of ['minimal', 'simple', 'standard', 'advanced', 'expert'].entries()) {
+      await worker.evaluate(level => chrome.storage.local.set({ settingsLevel: level }), level);
+      await popup.goto(`chrome-extension://${extensionId}/src/options/popup.html`);
+      await popup.waitForFunction(at => [...document.querySelectorAll('[data-level]')].every(el =>
+        el.classList.contains('lvl-hidden') === (Number(el.dataset.level) > at))
+        && document.getElementById('hoverScore').checked && !document.getElementById('badges').checked, at);
+      const loaded = await popup.evaluate(() => ({ badges: document.getElementById('badges').checked,
+        hover: document.getElementById('hoverScore').checked,
+        essential: ['enabled', 'autoScoreSearch', 'openSettings', 'openReport'].every(id => document.getElementById(id).offsetHeight > 0),
+        settings: document.getElementById('openSettings').textContent }));
+      if (loaded.badges || !loaded.hover || !loaded.essential || (at >= 3 ? !/weights/i.test(loaded.settings) : /weights/i.test(loaded.settings))) {
+        throw new Error(`popup level ${level}: ${JSON.stringify(loaded)}`);
+      }
+    }
+    // Keep an actual checkbox write's callback pending while another page changes the level.
+    await popup.evaluate(() => {
+      window.__originalSet = chrome.storage.local.set.bind(chrome.storage.local);
+      chrome.storage.local.set = (values, callback) => {
+        if (values.badges === true) {
+          const result = window.__originalSet(values);
+          window.__finishPopupWrite = () => callback?.();
+          return result;
+        }
+        return window.__originalSet(values, callback);
+      };
+    });
+    await popup.click('#badges');
+    await worker.evaluate(() => chrome.storage.local.set({ settingsLevel: 'minimal' }));
+    await popup.waitForFunction(() => document.getElementById('badges').closest('[data-level]').classList.contains('lvl-hidden'));
+    // The popup's global write guard is read inside its own browser realm.
+    // eslint-disable-next-line no-undef
+    const pending = await popup.evaluate(() => { const state = { writing, checked: document.getElementById('badges').checked };
+      window.__finishPopupWrite(); chrome.storage.local.set = window.__originalSet; return state; });
+    if (!pending.writing || !pending.checked) throw new Error(`popup writing/level event: ${JSON.stringify(pending)}`);
+    await worker.evaluate(() => chrome.storage.local.set({ settingsLevel: 'expert' }));
+    await popup.waitForFunction(() => !document.getElementById('hoverScore').closest('[data-level]').classList.contains('lvl-hidden'));
+    await worker.evaluate(() => chrome.storage.local.remove('settingsLevel'));
+    await popup.reload();
+    await popup.waitForFunction(() => !document.querySelector('.lvl-hidden') && /weights/i.test(document.getElementById('openSettings').textContent));
+    console.log('  ok  real popup → every level boots and updates through Chrome storage; pending checkbox writes preserve level changes; hidden values and legacy full view survive');
+
+    const url = 'https://www.target.com/p/oats/-/A-79364857';
+    const html = fs.readFileSync(path.join(root, 'tests/pages/target-p-oats.html'), 'utf8');
+    await product.route('**/*', route => route.fulfill({ status: 200, contentType: 'text/html',
+      body: `<html><head><title>Oats</title><style>body{background:rgb(231,229,223)}</style></head><body>${html}</body></html>` }));
+    await worker.evaluate(() => chrome.storage.local.set({ enabled: true, foodOnly: true, palette: 'cvd' }));
+    await product.goto(url);
+    await product.waitForFunction(() => document.getElementById('air-score-panel')?.dataset.airState === 'scored');
+    session = await context.newCDPSession(product);
+    const panelState = async () => {
+      const { root: dom } = await session.send('DOM.getDocument', { depth: -1, pierce: true });
+      const find = (node, matches) => matches(node) ? node : [...(node.children || []), ...(node.shadowRoots || [])].map(child => find(child, matches)).find(Boolean);
+      const attr = (node, name) => { const at = (node.attributes || []).indexOf(name); return at >= 0 ? node.attributes[at + 1] : ''; };
+      const host = find(dom, node => attr(node, 'id') === 'air-score-panel');
+      const card = host && find(host, node => /(?:^| )card(?: |$)/.test(attr(node, 'class')));
+      if (!card) return null;
+      const { object } = await session.send('DOM.resolveNode', { backendNodeId: card.backendNodeId });
+      try {
+        const { result } = await session.send('Runtime.callFunctionOn', { objectId: object.objectId, returnByValue: true,
+          functionDeclaration: 'function(){const score=this.querySelector(".score");return {background:getComputedStyle(this).backgroundColor,color:score&&getComputedStyle(score).color,score:score&&Number(score.textContent),closed:this.getRootNode().mode==="closed",storeBackground:getComputedStyle(document.body).backgroundColor}}' });
+        return result.value;
+      } finally { await session.send('Runtime.releaseObject', { objectId: object.objectId }); }
+    };
+    for (const look of [{ theme: 'dark', os: 'light', dark: true }, { theme: 'light', os: 'dark', dark: false },
+      { theme: 'system', os: 'dark', dark: true }, { theme: 'system', os: 'light', dark: false }]) {
+      await product.emulateMedia({ colorScheme: look.os });
+      await worker.evaluate(theme => chrome.storage.local.set({ theme }), look.theme);
+      const until = Date.now() + 10000;
+      let state;
+      do {
+        state = await panelState();
+        if (state?.background === (look.dark ? 'rgb(27, 28, 28)' : 'rgb(255, 255, 255)')) break;
+        await product.waitForTimeout(100);
+      } while (Date.now() < until);
+      const expected = await worker.evaluate(({ score, dark }) => {
+        const band = self.AIR.db.theme.band(score, 'cvd');
+        const hex = dark ? band.dfg : band.fg;
+        return `rgb(${[1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)).join(', ')})`;
+      }, { score: state?.score, dark: look.dark });
+      if (!state?.closed || state.background !== (look.dark ? 'rgb(27, 28, 28)' : 'rgb(255, 255, 255)') || state.color !== expected
+        || state.storeBackground !== 'rgb(231, 229, 223)') throw new Error(`panel theme ${JSON.stringify(look)}: ${JSON.stringify(state)}`);
+    }
+    await product.bringToFront();
+    for (const palette of ['standard', 'cvd']) {
+      await worker.evaluate(palette => chrome.storage.local.set({ palette }), palette);
+      const until = Date.now() + 10000;
+      let actual;
+      do {
+        actual = await worker.evaluate(async palette => {
+          const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+          const text = await chrome.action.getBadgeText({ tabId: tab.id });
+          const bg = await chrome.action.getBadgeBackgroundColor({ tabId: tab.id });
+          const fg = await chrome.action.getBadgeTextColor({ tabId: tab.id });
+          const expected = self.AIR.db.theme.toolbar(Number(text), palette);
+          const rgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+          return { ok: /^\d+$/.test(text) && JSON.stringify(bg.slice(0, 3)) === JSON.stringify(rgb(expected.bg))
+            && JSON.stringify(fg.slice(0, 3)) === JSON.stringify(rgb(expected.fg)), text, bg, fg };
+        }, palette);
+        if (actual.ok) break;
+        await product.waitForTimeout(100);
+      } while (Date.now() < until);
+      if (!actual.ok) throw new Error(`Chrome toolbar palette ${palette}: ${JSON.stringify(actual)}`);
+    }
+    console.log('  ok  real closed-shadow panel → forced light/dark beat the OS, System follows both OS schemes, CVD score colours render, store styles stay unchanged; live Chrome toolbar palettes match');
+  } finally {
+    if (session) await session.detach();
+    await popup.close(); await product.close();
+    await worker.evaluate(async ({ before, keys }) => { await chrome.storage.local.remove(keys.filter(key => !(key in before))); await chrome.storage.local.set(before); }, { before, keys });
+  }
 }
