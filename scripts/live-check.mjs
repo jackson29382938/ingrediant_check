@@ -29,12 +29,12 @@ const SITES = {
   target: { search: 'https://www.target.com/s?searchTerm=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/.*A-\d+/, known: 'https://www.target.com/p/-/A-79364857' },
   walmart: { search: 'https://www.walmart.com/search?q=organic+rolled+oats', link: 'a[href*="/ip/"]', product: /\/ip\//, known: 'https://www.walmart.com/ip/10314926' },
   costco: { search: 'https://www.costco.com/s?keyword=organic+oats', link: 'a[href*=".product."], a[href*="/p/"]', product: /\.product\.\d+\.html|\/p\/(?:[^/]+\/)+\d+/, known: 'https://www.costco.com/product.product.100423971.html' },
-  kroger: { search: 'https://www.kroger.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/ },
-  frys: { search: 'https://www.frysfood.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/ },
-  ralphs: { search: 'https://www.ralphs.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/ },
-  kingsoopers: { search: 'https://www.kingsoopers.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/ },
-  smiths: { search: 'https://www.smithsfoodanddrug.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/ },
-  fredmeyer: { search: 'https://www.fredmeyer.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/ },
+  kroger: { search: 'https://www.kroger.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/, known: 'https://www.kroger.com/p/quaker-old-fashioned-oats/0003000001020' },
+  frys: { search: 'https://www.frysfood.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/, known: 'https://www.frysfood.com/p/quaker-old-fashioned-oats/0003000001020' },
+  ralphs: { search: 'https://www.ralphs.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/, known: 'https://www.ralphs.com/p/quaker-old-fashioned-oats/0003000001020' },
+  kingsoopers: { search: 'https://www.kingsoopers.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/, known: 'https://www.kingsoopers.com/p/quaker-old-fashioned-oats/0003000001020' },
+  smiths: { search: 'https://www.smithsfoodanddrug.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/, known: 'https://www.smithsfoodanddrug.com/p/quaker-old-fashioned-oats/0003000001020' },
+  fredmeyer: { search: 'https://www.fredmeyer.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/, known: 'https://www.fredmeyer.com/p/quaker-old-fashioned-oats/0003000001020' },
   qfc: { search: 'https://www.qfc.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/ , known: 'https://www.qfc.com/p/doritos-nacho-cheese-tortilla-chips/0002840051646' },
   harristeeter: { search: 'https://www.harristeeter.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/ , known: 'https://www.harristeeter.com/p/doritos-nacho-cheese-tortilla-chips/0002840051646' },
   dillons: { search: 'https://www.dillons.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/ , known: 'https://www.dillons.com/p/doritos-nacho-cheese-tortilla-chips/0002840051646' },
@@ -105,13 +105,16 @@ async function visit(name, label, url) {
     entry.badgeValues = snap.badgeValues;
     entry.tilesGuess = snap.hasTiles;
     entry.errors = errors;
-    entry.ok = true;
+    entry.transportFailure = /upstream connect error|remote address:envoy:\/\/|transport failure reason/i.test(snap.text);
+    entry.ok = !!res?.ok() && !entry.challenge && !entry.transportFailure;
     await page.screenshot({ path: path.join(out, `${name}-${label}.png`), fullPage: false }).catch(() => {});
   } catch (e) {
     entry.error = String(e.message || e).slice(0, 200);
   }
   report[name] = report[name] || {};
   report[name][label] = entry;
+  fs.writeFileSync(path.join(out, 'report.json'), JSON.stringify(report, null, 2));
+  console.error(`${name}/${label}: HTTP ${entry.status || 'unavailable'}, ${entry.numericBadges || 0} numeric scores, panel ${entry.panel?.state || 'none'}${entry.error ? `; ${entry.error}` : ''}`);
   const firstLink = label === 'search' && !entry.error ? await page.evaluate(({ sel, rx }) => {
     const re = new RegExp(rx);
     // Header promotions can link to unrelated products (Costco's gift cards, for
