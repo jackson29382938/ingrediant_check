@@ -51,7 +51,7 @@ const context = await pw.chromium.launchPersistentContext(profile, {
   headless: !args.includes('--headed'), ...(executablePath ? { executablePath } : { channel: 'chromium' }),
   ...(process.env.HTTPS_PROXY ? { proxy: { server: process.env.HTTPS_PROXY } } : {}),
   viewport: { width: 1360, height: 900 },
-  args: [`--disable-extensions-except=${root}`, `--load-extension=${root}`, ...(args.includes('--headed') ? [] : ['--headless=new'])],
+  args: [`--disable-extensions-except=${root}`, `--load-extension=${root}`, ...(args.includes('--headed') ? [] : ['--headless=new']), ...(process.env.HTTPS_PROXY ? ['--disable-http2'] : [])],
 });
 const report = {};
 

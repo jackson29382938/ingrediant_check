@@ -71,7 +71,7 @@ Fixed in this check (`src/stores/grocery-pages.js`):
 
 The subsequent [cloud-proxy audit](PROXY-RETAILER-AUDIT-2026-10-06.md) records checks with Chrome certificate trust configured. Target and Walmart search were accessible in that session; availability can differ between sessions and queries.
 
-The six remaining Kroger banners were subsequently checked in the [grocery live audit](GROCERY-LIVE-AUDIT-2026-10-06.md). Kroger and King Soopers search showed numeric ratings; Kroger, King Soopers and Smith's products scored. A King Soopers recheck kept its score visible throughout six observations. Other checks encountered cloud-proxy transport failures. Complete live coverage remains pending.
+The six remaining Kroger banners were subsequently checked in the [grocery live audit](GROCERY-LIVE-AUDIT-2026-10-06.md). Kroger and King Soopers search showed numeric ratings; Kroger, Fry's, King Soopers and Smith's products scored. A King Soopers recheck kept its score visible throughout six observations. Other checks encountered cloud-proxy transport failures. Complete live coverage remains pending.
 
 ## Amazon: sorting by store
 
