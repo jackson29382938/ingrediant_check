@@ -30,6 +30,25 @@ a local harness. **Preview** means a public-page adapter is implemented and test
 | Safeway | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Initial product page retrieved; no usable label | safeway.com; readable public labels scored, missing labels remain unknown. |
 | Albertsons | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Public oats HTML ingredients/nutrition read 2026-10-04; live browser pending | albertsons.com; readable public labels scored, missing labels remain unknown. |
 
+## Live check, 2026-10-06 (first five stores)
+
+`npm run live-check -- <store...>` (`scripts/live-check.mjs`) loads the unpacked extension in Chrome for Testing,
+signed out, opens each store's live search page and a food product page, and records what the extension did.
+It never solves or bypasses a bot check. Results:
+
+| Store | Search results page | Food product page | Notes |
+|---|---|---|---|
+| Amazon (amazon.com) | 29 score badges on "organic rolled oats" | scored (Bob's Red Mill oats) | Works as documented. |
+| Target | **not testable**: "Quick verification, press & hold" appeared over the page for this automated browser | scored (Good & Gather oats, `A-79364857`) | Same bot check as 2026-09-25; search is covered by saved-page tests. |
+| Walmart | **not testable**: "Robot or human?" | **not testable**: "Robot or human?" | Public product pages are blocked for automated browsers; covered by saved-page tests only. |
+| Costco | 26 badges; 2 scored, the rest "Label unavailable" | "waiting" until the reader opens *Nutritional Facts*, then scored | Costco's bot protection answers repeated plain requests with HTTP 429 (Kasada), so most search scans cannot read labels. The extension stops on it and never retries around it. |
+| Instacart | 91 badges with real scores (98, 96, 97) after the fix below | scored (Sprouts organic rolled oats) | Before the fix: the signed-out signup modal marks the page `aria-hidden`, which the adapters read as "hidden", so no panel appeared; and search scans read no labels because Instacart renders the label with scripts. |
+
+Fixed in this check: an `aria-hidden` ancestor no longer hides content that is on screen (`hiddenFromSight` in
+`src/stores/label-reader.js`, used by the Instacart, Walmart, Costco and Target readers; saved test pages without layout
+keep the old rule), and Instacart's label is read from its page state (`<script id="node-apollo-state">`), bound to the
+product id in the URL.
+
 ## Amazon: sorting by store
 
 The Ingredient Check options in Amazon's *Sort by* menu, and the side-panel list they open, depend on

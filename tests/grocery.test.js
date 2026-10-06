@@ -117,3 +117,59 @@ test('observed public oats declaration and nutrition works across all nine Kroge
     assert.equal(data.advisoryText, 'Contains Oats', id);
   }
 });
+
+// ---------------------------------------------------------------- Instacart page state
+// Instacart renders the label with scripts, but its page state (a percent-encoded Apollo cache) carries it
+// in the HTML, so a page fetched without running scripts can still be read (found on the live site).
+const icUrl = 'https://www.instacart.com/products/17848209-organic-rolled-oats-bulk-1-lb?retailerSlug=sprouts';
+const icCanonical = '<link rel="canonical" href="https://www.instacart.com/store/products/17848209-organic-rolled-oats-bulk-1-lb">';
+const icState = (id, ingredients, warnings = 'Produced In A Facility That Handles Allergens-Wheat, Soy, and Tree Nuts.') => {
+  const sections = [{ bodyString: ingredients, headerString: 'Ingredients' }, { bodyString: warnings, headerString: 'Warnings' },
+    { bodyString: 'Cook for 3 minutes.', headerString: 'Directions' }];
+  const cache = { __META: { type: 'DocumentCache' }, ItemDetailData: { [JSON.stringify({ id, isFeatured: false, shopId: '2726' })]: { itemDetail: { viewSection: { detailSections: sections } } } } };
+  return `<script id="node-apollo-state" type="application/json">${encodeURIComponent(JSON.stringify(cache))}</script>`;
+};
+const icPage = (state, body = '') => createDocument(`${icCanonical}<h1>Organic Rolled Oats</h1>${body}${state}`);
+
+test('Instacart: a page nothing rendered is read from its page state, bound to the product in the URL', () => {
+  const data = stores.instacart.readProduct(icPage(icState('items_40056-17848209', 'Organic Oats.')), at(icUrl));
+  assert.equal(data.ingredients, 'Organic Oats.');
+  assert.equal(data.label, 'open');
+  assert.match(data.advisoryText, /Wheat/);
+  assert.equal(data.title, 'Organic Rolled Oats');
+});
+
+test('Instacart: another item\'s state, a malformed state, or a wrong shape reads nothing', () => {
+  for (const state of [icState('items_40056-99999999', 'Sugar.'), icState('items_x-17848209', 'Sugar.'), icState('17848209', 'Sugar.'),
+    '<script id="node-apollo-state">%7Bnot json</script>', '<script id="node-apollo-state">%7B%22ItemDetailData%22%3A5%7D</script>', '']) {
+    const data = stores.instacart.readProduct(icPage(state), at(icUrl));
+    assert.equal(data.ingredients, '', state.slice(0, 60));
+    assert.equal(data.label, 'missing');
+  }
+});
+
+test('Instacart: a label the page shows wins over the page state, and other stores never read it', () => {
+  const shown = '<section><h3>Ingredients</h3><p>Rolled Oats.</p></section>';
+  const data = stores.instacart.readProduct(icPage(icState('items_40056-17848209', 'Sugar.'), shown), at(icUrl));
+  assert.equal(data.ingredients, 'Rolled Oats.');
+  const krogerPage = createDocument('<link rel="canonical" href="https://www.kroger.com/p/quaker-old-fashioned-oats/0003000001020"><h1 data-testid="product-details-name">Oats</h1>' + icState('items_40056-17848209', 'Sugar.'));
+  assert.equal(stores.kroger.readProduct(krogerPage, at(url)).ingredients, '');
+});
+
+test('Instacart: an oversized or ingredient-less state is refused', () => {
+  assert.equal(stores.instacart.readProduct(icPage(icState('items_40056-17848209', '')), at(icUrl)).ingredients, '');
+  assert.equal(stores.instacart.readProduct(icPage(icState('items_40056-17848209', 'x'.repeat(4001))), at(icUrl)).ingredients, '');
+});
+
+test('a modal that marks the page aria-hidden does not hide a product that is on screen', () => {
+  const L = require('../src/stores/label-reader.js') && globalThis.AIR.retailerLabels;
+  const el = (hiddenRoot, layout) => ({ closest: sel => (sel.includes('[aria-hidden') && hiddenRoot ? {} : null),
+    ownerDocument: { defaultView: layout ? {} : null }, getClientRects: layout ? () => [{}] : undefined });
+  assert.equal(L.hiddenFromSight(el(true, true)), false, 'rendered: visible whatever the ancestors say');
+  assert.equal(L.hiddenFromSight(el(true, false)), true, 'no layout: the attribute decides, as in saved test pages');
+  assert.equal(L.hiddenFromSight(el(false, true)), false);
+  const notRendered = { closest: sel => (sel.includes('[aria-hidden') ? {} : null), ownerDocument: { defaultView: {} }, getClientRects: () => [] };
+  assert.equal(L.hiddenFromSight(notRendered), true, 'aria-hidden and not rendered stays hidden');
+  assert.equal(L.hiddenFromSight({ closest: sel => (sel === '[hidden]' ? {} : null) }), true, '[hidden] always hides');
+  assert.equal(L.hiddenFromSight(null), false);
+});

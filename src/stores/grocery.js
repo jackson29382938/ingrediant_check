@@ -13,7 +13,7 @@
     ['safeway', 'Safeway', 'safeway.com', 'albertsons'], ['albertsons', 'Albertsons', 'albertsons.com', 'albertsons'],
   ];
   function excluded(el) {
-    if (el?.closest('header, nav, footer, aside, form, [hidden], [aria-hidden="true"]')) return true;
+    if (el?.closest('header, nav, footer, aside, form') || L.hiddenFromSight(el)) return true;   // not aria-hidden alone: a login modal sets it on the whole page
     for (let node = el; node?.getAttribute; node = node.parentNode) {
       const scope = ['id', 'class', 'data-testid', 'data-test', 'aria-label'].map(key => node.getAttribute(key) || '').join(' ');
       if (/recommend|related[-_ ]*(?:products|items)|sponsored|recently[-_ ]?viewed|you[-_ ]may[-_ ]also|account[-_ ]modal/i.test(scope)) return true;
@@ -67,6 +67,33 @@
     }
     return Array.from(new Set(statements)).join('. ');
   }
+  // Instacart puts the item's detail sections (Ingredients, Warnings, Directions) in its page state, a
+  // percent-encoded Apollo cache in <script id="node-apollo-state">, so a page fetched without running
+  // scripts still carries the label even though nothing is rendered. Bound to the page's own product:
+  // the cache key is {"id":"items_<retailer>-<productId>"} and the id must equal the one in the URL.
+  function instacartDeclaration(doc, currentId) {
+    const node = doc.getElementById && doc.getElementById('node-apollo-state');
+    const raw = node && node.textContent;
+    if (!raw || raw.length > 6 * 1024 * 1024 || !/^\d{5,15}$/.test(currentId)) return null;
+    let data;
+    try { data = JSON.parse(decodeURIComponent(raw)); } catch { return null; }
+    const items = data && typeof data === 'object' ? data.ItemDetailData : null;
+    if (!items || typeof items !== 'object') return null;
+    for (const [key, entry] of Object.entries(items)) {
+      let itemId = '';
+      try { itemId = String(JSON.parse(key).id || ''); } catch { continue; }
+      if (!new RegExp(`^items_\\d+-${currentId}$`).test(itemId)) continue;
+      const sections = entry && entry.itemDetail && entry.itemDetail.viewSection && entry.itemDetail.viewSection.detailSections;
+      if (!Array.isArray(sections)) return null;
+      const body = header => {
+        const section = sections.find(s => s && String(s.headerString || '').trim().toLowerCase() === header);
+        return section && typeof section.bodyString === 'string' ? L.clean(section.bodyString) : '';
+      };
+      const ingredients = body('ingredients');
+      return ingredients && ingredients.length <= 4000 ? { ingredients, advisoryText: L.warningText(body('warnings')) } : null;
+    }
+    return null;
+  }
   function make([id, name, host, family]) {
     const matchesHost = value => [host, `www.${host}`].includes(String(value || '').toLowerCase());
     function url(raw) {
@@ -108,12 +135,15 @@
       const currentId = productId(loc?.href);
       const heading = firstVisible(doc, '[data-testid="product-details-name"], h1');
       const title = L.text(heading);
-      const crumbs = Array.from(doc.querySelectorAll('[aria-label="Breadcrumbs"] a, [aria-label="breadcrumb"] a, [data-testid="breadcrumb"] a')).filter(node => !node.closest('[hidden], [aria-hidden="true"]')).map(L.text);
+      const crumbs = Array.from(doc.querySelectorAll('[aria-label="Breadcrumbs"] a, [aria-label="breadcrumb"] a, [data-testid="breadcrumb"] a')).filter(node => !L.hiddenFromSight(node)).map(L.text);
       const base = { id: currentId, title, crumbs, ingredients: '', labelText: '', advisoryText: '', nutrition: null, label: 'missing' };
       if (!currentId || !title || title.length > 300 || !L.sameCanonical(doc, currentId, productId) || !structuredIdentityMatches(doc, currentId)) return base;
       const label = L.readLabel(doc);
-      const advisoryText = [label.advisoryText, family === 'kroger' ? krogerWarnings(doc) : ''].filter(Boolean).join('. ');
-      return { ...base, ...label, advisoryText, nutrition: family === 'kroger' ? krogerNutrition(doc) || label.nutrition : label.nutrition };
+      // A label the page shows wins; Instacart's page state is the fallback for a page nothing rendered.
+      const declared = !label.ingredients && family === 'instacart' ? instacartDeclaration(doc, currentId) : null;
+      const advisoryText = [label.advisoryText, declared && declared.advisoryText, family === 'kroger' ? krogerWarnings(doc) : ''].filter(Boolean).join('. ');
+      return { ...base, ...label, ...(declared ? { ingredients: declared.ingredients, labelText: declared.ingredients, label: 'open' } : {}),
+        advisoryText, nutrition: family === 'kroger' ? krogerNutrition(doc) || label.nutrition : label.nutrition };
     }
     function searchTiles(doc) {
       const tiles = [], seen = new Set();

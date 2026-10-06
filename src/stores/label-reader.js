@@ -6,9 +6,19 @@
     for (const badge of el?.querySelectorAll?.('.air-badge') || []) value = value.replace(badge.textContent || '', '');
     return clean(value);
   };
-  const EXCLUDED = 'aside, footer, nav, form, [hidden], [aria-hidden="true"]';
+  // Hidden from sight, not merely from screen readers. aria-hidden on an ancestor is how a signed-out
+  // login or location modal marks the whole page behind it, so on a real page an element that is
+  // rendered counts as visible whatever its ancestors say. With no layout (saved test pages) the
+  // attribute still decides. [hidden] always hides.
+  function hiddenFromSight(el) {
+    if (!el || typeof el.closest !== 'function') return false;
+    if (el.closest('[hidden]')) return true;
+    if (!el.closest('[aria-hidden="true"]')) return false;
+    const win = el.ownerDocument && el.ownerDocument.defaultView;
+    return !(win && typeof el.getClientRects === 'function' && el.getClientRects().length > 0);
+  }
   function excluded(el) {
-    if (el && el.closest && el.closest(EXCLUDED)) return true;
+    if (el && el.closest && (el.closest('aside, footer, nav, form') || hiddenFromSight(el))) return true;
     for (let node = el; node && node.nodeType === 1; node = node.parentNode) {
       const scope = ['data-testid', 'data-test', 'data-automation-id', 'aria-label'].map(name => node.getAttribute(name) || '').join(' ');
       if (/recommend|related|sponsored|account preferences/i.test(scope)) return true;
@@ -127,6 +137,6 @@
     return out;
   }
   root.AIR = root.AIR || {};
-  root.AIR.retailerLabels = { clean, text, warningText, readLabel, labelToggle, sameCanonical, searchTiles, department };
+  root.AIR.retailerLabels = { clean, text, warningText, readLabel, labelToggle, sameCanonical, searchTiles, department, hiddenFromSight };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.AIR.retailerLabels;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

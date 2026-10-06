@@ -68,7 +68,7 @@
     const out = [], seen = new Set();
     for (const link of doc.querySelectorAll('a[href]')) {
       const id = productId(link.getAttribute('href'));
-      if (!id || seen.has(id) || link.closest('nav, aside, footer, form, [hidden], [aria-hidden="true"]')) continue;
+      if (!id || seen.has(id) || link.closest('nav, aside, footer, form') || L.hiddenFromSight(link)) continue;
       let excluded = false;
       for (let parent = link; parent && parent.getAttribute; parent = parent.parentNode) {
         if (['data-testid', 'data-test', 'data-automation-id', 'aria-label'].some(attr => /recommend|promot|sponsored|advertis/i.test(parent.getAttribute(attr) || ''))) {

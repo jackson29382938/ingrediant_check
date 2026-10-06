@@ -1,0 +1,123 @@
+#!/usr/bin/env node
+// Live check of the unpacked extension on real store pages (signed out, public pages only).
+//
+//   NODE_PATH=<dir with playwright> HARNESS_CHROME=<Chrome for Testing> node scripts/live-check.mjs amazon target
+//   options: --out <dir> (screenshots + report.json), --headed, --wait <seconds for search scoring>
+//
+// For each store it opens a search results page and a food product page (the first product link found on
+// the search page, or a known product), waits for the extension, and records what it did: the product
+// panel's state, how many score badges are on the results, and whether the store answered with a bot
+// check instead of the page. It touches nothing but public pages and never signs in or solves a check.
+import { createRequire } from 'node:module';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const args = process.argv.slice(2);
+const flag = (name, fallback) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : fallback; };
+const stores = args.filter((a, i) => !a.startsWith('--') && !['--out', '--wait'].includes(args[i - 1]));
+const out = flag('--out', fs.mkdtempSync(path.join(os.tmpdir(), 'ic-live-')));
+const wait = Number(flag('--wait', 30)) * 1000;
+fs.mkdirSync(out, { recursive: true });
+
+// Where each store's search and a food product are. `link` finds a product on the search page.
+const SITES = {
+  amazon: { search: 'https://www.amazon.com/s?k=organic+rolled+oats&i=grocery', link: 'a[href*="/dp/"]', product: /\/dp\/[A-Z0-9]{10}/ },
+  target: { search: 'https://www.target.com/s?searchTerm=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/.*A-\d+/, known: 'https://www.target.com/p/-/A-79364857' },
+  walmart: { search: 'https://www.walmart.com/search?q=organic+rolled+oats', link: 'a[href*="/ip/"]', product: /\/ip\//, known: 'https://www.walmart.com/ip/10314926' },
+  costco: { search: 'https://www.costco.com/CatalogSearch?keyword=organic+oats', link: 'a[href*=".product."]', product: /\.product\.\d+\.html/, known: 'https://www.costco.com/.product.100423971.html' },
+  instacart: { search: 'https://www.instacart.com/store/s?k=organic+rolled+oats', link: 'a[href*="/products/"]', product: /\/products\/\d+/ },
+};
+const CHALLENGE = /press\s*&\s*hold|robot or human|verify you are human|access denied|are you a robot|unusual traffic|captcha|temporarily blocked|just a moment/i;
+
+const pw = require('playwright');
+const executablePath = process.env.HARNESS_CHROME || undefined;
+const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'ic-live-profile-'));
+const context = await pw.chromium.launchPersistentContext(profile, {
+  headless: !args.includes('--headed'), ...(executablePath ? { executablePath } : { channel: 'chromium' }),
+  viewport: { width: 1360, height: 900 },
+  args: [`--disable-extensions-except=${root}`, `--load-extension=${root}`, ...(args.includes('--headed') ? [] : ['--headless=new'])],
+});
+const report = {};
+
+async function snapshot(page) {
+  return page.evaluate(() => {
+    const host = document.getElementById('air-score-panel');
+    const badges = [...document.querySelectorAll('.air-badge')];
+    return {
+      title: document.title.slice(0, 90),
+      text: (document.body && document.body.innerText || '').slice(0, 4000),
+      panel: host ? { state: host.dataset.airState || '', connected: host.isConnected } : null,
+      badges: badges.length,
+      badgeValues: badges.slice(0, 12).map(b => (b.textContent || '').trim()),
+      hasTiles: document.querySelectorAll('[data-asin], [data-test*="ProductCard"], [data-testid*="product"], [data-item-id], [class*="product-tile"], [data-automation-id*="product"]').length,
+    };
+  });
+}
+
+async function visit(name, label, url) {
+  const page = await context.newPage();
+  const errors = [];
+  page.on('pageerror', e => errors.push(`pageerror: ${e.message}`.slice(0, 200)));
+  page.on('console', m => { if (m.type() === 'error' && /Ingredient|air-|AIR/.test(m.text())) errors.push(m.text().slice(0, 200)); });
+  const entry = { url, ok: false };
+  try {
+    const res = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
+    entry.status = res && res.status();
+    await page.waitForTimeout(6000);
+    if (label === 'search') {
+      // Scroll the way a reader does, so results below the fold are seen and scored.
+      for (let i = 0; i < 4; i++) { await page.mouse.wheel(0, 900); await page.waitForTimeout(1200); }
+      const until = wait;
+      let seen = 0;
+      for (let t = 0; t < until; t += 3000) {
+        await page.waitForTimeout(3000);
+        const s = await snapshot(page);
+        if (s.badges !== seen) seen = s.badges;
+        if (t > 9000 && s.badges >= 6) break;
+      }
+    } else {
+      await page.waitForTimeout(6000);
+    }
+    const snap = await snapshot(page);
+    entry.finalUrl = page.url();
+    entry.title = snap.title;
+    entry.challenge = CHALLENGE.test(snap.title + ' ' + snap.text.slice(0, 1500));
+    entry.panel = snap.panel;
+    entry.badges = snap.badges;
+    entry.badgeValues = snap.badgeValues;
+    entry.tilesGuess = snap.hasTiles;
+    entry.errors = errors;
+    entry.ok = true;
+    await page.screenshot({ path: path.join(out, `${name}-${label}.png`), fullPage: false }).catch(() => {});
+  } catch (e) {
+    entry.error = String(e.message || e).slice(0, 200);
+  }
+  report[name] = report[name] || {};
+  report[name][label] = entry;
+  const firstLink = label === 'search' && !entry.error ? await page.evaluate(({ sel, rx }) => {
+    const re = new RegExp(rx);
+    const a = [...document.querySelectorAll(sel)].map(x => x.href).find(h => re.test(h));
+    return a || '';
+  }, { sel: SITES[name].link, rx: SITES[name].product.source }).catch(() => '') : '';
+  await page.close();
+  return firstLink;
+}
+
+for (const name of stores.length ? stores : Object.keys(SITES)) {
+  const site = SITES[name];
+  if (!site) { console.error(`unknown store ${name}`); continue; }
+  console.error(`-- ${name}`);
+  const link = await visit(name, 'search', site.search);
+  const target = link || site.known;
+  report[name].productUrl = target || '';
+  if (target) await visit(name, 'product', target);
+  else report[name].product = { ok: false, error: 'no product link found on the search page and none known' };
+}
+await context.close();
+fs.writeFileSync(path.join(out, 'report.json'), JSON.stringify(report, null, 2));
+console.log(JSON.stringify(report, null, 2));
+console.error(`report and screenshots in ${out}`);

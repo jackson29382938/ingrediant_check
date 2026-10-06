@@ -28,7 +28,15 @@
     return clean(value);
   };
   const kids = el => Array.from((el && el.children) || []);
-  const hidden = el => !!(el && typeof el.closest === 'function' && el.closest('[hidden], [aria-hidden="true"]'));
+  // Hidden from sight: [hidden], or aria-hidden on an element that is not rendered. A signed-out modal sets
+  // aria-hidden on the whole page behind it, which must not hide the product (see label-reader.js).
+  const hidden = el => {
+    if (!el || typeof el.closest !== 'function') return false;
+    if (el.closest('[hidden]')) return true;
+    if (!el.closest('[aria-hidden="true"]')) return false;
+    const win = el.ownerDocument && el.ownerDocument.defaultView;
+    return !(win && typeof el.getClientRects === 'function' && el.getClientRects().length > 0);
+  };
 
   function matchesHost(host) {
     return /^(?:www\.)?target\.com$/i.test(String(host || ''));
