@@ -185,8 +185,9 @@ For each store:
 
 - Read only what a signed-out visitor sees. Never get past a CAPTCHA, a login, a bot check or any
   other access control. If a store blocks reading, it stays planned and this page says why.
-- Match only that store's host and the product/search routes it needs; keep cart, checkout, account,
-  order and login pages out of the content-script matches.
+- Match only that store's host and the product/search/cart routes it needs; keep checkout, account,
+  order and login pages out of the content-script matches. Cart readers must inspect only public
+  product links/titles, omit cookies and referrers on lookups, and preserve cart controls.
   Prefer a content script over a host permission. Any new host in the manifest, including a
   content-script match, makes Chrome ask existing users to approve it on update.
 - Add sanitized fixtures under `tests/pages/` covering a product with a list, one without, a non-food
@@ -199,7 +200,7 @@ For each store:
 
 Normal public GET requests returned HTTP 200 for Target product 79364857, Walmart product 10314926, and Costco product 100423971. Target’s initial HTML did not expose its ingredient label. Walmart’s current-product `__NEXT_DATA__` contained `WHOLE GRAIN ROLLED OATS.`; the reader verifies `product.usItemId` against the URL before accepting that declaration. Costco redirected an older oats slug to a protein-bar product with the same numeric ID; its initial nutrition model was empty. These checks establish access and parsing evidence, not complete live browser support. No challenge was bypassed and no internal retailer APIs were called.
 
-The original previews offer paste-label fallback. Version 1.6.0 adds public same-origin scans for uncached search results, while keeping saved-score reuse. They do not share product readings or call OCR/Google services. Cart, login, account and checkout routes are outside the content-script matches. Missing nutrition stays unknown.
+The original previews offer paste-label fallback. Version 1.6.0 adds public same-origin scans for uncached search results, while keeping saved-score reuse. They do not share product readings or call OCR/Google services. At that version cart routes were excluded; version 1.9.0 adds narrowly scoped cart readers. Login, account and checkout remain outside scoring routes. Missing nutrition stays unknown.
 
 ## Parallel audit follow-up
 
@@ -218,3 +219,26 @@ Search results depend on published readable declarations. Blocked pages, store/l
 The [bottom-five audit](BOTTOM-FIVE-AUDIT-2026-10-06.md) records new public-page evidence and fixes for QFC, Harris Teeter, Dillons, Safeway and Albertsons. Modern Safeway/Albertsons `/shop/pd/<name>/<id>` products and identity-bound public declarations are read; search badges avoid truncated title links and scans preserve actual same-origin result URLs. Chrome fixture tests now cover pagination, cached/cold searches, SPA navigation, changed declarations and recycled cards. The environment's certificate-trust issue was subsequently resolved in the [proxy audit](PROXY-RETAILER-AUDIT-2026-10-06.md); complete live-browser coverage of these stores is still pending and they remain previews.
 
 The [remaining grocery-banner audit](GROCERY-SEARCH-AUDIT-2026-10-06.md) extends the verified search fixes and browser lifecycle checks to Kroger, Fry’s, Ralphs, King Soopers, Smith’s and Fred Meyer. All eleven banners use `src/stores/grocery-pages.js`; the separate Amazon/Target/Walmart/Costco/Instacart pipelines are unchanged.
+
+## Cart rating preview — October 6, 2026
+
+Version 1.9.0 adds item ratings on narrowly scoped cart pages for Amazon, Target, Walmart, Costco,
+Instacart, Kroger, Fry’s, Ralphs, King Soopers, Smith’s, Fred Meyer, QFC, Harris Teeter, Dillons,
+Safeway and Albertsons. Amazon's 21 storefronts share the reader. Cart drawers on supported product
+and search routes use it too. Costco Same-Day remains outside scope.
+
+Saved local scores show first. Automatic rating can request each item's public product page without
+cookies or a cart referrer, two requests at a time, bounded by the Speed setting. The cart reader
+uses the same scoring rules and preferences as product pages; it never invents a score for an absent,
+blocked or unreadable label. Recommendations, saved-for-later items, hidden rows and ambiguous
+product identities are excluded. No quantities, totals, delivery/account information or payment
+fields are collected. Cart reports remain excluded from automatic screenshot capture.
+
+The unpacked-extension Chrome harness covers all 16 store cart routes: cold and cached scores,
+added/removed rows, mixed food/non-food carts, missing labels, request privacy, preserved quantities
+and totals, and navigation into checkout. It also opens/closes a Target drawer on a search route.
+Node tests cover identity binding, semantic rows, Amazon title-slug links, saved-for-later exclusion,
+supported hosts and cart routes. These are controlled fixtures, not 16 live shopping sessions.
+The live Amazon food sample returned HTTP 200 but offered no Add to Cart control to the signed-out
+browser, so it did not establish live filled-cart coverage. Cart support remains a preview until
+ordinary live carts are checked. Retailer access checks still apply.

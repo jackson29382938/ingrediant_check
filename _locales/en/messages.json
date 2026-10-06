@@ -152,13 +152,13 @@
     "message": "Search result badges"
   },
   "popupBadgesD": {
-    "message": "Score badges on search results with readable labels."
+    "message": "Score badges on search results and cart items with readable labels."
   },
   "popupFoodOnly": {
     "message": "Only rate food & supplements"
   },
   "popupAutoScore": {
-    "message": "Rate every search result"
+    "message": "Rate search results and cart items"
   },
   "popupHover": {
     "message": "Score on hover"
@@ -187,7 +187,7 @@
     "message": "Skip shoes, toys, cosmetics and cleaning products, and say why instead of scoring them. Shampoo has an ingredient list too, and a score on one implies it was judged as something you could eat."
   },
   "popupAutoScoreD": {
-    "message": "Scores results automatically as you scroll. For each one this computer and the shared database cannot already answer, it requests the product page from the Amazon store you are on, a few at a time and at most 60 per results page, with your Amazon sign-in. Amazon sees these requests much as if you had opened the products yourself. Off: only products already read get a score. Retailer previews use two public same-site requests at a time, without cookies; missing labels remain unknown."
+    "message": "Rates search results and cart items automatically, using saved scores first and the speed setting to limit requests. Cart ratings fetch public product pages without cookies or the cart-page address. Missing labels stay unavailable. Off: show saved scores only."
   },
   "popupHoverD": {
     "message": "Hover or tab to a search result for half a second and it requests that product page from Amazon to score it, with your Amazon sign-in. Only the result you point at."
@@ -628,7 +628,7 @@
     }
   },
   "popupAutoScoreNet": {
-    "message": "Requests product pages from the store you are browsing. Amazon requests use your sign-in; retailer previews request public pages without cookies."
+    "message": "Requests product pages from the store you are browsing. Amazon search requests use your sign-in; cart ratings and retailer previews request public pages without cookies."
   },
   "popupHoverNet": {
     "message": "Requests that product page from Amazon, signed in as you."
@@ -637,7 +637,7 @@
     "message": "Store access and what is sent"
   },
   "optNoteAutoScore": {
-    "message": "On by default. As you scroll a results page, each result that this computer and the shared database cannot already answer is scored by requesting its product page from the Amazon store you are on: three at a time, at most 60 per results page. The requests carry your Amazon sign-in, so Amazon sees them much as if you had opened each product yourself. Turn this off and only products already read (by you, or through the shared database) show a score. Retailer previews use two public same-site requests at a time, without cookies; missing labels remain unknown."
+    "message": "On by default. As you scroll a results page, each result that this computer and the shared database cannot already answer is scored by requesting its product page from the Amazon store you are on: three at a time, at most 60 per results page. The requests carry your Amazon sign-in, so Amazon sees them much as if you had opened each product yourself. Turn this off and only products already read (by you, or through the shared database) show a score. Retailer previews use two public same-site requests at a time, without cookies; missing labels remain unknown. Cart ratings on every store use public product pages without cookies or referrers, two at a time within the Speed budget."
   },
   "optNoteHover": {
     "message": "Off by default. Hover or tab to one result for half a second and it requests that product page from Amazon in the same way, with your Amazon sign-in. Only the result you point at."
@@ -783,7 +783,7 @@
     "message": "Preview — works on the pages you open; still being checked"
   },
   "optNoteTarget": {
-    "message": "Retailer previews: Target, Walmart, Costco, Instacart and the other listed grocery stores can rate search results by requesting public product pages from the same site, without cookies. Rate every search result is on by default; turn it off to use saved scores only. Two requests run at a time, up to the speed setting’s page limit (20–60). Blocked or missing labels stay unavailable. Scores remain on your computer; no preview data is shared. Score on hover applies to Amazon only."
+    "message": "Retailer previews rate search results and cart items from saved scores or public same-site product pages without cookies. Cart requests also omit the referrer. Automatic rating is on by default; turn it off for saved scores only. Two requests run at a time, within the Speed budget (20–60). Missing or blocked labels stay unavailable. Scores stay local; no cart data is shared. Score on hover applies to Amazon only."
   },
   "sortThrottled": {
     "message": "Amazon stopped answering product pages, so rating paused."

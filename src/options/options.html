@@ -319,7 +319,7 @@
     <div data-level="1">
     <label class="chip" style="margin: 14px 0 8px">
       <input type="checkbox" id="autoScoreSearch" checked>
-      <span data-i18n="popupAutoScore">Rate every search result</span>
+      <span data-i18n="popupAutoScore">Rate search results and cart items</span>
     </label>
     <p class="note" data-i18n="optNoteAutoScore">
       On by default. As you scroll a results page, each result that this computer and the shared
@@ -327,6 +327,7 @@
       you are on: three at a time, at most 60 per results page. The requests carry your Amazon
       sign-in, so Amazon sees them much as if you had opened each product yourself. Turn this off
       and only products already read (by you, or through the shared database) show a score.
+      Cart lookups on all stores read public product pages without cookies or referrers, two at a time within the Speed budget.
     </p>
     </div>
     <div data-level="2">
@@ -348,13 +349,13 @@
       <strong>Amazon access.</strong> When you install Ingredient Check, it asks Chrome for access
       to the Amazon stores it supports:
       <span id="amazonStores">amazon.com and the other supported Amazon stores</span>.
-      It uses that access to read product and search pages, and to request product pages for the
-      two options above. Its scripts run only on product, search, browse and brand-store pages, never on your
-      account, cart or checkout. To limit it, open <code>chrome://extensions</code>, choose
+      It uses that access to read product, search and cart pages, and to request product pages for the
+      two options above. Its scripts run on product, search, browse, brand-store and narrowly scoped cart pages, never on your
+      account, orders or checkout. To limit it, open <code>chrome://extensions</code>, choose
       <em>Details</em> under Ingredient Check, and change <em>Site access</em>.
     </p>
     <p class="note" id="targetAccess" data-level="2">
-Retailer previews: Target, Walmart, Costco, Instacart and the other listed grocery stores can rate search results by requesting public product pages from the same site, without cookies. Rate every search result is on by default; turn it off to use saved scores only. Two requests run at a time, up to the speed setting’s page limit (20–60). Blocked or missing labels stay unavailable. Scores remain on your computer; no preview data is shared. Score on hover applies to Amazon only.
+Retailer previews rate search results and cart items from saved scores or public same-site product pages without cookies. Cart requests also omit the referrer. Automatic rating is on by default; turn it off for saved scores only. Two requests run at a time, within the Speed budget (20–60). Missing or blocked labels stay unavailable. Scores stay local; no cart data is shared. Score on hover applies to Amazon only.
     </p>
     <div data-level="2">
     <label class="chip" style="margin: 14px 0 8px">

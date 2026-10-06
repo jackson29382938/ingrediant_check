@@ -1,6 +1,6 @@
 # Privacy (Chrome Web Store)
 
-Ingredient Check scores grocery labels on Amazon, and as previews on Target, Walmart, Costco, Instacart and eleven additional grocery banners, **on your computer**. By default, settings backup uses your Chrome profile storage; Chrome syncs it to your own account when browser sync is enabled. Automatic search rating, owner-kept certification lookups, and on-device label OCR are enabled by default. Barcode lookup is recommended and checked in setup but requires Chrome’s optional permission. Diagnostics and sharing product readings stay off. Backup can also be switched off.
+Ingredient Check scores grocery labels on Amazon, and as previews on Target, Walmart, Costco, Instacart and eleven additional grocery banners, **on your computer**. By default, settings backup uses your Chrome profile storage; Chrome syncs it to your own account when browser sync is enabled. Automatic search and cart rating, owner-kept certification lookups, and on-device label OCR are enabled by default. Barcode lookup is recommended and checked in setup but requires Chrome’s optional permission. Diagnostics and sharing product readings stay off. Backup can also be switched off.
 
 This page is the one-screen note for a store listing. Settings copy and [DIAGNOSTICS.md](DIAGNOSTICS.md) say the same things at more length.
 
@@ -8,18 +8,20 @@ This page is the one-screen note for a store listing. Settings copy and [DIAGNOS
 
 On Amazon product, search, browse, and store pages it already has permission to run on, it reads the product title, department crumbs, published ingredient text, nutrition table, barcode/ASIN, and (unless you switch label OCR off) the product image URL already on the page.
 
-It does not read your Amazon password, payment details, cart, orders, or account pages. Content scripts are not injected there.
+It does not read passwords, payment details, orders or account pages. Cart rating reads only product links and product titles from cart line items. It does not collect quantities, prices, cart totals, delivery addresses, account identifiers or payment fields, and it never changes the cart or submits checkout.
 
-Retailer previews read the product title, published ingredients, allergen warnings, nutrition and product identity on narrowly scoped public product/search pages. With **Rate every search result** enabled (the default), they request each uncached result’s public product page on the same origin, without cookies (`credentials: omit`). Two requests run concurrently; the existing speed setting caps requests at 20–60 per search page. Requests stop on recognized challenges or rate-limit responses; no internal retailer APIs or access controls are bypassed. Missing labels remain unknown. Turning automatic rating off uses saved local scores only.
+Retailer previews read the product title, published ingredients, allergen warnings, nutrition and product identity on narrowly scoped public product/search pages. With **Rate search results and cart items** enabled (the default), they request each uncached result’s public product page on the same origin, without cookies (`credentials: omit`). Two requests run concurrently; the existing speed setting caps requests at 20–60 per search page. Requests stop on recognized challenges or rate-limit responses; no internal retailer APIs or access controls are bypassed. Missing labels remain unknown. Turning automatic rating off uses saved local scores only.
 
-These previews do not share readings, call barcode/OCR services, or upload product data to Google. Only public apex/www product/search routes are matched. Account, order, cart and checkout pages are outside those routes.
+These previews do not share readings, call barcode/OCR services, or upload product data to Google. Product/search routes and narrowly scoped cart routes are matched. Account, order and checkout pages remain outside scoring routes. Automatic report screenshots still exclude carts.
+
+Cart rating on all listed stores uses valid saved local scores first. With **Rate search results and cart items** enabled, uncached cart items can request their ordinary public product pages, two at a time and within the speed setting's 20–60 request budget. All cart-triggered requests, including Amazon, omit cookies and the cart-page referrer (`credentials: omit`, `referrerPolicy: no-referrer`). Only a public product ID and, for Instacart, its public retailer slug are sent; cart URL parameters and account data are not forwarded. Cart drawers on already supported product/search pages use the same rules. Missing, blocked and unreadable labels remain unavailable. No cart contents are uploaded to Google or shared databases. Turning automatic rating off leaves saved-score display available.
 
 ## Access to Amazon
 
 When it is installed, the extension asks Chrome for access to the 21 Amazon stores it supports
 (`host_permissions` in `manifest.json`: amazon.com, .co.uk, .ca, .com.au, .ie, .in, .sg, .ae, .sa,
 .de, .fr, .es, .it, .nl, .se, .pl, .com.be, .com.tr, .com.mx, .com.br and .co.jp). It needs that
-access to read product and search pages. **Rate every search result** and **Score on hover** also
+access to read product, search and cart pages. **Rate search results and cart items** and **Score on hover** also
 use it to request product pages. Settings → *What to rate* lists the stores and explains how to limit
 access (`chrome://extensions` → *Details* → *Site access*).
 
@@ -36,16 +38,14 @@ are told about this in three places:
 Turn it off in any of those places. Results then only show a score for products already read, by you
 or through the shared database. Scoring on product pages you open does not change.
 
-## Access to Target (preview)
+## Access to retailer previews
 
-Target is reached through a content script on product (`https://www.target.com/p/*`) and search
-(`/s…`) routes only. The extension has **no host permission** for Target, and
-on Target it **makes no network requests**. It does not fetch product pages, does not use the shared
-database, Open Food Facts or label photos, and cannot send diagnostics or reports from there. Scores
-are computed and kept on your computer. A search page shows a score only for products you have
-opened before. The only message a Target tab may send the extension's worker is the number for the
-toolbar badge. Chrome lists Target in the extension's site access because of that content script;
-you can switch it off in `chrome://extensions` → *Details* → *Site access*.
+Target and the other retailer previews use narrowly scoped product, search and cart content scripts.
+They have no additional broad host permissions. Automatic rating can fetch public product pages
+from the same origin without cookies; cart lookups also omit the referrer. These scans do not call
+the shared database, Open Food Facts, OCR or Google. Chrome lists these sites in the extension's
+site access because of the content scripts; you can disable them in
+`chrome://extensions` → *Details* → *Site access*.
 
 ## What leaves your computer
 
@@ -57,7 +57,8 @@ Scoring is always local: the rules, your weights and every score are computed in
 | **Share product readings with other computers** (off by default; experimental) | The store and product IDs of search tiles this computer cannot already answer (one batched request per page), and of a product page whose ingredients Amazon did not publish as text. For products you score: what was read off the page — ingredient text, title, feature bullets, certifications, nutrition numbers, how it was read — and when. One pull count when a shared read is used. Never your settings, your scores, or anything that identifies you. Readings from other computers are not checked, so a badge could show a score for text that is not on the label (product pages you open are always read from the page). | The Ingredient Check Apps Script, as above. It learns which products are being looked at, not by whom. See [CACHE.md](CACHE.md). |
 | **Back up my settings** (on by default) | Weights, goals and their importance, allergen and diet choices, avoid list, toggles, sort, speed and display preferences | Chrome's own sync, for the Google account signed into Chrome. Not the Ingredient Check database. |
 | **Sign in with Google** (only when you click it) | Signing in asks Google for your name, email and picture (scopes `openid email profile`) so Settings can show who is signed in; the picture is then loaded from Google's image host each time Settings opens. Those three are kept only in this browser's local storage, never backed up, exported or sent anywhere else; **Sign out** deletes them. The access token is never stored. **Save my settings to Google** also sends the same settings as the Chrome backup, and while you are signed in and this computer has saved or restored once, the same copy is sent a few seconds after each change (switch off with *Keep my Google copy up to date automatically*). | Google, for the profile. The Ingredient Check database, for a saved copy, keyed by a SHA-256 of your Google account id — not your email. |
-| **Rate every search result** (on by default) or **Score on hover** | Ordinary `GET` of `/dp/ASIN` on the Amazon store you are on, using your Amazon session (`credentials: same-origin`), three at a time and at most 60 per results page — only for tiles this computer and the shared database cannot already answer | **Amazon.** Each auto-scored or hovered tile looks like you opened that product. See *Access to Amazon* above. |
+| **Automatic Amazon search rating** (on by default) or **Score on hover** | Ordinary `GET` of `/dp/ASIN` on the Amazon store you are on, using your Amazon session (`credentials: same-origin`), three at a time and at most 60 per results page — only for tiles this computer and the shared database cannot already answer | **Amazon.** Each auto-scored or hovered tile looks like you opened that product. See *Access to Amazon* above. |
+| **Automatic cart rating** (on by default) | Public same-origin product pages only, without cookies or referrer, two at a time and at most 20–60 per cart view depending on Speed. No quantities, prices, totals, delivery information or cart URL parameters are sent. | The retailer hosting that public product page; no cart data goes to Google or the shared database. |
 | **Sort menu → Rate them** (the default sort setting; only when *Rate every search result* is on) | After you choose an Ingredient Check option in Amazon's sort menu: the same product-page `GET`s as *Rate every search result*, for listings in the list without a score. They go through the same queue as the badges: three at a time in total, never twice for one product, paused for both when Amazon refuses, and inside the same limit — 60 product pages (fewer under *Speed*) for each Amazon results page in the list, counting the ones the badges already requested. It stops at that limit or when you press *Stop rating* | **Amazon**, as above. |
 | **Sort menu → Load more results** (off by default) | Amazon search pages after this one, until the chosen number of listings (1–500), then, with *Rate them*, product pages of listings still without a score, as above | **Amazon**, as above. Shared product readings are asked first, like for badges, if you turned them on. |
 | **Price per ounce** (on by default) | Nothing. Read from the results page already open | Nobody. |
@@ -70,7 +71,7 @@ Scoring is always local: the rules, your weights and every score are computed in
 | **Request a store** (only when you open the draft and send it yourself) | Nothing from the extension. Your email app sends the store name and optional site address, if you press Send | The maintainer, by email from your address. See *Requesting a store* below. |
 | **Accuracy diagnostics** (off by default) | One row per scored product (ASIN, store, ingredient text, score, source) | The Ingredient Check database. That is a trace of products you scored — with auto-score on, of tiles that scrolled into view. |
 
-Turn off the shared database, the backup and **Rate every search result**, leave the other options
+Turn off the shared database, the backup and **Rate search results and cart items**, leave the other options
 off, and the extension makes no network requests of its own. A build shipped without an endpoint behaves the same way for
 everything but the Chrome backup.
 

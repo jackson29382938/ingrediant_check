@@ -155,13 +155,13 @@
     "message": "Search result badges"
   },
   "popupBadgesD": {
-    "message": "Bewertungen für Suchergebnisse mit lesbaren Zutatenlisten."
+    "message": "Bewertungen für Suchergebnisse und Warenkorbartikel mit lesbaren Zutatenlisten."
   },
   "popupFoodOnly": {
     "message": "Only rate food & supplements"
   },
   "popupAutoScore": {
-    "message": "Rate every search result"
+    "message": "Suchergebnisse und Warenkorbartikel bewerten"
   },
   "popupHover": {
     "message": "Score on hover"
@@ -190,7 +190,7 @@
     "message": "Skip shoes, toys, cosmetics and cleaning products, and say why instead of scoring them. Shampoo has an ingredient list too, and a score on one implies it was judged as something you could eat."
   },
   "popupAutoScoreD": {
-    "message": "Scores results automatically as you scroll. For each one this computer and the shared database cannot already answer, it requests the product page from the Amazon store you are on, a few at a time and at most 60 per results page, with your Amazon sign-in. Amazon sees these requests much as if you had opened the products yourself. Off: only products already read get a score. Shop-Vorschauen lesen zwei öffentliche Produktseiten derselben Website gleichzeitig, ohne Cookies. Fehlende Zutatenlisten bleiben unbekannt."
+    "message": "Bewertet Suchergebnisse und Warenkorbartikel automatisch. Gespeicherte Bewertungen werden zuerst verwendet; die Geschwindigkeitseinstellung begrenzt Anfragen. Warenkorbbewertungen rufen öffentliche Produktseiten ohne Cookies oder Warenkorb-URL ab. Fehlende Zutatenlisten bleiben unbekannt. Aus: nur gespeicherte Bewertungen anzeigen."
   },
   "popupHoverD": {
     "message": "Hover or tab to a search result for half a second and it requests that product page from Amazon to score it, with your Amazon sign-in. Only the result you point at."
@@ -610,7 +610,7 @@
     }
   },
   "popupAutoScoreNet": {
-    "message": "Fordert Produktseiten des geöffneten Shops an. Amazon nutzt Ihre Anmeldung; Shop-Vorschauen lesen öffentliche Seiten ohne Cookies."
+    "message": "Ruft Produktseiten des aktuellen Shops ab. Amazon-Suchanfragen verwenden deine Anmeldung; Warenkorbbewertungen und andere Shops rufen öffentliche Seiten ohne Cookies ab."
   },
   "popupHoverNet": {
     "message": "Requests that product page from Amazon, signed in as you."
@@ -619,7 +619,7 @@
     "message": "Shop-Zugriff und übertragene Daten"
   },
   "optNoteAutoScore": {
-    "message": "On by default. As you scroll a results page, each result that this computer and the shared database cannot already answer is scored by requesting its product page from the Amazon store you are on: three at a time, at most 60 per results page. The requests carry your Amazon sign-in, so Amazon sees them much as if you had opened each product yourself. Turn this off and only products already read (by you, or through the shared database) show a score. Shop-Vorschauen lesen zwei öffentliche Produktseiten derselben Website gleichzeitig, ohne Cookies. Fehlende Zutatenlisten bleiben unbekannt."
+    "message": "On by default. As you scroll a results page, each result that this computer and the shared database cannot already answer is scored by requesting its product page from the Amazon store you are on: three at a time, at most 60 per results page. The requests carry your Amazon sign-in, so Amazon sees them much as if you had opened each product yourself. Turn this off and only products already read (by you, or through the shared database) show a score. Shop-Vorschauen lesen zwei öffentliche Produktseiten derselben Website gleichzeitig, ohne Cookies. Fehlende Zutatenlisten bleiben unbekannt. Warenkorb-Bewertungen aller Shops lesen öffentliche Produktseiten ohne Cookies oder Referrer, zwei gleichzeitig innerhalb des Geschwindigkeitslimits."
   },
   "optNoteHover": {
     "message": "Off by default. Hover or tab to one result for half a second and it requests that product page from Amazon in the same way, with your Amazon sign-in. Only the result you point at."
@@ -768,7 +768,7 @@
     "message": "Preview — works on the pages you open; still being checked"
   },
   "optNoteTarget": {
-    "message": "Shop-Vorschauen: Target, Walmart, Costco, Instacart und weitere aufgeführte Lebensmittelshops lesen öffentliche Produktseiten derselben Website ohne Cookies, um Suchergebnisse zu bewerten. Alle Suchergebnisse bewerten ist standardmäßig aktiv. Deaktivieren Sie es, um nur gespeicherte Bewertungen zu sehen. Zwei Anfragen laufen gleichzeitig, bis zum Seitenlimit der Geschwindigkeitseinstellung (20–60). Blockierte oder fehlende Zutatenlisten bleiben unbekannt. Bewertungen bleiben lokal; Vorschau-Daten werden nicht geteilt. Bewerten beim Überfahren gilt nur für Amazon."
+    "message": "Shop-Vorschauen bewerten Suchergebnisse und Warenkorb-Artikel mit gespeicherten Bewertungen oder öffentlichen Produktseiten derselben Website ohne Cookies. Warenkorb-Anfragen senden auch keinen Referrer. Automatische Bewertung ist standardmäßig an; ausgeschaltet werden nur gespeicherte Bewertungen angezeigt. Zwei Anfragen laufen gleichzeitig, innerhalb des Geschwindigkeitslimits (20–60). Fehlende oder blockierte Zutatenlisten bleiben unbekannt. Bewertungen bleiben lokal; Warenkorb-Daten werden nicht geteilt. Bewertung beim Darüberfahren gilt nur für Amazon."
   },
   "sortThrottled": {
     "message": "Amazon stopped answering product pages, so rating paused."

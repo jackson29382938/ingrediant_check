@@ -41,9 +41,12 @@
 
   const MAX_EXTRACT_RETRIES = 8;
 
-  const isProductPage = () => /\/(dp|gp\/product|gp\/aw\/d)\/[A-Z0-9]{10}/.test(location.pathname);
+  // Public-page scripts also load on cart routes for SPA navigation. A search query on a cart
+  // must not wake Amazon's authenticated search scanner or its recommendation processing.
+  const isPrivatePage = () => /\/(?:cart|checkout|account|orders|ap|buy)(?:\/|\.|$)/i.test(location.pathname);
+  const isProductPage = () => !isPrivatePage() && /\/(dp|gp\/product|gp\/aw\/d)\/[A-Z0-9]{10}/.test(location.pathname);
   // Do not treat a PDP with a stray k= param as a search page.
-  const isListPage = () => !isProductPage() && (
+  const isListPage = () => !isPrivatePage() && !isProductPage() && (
     /\/(s|b|gp\/browse|stores)\b/.test(location.pathname) || /[?&]k=/.test(location.search)
   );
   const isRelevantPage = () => isProductPage() || isListPage();
