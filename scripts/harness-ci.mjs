@@ -913,6 +913,7 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
     await appearanceEndToEnd(context, worker, id, pageErrors);
     await retailerEndToEnd(context, worker, pageErrors);
     await bottomFiveEndToEnd(context, worker, pageErrors, root);
+    await bottomFiveEndToEnd(context, worker, pageErrors, root, ['kroger', 'frys', 'ralphs', 'kingsoopers', 'smiths', 'fredmeyer']);
     await amazonEndToEnd(context, worker, pageErrors);
   } finally {
     await context.close();

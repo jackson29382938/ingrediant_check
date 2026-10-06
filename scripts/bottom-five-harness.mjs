@@ -3,15 +3,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-export async function bottomFiveEndToEnd(context, worker, pageErrors, root) {
+export async function bottomFiveEndToEnd(context, worker, pageErrors, root, selected = ['qfc', 'harristeeter', 'dillons', 'safeway', 'albertsons']) {
   const dir = path.join(root, 'tests/pages/bottom-five');
   const flight = response => `<script type="application/x-fixture">self.__next_f.push(${JSON.stringify([1, '14:' + JSON.stringify(['$', '$L2f', null, { isSSR: true, initialPdpResponse: response }]) + '\n']).replace(/</g, '\\u003c')})</script>`;
   const oatLabel = fs.readFileSync(path.join(root, 'tests/pages/kroger-public-oats.html'), 'utf8');
   await worker.evaluate(() => chrome.storage.local.set({ enabled: true, autoScoreSearch: true, badges: true, foodOnly: true }));
   const pages = [];
   try {
-    for (const id of ['qfc', 'harristeeter', 'dillons', 'safeway', 'albertsons']) {
-      const host = `${id}.com`, origin = `https://www.${host}`, albertsons = ['safeway', 'albertsons'].includes(id);
+    for (const id of selected) {
+      const host = `${{ frys: 'frysfood', smiths: 'smithsfoodanddrug' }[id] || id}.com`, origin = `https://www.${host}`, albertsons = ['safeway', 'albertsons'].includes(id);
       const ids = albertsons ? ['111050071', '960543057'] : ['0003000001020', '0002840051646'];
       const productPaths = albertsons ? ['/shop/pd/rolled-oats/111050071', '/shop/pd/doritos-chips/960543057'] : ['/p/whole-grain-oats/0003000001020', '/p/doritos-nacho-cheese-tortilla-chips/0002840051646'];
       const searchPath = albertsons ? '/shop/search-results.html?q=chips&page=2' : '/search/?query=chips&page=2';
@@ -85,7 +85,7 @@ export async function bottomFiveEndToEnd(context, worker, pageErrors, root) {
       if ((await page.locator('.air-badge').innerText()) !== 'Label unavailable') throw new Error(`${id}: missing label received a numeric score`);
       await page.close();
     }
-    console.log('  ok  bottom five → modern product routes, identity-bound public labels, cold/cached searches, pagination, SPA navigation, changed labels, recycled cards and unclipped badges');
+    console.log(`  ok  ${selected.join(', ')} → product routes, public labels, cold/cached searches, pagination, SPA navigation, changed labels, recycled cards and unclipped badges`);
   } finally {
     await Promise.all(pages.filter(page => !page.isClosed()).map(page => page.close()));
   }

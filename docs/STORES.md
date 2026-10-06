@@ -173,3 +173,5 @@ Search results depend on published readable declarations. Blocked pages, store/l
 ## Bottom-five follow-up — October 6, 2026
 
 The [bottom-five audit](BOTTOM-FIVE-AUDIT-2026-10-06.md) records new public-page evidence and fixes for QFC, Harris Teeter, Dillons, Safeway and Albertsons. Modern Safeway/Albertsons `/shop/pd/<name>/<id>` products and identity-bound public declarations are read; search badges avoid truncated title links and scans preserve actual same-origin result URLs. Chrome fixture tests now cover pagination, cached/cold searches, SPA navigation, changed declarations and recycled cards. Direct live Chrome validation remains blocked by the environment's certificate-trust setup; these stores remain previews.
+
+The [remaining grocery-banner audit](GROCERY-SEARCH-AUDIT-2026-10-06.md) extends the verified search fixes and browser lifecycle checks to Kroger, Fry’s, Ralphs, King Soopers, Smith’s and Fred Meyer. All eleven banners use `src/stores/grocery-pages.js`; the separate Amazon/Target/Walmart/Costco/Instacart pipelines are unchanged.

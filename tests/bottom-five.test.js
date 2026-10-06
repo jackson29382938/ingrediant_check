@@ -6,7 +6,7 @@ require('../src/stores/target.js');
 require('../src/stores/label-reader.js');
 const original = require('../src/stores/grocery.js');
 const before = { ...globalThis.AIR.storeAdapters };
-const stores = require('../src/stores/grocery-bottom-five.js');
+const stores = require('../src/stores/grocery-pages.js');
 const { createDocument } = require('./pages/load.js');
 const manifest = require('../manifest.json');
 const ids = ['qfc', 'harristeeter', 'dillons', 'safeway', 'albertsons'];
@@ -15,9 +15,9 @@ const fixtureModel = (store, kind = 'oats') => JSON.parse(fs.readFileSync(`tests
 const flight = response => `<script>self.__next_f.push(${JSON.stringify([1, '14:' + JSON.stringify(['$', '$L2f', null, { isSSR: true, initialPdpResponse: response }]) + '\n']).replace(/</g, '\\u003c')})</script>`;
 const product = (store, response) => `<link rel="canonical" href="https://www.${store}.com/shop/pd/oats/111050071"><main><div data-bpn="111050071"><div class="product-info"></div></div></main>${flight(response)}`;
 
-test('bottom-five enhancement leaves every other store adapter unchanged', () => {
-  assert.deepEqual(Object.keys(stores), ids);
-  for (const [id, adapter] of Object.entries(before)) if (!ids.includes(id)) assert.equal(globalThis.AIR.storeAdapters[id], adapter, id);
+test('grocery enhancement leaves the separately maintained store adapters unchanged', () => {
+  assert.deepEqual(Object.keys(stores).slice(0, 5), ids);
+  for (const [id, adapter] of Object.entries(before)) if (!Object.hasOwn(stores, id)) assert.equal(globalThis.AIR.storeAdapters[id], adapter, id);
   assert.equal(original.kroger, before.kroger);
 });
 
@@ -35,9 +35,9 @@ test('modern Albertsons banner routes accept only public store-bound product IDs
 });
 
 test('manifest actually injects the enhancement on modern products and trailing-slash searches', () => {
-  const cs = manifest.content_scripts.find(cs => cs.js.includes('src/stores/grocery-bottom-five.js'));
-  assert.ok(cs.js.indexOf('src/stores/grocery.js') < cs.js.indexOf('src/stores/grocery-bottom-five.js'));
-  assert.ok(cs.js.indexOf('src/stores/grocery-bottom-five.js') < cs.js.indexOf('src/content/retailer.js'));
+  const cs = manifest.content_scripts.find(cs => cs.js.includes('src/stores/grocery-pages.js'));
+  assert.ok(cs.js.indexOf('src/stores/grocery.js') < cs.js.indexOf('src/stores/grocery-pages.js'));
+  assert.ok(cs.js.indexOf('src/stores/grocery-pages.js') < cs.js.indexOf('src/content/retailer.js'));
   for (const host of ['qfc.com', 'harristeeter.com', 'dillons.com']) assert.ok(cs.matches.includes(`https://www.${host}/search/*`));
   for (const host of ['safeway.com', 'albertsons.com']) assert.ok(cs.matches.includes(`https://www.${host}/shop/pd/*`));
 });

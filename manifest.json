@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "minimum_chrome_version": "116",
   "description": "__MSG_appDescription__",
   "permissions": [
@@ -909,7 +909,19 @@
         "https://safeway.com/shop/pd/*",
         "https://www.safeway.com/shop/pd/*",
         "https://albertsons.com/shop/pd/*",
-        "https://www.albertsons.com/shop/pd/*"
+        "https://www.albertsons.com/shop/pd/*",
+        "https://kroger.com/search/*",
+        "https://www.kroger.com/search/*",
+        "https://frysfood.com/search/*",
+        "https://www.frysfood.com/search/*",
+        "https://ralphs.com/search/*",
+        "https://www.ralphs.com/search/*",
+        "https://kingsoopers.com/search/*",
+        "https://www.kingsoopers.com/search/*",
+        "https://smithsfoodanddrug.com/search/*",
+        "https://www.smithsfoodanddrug.com/search/*",
+        "https://fredmeyer.com/search/*",
+        "https://www.fredmeyer.com/search/*"
       ],
       "run_at": "document_idle",
       "js": [
@@ -934,7 +946,7 @@
         "src/stores/walmart.js",
         "src/stores/costco.js",
         "src/stores/grocery.js",
-        "src/stores/grocery-bottom-five.js",
+        "src/stores/grocery-pages.js",
         "src/content/retailer.js"
       ]
     }

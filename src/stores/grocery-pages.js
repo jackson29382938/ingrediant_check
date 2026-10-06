@@ -1,8 +1,9 @@
-// QFC, Harris Teeter, Dillons, Safeway and Albertsons only. Public HTML declarations,
-// including Albertsons' identity-bound Next Flight data; never execute the page's scripts.
+// Grocery banners outside the separately maintained Amazon/Target/Walmart/Costco/Instacart
+// pipelines. Public HTML declarations only; never execute the page's scripts.
 (function(root) {
   const L = root.AIR.retailerLabels;
-  const IDS = ['qfc', 'harristeeter', 'dillons', 'safeway', 'albertsons'];
+  const IDS = ['qfc', 'harristeeter', 'dillons', 'safeway', 'albertsons',
+    'kroger', 'frys', 'ralphs', 'kingsoopers', 'smiths', 'fredmeyer'];
   const PRIVATE = /^(?:cart|checkout|account|login|orders)$/i;
   function excluded(node) {
     if (node?.closest('header, nav, footer, aside, form, [hidden], [aria-hidden="true"], [role="dialog"]')) return true;
