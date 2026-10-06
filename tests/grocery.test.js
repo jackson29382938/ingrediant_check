@@ -33,6 +33,8 @@ test('twelve grocery adapters isolate hosts, public products, IDs and same-origi
   assert.equal(stores.kroger.productId('https://www.kroger.com/p/oats/000300000102'), '000300000102');
 });
 test('Instacart product and item routes and Albertsons canonical formats remain store bound', () => {
+  assert.equal(stores.instacart.searchQuery(at('https://www.instacart.com/store/s?k=organic+rolled+oats')), 'organic rolled oats');
+  assert.equal(stores.instacart.searchQuery(at('https://www.instacart.com/store/account?k=chips')), '');
   for (const route of ['/products/169289-oats', '/store/products/169289-oats', '/store/items/169289-oats', '/store/retailer/items/169289-oats']) assert.equal(stores.instacart.productId('https://www.instacart.com' + route), '169289');
   assert.equal(stores.instacart.productId('https://www.instacart.com/store/products/bad/169289'), '');
   assert.equal(stores.safeway.productId('https://www.safeway.com/shop/product-details.184710125.html'), '184710125');

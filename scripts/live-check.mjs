@@ -25,10 +25,10 @@ fs.mkdirSync(out, { recursive: true });
 
 // Where each store's search and a food product are. `link` finds a product on the search page.
 const SITES = {
-  amazon: { search: 'https://www.amazon.com/s?k=organic+rolled+oats&i=grocery', link: 'a[href*="/dp/"]', product: /\/dp\/[A-Z0-9]{10}/ },
+  amazon: { search: 'https://www.amazon.com/s?k=organic+rolled+oats&i=grocery', link: 'a[href*="/dp/"]', product: /\/dp\/[A-Z0-9]{10}/, known: 'https://www.amazon.com/dp/B0DX45213W' },
   target: { search: 'https://www.target.com/s?searchTerm=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/.*A-\d+/, known: 'https://www.target.com/p/-/A-79364857' },
   walmart: { search: 'https://www.walmart.com/search?q=organic+rolled+oats', link: 'a[href*="/ip/"]', product: /\/ip\//, known: 'https://www.walmart.com/ip/10314926' },
-  costco: { search: 'https://www.costco.com/CatalogSearch?keyword=organic+oats', link: 'a[href*=".product."]', product: /\.product\.\d+\.html/, known: 'https://www.costco.com/.product.100423971.html' },
+  costco: { search: 'https://www.costco.com/s?keyword=organic+oats', link: 'a[href*=".product."], a[href*="/p/"]', product: /\.product\.\d+\.html|\/p\/(?:[^/]+\/)+\d+/, known: 'https://www.costco.com/product.product.100423971.html' },
   kroger: { search: 'https://www.kroger.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/ },
   frys: { search: 'https://www.frysfood.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/ },
   ralphs: { search: 'https://www.ralphs.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/ },
@@ -49,6 +49,7 @@ const executablePath = process.env.HARNESS_CHROME || undefined;
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'ic-live-profile-'));
 const context = await pw.chromium.launchPersistentContext(profile, {
   headless: !args.includes('--headed'), ...(executablePath ? { executablePath } : { channel: 'chromium' }),
+  ...(process.env.HTTPS_PROXY ? { proxy: { server: process.env.HTTPS_PROXY } } : {}),
   viewport: { width: 1360, height: 900 },
   args: [`--disable-extensions-except=${root}`, `--load-extension=${root}`, ...(args.includes('--headed') ? [] : ['--headless=new'])],
 });
@@ -63,6 +64,7 @@ async function snapshot(page) {
       text: (document.body && document.body.innerText || '').slice(0, 4000),
       panel: host ? { state: host.dataset.airState || '', connected: host.isConnected } : null,
       badges: badges.length,
+      numericBadges: badges.filter(b => /^\d+$/.test((b.textContent || '').trim())).length,
       badgeValues: badges.slice(0, 12).map(b => (b.textContent || '').trim()),
       hasTiles: document.querySelectorAll('[data-asin], [data-test*="ProductCard"], [data-testid*="product"], [data-item-id], [class*="product-tile"], [data-automation-id*="product"]').length,
     };
@@ -91,7 +93,7 @@ async function visit(name, label, url) {
         if (t > 9000 && s.badges >= 6) break;
       }
     } else {
-      await page.waitForTimeout(6000);
+      await page.waitForTimeout(16000);
     }
     const snap = await snapshot(page);
     entry.finalUrl = page.url();
@@ -99,6 +101,7 @@ async function visit(name, label, url) {
     entry.challenge = CHALLENGE.test(snap.title + ' ' + snap.text.slice(0, 1500));
     entry.panel = snap.panel;
     entry.badges = snap.badges;
+    entry.numericBadges = snap.numericBadges;
     entry.badgeValues = snap.badgeValues;
     entry.tilesGuess = snap.hasTiles;
     entry.errors = errors;
@@ -111,6 +114,16 @@ async function visit(name, label, url) {
   report[name][label] = entry;
   const firstLink = label === 'search' && !entry.error ? await page.evaluate(({ sel, rx }) => {
     const re = new RegExp(rx);
+    // Header promotions can link to unrelated products (Costco's gift cards, for
+    // example). Prefer an actual scored result when selecting a food product.
+    for (const badge of document.querySelectorAll('.air-badge')) {
+      if (!/^\d+$/.test((badge.textContent || '').trim())) continue;
+      for (let node = badge.parentElement; node && !/^(?:BODY|MAIN)$/.test(node.tagName); node = node.parentElement) {
+        const links = node.matches('a[href]') ? [node] : [...node.querySelectorAll(sel)];
+        const own = links.find(a => re.test(a.href));
+        if (own) return own.href;
+      }
+    }
     const a = [...document.querySelectorAll(sel)].map(x => x.href).find(h => re.test(h));
     return a || '';
   }, { sel: SITES[name].link, rx: SITES[name].product.source }).catch(() => '') : '';

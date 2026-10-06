@@ -30,7 +30,7 @@ a local harness. **Preview** means a public-page adapter is implemented and test
 | Safeway | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Live product page scored in Chrome 2026-10-06; search not testable (see *next five stores*) | safeway.com; readable public labels scored, missing labels remain unknown. |
 | Albertsons | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Live product page scored in Chrome 2026-10-06; search not testable (see *next five stores*) | albertsons.com; readable public labels scored, missing labels remain unknown. |
 
-## Live check, 2026-10-06 (first five stores)
+## Earlier live check, 2026-10-06 (first five stores)
 
 `npm run live-check -- <store...>` (`scripts/live-check.mjs`) loads the unpacked extension in Chrome for Testing,
 signed out, opens each store's live search page and a food product page, and records what the extension did.
@@ -68,6 +68,8 @@ Fixed in this check (`src/stores/grocery-pages.js`):
   against the site root. Regression test: `skip links and other relative non-product links…` in `tests/grocery-pages.test.js`.
 - These adapters now use the same `hiddenFromSight` rule as the others, so a modal that marks the whole page `aria-hidden`
   (as Instacart's signup modal did) cannot hide the product or the results.
+
+The subsequent [cloud-proxy audit](PROXY-RETAILER-AUDIT-2026-10-06.md) records checks with Chrome certificate trust configured. Target and Walmart search were accessible in that session; availability can differ between sessions and queries.
 
 ## Amazon: sorting by store
 
@@ -211,6 +213,6 @@ Search results depend on published readable declarations. Blocked pages, store/l
 
 ## Bottom-five follow-up — October 6, 2026
 
-The [bottom-five audit](BOTTOM-FIVE-AUDIT-2026-10-06.md) records new public-page evidence and fixes for QFC, Harris Teeter, Dillons, Safeway and Albertsons. Modern Safeway/Albertsons `/shop/pd/<name>/<id>` products and identity-bound public declarations are read; search badges avoid truncated title links and scans preserve actual same-origin result URLs. Chrome fixture tests now cover pagination, cached/cold searches, SPA navigation, changed declarations and recycled cards. Direct live Chrome validation remains blocked by the environment's certificate-trust setup; these stores remain previews.
+The [bottom-five audit](BOTTOM-FIVE-AUDIT-2026-10-06.md) records new public-page evidence and fixes for QFC, Harris Teeter, Dillons, Safeway and Albertsons. Modern Safeway/Albertsons `/shop/pd/<name>/<id>` products and identity-bound public declarations are read; search badges avoid truncated title links and scans preserve actual same-origin result URLs. Chrome fixture tests now cover pagination, cached/cold searches, SPA navigation, changed declarations and recycled cards. The environment's certificate-trust issue was subsequently resolved in the [proxy audit](PROXY-RETAILER-AUDIT-2026-10-06.md); complete live-browser coverage of these stores is still pending and they remain previews.
 
 The [remaining grocery-banner audit](GROCERY-SEARCH-AUDIT-2026-10-06.md) extends the verified search fixes and browser lifecycle checks to Kroger, Fry’s, Ralphs, King Soopers, Smith’s and Fred Meyer. All eleven banners use `src/stores/grocery-pages.js`; the separate Amazon/Target/Walmart/Costco/Instacart pipelines are unchanged.

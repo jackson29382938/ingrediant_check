@@ -1145,6 +1145,10 @@ async function retailerEndToEnd(context, worker, pageErrors) {
     });
     if (!/^\d+$/.test(badge)) throw new Error(`retailer toolbar missing score: ${item.url}`);
     const oldScore = Number(badge);
+    if (store === 'walmart.com') {
+      await page.evaluate(() => document.getElementById('air-score-panel').remove());
+      await page.waitForFunction(() => document.getElementById('air-score-panel')?.dataset.airState === 'scored', null, { timeout: 10000 });
+    }
     await page.evaluate(() => {
       const ingredients = 'whole grain rolled oats, sugar, red 40, salt';
       const boot = document.getElementById('__NEXT_DATA__');

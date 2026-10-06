@@ -97,7 +97,7 @@
     }
     return out;
   }
-  const adapter = { id: 'walmart', name: 'Walmart', matchesHost, productId, productUrl,
+  const adapter = { id: 'walmart', name: 'Walmart', matchesHost, productId, productUrl, remountPanel: true,
     isProductPage: loc => !!productId(loc.href), isSearchPage: loc => matchesHost(loc.hostname) && /^\/search\/?$/.test(loc.pathname),
     searchQuery: loc => { try { return new URL(loc.href).searchParams.get('q') || ''; } catch { return ''; } },
     readProduct, labelToggle: L.labelToggle, labelName: 'Ingredients', searchTiles };

@@ -174,7 +174,7 @@
       return productId(result) === String(value) ? result : '';
     }
     return { id, name, matchesHost, productId, productUrl, isProductPage: loc => !!productId(loc?.href), isSearchPage,
-      searchQuery: loc => { if (!isSearchPage(loc)) return ''; const u = url(loc.href); return u.searchParams.get('query') || u.searchParams.get('q') || u.searchParams.get('search') || ''; },
+      searchQuery: loc => { if (!isSearchPage(loc)) return ''; const u = url(loc.href); return (family === 'instacart' ? u.searchParams.get('k') : '') || u.searchParams.get('query') || u.searchParams.get('q') || u.searchParams.get('search') || ''; },
       readProduct, labelToggle: L.labelToggle, labelName: family === 'kroger' ? 'Nutrition Information' : 'Ingredients', searchTiles };
   }
   const adapters = Object.fromEntries(configs.map(config => { const adapter = make(config); return [adapter.id, adapter]; }));
