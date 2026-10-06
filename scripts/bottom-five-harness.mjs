@@ -37,7 +37,7 @@ export async function bottomFiveEndToEnd(context, worker, pageErrors, root, sele
       });
       await worker.evaluate(({ host, ids }) => chrome.storage.local.remove(ids.map(id => `s:${host}:${id}`)), { host, ids });
       await page.goto(origin + searchPath);
-      await page.waitForFunction(() => document.querySelector('.air-badge')?.dataset.airStatus === 'scored', { timeout: 20000 });
+      await page.waitForFunction(() => document.querySelector('.air-badge')?.dataset.airStatus === 'scored', null, { timeout: 20000 });
       const geometry = await page.evaluate(() => {
         const badge = document.querySelector('.air-badge'), rect = badge.getBoundingClientRect(), card = badge.closest('.product-card').getBoundingClientRect();
         return { outsideLink: !badge.closest('a,button'), inside: rect.left >= card.left && rect.right <= card.right && rect.bottom <= card.bottom, shadow: !!badge.shadowRoot };
@@ -46,16 +46,21 @@ export async function bottomFiveEndToEnd(context, worker, pageErrors, root, sele
       if (productFetches !== 1 || !requested[0].includes(productPaths[0] + '?fulfillment=PICKUP')) throw new Error(`${id}: did not fetch the result's actual public URL ${JSON.stringify(requested)}`);
       // Pagination/infinite loading must rate newly inserted cards without a page reload.
       await page.evaluate(html => document.getElementById('results').insertAdjacentHTML('beforeend', html), card(1));
-      await page.waitForFunction(() => document.querySelectorAll('.air-badge[data-air-status="scored"]').length === 2, { timeout: 20000 });
+      await page.waitForFunction(() => document.querySelectorAll('.air-badge[data-air-status="scored"]').length === 2, null, { timeout: 20000 });
       if (productFetches !== 2) throw new Error(`${id}: repeated or missing cold-cache product request (${productFetches})`);
       await page.reload();
-      await page.waitForFunction(() => document.querySelector('.air-badge')?.dataset.airStatus === 'scored', { timeout: 10000 });
+      await page.waitForFunction(() => document.querySelector('.air-badge')?.dataset.airStatus === 'scored', null, { timeout: 10000 });
       if (productFetches !== 2) throw new Error(`${id}: cached search score unexpectedly refetched`);
       // Change routes within the same document, as the stores' client routers do.
       await page.evaluate(({ url, html }) => { history.pushState({}, '', url); document.body.innerHTML = html; }, { url: origin + productPaths[0], html: productHtml(0) });
-      await page.waitForFunction(() => document.getElementById('air-score-panel')?.dataset.airState === 'scored', { timeout: 20000 });
+      await page.waitForFunction(() => document.getElementById('air-score-panel')?.dataset.airState === 'scored', null, { timeout: 20000 });
       const placement = await page.evaluate(() => !document.getElementById('air-score-panel').closest('.product-info, a, button, h1'));
       if (!placement) throw new Error(`${id}: score panel inserted into a title/control/image flex row`);
+      await page.reload();
+      await page.waitForFunction(() => document.getElementById('air-score-panel')?.dataset.airState === 'scored', null, { timeout: 10000 });
+      // React/hydration can discard an injected sibling while the product declaration is unchanged.
+      await page.evaluate(() => document.getElementById('air-score-panel').remove());
+      await page.waitForFunction(() => document.getElementById('air-score-panel')?.dataset.airState === 'scored', null, { timeout: 4000 });
       // A changed visible label replaces its old score and the product's saved search reading.
       const before = await worker.evaluate(async ({ host, id }) => (await chrome.storage.local.get(`s:${host}:${id}`))[`s:${host}:${id}`]?.score, { host, id: ids[0] });
       await page.evaluate(() => {
@@ -73,7 +78,7 @@ export async function bottomFiveEndToEnd(context, worker, pageErrors, root, sele
         throw new Error(`${host}: changed product declaration kept its old score`);
       }, { host, id: ids[0], before });
       await page.evaluate(({ url, html }) => { history.pushState({}, '', url); document.body.innerHTML = html; }, { url: origin + searchPath, html: initial });
-      await page.waitForFunction(() => !document.getElementById('air-score-panel') && document.querySelector('.air-badge')?.dataset.airStatus === 'scored', { timeout: 10000 });
+      await page.waitForFunction(() => !document.getElementById('air-score-panel') && document.querySelector('.air-badge')?.dataset.airStatus === 'scored', null, { timeout: 10000 });
       // Recycled result nodes must lose the old identity's numeric badge when the new label is absent.
       await worker.evaluate(({ host, id }) => chrome.storage.local.remove(`s:${host}:${id}`), { host, id: '9999999999999' });
       await page.evaluate(pathname => {
@@ -81,7 +86,7 @@ export async function bottomFiveEndToEnd(context, worker, pageErrors, root, sele
         for (const link of card.querySelectorAll('a')) link.href = pathname;
         card.querySelector('h3').textContent = 'Fresh food without a published label';
       }, albertsons ? '/shop/pd/fresh-food/9999999999999' : '/p/fresh-food/9999999999999');
-      await page.waitForFunction(() => document.querySelector('.air-badge')?.dataset.airStatus === 'unavailable', { timeout: 20000 });
+      await page.waitForFunction(() => document.querySelector('.air-badge')?.dataset.airStatus === 'unavailable', null, { timeout: 20000 });
       if ((await page.locator('.air-badge').innerText()) !== 'Label unavailable') throw new Error(`${id}: missing label received a numeric score`);
       await page.close();
     }

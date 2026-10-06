@@ -169,7 +169,7 @@
         advisoryText: [label.advisoryText, changed ? '' : data.advisoryText].filter(Boolean).join('. '),
         nutrition: label.nutrition || (changed ? null : data.nutrition) };
     }
-    root.AIR.storeAdapters[id] = { ...original, productId, productUrl, searchTiles, readProduct, productAnchor,
+    root.AIR.storeAdapters[id] = { ...original, productId, productUrl, searchTiles, readProduct, productAnchor, remountPanel: true,
       isProductPage: loc => !!productId(loc?.href) };
   }
   if (typeof module !== 'undefined' && module.exports) module.exports = Object.fromEntries(IDS.map(id => [id, root.AIR.storeAdapters[id]]));

@@ -14,7 +14,7 @@ const engine = require('../src/engine/score.js');
 const T = require('../src/stores/target.js');
 const { loadPage } = require('./pages/load.js');
 const CHIPS_URL = 'https://www.target.com/p/chips/-/A-16600402';
-function runner(file, url, stored = {}) {
+function runner(file, url, stored = {}, adapter = T) {
   const page = loadPage(file);
   const loc = new URL(url);
   const writes = [], messages = [], fetches = [], timers = [];
@@ -59,7 +59,7 @@ function runner(file, url, stored = {}) {
       }, onChanged: { addListener() {} } },
     },
     AIR: {
-      engine, storeAdapters: { target: T },
+      engine, storeAdapters: { target: adapter },
       db: { scoreCache, prefs, ingestible, speed: require('../src/engine/db/speed.js') },
       panel: {
         BAND_COLOR: () => ({ fg: '#000', bg: '#fff', ring: '#0f0' }),
@@ -86,6 +86,19 @@ test('retailer runner watches scored labels without repeated rendering or writes
   assert.ok(w.sandbox.module.exports.state.observer, 'late labels remain observed');
   w.pass(); w.pass();
   assert.equal(w.writes.length, 1, 'unchanged data must not repaint/cache');
+});
+test('opt-in grocery lifecycle restores an unchanged score panel discarded by hydration', () => {
+  const w = runner('target-p-chips.html', CHIPS_URL, {}, { ...T, remountPanel: true });
+  const first = w.host;
+  first.remove();
+  assert.equal(w.host, null);
+  w.pass();
+  assert.ok(w.host);
+  assert.notEqual(w.host, first);
+  assert.equal(w.host.dataset.airState, 'scored');
+  assert.equal(w.writes.length, 2);
+  w.pass();
+  assert.equal(w.writes.length, 2, 'restored unchanged panel does not repeatedly render');
 });
 test('retailer runner replaces cached and toolbar scores after same-URL label hydration', () => {
   const w = runner('target-p-chips.html', CHIPS_URL);

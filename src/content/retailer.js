@@ -107,7 +107,9 @@
     const data = adapter.readProduct(document, location);
     if (!data.id) return true;
     const signature = JSON.stringify([data.id, data.title, data.crumbs, data.ingredients, data.labelText, data.advisoryText, data.department, data.nutrition, data.label]);
-    if (state.done && state.signature === signature) return 'watch';
+    // Grocery page hydration may discard an injected sibling without changing the label.
+    // Opt in per adapter so the separately maintained store pipelines keep their behavior.
+    if (state.done && state.signature === signature && (!adapter.remountPanel || document.getElementById(HOST_ID))) return 'watch';
     if (state.done && state.signature !== signature) {
       // A changed declaration invalidates its prior saved score as well as this tab.
       if (typeof chrome.storage.local.remove === 'function') chrome.storage.local.remove(CACHE.key(STORE, data.id), () => void chrome.runtime.lastError);

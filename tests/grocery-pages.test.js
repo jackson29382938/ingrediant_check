@@ -15,8 +15,16 @@ const banners = { kroger: 'kroger.com', frys: 'frysfood.com', ralphs: 'ralphs.co
 const at = href => ({ href, hostname: new URL(href).hostname, pathname: new URL(href).pathname });
 const fixture = fs.readFileSync('tests/pages/bottom-five/qfc-search.html', 'utf8');
 
+test('public grocery nutrition capture contains declarations without executable or tracking scripts', () => {
+  const html = fs.readFileSync('tests/pages/kroger-public-oats.html', 'utf8');
+  assert.equal(/<script\b|\son\w+\s*=|https?:\/\//i.test(html), false);
+  assert.equal((html.match(/<html\b/gi) || []).length, 1);
+  assert.ok(loadPage('kroger-public-oats.html').querySelector('.NutritionLabel-ServingSize'));
+});
+
 test('all eleven grocery enhancements keep the top-five pipelines intact', () => {
   assert.equal(Object.keys(adapters).length, 11);
+  for (const adapter of Object.values(adapters)) assert.equal(adapter.remountPanel, true);
   for (const [id, adapter] of Object.entries(separate)) assert.equal(globalThis.AIR.storeAdapters[id], adapter, id);
   for (const cs of manifest.content_scripts.filter(cs => cs.js.includes('src/content/main.js'))) assert.equal(cs.js.includes('src/stores/grocery-pages.js'), false);
 });
