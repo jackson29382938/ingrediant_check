@@ -68,3 +68,23 @@ for (const [id, host] of Object.entries(banners)) {
     assert.equal(a.isSearchPage(at(`https://www.${host}/account?query=chips`)), false);
   });
 }
+
+test('skip links and other relative non-product links on a results page are never product tiles', () => {
+  // Resolved against a product URL, href="#" or "?x" used to read as that product and a badge landed in the page header.
+  const page = '<global-header><div class="back-to-top-home"><a href="#">Skip to main content</a><a href="?page=2">Next page</a><a href=".">Home</a></div></global-header><main><p>No results</p></main>';
+  for (const [id, a] of Object.entries(adapters)) assert.equal(a.searchTiles(createDocument(page)).length, 0, id);
+});
+
+test('a modal that sets aria-hidden on the rendered page does not hide its results', () => {
+  // The fake DOM has no layout: give it a window and say whether the elements are rendered.
+  const page = rendered => {
+    const doc = createDocument('<div aria-hidden="true"><div data-testid="product-card-0"><a href="/shop/pd/product/111050071">Honey Nut Cheerios</a></div></div>');
+    doc.defaultView = {};
+    for (const el of doc.querySelectorAll('*')) el.getClientRects = () => (rendered ? [{}] : []);
+    return doc;
+  };
+  for (const id of ['safeway', 'albertsons']) {
+    assert.equal(adapters[id].searchTiles(page(true)).length, 1, `${id}: rendered content stays visible under a modal's aria-hidden`);
+    assert.equal(adapters[id].searchTiles(page(false)).length, 0, `${id}: content that is not rendered stays hidden`);
+  }
+});

@@ -29,6 +29,17 @@ const SITES = {
   target: { search: 'https://www.target.com/s?searchTerm=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/.*A-\d+/, known: 'https://www.target.com/p/-/A-79364857' },
   walmart: { search: 'https://www.walmart.com/search?q=organic+rolled+oats', link: 'a[href*="/ip/"]', product: /\/ip\//, known: 'https://www.walmart.com/ip/10314926' },
   costco: { search: 'https://www.costco.com/CatalogSearch?keyword=organic+oats', link: 'a[href*=".product."]', product: /\.product\.\d+\.html/, known: 'https://www.costco.com/.product.100423971.html' },
+  kroger: { search: 'https://www.kroger.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/ },
+  frys: { search: 'https://www.frysfood.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/ },
+  ralphs: { search: 'https://www.ralphs.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/ },
+  kingsoopers: { search: 'https://www.kingsoopers.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/ },
+  smiths: { search: 'https://www.smithsfoodanddrug.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/ },
+  fredmeyer: { search: 'https://www.fredmeyer.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/ },
+  qfc: { search: 'https://www.qfc.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/ , known: 'https://www.qfc.com/p/doritos-nacho-cheese-tortilla-chips/0002840051646' },
+  harristeeter: { search: 'https://www.harristeeter.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/ , known: 'https://www.harristeeter.com/p/doritos-nacho-cheese-tortilla-chips/0002840051646' },
+  dillons: { search: 'https://www.dillons.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/ , known: 'https://www.dillons.com/p/doritos-nacho-cheese-tortilla-chips/0002840051646' },
+  safeway: { search: 'https://www.safeway.com/shop/search-results.html?q=organic+rolled+oats', link: 'a[href*="/shop/"]', product: /\/shop\/(?:pd\/product\/\d+|product-details\.\d+\.html)/ , known: 'https://www.safeway.com/shop/pd/product/111050071' },
+  albertsons: { search: 'https://www.albertsons.com/shop/search-results.html?q=organic+rolled+oats', link: 'a[href*="/shop/"]', product: /\/shop\/(?:pd\/product\/\d+|product-details\.\d+\.html)/ , known: 'https://www.albertsons.com/shop/pd/product/111050071' },
   instacart: { search: 'https://www.instacart.com/store/s?k=organic+rolled+oats', link: 'a[href*="/products/"]', product: /\/products\/\d+/ },
 };
 const CHALLENGE = /press\s*&\s*hold|robot or human|verify you are human|access denied|are you a robot|unusual traffic|captcha|temporarily blocked|just a moment/i;

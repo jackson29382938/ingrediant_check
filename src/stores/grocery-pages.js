@@ -6,7 +6,7 @@
     'kroger', 'frys', 'ralphs', 'kingsoopers', 'smiths', 'fredmeyer'];
   const PRIVATE = /^(?:cart|checkout|account|login|orders)$/i;
   function excluded(node) {
-    if (node?.closest('header, nav, footer, aside, form, [hidden], [aria-hidden="true"], [role="dialog"]')) return true;
+    if (node?.closest('header, nav, footer, aside, form, [role="dialog"]') || L.hiddenFromSight(node)) return true;
     for (let el = node; el?.getAttribute; el = el.parentNode) {
       const scope = ['id', 'class', 'data-testid', 'data-qa', 'aria-label'].map(k => el.getAttribute(k) || '').join(' ');
       if (/recommend|related[-_ ]*(?:products|items)|recently[-_ ]?viewed|you[-_ ]may[-_ ]also|account[-_ ]modal/i.test(scope) ||
@@ -97,9 +97,12 @@
     if (!original) continue;
     const albertsons = ['safeway', 'albertsons'].includes(id);
     const links = new Map();
+    // Relative links resolve against the site root, never against a product page: against one,
+    // href="#" (a skip link) became that product and a result badge landed in the page header.
+    const SITE_ROOT = new URL(original.productUrl('0003000001020')).origin + '/';
     function url(raw, base) {
       try {
-        const u = new URL(String(raw), base || original.productUrl('0003000001020'));
+        const u = new URL(String(raw), base || SITE_ROOT);
         return /^https?:$/.test(u.protocol) && !u.username && !u.password && original.matchesHost(u.hostname) ? u : null;
       } catch { return null; }
     }

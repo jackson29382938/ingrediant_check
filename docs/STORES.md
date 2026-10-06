@@ -24,11 +24,11 @@ a local harness. **Preview** means a public-page adapter is implemented and test
 | King Soopers | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Public oats HTML ingredients/nutrition read 2026-10-04; live browser pending | kingsoopers.com; readable public labels scored, missing labels remain unknown. |
 | Smith’s | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Public oats HTML ingredients/nutrition read 2026-10-04; live browser pending | smithsfoodanddrug.com; readable public labels scored, missing labels remain unknown. |
 | Fred Meyer | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Public oats HTML ingredients/nutrition read 2026-10-04; live browser pending | fredmeyer.com; readable public labels scored, missing labels remain unknown. |
-| QFC | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Public oats HTML ingredients/nutrition read 2026-10-04; live browser pending | qfc.com; readable public labels scored, missing labels remain unknown. |
-| Harris Teeter | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Public oats HTML ingredients/nutrition read 2026-10-04; live browser pending | harristeeter.com; readable public labels scored, missing labels remain unknown. |
-| Dillons | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Public oats HTML ingredients/nutrition read 2026-10-04; live browser pending | dillons.com; readable public labels scored, missing labels remain unknown. |
-| Safeway | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Initial product page retrieved; no usable label | safeway.com; readable public labels scored, missing labels remain unknown. |
-| Albertsons | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Public oats HTML ingredients/nutrition read 2026-10-04; live browser pending | albertsons.com; readable public labels scored, missing labels remain unknown. |
+| QFC | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Public oats HTML read 2026-10-04; live browser blocked by the site's bot protection 2026-10-06 (see *next five stores*) | qfc.com; readable public labels scored, missing labels remain unknown. |
+| Harris Teeter | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Public oats HTML read 2026-10-04; live browser blocked by the site's bot protection 2026-10-06 (see *next five stores*) | harristeeter.com; readable public labels scored, missing labels remain unknown. |
+| Dillons | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Public oats HTML read 2026-10-04; live browser blocked by the site's bot protection 2026-10-06 (see *next five stores*) | dillons.com; readable public labels scored, missing labels remain unknown. |
+| Safeway | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Live product page scored in Chrome 2026-10-06; search not testable (see *next five stores*) | safeway.com; readable public labels scored, missing labels remain unknown. |
+| Albertsons | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Live product page scored in Chrome 2026-10-06; search not testable (see *next five stores*) | albertsons.com; readable public labels scored, missing labels remain unknown. |
 
 ## Live check, 2026-10-06 (first five stores)
 
@@ -48,6 +48,26 @@ Fixed in this check: an `aria-hidden` ancestor no longer hides content that is o
 `src/stores/label-reader.js`, used by the Instacart, Walmart, Costco and Target readers; saved test pages without layout
 keep the old rule), and Instacart's label is read from its page state (`<script id="node-apollo-state">`), bound to the
 product id in the URL.
+
+## Live check, 2026-10-06 (next five stores)
+
+Same tool and rules as above (`npm run live-check -- qfc harristeeter dillons safeway albertsons`; no bot check is solved or bypassed).
+
+| Store | Search results page | Food product page | Notes |
+|---|---|---|---|
+| QFC | **not testable**: the page loads headed but shows no product tiles for this automated browser (headless: `ERR_HTTP2_PROTOCOL_ERROR`) | **not testable**: 403 Access Denied | Akamai bot protection. Covered by saved-page tests only. |
+| Harris Teeter | **not testable**: same as QFC (loads headed, 0 tiles; headless `ERR_HTTP2_PROTOCOL_ERROR`) | **not testable**: 403 Access Denied | Same Kroger-family protection. |
+| Dillons | **not testable**: same as QFC (loads headed, 0 tiles; headless `ERR_HTTP2_PROTOCOL_ERROR`) | **not testable**: 403 Access Denied | Same Kroger-family protection. |
+| Safeway | loads, but the results never render for the automated browser (no product cards to score); 0 badges | scored (Quaker whole grain oats, `111050071`) | After the fix below there is no stray badge on the empty results page. |
+| Albertsons | same as Safeway; 0 badges | scored (Quaker whole grain oats, `111050071`) | Same. |
+
+Fixed in this check (`src/stores/grocery-pages.js`):
+
+- On Safeway and Albertsons, a relative link such as `href="#"` (the page's skip links) was resolved against a *product* URL, so it
+  read as product `0003000001020` and a "Label unavailable" badge was attached in the page header. Relative links now resolve
+  against the site root. Regression test: `skip links and other relative non-product links…` in `tests/grocery-pages.test.js`.
+- These adapters now use the same `hiddenFromSight` rule as the others, so a modal that marks the whole page `aria-hidden`
+  (as Instacart's signup modal did) cannot hide the product or the results.
 
 ## Amazon: sorting by store
 
