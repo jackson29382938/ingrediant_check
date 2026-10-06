@@ -1,0 +1,139 @@
+{
+  "catalog": {
+    "response": {
+      "numFound": 1,
+      "docs": [
+        {
+          "id": "111050071",
+          "pid": "111050071",
+          "name": "Quaker Oats Whole Grain Quick 1 Minute - 42 Oz",
+          "departmentName": "Breakfast & Cereal",
+          "aisleName": "Cereal|1_7_2",
+          "shelfName": "Oatmeal & Hot Cereal",
+          "productDetail": {
+            "details": [
+              {
+                "header": "Ingredients",
+                "value": "Whole Grain Rolled Oats."
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "nutritionPanels": [
+    {
+      "nutritionFacts": {
+        "servingDetails": {
+          "servingsPerContainer": "About 30",
+          "servingSizeText": "0.5",
+          "servingSizeUOM": "cup dry",
+          "calories": "150"
+        },
+        "dailyValue": [
+          {
+            "nutritionName": "Total Fat",
+            "quantity": "3",
+            "uom": "g",
+            "percentage": "4",
+            "subNutritient": [
+              {
+                "nutritionName": "Saturated Fat",
+                "quantity": "0.5",
+                "uom": "g",
+                "percentage": "3"
+              },
+              {
+                "nutritionName": "Trans Fat",
+                "quantity": "0",
+                "uom": "g"
+              },
+              {
+                "nutritionName": "Polyunsaturated Fat",
+                "quantity": "1",
+                "uom": "g"
+              },
+              {
+                "nutritionName": "Monounsaturated Fat",
+                "quantity": "1",
+                "uom": "g"
+              }
+            ]
+          },
+          {
+            "nutritionName": "Cholesterol",
+            "quantity": "0",
+            "uom": "mg",
+            "percentage": "0"
+          },
+          {
+            "nutritionName": "Sodium",
+            "quantity": "0",
+            "uom": "mg",
+            "percentage": "0"
+          },
+          {
+            "nutritionName": "Total Carbohydrate",
+            "quantity": "27",
+            "uom": "g",
+            "percentage": "10",
+            "subNutritient": [
+              {
+                "nutritionName": "Dietary Fiber",
+                "quantity": "4",
+                "uom": "g",
+                "percentage": "13"
+              },
+              {
+                "nutritionName": "Total Sugars",
+                "quantity": "1",
+                "uom": "g",
+                "subNutritient": [
+                  {
+                    "nutritionName": "Added Sugars",
+                    "quantity": "0",
+                    "uom": "g",
+                    "percentage": "0"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "nutritionName": "Protein",
+            "quantity": "5",
+            "uom": "g"
+          }
+        ],
+        "nutrient": [
+          {
+            "nutritionName": "Vitamin D",
+            "quantity": "0",
+            "uom": "mcg",
+            "percentage": "0"
+          },
+          {
+            "nutritionName": "Calcium",
+            "quantity": "20",
+            "uom": "mg",
+            "percentage": "0"
+          },
+          {
+            "nutritionName": "Iron",
+            "quantity": "1.5",
+            "uom": "mg",
+            "percentage": "8"
+          },
+          {
+            "nutritionName": "Potassium",
+            "quantity": "150",
+            "uom": "mg",
+            "percentage": "2"
+          }
+        ],
+        "footNote": "The %Daily Value (DV) tells you how much a nutrient in a serving of food contributes to a daily diet. 2,000 calories a day is used for general nutrition advice."
+      }
+    }
+  ]
+}

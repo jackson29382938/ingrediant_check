@@ -69,7 +69,7 @@
       if (!store.domains.some(domain => u.hostname === domain || u.hostname === 'www.' + domain)) return false;
       if (store.id === 'instacart') return /^\/(?:store\/)?products\/\d{5,15}(?:-[^/]+)?\/?$/.test(u.pathname)
         || /^\/store\/(?:[^/]+\/)?items\/\d{5,15}(?:-[^/]+)?\/?$/.test(u.pathname) || /^\/store\/(?:[^/]+\/)?s\/?$/.test(u.pathname);
-      if (['safeway', 'albertsons'].includes(store.id)) return /^\/shop\/(?:product-details\.\d{5,15}\.html|pd\/product\/\d{5,15}\/?|search-results\.html)$/.test(u.pathname);
+      if (['safeway', 'albertsons'].includes(store.id)) return /^\/shop\/(?:product-details\.\d{5,15}\.html|pd\/(?!(?:cart|checkout|account|login|orders)\/)[^/]+\/\d{5,15}\/?|search-results\.html)$/.test(u.pathname);
       return /^\/p\/[^/]+\/\d{10,14}\/?$/.test(u.pathname) || /^\/search\/?$/.test(u.pathname);
     }
     return true;

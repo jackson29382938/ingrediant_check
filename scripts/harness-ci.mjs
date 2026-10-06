@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { bottomFiveEndToEnd } from './bottom-five-harness.mjs';
 
 const require = createRequire(import.meta.url);
 
@@ -911,6 +912,7 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
     console.log(`  ok  extension → service worker started with every module; ${pages.length} pages open without errors, unnamed controls or low contrast (light and dark); goal tabs work by keyboard; setup saves what was picked`);
     await appearanceEndToEnd(context, worker, id, pageErrors);
     await retailerEndToEnd(context, worker, pageErrors);
+    await bottomFiveEndToEnd(context, worker, pageErrors, root);
     await amazonEndToEnd(context, worker, pageErrors);
   } finally {
     await context.close();

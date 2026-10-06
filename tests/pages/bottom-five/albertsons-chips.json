@@ -1,0 +1,125 @@
+{
+  "catalog": {
+    "response": {
+      "numFound": 1,
+      "docs": [
+        {
+          "id": "960543057",
+          "pid": "960543057",
+          "name": "DORITOS Nacho Cheese Tortilla Chips - 2.75 Oz",
+          "departmentName": "Cookies, Snacks & Candy",
+          "aisleName": "Chips|1_24_1",
+          "shelfName": "Tortilla Chips",
+          "productDetail": {
+            "details": [
+              {
+                "header": "Ingredients",
+                "value": "Corn, Vegetable Oil (Corn, Canola, Soybean, and/or Sunflower Oil), Corn Maltodextrin, and Less than 2% of Cheddar Cheese (Milk, Cheese Cultures, Salt, Enzymes), Salt, Whey, Monosodium Glutamate, Buttermilk, Romano Cheese (Milk, Cheese Cultures, Salt, Enzymes), Whey Protein Concentrate, Onion Powder, Potassium Salt, Corn Flour, Natural & Artificial Flavors, Dextrose, Tomato Powder, Lactose, Spices, Artificial Color (Yellow 6, Yellow 5, Red 40), Lactic Acid, Citric Acid, Sugar, Garlic Powder, Skim Milk, Red and Green Bell Peppers, Disodium Inosinate, and Disodium Guanylate."
+              },
+              {
+                "header": "Warnings",
+                "value": "Contains milk ingredients."
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "nutritionPanels": [
+    {
+      "nutritionFacts": {
+        "servingDetails": {
+          "servingsPerContainer": "About 3",
+          "servingSizeText": "12",
+          "servingSizeUOM": "chips",
+          "calories": "150"
+        },
+        "dailyValue": [
+          {
+            "nutritionName": "Total Fat",
+            "quantity": "8",
+            "uom": "g",
+            "percentage": "10",
+            "subNutritient": [
+              {
+                "nutritionName": "Saturated Fat",
+                "quantity": "1",
+                "uom": "g",
+                "percentage": "6"
+              },
+              {
+                "nutritionName": "Trans Fat",
+                "quantity": "0",
+                "uom": "g"
+              }
+            ]
+          },
+          {
+            "nutritionName": "Cholesterol",
+            "quantity": "0",
+            "uom": "mg",
+            "percentage": "0"
+          },
+          {
+            "nutritionName": "Sodium",
+            "quantity": "170",
+            "uom": "mg",
+            "percentage": "7"
+          },
+          {
+            "nutritionName": "Total Carbohydrate",
+            "quantity": "17",
+            "uom": "g",
+            "percentage": "6",
+            "subNutritient": [
+              {
+                "nutritionName": "Dietary Fiber",
+                "quantity": "1",
+                "uom": "g",
+                "percentage": "5"
+              },
+              {
+                "nutritionName": "Total Sugars",
+                "quantity": "1",
+                "uom": "g"
+              }
+            ]
+          },
+          {
+            "nutritionName": "Protein",
+            "quantity": "2",
+            "uom": "g"
+          }
+        ],
+        "nutrient": [
+          {
+            "nutritionName": "Vitamin D",
+            "quantity": "0",
+            "uom": "mcg",
+            "percentage": "0"
+          },
+          {
+            "nutritionName": "Calcium",
+            "quantity": "50",
+            "uom": "mg",
+            "percentage": "2"
+          },
+          {
+            "nutritionName": "Iron",
+            "quantity": "0.3",
+            "uom": "mg",
+            "percentage": "0"
+          },
+          {
+            "nutritionName": "Potassium",
+            "quantity": "100",
+            "uom": "mg",
+            "percentage": "0"
+          }
+        ],
+        "footNote": "The %Daily Value (DV) tells you how much a nutrient in a serving of food contributes to a daily diet. 2,000 calories a day is used for general nutrition advice."
+      }
+    }
+  ]
+}

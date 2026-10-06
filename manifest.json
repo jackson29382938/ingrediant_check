@@ -899,7 +899,17 @@
         "https://albertsons.com/shop/search-results.html*",
         "https://www.albertsons.com/shop/product-details.*.html",
         "https://www.albertsons.com/shop/pd/product/*",
-        "https://www.albertsons.com/shop/search-results.html*"
+        "https://www.albertsons.com/shop/search-results.html*",
+        "https://qfc.com/search/*",
+        "https://www.qfc.com/search/*",
+        "https://harristeeter.com/search/*",
+        "https://www.harristeeter.com/search/*",
+        "https://dillons.com/search/*",
+        "https://www.dillons.com/search/*",
+        "https://safeway.com/shop/pd/*",
+        "https://www.safeway.com/shop/pd/*",
+        "https://albertsons.com/shop/pd/*",
+        "https://www.albertsons.com/shop/pd/*"
       ],
       "run_at": "document_idle",
       "js": [
@@ -924,6 +934,7 @@
         "src/stores/walmart.js",
         "src/stores/costco.js",
         "src/stores/grocery.js",
+        "src/stores/grocery-bottom-five.js",
         "src/content/retailer.js"
       ]
     }

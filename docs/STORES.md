@@ -169,3 +169,7 @@ Version 1.6.0 adds twelve grocery previews and uncached public-page rating on al
 Walmart’s public search cards use overlay links beside product-title spans. Costco badges now mount in title content rather than as grid/flex children; image-only cards use an out-of-flow corner badge, and product panels sit outside the title/wishlist row. Badge styles use a shadow root. Cached, first-visit and missing-label results all have a visible state.
 
 Search results depend on published readable declarations. Blocked pages, store/location-dependent hydration, absent labels and results beyond the speed budget cannot receive honest numeric scores; open those products to expand/paste a label. Amazon retains its existing separate search pipeline.
+
+## Bottom-five follow-up — October 6, 2026
+
+The [bottom-five audit](BOTTOM-FIVE-AUDIT-2026-10-06.md) records new public-page evidence and fixes for QFC, Harris Teeter, Dillons, Safeway and Albertsons. Modern Safeway/Albertsons `/shop/pd/<name>/<id>` products and identity-bound public declarations are read; search badges avoid truncated title links and scans preserve actual same-origin result URLs. Chrome fixture tests now cover pagination, cached/cold searches, SPA navigation, changed declarations and recycled cards. Direct live Chrome validation remains blocked by the environment's certificate-trust setup; these stores remain previews.
