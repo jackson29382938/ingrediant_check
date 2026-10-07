@@ -3,541 +3,246 @@
 <head>
 <meta charset="utf-8">
 <title data-i18n="optTitle">Ingredient Check — Settings</title>
+<link rel="stylesheet" href="ui.css">
 <style>
-  :root { color-scheme: light dark; }
-  * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
-  body { margin: 0; padding: 24px 24px 80px; color: #0f1111; background: #f7f8f8;
-         font: 14px/1.55 "Amazon Ember", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  .wrap { max-width: 860px; margin: 0 auto; }
-  h1 { font-size: 22px; margin: 0 0 4px; }
-  .lede { color: #565959; margin: 0 0 18px; max-width: 62ch; }
-  .jump { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 8px;
-          padding: 8px 0 12px; margin: 0 0 16px; background: #f7f8f8; }
-  .jump a { color: var(--u-link, #007185); text-decoration: none; font-size: 12px; font-weight: 600;
-            padding: 4px 10px; border-radius: 999px; background: #fff; border: 1px solid #d5d9d9; }
-  .jump a:hover { background: #eef0f0; }
-  section { background: #fff; border: 1px solid #d5d9d9; border-radius: 10px;
-            padding: 18px 20px; margin-bottom: 18px; scroll-margin-top: 110px; }
-  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .7px; color: #565959;
-       margin: 0 0 14px; font-weight: 700; }
-  h2.cat-group { font-size: 13px; text-transform: none; letter-spacing: 0; color: #0f1111;
-                 margin: 22px 0 8px; padding-top: 14px; border-top: 2px solid #eaeded; }
-  h2.cat-group:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
-  .cat-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 12px; }
-  .cat-tools input[type=search] { flex: 1 1 220px; min-width: 180px; padding: 8px 10px;
-    border: 1px solid #d5d9d9; border-radius: 8px; font: inherit; font-size: 13px; }
-  .hint-chip { border: 1px dashed #d5d9d9; background: #fff; border-radius: 999px;
-               padding: 5px 11px; font-size: 12px; cursor: pointer; color: #0f1111; }
-  .hint-chip:hover { background: #eef0f0; }
-  .hint-chip[hidden] { display: none; }
-  .lvl-hidden { display: none !important; }
-  .sort-choice span.swatches { display: flex; gap: 4px; margin-top: 4px; }
-  .swatches i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid; display: inline-block; }
-  input[type=color] { width: 44px; height: 30px; padding: 2px; border: 1px solid #d5d9d9; border-radius: 6px; background: transparent; cursor: pointer; }
-  .status.toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 10; margin: 0;
-                  max-width: min(92vw, 560px); padding: 9px 16px; border-radius: 999px; font-size: 13px;
-                  background: #0f1111; color: #fff; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
-  .status.toast:empty { opacity: 0; pointer-events: none; }   /* stays rendered, so a screen reader hears it */
-  .status.toast.error { background: #a4161a; color: #fff; }
-  kbd { font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 3px 7px; border-radius: 5px;
-        border: 1px solid #d5d9d9; border-bottom-width: 2px; background: #fff; }
-  #backupCheck { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
-  #backupCheck li::before { content: "✓ "; color: #0f7b3f; font-weight: 700; }
-  #backupCheck li.bad::before { content: "✗ "; color: #a4161a; }
-  #backupCheck li.bad { color: #a4161a; }
-  .who { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px 14px; margin: 0 0 14px;
-         background: var(--u-accent-bg, #f0faf4); border: 1px solid var(--u-accent-line, #b7e0c5); border-radius: 10px; }
-  .who[hidden] { display: none; }
-  .who-pic { width: 44px; height: 44px; border-radius: 50%; flex: 0 0 auto; background: #eef0f0; }
-  .who-text { flex: 1 1 160px; min-width: 0; }
-  .who-status { font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--u-accent, #0f7b3f); }
+  body { padding: 28px 24px 96px; }
+  .wrap { max-width: 940px; margin: 0 auto; }
+
+  /* Header */
+  .head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin: 0 0 24px; }
+  .brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+  .brand img { flex: none; width: 40px; height: 40px; border-radius: 10px; }
+  h1 { font-size: 22px; line-height: 1.2; font-weight: 700; }
+  .lede { margin-top: 2px; color: var(--muted); font-size: 13px; }
+  .head-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .who { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border: 1px solid var(--accent-line); border-radius: 12px; background: var(--accent-bg); }
+  .who-pic { flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--hover); }
+  .who-text { min-width: 0; }
+  .who-status { color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
   .who-name { font-weight: 700; }
-  .who-email { font-size: 13px; color: #565959; overflow-wrap: anywhere; }
+  .who-email { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
 
-  .presets { display: flex; flex-wrap: wrap; gap: 8px; }
-  .preset { border: 1px solid #d5d9d9; background: #f7f8f8; border-radius: 999px;
-            padding: 7px 14px; font-size: 13px; cursor: pointer; font-weight: 600; }
-  .preset:hover { background: #eef0f0; }
-  .preset[aria-pressed="true"] { background: var(--u-accent, #0f7b3f); border-color: var(--u-accent, #0f7b3f); color: var(--u-on-accent, #fff); }
-  .preset-note { color: #565959; font-size: 12px; margin-top: 10px; min-height: 1.5em; }
+  /* Sidebar and page */
+  .layout { display: grid; grid-template-columns: 176px minmax(0, 1fr); gap: 28px; align-items: start; }
+  .jump { position: sticky; top: 24px; display: grid; gap: 2px; }
+  .jump a { padding: 6px 12px; border-radius: 8px; color: var(--muted); font-size: 13px; font-weight: 600; text-decoration: none; }
+  .jump a:hover { background: var(--hover); color: var(--text); }
+  main { min-width: 0; }
+  section { margin: 0 0 16px; padding: 20px 24px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); scroll-margin-top: 24px; }
+  section > :last-child, .opt:last-child { margin-bottom: 0; padding-bottom: 0; }
+  section > h2 { margin: 0 0 2px; font-size: 16px; line-height: 1.3; font-weight: 700; }
+  .sec-lede { margin: 0 0 12px; max-width: 68ch; color: var(--muted); font-size: 13px; }
+  details.sec-lede > summary { font-size: 13px; }
+  h3.sub-h { margin: 16px 0 6px; font-size: 13px; font-weight: 700; }
 
-  .preset-active { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px;
-                   margin: -4px 0 14px; padding: 10px 12px; border-radius: 8px;
-                   background: var(--u-accent-bg, #f0faf4); border: 1px solid var(--u-accent-line, #b7e0c5); }
-  .preset-active-label { font-size: 11px; font-weight: 700; letter-spacing: .5px;
-                         text-transform: uppercase; color: var(--u-accent, #0f7b3f); }
-  .preset-active-name { font-weight: 700; font-size: 14px; }
-  .preset-active-name.is-custom { color: #565959; font-weight: 600; }
-  .goal-mix { margin: -6px 0 14px; padding: 10px 12px; border-radius: 8px; border: 1px solid #d5d9d9; }
-  .goal-mix-title { font-weight: 700; font-size: 13px; margin: 0 0 2px; }
+  /* One setting: its title and control on one line, then a one-line hint. A hint that has a longer
+     explanation is the summary of a disclosure: click it to read the rest. */
+  .opt { padding: 12px 0; border-top: 1px solid var(--soft); }
+  .sec-lede + .opt, h2 + .opt, .callout + .opt { border-top: 0; padding-top: 2px; }
+  .opt > .sw, .opt > .field { min-height: 28px; }
+  .sw-title { font-size: 14px; font-weight: 600; }
+  .sw-hint { margin: 1px 0 0; max-width: 68ch; color: var(--muted); font-size: 12px; line-height: 1.45; }
+  details.hint-more > summary { display: block; margin: 1px 0 0; max-width: 68ch; list-style: none; cursor: pointer; color: var(--muted); font-size: 12px; line-height: 1.45; }
+  details.hint-more > summary::-webkit-details-marker { display: none; }
+  details.hint-more > summary::after { content: ""; display: inline-block; width: 5px; height: 5px; margin-left: 8px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+    transform: translateY(-2px) rotate(45deg); transition: transform .15s; }
+  details.hint-more[open] > summary::after { transform: translateY(1px) rotate(-135deg); }
+  details.hint-more > summary:hover { color: var(--text); }
+  details.hint-more > p, details.hint-more > ul { margin: 6px 0 0; max-width: 68ch; color: var(--muted); font-size: 12px; line-height: 1.5; }
+  .field { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+  .field > label { font-size: 14px; font-weight: 600; }
+  /* A field under a switch belongs to it: set in from the left edge. */
+  .opt > .sw ~ .field { margin: 10px 0 0 2px; padding-left: 14px; border-left: 2px solid var(--soft); }
+  .range-line { display: flex; align-items: center; gap: 10px; }
+  .range-line input[type=range] { width: 180px; }
+  .val-out { min-width: 3.5em; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .note { margin: 8px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; max-width: 68ch; }
+  .callout { margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--note-line); border-radius: 8px; background: var(--note-bg); color: var(--note-text); font-size: 13px; }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 10px; }
+  .status { color: var(--accent); font-size: 12px; font-weight: 600; }
+  .status.error, .note.warn, .field-error { color: var(--danger); }
+  .status.toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 10; margin: 0;
+    max-width: min(92vw, 560px); padding: 9px 16px; border-radius: 999px; font-size: 13px;
+    background: var(--text); color: var(--page); box-shadow: 0 4px 14px rgba(0, 0, 0, .25); }
+  .status.toast:empty { opacity: 0; pointer-events: none; }   /* stays rendered, so a screen reader hears it */
+  .status.toast.error { background: var(--danger); color: var(--page); }
+
+  /* Choices: a row of pills, and the sentence for the one that is picked */
+  .sort-choices { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; margin: 0; padding: 0; border: 0; }
+  .sort-choices legend { padding: 0; margin: 0 0 6px; font-size: 13px; font-weight: 600; }
+  .sort-choices > label { position: relative; display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border: 1px solid var(--line);
+    border-radius: 999px; background: var(--card); font-size: 13px; font-weight: 600; cursor: pointer; }
+  .sort-choices > label > input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+  .sort-choices > label:hover { background: var(--hover); }
+  .sort-choices > label:has(input:checked) { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .sort-choices > label.pal:has(input:checked) { background: var(--accent-bg); border-color: var(--accent); color: var(--text); box-shadow: inset 0 0 0 1px var(--accent); }
+  .sort-choices > label:has(input:focus-visible) { outline: 3px solid var(--link); outline-offset: 2px; }
+  .sort-choices > label:has(input:disabled) { opacity: .5; cursor: not-allowed; }
+  .choice-d { display: none; order: 1; flex-basis: 100%; margin: 4px 0 0; color: var(--muted); font-size: 13px; max-width: 68ch; }
+  .sort-choices > label:has(input:checked) + .choice-d { display: block; }
+  .swatches { display: inline-flex; gap: 3px; }
+  .swatches i { width: 12px; height: 12px; border: 2px solid; border-radius: 50%; display: inline-block; }
+
+  /* Fields */
+  input[type=text], input[type=url], input[type=search], input[type=number], textarea, select {
+    max-width: 100%; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--text); font: inherit; font-size: 13px; }
+  textarea { display: block; width: 100%; min-height: 76px; resize: vertical; }
+  input[type=range] { accent-color: var(--accent); }
+  input[type=color] { width: 44px; height: 30px; padding: 2px; border: 1px solid var(--line); border-radius: 6px; background: transparent; cursor: pointer; }
+  input[type=file] { display: none; }
+  input.invalid { border-color: var(--danger) !important; }
+  kbd { padding: 3px 7px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; background: var(--card); font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+  /* Goals */
+  .preset-active { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin: 0 0 12px; padding: 6px 12px; border: 1px solid var(--accent-line); border-radius: 999px; background: var(--accent-bg); }
+  .preset-active-label { color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+  .preset-active-name { font-weight: 700; }
+  .preset-active-name.is-custom { color: var(--muted); font-weight: 600; }
+  .goal-mix { margin: 0 0 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; }
+  .goal-mix-title { margin: 0 0 2px; font-size: 13px; font-weight: 700; }
   .goal-mix-note { margin: 0 0 8px; }
-  .goal-mix-row { display: flex; align-items: center; gap: 10px; margin: 4px 0; flex-wrap: wrap; }
+  .goal-mix-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 4px 0; }
   .goal-mix-row label { min-width: 150px; font-size: 13px; }
   .goal-mix-row input[type=range] { flex: 1 1 160px; max-width: 280px; }
   .goal-mix-row output { min-width: 3.5em; font-variant-numeric: tabular-nums; font-weight: 600; }
-  .preset-cats { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
-  .preset-cat { border: 1px solid #d5d9d9; background: #fff; border-radius: 8px;
-                padding: 6px 12px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
-  .preset-cat:hover { background: #eef0f0; }
-  .preset-cat[aria-selected="true"] { background: #0f1111; border-color: #0f1111; color: #fff; }
-  .preset-cat.has-picks:not([aria-selected="true"]) { border-color: var(--u-accent, #0f7b3f); color: var(--u-accent, #0b5a2e); font-weight: 700; }
-  .preset-cat-blurb { color: #565959; font-size: 12px; margin: -4px 0 12px; }
-  .preset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
-  .preset-card { display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
-                 text-align: left; border: 1px solid #d5d9d9; background: #fff; border-radius: 10px;
-                 padding: 12px 14px; cursor: pointer; font: inherit; color: inherit; min-height: 100%; }
-  .preset-card:hover { background: #f7f8f8; border-color: #bbb; }
-  .preset-card[aria-pressed="true"] { border-color: var(--u-accent, #0f7b3f); background: var(--u-accent-bg, #f0faf4);
-                                      box-shadow: inset 0 0 0 1px var(--u-accent, #0f7b3f); }
-  .preset-card-top { display: flex; align-items: center; gap: 10px; width: 100%; }
-  .preset-glyph { flex: 0 0 auto; width: 36px; height: 36px; border-radius: 9px;
-                  display: grid; place-items: center; font: 700 11px/1 "Amazon Ember", sans-serif;
-                  letter-spacing: .02em; background: #eef0f0; color: #0f1111; border: 1px solid #d5d9d9; }
-  .preset-card[aria-pressed="true"] .preset-glyph { background: var(--u-accent, #0f7b3f); border-color: var(--u-accent, #0f7b3f); color: var(--u-on-accent, #fff); }
-  .preset-card-title { font-weight: 700; font-size: 13px; line-height: 1.25; }
-  .preset-card-note { color: #565959; font-size: 12px; line-height: 1.4; margin: 0; }
-  .preset-detail { margin-top: 12px; padding: 12px 14px; border-radius: 8px; background: #f7f8f8;
-                   border: 1px solid #eaeded; }
-  .preset-detail[hidden] { display: none; }
-  .preset-detail-title { font-weight: 700; font-size: 13px; margin: 0 0 4px; }
-  .preset-detail-note, .preset-detail-versus { color: #565959; font-size: 12px; margin: 0 0 6px; line-height: 1.45; }
+  .preset-cats { margin: 0 0 12px; }
+  .preset-cat-blurb { margin: -4px 0 12px; color: var(--muted); font-size: 13px; }
+  .preset-cat-blurb:empty { display: none; }
+  .preset-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .preset-detail { margin: 14px 0 12px; padding: 12px 14px; border: 1px solid var(--soft); border-radius: 10px; background: var(--page); }
+  .preset-detail-title { margin: 0 0 4px; font-size: 13px; font-weight: 700; }
+  .preset-detail-note, .preset-detail-versus { margin: 0 0 6px; color: var(--muted); font-size: 13px; line-height: 1.45; }
   .preset-detail-versus { margin-bottom: 0; }
-  .preset-detail-versus strong { color: #0f1111; font-weight: 600; }
+  .preset-detail-versus strong { color: var(--text); font-weight: 600; }
 
-  .cat { display: grid; grid-template-columns: 1fr 210px 52px; gap: 14px; align-items: center;
-         padding: 12px 0; border-top: 1px solid #eaeded; }
-  .cat:first-of-type, .cat[hidden] + .cat { border-top: 0; }
-  .cat[hidden], h2.cat-group[hidden] { display: none; }
-  .cat .name { font-weight: 600; }
-  .cat .help { color: #565959; font-size: 12px; margin-top: 2px; max-width: 52ch; }
-  .cat .off { color: #767676; font-style: italic; }
-  input[type=range] { width: 100%; accent-color: var(--u-accent, #0f7b3f); }
-  .val { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; font-size: 13px; }
-  .val.zero { color: #767676; font-weight: 400; }
-  .val.high { color: #0f7b3f; }
-  .val.plus { color: #0f7b3f; font-weight: 700; }
-
+  /* Weights */
+  .cat-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 8px; }
+  .cat-tools input[type=search] { flex: 1 1 200px; min-width: 160px; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-  .chip { display: inline-flex; align-items: center; gap: 7px; border: 1px solid #d5d9d9;
-          border-radius: 999px; padding: 6px 13px; font-size: 13px; cursor: pointer; background: #fff; }
-  .chip input { margin: 0; accent-color: var(--u-accent, #0f7b3f); }
-  .chip.disabled { opacity: .55; cursor: not-allowed; }
-  textarea { width: 100%; min-height: 76px; border: 1px solid #d5d9d9; border-radius: 8px;
-             padding: 10px 12px; font: inherit; font-size: 13px; resize: vertical; }
-  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
-  button.act { border: 1px solid #d5d9d9; background: #f7f8f8; border-radius: 8px;
-               padding: 8px 14px; font-size: 13px; cursor: pointer; font-weight: 600; }
-  button.act:hover { background: #eef0f0; }
-  button.danger { color: #a4161a; }
-  button:focus-visible, input:focus-visible, textarea:focus-visible, .preset:focus-visible,
-  .preset-cat:focus-visible, .preset-card:focus-visible,
-  .chip:focus-within { outline: 3px solid var(--u-link, #007185); outline-offset: 2px; }
-  .status { color: #0f7b3f; font-size: 12px; font-weight: 600; }
-  .status.error { color: #a4161a; }
-  input.invalid { border-color: #a4161a !important; box-shadow: 0 0 0 2px rgba(164,22,26,.15); }
-  .note { color: #565959; font-size: 12px; margin-top: 8px; }
-  .note.warn { color: #a4161a; }
-  .sort-choices { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
-  .sort-choices legend { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
-  .sort-choice { align-items: flex-start; border-radius: 10px; padding: 8px 12px; }
-  .sort-choice span { display: grid; gap: 2px; }
-  .sort-choice small { color: #565959; font-size: 12px; font-weight: 400; }
-  .store-list { list-style: none; margin: 0 0 6px; padding: 0; display: grid; gap: 6px; }
-  .store-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font-size: 13px; }
-  .store-badge { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 1px 8px; border: 1px solid #d5d9d9; }
-  .store-badge.supported { color: #0f7b3f; border-color: #0f7b3f; }
-  .store-badge.planned { color: #565959; }
-  .store-badge.preview { color: #8a4b00; border-color: #c77d00; }
-  .store-where { color: #565959; font-size: 12px; flex-basis: 100%; }
-  .store-h { font-size: 14px; margin: 18px 0 4px; }
+  h2.cat-group { margin: 20px 0 2px; padding-top: 14px; border-top: 2px solid var(--soft); font-size: 13px; font-weight: 700; }
+  h2.cat-group:first-child { margin-top: 4px; padding-top: 0; border-top: 0; }
+  .cat { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; padding: 10px 0; border-top: 1px solid var(--soft); }
+  .cat:first-of-type, .cat[hidden] + .cat, h2.cat-group + .cat { border-top: 0; }
+  .cat[hidden], h2.cat-group[hidden] { display: none; }
+  .cat > div:first-child { display: flex; flex: 1 1 260px; flex-wrap: wrap; align-items: baseline; gap: 0 10px; min-width: 0; }
+  .cat .name { font-weight: 600; }
+  .cat .help { color: var(--muted); font-size: 12px; line-height: 1.45; }
+  .cat .help:not(.baseline) { flex-basis: 100%; max-width: 62ch; }
+  .cat input[type=range] { flex: 0 1 200px; width: 200px; }
+  .val { min-width: 64px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; font-size: 13px; }
+  .val.zero { color: var(--muted); font-weight: 400; }
+  .val.high, .val.plus { color: var(--accent); }
+  .hint-chip { padding: 4px 11px; border: 1px dashed var(--line); border-radius: 999px; background: var(--card); color: var(--text); font: inherit; font-size: 12px; cursor: pointer; }
+  .hint-chip:hover { background: var(--hover); }
+
+  /* Account, backups, stores */
+  #backupCheck { display: grid; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; font-size: 13px; }
+  #backupCheck li::before { content: "✓ "; color: var(--accent); font-weight: 700; }
+  #backupCheck li.bad, #backupCheck li.bad::before { color: var(--danger); }
+  #backupCheck li.bad::before { content: "✗ "; }
+  .stack { display: grid; gap: 8px; justify-items: start; margin-top: 8px; }
+  .stack label { font-size: 13px; font-weight: 600; }
+  .stack input { width: 100%; max-width: 460px; }
+  .stack p { margin: 0; color: var(--muted); font-size: 12px; }
+  .store-list { display: block; margin: 0 0 6px; padding: 0; list-style: none; columns: 250px; column-gap: 28px; }
+  .store-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 10px; padding: 7px 0; border-top: 1px solid var(--soft); font-size: 13px; break-inside: avoid; }
+  .store-badge { padding: 1px 8px; border: 1px solid var(--line); border-radius: 999px; font-size: 11px; font-weight: 700; }
+  .store-badge.supported { color: var(--accent); border-color: var(--accent); }
+  .store-badge.planned { color: var(--muted); }
+  .store-badge.preview { color: var(--note-text); border-color: var(--note-line); }
+  .store-where { flex-basis: 100%; overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+  .kbd-list { display: grid; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; font-size: 13px; }
+  .kbd-list:empty { display: none; }
   .request-form { display: grid; gap: 4px; max-width: 460px; margin-top: 10px; }
-  .request-form label { font-size: 12px; font-weight: 600; margin-top: 6px; }
-  .request-form input { font: inherit; padding: 7px 9px; border: 1px solid #d5d9d9; border-radius: 8px; }
-  .request-form input[aria-invalid="true"] { border-color: #a4161a; }
-  .field-error { color: #a4161a; font-size: 12px; margin: 0; min-height: 0; }
-  .request-preview { font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap;
-    background: #f7f8f8; border: 1px solid #d5d9d9; border-radius: 8px; padding: 10px 12px; margin: 0; min-height: 3em; }
-  a.act.request-send { display: inline-block; border: 1px solid #d5d9d9; background: #f7f8f8; border-radius: 8px;
-    padding: 7px 14px; font-weight: 600; color: inherit; text-decoration: none; }
-  a.act.request-send[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
-  input[type=file] { display: none; }
-  @media (max-width: 640px) {
+  .request-form label { margin-top: 6px; font-size: 12px; font-weight: 600; }
+  .request-form input[aria-invalid="true"] { border-color: var(--danger); }
+  .field-error { margin: 0; min-height: 0; font-size: 12px; }
+  .request-preview { min-height: 3em; margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--page);
+    font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+  .leaves { display: grid; gap: 8px; margin: 6px 0 0 18px; padding: 0; }
+  .leaves li { max-width: 72ch; }
+
+  @media (max-width: 860px) {
     body { padding: 16px 14px 72px; }
-    .cat { grid-template-columns: 1fr 52px; }
-    .cat input[type=range] { grid-column: 1 / -1; }
+    .layout { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    .jump { position: sticky; top: 0; z-index: 2; display: flex; gap: 6px; overflow-x: auto; margin: 0 -14px; padding: 8px 14px; background: var(--page); }
+    .jump a { flex: none; border: 1px solid var(--line); background: var(--card); }
+    section { padding: 16px 16px; scroll-margin-top: 64px; }
   }
-  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
-  @media (prefers-color-scheme: dark) {
-    .status.toast { background: #f3f3f3; color: #0f1111; }
-    .status.toast.error { background: #ff8a8a; color: #0f1111; }
-    .chip:focus-within { outline-color: var(--u-link-d, #4db6c8); }
-    input[type=range], .chip input { accent-color: var(--u-accent-d, #5cc98a); }
-    kbd { background: #1b1c1c; border-color: #3a3c3c; color: #f3f3f3; }
-    #backupCheck li.bad, #backupCheck li.bad::before { color: #ff8a8a; }
-    .who { background: var(--u-accent-bg-d, #1e2a22); border-color: var(--u-accent-line-d, #2f5a40); }
-    .who-pic { background: #2d2f2f; }
-    .who-status { color: var(--u-accent-d, #6fdf9a); }
-    .who-email { color: #aeaeae; }
-    .preset-cat.has-picks:not([aria-selected="true"]) { border-color: var(--u-accent-d, #3fa66b); color: var(--u-accent-d, #bfe8cf); }
-    body, .jump { background: #1b1c1c; color: #f3f3f3; }
-    .lede, .note, .preset-note, .cat .help, h2 { color: #aeaeae; }
-    /* Each at least 4.5:1 on the dark sections (#232525); the light colours were 2-3.4:1 here. */
-    .sort-choice small { color: #aeaeae; }
-    .val.zero { color: #9a9a9a; }
-    .note.warn, .status.error, .field-error, button.danger { color: #ff8a8a; }
-    section, .chip, .jump a, .hint-chip, .cat-tools input[type=search] { background: #232525; border-color: #3a3c3c; color: #f3f3f3; }
-    .jump a:hover, .preset:hover, button.act:hover, .hint-chip:hover { background: #2d2f2f; }
-    .preset, button.act { background: #2d2f2f; border-color: #3a3c3c; color: #f3f3f3; }
-    .preset-active { background: var(--u-accent-bg-d, #1e2a22); border-color: var(--u-accent-line-d, #2f5a40); }
-    .goal-mix { border-color: #3a3c3c; }
-    .preset-active-label { color: var(--u-accent-d, #6fdf9a); }
-    .preset-active-name.is-custom { color: #aeaeae; }
-    .preset-cat { background: #232525; border-color: #3a3c3c; color: #f3f3f3; }
-    .preset-cat:hover { background: #2d2f2f; }
-    .preset-cat[aria-selected="true"] { background: #f3f3f3; border-color: #f3f3f3; color: #0f1111; }
-    .preset-cat-blurb, .preset-card-note, .preset-detail-note, .preset-detail-versus { color: #aeaeae; }
-    .preset-card { background: #232525; border-color: #3a3c3c; color: #f3f3f3; }
-    .preset-card:hover { background: #2d2f2f; }
-    .preset-card[aria-pressed="true"] { background: var(--u-accent-bg-d, #1e2a22); border-color: var(--u-accent-d, #0f7b3f); }
-    .preset-glyph { background: #2d2f2f; border-color: #3a3c3c; color: #f3f3f3; }
-    .preset-detail { background: #1b1c1c; border-color: #3a3c3c; }
-    .preset-detail-versus strong, .preset-detail-title { color: #f3f3f3; }
-    textarea, input[type=url] { background: #1b1c1c; border-color: #3a3c3c; color: #f3f3f3; }
-    h2.cat-group { color: #f3f3f3; border-top-color: #3a3c3c; }
-    .cat { border-top-color: #3a3c3c; }
-    .val { color: #f3f3f3; }
-    .status { color: #6fdf9a; }
-    .request-form input, .request-preview, a.act.request-send { background: #1b1c1c; border-color: #3a3c3c; color: #f3f3f3; }
-    .store-badge.supported { color: #6fdf9a; border-color: #6fdf9a; }
-    .store-badge.planned, .store-where { color: #aeaeae; }
-    .store-badge.preview { color: #f3d19c; border-color: #8a6a2a; }
-    .field-error { color: #ff8a8a; }
-    button.danger { color: #ff8a8a; }
-  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } details.hint-more > summary::after { transition: none; } }
+  @media (forced-colors: active) { .sort-choices > label:has(input:checked) { border: 3px solid Highlight; padding: 4px 12px; } }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="who" id="googleHeader" hidden role="status">
-    <img id="googleAvatar" class="who-pic" alt="" width="44" height="44" referrerpolicy="no-referrer" hidden>
-    <div class="who-text">
-      <div class="who-status"><span aria-hidden="true">✓</span> <span data-i18n="optGoogleSignedIn">Signed in with Google</span></div>
-      <div class="who-name" id="googleName" hidden></div>
-      <div class="who-email" id="googleEmail"></div>
+  <header class="head">
+    <div class="brand">
+      <img src="../../icons/icon48.png" alt="" width="40" height="40">
+      <div>
+        <h1 data-i18n="appName">Ingredient Check</h1>
+        <p class="lede" data-i18n="optLede">Scoring runs on your computer. Online features can be switched off below.</p>
+      </div>
     </div>
-    <button type="button" class="act" id="googleSignOut" data-i18n="optGoogleSignOut">Sign out</button>
-  </div>
-  <h1 data-i18n="appName">Ingredient Check</h1>
-  <p class="note" style="margin:0 0 10px"><a href="welcome.html" data-i18n="popupSetupAgain">Run setup again</a></p>
-  <p class="lede" data-i18n="optLede">Scoring runs on your computer. The shared database and the settings
-    backup can be switched off below.</p>
+    <div class="head-actions">
+      <div class="who" id="googleHeader" hidden role="status">
+        <img id="googleAvatar" class="who-pic" alt="" width="36" height="36" referrerpolicy="no-referrer" hidden>
+        <div class="who-text">
+          <div class="who-status"><span aria-hidden="true">✓</span> <span data-i18n="optGoogleSignedIn">Signed in with Google</span></div>
+          <div class="who-name" id="googleName" hidden></div>
+          <div class="who-email" id="googleEmail"></div>
+        </div>
+        <button type="button" class="btn" id="googleSignOut" data-i18n="optGoogleSignOut">Sign out</button>
+      </div>
+      <a class="btn" href="welcome.html" data-i18n="popupSetupAgain">Run setup again</a>
+    </div>
+  </header>
+
+  <div class="layout">
   <nav class="jump" data-i18n-aria="optNavAria" aria-label="Settings sections">
     <a href="#sec-level" data-i18n="optNavLevel">Detail</a>
-    <a href="#sec-appearance" data-level="1" data-i18n="optNavAppearance">Appearance</a>
-    <a href="#sec-rate" data-level="1" data-i18n="optNavRate">Rate</a>
-    <a href="#sec-sort" data-level="2" data-i18n="optNavSort">Sort</a>
-    <a href="#sec-speed" data-level="3" data-i18n="optNavSpeed">Speed</a>
-    <a href="#sec-presets" data-i18n="optNavPresets">Presets</a>
+    <a href="#sec-presets" data-i18n="optNavPresets">Goals</a>
     <a href="#sec-weights" data-level="3" data-i18n="optNavWeights">Weights</a>
     <a href="#sec-warnings" data-i18n="optNavWarnings">Warnings</a>
     <a href="#sec-avoid" data-level="1" data-i18n="optNavAvoid">Avoid</a>
+    <a href="#sec-rate" data-level="1" data-i18n="optNavRate">Rate</a>
+    <a href="#sec-sort" data-level="2" data-i18n="optNavSort">Sort</a>
+    <a href="#sec-speed" data-level="3" data-i18n="optNavSpeed">Speed</a>
+    <a href="#sec-appearance" data-level="1" data-i18n="optNavAppearance">Appearance</a>
     <a href="#sec-database" data-level="2" data-i18n="optNavDatabase">Database</a>
     <a href="#sec-account" data-level="2" data-i18n="optNavAccount">Backup</a>
-    <a href="#sec-file" data-level="3" data-i18n="optNavFile">File</a>
     <a href="#sec-stores" data-level="2" data-i18n="optNavStores">Stores</a>
+    <a href="#sec-file" data-level="3" data-i18n="optNavFile">File</a>
   </nav>
+  <main>
 
   <section id="sec-level">
     <h2 id="levelH" data-i18n="optLevelH">How many settings to show</h2>
-    <p class="note" style="margin: -6px 0 12px" data-i18n="optLevelLede">
-      Start small and add more whenever you want. A setting you cannot see keeps its current value and
-      keeps working; this only decides what is on this page.
-    </p>
+    <p class="sec-lede" data-i18n="optLevelLede">Hidden settings keep their value and keep working.</p>
     <fieldset class="sort-choices" id="levelChoices" aria-labelledby="levelH">
-      <label class="chip sort-choice"><input type="radio" name="settingsLevel" value="minimal">
-        <span><strong data-i18n="optLevelMinimal">Minimal</strong>
-        <small data-i18n="optLevelMinimalD">Your goals, allergen warnings and diets. Everything else stays at its default.</small></span></label>
-      <label class="chip sort-choice"><input type="radio" name="settingsLevel" value="simple">
-        <span><strong data-i18n="optLevelSimple">Simple</strong>
-        <small data-i18n="optLevelSimpleD">Adds what to rate, search-result scoring and your own avoid list.</small></span></label>
-      <label class="chip sort-choice"><input type="radio" name="settingsLevel" value="standard">
-        <span><strong data-i18n="optLevelStandard">Standard (default)</strong>
-        <small data-i18n="optLevelStandardD">Adds sorting, price per ounce, score on hover, the shared database, backup, Google sign-in and stores.</small></span></label>
-      <label class="chip sort-choice"><input type="radio" name="settingsLevel" value="advanced">
-        <span><strong data-i18n="optLevelAdvanced">Advanced</strong>
-        <small data-i18n="optLevelAdvancedD">Adds every scoring weight, speed and freshness, timing, sort details and the settings file.</small></span></label>
-      <label class="chip sort-choice"><input type="radio" name="settingsLevel" value="expert">
-        <span><strong data-i18n="optLevelExpert">Everything</strong>
-        <small data-i18n="optLevelExpertD">Also shows diagnostics and contributions to the shared database.</small></span></label>
-    </fieldset>
-  </section>
-
-  <section id="sec-appearance" data-level="1">
-    <h2 id="appearanceH" data-i18n="optAppearanceH">Appearance</h2>
-    <p class="note" style="margin: -6px 0 12px" data-i18n="optAppearanceLede">
-      Colours for Settings, the toolbar popup, setup, the sorted list and the score badges and panel on store
-      pages. Text stays readable whatever you choose: the number and the verdict word always say the score,
-      and colour only adds to it.
-    </p>
-    <h3 class="store-h" id="themeH" data-i18n="optThemeH">Colour scheme</h3>
-    <fieldset class="sort-choices" id="themeChoices" aria-labelledby="themeH">
-      <label class="chip sort-choice"><input type="radio" name="theme" value="system"><span><strong data-i18n="optThemeSystem">Match my system</strong></span></label>
-      <label class="chip sort-choice"><input type="radio" name="theme" value="light"><span><strong data-i18n="optThemeLight">Light</strong></span></label>
-      <label class="chip sort-choice"><input type="radio" name="theme" value="dark"><span><strong data-i18n="optThemeDark">Dark</strong></span></label>
-    </fieldset>
-    <h3 class="store-h" id="paletteH" data-i18n="optPaletteH">Score colours</h3>
-    <fieldset class="sort-choices" id="paletteChoices" aria-labelledby="paletteH">
-      <label class="chip sort-choice"><input type="radio" name="palette" value="standard"><span><strong data-i18n="optPaletteStandard">Standard (green to red)</strong><span class="swatches" data-palette="standard" aria-hidden="true"></span></span></label>
-      <label class="chip sort-choice"><input type="radio" name="palette" value="cvd"><span><strong data-i18n="optPaletteCvd">Colour-blind safe (blue to maroon)</strong><span class="swatches" data-palette="cvd" aria-hidden="true"></span></span></label>
-    </fieldset>
-    <div class="row" data-level="2">
-      <label for="accent" class="note" style="margin:0" data-i18n="optAccentLabel">Accent colour</label>
-      <input type="color" id="accent" value="#0f7b3f">
-      <button type="button" class="act" id="accentReset" data-i18n="optAccentReset">Reset</button>
-      <span class="note" id="accentNote" style="margin:0" aria-live="polite"></span>
-    </div>
-  </section>
-
-  <section id="sec-rate" data-level="1">
-    <h2 data-i18n="optRateH">What to rate</h2>
-    <p class="note" style="margin: -6px 0 12px" data-i18n="optNoteRateSame">
-      These settings are the same ones in the toolbar popup. Changing them here updates scores on
-      Amazon immediately.
-    </p>
-    <div data-level="1">
-    <label class="chip" style="margin-bottom:8px">
-      <input type="checkbox" id="foodOnly" checked>
-      <span data-i18n="optFoodOnly">Only rate food and supplements</span>
-    </label>
-    <p class="note" data-i18n="optNoteFoodOnly">
-      Skips shoes, toys, cosmetics, medicine and cleaning products. A score on shampoo would imply
-      it was judged as something you could eat. When this is on, a non-food page shows why it was
-      skipped instead of a silent blank.
-    </p>
-    </div>
-    <div data-level="1">
-    <label class="chip" style="margin: 14px 0 8px">
-      <input type="checkbox" id="autoScoreSearch" checked>
-      <span data-i18n="popupAutoScore">Rate search results and cart items</span>
-    </label>
-    <p class="note" data-i18n="optNoteAutoScore">
-      On by default. As you scroll a results page, each result that this computer and the shared
-      database cannot already answer is scored by requesting its product page from the Amazon store
-      you are on: three at a time, at most 60 per results page. The requests carry your Amazon
-      sign-in, so Amazon sees them much as if you had opened each product yourself. Turn this off
-      and only products already read (by you, or through the shared database) show a score.
-      Cart lookups on all stores read public product pages without cookies or referrers, two at a time within the Speed budget.
-    </p>
-    </div>
-    <div data-level="2">
-    <label class="chip" style="margin: 14px 0 8px">
-      <input type="checkbox" id="hoverScore">
-      <span data-i18n="popupHover">Score on hover</span>
-    </label>
-    <p class="note" data-i18n="optNoteHover">
-      Off by default. Hover or tab to one result for half a second and it requests that product page
-      from Amazon in the same way, with your Amazon sign-in. Only the result you point at.
-    </p>
-    <div class="row" style="margin-top:10px" data-level="3">
-      <label for="scoreHoverDelayMs" class="note" style="margin:0" data-i18n="optHoverDelay">Wait before scoring</label>
-      <input type="range" id="scoreHoverDelayMs" min="200" max="2000" step="100" value="600" style="width:180px">
-      <span class="status" id="scoreHoverDelayVal" style="color:inherit">0.6 s</span>
-    </div>
-    </div>
-    <p class="note" id="amazonAccess" style="margin-top: 12px">
-      <strong>Amazon access.</strong> When you install Ingredient Check, it asks Chrome for access
-      to the Amazon stores it supports:
-      <span id="amazonStores">amazon.com and the other supported Amazon stores</span>.
-      It uses that access to read product, search and cart pages, and to request product pages for the
-      two options above. Its scripts run on product, search, browse, brand-store and narrowly scoped cart pages, never on your
-      account, orders or checkout. To limit it, open <code>chrome://extensions</code>, choose
-      <em>Details</em> under Ingredient Check, and change <em>Site access</em>.
-    </p>
-    <p class="note" id="targetAccess" data-level="2">
-Retailer previews rate search results and cart items from saved scores or public same-site product pages without cookies. Cart requests also omit the referrer. Automatic rating is on by default; turn it off for saved scores only. Two requests run at a time, within the Speed budget (20–60). Missing or blocked labels stay unavailable. Scores stay local; no cart data is shared. Score on hover applies to Amazon only.
-    </p>
-    <div data-level="2">
-    <label class="chip" style="margin: 14px 0 8px">
-      <input type="checkbox" id="hoverBreakdown" checked>
-      <span data-i18n="popupBreakdown">Show why on hover</span>
-    </label>
-    <p class="note" data-i18n="optNoteBreakdown">
-      Hover, tab to or click a score on a results page to see what raised and lowered it. Worked out
-      on your computer from what was already read, under your current weights — no extra requests.
-      A click pins it open; Esc or a click elsewhere closes it.
-    </p>
-    <div data-level="3">
-    <div class="row" style="margin-top:10px">
-      <label for="breakdownDetail" class="note" style="margin:0" data-i18n="optBreakdownDetail">Show</label>
-      <select id="breakdownDetail">
-        <option value="full" data-i18n="optBreakdownFull">Everything, like the product page</option>
-        <option value="compact" data-i18n="optBreakdownCompact">The biggest reasons only</option>
-      </select>
-    </div>
-    <div class="row" style="margin-top:10px">
-      <label for="breakdownDelayMs" class="note" style="margin:0" data-i18n="optBreakdownDelay">Hover delay</label>
-      <input type="range" id="breakdownDelayMs" min="0" max="1500" step="50" value="200" style="width:180px">
-      <span class="status" id="breakdownDelayVal" style="color:inherit">0.2 s</span>
-    </div>
-    </div>
-    </div>
-    <div data-level="2">
-    <label class="chip" style="margin: 14px 0 8px">
-      <input type="checkbox" id="panelOpen">
-      <span data-i18n="optPanelOpen">Open the score panel on product pages</span>
-    </label>
-    <p class="note" data-i18n="optNotePanelOpen">
-      Off by default: a product page shows the score and verdict, and a click opens the full
-      breakdown. On, the breakdown is already open.
-    </p>
-    </div>
-  </section>
-
-  <section id="sec-sort" data-level="2">
-    <h2 data-i18n="optSortH">Sort by score or price per ounce</h2>
-    <p class="note" style="margin: -6px 0 12px" data-i18n="optSortLede">
-      On an Amazon grocery search, Amazon's own “Sort by” menu gets “Ingredient Check score: High to
-      Low” and “Price per ounce: Low to High”. Choosing one opens Chrome's side panel with this
-      search's listings ranked; Amazon's page is left as it is. In the panel, Prioritize weighs health
-      score, price per ounce, total price, rating and number of reviews, and Open in new tab shows the
-      same list in a tab.
-    </p>
-    <div data-level="2">
-    <label class="chip" style="margin: 0 0 8px">
-      <input type="checkbox" id="unitPrice">
-      <span data-i18n="optSortUnitPrice">Price per ounce</span>
-    </label>
-    <p class="note" data-i18n="optSortUnitPriceD">
-      Amazon's unit price when the results page shows one; otherwise worked out from the listed price
-      and a package weight in the title. No extra requests. Coupons and subscription prices are not
-      included. Also in the toolbar popup.
-    </p>
-    </div>
-    <div data-level="2">
-    <div class="row" style="margin: 14px 0 0">
-      <label for="sortDepth" class="note" style="margin:0" data-i18n="optSortDepth">How much to load</label>
-      <select id="sortDepth"></select>
-    </div>
-    <p class="note" data-i18n="optSortDepthD">
-      More products make a better comparison and take longer. Beyond this page, Ingredient Check reads
-      further Amazon results pages and rates what it can, within the time limit. Saved scores and the
-      shared database are used first, so a repeat search is quick.
-    </p>
-    <label class="chip" style="margin: 14px 0 8px">
-      <input type="checkbox" id="sortRemember">
-      <span data-i18n="optSortRemember">Remember my priorities</span>
-    </label>
-    <p class="note" data-i18n="optSortRememberD">
-      In the sorted list, the Prioritize sliders reopen the way you last set them, separately for the
-      score and price-per-ounce options in Amazon's menu. Off: each list starts from that option's default.
-    </p>
-    <h3 class="store-h" data-i18n="optShortcutH">Keyboard shortcuts</h3>
-    <p class="note" data-i18n="optShortcutD">On an Amazon search results page, open the sorted list without the mouse. These keys are Chrome's extension shortcuts, so you can change or clear them.</p>
-    <ul class="store-list" id="shortcutList"></ul>
-    <div class="row"><button type="button" class="act" id="changeShortcuts" data-i18n="optShortcutChange">Change shortcuts</button></div>
-    </div>
-    <div data-level="3">
-    <fieldset class="sort-choices" id="unitMissingChoices">
-      <legend data-i18n="optUnitMissingH">When Amazon shows no unit price</legend>
-      <label class="chip sort-choice"><input type="radio" name="unitMissing" value="calculate-clear">
-        <span><strong data-i18n="optUnitCalc">Work it out when the weight is clear</strong>
-        <small data-i18n="optUnitCalcD">Uses a package weight in the product title when it is unambiguous (“12 oz, Pack of 6” is 72 oz; “100 Count, 7 oz” is left alone).</small></span></label>
-      <label class="chip sort-choice"><input type="radio" name="unitMissing" value="displayed-only">
-        <span><strong data-i18n="optUnitDisplayed">Amazon's unit price only</strong>
-        <small data-i18n="optUnitDisplayedD">Listings without one have no price per ounce.</small></span></label>
-      <label class="chip sort-choice"><input type="radio" name="unitMissing" value="infer-more">
-        <span><strong data-i18n="optUnitMore">Look through more of the listing</strong>
-        <small data-i18n="optUnitMoreD">Also checks the rest of the listing text for a package weight. Ambiguous listings still get none.</small></span></label>
-    </fieldset>
-    <fieldset class="sort-choices">
-      <legend data-i18n="optSortMissingH">Listings without a score</legend>
-      <label class="chip sort-choice"><input type="radio" name="sortMissing" value="rate-first">
-        <span><strong data-i18n="optSortRateFirst">Rate them</strong>
-        <small data-i18n="optSortRateFirstD">Uses “Rate every search result”: their product pages are requested from Amazon with your sign-in, three at a time, while the side panel fills in. Stop rating in the panel halts it. Does nothing when that option is off.</small></span></label>
-      <label class="chip sort-choice"><input type="radio" name="sortMissing" value="end">
-        <span><strong data-i18n="optSortEnd">Leave them unscored</strong>
-        <small data-i18n="optSortEndD">No extra requests. Only scores this computer or the shared database already has.</small></span></label>
-    </fieldset>
-    <label class="chip" style="margin: 14px 0 8px">
-      <input type="checkbox" id="sortLoadMore">
-      <span data-i18n="optSortLoadMore">Load more Amazon results</span>
-    </label>
-    <p class="note" data-i18n="optSortLoadMoreD">
-      Off by default. Reads further Amazon search pages until it has the number below, then asks the
-      shared database for their scores and, with “Rate them”, requests the product pages of the rest:
-      three at a time, with your Amazon sign-in, stopping if Amazon starts refusing.
-    </p>
-    <div class="row" style="margin-top:10px">
-      <label for="sortCount" class="note" style="margin:0" data-i18n="optSortCount">Products to compare</label>
-      <input type="number" id="sortCount" min="1" max="500" step="1" value="100" inputmode="numeric" style="width:90px">
-      <span class="note" style="margin:0">1–500</span>
-    </div>
-    <div class="row" style="margin-top:10px">
-      <label for="sortTimeLimit" class="note" style="margin:0" data-i18n="optSortTimeLimit">Stop gathering after</label>
-      <select id="sortTimeLimit"></select>
-    </div>
-    <p class="note" data-i18n="optSortTimeLimitD">When time runs out the list is shown with what was gathered; the rest are marked without a score.</p>
-    <p class="note" data-i18n="optSortStorage">The sorted list is kept in memory for this browser session only and is gone when Chrome closes.</p>
-    </div>
-  </section>
-
-  <section id="sec-speed" data-level="3">
-    <h2 id="speedH" data-i18n="optSpeedH">Speed and freshness</h2>
-    <p class="note" style="margin: -6px 0 12px" data-i18n="optSpeedLede">
-      Faster reuses saved scores for longer and requests fewer product pages. Fresher re-reads products
-      sooner and trusts older shared readings less. Balanced is how Ingredient Check has always worked.
-      A product page you open is always read again, whatever you choose.
-    </p>
-    <fieldset class="sort-choices" id="speedChoices" aria-labelledby="speedH">
-      <label class="chip sort-choice"><input type="radio" name="speedMode" value="fastest">
-        <span><strong data-i18n="optSpeedFastest">Fastest</strong>
-        <small data-i18n="optSpeedFastestD">Saved scores for up to 90 days. At most 20 product pages per results page. Shared readings up to 30 days old.</small></span></label>
-      <label class="chip sort-choice"><input type="radio" name="speedMode" value="fast">
-        <span><strong data-i18n="optSpeedFast">Faster</strong>
-        <small data-i18n="optSpeedFastD">Saved scores for up to 60 days. At most 40 product pages per results page. Shared readings up to 30 days old.</small></span></label>
-      <label class="chip sort-choice"><input type="radio" name="speedMode" value="balanced">
-        <span><strong data-i18n="optSpeedBalanced">Balanced (default)</strong>
-        <small data-i18n="optSpeedBalancedD">Saved scores for up to 30 days. At most 60 product pages per results page. Shared readings up to 30 days old.</small></span></label>
-      <label class="chip sort-choice"><input type="radio" name="speedMode" value="fresh">
-        <span><strong data-i18n="optSpeedFresh">Fresher</strong>
-        <small data-i18n="optSpeedFreshD">Saved scores for up to 7 days. At most 60 product pages per results page. Shared readings up to 7 days old.</small></span></label>
-      <label class="chip sort-choice"><input type="radio" name="speedMode" value="freshest">
-        <span><strong data-i18n="optSpeedFreshest">Most up to date</strong>
-        <small data-i18n="optSpeedFreshestD">Saved scores for 1 day. At most 60 product pages per results page. Never uses shared readings: reads every product page itself, so more requests go to Amazon.</small></span></label>
-    </fieldset>
-    <h3 class="store-h" id="paceH" data-i18n="optPaceH">How fast to request product pages</h3>
-    <p class="note" data-i18n="optPaceLede">
-      Applies to scoring a results page and to building the sorted list. Faster finishes sooner but
-      looks more like automated traffic, so Amazon may refuse sooner; after five refusals in a row
-      everything pauses on its own.
-    </p>
-    <fieldset class="sort-choices" id="paceChoices" aria-labelledby="paceH">
-      <label class="chip sort-choice"><input type="radio" name="ratePace" value="gentle">
-        <span><strong data-i18n="optPaceGentle">Gentle</strong>
-        <small data-i18n="optPaceGentleD">Two at a time, 0.4 s apart. Slowest, least likely to be refused.</small></span></label>
-      <label class="chip sort-choice"><input type="radio" name="ratePace" value="normal">
-        <span><strong data-i18n="optPaceNormal">Normal (default)</strong>
-        <small data-i18n="optPaceNormalD">Three at a time, 0.25 s apart. How it has always run.</small></span></label>
-      <label class="chip sort-choice"><input type="radio" name="ratePace" value="quick">
-        <span><strong data-i18n="optPaceQuick">Quick</strong>
-        <small data-i18n="optPaceQuickD">Four at a time, 0.15 s apart. Roughly a third faster than Normal.</small></span></label>
-      <label class="chip sort-choice"><input type="radio" name="ratePace" value="fast">
-        <span><strong data-i18n="optPaceFast">Fast</strong>
-        <small data-i18n="optPaceFastD">Five at a time, 0.1 s apart. Roughly two-thirds faster than Normal, and the most likely to be refused.</small></span></label>
+      <label><input type="radio" name="settingsLevel" value="minimal" aria-describedby="lvlD-minimal"><span data-i18n="optLevelMinimal">Minimal</span></label>
+      <p class="choice-d" id="lvlD-minimal" data-i18n="optLevelMinimalD">Your goals, allergen warnings and diets.</p>
+      <label><input type="radio" name="settingsLevel" value="simple" aria-describedby="lvlD-simple"><span data-i18n="optLevelSimple">Simple</span></label>
+      <p class="choice-d" id="lvlD-simple" data-i18n="optLevelSimpleD">Adds what to rate, search-result scoring and your own avoid list.</p>
+      <label><input type="radio" name="settingsLevel" value="standard" aria-describedby="lvlD-standard"><span data-i18n="optLevelStandard">Standard (default)</span></label>
+      <p class="choice-d" id="lvlD-standard" data-i18n="optLevelStandardD">Adds sorting, price per ounce, score on hover, the shared database, backup and stores.</p>
+      <label><input type="radio" name="settingsLevel" value="advanced" aria-describedby="lvlD-advanced"><span data-i18n="optLevelAdvanced">Advanced</span></label>
+      <p class="choice-d" id="lvlD-advanced" data-i18n="optLevelAdvancedD">Adds every scoring weight, speed, timing, sort details and the settings file.</p>
+      <label><input type="radio" name="settingsLevel" value="expert" aria-describedby="lvlD-expert"><span data-i18n="optLevelExpert">Everything</span></label>
+      <p class="choice-d" id="lvlD-expert" data-i18n="optLevelExpertD">Also diagnostics and contributions to the shared database.</p>
     </fieldset>
   </section>
 
   <section id="sec-presets">
-    <h2 data-i18n="optPresetsH">Goal-based scoring</h2>
-    <p class="note" style="margin: -6px 0 12px" data-i18n="optNotePresets">Pick one goal or several. Their priorities combine; where goals overlap, their weights are averaged. A goal focused on a category takes priority over another goal’s incidental setting. Adjust how much each selected goal counts below. Some goals turn deductions into preference credits; hard score limits stay limits. Moving a category slider makes the active label Custom. Click a selected goal to remove it; Balanced clears them all.</p>
+    <h2 id="presetsH" data-i18n="optPresetsH">Goal-based scoring</h2>
+    <details class="hint-more sec-lede"><summary data-i18n="optPresetsLede">Pick one or more goals; they combine. Click a selected goal to remove it; Balanced clears them all.</summary><p data-i18n="optNotePresets">Pick one goal or several. Their priorities combine; where goals overlap, their weights are averaged. A goal focused on a category takes priority over another goal’s incidental setting. Adjust how much each selected goal counts below. Some goals turn deductions into preference credits; hard score limits stay limits. Moving a category slider makes the active label Custom. Click a selected goal to remove it; Balanced clears them all.</p></details>
     <div class="preset-active" id="presetActive" aria-live="polite">
       <span class="preset-active-label" data-i18n="optPresetActive">Active</span>
       <span class="preset-active-name" id="presetActiveName">Balanced</span>
     </div>
     <div class="goal-mix" id="goalMix" hidden>
       <p class="goal-mix-title" data-i18n="optGoalMixTitle">How much each goal counts</p>
-      <p class="note goal-mix-note" data-i18n="optGoalMixNote">These importance weights decide how selected goals combine where their priorities overlap. At 1 each they count equally. Focused priorities take precedence over incidental settings. Higher values give a goal more influence, not a guarantee about the final score.</p>
+      <p class="note goal-mix-note" data-i18n="optGoalMixNote">Higher values give a goal more say where goals overlap; at 1 each they count equally.</p>
       <div id="goalMixRows"></div>
     </div>
     <div class="preset-cats" id="presetCats" role="tablist" data-i18n-aria="optPresetCatsAria" aria-label="Preset categories"></div>
@@ -551,8 +256,8 @@ Retailer previews rate search results and cart items from saved scores or public
   </section>
 
   <section id="sec-weights" data-level="3">
-    <h2 data-i18n="optWeightsH">What counts, and how much</h2>
-    <p class="note" style="margin: -6px 0 12px" data-i18n="optNoteWeights">Each category has its own default. A weight of 1.0 applies the listed rule normally; 0 switches its score effect off, and 2.0 doubles its deduction or credit before score limits. Some categories start at 0 or 0.5. Negative weights, available for selected categories, turn a deduction into a preference credit. Goal presets change these weights. Press / to jump to the filter.</p>
+    <h2 id="weightsH" data-i18n="optWeightsH">What counts, and how much</h2>
+    <details class="hint-more sec-lede"><summary data-i18n="optWeightsLede">1× applies a rule as written, 0 switches it off, 2× doubles it. Goals change these weights. Press / to jump to the filter.</summary><p data-i18n="optNoteWeights">Each category has its own default. A weight of 1.0 applies the listed rule normally; 0 switches its score effect off, and 2.0 doubles its deduction or credit before score limits. Some categories start at 0 or 0.5. Negative weights, available for selected categories, turn a deduction into a preference credit. Goal presets change these weights. Press / to jump to the filter.</p></details>
     <div class="cat-tools">
       <input type="search" id="catFilter" data-i18n-placeholder="optFilterPh" data-i18n-aria="optFilterAria" placeholder="Filter categories" aria-label="Filter categories">
       <div class="chips" id="catModes">
@@ -567,16 +272,10 @@ Retailer previews rate search results and cart items from saved scores or public
 
   <section id="sec-warnings">
     <h2 data-i18n="optWarningsH">Allergen warnings</h2>
-    <p class="note" style="margin: -6px 0 12px" data-i18n="optNoteAllergen">
-      Flagged on the panel. These never change the score — whether a food contains sesame is a
-      different question from whether it is a good food.
-    </p>
-    <p class="note warn" style="margin: -6px 0 12px">
-      <strong>Not a safety check.</strong> Warnings come only from the ingredient text this
-      extension could read on the page. If that text is missing, truncated, out of date, or in a
-      language the rules do not cover, you will see no warning at all — which looks exactly like
-      no allergen. Never rely on this for an allergy. Read the package.
-    </p>
+    <p class="sec-lede" data-i18n="optNoteAllergen">Shown as warnings on the panel; they never change the score.</p>
+    <p class="callout"><strong>Not a safety check.</strong> Warnings come only from the ingredient text this extension could read.
+      If that text is missing, out of date or in a language the rules do not cover, you will see no warning, which looks exactly like no
+      allergen. Never rely on this for an allergy. Read the package.</p>
     <div class="chips" id="allergens"></div>
   </section>
 
@@ -587,152 +286,281 @@ Retailer previews rate search results and cart items from saved scores or public
 
   <section id="sec-avoid" data-level="1">
     <h2 id="avoidHeading" data-i18n="optAvoidH">Your own avoid list</h2>
-    <p class="note" id="avoidNote" style="margin: -6px 0 10px" data-i18n="optNoteAvoid">Separate ingredients or phrases with commas or new lines. Each entry creates its own warning; these warnings do not change the score. Matches come from the text provided by the page, so always check the package.</p>
+    <p class="sec-lede" id="avoidNote" data-i18n="optNoteAvoid">Separate entries with commas or new lines. Each makes its own warning and never changes the score.</p>
     <textarea id="avoidList" aria-labelledby="avoidHeading" aria-describedby="avoidNote avoidCount" data-i18n-placeholder="optAvoidPh" placeholder="e.g. palm oil, natural flavors"></textarea>
-    <p class="note" id="avoidCount" style="margin: 6px 0 0"></p>
-    <p class="note" style="margin: 8px 0 6px" data-i18n="optNoteAvoidHint">Add a common one:</p>
+    <p class="note" id="avoidCount"></p>
+    <p class="note" data-i18n="optNoteAvoidHint">Add a common one:</p>
     <div class="chips" id="avoidHints"></div>
+  </section>
+
+  <section id="sec-rate" data-level="1">
+    <h2 data-i18n="optRateH">What to rate</h2>
+    <p class="sec-lede" data-i18n="optNoteRateSame">The same switches as in the toolbar popup.</p>
+    <div class="opt">
+      <label class="sw"><input type="checkbox" id="foodOnly" role="switch" checked aria-describedby="h-foodOnly"><span class="sw-title" data-i18n="optFoodOnly">Only rate food and supplements</span></label>
+      <details class="hint-more"><summary id="h-foodOnly" data-i18n="optHintFoodOnly">Skips shoes, toys, cosmetics and cleaning products.</summary><p data-i18n="optNoteFoodOnly">Skips shoes, toys, cosmetics, medicine and cleaning products. A score on shampoo would imply it was judged as something you could eat. When this is on, a non-food page shows why it was skipped instead of a silent blank.</p></details>
+    </div>
+    <div class="opt">
+      <label class="sw"><input type="checkbox" id="autoScoreSearch" role="switch" checked aria-describedby="h-autoScoreSearch"><span class="sw-title" data-i18n="popupAutoScore">Rate search results and cart items</span></label>
+      <details class="hint-more"><summary id="h-autoScoreSearch" data-i18n="optHintAutoScore">Requests product pages from the store you are on. On Amazon, signed in as you.</summary><p data-i18n="optNoteAutoScore">On by default. As you scroll a results page, each result that this computer and the shared database cannot already answer is scored by requesting its product page from the Amazon store you are on: three at a time, at most 60 per results page. The requests carry your Amazon sign-in, so Amazon sees them much as if you had opened each product yourself. Turn this off and only products already read (by you, or through the shared database) show a score. Retailer previews use two public same-site requests at a time, without cookies; missing labels remain unknown. Cart ratings on every store use public product pages without cookies or referrers, two at a time within the Speed budget.</p></details>
+    </div>
+    <div class="opt" data-level="2">
+      <label class="sw"><input type="checkbox" id="hoverScore" role="switch" aria-describedby="h-hoverScore"><span class="sw-title" data-i18n="popupHover">Score on hover</span></label>
+      <details class="hint-more"><summary id="h-hoverScore" data-i18n="optHintHover">Off by default. Requests that product page from Amazon, signed in as you.</summary><p data-i18n="optNoteHover">Off by default. Hover or tab to one result for half a second and it requests that product page from Amazon in the same way, with your Amazon sign-in. Only the result you point at.</p></details>
+      <div class="field" data-level="3">
+        <label for="scoreHoverDelayMs" data-i18n="optHoverDelay">Wait before scoring</label>
+        <span class="range-line"><input type="range" id="scoreHoverDelayMs" min="200" max="2000" step="100" value="600"><span class="val-out" id="scoreHoverDelayVal">0.6 s</span></span>
+      </div>
+    </div>
+    <div class="opt" data-level="2">
+      <label class="sw"><input type="checkbox" id="hoverBreakdown" role="switch" checked aria-describedby="h-hoverBreakdown"><span class="sw-title" data-i18n="popupBreakdown">Show why on hover</span></label>
+      <details class="hint-more"><summary id="h-hoverBreakdown" data-i18n="optHintBreakdown">Hover, tab to or click a score to see what raised and lowered it. No extra requests.</summary><p data-i18n="optNoteBreakdown">Hover, tab to or click a score on a results page to see what raised and lowered it. Worked out on your computer from what was already read, under your current weights — no extra requests. A click pins it open; Esc or a click elsewhere closes it.</p></details>
+      <div class="field" data-level="3">
+        <label for="breakdownDetail" data-i18n="optBreakdownDetail">Show</label>
+        <select id="breakdownDetail">
+          <option value="full" data-i18n="optBreakdownFull">Everything, like the product page</option>
+          <option value="compact" data-i18n="optBreakdownCompact">The biggest reasons only</option>
+        </select>
+      </div>
+      <div class="field" data-level="3">
+        <label for="breakdownDelayMs" data-i18n="optBreakdownDelay">Hover delay</label>
+        <span class="range-line"><input type="range" id="breakdownDelayMs" min="0" max="1500" step="50" value="200"><span class="val-out" id="breakdownDelayVal">0.2 s</span></span>
+      </div>
+    </div>
+    <div class="opt" data-level="2">
+      <label class="sw"><input type="checkbox" id="panelOpen" role="switch" aria-describedby="h-panelOpen"><span class="sw-title" data-i18n="optPanelOpen">Open the score panel on product pages</span></label>
+      <p class="sw-hint" id="h-panelOpen" data-i18n="optNotePanelOpen">Product pages start with the full breakdown open. Off: a click opens it.</p>
+    </div>
+    <div class="opt" data-level="2">
+      <label class="sw"><input type="checkbox" id="pointsEnabled" role="switch" aria-describedby="h-pointsEnabled"><span class="sw-title" data-i18n="optPoints">Earn points for healthy carts</span></label>
+      <details class="hint-more"><summary id="h-pointsEnabled" data-i18n="optHintPoints">Good items in your cart earn XP and levels. Kept on this computer only.</summary><p data-i18n="optNotePoints">Each product earns once a week: 20 XP at a score of 90 or more, 10 XP at 75 or more. Level n costs 100 × n XP. Points are for fun: they never change a score, are not part of a backup, and never leave this computer.</p></details>
+      <div class="field" id="pointsRow" hidden>
+        <span class="note" id="pointsStatus" role="status" style="margin: 0"></span>
+        <button type="button" class="btn" id="resetPoints" data-i18n="optPointsReset">Reset points</button>
+      </div>
+    </div>
+    <div class="opt">
+      <span class="sw-title">Amazon access</span>
+      <details class="hint-more"><summary>Product, search and cart pages only — never your account, orders or checkout.</summary>
+        <p id="amazonAccess">When you install Ingredient Check, it asks Chrome for access to the Amazon stores it supports:
+          <span id="amazonStores">amazon.com and the other supported Amazon stores</span>.
+          It uses that access to read product, search and cart pages, and to request product pages for the two options above.
+          Its scripts run on product, search, browse, brand-store and narrowly scoped cart pages, never on your account, orders
+          or checkout. To limit it, open <code>chrome://extensions</code>, choose <em>Details</em> under Ingredient Check, and
+          change <em>Site access</em>.</p>
+        <p id="targetAccess" data-level="2">Retailer previews rate search results and cart items from saved scores or public same-site product pages without cookies. Cart requests also omit the referrer. Automatic rating is on by default; turn it off for saved scores only. Two requests run at a time, within the Speed budget (20–60). Missing or blocked labels stay unavailable. Scores stay local; no cart data is shared. Score on hover applies to Amazon only.</p>
+      </details>
+    </div>
+  </section>
+
+  <section id="sec-sort" data-level="2">
+    <h2 id="sortH" data-i18n="optSortH">Sort by score or price per ounce</h2>
+    <details class="hint-more sec-lede"><summary data-i18n="optSortLedeShort">Adds two options to Amazon's “Sort by” menu. Choosing one ranks this search's listings in Chrome's side panel; Amazon's page is left as it is.</summary><p data-i18n="optSortLede">On an Amazon grocery search, Amazon's own “Sort by” menu gets “Ingredient Check score: High to Low” and “Price per ounce: Low to High”. Choosing one opens Chrome's side panel with this search's listings ranked; Amazon's page is left as it is. In the panel, Prioritize weighs health score, price per ounce, total price, rating and number of reviews, and Open in new tab shows the same list in a tab.</p></details>
+    <div class="opt">
+      <label class="sw"><input type="checkbox" id="unitPrice" role="switch" aria-describedby="h-unitPrice"><span class="sw-title" data-i18n="optSortUnitPrice">Price per ounce</span></label>
+      <details class="hint-more"><summary id="h-unitPrice" data-i18n="optHintUnitPrice">Amazon's unit price, or worked out from the price and package weight.</summary><p data-i18n="optSortUnitPriceD">Amazon's unit price when the results page shows one; otherwise worked out from the listed price and a package weight in the title. No extra requests. Coupons and subscription prices are not included. Also in the toolbar popup.</p></details>
+    </div>
+    <div class="opt">
+      <div class="field">
+        <label for="sortDepth" data-i18n="optSortDepth">How much to load</label>
+        <select id="sortDepth" aria-describedby="h-sortDepth"></select>
+      </div>
+      <details class="hint-more"><summary id="h-sortDepth" data-i18n="optHintSortDepth">More products compare better and take longer.</summary><p data-i18n="optSortDepthD">More products make a better comparison and take longer. Beyond this page, Ingredient Check reads further Amazon results pages and rates what it can, within the time limit. Saved scores and the shared database are used first, so a repeat search is quick.</p></details>
+    </div>
+    <div class="opt">
+      <label class="sw"><input type="checkbox" id="sortRemember" role="switch" aria-describedby="h-sortRemember"><span class="sw-title" data-i18n="optSortRemember">Remember my priorities</span></label>
+      <details class="hint-more"><summary id="h-sortRemember" data-i18n="optHintSortRemember">The sorted list reopens its Prioritize sliders the way you last set them.</summary><p data-i18n="optSortRememberD">In the sorted list, the Prioritize sliders reopen the way you last set them, separately for the score and price-per-ounce options in Amazon's menu. Off: each list starts from that option's default.</p></details>
+    </div>
+    <div class="opt">
+      <div class="field">
+        <span class="sw-title" data-i18n="optShortcutH">Keyboard shortcuts</span>
+        <button type="button" class="btn" id="changeShortcuts" data-i18n="optShortcutChange">Change shortcuts</button>
+      </div>
+      <p class="sw-hint" data-i18n="optShortcutD">Open the sorted list from the keyboard on an Amazon search page. Chrome lets you change or clear the keys.</p>
+      <ul class="kbd-list" id="shortcutList"></ul>
+    </div>
+    <div class="opt" data-level="3">
+      <fieldset class="sort-choices" id="unitMissingChoices">
+        <legend data-i18n="optUnitMissingH">When Amazon shows no unit price</legend>
+        <label><input type="radio" name="unitMissing" value="calculate-clear" aria-describedby="umD-calc"><span data-i18n="optUnitCalc">Work it out when the weight is clear</span></label>
+        <p class="choice-d" id="umD-calc" data-i18n="optUnitCalcD">Uses a clear package weight in the product title (“12 oz, Pack of 6” is 72 oz; “100 Count, 7 oz” is left alone).</p>
+        <label><input type="radio" name="unitMissing" value="displayed-only" aria-describedby="umD-shown"><span data-i18n="optUnitDisplayed">Amazon's unit price only</span></label>
+        <p class="choice-d" id="umD-shown" data-i18n="optUnitDisplayedD">Listings without one have no price per ounce.</p>
+        <label><input type="radio" name="unitMissing" value="infer-more" aria-describedby="umD-more"><span data-i18n="optUnitMore">Look through more of the listing</span></label>
+        <p class="choice-d" id="umD-more" data-i18n="optUnitMoreD">Also checks the rest of the listing text for a package weight. Ambiguous listings still get none.</p>
+      </fieldset>
+    </div>
+    <div class="opt" data-level="3">
+      <fieldset class="sort-choices">
+        <legend data-i18n="optSortMissingH">Listings without a score</legend>
+        <label><input type="radio" name="sortMissing" value="rate-first" aria-describedby="smD-rate"><span data-i18n="optSortRateFirst">Rate them</span></label>
+        <p class="choice-d" id="smD-rate" data-i18n="optSortRateFirstD">Requests their product pages from Amazon, signed in as you, three at a time while the side panel fills in. Needs “Rate search results and cart items” on; stop it in the panel.</p>
+        <label><input type="radio" name="sortMissing" value="end" aria-describedby="smD-end"><span data-i18n="optSortEnd">Leave them unscored</span></label>
+        <p class="choice-d" id="smD-end" data-i18n="optSortEndD">No extra requests. Only scores this computer or the shared database already has.</p>
+      </fieldset>
+    </div>
+    <div class="opt" data-level="3">
+      <label class="sw"><input type="checkbox" id="sortLoadMore" role="switch" aria-describedby="h-sortLoadMore"><span class="sw-title" data-i18n="optSortLoadMore">Load more Amazon results</span></label>
+      <details class="hint-more"><summary id="h-sortLoadMore" data-i18n="optHintSortLoadMore">Off by default. Reads further search pages, then rates what it can.</summary><p data-i18n="optSortLoadMoreD">Off by default. Reads further Amazon search pages until it has the number below, then asks the shared database for their scores and, with “Rate them”, requests the product pages of the rest: three at a time, with your Amazon sign-in, stopping if Amazon starts refusing.</p></details>
+      <div class="field">
+        <label for="sortCount" data-i18n="optSortCount">Products to compare</label>
+        <span class="range-line"><input type="number" id="sortCount" min="1" max="500" step="1" value="100" inputmode="numeric" style="width: 90px"><span class="note" style="margin: 0">1–500</span></span>
+      </div>
+      <div class="field">
+        <label for="sortTimeLimit" data-i18n="optSortTimeLimit">Stop gathering after</label>
+        <select id="sortTimeLimit"></select>
+      </div>
+      <p class="note" data-i18n="optSortTimeLimitD">When time runs out the list is shown with what was gathered; the rest are marked without a score.</p>
+      <p class="note" data-i18n="optSortStorage">The sorted list is kept in memory for this browser session only and is gone when Chrome closes.</p>
+    </div>
+  </section>
+
+  <section id="sec-speed" data-level="3">
+    <h2 id="speedH" data-i18n="optSpeedH">Speed and freshness</h2>
+    <p class="sec-lede" data-i18n="optSpeedLede">Faster keeps saved scores longer and requests fewer pages; fresher re-reads sooner. Balanced is how it has always worked. A product page you open is always read again.</p>
+    <fieldset class="sort-choices" id="speedChoices" aria-labelledby="speedH">
+      <label><input type="radio" name="speedMode" value="fastest" aria-describedby="spD-fastest"><span data-i18n="optSpeedFastest">Fastest</span></label>
+      <p class="choice-d" id="spD-fastest" data-i18n="optSpeedFastestD">Saved scores for up to 90 days. At most 20 product pages per results page. Shared readings up to 30 days old.</p>
+      <label><input type="radio" name="speedMode" value="fast" aria-describedby="spD-fast"><span data-i18n="optSpeedFast">Faster</span></label>
+      <p class="choice-d" id="spD-fast" data-i18n="optSpeedFastD">Saved scores for up to 60 days. At most 40 product pages per results page. Shared readings up to 30 days old.</p>
+      <label><input type="radio" name="speedMode" value="balanced" aria-describedby="spD-balanced"><span data-i18n="optSpeedBalanced">Balanced (default)</span></label>
+      <p class="choice-d" id="spD-balanced" data-i18n="optSpeedBalancedD">Saved scores for up to 30 days. At most 60 product pages per results page. Shared readings up to 30 days old.</p>
+      <label><input type="radio" name="speedMode" value="fresh" aria-describedby="spD-fresh"><span data-i18n="optSpeedFresh">Fresher</span></label>
+      <p class="choice-d" id="spD-fresh" data-i18n="optSpeedFreshD">Saved scores for up to 7 days. At most 60 product pages per results page. Shared readings up to 7 days old.</p>
+      <label><input type="radio" name="speedMode" value="freshest" aria-describedby="spD-freshest"><span data-i18n="optSpeedFreshest">Most up to date</span></label>
+      <p class="choice-d" id="spD-freshest" data-i18n="optSpeedFreshestD">Saved scores for 1 day. At most 60 product pages per results page. Never uses shared readings: reads every product page itself, so more requests go to Amazon.</p>
+    </fieldset>
+    <h3 class="sub-h" id="paceH" data-i18n="optPaceH">How fast to request product pages</h3>
+    <p class="sec-lede" data-i18n="optPaceLede">Applies to scoring a results page and building the sorted list. Faster finishes sooner but looks more like automated traffic, so Amazon may refuse sooner; five refusals in a row pause everything.</p>
+    <fieldset class="sort-choices" id="paceChoices" aria-labelledby="paceH">
+      <label><input type="radio" name="ratePace" value="gentle" aria-describedby="pcD-gentle"><span data-i18n="optPaceGentle">Gentle</span></label>
+      <p class="choice-d" id="pcD-gentle" data-i18n="optPaceGentleD">Two at a time, 0.4 s apart. Slowest, least likely to be refused.</p>
+      <label><input type="radio" name="ratePace" value="normal" aria-describedby="pcD-normal"><span data-i18n="optPaceNormal">Normal (default)</span></label>
+      <p class="choice-d" id="pcD-normal" data-i18n="optPaceNormalD">Three at a time, 0.25 s apart. How it has always run.</p>
+      <label><input type="radio" name="ratePace" value="quick" aria-describedby="pcD-quick"><span data-i18n="optPaceQuick">Quick</span></label>
+      <p class="choice-d" id="pcD-quick" data-i18n="optPaceQuickD">Four at a time, 0.15 s apart. Roughly a third faster than Normal.</p>
+      <label><input type="radio" name="ratePace" value="fast" aria-describedby="pcD-fast"><span data-i18n="optPaceFast">Fast</span></label>
+      <p class="choice-d" id="pcD-fast" data-i18n="optPaceFastD">Five at a time, 0.1 s apart. Roughly two-thirds faster than Normal, and the most likely to be refused.</p>
+    </fieldset>
+  </section>
+
+  <section id="sec-appearance" data-level="1">
+    <h2 id="appearanceH" data-i18n="optAppearanceH">Appearance</h2>
+    <p class="sec-lede" data-i18n="optAppearanceLede">Applies to Settings, the popup, setup, the sorted list and the badges and panel on store pages. The number and verdict word always state the score; colour only adds to it.</p>
+    <h3 class="sub-h" id="themeH" data-i18n="optThemeH">Colour scheme</h3>
+    <fieldset class="sort-choices" id="themeChoices" aria-labelledby="themeH">
+      <label><input type="radio" name="theme" value="system"><span data-i18n="optThemeSystem">Match my system</span></label>
+      <label><input type="radio" name="theme" value="light"><span data-i18n="optThemeLight">Light</span></label>
+      <label><input type="radio" name="theme" value="dark"><span data-i18n="optThemeDark">Dark</span></label>
+    </fieldset>
+    <h3 class="sub-h" id="paletteH" data-i18n="optPaletteH">Score colours</h3>
+    <fieldset class="sort-choices" id="paletteChoices" aria-labelledby="paletteH">
+      <label class="pal"><input type="radio" name="palette" value="standard"><span data-i18n="optPaletteStandard">Standard (green to red)</span><span class="swatches" data-palette="standard" aria-hidden="true"></span></label>
+      <label class="pal"><input type="radio" name="palette" value="cvd"><span data-i18n="optPaletteCvd">Colour-blind safe (blue to maroon)</span><span class="swatches" data-palette="cvd" aria-hidden="true"></span></label>
+    </fieldset>
+    <div class="opt" data-level="2" style="margin-top: 14px">
+      <div class="field">
+        <label for="accent" data-i18n="optAccentLabel">Accent colour</label>
+        <span class="range-line"><input type="color" id="accent" value="#0f7b3f"><button type="button" class="btn" id="accentReset" data-i18n="optAccentReset">Reset</button></span>
+      </div>
+      <p class="note" id="accentNote" aria-live="polite"></p>
+    </div>
   </section>
 
   <section id="sec-database" data-level="2">
     <h2 data-i18n="optDatabaseH">Shared online database</h2>
-    <p class="note" style="margin: -6px 0 12px">
-      Certifications for whole foods (organic, grass-fed, origin) come from tables on a shared,
-      private spreadsheet that only the developer edits. Scoring stays on this computer and your
-      weights never leave this browser.
-    </p>
-    <p class="note warn" id="endpointStatus" hidden style="margin: -4px 0 12px"></p>
-    <label class="chip" style="margin-bottom:10px">
-      <input type="checkbox" id="sharedCache">
-      <span data-i18n="optSharedCache">Use the shared online database</span>
-    </label>
-    <p class="note" style="margin: 0 0 12px">Off keeps every lookup on this computer. What is sent:
-      nothing but a request for the certification tables, a few times a day. Never your settings,
-      and nothing about who you are.</p>
-    <div data-level="3">
-    <label class="chip" style="margin-bottom:10px">
-      <input type="checkbox" id="sharedProducts">
-      <span data-i18n="optSharedProducts">Share product readings with other computers (experimental)</span>
-    </label>
-    <p class="note" style="margin: 0 0 12px" data-i18n="optSharedProductsD">Off by default. When on,
-      a product another computer already read (its ingredient text, title, bullets, certifications and
-      nutrition numbers, before any weighting) is reused instead of fetched from Amazon again, and what
-      this computer reads is uploaded for others. Anyone can upload a reading and nothing yet checks
-      that it is true, so a search badge or the sorted list could show a score for text that is not on
-      the label. A product page you open is always read from the page itself. What is sent: the store
-      and product IDs of search results this computer cannot answer, and what was read off products
-      you scored.</p>
+    <p class="sec-lede">Certification tables for whole foods (organic, grass-fed, origin) from a shared spreadsheet that only the developer edits. Scoring and your weights stay on this computer.</p>
+    <p class="callout" id="endpointStatus" hidden></p>
+    <div class="opt">
+      <label class="sw"><input type="checkbox" id="sharedCache" role="switch" aria-describedby="h-sharedCache"><span class="sw-title" data-i18n="optSharedCache">Use the shared online database</span></label>
+      <p class="sw-hint" id="h-sharedCache">Off keeps every lookup on this computer. On sends only a request for the certification tables, a few times a day — never your settings or who you are.</p>
     </div>
-    <label class="chip" style="margin-bottom:10px" data-level="4">
-      <input type="checkbox" id="shareContributions">
-      <span data-i18n="optShare">Send certifications I come across to the shared database</span>
-    </label>
-    <div class="row" data-level="4">
-      <button class="act" id="refreshSheet" data-i18n="optRefresh">Refresh database now</button>
-      <span class="status" id="sheetStatus"></span>
+    <div class="opt" data-level="3">
+      <label class="sw"><input type="checkbox" id="sharedProducts" role="switch" aria-describedby="h-sharedProducts"><span class="sw-title" data-i18n="optSharedProducts">Share product readings with other computers (experimental)</span></label>
+      <details class="hint-more"><summary id="h-sharedProducts" data-i18n="optHintSharedProducts">Off by default. Reuses other computers' readings and uploads yours; nothing verifies them yet.</summary><p data-i18n="optSharedProductsD">Off by default. When on, a product another computer already read (its ingredient text, title, bullets, certifications and nutrition numbers, before any weighting) is reused instead of fetched from Amazon again, and what this computer reads is uploaded for others. Anyone can upload a reading and nothing yet checks that it is true, so a search badge or the sorted list could show a score for text that is not on the label. A product page you open is always read from the page itself. What is sent: the store and product IDs of search results this computer cannot answer, and what was read off products you scored.</p></details>
+    </div>
+    <div class="opt" data-level="4">
+      <label class="sw"><input type="checkbox" id="shareContributions" role="switch"><span class="sw-title" data-i18n="optShare">Send certifications I come across to the shared database</span></label>
+      <div class="row">
+        <button type="button" class="btn" id="refreshSheet" data-i18n="optRefresh">Refresh database now</button>
+        <span class="status" id="sheetStatus"></span>
+      </div>
     </div>
   </section>
 
   <section id="sec-account" data-level="2">
     <h2 data-i18n="optSettingsOnlineH">Your settings online</h2>
-    <p class="note" style="margin: -6px 0 12px">
-      The settings on this computer are always the ones in use. A copy online only comes back when
-      you click Restore: weights, warnings, diets, the avoid list and the toggles above — not the
-      master switch.
-    </p>
-    <label class="chip" style="margin-bottom:10px">
-      <input type="checkbox" id="settingsBackup">
-      <span data-i18n="optBackup">Back up my settings to my Chrome account</span>
-    </label>
-    <p class="note" style="margin: 0 0 4px">Uses Chrome's own sync for the Google account signed into
-      Chrome. Private to you. If Chrome sync is off, the copy stays on this computer.</p>
-    <div class="row">
-      <button class="act" id="openChromeProfile">Open Chrome profile settings</button>
-      <button class="act" id="restoreChrome" data-i18n="optRestoreChrome">Restore from my Chrome account</button>
-      <span class="status" id="backupStatus"></span>
+    <p class="sec-lede">This computer's settings always win. A copy online only comes back when you click Restore (not the master switch).</p>
+    <div class="opt">
+      <label class="sw"><input type="checkbox" id="settingsBackup" role="switch" aria-describedby="h-settingsBackup"><span class="sw-title" data-i18n="optBackup">Back up my settings to my Chrome account</span></label>
+      <p class="sw-hint" id="h-settingsBackup">Chrome's own sync, private to you. If sync is off, the copy stays on this computer.</p>
+      <div class="row">
+        <button type="button" class="btn" id="restoreChrome" data-i18n="optRestoreChrome">Restore from my Chrome account</button>
+        <button type="button" class="btn" id="checkBackups" data-i18n="optCheckBackups">Check my backups</button>
+        <button type="button" class="btn" id="openChromeProfile">Open Chrome profile settings</button>
+        <span class="status" id="backupStatus"></span>
+      </div>
+      <ul id="backupCheck" aria-live="polite"></ul>
     </div>
-    <div class="row">
-      <button class="act" id="checkBackups" data-i18n="optCheckBackups">Check my backups</button>
-    </div>
-    <ul id="backupCheck" aria-live="polite"></ul>
-    <div id="accountBlock" data-level="2" hidden>
-      <details id="accountSetup">
-        <summary>Configure Google sign-in</summary>
-        <p class="note">Use the public OAuth client ID configured by the database owner. Register
-          the redirect address below in that client's Google Cloud settings. No client secret is needed.</p>
-        <label for="oauthClientId">Google OAuth client ID</label>
-        <input type="text" id="oauthClientId" autocomplete="off" spellcheck="false">
-        <button class="act" id="saveAccountSetup">Save sign-in configuration</button>
-        <p class="note" id="accountRedirect"></p>
-        <button class="act" id="copyAccountRedirect">Copy redirect address</button>
-        <a class="act" href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Open Google Cloud credentials</a>
-      </details>
+    <div class="opt" id="accountBlock" data-level="2" hidden>
       <div id="accountSignedOut">
-        <p class="note" style="margin: 16px 0 4px" data-i18n="optAccountIntro">Or keep a copy with your Google account on the
-          Ingredient Check database, for a browser that is not signed into Chrome. Only a hash of your
-          account id is stored there — not your email. Your name, email and picture are shown here only
-          after you sign in, and stay on this computer.</p>
-        <div class="row">
-          <button class="act" id="accountSignIn" data-i18n="optAccountSignIn">Sign in with Google</button>
-        </div>
+        <p class="note" style="margin-top: 0" data-i18n="optAccountIntro">Or keep a copy with your Google account, for a browser that is not signed into Chrome. Only a hash of your account id is stored on the Ingredient Check database, not your email.</p>
+        <div class="row"><button type="button" class="btn" id="accountSignIn" data-i18n="optAccountSignIn">Sign in with Google</button></div>
       </div>
       <div id="accountSignedIn" hidden>
-        <p class="note" style="margin: 16px 0 4px"><span data-i18n="optAccountSignedInAs">Signed in as</span> <strong id="accountWho"></strong>.
+        <p class="note" style="margin-top: 0"><span data-i18n="optAccountSignedInAs">Signed in as</span> <strong id="accountWho"></strong>.
           <span data-i18n="optAccountSignedInD">Save a copy of all your settings to this Google account, or bring the saved copy back on another computer.</span></p>
         <div class="row">
-          <button class="act" id="accountSave" data-i18n="optAccountSave">Save my settings to Google</button>
-          <button class="act" id="accountLoad" data-i18n="optAccountLoad">Restore from my Google account</button>
+          <button type="button" class="btn" id="accountSave" data-i18n="optAccountSave">Save my settings to Google</button>
+          <button type="button" class="btn" id="accountLoad" data-i18n="optAccountLoad">Restore from my Google account</button>
         </div>
-        <div id="accountAuto">
-          <label class="chip" style="margin: 12px 0 6px">
-            <input type="checkbox" id="googleAutoSave">
-            <span data-i18n="optGoogleAuto">Keep my Google copy up to date automatically</span>
-          </label>
-          <p class="note" data-i18n="optGoogleAutoD">Saves every settings change to your Google account a few seconds later. It starts after this computer has saved to, or restored from, your account once, so a new computer cannot overwrite your saved copy with its defaults.</p>
+        <div id="accountAuto" style="margin-top: 12px">
+          <label class="sw"><input type="checkbox" id="googleAutoSave" role="switch" aria-describedby="h-googleAutoSave"><span class="sw-title" data-i18n="optGoogleAuto">Keep my Google copy up to date automatically</span></label>
+          <p class="sw-hint" id="h-googleAutoSave" data-i18n="optGoogleAutoD">Saves each change a few seconds later, once this computer has saved to or restored from your account, so a new computer cannot overwrite your copy with its defaults.</p>
           <p class="status" id="googleSaveStatus" role="status"></p>
         </div>
       </div>
       <p class="status" id="accountStatus" role="status"></p>
-      <p class="note">Chrome profile sync and Google account backup are separate. Each Google save or restore lets you choose an account; signing in here does not sign Chrome in.</p>
-      <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener">Manage your Google app connections</a>
+      <p class="note">Chrome sync and Google backup are separate: each Google save or restore lets you choose an account, and signing in here does not sign Chrome in.
+        <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener">Manage your Google app connections</a></p>
+      <details class="more" id="accountSetup">
+        <summary>Configure Google sign-in</summary>
+        <div class="stack">
+          <p>Use the public OAuth client ID configured by the database owner. Register the redirect address below in that client's Google Cloud settings. No client secret is needed.</p>
+          <label for="oauthClientId">Google OAuth client ID</label>
+          <input type="text" id="oauthClientId" autocomplete="off" spellcheck="false">
+          <button type="button" class="btn" id="saveAccountSetup">Save sign-in configuration</button>
+          <p id="accountRedirect"></p>
+          <button type="button" class="btn" id="copyAccountRedirect">Copy redirect address</button>
+          <a class="btn" href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Open Google Cloud credentials</a>
+        </div>
+      </details>
     </div>
   </section>
 
   <section data-level="4">
     <h2 data-i18n="optDiagnosticsH">Accuracy diagnostics</h2>
-    <p class="note" style="margin: -6px 0 12px">
-      Sends one row per scored product to the shared database, on its own tab. Each row carries
-      the ingredient text that was read, where it came from, which rules fired, and the score that
-      resulted — enough to judge whether a score was right, rather than only noticing when one looks
-      wrong. Batched.
-    </p>
-    <p class="note warn" style="margin: -6px 0 12px">
-      <strong>This records which products you looked at.</strong> No name, no account, no session
-      id, nothing from any other page — but with “Rate every search result” on, a results page
-      produces a row per tile, and that is a meaningful trace of your browsing. It goes to the
-      Ingredient Check database, not to any third party. Off unless you turn it on.
-    </p>
-    <label class="chip" style="margin-bottom:10px">
-      <input type="checkbox" id="sendDiagnostics">
-      <span data-i18n="optSendDiag">Send scoring diagnostics to the shared database</span>
-    </label>
-    <div class="row">
-      <button class="act" id="flushDiagnostics" data-i18n="optFlush">Send queued rows now</button>
-      <span class="status" id="diagStatus"></span>
+    <p class="sec-lede">Sends one row per scored product to the shared database: the ingredient text that was read, where it came from, which rules fired and the score. Batched.</p>
+    <p class="callout"><strong>This records which products you looked at.</strong> No name, account or session id, and nothing from any other page. It goes to the Ingredient Check database, not to any third party. Off unless you turn it on.</p>
+    <div class="opt">
+      <label class="sw"><input type="checkbox" id="sendDiagnostics" role="switch" aria-describedby="h-sendDiagnostics"><span class="sw-title" data-i18n="optSendDiag">Send scoring diagnostics to the shared database</span></label>
+      <details class="hint-more"><summary id="h-sendDiagnostics">With “Rate search results” on, a results page produces a row per tile.</summary><p>That is a meaningful trace of your browsing. Each row is enough to judge whether a score was right, rather than only noticing when one looks wrong.</p></details>
+      <div class="row">
+        <button type="button" class="btn" id="flushDiagnostics" data-i18n="optFlush">Send queued rows now</button>
+        <span class="status" id="diagStatus"></span>
+      </div>
     </div>
   </section>
 
   <section data-level="2">
-    <h2 data-i18n="optLeavesH">What leaves your computer</h2>
-    <p class="note" style="margin: -6px 0 12px">
-      Scoring itself is entirely local: the rules, your weights and every score are computed in
-      your browser, and there is no analytics and no telemetry.
-    </p>
-    <ul class="note" style="margin: 0 0 4px 18px; padding: 0">
+    <h2 id="leavesH" data-i18n="optLeavesH">What leaves your computer</h2>
+    <p class="sec-lede">Scoring is entirely local: the rules, your weights and every score are computed in your browser. There is no analytics and no telemetry.</p>
+    <details class="more"><summary aria-describedby="leavesH">Everything that can be sent</summary>
+    <ul class="leaves">
       <li><strong>Shared online database</strong> (on by default) — the store and product IDs on a
         search page, and what was read off products you score, go to the Ingredient Check Apps
         Script. The spreadsheet behind it is private. Never your settings.</li>
-      <li><strong>Rate every search result</strong> (on by default) and <strong>Score on hover</strong>
+      <li><strong>Rate search results and cart items</strong> (on by default) and <strong>Score on hover</strong>
         — request product pages from the Amazon store you are on, using your Amazon sign-in, so
         Amazon sees them much as it would if you had opened the products yourself. Three at a time,
         at most 60 per results page, and only for products not already answered. Both are under
@@ -746,85 +574,71 @@ Retailer previews rate search results and cart items from saved scores or public
       <li><strong>Send certifications</strong> and "Looks wrong?" reports — product identifiers and
         certification text. Never anything about you.</li>
       <li><strong>Sort results</strong> — with <em>Rate them first</em>, the same product-page requests
-        as <strong>Rate every search result</strong>. <strong>Load more results</strong> (off by default)
+        as <strong>Rate search results</strong>. <strong>Load more results</strong> (off by default)
         also requests further Amazon search pages and product pages, with your Amazon sign-in. See
         <a href="#sec-sort">Sort by score or price per ounce</a>.</li>
       <li><strong>Retailer previews</strong> — automatic search rating requests public product pages
         from the same store, without cookies. Scores stay local; no preview readings go to Google
-        or the shared database. Turn off <em>Rate every search result</em> for saved scores only.</li>
+        or the shared database. Turn off <em>Rate search results and cart items</em> for saved scores only.</li>
       <li><strong>Request a store</strong> — nothing is sent by the extension. It opens a draft
         in your email app with the store name and website you typed; you decide whether to send it.</li>
       <li><strong>Accuracy diagnostics</strong> — one row per scored product. This one does record
         which products were scored; see the section above.</li>
     </ul>
-    <p class="note">
-      <strong>Read label photos</strong> makes no network request of its own beyond fetching the
+    <p class="note"><strong>Read label photos</strong> makes no network request of its own beyond fetching the
       product image the page already shows: the OCR engine ships with the extension and runs on
-      your computer.
-    </p>
-    <p class="note">Turn off the shared database, the backup and <strong>Rate every search
-      result</strong>, leave the other boxes off, and the extension makes no network requests of its own.</p>
-  </section>
-
-  <section>
-    <h2 data-i18n="optScoreIsH">What a score is, and is not</h2>
-    <p class="note" style="margin: -6px 0 10px">
-      A score reads the ingredient list against a rulebase and your weights. It is a guide to
-      what is written on the label, not a health assessment, and it is not medical, dietary or
-      allergy advice. Two things follow from how it works:
-    </p>
-    <ul class="note" style="margin: 0 0 4px 18px; padding: 0">
-      <li>It can only judge what it can read. When too little of a list matches anything the
-        rulebase knows, no score is shown at all rather than a confident guess.</li>
-      <li>Amazon's ingredient text is sometimes incomplete, sometimes out of date, and sometimes
-        for a different size or flavour of the product. The package is the authority.</li>
-    </ul>
+      your computer.</p>
+    <p class="note">Turn off the shared database, the backup and <strong>Rate search results and cart items</strong>, leave the other boxes off, and the extension makes no network requests of its own.</p>
+    </details>
   </section>
 
   <section id="sec-stores" data-level="2">
-    <h2 data-i18n="optStoresH">Stores and store wishlist</h2>
-    <p class="note" style="margin: -6px 0 10px" data-i18n="optStoresLede">
-      Where Ingredient Check works today, and which stores are planned. A planned store is not
-      available yet: the extension does not run there and reads nothing from it.
-    </p>
+    <h2 id="storesH" data-i18n="optStoresH">Stores and store wishlist</h2>
+    <p class="sec-lede" data-i18n="optStoresLede">Where Ingredient Check works today, and which stores are planned. Preview stores work on the pages you open but are still being checked. A planned store is not available yet: the extension does not run there and reads nothing from it.</p>
     <ul class="store-list" id="storeList"></ul>
-
-    <h3 class="store-h" data-i18n="optRequestH">Request a store</h3>
-    <p class="note" data-i18n="optRequestLede">
-      Tell us which online grocery store you want next. This makes a draft in your own email app,
-      addressed to jackson29382938@gmail.com. Nothing is sent until you press Send there, and it goes
-      from your email address, so the recipient will see it.
-    </p>
-    <div class="request-form">
-      <label for="reqName" data-i18n="optRequestName">Store name</label>
-      <input type="text" id="reqName" maxlength="60" autocomplete="off" spellcheck="false">
-      <p class="field-error" id="reqNameError" role="alert"></p>
-      <label for="reqUrl" data-i18n="optRequestUrl">Store website (optional)</label>
-      <input type="url" id="reqUrl" maxlength="200" autocomplete="off" spellcheck="false" placeholder="https://www.example.com">
-      <p class="field-error" id="reqUrlError" role="alert"></p>
-      <p class="note" style="margin-top: 2px" data-i18n="optRequestUrlNote">
-        Only the website's address is kept. Anything after it, such as a product or a search, is
-        removed before the draft is made.
-      </p>
-    </div>
-    <p class="note" style="margin: 12px 0 4px"><strong data-i18n="optRequestPreviewH">The draft will contain exactly this:</strong></p>
-    <pre class="request-preview" id="reqPreview" aria-live="polite"></pre>
-    <p class="note" id="reqNotes" aria-live="polite"></p>
-    <div class="row">
-      <a class="act request-send" id="reqSend" href="#" aria-disabled="true" data-i18n="optRequestSend">Open email draft</a>
-    </div>
+    <details class="more"><summary data-i18n="optRequestH">Request a store</summary>
+      <p data-i18n="optRequestLede">Tell us which online grocery store you want next. This makes a draft in your own email app, addressed to jackson29382938@gmail.com. Nothing is sent until you press Send there, and it goes from your email address, so the recipient will see it.</p>
+      <div class="request-form">
+        <label for="reqName" data-i18n="optRequestName">Store name</label>
+        <input type="text" id="reqName" maxlength="60" autocomplete="off" spellcheck="false">
+        <p class="field-error" id="reqNameError" role="alert"></p>
+        <label for="reqUrl" data-i18n="optRequestUrl">Store website (optional)</label>
+        <input type="url" id="reqUrl" maxlength="200" autocomplete="off" spellcheck="false" placeholder="https://www.example.com">
+        <p class="field-error" id="reqUrlError" role="alert"></p>
+        <p class="note" style="margin-top: 2px" data-i18n="optRequestUrlNote">Only the website's address is kept. Anything after it, such as a product or a search, is removed before the draft is made.</p>
+      </div>
+      <p class="note"><strong data-i18n="optRequestPreviewH">The draft will contain exactly this:</strong></p>
+      <pre class="request-preview" id="reqPreview" aria-live="polite"></pre>
+      <p class="note" id="reqNotes" aria-live="polite"></p>
+      <div class="row">
+        <a class="btn request-send" id="reqSend" href="#" aria-disabled="true" data-i18n="optRequestSend">Open email draft</a>
+      </div>
+    </details>
   </section>
 
   <section id="sec-file" data-level="3">
     <h2 data-i18n="optFileH">Settings file</h2>
-    <div class="row">
-      <button class="act" id="export" data-i18n="optExport">Export settings</button>
-      <button class="act" id="importBtn" data-i18n="optImport">Import settings</button>
+    <p class="sec-lede" data-i18n="optNoteExport">Exports every setting as a plain JSON file you can keep, edit, or move to another computer. It leaves out the master switch and your Google sign-in.</p>
+    <div class="row" style="margin-top: 0">
+      <button type="button" class="btn" id="export" data-i18n="optExport">Export settings</button>
+      <button type="button" class="btn" id="importBtn" data-i18n="optImport">Import settings</button>
       <input type="file" id="importFile" accept="application/json">
-      <button class="act danger" id="reset" data-i18n="optReset">Reset everything to defaults</button>
+      <button type="button" class="btn danger" id="reset" data-i18n="optReset">Reset everything to defaults</button>
     </div>
-    <p class="note" data-i18n="optNoteExport">Exports as a plain JSON file you can keep, edit, or move to another computer.</p>
   </section>
+
+  <section>
+    <h2 id="scoreIsH" data-i18n="optScoreIsH">What a score is, and is not</h2>
+    <p class="sec-lede">A score reads the ingredient list against a rulebase and your weights. It is a guide to what is written on the label, not a health assessment, and not medical, dietary or allergy advice.</p>
+    <details class="more"><summary aria-describedby="scoreIsH">Two limits</summary>
+      <ul class="leaves">
+        <li>It can only judge what it can read. When too little of a list matches anything the rulebase knows, no score is shown at all rather than a confident guess.</li>
+        <li>Amazon's ingredient text is sometimes incomplete, sometimes out of date, and sometimes for a different size or flavour of the product. The package is the authority.</li>
+      </ul>
+    </details>
+  </section>
+  </main>
+  </div>
 </div>
 <!-- "Saved" and every error land here, not in a section the reader's level may hide. -->
 <p class="status toast" id="status" role="status" aria-live="polite"></p>
@@ -837,6 +651,7 @@ Retailer previews rate search results and cart items from saved scores or public
 <script src="../engine/db/sorted-results.js"></script>
 <script src="../engine/db/unit-price.js"></script>
 <script src="../engine/db/speed.js"></script>
+<script src="../engine/db/points.js"></script>
 <script src="../engine/db/activity.js"></script>
 <script src="tabs.js"></script>
 <script src="settings.js"></script>

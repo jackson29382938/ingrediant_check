@@ -1,170 +1,142 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Ingredient Check</title><style>
- :root { color-scheme: light dark; }
- body{font:13px/1.45 "Amazon Ember",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-   width:280px;max-height:calc(100vh - 24px);overflow-y:auto;margin:0;padding:14px 14px 12px;color:#0f1111;background:#fff}
- h1{font-size:14px;margin:0 0 2px}
- .sub{color:#565959;font-size:11px;margin-bottom:12px}
- .page-score{display:block;margin:0 0 12px;padding:9px 10px;
-   border:1px solid var(--ring,#d5d9d9);border-radius:8px;background:var(--bg,#f7f8f8)}
- .ps-num{flex:0 0 auto;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;
-   font:700 14px/1 "Amazon Ember",sans-serif;font-variant-numeric:tabular-nums;color:var(--fg,#0f1111);
-   background:#fff;border:2px solid var(--ring,#d5d9d9)}
- .ps-verdict{font-weight:700;font-size:12px;color:var(--fg,#0f1111)}
- .ps-sub,.ps-empty{color:#565959;font-size:11px;line-height:1.35;
-   overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
- .ps-kicker{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
-   color:#565959;margin:0 0 6px}
- label{display:flex;align-items:flex-start;gap:9px;padding:8px 0;border-top:1px solid #eaeded;cursor:pointer}
- label:first-of-type{border-top:0}
- label.master{border-top:0;border-bottom:2px solid #eaeded;padding-bottom:10px;margin-bottom:2px}
- label.master .t{font-size:13px}
- body.paused .sub-toggles{opacity:.45}
- body.paused .sub-toggles label{cursor:default}
- #kept{display:none;margin:8px 0 0;padding:8px 10px;background:#fdf3e2;border:1px solid #ffd8a8;
-   border-radius:6px;color:#8a4b00;font-size:11px;line-height:1.4}
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Ingredient Check</title>
+<link rel="stylesheet" href="ui.css">
+<style>
+ body{width:340px;max-height:calc(100vh - 24px);overflow-y:auto;font-size:13px}
+ .top{display:flex;align-items:center;gap:10px;padding:14px 16px 12px}
+ .top img{flex:none;width:28px;height:28px;border-radius:7px}
+ .top-text{flex:1;min-width:0}
+ h1{font-size:15px;line-height:1.25;font-weight:700}
+ .sub{color:var(--muted);font-size:12px;line-height:1.3}
+ #kept{display:none;margin:0 16px 12px;padding:8px 12px;border:1px solid var(--note-line);border-radius:8px;
+   background:var(--note-bg);color:var(--note-text);font-size:12px;line-height:1.4}
  body.paused #kept{display:block}
- /* Hidden by the settings level (popup.js applyLevel), and a [hidden] element stays hidden whatever display it was given. */
- .lvl-hidden,[hidden]{display:none!important}
- input{margin-top:2px}
- .t{font-weight:600}
- .d{color:#565959;font-size:11px;display:none;margin-top:1px}
- .net{display:block;color:#565959;font-size:11px;margin-top:1px}
- label.master .d,body.show-why .d{display:block}
- .preset-block{margin-top:10px;padding-top:10px;border-top:1px solid #eaeded}
- .preset-active{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;margin:0 0 8px}
- .preset-active-kicker{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#565959}
- .preset-active-name{font-weight:700;font-size:12px}
- .preset-active-name.is-custom{color:#565959;font-weight:600}
- .preset-cats{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 6px}
- .preset-cat{border:1px solid #d5d9d9;background:#fff;border-radius:6px;padding:3px 8px;
-   font:inherit;font-size:10px;font-weight:600;cursor:pointer;color:inherit}
- .preset-cat:hover{background:#eef0f0}
- .preset-hint{margin:2px 0 6px;color:#565959;font-size:11px}
- .preset-cat[aria-selected="true"]{background:#0f1111;border-color:#0f1111;color:#fff}
- .preset-cat.has-picks:not([aria-selected="true"]){border-color:var(--u-accent,#0f7b3f);color:var(--u-accent,#0b5a2e);font-weight:700}
- .presets{display:flex;flex-direction:column;gap:4px;margin:4px 0 0;max-height:148px;overflow:auto}
- .preset{display:flex;align-items:flex-start;gap:8px;width:100%;text-align:left;
-   border:1px solid #d5d9d9;background:#f7f8f8;border-radius:8px;padding:7px 8px;
-   font:inherit;font-size:11px;font-weight:600;cursor:pointer;color:inherit}
- .preset:hover{background:#eef0f0}
- .preset[aria-pressed="true"]{background:var(--u-accent-bg,#f0faf4);border-color:var(--u-accent,#0f7b3f);box-shadow:inset 0 0 0 1px var(--u-accent,#0f7b3f)}
- .preset-glyph{flex:0 0 auto;width:28px;height:28px;border-radius:7px;display:grid;place-items:center;
-   font:700 9px/1 sans-serif;background:#fff;border:1px solid #d5d9d9;color:#0f1111}
- .preset[aria-pressed="true"] .preset-glyph{background:var(--u-accent,#0f7b3f);border-color:var(--u-accent,#0f7b3f);color:var(--u-on-accent,#fff)}
- .preset-copy{min-width:0}
- .preset-title{display:block;font-weight:700;font-size:11px;line-height:1.25}
- .preset-snip{color:#565959;font-size:10px;font-weight:400;line-height:1.3;margin-top:2px;
-   overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
- .preset-note{color:#565959;font-size:11px;margin:6px 0 0;line-height:1.35}
- .compare-block{margin:14px 0 0;padding-top:10px;border-top:1px solid #eaeded}
- .compare-empty{color:#565959;font-size:11px;margin:0 0 8px;line-height:1.35}
- .compare-pick{display:flex;flex-direction:column;gap:3px;padding:6px 0;border-top:1px solid #eaeded;cursor:default}
- .compare-pick span{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#565959}
- .compare-pick select{width:100%;font:inherit;font-size:12px;padding:5px 6px;border:1px solid #d5d9d9;border-radius:6px;background:#fff;color:inherit}
+ h2{color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+ /* This page: the score the page just computed, in its band's colours (set by popup.js). */
+ .page-score{margin:0 16px 14px;padding:12px;border:1px solid var(--ring,var(--line));border-radius:12px;background:var(--bg,var(--card))}
+ .ps-kicker{margin:0 0 8px;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+ .ps-row{display:flex;align-items:center;gap:12px}
+ .ps-num{flex:none;display:grid;place-items:center;width:44px;height:44px;border:3px solid var(--ring,var(--line));border-radius:50%;
+   background:var(--card);color:var(--fg,var(--text));font:700 16px/1 "Amazon Ember",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+ .ps-verdict{color:var(--fg,var(--text));font-size:14px;font-weight:700}
+ .ps-sub,.ps-empty{color:var(--muted);font-size:12px;line-height:1.4;
+   overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+ .ps-empty{-webkit-line-clamp:3}
+ .page-score.empty{background:var(--card);border-color:var(--line)}
+ /* Goals */
+ .goals{padding:0 16px 14px}
+ .goals-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0 0 8px}
+ .goal-now{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+ .presets{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+ .preset{padding:4px 10px;font-size:12px}
+ .preset-note{margin:10px 0 0;color:var(--muted);font-size:12px;line-height:1.4;
+   overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+ .preset-note:empty{display:none}
+ /* Switches. .net names the requests an option makes and is never folded away; .d is the long
+    explanation, shown by "Why these matter". */
+ .list{display:grid;gap:2px;padding:0 16px}
+ .list .sw{margin:0 -10px;padding:7px 10px;border-radius:8px}
+ .list .sw:hover{background:var(--hover)}
+ .d{display:none;color:var(--muted);font-size:12px;line-height:1.4}
+ .net{display:block;color:var(--muted);font-size:12px;line-height:1.4}
+ body.show-why .d{display:block}
+ body.paused .sub-toggles{opacity:.45}
+ body.paused .sub-toggles .sw{cursor:default}
+ .fine-links,.more-links{display:flex;flex-wrap:wrap;gap:0 14px;font-size:12px}
+ .fine-links{padding:2px 16px 0}
+ .more-links{padding:6px 0 0}
+ .fine-links a,.fine-links button,.more-links a,.more-links button{padding:4px 0}
+ /* More: what most people never change. */
+ .more-box{margin:8px 16px 0;padding-top:8px;border-top:1px solid var(--soft)}
+ .more-box .list{padding:6px 0 0}
+ .compare-block{margin:10px 0 0;padding-top:10px;border-top:1px solid var(--soft)}
+ .compare-empty{margin:0 0 8px;color:var(--muted);font-size:12px;line-height:1.4}
+ .compare-pick{display:grid;gap:3px;padding:6px 0}
+ .compare-pick span{color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+ .compare-pick select{width:100%;padding:5px 6px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--text);font:inherit;font-size:12px}
  .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
- .compare-card{padding:8px;border:1px solid var(--ring,#d5d9d9);border-radius:8px;background:var(--bg,#f7f8f8)}
- .compare-card .ps-num{width:32px;height:32px;font-size:13px;margin-bottom:6px}
+ .compare-card{padding:10px;border:1px solid var(--ring,var(--line));border-radius:10px;background:var(--bg,var(--card))}
+ .compare-card .ps-num{width:36px;height:36px;margin-bottom:6px;border-width:2px;font-size:14px}
  .compare-card .ps-sub{-webkit-line-clamp:3}
- #toggleWhy,#openSettings,#openSetup,#openNetwork,#openStores,#openReport,#clear{display:block;margin-top:10px;padding:0;border:0;background:none;
-   font:inherit;font-size:11px;color:var(--u-link,#007185);text-decoration:none;cursor:pointer;text-align:left}
- #clear{margin-top:6px}
- #openNetwork{margin:2px 0 4px}
- #toggleWhy:hover,#openSettings:hover,#openSetup:hover,#openNetwork:hover,#openStores:hover,#openReport:hover,#clear:hover{text-decoration:underline}
- #clear:disabled{color:#767676;cursor:default;text-decoration:none}
- input:focus-visible,#toggleWhy:focus-visible,#openSettings:focus-visible,#openSetup:focus-visible,#openNetwork:focus-visible,#openStores:focus-visible,#openReport:focus-visible,#clear:focus-visible,
- .preset:focus-visible,.preset-cat:focus-visible{outline:3px solid var(--u-link,#007185);outline-offset:2px}
+ /* Footer */
+ .foot{display:grid;gap:8px;padding:12px 16px 14px}
+ .foot .btn{width:100%}
+ .foot-row{display:flex;justify-content:space-between;gap:12px;font-size:12px}
+ .fine,#version{color:var(--muted);font-size:12px;line-height:1.4}
+ #status{margin:0;padding:0 16px;color:var(--danger);font-size:12px}
  @media (prefers-color-scheme: dark) {
-   body{color:#f3f3f3;background:#1b1c1c}
-   .sub,.d,.net,.ps-sub,.ps-empty,.ps-kicker,.preset-note,.preset-snip,.preset-active-kicker,.preset-hint,.compare-pick span{color:#aeaeae}
-   /* The links' light-mode teal is 3:1 on this background. */
-   #toggleWhy,#openSettings,#openSetup,#openNetwork,#openStores,#openReport,#clear{color:var(--u-link-d,#5fb8c9)}
-   label,.page-score,.preset-block{border-color:#3a3c3c}
-   label.master{border-bottom-color:#3a3c3c}
-   .page-score{background:#232525}
-   .ps-num{background:#1b1c1c;border-color:var(--dring,var(--ring));color:var(--dfg,var(--fg))}
-   .ps-verdict{color:var(--dfg,var(--fg))}
-   .preset,.preset-cat{background:#2d2f2f;border-color:#3a3c3c;color:#f3f3f3}
-   .preset:hover,.preset-cat:hover{background:#3a3c3c}
-   .preset[aria-pressed="true"]{background:var(--u-accent-bg-d,#1e2a22);border-color:var(--u-accent-d,#0f7b3f)}
-   .preset-cat[aria-selected="true"]{background:#f3f3f3;border-color:#f3f3f3;color:#0f1111}
-   .preset-cat.has-picks:not([aria-selected="true"]){border-color:var(--u-accent-d,#3fa66b);color:var(--u-accent-d,#bfe8cf)}
-   .preset-glyph{background:#1b1c1c;border-color:#3a3c3c;color:#f3f3f3}
-   .preset-active-name.is-custom{color:#aeaeae}
-   .compare-pick,.compare-card,.compare-block{border-color:#3a3c3c}
-   .compare-pick select{background:#1b1c1c;border-color:#3a3c3c;color:#f3f3f3}
-   .compare-card{background:#232525}
-   .compare-empty{color:#aeaeae}
-   #kept{background:#3d2e14;border-color:#8a6a2a;color:#f3d19c}
-   #clear:disabled{color:#8a8a8a}
+   .page-score,.compare-card{background:var(--card);border-color:var(--dring,var(--ring,var(--line)))}
+   .page-score.empty{border-color:var(--line)}
+   .ps-num{background:var(--page);border-color:var(--dring,var(--ring,var(--line)));color:var(--dfg,var(--fg,var(--text)))}
+   .ps-verdict{color:var(--dfg,var(--fg,var(--text)))}
  }
 </style></head><body>
- <h1 data-i18n="appName">Ingredient Check</h1>
- <div class="sub" data-level="2" data-i18n="popupTagline">Ingredient quality, additives and processing — scored on your computer.</div>
+ <header class="top">
+  <img src="../../icons/icon48.png" alt="" width="28" height="28">
+  <div class="top-text">
+   <h1 data-i18n="appName">Ingredient Check</h1>
+   <p class="sub" data-level="2" data-i18n="popupTagline">Scored on your computer</p>
+  </div>
+  <label class="sw master"><input type="checkbox" id="enabled" role="switch" checked data-i18n-aria="popupMasterAria" aria-label="Ingredient Check on or off"></label>
+ </header>
+ <p id="kept" data-i18n="popupKept">Paused — your settings are kept.</p>
  <div id="pageScore" class="page-score" hidden></div>
- <label class="master"><input type="checkbox" id="enabled" checked><span><span class="t" data-i18n="popupShowRatings">Ingredient Check is on</span>
-   <span class="d" data-i18n="popupShowRatingsD">The master switch. Off stops everything on Amazon pages — no panel,
-   no badges, no page watching. Nothing below is forgotten.</span></span></label>
- <p id="kept" data-i18n="popupKept">Paused. Everything below is kept and comes back when you switch it on.</p>
- <div class="sub-toggles">
- <label data-level="1"><input type="checkbox" id="badges" checked><span><span class="t" data-i18n="popupBadges">Search result badges</span>
-   <span class="d" data-i18n="popupBadgesD">Score badges on search results and cart items with readable labels.</span></span></label>
- <label data-level="1"><input type="checkbox" id="foodOnly" checked><span><span class="t" data-i18n="popupFoodOnly">Only rate food &amp; supplements</span>
-   <span class="d" data-i18n="popupFoodOnlyD">Skip shoes, toys, cosmetics and cleaning products, and say why instead of
-   scoring them. Shampoo has an ingredient list too, and a score on one implies it was judged as
-   something you could eat.</span></span></label>
- <label><input type="checkbox" id="autoScoreSearch" checked><span><span class="t" data-i18n="popupAutoScore">Rate search results and cart items</span>
-   <span class="net" data-i18n="popupAutoScoreNet">Requests product pages from the store you are browsing. Amazon search requests use your sign-in; cart ratings and retailer previews request public pages without cookies.</span>
+ <section class="goals" aria-labelledby="goalsH">
+  <div class="goals-head"><h2 id="goalsH" data-i18n="popupPresets">Goals</h2><span class="goal-now" id="presetActiveName" aria-live="polite">Balanced</span></div>
+  <div class="preset-cats" id="presetCats" role="tablist" data-i18n-aria="optPresetCatsAria" aria-label="Preset categories"></div>
+  <div class="presets" id="presets" role="tabpanel"></div>
+  <p class="preset-note" id="presetNote" data-level="2"></p>
+ </section>
+ <div class="list sub-toggles">
+  <label class="sw"><input type="checkbox" id="autoScoreSearch" role="switch" checked><span class="sw-text"><span class="sw-title" data-i18n="popupAutoScore">Rate search results and cart items</span>
+   <span class="net" data-i18n="popupAutoScoreNet">Requests product pages from this store. On Amazon, signed in as you.</span>
    <span class="d" data-i18n="popupAutoScoreD">Rates search results and cart items automatically, using saved scores first and the speed setting to limit requests. Cart ratings fetch public product pages without cookies or the cart-page address. Missing labels stay unavailable. Off: show saved scores only.</span></span></label>
- <label data-level="2"><input type="checkbox" id="hoverBreakdown" checked><span><span class="t" data-i18n="popupBreakdown">Show why on hover</span>
-   <span class="d" data-i18n="popupBreakdownD">Hover, tab to or click a score on a results page to see what raised and
-   lowered it. Worked out on your computer from what was already read — no extra requests.</span></span></label>
- <label data-level="2"><input type="checkbox" id="hoverScore"><span><span class="t" data-i18n="popupHover">Score on hover</span>
+  <label class="sw" data-level="2"><input type="checkbox" id="hoverScore" role="switch"><span class="sw-text"><span class="sw-title" data-i18n="popupHover">Score on hover</span>
    <span class="net" data-i18n="popupHoverNet">Requests that product page from Amazon, signed in as you.</span>
-   <span class="d" data-i18n="popupHoverD">Hover or tab to a search result for half a second and it requests that product
-   page from Amazon to score it, with your Amazon sign-in. Only the result you point at.</span></span></label>
- <label data-level="2"><input type="checkbox" id="unitPrice" checked><span><span class="t" data-i18n="popupUnitPrice">Price per ounce</span>
-   <span class="d" data-i18n="popupUnitPriceD">Adds "Price per ounce: Low to High" to Amazon's sort menu and price per ounce to the
-   sorted list, worked out from the results page. No extra requests.</span></span></label>
- <a href="#" id="openNetwork" data-level="1" data-i18n="popupNetworkLink">Amazon access and what is sent</a>
- <label data-level="2"><input type="checkbox" id="ocrLabels"><span><span class="t" data-i18n="popupOcr">Read label photos</span>
-   <span class="d" data-i18n="popupOcrD">When a page has no readable ingredients, read them from the product's
-   label photo. Runs on your computer and takes a few seconds per product — nothing is sent anywhere.</span></span></label>
- <label data-level="2"><input type="checkbox" id="useOpenFoodFacts"><span><span class="t" data-i18n="popupOff">Open Food Facts fallback</span>
-   <span class="d" data-i18n="popupOffD">When a page has a barcode but no readable ingredients, look it up. Sends the
-   barcode to Open Food Facts and nothing else — no page content, no browsing history.</span></span></label>
+   <span class="d" data-i18n="popupHoverD">Hover or tab to a search result for half a second and its product page is requested from Amazon to score it. Only the result you point at.</span></span></label>
  </div>
- <div class="preset-block">
-   <div class="ps-kicker" data-i18n="popupPresets">Goal-based scoring</div>
-   <p class="preset-hint" data-level="2" data-i18n="popupPresetsHint">Pick one or several, on any tab. They combine.</p>
-   <div class="preset-active" aria-live="polite">
-     <span class="preset-active-kicker" data-i18n="optPresetActive">Active</span>
-     <span class="preset-active-name" id="presetActiveName">Balanced</span>
-   </div>
-   <div class="preset-cats" id="presetCats" role="tablist" data-i18n-aria="optPresetCatsAria" aria-label="Preset categories"></div>
-   <div class="presets" id="presets" role="tabpanel"></div>
-   <p class="preset-note" id="presetNote" data-level="2"></p>
+ <div class="fine-links">
+  <a href="#" id="openNetwork" data-level="1" data-i18n="popupNetworkLink">Access and what is sent</a>
  </div>
- <button type="button" id="toggleWhy" data-level="1" data-i18n="popupShowWhy">Why these matter</button>
- <a href="#" id="openSettings" data-i18n="popupSettingsLink">Scoring weights, allergens &amp; avoid list</a>
- <a href="#" id="openSetup" data-level="2" data-i18n="popupSetupAgain">Run setup again</a>
- <a href="#" id="openStores" data-level="2" data-i18n="popupRequestStore">Request a store</a>
- <a href="#" id="openReport" data-i18n="popupReport">Report a problem or suggest an improvement</a>
- <div class="sub" data-i18n="popupDisclaimer" style="margin-top:10px;font-size:11px">Scores are a guide, not health or allergy
-   advice. Always read the label.</div>
- <button type="button" id="clear" data-i18n="popupClear">Clear cached entries</button>
- <p id="status" class="d" role="status" aria-live="polite" style="margin-top:8px;min-height:1.3em;display:block"></p>
- <div class="compare-block" id="compareBlock" data-level="2" hidden>
-   <div class="ps-kicker" data-i18n="popupCompare">Compare cached scores</div>
-   <p class="compare-empty" id="compareEmpty" data-i18n="popupCompareEmpty">Score two products on Amazon, then pick them here. Uses the cache only — no extra requests.</p>
+ <details class="more-box" id="moreBox">
+  <summary data-i18n="popupMore">More</summary>
+  <div class="list sub-toggles">
+   <label class="sw" data-level="1"><input type="checkbox" id="badges" role="switch" checked><span class="sw-text"><span class="sw-title" data-i18n="popupBadges">Result badges</span>
+    <span class="d" data-i18n="popupBadgesD">Score badges on search results and cart items with readable labels.</span></span></label>
+   <label class="sw" data-level="1"><input type="checkbox" id="foodOnly" role="switch" checked><span class="sw-text"><span class="sw-title" data-i18n="popupFoodOnly">Food &amp; supplements only</span>
+    <span class="d" data-i18n="popupFoodOnlyD">Skips shoes, toys, cosmetics and cleaning products and says why. A score on shampoo would imply it was judged as something you could eat.</span></span></label>
+   <label class="sw" data-level="2"><input type="checkbox" id="hoverBreakdown" role="switch" checked><span class="sw-text"><span class="sw-title" data-i18n="popupBreakdown">Show why on hover</span>
+    <span class="d" data-i18n="popupBreakdownD">Hover, tab to or click a score on a results page to see what raised and lowered it. Worked out on your computer — no extra requests.</span></span></label>
+   <label class="sw" data-level="2"><input type="checkbox" id="unitPrice" role="switch" checked><span class="sw-text"><span class="sw-title" data-i18n="popupUnitPrice">Price per ounce</span>
+    <span class="d" data-i18n="popupUnitPriceD">Adds “Price per ounce: Low to High” to Amazon's sort menu and the sorted list. Worked out from the results page — no extra requests.</span></span></label>
+   <label class="sw" data-level="2"><input type="checkbox" id="ocrLabels" role="switch"><span class="sw-text"><span class="sw-title" data-i18n="popupOcr">Read label photos</span>
+    <span class="d" data-i18n="popupOcrD">When a page has no readable ingredients, read them from the product's label photo. Runs on your computer and takes a few seconds per product — nothing is sent anywhere.</span></span></label>
+   <label class="sw" data-level="2"><input type="checkbox" id="useOpenFoodFacts" role="switch"><span class="sw-text"><span class="sw-title" data-i18n="popupOff">Open Food Facts fallback</span>
+    <span class="d" data-i18n="popupOffD">When a page has a barcode but no readable ingredients, look it up. Sends the barcode to Open Food Facts and nothing else — no page content, no browsing history.</span></span></label>
+  </div>
+  <div class="compare-block" id="compareBlock" data-level="2" hidden>
+   <h2 data-i18n="popupCompare">Compare cached scores</h2>
+   <p class="compare-empty" id="compareEmpty" data-i18n="popupCompareEmpty">Score two products, then compare them here.</p>
    <div id="comparePick" hidden>
-     <label class="compare-pick"><span data-i18n="popupCompareA">A</span>
-       <select id="compareA" data-i18n-aria="popupCompareAAria" aria-label="First cached score"></select></label>
-     <label class="compare-pick"><span data-i18n="popupCompareB">B</span>
-       <select id="compareB" data-i18n-aria="popupCompareBAria" aria-label="Second cached score"></select></label>
-     <div class="compare-grid" id="compareGrid"></div>
+    <label class="compare-pick"><span data-i18n="popupCompareA">A</span>
+     <select id="compareA" data-i18n-aria="popupCompareAAria" aria-label="First cached score"></select></label>
+    <label class="compare-pick"><span data-i18n="popupCompareB">B</span>
+     <select id="compareB" data-i18n-aria="popupCompareBAria" aria-label="Second cached score"></select></label>
+    <div class="compare-grid" id="compareGrid"></div>
    </div>
- </div>
- <p id="version" data-level="2" class="sub" style="margin:10px 0 0;font-size:10px;opacity:.7"></p>
+  </div>
+  <div class="more-links">
+   <button type="button" id="toggleWhy" class="linkbtn" data-level="1" data-i18n="popupShowWhy">Why these matter</button>
+   <a href="#" id="openSetup" data-level="2" data-i18n="popupSetupAgain">Run setup again</a>
+   <a href="#" id="openStores" data-level="2" data-i18n="popupRequestStore">Request a store</a>
+   <button type="button" id="clear" class="linkbtn" data-i18n="popupClear">Clear cached entries</button>
+  </div>
+ </details>
+ <p id="status" role="status" aria-live="polite"></p>
+ <footer class="foot">
+  <a href="#" id="openSettings" class="btn" data-i18n="popupSettingsLink">Settings</a>
+  <div class="foot-row"><a href="#" id="openReport" data-i18n="popupReport">Report a problem or idea</a><span id="version" data-level="2"></span></div>
+  <p class="fine" data-i18n="popupDisclaimer">A guide, not health or allergy advice. Read the label.</p>
+ </footer>
  <script src="../engine/db/_module.js"></script>
  <script src="../engine/categories.js"></script>
  <script src="../engine/db/prefs.js"></script>

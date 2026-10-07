@@ -132,20 +132,7 @@ function renderPresets(weights, goalIds = popupGoals) {
     b.dataset.preset = id;
     b.setAttribute('aria-pressed', String(goals.ids.includes(id) || (id === 'balanced' && !goals.ids.length && !goals.custom)));
     b.title = preset.note;
-    const glyph = document.createElement('span');
-    glyph.className = 'preset-glyph';
-    glyph.textContent = preset.glyph || preset.label.slice(0, 3);
-    glyph.setAttribute('aria-hidden', 'true');
-    const copy = document.createElement('span');
-    copy.className = 'preset-copy';
-    const title = document.createElement('span');
-    title.className = 'preset-title';
-    title.textContent = preset.label;
-    const snip = document.createElement('span');
-    snip.className = 'preset-snip';
-    snip.textContent = preset.note;
-    copy.append(title, snip);
-    b.append(glyph, copy);
+    b.textContent = preset.label;
     b.addEventListener('click', () => applyPreset(id));
     host.appendChild(b);
   }
@@ -157,12 +144,12 @@ function renderPresets(weights, goalIds = popupGoals) {
   paintPopupActive(goals);
   const note = document.getElementById('presetNote');
   if (note) {
-    const last = goals.ids.at(-1);
+    // One goal needs no sentence: its chip carries the description as a tooltip, and Settings has all of it.
     note.textContent = goals.custom
-      ? msg('popupPresetCustom', 'Custom weights — open Settings to fine-tune every dial.')
+      ? msg('popupPresetCustom', 'Custom weights — fine-tune them in Settings.')
       : goals.ids.length > 1
         ? msg('popupGoalsCombined', 'Goals combined: where two set the same dial, they are averaged.')
-        : CATS.PRESETS[last || 'balanced'].note;
+        : '';
   }
 }
 
@@ -188,9 +175,6 @@ function applyPreset(id) {
 function applyLevel(level) {
   const at = Math.max(0, PREFS.LEVELS.indexOf(level));
   for (const el of document.querySelectorAll('[data-level]')) el.classList.toggle('lvl-hidden', Number(el.dataset.level) > at);
-  // Below Advanced the settings page has no weights to fine-tune; say what is there.
-  const link = document.getElementById('openSettings');
-  if (link) link.textContent = at < 3 ? msg('popupSettingsLinkLow', 'Settings: goals, allergens & diets') : msg('popupSettingsLink', 'Scoring weights, allergens & avoid list');
 }
 
 chrome.storage.local.get([...KEYS, 'weights', 'goals', 'goalImportance', 'settingsLevel', 'onboarded'], options => {
@@ -319,7 +303,7 @@ function paintStoreCard(card, live, adapter) {
     kicker.className = 'ps-kicker';
     kicker.textContent = `${msg('popupThisPage', 'This page')} · ${adapter.name}`;
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex;gap:10px;align-items:center';
+    row.className = 'ps-row';
     const num = document.createElement('div');
     num.className = 'ps-num';
     num.textContent = String(live.score);
@@ -365,7 +349,10 @@ function paintPageScore() {
       card.className = 'page-score empty';
       const p = document.createElement('div');
       p.className = 'ps-empty';
-      p.textContent = msg('popupSearchPage', 'Search page — readable product labels receive score badges. Unavailable labels are marked on each result.');
+      // Amazon's cart is a page of its own: say so, rather than calling it a search page.
+      const cartPage = isAmazonUrl(url) && /^\/(?:gp\/cart\/|cart(?:\/|$))/.test(new URL(url).pathname);
+      p.textContent = cartPage ? msg('popupCartPage', 'Cart page — each item gets a score badge, and the average is shown above the list.')
+        : msg('popupSearchPage', 'Search page — items with readable labels get a score badge.');
       card.appendChild(p);
       return;
     }
@@ -381,7 +368,7 @@ function paintPageScore() {
         card.className = 'page-score empty';
         const p = document.createElement('div');
         p.className = 'ps-empty';
-        p.textContent = msg('popupNoScore', 'Not scored yet. Wait for the panel on this page, then reopen.');
+        p.textContent = msg('popupNoScore', 'Not scored yet. Reopen once the page panel appears.');
         card.appendChild(p);
         return;
       }
@@ -396,7 +383,7 @@ function paintPageScore() {
       kicker.className = 'ps-kicker';
       kicker.textContent = msg('popupThisPage', 'This page');
       const row = document.createElement('div');
-      row.style.cssText = 'display:flex;gap:10px;align-items:center';
+      row.className = 'ps-row';
       const num = document.createElement('div');
       num.className = 'ps-num';
       num.textContent = String(hit.score);
@@ -539,7 +526,7 @@ function paintWhy(on) {
   document.body.classList.toggle('show-why', on);
   const btn = document.getElementById('toggleWhy');
   if (btn) btn.textContent = on
-    ? msg('popupHideWhy', 'Hide explanations')
+    ? msg('popupHideWhy', 'Hide details')
     : msg('popupShowWhy', 'Why these matter');
 }
 

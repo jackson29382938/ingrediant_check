@@ -71,6 +71,9 @@ const TOGGLE_DEFAULTS = {
   // this computer has saved to or restored from that account, so a new computer cannot overwrite
   // the saved copy with its defaults.
   googleAutoSave: true,
+  // Cart points: XP for good-scoring items in a cart (AIR.db.points). Off until the reader turns it on. The
+  // points themselves are kept on this computer only (storage key `xp`) and are not part of a backup.
+  pointsEnabled: false,
 };
 
 function db(name) {

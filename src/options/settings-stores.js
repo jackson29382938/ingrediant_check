@@ -21,11 +21,12 @@
       const badge = document.createElement('span');
       badge.className = 'store-badge ' + store.status;
       badge.textContent = store.status === 'supported' ? t('optStoreSupported', 'Supported')
-        : store.status === 'preview' ? t('optStorePreview', 'Preview — works on the pages you open; still being checked')
-        : t('optStorePlanned', 'Planned — not available yet');
+        : store.status === 'preview' ? t('optStorePreview', 'Preview')
+        : t('optStorePlanned', 'Planned');
       const where = document.createElement('span');
       where.className = 'store-where';
       where.textContent = store.domains.join(', ');
+      where.title = where.textContent;   // one line in the list; the whole list on hover
       li.append(name, badge, where);
       list.appendChild(li);
     }

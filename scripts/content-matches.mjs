@@ -29,6 +29,16 @@ export const PATH_PATTERNS = [
   '/stores/*',
 ];
 
+// The cart pages, which have their own content_scripts entry (cart ratings): the cart itself, and the page Amazon
+// opens right after Add to Cart (/cart/smart-wagon). Each host in both forms, bare then www.
+export const CART_PATH_PATTERNS = [
+  '/cart', '/cart/', '/cart?*', '/gp/cart/view.html', '/gp/cart/view.html?*', '/cart/view.html', '/cart/view.html?*',
+  '/cart/smart-wagon', '/cart/smart-wagon?*',
+];
+export function buildCartMatches(hosts = AMAZON_HOSTS, paths = CART_PATH_PATTERNS) {
+  return hosts.flatMap(host => [host, `www.${host}`].flatMap(h => paths.map(path => `https://${h}${path}`)));
+}
+
 export function buildContentMatches(hosts = AMAZON_HOSTS, paths = PATH_PATTERNS) {
   const out = [];
   for (const host of hosts) {
@@ -42,15 +52,17 @@ export function buildContentMatches(hosts = AMAZON_HOSTS, paths = PATH_PATTERNS)
 
 // `node scripts/content-matches.mjs --write` puts the generated list into every Amazon
 // content_scripts entry of manifest.json, so the several hundred patterns are never edited by hand.
-if (import.meta.url === `file://${process.argv[1]}` && process.argv.includes('--write')) {
+if (process.argv[1] && import.meta.url === (await import('node:url')).pathToFileURL(process.argv[1]).href && process.argv.includes('--write')) {
   const fs = await import('node:fs');
   const url = new URL('../manifest.json', import.meta.url);
   const manifest = JSON.parse(fs.readFileSync(url, 'utf8'));
-  const matches = buildContentMatches();
   let entries = 0;
   for (const cs of manifest.content_scripts || []) {
-    if ((cs.matches || []).some(m => /amazon\./.test(m))) { cs.matches = matches; entries++; }
+    if (!(cs.matches || []).some(m => /amazon\./.test(m))) continue;
+    // The cart entry has no product paths; every other Amazon entry gets the product and search paths.
+    cs.matches = (cs.matches || []).some(m => /\/dp\//.test(m)) ? buildContentMatches() : buildCartMatches();
+    entries++;
   }
   fs.writeFileSync(url, JSON.stringify(manifest, null, 2) + '\n');
-  console.log(`wrote ${matches.length} matches into ${entries} Amazon content_scripts entr${entries === 1 ? 'y' : 'ies'}`);
+  console.log(`wrote the Amazon matches into ${entries} content_scripts entries`);
 }

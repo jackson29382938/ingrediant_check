@@ -9,10 +9,11 @@ const ALLERGENS = AIR.db.allergens;
 const PREFS = AIR.db.prefs;
 
 function msg(key, fallback, sub) {
+  const subs = sub == null ? [] : (Array.isArray(sub) ? sub : [sub]).map(String);
   let out = '';
-  try { out = chrome.i18n && chrome.i18n.getMessage(key, sub != null ? [String(sub)] : []) || ''; }
+  try { out = chrome.i18n && chrome.i18n.getMessage(key, subs) || ''; }
   catch (e) { /* missing key or not in an extension page */ }
-  return (out || fallback).replace('$1', sub != null ? String(sub) : '$1');
+  return (out || fallback).replace(/\$(\d)/g, (m, i) => (subs[i - 1] != null ? subs[i - 1] : m));
 }
 
 (function localise() {
@@ -290,23 +291,8 @@ function renderPresets() {
     b.dataset.preset = id;
     b.setAttribute('aria-pressed', String(goals.ids.includes(id) || (id === 'balanced' && !goals.ids.length && !goals.custom)));
     b.setAttribute('aria-describedby', 'presetNote');
-
-    const top = document.createElement('div');
-    top.className = 'preset-card-top';
-    const glyph = document.createElement('span');
-    glyph.className = 'preset-glyph';
-    glyph.textContent = preset.glyph || preset.label.slice(0, 3);
-    glyph.setAttribute('aria-hidden', 'true');
-    const title = document.createElement('span');
-    title.className = 'preset-card-title';
-    title.textContent = preset.label;
-    top.append(glyph, title);
-
-    const note = document.createElement('p');
-    note.className = 'preset-card-note';
-    note.textContent = preset.note;
-
-    b.append(top, note);
+    // The goal's sentence is the detail panel below, for the goal you point at or pick.
+    b.textContent = preset.label;
     b.addEventListener('click', () => applyPreset(id));
     b.addEventListener('focus', () => showPresetDetail(id));
     b.addEventListener('mouseenter', () => showPresetDetail(id));
@@ -892,6 +878,27 @@ function wirePanelAndHover() {
       ok => { if (ok) flash(msg('optSaved', 'Saved')); }));
 }
 
+// Cart points (AIR.db.points): the switch, the level so far, and a way back to zero. The points are storage key
+// `xp`: this computer only, and never part of a backup or the settings file.
+function wirePoints() {
+  const P = AIR.db.points;
+  const row = document.getElementById('pointsRow');
+  const status = document.getElementById('pointsStatus');
+  const reset = document.getElementById('resetPoints');
+  const box = bindToggle('pointsEnabled', on => { if (row) row.hidden = !on; });
+  if (!P || !box || !row || !status || !reset) return;
+  const paint = o => {
+    const total = P.sanitize(o.xp).total;
+    status.textContent = total ? msg('optPointsStatus', 'Level $1 · $2 XP', [P.level(total).level, total]) : msg('optPointsNone', 'No points yet.');
+  };
+  chrome.storage.local.get('xp', paint);
+  chrome.storage.onChanged.addListener(changes => { if (changes.xp) chrome.storage.local.get('xp', paint); });
+  reset.addEventListener('click', () => {
+    if (!window.confirm(msg('optPointsResetConfirm', 'Reset your points and level to zero?'))) return;
+    chrome.storage.local.remove('xp', () => flash(msg('optPointsResetDone', 'Points reset')));
+  });
+}
+
 // Appearance (engine/db/theme.js): colour scheme, score palette and accent. Each saves on its own key;
 // the accent previews live while the picker is open and saves when it closes. The accent is nudged until
 // text in it is readable, and the note says so when it was.
@@ -980,6 +987,7 @@ function startSettingsPage() {
     wireSpeed();
     wireBreakdown();
     wirePanelAndHover();
+    wirePoints();
     wireAppearance();
     wireShortcuts();
     wireLevel();

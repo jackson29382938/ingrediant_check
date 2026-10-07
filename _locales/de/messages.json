@@ -62,6 +62,45 @@
   "reportLink": {
     "message": "Sieht falsch aus?"
   },
+  "cartAverage": {
+    "message": "Warenkorb-Durchschnitt"
+  },
+  "cartRated": {
+    "message": "$RATED$ von $TOTAL$ Artikeln bewertet",
+    "placeholders": {
+      "rated": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      }
+    }
+  },
+  "cartChecking": {
+    "message": "wird geprüft …"
+  },
+  "cartXpGained": {
+    "message": "+$XP$ XP",
+    "placeholders": {
+      "xp": {
+        "content": "$1"
+      }
+    }
+  },
+  "cartLevel": {
+    "message": "Stufe $LEVEL$ · $INTO$/$NEED$ XP",
+    "placeholders": {
+      "level": {
+        "content": "$1"
+      },
+      "into": {
+        "content": "$2"
+      },
+      "need": {
+        "content": "$3"
+      }
+    }
+  },
   "reportSending": {
     "message": "Sending…"
   },
@@ -145,32 +184,26 @@
   "notFoodNothing": {
     "message": "Nothing disclosed about how this was produced"
   },
-  "popupShowRatings": {
-    "message": "Zutaten-Check ist an"
-  },
-  "popupShowRatingsD": {
-    "message": "Der Hauptschalter. Aus stoppt alles auf Amazon-Seiten — kein Panel, keine Badges, kein Beobachten. Nichts darunter wird vergessen."
-  },
   "popupBadges": {
-    "message": "Search result badges"
+    "message": "Bewertungsplaketten"
   },
   "popupBadgesD": {
     "message": "Bewertungen für Suchergebnisse und Warenkorbartikel mit lesbaren Zutatenlisten."
   },
   "popupFoodOnly": {
-    "message": "Only rate food & supplements"
+    "message": "Nur Lebensmittel & Nahrungsergänzung"
   },
   "popupAutoScore": {
     "message": "Suchergebnisse und Warenkorbartikel bewerten"
   },
   "popupHover": {
-    "message": "Score on hover"
+    "message": "Bewertung beim Überfahren"
   },
   "popupOff": {
-    "message": "Open Food Facts fallback"
+    "message": "Open-Food-Facts-Abfrage"
   },
   "popupSettingsLink": {
-    "message": "Scoring weights, allergens & avoid list"
+    "message": "Einstellungen"
   },
   "popupClear": {
     "message": "Zwischengespeicherte Bewertungen löschen"
@@ -184,22 +217,25 @@
     }
   },
   "popupDisclaimer": {
-    "message": "Scores are a guide, not health or allergy advice. Always read the label."
+    "message": "Eine Orientierung, keine Gesundheits- oder Allergieberatung. Lies das Etikett."
   },
   "popupFoodOnlyD": {
-    "message": "Skip shoes, toys, cosmetics and cleaning products, and say why instead of scoring them. Shampoo has an ingredient list too, and a score on one implies it was judged as something you could eat."
+    "message": "Überspringt Schuhe, Spielzeug, Kosmetik und Reinigungsmittel und nennt den Grund. Eine Bewertung für Shampoo würde nahelegen, es sei als Essbares beurteilt worden."
   },
   "popupAutoScoreD": {
     "message": "Bewertet Suchergebnisse und Warenkorbartikel automatisch. Gespeicherte Bewertungen werden zuerst verwendet; die Geschwindigkeitseinstellung begrenzt Anfragen. Warenkorbbewertungen rufen öffentliche Produktseiten ohne Cookies oder Warenkorb-URL ab. Fehlende Zutatenlisten bleiben unbekannt. Aus: nur gespeicherte Bewertungen anzeigen."
   },
   "popupHoverD": {
-    "message": "Hover or tab to a search result for half a second and it requests that product page from Amazon to score it, with your Amazon sign-in. Only the result you point at."
+    "message": "Verweile eine halbe Sekunde mit der Maus oder per Tab auf einem Suchergebnis, dann wird seine Produktseite bei Amazon zur Bewertung abgerufen. Nur das Ergebnis, auf das du zeigst."
   },
   "popupOffD": {
-    "message": "When a page has a barcode but no readable ingredients, look it up. Sends the barcode to Open Food Facts and nothing else — no page content, no browsing history."
+    "message": "Hat eine Seite einen Barcode, aber keine lesbaren Zutaten, wird er nachgeschlagen. Gesendet wird nur der Barcode an Open Food Facts — keine Seiteninhalte, kein Browserverlauf."
   },
   "popupTagline": {
-    "message": "Zutatenqualität, Zusatzstoffe und Verarbeitung — lokal bewertet."
+    "message": "Lokal auf deinem Computer bewertet"
+  },
+  "popupMasterAria": {
+    "message": "Zutaten-Check an oder aus"
   },
   "srcOcr": {
     "message": "Read from the label photo on this page"
@@ -238,13 +274,13 @@
     "message": "Too many product-page requests were blocked. Auto-score is paused on this search so we do not keep retrying. Cached badges still show. Open a product, or start a new search, to try again."
   },
   "popupOcr": {
-    "message": "Read label photos"
+    "message": "Etikettenfotos lesen"
   },
   "popupOcrD": {
-    "message": "When a page has no readable ingredients, read them from the product's label photo. Runs on your computer and takes a few seconds per product — nothing is sent anywhere."
+    "message": "Hat eine Seite keine lesbaren Zutaten, werden sie vom Etikettenfoto des Produkts gelesen. Läuft auf deinem Computer und dauert pro Produkt einige Sekunden — es wird nichts irgendwohin gesendet."
   },
   "popupKept": {
-    "message": "Paused. Everything below is kept and comes back when you switch it on."
+    "message": "Pausiert – deine Einstellungen bleiben erhalten."
   },
   "copyScore": {
     "message": "Bewertung kopieren"
@@ -272,22 +308,28 @@
     }
   },
   "popupShowWhy": {
-    "message": "Why these matter"
+    "message": "Warum das zählt"
   },
   "popupHideWhy": {
-    "message": "Hide explanations"
+    "message": "Details ausblenden"
+  },
+  "popupMore": {
+    "message": "Mehr"
   },
   "popupThisPage": {
-    "message": "This page"
+    "message": "Diese Seite"
   },
   "popupNoScore": {
-    "message": "Not scored yet. Wait for the panel on this page, then reopen."
+    "message": "Noch nicht bewertet. Öffne das Popup erneut, sobald das Feld auf der Seite erscheint."
   },
   "popupSearchPage": {
-    "message": "Suchseite — lesbare Zutatenlisten erhalten Bewertungen. Fehlende Listen werden am Ergebnis gekennzeichnet."
+    "message": "Suchseite — Artikel mit lesbarer Zutatenliste erhalten eine Bewertung."
+  },
+  "popupCartPage": {
+    "message": "Warenkorb — jeder Artikel erhält eine Bewertung, den Durchschnitt zeigt die Liste oben."
   },
   "popupClearN": {
-    "message": "Clear $N$ cached scores",
+    "message": "$N$ zwischengespeicherte Einträge löschen",
     "placeholders": {
       "n": {
         "content": "$1"
@@ -303,37 +345,37 @@
     }
   },
   "popupCouldNotSave": {
-    "message": "Could not save."
+    "message": "Speichern fehlgeschlagen."
   },
   "popupOffDenied": {
-    "message": "Chrome did not grant Open Food Facts access."
+    "message": "Chrome hat den Zugriff auf Open Food Facts nicht gewährt."
   },
   "popupOffNotKept": {
-    "message": "Chrome did not keep the Open Food Facts permission."
+    "message": "Chrome hat die Open-Food-Facts-Berechtigung nicht behalten."
   },
   "popupCouldNotClear": {
-    "message": "Could not clear cached scores."
+    "message": "Zwischenspeicher konnte nicht geleert werden."
   },
   "srcShortPasted": {
-    "message": "Pasted label (this tab)"
+    "message": "Eingefügtes Etikett (dieser Tab)"
   },
   "srcShortOverride": {
-    "message": "Food filter overridden (this tab)"
+    "message": "Lebensmittelfilter übergangen (dieser Tab)"
   },
   "srcShortOcr": {
-    "message": "Label photo"
+    "message": "Etikettenfoto"
   },
   "srcShortBarcode": {
     "message": "Open Food Facts"
   },
   "srcShortPage": {
-    "message": "Product page"
+    "message": "Produktseite"
   },
   "popupCompare": {
     "message": "Zwischengespeicherte Bewertungen vergleichen"
   },
   "popupCompareEmpty": {
-    "message": "Bewerten Sie zwei Produkte auf Amazon, dann wählen Sie sie hier. Nur Cache — keine Extra-Anfragen."
+    "message": "Bewerte zwei Produkte und vergleiche sie dann hier."
   },
   "popupCompareA": {
     "message": "A"
@@ -342,40 +384,40 @@
     "message": "B"
   },
   "popupPresets": {
-    "message": "Gewichts-Voreinstellung"
+    "message": "Ziele"
   },
   "popupPresetCustom": {
-    "message": "Benutzerdefinierte Gewichte."
+    "message": "Eigene Gewichte — in den Einstellungen feinjustieren."
   },
   "optTitle": {
     "message": "Ingredient Check — Settings"
   },
   "optLede": {
-    "message": "Die Bewertung läuft auf deinem Computer. Die gemeinsame Datenbank und die Einstellungs-Sicherung lassen sich unten abschalten."
+    "message": "Die Bewertung läuft auf deinem Computer. Online-Funktionen lassen sich unten abschalten."
   },
   "optNavAria": {
-    "message": "Settings sections"
+    "message": "Einstellungsbereiche"
   },
   "optNavRate": {
-    "message": "Rate"
+    "message": "Bewerten"
   },
   "optNavPresets": {
-    "message": "Voreinstellungen"
+    "message": "Ziele"
   },
   "optNavWeights": {
-    "message": "Weights"
+    "message": "Gewichte"
   },
   "optNavWarnings": {
-    "message": "Warnings"
+    "message": "Warnungen"
   },
   "optNavAvoid": {
-    "message": "Avoid"
+    "message": "Meiden"
   },
   "optNavDatabase": {
-    "message": "Database"
+    "message": "Datenbank"
   },
   "optNavFile": {
-    "message": "File"
+    "message": "Datei"
   },
   "optRateH": {
     "message": "What to rate"
@@ -383,8 +425,14 @@
   "optPresetsH": {
     "message": "Ausgangspunkt"
   },
+  "optPresetsLede": {
+    "message": "Wähle ein oder mehrere Ziele; sie werden kombiniert. Ein gewähltes Ziel entfernst du per Klick; „Balanced“ löscht alle."
+  },
   "optWeightsH": {
     "message": "What counts, and how much"
+  },
+  "optWeightsLede": {
+    "message": "1× wendet eine Regel wie beschrieben an, 0 schaltet sie ab, 2× verdoppelt sie. Ziele ändern diese Gewichte. Mit / springst du zum Filter."
   },
   "optWarningsH": {
     "message": "Allergen warnings"
@@ -510,19 +558,22 @@
     "message": "Raffiniertes Mehl, isolierte Stärke und gemahlene Getreidezutaten. Ausdrücklich bezeichnetes Vollkornmehl ist ausgenommen. Gluten ist eine separate Präferenz und standardmäßig ausgeschaltet; zur Vermeidung dienen die Allergenwarnungen."
   },
   "optNoteRateSame": {
-    "message": "These settings are the same ones in the toolbar popup. Changing them here updates scores on Amazon immediately."
+    "message": "Dieselben Schalter wie im Symbolleisten-Popup."
   },
   "optNoteFoodOnly": {
     "message": "Skips shoes, toys, cosmetics, medicine and cleaning products. A score on shampoo would imply it was judged as something you could eat. When this is on, a non-food page shows why it was skipped instead of a silent blank."
+  },
+  "optHintFoodOnly": {
+    "message": "Überspringt Schuhe, Spielzeug, Kosmetik und Reinigungsmittel."
   },
   "optNoteWeights": {
     "message": "Each category has its own default. A weight of 1.0 applies the listed rule normally; 0 switches its score effect off, and 2.0 doubles its deduction or credit before score limits. Some categories start at 0 or 0.5. Negative weights, available for selected categories, turn a deduction into a preference credit. Goal presets change these weights. Press / to jump to the filter."
   },
   "optNoteAllergen": {
-    "message": "Flagged on the panel. These never change the score — whether a food contains sesame is a different question from whether it is a good food."
+    "message": "Werden als Warnungen im Feld angezeigt; sie ändern nie die Bewertung."
   },
   "optNoteAvoid": {
-    "message": "Separate ingredients or phrases with commas or new lines. Each entry creates its own warning; these warnings do not change the score. Matches come from the text provided by the page, so always check the package."
+    "message": "Trenne Einträge mit Kommas oder Zeilenumbrüchen. Jeder ergibt eine eigene Warnung und ändert nie die Bewertung."
   },
   "optNoteAvoidHint": {
     "message": "Add a common one:"
@@ -564,10 +615,13 @@
     "message": "Begründung beim Überfahren zeigen"
   },
   "popupBreakdownD": {
-    "message": "Fahre mit der Maus über eine Bewertung in den Suchergebnissen, springe mit Tab dorthin oder klicke sie an, um zu sehen, was sie erhöht und gesenkt hat. Wird auf deinem Computer aus bereits Gelesenem berechnet — keine zusätzlichen Anfragen."
+    "message": "Fahre über eine Bewertung in den Suchergebnissen, springe mit Tab dorthin oder klicke sie an, um zu sehen, was sie erhöht und gesenkt hat. Wird auf deinem Computer berechnet — keine zusätzlichen Anfragen."
   },
   "optNoteBreakdown": {
     "message": "Fahre mit der Maus über eine Bewertung in den Suchergebnissen, springe mit Tab dorthin oder klicke sie an, um zu sehen, was sie erhöht und gesenkt hat. Wird auf deinem Computer aus bereits Gelesenem mit deinen aktuellen Gewichtungen berechnet — keine zusätzlichen Anfragen. Ein Klick hält sie offen; Esc oder ein Klick daneben schließt sie."
+  },
+  "optHintBreakdown": {
+    "message": "Fahre über eine Bewertung, springe per Tab dorthin oder klicke sie an, um zu sehen, was sie erhöht und gesenkt hat. Keine zusätzlichen Anfragen."
   },
   "optBreakdownDetail": {
     "message": "Anzeigen"
@@ -610,19 +664,25 @@
     }
   },
   "popupAutoScoreNet": {
-    "message": "Ruft Produktseiten des aktuellen Shops ab. Amazon-Suchanfragen verwenden deine Anmeldung; Warenkorbbewertungen und andere Shops rufen öffentliche Seiten ohne Cookies ab."
+    "message": "Ruft Produktseiten dieses Shops ab. Bei Amazon mit deiner Anmeldung."
   },
   "popupHoverNet": {
-    "message": "Requests that product page from Amazon, signed in as you."
+    "message": "Ruft diese Produktseite bei Amazon ab, mit deiner Anmeldung."
   },
   "popupNetworkLink": {
-    "message": "Shop-Zugriff und übertragene Daten"
+    "message": "Zugriff und übertragene Daten"
   },
   "optNoteAutoScore": {
     "message": "On by default. As you scroll a results page, each result that this computer and the shared database cannot already answer is scored by requesting its product page from the Amazon store you are on: three at a time, at most 60 per results page. The requests carry your Amazon sign-in, so Amazon sees them much as if you had opened each product yourself. Turn this off and only products already read (by you, or through the shared database) show a score. Shop-Vorschauen lesen zwei öffentliche Produktseiten derselben Website gleichzeitig, ohne Cookies. Fehlende Zutatenlisten bleiben unbekannt. Warenkorb-Bewertungen aller Shops lesen öffentliche Produktseiten ohne Cookies oder Referrer, zwei gleichzeitig innerhalb des Geschwindigkeitslimits."
   },
+  "optHintAutoScore": {
+    "message": "Ruft Produktseiten des aktuellen Shops ab. Bei Amazon mit deiner Anmeldung."
+  },
   "optNoteHover": {
     "message": "Off by default. Hover or tab to one result for half a second and it requests that product page from Amazon in the same way, with your Amazon sign-in. Only the result you point at."
+  },
+  "optHintHover": {
+    "message": "Standardmäßig aus. Ruft diese Produktseite bei Amazon ab, mit deiner Anmeldung."
   },
   "autoNoticeTitle": {
     "message": "Ingredient Check is rating these results"
@@ -706,19 +766,19 @@
     "message": "Einrichtung erneut starten"
   },
   "optNavStores": {
-    "message": "Stores"
+    "message": "Shops"
   },
   "optStoresH": {
     "message": "Stores and store wishlist"
   },
   "optStoresLede": {
-    "message": "Where Ingredient Check works today, and which stores are planned. A planned store is not available yet: the extension does not run there and reads nothing from it."
+    "message": "Wo Ingredient Check heute funktioniert und welche Shops geplant sind. Vorschau-Shops funktionieren auf den Seiten, die du öffnest, werden aber noch geprüft. Ein geplanter Shop ist noch nicht verfügbar: Die Erweiterung läuft dort nicht und liest nichts."
   },
   "optStoreSupported": {
-    "message": "Supported"
+    "message": "Unterstützt"
   },
   "optStorePlanned": {
-    "message": "Planned — not available yet"
+    "message": "Geplant"
   },
   "optRequestH": {
     "message": "Request a store"
@@ -745,7 +805,7 @@
     "message": "Open email draft"
   },
   "popupRequestStore": {
-    "message": "Request a store"
+    "message": "Shop vorschlagen"
   },
   "failNoTextStore": {
     "message": "$STORE$ doesn't publish an ingredient list for every product. ",
@@ -765,7 +825,7 @@
     "message": "Open Label info"
   },
   "optStorePreview": {
-    "message": "Preview — works on the pages you open; still being checked"
+    "message": "Vorschau"
   },
   "optNoteTarget": {
     "message": "Shop-Vorschauen bewerten Suchergebnisse und Warenkorb-Artikel mit gespeicherten Bewertungen oder öffentlichen Produktseiten derselben Website ohne Cookies. Warenkorb-Anfragen senden auch keinen Referrer. Automatische Bewertung ist standardmäßig an; ausgeschaltet werden nur gespeicherte Bewertungen angezeigt. Zwei Anfragen laufen gleichzeitig, innerhalb des Geschwindigkeitslimits (20–60). Fehlende oder blockierte Zutatenlisten bleiben unbekannt. Bewertungen bleiben lokal; Warenkorb-Daten werden nicht geteilt. Bewertung beim Darüberfahren gilt nur für Amazon."
@@ -885,10 +945,13 @@
     "message": "Amazon listings ranked by your priorities"
   },
   "optNavSort": {
-    "message": "Sort"
+    "message": "Sortieren"
   },
   "optSortH": {
     "message": "Sort by score or price per ounce"
+  },
+  "optSortLedeShort": {
+    "message": "Fügt Amazons Menü „Sortieren nach“ zwei Optionen hinzu. Eine Auswahl reiht die Ergebnisse dieser Suche im Seitenbereich von Chrome; Amazons Seite bleibt unverändert."
   },
   "optSortLede": {
     "message": "On an Amazon grocery search, Amazon's own “Sort by” menu gets “Ingredient Check score: High to Low” and “Price per ounce: Low to High”. Choosing one opens Chrome's side panel with this search's listings ranked; Amazon's page is left as it is. In the panel, Prioritize weighs health score, price per ounce, total price, rating and number of reviews, and Open in new tab shows the same list in a tab."
@@ -900,7 +963,7 @@
     "message": "Rate them"
   },
   "optSortRateFirstD": {
-    "message": "Uses “Rate every search result”: their product pages are requested from Amazon with your sign-in, three at a time, while the side panel fills in. Stop rating in the panel halts it. Does nothing when that option is off."
+    "message": "Ruft ihre Produktseiten bei Amazon ab, mit deiner Anmeldung, drei gleichzeitig, während sich der Seitenbereich füllt. Erfordert „Suchergebnisse und Warenkorbartikel bewerten“; im Seitenbereich lässt es sich stoppen."
   },
   "optSortEnd": {
     "message": "Leave them unscored"
@@ -910,6 +973,9 @@
   },
   "optSortLoadMore": {
     "message": "Load more Amazon results"
+  },
+  "optHintSortLoadMore": {
+    "message": "Standardmäßig aus. Liest weitere Suchseiten und bewertet, was möglich ist."
   },
   "optSortLoadMoreD": {
     "message": "Off by default. Reads further Amazon search pages until it has the number below, then asks the shared database for their scores and, with “Rate them”, requests the product pages of the rest: three at a time, with your Amazon sign-in, stopping if Amazon starts refusing."
@@ -1069,10 +1135,13 @@
     }
   },
   "optNavSpeed": {
-    "message": "Speed"
+    "message": "Tempo"
   },
   "optSortUnitPrice": {
     "message": "Price per ounce"
+  },
+  "optHintUnitPrice": {
+    "message": "Amazons Preis pro Einheit oder aus Preis und Packungsgewicht berechnet."
   },
   "optSortUnitPriceD": {
     "message": "Amazon's unit price when the results page shows one; otherwise worked out from the listed price and a package weight in the title. No extra requests. Coupons and subscription prices are not included. Also in the toolbar popup."
@@ -1084,7 +1153,7 @@
     "message": "Work it out when the weight is clear"
   },
   "optUnitCalcD": {
-    "message": "Uses a package weight in the product title when it is unambiguous (“12 oz, Pack of 6” is 72 oz; “100 Count, 7 oz” is left alone)."
+    "message": "Nutzt ein eindeutiges Packungsgewicht im Titel („12 oz, Pack of 6“ sind 72 oz; „100 Count, 7 oz“ bleibt unberührt)."
   },
   "optUnitDisplayed": {
     "message": "Amazon's unit price only"
@@ -1102,7 +1171,7 @@
     "message": "Speed and freshness"
   },
   "optSpeedLede": {
-    "message": "Faster reuses saved scores for longer and requests fewer product pages. Fresher re-reads products sooner and trusts older shared readings less. Balanced is how Ingredient Check has always worked. A product page you open is always read again, whatever you choose."
+    "message": "Schneller behält gespeicherte Bewertungen länger und ruft weniger Seiten ab; frischer liest früher neu. „Balanced“ ist, wie es schon immer funktioniert hat. Eine Produktseite, die du öffnest, wird immer neu gelesen."
   },
   "optSpeedFastest": {
     "message": "Fastest"
@@ -1135,13 +1204,10 @@
     "message": "Saved scores for 1 day. At most 60 product pages per results page. Never uses shared readings: reads every product page itself, so more requests go to Amazon."
   },
   "popupUnitPrice": {
-    "message": "Price per ounce"
+    "message": "Preis pro Unze"
   },
   "popupUnitPriceD": {
-    "message": "Adds \"Price per ounce: Low to High\" to Amazon's sort menu and price per ounce to the sorted list, worked out from the results page. No extra requests."
-  },
-  "popupPresetsHint": {
-    "message": "Pick one or several, on any tab. They combine."
+    "message": "Fügt Amazons Sortiermenü und der sortierten Liste „Preis pro Unze: aufsteigend“ hinzu. Wird aus der Ergebnisseite berechnet — keine zusätzlichen Anfragen."
   },
   "sortFailed": {
     "message": "Could not read this results page ($FIRST$). Refresh the Amazon page and choose the option again.",
@@ -1253,7 +1319,7 @@
     "message": "Preview the email text"
   },
   "popupReport": {
-    "message": "Report a problem or suggest an improvement"
+    "message": "Problem oder Idee melden"
   },
   "reportNoActions": {
     "message": "Nothing recorded yet in this browser session."
@@ -1286,6 +1352,9 @@
   },
   "optSharedProductsD": {
     "message": "Standardmäßig aus. Wenn an, wird ein Produkt, das ein anderer Computer schon gelesen hat (Zutatentext, Titel, Stichpunkte, Zertifizierungen und Nährwerte, vor jeder Gewichtung), wiederverwendet statt erneut von Amazon geladen, und was dieser Computer liest, wird für andere hochgeladen. Jeder kann Daten hochladen, und noch prüft nichts, ob sie stimmen: Ein Suchergebnis oder die sortierte Liste könnte also eine Bewertung für einen Text zeigen, der nicht auf dem Etikett steht. Eine Produktseite, die du öffnest, wird immer von der Seite selbst gelesen. Was gesendet wird: Shop- und Produkt-IDs von Suchergebnissen, die dieser Computer nicht selbst beantworten kann, und was von bewerteten Produkten gelesen wurde."
+  },
+  "optHintSharedProducts": {
+    "message": "Standardmäßig aus. Nutzt Daten anderer Computer und lädt deine hoch; noch prüft nichts, ob sie stimmen."
   },
   "sortBudget": {
     "message": "Bewertung nach $1 Produktseiten angehalten, dem Limit für die Amazon-Ergebnisseiten in dieser Liste."
@@ -1357,13 +1426,13 @@
     "message": "Wie viele Einstellungen angezeigt werden"
   },
   "optLevelLede": {
-    "message": "Fang klein an und blende jederzeit mehr ein. Eine ausgeblendete Einstellung behält ihren Wert und wirkt weiter; hier wird nur festgelegt, was diese Seite zeigt."
+    "message": "Ausgeblendete Einstellungen behalten ihren Wert und wirken weiter."
   },
   "optLevelMinimal": {
     "message": "Minimal"
   },
   "optLevelMinimalD": {
-    "message": "Deine Ziele, Allergenwarnungen und Ernährungsformen. Alles andere bleibt auf dem Standardwert."
+    "message": "Deine Ziele, Allergenwarnungen und Ernährungsformen."
   },
   "optLevelSimple": {
     "message": "Einfach"
@@ -1375,19 +1444,19 @@
     "message": "Standard (Voreinstellung)"
   },
   "optLevelStandardD": {
-    "message": "Dazu: Sortierung, Preis pro Unze, Bewertung beim Überfahren, die gemeinsame Datenbank, Sicherung, Google-Anmeldung und Shops."
+    "message": "Dazu: Sortierung, Preis pro Unze, Bewertung beim Überfahren, die gemeinsame Datenbank, Sicherung und Shops."
   },
   "optLevelAdvanced": {
     "message": "Erweitert"
   },
   "optLevelAdvancedD": {
-    "message": "Dazu: jede Gewichtung, Tempo und Aktualität, Zeiten, Sortierdetails und die Einstellungsdatei."
+    "message": "Dazu: jede Gewichtung, Tempo, Zeiten, Sortierdetails und die Einstellungsdatei."
   },
   "optLevelExpert": {
     "message": "Alles"
   },
   "optLevelExpertD": {
-    "message": "Zeigt außerdem Diagnosen und Beiträge zur gemeinsamen Datenbank."
+    "message": "Außerdem Diagnosen und Beiträge zur gemeinsamen Datenbank."
   },
   "optHoverDelay": {
     "message": "Wartezeit vor der Bewertung"
@@ -1395,8 +1464,40 @@
   "optPanelOpen": {
     "message": "Bewertungsfeld auf Produktseiten geöffnet anzeigen"
   },
+  "optPoints": {
+    "message": "Punkte für gesunde Warenkörbe sammeln"
+  },
+  "optHintPoints": {
+    "message": "Gute Artikel im Warenkorb bringen XP und Stufen. Nur auf diesem Computer gespeichert."
+  },
+  "optNotePoints": {
+    "message": "Jedes Produkt zählt einmal pro Woche: 20 XP ab einer Bewertung von 90, 10 XP ab 75. Stufe n kostet 100 × n XP. Die Punkte sind zum Spaß: Sie ändern nie eine Bewertung, gehören nicht zu einer Sicherung und verlassen diesen Computer nie."
+  },
+  "optPointsStatus": {
+    "message": "Stufe $LEVEL$ · $TOTAL$ XP",
+    "placeholders": {
+      "level": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      }
+    }
+  },
+  "optPointsNone": {
+    "message": "Noch keine Punkte."
+  },
+  "optPointsReset": {
+    "message": "Punkte zurücksetzen"
+  },
+  "optPointsResetConfirm": {
+    "message": "Punkte und Stufe auf null zurücksetzen?"
+  },
+  "optPointsResetDone": {
+    "message": "Punkte zurückgesetzt"
+  },
   "optNotePanelOpen": {
-    "message": "Standardmäßig aus: Eine Produktseite zeigt Bewertung und Urteil, ein Klick öffnet die ganze Aufschlüsselung. Eingeschaltet ist sie schon geöffnet."
+    "message": "Produktseiten starten mit geöffneter Aufschlüsselung. Aus: Ein Klick öffnet sie."
   },
   "welLevelH": {
     "message": "Wie viel möchtest du einrichten?"
@@ -1406,6 +1507,9 @@
   },
   "optSortDepth": {
     "message": "Wie viel geladen wird"
+  },
+  "optHintSortDepth": {
+    "message": "Mehr Produkte vergleichen besser und dauern länger."
   },
   "optSortDepthD": {
     "message": "Mehr Produkte ergeben einen besseren Vergleich und dauern länger. Über diese Seite hinaus liest Ingredient Check weitere Amazon-Ergebnisseiten und bewertet, was es kann, innerhalb des Zeitlimits. Gespeicherte Bewertungen und die gemeinsame Datenbank kommen zuerst, eine wiederholte Suche geht also schnell."
@@ -1438,7 +1542,7 @@
     "message": "Wie schnell Produktseiten abgerufen werden"
   },
   "optPaceLede": {
-    "message": "Gilt für die Bewertung einer Ergebnisseite und für den Aufbau der sortierten Liste. Schneller ist früher fertig, wirkt aber eher wie automatisierter Datenverkehr, daher kann Amazon früher ablehnen; nach fünf Ablehnungen in Folge pausiert alles von selbst."
+    "message": "Gilt für die Bewertung einer Ergebnisseite und den Aufbau der sortierten Liste. Schneller ist früher fertig, wirkt aber eher wie automatisierter Datenverkehr, daher kann Amazon früher ablehnen; fünf Ablehnungen in Folge pausieren alles."
   },
   "optPaceGentle": {
     "message": "Behutsam"
@@ -1471,7 +1575,7 @@
     "message": "Wie stark jedes Ziel zählt"
   },
   "optGoalMixNote": {
-    "message": "These importance weights decide how selected goals combine where their priorities overlap. At 1 each they count equally. Focused priorities take precedence over incidental settings. Higher values give a goal more influence, not a guarantee about the final score."
+    "message": "Höhere Werte geben einem Ziel mehr Gewicht, wo sich Ziele überschneiden; bei jeweils 1 zählen sie gleich."
   },
   "optGoalMixAria": {
     "message": "Wie stark $1 zählt"
@@ -1495,7 +1599,7 @@
     "message": "Abmelden"
   },
   "optAccountIntro": {
-    "message": "Oder bewahre eine Kopie bei deinem Google-Konto in der Ingredient-Check-Datenbank auf, für einen Browser, der nicht bei Chrome angemeldet ist. Dort wird nur ein Hash deiner Konto-ID gespeichert — nicht deine E-Mail. Name, E-Mail und Bild werden hier erst nach der Anmeldung gezeigt und bleiben auf diesem Computer."
+    "message": "Oder bewahre eine Kopie bei deinem Google-Konto auf, für einen Browser ohne Chrome-Anmeldung. In der Ingredient-Check-Datenbank wird nur ein Hash deiner Konto-ID gespeichert, nicht deine E-Mail."
   },
   "optAccountSignIn": {
     "message": "Mit Google anmelden"
@@ -1508,6 +1612,9 @@
   },
   "optSortRemember": {
     "message": "Meine Prioritäten merken"
+  },
+  "optHintSortRemember": {
+    "message": "Die sortierte Liste öffnet ihre Prioritäts-Regler wie zuletzt eingestellt."
   },
   "optSortRememberD": {
     "message": "In der sortierten Liste öffnen die Prioritäts-Regler so, wie du sie zuletzt eingestellt hast, getrennt für die Optionen Bewertung und Preis pro Unze in Amazons Menü. Aus: Jede Liste beginnt mit dem Standard der gewählten Option."
@@ -1558,7 +1665,7 @@
     "message": "Tastaturkürzel"
   },
   "optShortcutD": {
-    "message": "Öffne auf einer Amazon-Suchergebnisseite die sortierte Liste ohne Maus. Das sind die Erweiterungs-Kürzel von Chrome; du kannst sie ändern oder löschen."
+    "message": "Öffne die sortierte Liste auf einer Amazon-Suchseite per Tastatur. Die Tasten kannst du in Chrome ändern oder löschen."
   },
   "optShortcutChange": {
     "message": "Kürzel ändern"
@@ -1576,16 +1683,13 @@
     "message": "Meine Google-Kopie automatisch aktuell halten"
   },
   "optGoogleAutoD": {
-    "message": "Speichert jede Änderung der Einstellungen wenige Sekunden später in deinem Google-Konto. Das beginnt, sobald dieser Computer einmal in dein Konto gespeichert oder daraus wiederhergestellt hat, damit ein neuer Computer deine gespeicherte Kopie nicht mit seinen Standardwerten überschreibt."
+    "message": "Speichert jede Änderung wenige Sekunden später, sobald dieser Computer einmal in dein Konto gespeichert oder daraus wiederhergestellt hat — so kann ein neuer Computer deine Kopie nicht mit Standardwerten überschreiben."
   },
   "optCheckBackups": {
     "message": "Meine Sicherungen prüfen"
   },
   "optLevelRaised": {
     "message": "Mehr Einstellungen werden angezeigt, damit du diesen Abschnitt siehst."
-  },
-  "popupSettingsLinkLow": {
-    "message": "Einstellungen: Ziele, Allergene & Ernährungsformen"
   },
   "optNavAppearance": {
     "message": "Darstellung"
@@ -1594,7 +1698,7 @@
     "message": "Darstellung"
   },
   "optAppearanceLede": {
-    "message": "Farben für Einstellungen, das Symbolleisten-Popup, die Einrichtung, die sortierte Liste sowie die Bewertungsplaketten und das Feld auf Shop-Seiten. Text bleibt immer lesbar: Zahl und Urteil nennen die Bewertung stets, die Farbe ergänzt sie nur."
+    "message": "Gilt für Einstellungen, das Popup, die Einrichtung, die sortierte Liste sowie die Plaketten und das Feld auf Shop-Seiten. Zahl und Urteil nennen die Bewertung stets; die Farbe ergänzt sie nur."
   },
   "optThemeH": {
     "message": "Farbschema"

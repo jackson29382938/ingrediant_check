@@ -31,11 +31,11 @@ and the engine scored the marketing copy.
 **Expect now:** *"Couldn't read the ingredients on this page"* with a paste box — because the blurb
 is refused and nothing else is enabled yet. That refusal is the fix. If you still see 86, the old
 cached score is being shown; the cache is version-stamped so it should not happen, but
-**Clear cached scores** in the popup settles it.
+**Clear cached entries** (under **More** in the popup) settles it.
 
 ## 3. Turn the optional features on
 
-Extension popup (click the icon):
+Extension popup (click the icon; the last two toggles are under **More**):
 
 | Toggle | What to expect |
 | --- | --- |
@@ -148,7 +148,7 @@ Reload the extension in `chrome://extensions` first, then open an Amazon grocery
    tab. **Back to Amazon search** returns to the search tab.
 5. Choose **Ingredient Check score: High to Low** from Amazon's menu: a new list, healthiest first.
 6. Amazon's own options (*Price: High to Low*) still sort Amazon's page as normal.
-7. Toolbar popup → turn **Price per ounce** off: its menu option and the price-per-ounce slider go.
+7. Toolbar popup → **More** → turn **Price per ounce** off: its menu option and the price-per-ounce slider go.
 8. Settings → *Sort* → turn on *Load more Amazon results* and set 30; choose an option again: the
    panel collects 30 listings across Amazon's results pages.
 9. Settings → *Speed*: *Balanced* is selected. *Most up to date* rates results without asking the
@@ -319,7 +319,13 @@ bottles showed $7.34/oz and $19.82/oz.
   still left alone, as the Cost Sorter did.
 - `npm test` has the owner's titles; the simulation's oat milk (64 fl oz) now ranks first by price.
 
-**Report a problem or suggest an improvement** (toolbar popup): the real extension in the simulation
+**Cart ratings** (Amazon, signed out is fine): add one grocery item to the cart, open the cart from the header
+(`/gp/cart/view.html`). Expect a score on the item's title, an average under *Shopping Cart* ("Cart average · Excellent",
+"1 of 1 items rated") and the same number on the toolbar icon, and nothing on "Customers who shopped for …", the carousels
+or the footer. The page after Add to Cart (`/cart/smart-wagon`) rates the mini-cart line. With Settings → *What to rate* →
+*Earn points for healthy carts* on, the average line also shows the level; reopening the cart earns no more points that week.
+
+**Report a problem or idea** (toolbar popup; the page itself is titled *Report a problem or suggest an improvement*): the real extension in the simulation
 opened the report page from the popup; it listed the recent clicks (the sort menu choice, the side
 panel's preset and buttons), the settings and the side panel summary, and **Download report file**
 saved one `ingredient-check-report-….html` with the text and data. The screenshot needs a real click

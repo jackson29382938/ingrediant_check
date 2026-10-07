@@ -135,7 +135,7 @@ test('force() switches only the dark rules, and puts them back for "match my sys
 });
 
 test('every dark rule in the extension is spelled the way force() recognises, and no CSS uses color-mix', () => {
-  const files = ['src/options/options.html', 'src/options/popup.html', 'src/options/welcome.html', 'src/options/report.html',
+  const files = ['src/options/options.html', 'src/options/popup.html', 'src/options/ui.css', 'src/options/welcome.html', 'src/options/report.html',
     'src/options/sorted.css', 'src/content/panel.js'];
   let rules = 0;
   for (const f of files) {
@@ -151,7 +151,7 @@ test('every dark rule in the extension is spelled the way force() recognises, an
 });
 
 test('every theme variable in a stylesheet carries today\'s colour as its fallback', () => {
-  const files = ['src/options/options.html', 'src/options/popup.html', 'src/options/welcome.html', 'src/options/report.html', 'src/options/sorted.css'];
+  const files = ['src/options/options.html', 'src/options/popup.html', 'src/options/ui.css', 'src/options/welcome.html', 'src/options/report.html', 'src/options/sorted.css'];
   let seen = 0;
   for (const f of files) {
     const text = read(f);

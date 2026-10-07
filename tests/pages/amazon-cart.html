@@ -1,0 +1,88 @@
+<!-- The shape of amazon.com's cart page (https://www.amazon.com/gp/cart/view.html), read from a live guest cart on
+     2026-10-07 and reduced to what the extension reads. Product names, ASINs and ids are made up; there is no cart,
+     account or session data here. What matters, and is kept as Amazon writes it:
+       - the active lines are .sc-list-item[data-asin][data-itemtype="active"] inside #sc-active-cart;
+       - each line also holds HIDDEN "was removed / moved to Saved for Later" messages with their own copies of the
+         title link (they come first in the markup and are display:none);
+       - the visible title link wraps a truncating span with the full title (offscreen) AND the cut-off copy;
+       - saved-for-later lines are in #sc-saved-cart;
+       - the page then carries recommendation rails, a carousel and a footer, all with product links. -->
+<div id="navbar"><div id="nav-flyout-ewc" role="dialog"></div></div>
+<div id="sc-retail-cart-container" class="a-fixed-right-flipped-grid">
+  <div id="sc-cart-column" class="a-fixed-right-grid-col sc-retail-cart-column-spacing a-col-left">
+    <div id="sc-active-cart" data-name="Active Cart" class="a-cardui sc-card-style sc-list celwidget sc-retail-cart sc-active-cart">
+      <div class="a-cardui-body a-scroller-none">
+        <h2 id="sc-active-items-header" class="a-size-extra-large a-text-normal">Shopping Cart</h2>
+        <form id="activeCartViewForm" method="post" action="/cart/ref=ord_cart_shr?app-nav-type=none&amp;dc=df">
+          <ul data-name="Active Items" class="a-unordered-list a-nostyle a-vertical a-spacing-mini">
+            <div data-asin="B0CARTOAT1" data-itemtype="active" data-itemid="11111111-aaaa" data-quantity="2" data-price="12" data-producttitle="Organic Rolled Oats 42 oz Canister" data-csa-c-item-id="amzn1.asin.B0CARTOAT1" id="sc-active-11111111-aaaa" class="a-row sc-list-item" role="listitem">
+              <div class="sc-list-item-spinner" style="display:none;"><img src="x.gif" alt=""></div>
+              <div class="sc-list-item-removed-msg" style="display:none;">
+                <div class="sc-list-item-removed-msg-delete a-padding-medium" data-action="delete" style="display:none;">
+                  <span class="a-size-base"><a class="a-link-normal sc-product-link sc-removed-msg-title" target="_blank" href="/gp/product/B0CARTOAT1/ref=ox_sc_act_title_delete_1?smid=A1B2C3&amp;psc=1">Organic Rolled Oats 42 oz Canister</a> was removed from Shopping Cart.</span>
+                </div>
+                <div class="sc-list-item-removed-msg-save-for-later a-padding-medium" data-action="save-for-later" style="display:none;">
+                  <span class="a-size-base"><a class="a-link-normal sc-product-link sc-removed-msg-title" target="_blank" href="/gp/product/B0CARTOAT1/ref=ox_sc_act_title_1?smid=A1B2C3&amp;psc=1">Organic Rolled Oats 42 oz Canister</a> has been moved to Saved for Later.</span>
+                </div>
+                <div class="sc-list-item-removed-msg-move-to-cart a-padding-medium" data-action="move-to-cart" style="display:none;">
+                  <span class="a-size-base"><a class="a-link-normal sc-product-link sc-removed-msg-title" target="_blank" href="/gp/product/B0CARTOAT1/ref=ox_sc_act_title_1?smid=A1B2C3&amp;psc=1">Organic Rolled Oats 42 oz Canister</a> has been moved to Shopping Cart.</span>
+                </div>
+              </div>
+              <div class="sc-list-item-content">
+                <div class="a-row a-grid-vertical-align a-grid-top sc-list-item-content-inner">
+                  <div class="a-spacing-mini sc-item-content-group sc-image-wrapper">
+                    <a aria-hidden="true" class="a-link-normal sc-product-link" target="_blank" tabindex="-1" href="/gp/product/B0CARTOAT1/ref=ox_sc_act_image_1?smid=A1B2C3&amp;psc=1"><img src="oats.jpg" alt="" class="sc-product-image"><span class="aok-hidden">Opens in a new tab</span></a>
+                  </div>
+                  <div class="sc-item-content-group">
+                    <ul class="a-unordered-list a-nostyle a-vertical a-spacing-base sc-item-content-list sc-nested-list" role="presentation">
+                      <li class="sc-item-product-title-cont"><span class="a-list-item">
+                        <a class="a-link-normal sc-product-link sc-product-title aok-block" target="_blank" href="/gp/product/B0CARTOAT1/ref=ox_sc_act_title_1?smid=A1B2C3&amp;psc=1"><span class="a-size-base-plus a-color-base sc-product-title sc-grid-item-product-title"><h3 class="a-text-normal"><span class="a-truncate sc-grid-item-product-title a-size-base-plus" data-a-max-rows="2"><span class="a-truncate-full a-offscreen">Organic Rolled Oats 42 oz Canister</span><span class="a-truncate-cut" aria-hidden="true">Organic Rolled Oats 42 oz Canister</span></span></h3></span><span class="aok-hidden">Opens in a new tab</span></a>
+                        <span class="a-size-base a-color-base sc-product-creator">by Example Mills</span>
+                      </span></li>
+                      <div class="sc-item-price-block"><span class="a-offscreen">$12.00</span></div>
+                      <span class="a-size-small sc-action-delete-active"><input name="submit.delete-active.11111111-aaaa" value="Delete" type="submit"></span>
+                      <span class="a-size-small sc-action-save-for-later"><input name="submit.save-for-later.11111111-aaaa" value="Save for later" type="submit"></span>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div data-asin="B0CARTLONG" data-itemtype="active" data-itemid="22222222-bbbb" data-quantity="1" data-price="9" data-producttitle="Example Brand Instant Oatmeal Variety Pack, Maple and Brown Sugar, Apples and Cinnamon, Original, Whole Grain, Heart Healthy, 1.51 oz Packets, 40 Count (Pack of 1), Individual Single Serve Breakfast Packets for Home Office School and Travel" id="sc-active-22222222-bbbb" class="a-row sc-list-item" role="listitem">
+              <div class="sc-list-item-removed-msg" style="display:none;">
+                <div class="sc-list-item-removed-msg-delete" data-action="delete" style="display:none;"><a class="a-link-normal sc-product-link sc-removed-msg-title" href="/gp/product/B0CARTLONG/ref=ox_sc_act_title_delete_2?psc=1">Example Brand Instant Oatmeal Variety Pack</a> was removed from Shopping Cart.</div>
+              </div>
+              <div class="sc-list-item-content">
+                <a aria-hidden="true" class="a-link-normal sc-product-link" tabindex="-1" href="/gp/product/B0CARTLONG/ref=ox_sc_act_image_2?psc=1"><img src="oatmeal.jpg" alt="" class="sc-product-image"><span class="aok-hidden">Opens in a new tab</span></a>
+                <li class="sc-item-product-title-cont"><span class="a-list-item">
+                  <a class="a-link-normal sc-product-link sc-product-title aok-block" href="/gp/product/B0CARTLONG/ref=ox_sc_act_title_2?psc=1"><span class="a-size-base-plus a-color-base sc-product-title sc-grid-item-product-title"><h3 class="a-text-normal"><span class="a-truncate sc-grid-item-product-title" data-a-max-rows="2"><span class="a-truncate-full a-offscreen">Example Brand Instant Oatmeal Variety Pack, Maple and Brown Sugar, Apples and Cinnamon, Original, Whole Grain, Heart Healthy, 1.51 oz Packets, 40 Count (Pack of 1), Individual Single Serve Breakfast Packets for Home Office School and Travel</span><span class="a-truncate-cut" aria-hidden="true">Example Brand Instant Oatmeal Variety Pack, Maple and Brown Sugar, Apples and Cinnamon, Original, Whole Grain, Heart Healthy, 1.51 oz Packets,…</span></span></h3></span><span class="aok-hidden">Opens in a new tab</span></a>
+                </span></li>
+              </div>
+            </div>
+          </ul>
+        </form>
+      </div>
+    </div>
+    <div id="sc-saved-cart" data-name="Saved Cart" class="a-cardui sc-card-style sc-list sc-saved-cart">
+      <h2 id="sc-saved-items-header">Saved for later (1 item)</h2>
+      <ul data-name="Saved Items" class="a-unordered-list a-nostyle a-vertical">
+        <div data-asin="B0SAVEDOAT" data-itemtype="saved" id="sc-saved-33333333-cccc" class="a-row sc-list-item" role="listitem">
+          <a class="a-link-normal sc-product-link sc-product-title aok-block" href="/gp/product/B0SAVEDOAT/ref=ox_sc_saved_title_1?psc=1"><span class="sc-product-title">Saved for later oats</span></a>
+        </div>
+      </ul>
+    </div>
+  </div>
+  <div id="sc-rhf" class="a-fixed-right-grid-col a-col-right">
+    <div id="sc-buy-box"><span id="sc-subtotal-label-buybox">Subtotal (3 items):</span><input name="proceedToRetailCheckout" type="submit" value="Proceed to checkout"></div>
+    <div id="CardInstanceRAIL"><div class="_cDEzb_your-orders-box-styling_1K33F"><div class="a-section">
+      <h3 class="a-spacing-base">Customers who shopped for Organic Rolled Oats 42 oz Canister also shopped for:</h3>
+      <ul class="a-unordered-list a-nostyle a-vertical"><li class="a-spacing-medium"><span class="a-list-item"><span><div><div class="a-fixed-left-grid"><div class="a-fixed-left-grid-inner">
+        <div class="a-fixed-left-grid-col a-col-left"><a aria-hidden="true" class="a-link-normal aok-block" tabindex="-1" href="/Slug-Rail-Oats/dp/B0RAILITM1/ref=pd_cart_crc_cko_sbs_d_sccl_1_1/144-0000000-0000000?psc=1"><img alt="Rail oats" class="a-dynamic-image"></a></div>
+        <div class="a-fixed-left-grid-col a-col-right"><div><div><a class="a-link-normal aok-block" href="/Slug-Rail-Oats/dp/B0RAILITM1/ref=pd_cart_crc_cko_sbs_d_sccl_1_1/144-0000000-0000000?psc=1" role="link"><span><div class="_cDEzb_p13n-sc-css-line-clamp-1_1Fn1y">Rail oats, Two Bags</div></span></a></div></div></div>
+      </div></div></div></span></span></li></ul>
+    </div></div></div>
+  </div>
+</div>
+<div class="a-section"><div id="anonCarousel1" class="a-carousel-viewport" role="group"><ol class="a-carousel" role="list">
+  <li aria-roledescription="slide" class="a-carousel-card"><span><div class="p13n-sc-uncoverable-faceout"><a aria-hidden="true" class="a-link-normal aok-block" tabindex="-1" href="/Slug-Honey/dp/B0CAROUSEL/ref=pd_cart_crc_cko_cps_d_sccl_2_1/144-0000000-0000000?psc=1"><img alt="Honey"></a><div><a class="a-link-normal aok-block" href="/Slug-Honey/dp/B0CAROUSEL/ref=pd_cart_crc_cko_cps_d_sccl_2_1/144-0000000-0000000?psc=1" role="link"><span>Raw Honey 32 oz</span></a></div></div></span></li>
+</ol></div></div>
+<div id="navFooter" class="navLeftFooter"><div class="navFooterVerticalColumn"><ul><li><a href="/dp/B0FOOTER01" class="nav_a">Footer product link</a></li></ul></div></div>

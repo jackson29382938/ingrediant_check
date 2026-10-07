@@ -1,0 +1,144 @@
+/* The look shared by the toolbar popup and the settings page: colour tokens, switches, chips,
+   buttons and the "More" disclosure.
+
+   Every colour is a token. The dark scheme replaces the tokens in ONE @media block, and the reader's
+   accent (engine/db/theme.js, --u-*) replaces the accent tokens, so no component needs its own dark
+   rules. Text colours were chosen for 4.5:1 or better on the surfaces they sit on (the same surfaces
+   theme.js accentFor() checks the accent against: #eef0f0 #f7f8f8 #fff, and #3a3c3c #2d2f2f #232525 #1b1c1c). */
+
+:root {
+  color-scheme: light dark;
+  --page: #f7f8f8;
+  --card: #ffffff;
+  --text: #0f1111;
+  --muted: #565959;
+  --line: #d5d9d9;
+  --soft: #eaeded;
+  --hover: #eef0f0;
+  --track: #858a8a;           /* an off switch: 3:1 against the card, so its shape is visible */
+  --danger: #a4161a;
+  --accent: var(--u-accent, #0f7b3f);
+  --on-accent: var(--u-on-accent, #ffffff);
+  --accent-bg: var(--u-accent-bg, #f0faf4);
+  --accent-line: var(--u-accent-line, #b7e0c5);
+  --link: var(--u-link, #007185);
+  --note-bg: #fdf3e2;
+  --note-line: #ffd8a8;
+  --note-text: #8a4b00;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #1b1c1c;
+    --card: #232525;
+    --text: #f3f3f3;
+    --muted: #aeaeae;
+    --line: #3a3c3c;
+    --soft: #2d2f2f;
+    --hover: #2d2f2f;
+    --track: #7d8282;
+    --danger: #ff8a8a;
+    --accent: var(--u-accent-d, #6fdf9a);
+    --on-accent: var(--u-on-accent-d, #0f1111);
+    --accent-bg: var(--u-accent-bg-d, #1e2a22);
+    --accent-line: var(--u-accent-line-d, #2f5a40);
+    --link: var(--u-link-d, #5fb8c9);
+    --note-bg: #3d2e14;
+    --note-line: #8a6a2a;
+    --note-text: #f3d19c;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--text);
+  font: 14px/1.5 "Amazon Ember", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+h1, h2, h3, p { margin: 0; }
+a { color: var(--link); text-decoration: none; }
+p a, li a { text-decoration: underline; }   /* a link inside a sentence is not told apart by colour alone */
+:focus-visible { outline: 3px solid var(--link); outline-offset: 2px; }
+/* A [hidden] element stays hidden whatever display it was given; so does one the settings level hides. */
+.lvl-hidden,[hidden]{display:none!important}
+
+/* ---- switch: a checkbox that reads as one on a screen reader (role="switch") ---- */
+input[type=checkbox][role=switch] {
+  appearance: none; -webkit-appearance: none; position: relative; flex: none; margin: 0;
+  width: 38px; height: 22px; border-radius: 999px; background: var(--track); cursor: pointer;
+  transition: background-color .15s;
+}
+input[type=checkbox][role=switch]::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%;
+  background: #fff; transition: transform .15s, background-color .15s;
+}
+input[type=checkbox][role=switch]:checked { background: var(--accent); }
+input[type=checkbox][role=switch]:checked::after { transform: translateX(16px); background: var(--on-accent); }
+input[type=checkbox][role=switch]:disabled { opacity: .5; cursor: default; }
+/* A row with a switch: the words on the left, the switch on the right (the input stays first in the
+   source, so a screen reader and the Tab order meet the control before its words, as before). */
+.sw { display: flex; align-items: center; justify-content: space-between; gap: 16px; cursor: pointer; }
+.sw > input { order: 2; }
+.sw.disabled { opacity: .6; cursor: not-allowed; }
+.sw-text { display: grid; gap: 1px; min-width: 0; }
+.sw-title { font-weight: 600; }
+.sw-hint { color: var(--muted); font-size: 12px; line-height: 1.4; }
+
+/* ---- chips and goal buttons ---- */
+.chip, .preset, .preset-card {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; margin: 0; padding: 5px 12px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--text);
+  font: inherit; font-size: 13px; line-height: 1.3; cursor: pointer; text-align: left;
+}
+.chip:hover, .preset:hover, .preset-card:hover { background: var(--hover); }
+.chip input { margin: 0; accent-color: var(--accent); }
+.chip:has(input:checked) { background: var(--accent-bg); border-color: var(--accent); }
+.preset, .preset-card { font-weight: 600; }
+.preset[aria-pressed="true"], .preset-card[aria-pressed="true"] {
+  background: var(--accent); border-color: var(--accent); color: var(--on-accent);
+}
+.preset[aria-pressed="true"]::before, .preset-card[aria-pressed="true"]::before { content: "✓" / ""; font-weight: 700; }
+
+/* The goal categories: a segmented row of tabs. */
+.preset-cats { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--hover); }
+.preset-cat {
+  flex: 1 1 auto; margin: 0; padding: 5px 8px; border: 1px solid transparent; border-radius: 8px; background: none;
+  color: var(--muted); font: inherit; font-size: 12px; font-weight: 600; line-height: 1.3; cursor: pointer; white-space: nowrap;
+}
+.preset-cat:hover { color: var(--text); }
+.preset-cat[aria-selected="true"] { background: var(--card); border-color: var(--line); color: var(--text); }
+.preset-cat.has-picks:not([aria-selected="true"]) { color: var(--accent); }
+
+/* ---- buttons and links ---- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 34px; margin: 0;
+  padding: 6px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--text);
+  font: inherit; font-size: 13px; font-weight: 600; line-height: 1.2; text-decoration: none; cursor: pointer;
+}
+.btn:hover { background: var(--hover); }
+.btn.danger { color: var(--danger); }
+.btn:disabled, .btn[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
+.linkbtn { padding: 0; border: 0; background: none; color: var(--link); font: inherit; cursor: pointer; text-align: left; }
+.linkbtn:hover, a:hover { text-decoration: underline; }
+.linkbtn:disabled { color: var(--muted); cursor: default; text-decoration: none; }
+
+/* ---- "More": the long explanation or the rarely used controls, one click away ---- */
+details.more > summary, .more-box > summary {
+  display: inline-flex; align-items: center; gap: 6px; padding: 2px 0; list-style: none; cursor: pointer;
+  color: var(--link); font-size: 12px; font-weight: 600;
+}
+details.more > summary::-webkit-details-marker, .more-box > summary::-webkit-details-marker { display: none; }
+details.more > summary::before, .more-box > summary::before {
+  content: ""; width: 6px; height: 6px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg); transition: transform .15s;
+}
+details.more[open] > summary::before, .more-box[open] > summary::before { transform: rotate(45deg); }
+details.more > p, details.more > ul { margin-top: 6px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+@media (prefers-reduced-motion: reduce) {
+  input[type=checkbox][role=switch], input[type=checkbox][role=switch]::after, details.more > summary::before, .more-box > summary::before { transition: none; }
+}
+@media (forced-colors: active) {
+  /* Backgrounds are replaced in forced colours, so a picked chip or tab is shown by its border instead. */
+  .preset[aria-pressed="true"], .preset-card[aria-pressed="true"], .preset-cat[aria-selected="true"], .chip:has(input:checked) { border: 2px solid Highlight; }
+  input[type=checkbox][role=switch] { border: 2px solid ButtonText; background: Canvas; }
+  input[type=checkbox][role=switch]::after { background: ButtonText; }
+  input[type=checkbox][role=switch]:checked { background: Highlight; border-color: Highlight; }
+  input[type=checkbox][role=switch]:checked::after { background: HighlightText; }
+}

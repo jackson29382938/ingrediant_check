@@ -1,7 +1,15 @@
 // Ratings only: no cart mutations, authenticated requests, screenshots or cart-data uploads.
 (function(root) {
-  const A = root.AIR, C = A.cart, cache = A.db.scoreCache;
+  const A = root.AIR, C = A.cart, cache = A.db.scoreCache, P = A.db.points;
   let raw = {}, prefs = {}, settings = {}, generation = 0, used = 0, active = 0, blocked = false, timer;
+  // Cart points (optional): what is stored, what this page earned, and the line that shows the cart as a whole.
+  let xp = P.sanitize(), earnedHere = 0, summary = null;
+  const awarded = new Set();
+  const t = (key, fallback, ...subs) => {
+    let out = '';
+    try { out = chrome.i18n.getMessage(key, subs.map(String)); } catch { /* not in an extension page */ }
+    return out || fallback.replace(/\$(\d)/g, (m, i) => subs[i - 1]);
+  };
   const jobs = new Map(), controllers = new Set();
   const version = chrome.runtime.getManifest().version;
   let url = location.href;
@@ -9,7 +17,61 @@
     generation++; used = 0; blocked = false; active = 0; jobs.clear();
     for (const c of controllers) c.abort(); controllers.clear();
     document.querySelectorAll('.air-cart-badge').forEach(b => b.remove());
+    awarded.clear(); earnedHere = 0; removeSummary();
     url = location.href; schedule();
+  }
+  function dropSummary() { document.querySelectorAll('.air-cart-summary').forEach(n => n.remove()); summary = null; }
+  // No summary any more (no scored line, another page, the switch went off): the icon stops showing an average too.
+  function removeSummary() { dropSummary(); publishBadge(null); }
+  // The toolbar icon shows the cart's average on a cart tab, as it shows a product's score on a product page.
+  let badged;
+  function publishBadge(s) {
+    const score = s && s.rated ? s.average : undefined;
+    if (score === badged) return;
+    badged = score;
+    try {
+      chrome.runtime.sendMessage(score === undefined ? { type: 'pageScore' } : { type: 'pageScore', score, verdict: s.verdict }, () => void chrome.runtime.lastError);
+    } catch { /* the extension was reloaded under this page */ }
+  }
+  // The cart as a whole, under Amazon's "Shopping Cart" heading (elsewhere in front of the list): the average of
+  // the lines that have a score, how many that is, and (only when points are on) the level. Nothing is added to
+  // the page when there is no score yet, and the page is not touched again while the line is unchanged.
+  function renderSummary(items, tiles) {
+    const s = C.summarize(items), place = C.summaryPlace(document, location, tiles[0]);
+    if (!place || !s.rated) { removeSummary(); return; }
+    const lv = settings.pointsEnabled ? P.level(xp.total) : null;
+    publishBadge(s);
+    const sig = JSON.stringify([s, earnedHere, lv]);
+    if (summary?.isConnected && summary.dataset.airSig === sig) return;
+    if (!summary?.isConnected) {
+      dropSummary();
+      summary = document.createElement('div');
+      summary.className = 'air-cart-summary'; summary.setAttribute('role', 'status');
+      summary.attachShadow({ mode: 'open' }).innerHTML = '<style>:host{display:block!important;margin:8px 0!important}.box{display:flex;align-items:center;gap:12px;padding:10px 14px;border:2px solid var(--ring);border-radius:12px;background:var(--bg);color:var(--fg);font:14px/1.4 sans-serif}.num{flex:none;display:grid;place-items:center;min-width:46px;height:46px;padding:0 6px;box-sizing:border-box;border:3px solid var(--ring);border-radius:999px;background:#fff;font:700 18px/1 sans-serif}.t{font-weight:700}.s{font-size:12px}</style><div class="box"><span class="num"></span><span><span class="t"></span><br><span class="s"></span></span></div>';
+      place.parent.insertBefore(summary, place.before);
+    }
+    const q = sel => summary.shadowRoot.querySelector(sel);
+    q('.num').textContent = String(s.average);
+    q('.t').textContent = `${t('cartAverage', 'Cart average')} · ${s.verdict}`;
+    q('.s').textContent = [t('cartRated', '$1 of $2 items rated', s.rated, s.total), s.pending ? t('cartChecking', 'checking…') : '',
+      earnedHere ? t('cartXpGained', '+$1 XP', earnedHere) : '', lv ? t('cartLevel', 'Level $1 · $2/$3 XP', lv.level, lv.into, lv.need) : ''].filter(Boolean).join(' · ');
+    const c = A.db.theme.band(s.average);
+    for (const k of ['fg', 'bg', 'ring']) summary.style.setProperty('--' + k, c[k]);
+    summary.dataset.airSig = sig;
+  }
+  // Points for the good lines that have not been looked at yet on this page (each product once a week, and the
+  // stored object is read and written only when there is something new). Never touches a score.
+  async function award(items) {
+    if (!settings.pointsEnabled) return;
+    const fresh = items.filter(i => Number.isFinite(i.score) && !awarded.has(i.id)), turn = generation;
+    if (!fresh.length) return;
+    for (const i of fresh) awarded.add(i.id);
+    const stored = (await chrome.storage.local.get('xp')).xp;
+    if (turn !== generation) return;
+    const host = cache.normalizeStore(location.hostname), r = P.earn(stored, fresh.map(i => ({ key: `${host}:${i.id}`, score: i.score })));
+    xp = r.xp;
+    if (r.gained) { earnedHere += r.gained; await chrome.storage.local.set({ xp }); }
+    schedule();
   }
   function schedule() { clearTimeout(timer); timer = setTimeout(pass, 200); }
   function paint(tile, hit, status) {
@@ -51,10 +113,13 @@
       if (turn !== generation || control.signal.aborted || location.href !== url || !C.allowed(location)) return;
       if (/robot or human|verify you are human|access denied|press.*hold|just a moment|security verification/i.test([doc.title, doc.querySelector('h1')?.textContent].join(' '))) { blocked = true; throw new Error('blocked'); }
       const data = a.readProduct(doc, final);
+      if (data.real === false) { blocked = true; throw new Error('blocked'); }   // a robot check, not the product page
       if (data.id !== job.id || !data.ingredients) throw new Error('label');
-      const food = A.db.ingestible.assess({ querySelector: () => null }, { title: data.title, text: [data.title, ...(data.crumbs || []), data.labelText || ''].join('\n') });
-      if (settings.foodOnly && !food.ok && food.negatives.length) { job.status = 'not-food'; return; }
-      const result = A.engine.score({ name: data.title, ingredients_text: data.ingredients, advisory_text: data.advisoryText, nutrition: data.nutrition }, prefs);
+      // The page's own food check when the adapter has one (Amazon: department and breadcrumbs), else the title's.
+      const food = data.food || A.db.ingestible.assess({ querySelector: () => null }, { title: data.title, text: [data.title, ...(data.crumbs || []), data.labelText || ''].join('\n') });
+      if (settings.foodOnly && !food.ok && (food.negatives || []).length) { job.status = 'not-food'; return; }
+      // Scored from what a product page scores from, so the same product reads the same number everywhere.
+      const result = A.engine.score({ name: data.title, labels: data.labels, certifications: data.certifications, ingredients_text: data.ingredients, advisory_text: data.advisoryText, nutrition: data.nutrition }, prefs);
       if (!result.parsed || result.coverage < 0.34) throw new Error('coverage');
       if (turn !== generation || control.signal.aborted || location.href !== url || !C.allowed(location)) return;
       job.hit = { schema: cache.SCHEMA, v: version, t: Date.now(), store: cache.normalizeStore(location.hostname), asin: job.id,
@@ -70,26 +135,31 @@
     document.querySelectorAll('.air-cart-badge').forEach(b => { if (!current.has(b.parentElement)) b.remove(); });
     const scores = await chrome.storage.local.get(tiles.map(t => cache.key(location.hostname, t.id)));
     if (turn !== generation || location.href !== url) return;
-    const speed = A.db.speed.profile(raw.speedMode);
+    const speed = A.db.speed.profile(raw.speedMode), done = [];
     for (const tile of tiles) {
       if (!tile.anchor.isConnected) continue;
       const saved = scores[cache.key(location.hostname, tile.id)];
-      if (cache.valid(saved, { store: location.hostname, asin: tile.id, version, prefs: raw, maxAgeMs: speed.maxAgeMs })) { paint(tile, saved); continue; }
+      if (cache.valid(saved, { store: location.hostname, asin: tile.id, version, prefs: raw, maxAgeMs: speed.maxAgeMs })) { paint(tile, saved); done.push({ id: tile.id, score: saved.score, status: 'scored' }); continue; }
       let job = jobs.get(tile.id);
       if (!job && settings.autoScoreSearch && !blocked && used < speed.autoFetches && active < 2) {
         job = { ...tile, status: 'checking' }; jobs.set(tile.id, job); used++; active++; void read(job, turn);
       }
-      paint(tile, job?.hit, job?.status || (blocked ? 'unavailable' : 'limited'));
+      const status = job?.status || (blocked ? 'unavailable' : 'limited');
+      paint(tile, job?.hit, status);
+      done.push({ id: tile.id, score: job?.hit?.score, status: job?.hit ? 'scored' : status });
     }
+    renderSummary(done, tiles);
+    void award(done);
   }
-  const keys = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'weights', 'allergens', 'diets', 'avoidList', 'speedMode', 'sheetIndexRev', 'producerIndexRev', 'theme', 'palette'];
-  function load() { chrome.storage.local.get(keys, o => { raw = o || {}; settings = A.db.prefs.sanitizeToggles(raw); prefs = A.db.prefs.sanitizeScoring(raw); A.db.theme.use(raw); reset(); }); }
+  const keys = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'pointsEnabled', 'weights', 'allergens', 'diets', 'avoidList', 'speedMode', 'sheetIndexRev', 'producerIndexRev', 'theme', 'palette'];
+  function load() { chrome.storage.local.get([...keys, 'xp'], o => { raw = o || {}; settings = A.db.prefs.sanitizeToggles(raw); prefs = A.db.prefs.sanitizeScoring(raw); xp = P.sanitize(raw.xp); A.db.theme.use(raw); reset(); }); }
   const observer = new MutationObserver(schedule); observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['href', 'hidden', 'aria-hidden'] });
   setInterval(() => { if (url !== location.href) reset(); }, 1000);
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
     if (keys.some(k => changes[k])) load();
     else {
+      if (changes.xp) { xp = P.sanitize(changes.xp.newValue); schedule(); }   // another tab earned points
       for (const k of Object.keys(changes)) if (k.startsWith(`s:${cache.normalizeStore(location.hostname)}:`)) jobs.delete(k.split(':')[2]);
       if (Object.keys(changes).some(k => k.startsWith('s:'))) schedule();
     }

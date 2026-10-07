@@ -10,7 +10,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { bottomFiveEndToEnd } from './bottom-five-harness.mjs';
-import { cartEndToEnd } from './cart-harness.mjs';
+import { cartEndToEnd, amazonCartEndToEnd } from './cart-harness.mjs';
 
 const require = createRequire(import.meta.url);
 
@@ -250,6 +250,8 @@ async function run() {
       if (!cmp.nums.includes('96') || !cmp.nums.includes('28')) {
         throw new Error(`compare: cards ${JSON.stringify(cmp.nums)}, expected 96 and 28`);
       }
+      // The comparison sits under "More" (collapsed until asked for).
+      await comparePage.click('#moreBox > summary');
       await comparePage.selectOption('#compareB', milkKey);
       await comparePage.waitForFunction(() => {
         const nums = [...document.querySelectorAll('.compare-card .ps-num')].map(el => el.textContent);
@@ -574,6 +576,7 @@ async function run() {
       }));
       if (idle.rows.join() !== require('../src/stores/registry.js').STORES.map(s => `${s.name}:${s.status}`).join()
         || idle.href !== '#' || idle.disabled !== 'true') throw new Error(`stores idle: ${JSON.stringify(idle)}`);
+      await settingsPage.click('#sec-stores details.more > summary');   // the request form is folded until asked for
       await settingsPage.fill('#reqName', 'Marks & Spencer');
       await settingsPage.fill('#reqUrl', 'https://www.marksandspencer.com/food/p/12345?utm_source=x');
       const ready = await settingsPage.evaluate(() => ({
@@ -914,6 +917,7 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
     await appearanceEndToEnd(context, worker, id, pageErrors);
     await retailerEndToEnd(context, worker, pageErrors);
     await cartEndToEnd(context, worker, pageErrors, root);
+    await amazonCartEndToEnd(context, worker, pageErrors, root);
     await bottomFiveEndToEnd(context, worker, pageErrors, root);
     await bottomFiveEndToEnd(context, worker, pageErrors, root, ['kroger', 'frys', 'ralphs', 'kingsoopers', 'smiths', 'fredmeyer']);
     await amazonEndToEnd(context, worker, pageErrors);
@@ -1219,9 +1223,8 @@ async function appearanceEndToEnd(context, worker, extensionId, pageErrors) {
         && document.getElementById('hoverScore').checked && !document.getElementById('badges').checked, at);
       const loaded = await popup.evaluate(() => ({ badges: document.getElementById('badges').checked,
         hover: document.getElementById('hoverScore').checked,
-        essential: ['enabled', 'autoScoreSearch', 'openSettings', 'openReport'].every(id => document.getElementById(id).offsetHeight > 0),
-        settings: document.getElementById('openSettings').textContent }));
-      if (loaded.badges || !loaded.hover || !loaded.essential || (at >= 3 ? !/weights/i.test(loaded.settings) : /weights/i.test(loaded.settings))) {
+        essential: ['enabled', 'autoScoreSearch', 'openSettings', 'openReport'].every(id => document.getElementById(id).offsetHeight > 0) }));
+      if (loaded.badges || !loaded.hover || !loaded.essential) {
         throw new Error(`popup level ${level}: ${JSON.stringify(loaded)}`);
       }
     }
@@ -1237,6 +1240,7 @@ async function appearanceEndToEnd(context, worker, extensionId, pageErrors) {
         return window.__originalSet(values, callback);
       };
     });
+    await popup.click('#moreBox > summary');   // Result badges sits under "More"
     await popup.click('#badges');
     await worker.evaluate(() => chrome.storage.local.set({ settingsLevel: 'minimal' }));
     await popup.waitForFunction(() => document.getElementById('badges').closest('[data-level]').classList.contains('lvl-hidden'));
@@ -1249,7 +1253,7 @@ async function appearanceEndToEnd(context, worker, extensionId, pageErrors) {
     await popup.waitForFunction(() => !document.getElementById('hoverScore').closest('[data-level]').classList.contains('lvl-hidden'));
     await worker.evaluate(() => chrome.storage.local.remove('settingsLevel'));
     await popup.reload();
-    await popup.waitForFunction(() => !document.querySelector('.lvl-hidden') && /weights/i.test(document.getElementById('openSettings').textContent));
+    await popup.waitForFunction(() => !document.querySelector('.lvl-hidden'));
     console.log('  ok  real popup → every level boots and updates through Chrome storage; pending checkbox writes preserve level changes; hidden values and legacy full view survive');
 
     const url = 'https://www.target.com/p/oats/-/A-79364857';

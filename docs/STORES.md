@@ -242,3 +242,26 @@ supported hosts and cart routes. These are controlled fixtures, not 16 live shop
 The live Amazon food sample returned HTTP 200 but offered no Add to Cart control to the signed-out
 browser, so it did not establish live filled-cart coverage. Cart support remains a preview until
 ordinary live carts are checked. Retailer access checks still apply.
+
+### Live check, 2026-10-07 (Amazon cart)
+
+The 1.9.0 cart tests used invented cart markup, so none of this showed until a real cart was opened. A
+signed-out guest cart on amazon.com (one grocery item added in a throwaway Chrome profile with the unpacked
+extension, then removed and the profile deleted) found these, all fixed in 1.10.0:
+
+| On the live cart | 1.9.0 | Now |
+|---|---|---|
+| The line in the cart | No score visible: Amazon keeps hidden "was removed from Shopping Cart" copies of the title link ahead of the visible one, and the badge went into those | The score sits on the visible title (96) |
+| The image link | Its hidden "Opens in a new tab" label made it look like the title link | Hidden text is ignored when choosing the link |
+| "Customers who shopped for … also shopped for", carousels, the page footer | 14 badges ("Open to rate", "Checking label…", scores) | None: only `#sc-active-cart` lines are read |
+| The page right after Add to Cart (`/cart/smart-wagon`) | Not covered | The mini-cart line is rated on its image |
+| Titles over about 175 characters | The line was dropped (the full title and its cut-off copy were both counted against a 300-character limit) | Read from `data-producttitle` |
+| Scoring | Labels and certifications were not passed in, and the food check used the title alone | The same inputs and food check as a product page, so a product reads the same number everywhere |
+| A robot-check page | Read as a product with no label | Recognised, and requests stop |
+| The cart as a whole | Nothing | The average, how many lines were rated and, with points on, the level: under *Shopping Cart* and on the toolbar icon |
+
+`tests/pages/amazon-cart.html` and `amazon-smart-wagon.html` keep the real structure (sanitized: made-up names, ASINs
+and ids), and the Chrome harness checks the real extension on them, including that each of the old failures would be
+caught. Other stores' carts are still checked on fixtures only: their sites block automated browsers or need an
+account, so live filled-cart coverage there remains pending. Rows inside carousels, suggestions, "buy it again" and
+footers are now excluded on every store.

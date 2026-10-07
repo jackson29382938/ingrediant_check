@@ -12,6 +12,7 @@ const prefs = require('../src/engine/db/prefs.js');
 const popup = fs.readFileSync('src/options/popup.html', 'utf8');
 const script = fs.readFileSync('src/options/popup.js', 'utf8');
 const options = fs.readFileSync('src/options/options.html', 'utf8');
+const ui = fs.readFileSync('src/options/ui.css', 'utf8');
 
 // An element's own id, or for a label the id of the checkbox it wraps (never a neighbour's).
 const idOf = (tag, attrs, rest) => (attrs.match(/\bid="([^"]+)"/)
@@ -34,12 +35,26 @@ test('Minimal keeps the essentials; Standard and up show every control the popup
     assert.equal(levelOfId(id), 0, `${id} shows at every level`);
   }
   const ids = [...popup.matchAll(/<input type="checkbox" id="(\w+)"/g)].map(m => m[1]);
-  const shownAtMinimal = ids.filter(id => levelOfId(id) === 0);
-  assert.deepEqual(shownAtMinimal, ['enabled', 'autoScoreSearch'], 'two switches at Minimal');
-  const shownAtSimple = ids.filter(id => levelOfId(id) <= 1);
-  assert.deepEqual(shownAtSimple, ['enabled', 'badges', 'foodOnly', 'autoScoreSearch'], 'four at Simple');
+  // Where a switch sits (on top, or under "More") is a layout choice; which level shows it is the rule.
+  const shownAtMinimal = ids.filter(id => levelOfId(id) === 0).sort();
+  assert.deepEqual(shownAtMinimal, ['autoScoreSearch', 'enabled'], 'two switches at Minimal');
+  const shownAtSimple = ids.filter(id => levelOfId(id) <= 1).sort();
+  assert.deepEqual(shownAtSimple, ['autoScoreSearch', 'badges', 'enabled', 'foodOnly'], 'four at Simple');
   assert.equal(ids.filter(id => levelOfId(id) <= 2).length, ids.length, 'Standard shows all of them');
   assert.ok(gated().every(g => g.level <= 2), 'nothing is held back for Advanced or Everything: they match today\'s popup');
+});
+
+test('a switch that makes requests stays outside "More", with its line saying so', () => {
+  // The disclosure sits where the switch is: folding either away would leave a switch that sends requests
+  // with nothing next to it (the harness checks the same in a real browser).
+  const more = popup.indexOf('<details class="more-box"');
+  assert.ok(more > 0);
+  for (const id of ['autoScoreSearch', 'hoverScore']) {
+    const at = popup.indexOf(`<input type="checkbox" id="${id}"`);
+    assert.ok(at > 0 && at < more, `${id} is on top, not folded under More`);
+    const label = popup.slice(popup.lastIndexOf('<label', at), popup.indexOf('</label>', at));
+    assert.match(label, /class="net"/, `${id} names the requests it makes`);
+  }
 });
 
 test('a popup link never points into a Settings section that the same level would hide', () => {
@@ -52,7 +67,8 @@ test('a popup link never points into a Settings section that the same level woul
 test('every popup control still exists, so the stored values keep loading and saving whatever is shown', () => {
   const keys = script.match(/const TOGGLE_KEYS = \[([^\]]*)\]/)[1].match(/'(\w+)'/g).map(s => s.slice(1, -1));
   for (const id of [...keys, 'useOpenFoodFacts']) assert.ok(popup.includes(`id="${id}"`), `${id} is still in the popup`);
-  assert.ok(/\.lvl-hidden,\s*\[hidden\]\s*\{\s*display:\s*none\s*!important/.test(popup),
+  assert.ok(/<link rel="stylesheet" href="ui\.css">/.test(popup), 'the popup loads the shared stylesheet');
+  assert.ok(/\.lvl-hidden,\s*\[hidden\]\s*\{\s*display:\s*none\s*!important/.test(ui),
     'the hiding rule beats the display rules, and a hidden element stays hidden (the empty This-page box)');
 });
 
@@ -86,11 +102,10 @@ test('applyLevel hides what the level does not reach, and shows it again when th
   assert.ok(simple.hidden.includes('hoverScore') && simple.hidden.includes('unitPrice'));
 });
 
-test('an unknown level behaves as Minimal rather than breaking, and the Settings link says what it opens', () => {
+test('an unknown level behaves as Minimal rather than breaking, and the Settings button reads the same at every level', () => {
   assert.deepEqual(run('nonsense').hidden, run('minimal').hidden);
-  assert.match(run('minimal').link, /goals, allergens & diets/);
-  assert.match(run('standard').link, /goals, allergens & diets/, 'below Advanced there are no weights to fine-tune');
-  assert.match(run('advanced').link, /Scoring weights/, 'Advanced and up have them');
+  for (const level of prefs.LEVELS) assert.equal(run(level).link, '', `${level}: applyLevel leaves the Settings button's text alone`);
+  assert.equal(levelOfId('openSettings'), 0, 'and it is never gated');
 });
 
 test('an install from before levels existed keeps the full popup; a fresh one gets Standard', () => {

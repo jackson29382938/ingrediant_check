@@ -180,7 +180,7 @@ const LOOP_KEYS = SETTINGS.filter(k => !OWN_TEST.has(k));
 // notice. Adding a setting means adding it here, with a test value above.
 const EXPECTED_KEYS = ['accent', 'allergens', 'autoScoreSearch', 'avoidList', 'badges', 'breakdownDelayMs', 'breakdownDetail',
   'diets', 'foodOnly', 'goalImportance', 'goals', 'googleAutoSave', 'hoverBreakdown', 'hoverScore', 'ocrLabels',
-  'palette', 'panelOpen', 'ratePace', 'scoreHoverDelayMs', 'sendDiagnostics', 'settingsBackup', 'settingsLevel',
+  'palette', 'panelOpen', 'pointsEnabled', 'ratePace', 'scoreHoverDelayMs', 'sendDiagnostics', 'settingsBackup', 'settingsLevel',
   'shareContributions', 'sharedCache', 'sharedProducts', 'sortCount', 'sortLoadMore', 'sortMissing',
   'sortPriorities', 'sortRemember', 'sortTimeLimit', 'speedMode', 'theme', 'unitMissing', 'unitPrice', 'useOpenFoodFacts', 'weights'];
 

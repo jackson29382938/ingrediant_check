@@ -9,7 +9,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildContentMatches, AMAZON_HOSTS } from './content-matches.mjs';
+import { buildContentMatches, buildCartMatches, AMAZON_HOSTS } from './content-matches.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = p => fs.readFileSync(path.join(root, p), 'utf8');
@@ -86,6 +86,16 @@ check('stores covered', () => {
     throw new Error('search /s?* matches missing — /s alone does not match /s?k=… URLs');
   }
   return `${hosts.size} Amazon stores, ${matches.length} path patterns (incl. slug + apex + mobile)`;
+});
+check('Amazon cart pages covered', () => {
+  const entry = manifest.content_scripts.find(cs => (cs.matches || []).some(m => /amazon\.com\/cart$/.test(m)));
+  if (!entry) throw new Error('no content_scripts entry for the Amazon cart pages');
+  const expected = buildCartMatches();
+  if (entry.matches.length !== expected.length || entry.matches.some((m, i) => m !== expected[i])) {
+    throw new Error('the cart content_scripts.matches drifted from scripts/content-matches.mjs — run it with --write');
+  }
+  if (!entry.matches.some(m => m.includes('/cart/smart-wagon'))) throw new Error('the page after Add to Cart (/cart/smart-wagon) is not covered');
+  return `${expected.length} cart patterns (incl. /cart/smart-wagon)`;
 });
 check('content scripts split PDP vs search', () => {
   const js = manifest.content_scripts[0].js || [];

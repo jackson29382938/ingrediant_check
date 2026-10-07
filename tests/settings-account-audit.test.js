@@ -518,13 +518,34 @@ test('"Saved" and errors go to a toast outside every level-gated section, announ
 test('every radio group on the settings and setup pages has an accessible name', () => {
   for (const file of ['src/options/options.html', 'src/options/welcome.html']) {
     const html = fs.readFileSync(file, 'utf8');
+    let groups = 0;
     for (const m of html.matchAll(/<(?:fieldset|div)\b[^>]*?(?:role="radiogroup"|class="sort-choices")[^>]*>/g)) {
+      groups++;
       const tag = m[0];
       const hasLegend = /<fieldset/.test(tag) && html.slice(m.index, m.index + 400).includes('<legend');
       const labelled = /aria-labelledby="([^"]+)"/.exec(tag);
       assert.ok(hasLegend || labelled, `${file}: unnamed group ${tag.slice(0, 70)}`);
       if (labelled) assert.ok(html.includes(`id="${labelled[1]}"`), `${file}: ${labelled[1]} exists`);
     }
+    // A page that lost its groups (a renamed class) would pass the loop above by checking nothing.
+    assert.ok(groups >= (file.endsWith('options.html') ? 7 : 1), `${file}: found ${groups} radio groups`);
+  }
+});
+
+test('every aria-describedby and aria-labelledby on the settings page and the popup names an element that exists', () => {
+  // Each setting's hint, and each pick's sentence, is tied to its control this way; a misspelt id would
+  // silently drop the description for a screen reader and nothing else would notice.
+  for (const [file, atLeast] of [['src/options/options.html', 30], ['src/options/popup.html', 1]]) {
+    const html = fs.readFileSync(file, 'utf8');
+    const ids = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]));
+    let refs = 0;
+    for (const m of html.matchAll(/\baria-(?:describedby|labelledby)="([^"]+)"/g)) {
+      for (const id of m[1].split(/\s+/)) {
+        refs++;
+        assert.ok(ids.has(id), `${file}: an aria reference names "${id}", which is not on the page`);
+      }
+    }
+    assert.ok(refs >= atLeast, `${file}: found only ${refs} aria references`);
   }
 });
 
@@ -637,7 +658,7 @@ test('appearance: the accent previews while the picker is open, saves when it cl
 test('appearance: the section is on the settings page at Simple, its accent row at Standard, and the controls are named', () => {
   const html = fs.readFileSync('src/options/options.html', 'utf8');
   assert.match(html, /<section id="sec-appearance" data-level="1">/);
-  assert.match(html, /<div class="row" data-level="2">\s*<label for="accent"/);
+  assert.match(html, /<div class="opt" data-level="2"[^>]*>\s*<div class="field">\s*<label for="accent"/, 'the accent row is a Standard-level setting');
   for (const group of ['themeChoices', 'paletteChoices']) {
     const tag = html.match(new RegExp(`<fieldset[^>]*id="${group}"[^>]*>`))[0];
     const ref = tag.match(/aria-labelledby="(\w+)"/)[1];
