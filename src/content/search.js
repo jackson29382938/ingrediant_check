@@ -216,19 +216,20 @@
     if (typeof b.getAttribute === 'function' && b.getAttribute('data-air') === sig) return b;
     if (typeof b.setAttribute === 'function') b.setAttribute('data-air', sig);
     // A numbered badge opens the breakdown card (hover-card.js) when that setting is on, so it is a
-    // focusable button and drops the plain tooltip the card replaces.
+    // focusable link (Enter opens the product, as a click does) and drops the plain tooltip the card replaces.
+    // Every badge is clickable: a click goes to the product, as a click on its title does.
     if (typeof b.removeAttribute === 'function') {
       for (const a of ['role', 'tabindex', 'aria-haspopup', 'aria-expanded', 'aria-hidden']) b.removeAttribute(a);
     }
-    // The badge sits inside the product link. aria-label on a plain span is ignored, so a score read
-    // as a bare "96"; role="img" makes the label the badge's name. The pending "…" is hidden: as a
-    // role="status" live region it announced "Reading ingredients" once per tile, and never the score.
+    // The badge sits in the title, in front of the product link or inside it. aria-label on a plain span is
+    // ignored, so a score read as a bare "96"; role="img" makes the label the badge's name. The pending "…" is
+    // hidden: as a role="status" live region it announced "Reading ingredients" once per tile, and never the score.
     if (hit === 'pending') {
       b.textContent = '…';
       b.title = 'Reading ingredients…';
       b.removeAttribute('aria-label');
       b.setAttribute('aria-hidden', 'true');
-      b.style.cssText = 'color:#565959;background:#f0f2f2;border:2px solid #d5d9d9;';
+      b.style.cssText = 'color:#565959;background:#f0f2f2;border:2px solid #d5d9d9;cursor:pointer;';
       return b;
     }
     if (hit === 'unreadable') {
@@ -236,7 +237,7 @@
       b.title = throttleCopy('badgeNoIngredients', "Amazon doesn't publish readable ingredients for this one");
       b.setAttribute('aria-label', b.title);
       b.setAttribute('role', 'img');
-      b.style.cssText = 'color:#6a6a6a;background:#f7f8f8;border:2px dashed #d5d9d9;';
+      b.style.cssText = 'color:#6a6a6a;background:#f7f8f8;border:2px dashed #d5d9d9;cursor:pointer;';
       return b;
     }
     const c = root.AIR.panel.BAND_COLOR(hit.score);
@@ -249,14 +250,13 @@
     b.title = `Ingredient Check: ${hit.score}/100 — ${verdict}`;
     b.setAttribute('aria-label', b.title);
     b.setAttribute('role', 'img');
-    b.style.cssText = `color:${c.fg};background:${c.bg};border:2px solid ${c.ring};`;
+    b.style.cssText = `color:${c.fg};background:${c.bg};border:2px solid ${c.ring};cursor:pointer;`;
     if (breakdown) {
       b.removeAttribute('title');
-      b.setAttribute('role', 'button');
+      b.setAttribute('role', 'link');
       b.setAttribute('tabindex', '0');
       b.setAttribute('aria-haspopup', 'dialog');
       b.setAttribute('aria-expanded', 'false');
-      b.style.cursor = 'pointer';
     }
     return b;
   }

@@ -49,7 +49,7 @@ Surfaces added in 1.1.0, worth a shot each if the five above leave room (or for 
 - The ranked list in Chrome's side panel, opened from an Ingredient Check option in Amazon's *Sort by*
   menu (on a store where sorting is shown).
 - The goals step of the setup page (`welcome.html`), which opens on install.
-- The "why" breakdown card that opens from a search badge (hover, focus or click).
+- The "why" breakdown card that opens from a search or cart badge (hover or focus; a click opens the product).
 - A Target product page, marked as a preview in the popup and in [`docs/STORES.md`](../STORES.md).
 - **Report a problem or suggest an improvement**, with its screenshot preview.
 

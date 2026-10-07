@@ -1,5 +1,5 @@
-// Results-page breakdown: the card renderer (panel.js) and the hover / focus / click controller
-// (hover-card.js), driven through stub DOM events.
+// Results-page and cart breakdown: the card renderer (panel.js) and the hover / focus controller
+// (hover-card.js), driven through stub DOM events. A click on the badge opens the product: badge-link.test.js.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
@@ -38,14 +38,16 @@ test('no saved reading: the badge score and a pointer to the product, never inve
   assert.match(html, /href="\/dp\/B000000002"/);
 });
 
-function controller({ hoverBreakdown = true, delay = 200, stored = {} } = {}) {
+function controller({ hoverBreakdown = true, delay = 200, stored = {}, cls = 'air-badge' } = {}) {
   const handlers = {}, timers = [], mounts = [], body = [];
   const mkEl = () => ({ style: {}, attrs: {}, isConnected: true, listeners: {},
     setAttribute(k, v) { this.attrs[k] = String(v); }, getAttribute(k) { return this.attrs[k] ?? null; },
     addEventListener(t, f) { this.listeners[t] = f; }, contains: () => false,
     remove() { this.isConnected = false; body.splice(body.indexOf(this), 1); }, focus() { this.focused = true; } });
   const tile = { getAttribute: () => 'B000000001' };
-  const badge = { ...mkEl(), textContent: '41', closest: sel => (sel === '.air-badge' ? badge : sel === '[data-asin]' ? tile : null),
+  // Answers like the browser: the badge for a selector list that names its class, the tile for [data-asin].
+  const names = sel => sel.split(',').map(x => x.trim());
+  const badge = { ...mkEl(), textContent: '41', closest: sel => (names(sel).includes('.' + cls) ? badge : sel === '[data-asin]' ? tile : null),
     getBoundingClientRect: () => ({ left: 100, top: 100, bottom: 126 }) };
   badge.attrs['data-air'] = '41:Poor';
   const other = { closest: () => null };
@@ -78,21 +80,42 @@ test('hover opens after the configured delay with the breakdown of the saved rea
   assert.equal(w.body.length, 1);
 });
 
-test('click pins, a second click or Esc closes, and a click never follows the product link', () => {
+test('the card closes when the pointer leaves (after a grace), on Esc, and on a click anywhere; a click never pins it open', () => {
   const w = controller({ stored: { [PC.localKey('amazon.com', 'B000000001')]: row } });
-  const click = { target: w.badge };
-  w.fire('click', click);
-  assert.equal(w.card.isPinned(), true);
-  assert.equal(w.mounts.length, 1);
-  w.fire('mouseout', { target: w.badge, relatedTarget: w.other });
+  w.fire('mouseover', { target: w.badge });
   w.runTimers();
-  assert.equal(w.card.isOpen(), true, 'a pinned card survives the pointer leaving');
-  w.fire('click', { target: w.badge });
+  assert.equal(w.card.isOpen(), true);
+  w.fire('mouseout', { target: w.badge, relatedTarget: w.body[0] });
+  w.runTimers();
+  assert.equal(w.card.isOpen(), true, 'moving onto the card keeps it');
+  w.fire('mouseout', { target: w.badge, relatedTarget: w.other });
+  assert.equal(w.timers.at(-1).ms, 180, 'a short grace, so the pointer can reach the card');
+  w.runTimers();
   assert.equal(w.card.isOpen(), false);
   w.fire('click', { target: w.badge });
+  assert.equal(w.card.isOpen(), false, 'a click on the badge opens nothing here: it goes to the product (badge-link.js)');
+  w.fire('focusin', { target: w.badge });
+  assert.equal(w.card.isOpen(), true);
+  w.fire('click', { target: w.badge });
+  assert.equal(w.card.isOpen(), false, 'a click closes it');
+  w.fire('focusin', { target: w.badge });
   w.fire('keydown', { target: w.other, key: 'Escape' });
   assert.equal(w.card.isOpen(), false);
   assert.equal(w.badge.focused, true, 'focus returns to the badge');
+});
+
+test('a cart line\'s number opens the same card: the cart badge class, the line\'s ASIN, the badge\'s own score', () => {
+  const w = controller({ cls: 'air-cart-badge', stored: { [PC.localKey('amazon.com', 'B000000001')]: row } });
+  w.badge.attrs['data-air'] = '41:Poor';
+  w.fire('mouseover', { target: w.badge });
+  w.runTimers();
+  assert.equal(w.mounts.length, 1, 'hover shows the card for a cart badge');
+  assert.equal(rows(w.mounts[0]), rows(panel.render(result, { title: 'x', confidence: 1 })), 'with the reasons kept for that ASIN');
+  assert.match(w.mounts[0], /href="\/dp\/B000000001"/);
+  assert.equal(w.badge.attrs['aria-expanded'], 'true');
+  const tab = controller({ cls: 'air-cart-badge', stored: {} });
+  tab.fire('focusin', { target: tab.badge });
+  assert.match(tab.mounts[0], /saved before breakdowns were kept/, 'a line scored before its reading was kept says so instead of inventing reasons');
 });
 
 test('keyboard focus opens at once; the setting off leaves badges alone', () => {

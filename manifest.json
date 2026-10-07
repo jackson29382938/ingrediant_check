@@ -778,6 +778,7 @@
         "src/content/hover-card.js",
         "src/content/sort.js",
         "src/content/main.js",
+        "src/content/badge-link.js",
         "src/stores/registry.js",
         "src/stores/cart.js",
         "src/content/cart.js"
@@ -953,6 +954,7 @@
         "src/stores/grocery.js",
         "src/stores/grocery-pages.js",
         "src/content/retailer.js",
+        "src/content/badge-link.js",
         "src/stores/registry.js",
         "src/stores/cart.js",
         "src/content/cart.js"
@@ -1371,6 +1373,7 @@
         "src/content/hover-card.js",
         "src/content/sort.js",
         "src/content/main.js",
+        "src/content/badge-link.js",
         "src/stores/registry.js",
         "src/stores/cart.js",
         "src/content/cart.js"
@@ -1525,6 +1528,7 @@
         "src/stores/grocery.js",
         "src/stores/grocery-pages.js",
         "src/content/retailer.js",
+        "src/content/badge-link.js",
         "src/stores/registry.js",
         "src/stores/cart.js",
         "src/content/cart.js"

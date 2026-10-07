@@ -78,18 +78,27 @@
     let b = tile.anchor.querySelector('.air-cart-badge');
     if (!b) {
       b = document.createElement('span'); b.className = 'air-cart-badge';
-      b.attachShadow({ mode: 'open' }).innerHTML = '<style>:host{display:inline-flex!important;vertical-align:middle!important;margin:4px!important}span{font:700 12px/1.4 sans-serif;padding:3px 7px;border:2px solid var(--ring);border-radius:999px;color:var(--fg);background:var(--bg)} </style><span><slot></slot></span>';
+      b.attachShadow({ mode: 'open' }).innerHTML = '<style>:host{display:inline-flex!important;vertical-align:middle!important;margin:4px!important;cursor:pointer}span{font:700 12px/1.4 sans-serif;padding:3px 7px;border:2px solid var(--ring);border-radius:999px;color:var(--fg);background:var(--bg)} </style><span><slot></slot></span>';
       if (tile.imageOnly) {
         if (getComputedStyle(tile.anchor).position === 'static') tile.anchor.style.position = 'relative';
-        b.style.cssText = 'position:absolute!important;top:4px!important;left:4px!important;z-index:2!important;pointer-events:none!important';
+        b.style.cssText = 'position:absolute!important;top:4px!important;left:4px!important;z-index:2!important';
       }
       tile.anchor.insertBefore(b, tile.anchor.firstChild);
     }
     const label = hit ? `${hit.score}` : status === 'checking' ? 'Checking label…' : status === 'not-food' ? 'Not a food' : status === 'unavailable' ? 'Label unavailable' : 'Open to rate';
     if (b.textContent !== label) b.textContent = label;
     b.dataset.airProduct = tile.id; b.dataset.airStatus = hit ? 'scored' : status || 'limited';
-    b.title = hit ? `Ingredient Check: ${hit.score}/100 — ${hit.verdict}` : 'Ingredient Check: open this product to read or paste its ingredient label.';
-    b.setAttribute('aria-label', b.title); b.setAttribute('role', 'img');
+    // As on a results page: where this page has the breakdown card (Amazon, hover-card.js) a score opens it from the
+    // keyboard too, so it is a focusable link and the card stands in for the tooltip. Any badge goes to its product when clicked.
+    const card = !!(hit && settings.hoverBreakdown && A.hoverCard), air = hit ? `${hit.score}:${hit.verdict}` : '', sig = `${air}|${card}`;
+    if (b.dataset.airSig !== sig) {   // not on every pass: the card sets aria-expanded while it is open
+      b.dataset.airSig = sig;
+      const name = hit ? `Ingredient Check: ${hit.score}/100 — ${hit.verdict}` : 'Ingredient Check: open this product to read or paste its ingredient label.';
+      if (air) b.dataset.air = air; else delete b.dataset.air;
+      for (const a of ['title', 'tabindex', 'aria-haspopup', 'aria-expanded']) b.removeAttribute(a);
+      b.setAttribute('aria-label', name); b.setAttribute('role', card ? 'link' : 'img');
+      if (card) { b.setAttribute('tabindex', '0'); b.setAttribute('aria-haspopup', 'dialog'); b.setAttribute('aria-expanded', 'false'); } else b.title = name;
+    }
     const color = hit ? A.db.theme.band(hit.score) : { fg: '#374151', bg: '#f3f4f6', ring: '#9ca3af' };
     for (const k of ['fg', 'bg', 'ring']) b.style.setProperty('--' + k, color[k]);
   }
@@ -119,9 +128,13 @@
       const food = data.food || A.db.ingestible.assess({ querySelector: () => null }, { title: data.title, text: [data.title, ...(data.crumbs || []), data.labelText || ''].join('\n') });
       if (settings.foodOnly && !food.ok && (food.negatives || []).length) { job.status = 'not-food'; return; }
       // Scored from what a product page scores from, so the same product reads the same number everywhere.
-      const result = A.engine.score({ name: data.title, labels: data.labels, certifications: data.certifications, ingredients_text: data.ingredients, advisory_text: data.advisoryText, nutrition: data.nutrition }, prefs);
+      const input = { name: data.title, labels: data.labels, certifications: data.certifications, ingredients_text: data.ingredients, advisory_text: data.advisoryText, nutrition: data.nutrition };
+      const result = A.engine.score(input, prefs);
       if (!result.parsed || result.coverage < 0.34) throw new Error('coverage');
       if (turn !== generation || control.signal.aborted || location.href !== url || !C.allowed(location)) return;
+      // What was read stays on this computer, as a search tile keeps it (docs/CACHE.md), so the card behind the number
+      // can say why. Amazon only (A.page), and never shared.
+      A.page?.rememberProduct(job.id, { input, via: data.via, confidence: data.confidence, food: food.ok !== false }, { share: false });
       job.hit = { schema: cache.SCHEMA, v: version, t: Date.now(), store: cache.normalizeStore(location.hostname), asin: job.id,
         prefs: cache.fingerprint(raw, 'page'), source: 'page', score: result.score, verdict: result.verdict, nova: result.nova, name: data.title.slice(0, 120) };
       await chrome.storage.local.set({ [cache.key(location.hostname, job.id)]: job.hit });
@@ -151,7 +164,7 @@
     renderSummary(done, tiles);
     void award(done);
   }
-  const keys = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'pointsEnabled', 'weights', 'allergens', 'diets', 'avoidList', 'speedMode', 'sheetIndexRev', 'producerIndexRev', 'theme', 'palette'];
+  const keys = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'pointsEnabled', 'hoverBreakdown', 'weights', 'allergens', 'diets', 'avoidList', 'speedMode', 'sheetIndexRev', 'producerIndexRev', 'theme', 'palette'];
   function load() { chrome.storage.local.get([...keys, 'xp'], o => { raw = o || {}; settings = A.db.prefs.sanitizeToggles(raw); prefs = A.db.prefs.sanitizeScoring(raw); xp = P.sanitize(raw.xp); A.db.theme.use(raw); reset(); }); }
   const observer = new MutationObserver(schedule); observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['href', 'hidden', 'aria-hidden'] });
   setInterval(() => { if (url !== location.href) reset(); }, 1000);

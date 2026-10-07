@@ -615,13 +615,13 @@
     "message": "Begründung beim Überfahren zeigen"
   },
   "popupBreakdownD": {
-    "message": "Fahre über eine Bewertung in den Suchergebnissen, springe mit Tab dorthin oder klicke sie an, um zu sehen, was sie erhöht und gesenkt hat. Wird auf deinem Computer berechnet — keine zusätzlichen Anfragen."
+    "message": "Fahre über eine Bewertung in den Suchergebnissen oder im Warenkorb oder springe mit Tab dorthin, um zu sehen, was sie erhöht und gesenkt hat. Wird auf deinem Computer berechnet — keine zusätzlichen Anfragen."
   },
   "optNoteBreakdown": {
-    "message": "Fahre mit der Maus über eine Bewertung in den Suchergebnissen, springe mit Tab dorthin oder klicke sie an, um zu sehen, was sie erhöht und gesenkt hat. Wird auf deinem Computer aus bereits Gelesenem mit deinen aktuellen Gewichtungen berechnet — keine zusätzlichen Anfragen. Ein Klick hält sie offen; Esc oder ein Klick daneben schließt sie."
+    "message": "Fahre mit der Maus über eine Bewertung in den Suchergebnissen oder im Warenkorb oder springe mit Tab dorthin, um zu sehen, was sie erhöht und gesenkt hat. Wird auf deinem Computer aus bereits Gelesenem mit deinen aktuellen Gewichtungen berechnet — keine zusätzlichen Anfragen. Esc oder ein Klick daneben schließt sie. Ein Klick auf eine Bewertung öffnet das Produkt, mit diesem Schalter an oder aus."
   },
   "optHintBreakdown": {
-    "message": "Fahre über eine Bewertung, springe per Tab dorthin oder klicke sie an, um zu sehen, was sie erhöht und gesenkt hat. Keine zusätzlichen Anfragen."
+    "message": "Fahre über eine Bewertung oder springe per Tab dorthin, um zu sehen, was sie erhöht und gesenkt hat. Keine zusätzlichen Anfragen."
   },
   "optBreakdownDetail": {
     "message": "Anzeigen"

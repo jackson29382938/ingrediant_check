@@ -34,6 +34,10 @@ Amazon published no ingredient text there, it asks this computer's `p:` entry an
 tab before spending an Open Food Facts lookup or seconds of label OCR — someone may already have
 read that label. Pasted lists and "Score anyway" overrides never leave the tab.
 
+An Amazon cart line records its reading the same way, on this computer only (never queued for upload), so the
+number in the cart can say why it scored what it did; a line scored before that was kept says to open the
+product instead, as a saved search score does. Other stores keep scores only.
+
 ## Trust
 
 A `products` row is written by whoever sends it. The endpoint ships inside the extension, so anyone

@@ -322,7 +322,9 @@ bottles showed $7.34/oz and $19.82/oz.
 **Cart ratings** (Amazon, signed out is fine): add one grocery item to the cart, open the cart from the header
 (`/gp/cart/view.html`). Expect a score on the item's title, an average under *Shopping Cart* ("Cart average · Excellent",
 "1 of 1 items rated") and the same number on the toolbar icon, and nothing on "Customers who shopped for …", the carousels
-or the footer. The page after Add to Cart (`/cart/smart-wagon`) rates the mini-cart line. With Settings → *What to rate* →
+or the footer. Hover or Tab to a line's number: a card says why it scored, as on a search result. Click it (or press Enter on it):
+the product opens, in the new tab the title opens in; Cmd/Ctrl-click does the same on a results page. The page after Add to Cart
+(`/cart/smart-wagon`) rates the mini-cart line. With Settings → *What to rate* →
 *Earn points for healthy carts* on, the average line also shows the level; reopening the cart earns no more points that week.
 
 **Report a problem or idea** (toolbar popup; the page itself is titled *Report a problem or suggest an improvement*): the real extension in the simulation

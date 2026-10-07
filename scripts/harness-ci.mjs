@@ -11,6 +11,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { bottomFiveEndToEnd } from './bottom-five-harness.mjs';
 import { cartEndToEnd, amazonCartEndToEnd } from './cart-harness.mjs';
+import { numbersOpenTheProduct, ratingBesideTheLink } from './badge-harness.mjs';
 
 const require = createRequire(import.meta.url);
 
@@ -1098,8 +1099,9 @@ async function amazonEndToEnd(context, worker, pageErrors) {
     if (/^\d+$/.test(b.text) && (b.role !== 'img' || !b.label.includes(b.text))) throw new Error(`badge not named for screen readers: ${JSON.stringify(b)}`);
     if (b.text === '…' && b.hidden !== 'true') throw new Error(`pending badge is announced: ${JSON.stringify(b)}`);
   }
+  await numbersOpenTheProduct(context, worker, search);
   await search.close();
-  console.log(`  ok  extension on saved Amazon pages → oats scored (toolbar ${badge}), shampoo not food, ${badges} results rated through the badge queue`);
+  console.log(`  ok  extension on saved Amazon pages → oats scored (toolbar ${badge}), shampoo not food, ${badges} results rated through the badge queue, a click on a number opens the product`);
 }
 
 run().catch(err => {
@@ -1182,6 +1184,7 @@ async function retailerEndToEnd(context, worker, pageErrors) {
     await page.waitForFunction(() => [...document.querySelectorAll('.air-badge')].some(b => /\d/.test(b.textContent)), { timeout: 10000 });
     await page.close();
   }
+  await ratingBesideTheLink(context, worker, pageErrors);
   const corner = await context.newPage();
   corner.on('pageerror', err => pageErrors.push(`Costco corner: ${err.message}`));
   await corner.route('**/*', route => route.fulfill({ status: 200, contentType: 'text/html',
