@@ -63,3 +63,12 @@ test('settings imports and backups cannot enable or carry purchase history', () 
 test('backend history schema matches the extension schema exactly', () => {
   assert.ok(fs.readFileSync('docs/apps-script.gs', 'utf8').endsWith(fs.readFileSync('src/engine/db/purchase-history.js', 'utf8')));
 });
+
+
+test('terminal return or cancellation cannot be undone by a stale generic Delivered status', () => {
+  for (const state of ['returned', 'cancelled']) {
+    const first = record(1, { state }), later = record(1, { observedAt: 20000, state: 'purchased' });
+    assert.equal(H.merge([first], [later])[0].state, state);
+    assert.equal(H.trends(H.merge([first], [later])).length, 0);
+  }
+});

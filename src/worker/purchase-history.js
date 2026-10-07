@@ -25,10 +25,10 @@
     if (!Array.isArray(msg.records) || msg.records.length > 100) return { ok: false, reason: 'invalid-records' };
     const records = H.merge(conf.purchaseHistory, msg.records);
     const comparable = values => JSON.stringify(H.merge([], values).map(({ observedAt: _observedAt, ...r }) => r));
-    if (comparable(conf.purchaseHistory) === comparable(records)) return { ok: true, count: records.length };
+    if (comparable(conf.purchaseHistory) === comparable(records)) return { ok: true, count: records.length, records: records.filter(r => msg.records.some(x => x.key === r.key)) };
     await chrome.storage.local.set({ purchaseHistory: records, historySyncStatus: { ok: false, reason: conf.historyAutoSync !== false ? 'pending' : 'local-only', at: Date.now() } });
     if (conf.historyAutoSync !== false) retry();
-    return { ok: true, count: records.length };
+    return { ok: true, count: records.length, records: records.filter(r => msg.records.some(x => x.key === r.key)) };
   }
   async function capabilities() {
     const endpoint = root.AIR.db.prefs.endpoint();

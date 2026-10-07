@@ -30,13 +30,13 @@ layouts/identities stay unimported.
 Order ratings use the same engine, labels/certifications, goals, weights and warnings as product
 and cart ratings. Public product lookups omit cookies and the order-page referrer, run two at a
 time, and use the existing Speed budget (20–60 per page). Challenges stop new lookups. No private
-retailer APIs are used. Each completed item is saved immediately.
+retailer APIs are used. Valid saved scores and fresh local labels are reused first; cached scores without label text cannot supply warning matches. Each completed item is saved immediately.
 
 Missing labels stay unscored, not zero; coverage is shown. Known non-food products are excluded.
 Each distinct product in an order counts once. Quantities, prices and totals are not used for
 weighting. Order IDs are hashed with product identity locally to deduplicate revisits, never stored
 raw. Visible cancellations, completed returns and unconfirmed statuses are excluded from trends;
-an unseen later return cannot be inferred.
+an unseen later return cannot be inferred. Once recorded, a cancellation/return is not undone by a later generic delivery status.
 
 The first usable score snapshot is retained with its rating time, extension version and scoring
 setup identifier. Today's ingredients may differ from the original package. Monthly averages group

@@ -20,9 +20,10 @@
       if (!was) { if (map.size >= MAX) throw new Error('history-full'); map.set(r.key, r); continue; }
       if (was.asin !== r.asin || was.date !== r.date) throw new Error('invalid-history-identity');
       const latest = r.observedAt > was.observedAt ? r : was;
+      const terminal = [was, r].filter(x => ['cancelled', 'returned'].includes(x.state)).sort((a, b) => b.observedAt - a.observedAt)[0];
       // Preserve the first usable score, even after preferences or rules change.
       const snapshot = was.score !== null && (r.score === null || was.scoredAt <= r.scoredAt) ? was : r;
-      map.set(r.key, { ...latest, score: snapshot.score, profile: snapshot.profile, version: snapshot.version,
+      map.set(r.key, { ...latest, state: terminal?.state || latest.state, score: snapshot.score, profile: snapshot.profile, version: snapshot.version,
         ingredients: snapshot.ingredients, flags: snapshot.flags, scoredAt: snapshot.scoredAt });
     }
     return [...map.values()].sort((a, b) => b.date.localeCompare(a.date) || a.key.localeCompare(b.key));

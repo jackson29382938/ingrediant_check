@@ -51,6 +51,18 @@
       return { score: result.score, ingredients: data.ingredients, flags: (result.flags || []).map(f => f.label || f.name || f.message || f.id || '').filter(Boolean), scoredAt: Date.now() };
     } finally { clearTimeout(timer); controllers.delete(control); }
   }
+  async function savedRating(line, conf, version) {
+    const P = A.db.productCache, scoreKey = cache.key(location.hostname, line.asin), labelKey = P.localKey(location.hostname, line.asin);
+    const saved = await chrome.storage.local.get([scoreKey, labelKey]), row = P.sanitize(saved[labelKey]);
+    const age = A.db.speed.profile(conf.speedMode).maxAgeMs, toggles = A.db.prefs.sanitizeToggles(conf);
+    if (row && row.store === 'amazon.com' && row.asin === line.asin && row.status === 'ok' && row.data.food !== false && !P.stale(row, Date.now(), age)
+      && (!/ocr/i.test(row.data.via) || toggles.ocrLabels) && (row.data.via !== 'open-food-facts' || toggles.useOpenFoodFacts)) {
+      const result = A.engine.score(P.toInput(row), A.db.prefs.sanitizeScoring(conf));
+      if (result.parsed && result.coverage >= 0.34) return { score: result.score, scoredAt: Date.now(), ingredients: row.data.text, flags: (result.flags || []).map(f => f.label || f.name || f.id || '').filter(Boolean) };
+    }
+    const hit = saved[scoreKey];
+    return cache.valid(hit, { store: location.hostname, asin: line.asin, version, prefs: conf, maxAgeMs: age }) ? { score: hit.score, scoredAt: hit.t, ingredients: '', flags: [] } : null;
+  }
   let lastURL = location.href, signature = '';
   async function run() {
     if (running) { dirty = true; return; }
@@ -58,7 +70,7 @@
     const turn = generation;
     try {
       if (!O.allowed(location)) return;
-      const conf = await chrome.storage.local.get(['historyEnabled', 'historyOwner', 'googleProfile', 'enabled', 'purchaseHistory', 'weights', 'foodOnly', 'goals', 'allergens', 'diets', 'avoidList', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'theme', 'palette']);
+      const conf = await chrome.storage.local.get(['historyEnabled', 'historyOwner', 'googleProfile', 'enabled', 'purchaseHistory', 'weights', 'foodOnly', 'goals', 'allergens', 'diets', 'avoidList', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'ocrLabels', 'useOpenFoodFacts', 'theme', 'palette']);
       if (!conf.historyEnabled || conf.enabled === false) return;
       if (conf.historyOwner && conf.googleProfile?.email && conf.historyOwner !== conf.googleProfile.email.toLowerCase()) { note('Purchase import paused: your Google account changed. Manage history before switching accounts.'); return; }
       const lines = O.read(document, location), sig = JSON.stringify(lines.map(x => [x.order, x.asin, x.state, x.date]));
@@ -76,6 +88,7 @@
           let record = { ...(old || {}), key, store: 'amazon.com', asin: line.asin, name: line.name, date: line.date, state: line.state, observedAt: Date.now(), score: old?.score ?? null, profile: old?.profile || profile, version: old?.version || version, scoredAt: old?.scoredAt || 0 };
           const food = A.db.ingestible.assess({ querySelector: () => null }, { title: line.name, text: line.name });
           if (!old && !food.ok && food.negatives?.length) { paint(line, record, 'Not a food'); continue; }
+          if (record.score === null && line.state === 'purchased') { const hit = await savedRating(line, conf, version); if (hit) record = { ...record, ...hit, profile, version }; }
           if (record.score === null && line.state === 'purchased' && !stopped && used < speed.autoFetches) {
             used++;
             try { const data = await product(line, conf, turn); if (data.nonfood) { paint(line, record, 'Not a food'); continue; } record = { ...record, ...data, profile, version }; }
@@ -85,6 +98,7 @@
           record = H.clean(record);
           const saved = await chrome.runtime.sendMessage({ type: 'purchaseImport', records: [record] });
           if (!saved?.ok) throw new Error('history-not-saved');
+          record = saved.records?.[0] || record;
           records.push(record); if (line.anchor.isConnected) paint(line, record);
         }
       };
