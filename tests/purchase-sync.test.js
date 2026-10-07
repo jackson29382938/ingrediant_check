@@ -78,3 +78,12 @@ test('account deletion verifies the bound subject before clearing the remote cop
   assert.equal(c.calls.some(x => x.kind === 'historyClear'), false);
   assert.equal(c.data.historyDeletePending, true);
 });
+
+
+test('history reads cannot race with a locked account clear', () => {
+  const token = 'a'.repeat(30), s = receiver({ tokens: { [token]: { aud: 'client-1', sub: 'one' } } });
+  s.setLocked(true);
+  assert.equal(s.post({ kind: 'historyGet', token }).ok, false);
+  s.setLocked(false);
+  assert.equal(s.post({ kind: 'historyGet', token }).ok, true);
+});

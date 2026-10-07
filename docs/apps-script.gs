@@ -109,11 +109,11 @@ function handlePost(e, seen) {
   try { body = JSON.parse(e.postData.contents); }
   catch (err) { return json({ ok: false, error: 'invalid json' }); }
   seen(body);
-  // Reads take no lock: they must not queue behind a batch write.
+  // Public lookup and settings reads bypass batch-write locks. Private history reads lock below,
+  // alongside history deletion, to avoid exposing a partly cleared account.
   try {
     if (body.kind === 'lookup') return lookupProducts(body.keys);
     if (body.kind === 'accountGet') return readAccount(body.token);
-    if (body.kind === 'historyGet') return readHistory(body.token);
   } catch (err) {
     return json({ ok: false, error: String(err) });
   }
@@ -126,6 +126,7 @@ function handlePost(e, seen) {
     if (body.kind === 'report') return writeRows('reports', CONTRIBUTION_COLUMNS, [stamp(body)]);
     if (body.kind === 'products') return writeProducts(body);
     if (body.kind === 'account') return writeAccount(body.token, body.payload);
+    if (body.kind === 'historyGet') return readHistory(body.token);
     if (body.kind === 'historyPut') return writeHistory(body.token, body.payload);
     if (body.kind === 'historyClear') return clearHistory(body.token);
     return writeRows('contributions', CONTRIBUTION_COLUMNS, [stamp(body)]);
@@ -345,12 +346,14 @@ function writeHistory(token, payload) {
   var id = accountId(token), H = AIR.db.purchaseHistory;
   if (!payload || !Array.isArray(payload.records) || payload.records.length > 100) throw new Error('invalid history batch');
   if (payload.records.some(function(r) { return !H.clean(r); })) throw new Error('invalid history record');
-  var cleared = historyClearTime(id), all = historyRows(), old = [], at = {};
+  var cleared = historyClearTime(id), all = historyRows(), old = [], at = {}, previous = {};
+  var wanted = {}; payload.records.forEach(function(r) { wanted[r.key] = true; });
   if (payload.epoch !== cleared) throw new Error('history was reset; sync again');
-  all.forEach(function(r, i) { if (unquote(r[0]) === id) { old.push(JSON.parse(unquote(r[2]))); at[unquote(r[1])] = i + 2; } });
+  all.forEach(function(r, i) { if (unquote(r[0]) === id) { var parsed = JSON.parse(unquote(r[2])); old.push(parsed); previous[parsed.key] = JSON.stringify(AIR.db.purchaseHistory.clean(parsed)); at[unquote(r[1])] = i + 2; } });
   var records = H.merge(old.filter(function(r) { return r.observedAt > cleared; }), payload.records.filter(function(r) { return r.observedAt > cleared; }));
   var sheet = sheetFor('purchase-history', HISTORY_COLUMNS);
   records.forEach(function(r) {
+    if (!wanted[r.key] || previous[r.key] === JSON.stringify(r)) return;
     var row = ["'" + id, "'" + r.key, "'" + JSON.stringify(r)];
     if (at[r.key]) sheet.getRange(at[r.key], 1, 1, 3).setValues([row]); else sheet.appendRow(row);
   });
@@ -362,7 +365,11 @@ function clearHistory(token) {
   var marker = ["'" + id, "'" + String(cleared), "'" + new Date(cleared).toISOString()];
   if (at === -1) resets.appendRow(marker); else resets.getRange(at, 1, 1, 3).setValues([marker]);
   var all = historyRows(), sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('purchase-history');
-  for (var i = all.length - 1; i >= 0; i--) if (unquote(all[i][0]) === id) sheet.deleteRow(i + 2);
+  for (var i = all.length - 1; i >= 0; i--) {
+    if (unquote(all[i][0]) !== id) continue;
+    var end = i; while (i > 0 && unquote(all[i - 1][0]) === id) i--;
+    sheet.deleteRows(i + 2, end - i + 1);
+  }
   SpreadsheetApp.flush();
   return json({ ok: true, kind: 'historyClear', clearedAt: cleared });
 }

@@ -72,3 +72,11 @@ test('terminal return or cancellation cannot be undone by a stale generic Delive
     assert.equal(H.trends(H.merge([first], [later])).length, 0);
   }
 });
+
+
+test('legacy order pagination ref paths are accepted without widening into private routes', () => {
+  assert.equal(O.allowed(new URL('https://www.amazon.com/gp/your-account/order-history/ref=ppx_yo_pagination_2?page=2')), true);
+  assert.equal(O.allowed(new URL('https://www.amazon.com/gp/your-account/order-history/ref=ppx_yo/checkout')), false);
+  const cs = require('../manifest.json').content_scripts.find(c => c.js.includes('src/content/orders.js'));
+  assert.ok(cs.matches.includes('https://www.amazon.com/gp/your-account/order-history/ref=*'));
+});

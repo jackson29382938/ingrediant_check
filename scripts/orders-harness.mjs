@@ -29,7 +29,7 @@ export async function ordersEndToEnd(context, worker, errors) {
   if ((await worker.evaluate(async () => (await chrome.storage.local.get('purchaseHistory')).purchaseHistory)).length !== 4) throw new Error('revisited order duplicated');
   await page.evaluate(() => { document.querySelector('.delivery-status').textContent = 'Returned'; });
   await page.waitForFunction(() => document.querySelector('.air-order-badge')?.textContent.includes('returned'));
-  await page.goto(orders + '?page=2'); await page.waitForFunction(() => document.querySelector('#air-order-history')?.textContent.includes('This page imported'));
+  await page.goto(origin + '/gp/your-account/order-history/ref=ppx_yo_pagination_2?page=2'); await page.waitForFunction(() => document.querySelector('#air-order-history')?.textContent.includes('This page imported'));
   const final = await worker.evaluate(async () => (await chrome.storage.local.get('purchaseHistory')).purchaseHistory);
   if (final.length !== 5 || !final.some(r => r.date === '2026-08-01' && r.score !== null)) throw new Error('older order import failed');
   const opened = context.waitForEvent('page'); await page.getByRole('button', { name: 'History & sync settings' }).click();

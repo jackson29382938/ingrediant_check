@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "1.11.0",
+  "version": "1.11.1",
   "minimum_chrome_version": "116",
   "description": "__MSG_appDescription__",
   "permissions": [
@@ -1553,7 +1553,15 @@
         "https://www.amazon.com/gp/css/order-history",
         "https://www.amazon.com/gp/css/order-history?*",
         "https://www.amazon.com/gp/css/order-history.html",
-        "https://www.amazon.com/gp/css/order-history.html?*"
+        "https://www.amazon.com/gp/css/order-history.html?*",
+        "https://amazon.com/your-orders/orders/ref=*",
+        "https://amazon.com/gp/your-account/order-history/ref=*",
+        "https://amazon.com/gp/css/order-history/ref=*",
+        "https://amazon.com/gp/css/order-history.html/ref=*",
+        "https://www.amazon.com/your-orders/orders/ref=*",
+        "https://www.amazon.com/gp/your-account/order-history/ref=*",
+        "https://www.amazon.com/gp/css/order-history/ref=*",
+        "https://www.amazon.com/gp/css/order-history.html/ref=*"
       ],
       "js": [
         "src/engine/db/_module.js",

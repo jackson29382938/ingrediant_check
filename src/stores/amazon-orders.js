@@ -1,7 +1,7 @@
 // Read only explicit order cards; never infer purchases from recommendations or cart contents.
 (function(root) {
   function allowed(loc) {
-    try { const u = new URL(loc.href); return u.protocol === 'https:' && /^(?:www\.)?amazon\.com$/.test(u.hostname) && /^\/(?:your-orders\/orders|gp\/(?:your-account\/order-history|css\/order-history))(?:\.html)?\/?$/.test(u.pathname); } catch { return false; }
+    try { const u = new URL(loc.href); return u.protocol === 'https:' && /^(?:www\.)?amazon\.com$/.test(u.hostname) && /^\/(?:your-orders\/orders|gp\/(?:your-account\/order-history|css\/order-history))(?:\.html)?(?:\/ref=[A-Za-z0-9_-]+)?\/?$/.test(u.pathname); } catch { return false; }
   }
   function date(raw) {
     const text = String(raw || '').trim();

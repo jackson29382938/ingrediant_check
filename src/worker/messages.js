@@ -78,7 +78,7 @@ function allowMessage(msg, sender) {
       const u = new URL(sender.url || '');
       return sender.frameId === 0 && sender.tab && new URL(sender.tab.url).origin === u.origin && new URL(sender.tab.url).pathname === u.pathname && u.protocol === 'https:'
         && /^(?:www\.)?amazon\.com$/.test(u.hostname)
-        && /^\/(?:your-orders\/orders|gp\/(?:your-account\/order-history|css\/order-history))(?:\.html)?\/?$/.test(u.pathname);
+        && /^\/(?:your-orders\/orders|gp\/(?:your-account\/order-history|css\/order-history))(?:\.html)?(?:\/ref=[A-Za-z0-9_-]+)?\/?$/.test(u.pathname);
     } catch { return false; }
   }
   if (HISTORY_MESSAGE_TYPES.has(msg.type)) return ['/src/options/history.html', '/src/options/welcome.html'].includes(extensionPagePath(sender));
