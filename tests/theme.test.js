@@ -172,7 +172,8 @@ test('no script that reads the theme is missing from a page that loads the panel
   const manifest = JSON.parse(read('manifest.json'));
   for (const cs of manifest.content_scripts) {
     assert.ok(cs.js.indexOf('src/engine/db/theme.js') > cs.js.indexOf('src/engine/db/prefs.js'));
-    assert.ok(cs.js.indexOf('src/engine/db/theme.js') < cs.js.indexOf('src/content/panel.js'));
+    if (cs.js.includes('src/content/panel.js')) assert.ok(cs.js.indexOf('src/engine/db/theme.js') < cs.js.indexOf('src/content/panel.js'));
+    if (cs.js.includes('src/content/orders.js')) assert.ok(cs.js.indexOf('src/engine/db/theme.js') < cs.js.indexOf('src/content/orders.js'));
   }
 });
 

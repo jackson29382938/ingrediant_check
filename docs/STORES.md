@@ -10,6 +10,11 @@ a local harness. **Preview** means a public-page adapter is implemented and test
 
 ## Status
 
+Amazon.com has a separate opt-in Orders-page preview in 1.11.0, preserving purchase snapshots for
+trends. Controlled Chrome/Node tests cover it; signed-in live validation remains pending. Other
+stores/locales' orders, order details and checkout remain outside scope.
+See [purchase history](PURCHASE-HISTORY.md).
+
 | Store | Status | Implemented | Automated checks | Live checked | Notes |
 |---|---|---|---|---|---|
 | Amazon | supported | yes | pass (`npm test`, `npm run harness:ci`) | amazon.com product and search pages, 2026-09-05 and again 2026-09-25, including label-photo OCR, Open Food Facts and the shared database ([VERIFY.md](VERIFY.md)) | Only amazon.com has been live checked. The other 20 Amazon stores share its code and markup but were not checked one by one. |

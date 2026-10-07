@@ -24,6 +24,7 @@ var SETTINGS_MESSAGE_TYPES = new Set([
   'flushDiagnostics', 'diagnosticsStatus', 'refreshSheet',
   'accountSave', 'accountLoad', 'accountFetch',
 ]);
+var HISTORY_MESSAGE_TYPES = new Set(['purchaseImport', 'purchaseOpenHistory', 'purchaseSync', 'purchaseConfigure', 'purchaseDelete']);
 var OFFSCREEN_MESSAGE_TYPES = new Set(['ocrIdle']);
 var AMAZON_HOST = /(^|\.)amazon\.(com|co\.uk|ca|com\.au|ie|in|sg|ae|sa|de|fr|es|it|nl|se|pl|com\.be|com\.tr|com\.mx|com\.br|co\.jp)$/i;
 // Retailer previews perform their public same-origin reads in the content script.
@@ -72,6 +73,15 @@ function isOffscreenSender(sender) {
 
 function allowMessage(msg, sender) {
   if (!msg || !isOwnExtension(sender)) return false;
+  if (msg.type === 'purchaseImport' || msg.type === 'purchaseOpenHistory') {
+    try {
+      const u = new URL(sender.url || '');
+      return sender.frameId === 0 && sender.tab && new URL(sender.tab.url).origin === u.origin && new URL(sender.tab.url).pathname === u.pathname && u.protocol === 'https:'
+        && /^(?:www\.)?amazon\.com$/.test(u.hostname)
+        && /^\/(?:your-orders\/orders|gp\/(?:your-account\/order-history|css\/order-history))(?:\.html)?\/?$/.test(u.pathname);
+    } catch { return false; }
+  }
+  if (HISTORY_MESSAGE_TYPES.has(msg.type)) return ['/src/options/history.html', '/src/options/welcome.html'].includes(extensionPagePath(sender));
   if (PAGE_MESSAGE_TYPES.has(msg.type)) {
     return isAmazonTabSender(sender) || (RETAILER_MESSAGE_TYPES.has(msg.type) && isRetailerTabSender(sender));
   }

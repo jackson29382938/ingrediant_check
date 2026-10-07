@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "minimum_chrome_version": "116",
   "description": "__MSG_appDescription__",
   "permissions": [
@@ -1535,6 +1535,58 @@
         "*://*/orders*",
         "*://*/login*"
       ]
+    },
+    {
+      "matches": [
+        "https://amazon.com/your-orders/orders",
+        "https://amazon.com/your-orders/orders?*",
+        "https://amazon.com/gp/your-account/order-history",
+        "https://amazon.com/gp/your-account/order-history?*",
+        "https://amazon.com/gp/css/order-history",
+        "https://amazon.com/gp/css/order-history?*",
+        "https://amazon.com/gp/css/order-history.html",
+        "https://amazon.com/gp/css/order-history.html?*",
+        "https://www.amazon.com/your-orders/orders",
+        "https://www.amazon.com/your-orders/orders?*",
+        "https://www.amazon.com/gp/your-account/order-history",
+        "https://www.amazon.com/gp/your-account/order-history?*",
+        "https://www.amazon.com/gp/css/order-history",
+        "https://www.amazon.com/gp/css/order-history?*",
+        "https://www.amazon.com/gp/css/order-history.html",
+        "https://www.amazon.com/gp/css/order-history.html?*"
+      ],
+      "js": [
+        "src/engine/db/_module.js",
+        "src/engine/db/oils.js",
+        "src/engine/db/sugars.js",
+        "src/engine/db/additives.js",
+        "src/engine/db/labels.js",
+        "src/engine/db/allergens.js",
+        "src/engine/db/ingestible.js",
+        "src/engine/db/ocr-text.js",
+        "src/engine/db/provenance.js",
+        "src/engine/db/diagnostics.js",
+        "src/engine/categories.js",
+        "src/engine/db/prefs.js",
+        "src/engine/db/theme.js",
+        "src/engine/db/revision.js",
+        "src/engine/db/score-cache.js",
+        "src/engine/db/product-cache.js",
+        "src/engine/db/storefronts.js",
+        "src/engine/db/sorted-results.js",
+        "src/engine/db/unit-price.js",
+        "src/engine/db/speed.js",
+        "src/engine/db/points.js",
+        "src/engine/score.js",
+        "src/content/extract.js",
+        "src/stores/registry.js",
+        "src/stores/cart.js",
+        "src/engine/db/purchase-history.js",
+        "src/stores/amazon-orders.js",
+        "src/content/orders.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
     }
   ],
   "icons": {

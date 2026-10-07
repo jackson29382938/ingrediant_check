@@ -21,6 +21,8 @@ const include = [
   'LICENSE',
   'README.md',
   'docs/PRIVACY.md',
+  'docs/PURCHASE-HISTORY.md',
+  'docs/apps-script.gs',
 ];
 
 const pre = spawnSync(process.execPath, [path.join(root, 'scripts/preflight.mjs')], {

@@ -113,6 +113,7 @@ function handlePost(e, seen) {
   try {
     if (body.kind === 'lookup') return lookupProducts(body.keys);
     if (body.kind === 'accountGet') return readAccount(body.token);
+    if (body.kind === 'historyGet') return readHistory(body.token);
   } catch (err) {
     return json({ ok: false, error: String(err) });
   }
@@ -125,6 +126,8 @@ function handlePost(e, seen) {
     if (body.kind === 'report') return writeRows('reports', CONTRIBUTION_COLUMNS, [stamp(body)]);
     if (body.kind === 'products') return writeProducts(body);
     if (body.kind === 'account') return writeAccount(body.token, body.payload);
+    if (body.kind === 'historyPut') return writeHistory(body.token, body.payload);
+    if (body.kind === 'historyClear') return clearHistory(body.token);
     return writeRows('contributions', CONTRIBUTION_COLUMNS, [stamp(body)]);
   } catch (err) {
     return json({ ok: false, error: String(err) });
@@ -156,8 +159,8 @@ function handleGet(e) {
   // `accounts` says whether Google account storage has a client id, so a deployment can be checked
   // by opening the /exec URL: `"accounts":true` means this version is live and configured.
   var clientId = PropertiesService.getScriptProperties().getProperty('OAUTH_CLIENT_ID') || OAUTH_CLIENT_ID;
-  return json({ ok: true, service: 'ingredient-check', accounts: !!clientId,
-    accepts: ['lookup', 'products', 'diagnostics', 'report', 'account', 'accountGet', 'contribution'] });
+  return json({ ok: true, service: 'ingredient-check', accounts: !!clientId, history: !!clientId, historySchema: 1,
+    accepts: ['lookup', 'products', 'diagnostics', 'report', 'account', 'accountGet', 'historyGet', 'historyPut', 'historyClear', 'contribution'] });
 }
 
 // Strings only, so a date or an all-digit UPC reaches the extension exactly as typed.
@@ -322,6 +325,48 @@ function readAccount(token) {
   return json({ ok: true, payload: JSON.parse(unquote(r[1])), ts: unquote(r[2]) });
 }
 
+// Separate private rows, verified Google account only. No order IDs, emails or tokens are stored.
+var HISTORY_COLUMNS = ['account', 'key', 'payload'];
+function historyClearTime(id) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('history-resets');
+  var at = sheet ? findAccountRow(sheet, id) : -1;
+  return at === -1 ? 0 : Number(unquote(sheet.getRange(at, 2, 1, 1).getValues()[0][0])) || 0;
+}
+function historyRows() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('purchase-history');
+  return sheet && sheet.getLastRow() > 1 ? sheet.getRange(2, 1, sheet.getLastRow() - 1, HISTORY_COLUMNS.length).getValues() : [];
+}
+function readHistory(token) {
+  var id = accountId(token), cleared = historyClearTime(id);
+  var records = historyRows().filter(function(r) { return unquote(r[0]) === id; }).map(function(r) { return JSON.parse(unquote(r[2])); }).filter(function(r) { return r.observedAt > cleared; });
+  return json({ ok: true, kind: 'historyGet', account: id, clearedAt: cleared, records: AIR.db.purchaseHistory.merge([], records) });
+}
+function writeHistory(token, payload) {
+  var id = accountId(token), H = AIR.db.purchaseHistory;
+  if (!payload || !Array.isArray(payload.records) || payload.records.length > 100) throw new Error('invalid history batch');
+  if (payload.records.some(function(r) { return !H.clean(r); })) throw new Error('invalid history record');
+  var cleared = historyClearTime(id), all = historyRows(), old = [], at = {};
+  if (payload.epoch !== cleared) throw new Error('history was reset; sync again');
+  all.forEach(function(r, i) { if (unquote(r[0]) === id) { old.push(JSON.parse(unquote(r[2]))); at[unquote(r[1])] = i + 2; } });
+  var records = H.merge(old.filter(function(r) { return r.observedAt > cleared; }), payload.records.filter(function(r) { return r.observedAt > cleared; }));
+  var sheet = sheetFor('purchase-history', HISTORY_COLUMNS);
+  records.forEach(function(r) {
+    var row = ["'" + id, "'" + r.key, "'" + JSON.stringify(r)];
+    if (at[r.key]) sheet.getRange(at[r.key], 1, 1, 3).setValues([row]); else sheet.appendRow(row);
+  });
+  SpreadsheetApp.flush();
+  return json({ ok: true, kind: 'historyPut', count: records.length });
+}
+function clearHistory(token) {
+  var id = accountId(token), cleared = Date.now(), resets = sheetFor('history-resets', ACCOUNT_COLUMNS), at = findAccountRow(resets, id);
+  var marker = ["'" + id, "'" + String(cleared), "'" + new Date(cleared).toISOString()];
+  if (at === -1) resets.appendRow(marker); else resets.getRange(at, 1, 1, 3).setValues([marker]);
+  var all = historyRows(), sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('purchase-history');
+  for (var i = all.length - 1; i >= 0; i--) if (unquote(all[i][0]) === id) sheet.deleteRow(i + 2);
+  SpreadsheetApp.flush();
+  return json({ ok: true, kind: 'historyClear', clearedAt: cleared });
+}
+
 // ---------------------------------------------------------------- diagnostics, reports, contributions
 
 // Store each ID in the SAME range write as its data. A lost response can then be retried without
@@ -409,3 +454,48 @@ function json(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
 }
+
+// Purchase history schema: generated from src/engine/db/purchase-history.js.
+// Private purchase snapshots; intentionally outside settings backup and shared product caches.
+(function(root) {
+  const MAX = 1000;
+  function clean(raw) {
+    if (!raw || !/^[a-f0-9]{64}$/.test(raw.key || '') || raw.store !== 'amazon.com' || !/^[A-Z0-9]{10}$/.test(raw.asin || '') || !/^\d{4}-\d{2}-\d{2}$/.test(raw.date || '') || !Number.isFinite(Date.parse(raw.date)) || new Date(raw.date).toISOString().slice(0, 10) !== raw.date || !['purchased', 'cancelled', 'returned', 'unknown'].includes(raw.state)) return null;
+    const score = Number.isFinite(raw.score) && raw.score >= 0 && raw.score <= 100 ? Math.round(raw.score) : null;
+    const plain = (v, n) => typeof v === 'string' ? v.replace(/[<>]/g, '').slice(0, n) : '';
+    return { key: raw.key, store: 'amazon.com', asin: raw.asin, date: raw.date, state: raw.state,
+      name: plain(raw.name, 250), score, profile: /^[a-f0-9]{64}$/.test(raw.profile || '') ? raw.profile : '',
+      version: plain(raw.version, 30), ingredients: plain(raw.ingredients, 2000),
+      flags: Array.isArray(raw.flags) ? raw.flags.filter(x => typeof x === 'string').slice(0, 20).map(x => plain(x, 200)) : [],
+      observedAt: Number.isFinite(raw.observedAt) ? Math.max(0, Math.min(Date.now() + 300000, raw.observedAt)) : 0,
+      scoredAt: score !== null && Number.isFinite(raw.scoredAt) ? Math.max(0, Math.min(Date.now() + 300000, raw.scoredAt)) : 0 };
+  }
+  function merge(old, incoming) {
+    const map = new Map();
+    for (const raw of [...(Array.isArray(old) ? old : []), ...(Array.isArray(incoming) ? incoming : [])]) {
+      const r = clean(raw); if (!r) continue;
+      const was = map.get(r.key);
+      if (!was) { if (map.size >= MAX) throw new Error('history-full'); map.set(r.key, r); continue; }
+      if (was.asin !== r.asin || was.date !== r.date) throw new Error('invalid-history-identity');
+      const latest = r.observedAt > was.observedAt ? r : was;
+      // Preserve the first usable score, even after preferences or rules change.
+      const snapshot = was.score !== null && (r.score === null || was.scoredAt <= r.scoredAt) ? was : r;
+      map.set(r.key, { ...latest, score: snapshot.score, profile: snapshot.profile, version: snapshot.version,
+        ingredients: snapshot.ingredients, flags: snapshot.flags, scoredAt: snapshot.scoredAt });
+    }
+    return [...map.values()].sort((a, b) => b.date.localeCompare(a.date) || a.key.localeCompare(b.key));
+  }
+  function trends(records) {
+    const groups = new Map();
+    for (const r of merge([], records).filter(r => r.state === 'purchased')) {
+      const key = [r.date.slice(0, 7), r.version, r.profile].join(':');
+      const g = groups.get(key) || { month: r.date.slice(0, 7), version: r.version, profile: r.profile, total: 0, rated: 0, sum: 0, flagged: 0 };
+      g.total++; if (r.score !== null) { g.rated++; g.sum += r.score; } if (r.flags.length) g.flagged++;
+      groups.set(key, g);
+    }
+    return [...groups.values()].sort((a, b) => b.month.localeCompare(a.month)).map(g => ({ ...g, average: g.rated ? Math.round(g.sum / g.rated) : null }));
+  }
+  const value = { MAX, clean, merge, trends };
+  root.AIR = root.AIR || {}; root.AIR.db = root.AIR.db || {}; root.AIR.db.purchaseHistory = value;
+  if (typeof module !== 'undefined' && module.exports) module.exports = value;
+})(typeof globalThis !== 'undefined' ? globalThis : self);
