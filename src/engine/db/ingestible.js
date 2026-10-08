@@ -105,6 +105,8 @@ const HARD_NEGATIVE = [
     test: (doc, text, title) => /\b(essential oil|fragrance oil|diffuser oil)\b/i.test(title) },
   { id: 'petFood', pts: 10, why: 'Pet food — scored by rules written for human diets',
     test: (doc, text, title) => /\b(dog|cat|puppy|kitten|pet|canine|feline|bird|reptile|ferret|hamster) (food|treats?|chews?|kibble|formula|supplement)\b|\bpet supplies\b/i.test(title + ' ' + text) || PET_WORDS.test(title + ' ' + text) },
+  { id: 'furnitureOrSupport', pts: 12, why: 'Furniture or wearable support rather than something you eat',
+    test: (doc, text, title) => /\b((?:folding|camping|portable|beach|side|coffee|dining|picnic|end) tables?|(?:knee|ankle|wrist|elbow|back) (?:braces?|sleeves?))\b/i.test(title) },
   { id: 'equipment', pts: 12, why: 'Equipment or kitchenware rather than something you eat',
     test: (doc, text, title) => /\b(blenders?|cookware|skillets?|frying pans?|sauce pans?|stock pots?|dutch ovens?|instant pots?|pressure cookers?|chef'?s? knives|steak knives|cutting boards?|food storage|storage containers?|bottle openers?|utensils?|travel mugs?|dinner plates?|bowl sets?|thermos|lunch box(es)?|air fryers?|stand mixers?|food processors?|electric (grill|smoker|kettle)s?|gas grills?|pellet (grill|smoker)s?)\b/i.test(title) },
   // "cap", "hat" and "watch" only count with an apparel word beside them: a bare `cap` made ketchup

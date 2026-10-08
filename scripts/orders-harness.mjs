@@ -4,8 +4,8 @@ const scores = createRequire(import.meta.url)('../src/engine/db/score-cache.js')
 export async function ordersEndToEnd(context, worker, errors) {
   const origin = 'https://www.amazon.com', orders = `${origin}/your-orders/orders`, requests = [];
   const ids = ['B000000001', 'B000000002', 'B000000003', 'B000000004', 'B000000005'];
-  const item = (id, title, status = 'Delivered') => `<div class="product-box"><span class="delivery-status">${status}</span><a href="/Organic-Food/dp/${id}/ref=order">${title}</a><button>Return items</button></div>`;
-  const html = (older = false) => `<main id="yourOrders"><h1>Your Orders</h1><div class="order-card" data-order-id="${older ? '222-1234567-1234567' : '111-1234567-1234567'}"><div class="order-header">Order placed ${older ? 'August' : 'September'} 1, 2026 <span>Ship to PRIVATE ADDRESS</span><span>Payment PRIVATE</span></div>${item(ids[0], 'Whole grain oats')}${older ? '' : item(ids[1], 'Corn chips', 'Cancelled') + item(ids[2], 'Hair shampoo') + item(ids[3], 'Corn chips') + item(ids[4], 'Popcorn')}</div></main><aside class="recommendations">${item('B000000009', 'Suggested oats')}</aside>`;
+  const item = (id, title, status = 'Delivered') => `<div class="a-carousel-card"><span class="delivery-status">${status}</span><a href="/Organic-Food/dp/${id}/ref=order">${title}</a><button>Return items</button></div>`;
+  const html = (older = false) => `<nav id="amazon-navigation">Amazon navigation</nav><main id="yourOrders"><h1>Your Orders</h1><div class="order-card" data-order-id="${older ? '222-1234567-1234567' : '111-1234567-1234567'}"><div class="order-header">Order placed ${older ? 'August' : 'September'} 1, 2026 <span>Ship to PRIVATE ADDRESS</span><span>Payment PRIVATE</span></div>${older ? item(ids[0], 'Whole grain oats') : `<div class="compact-grid"><div><span class="delivery-status">Delivered</span><a href="/dp/${ids[0]}"><img alt="Whole grain oats"><span class="aok-hidden">Opens in a new tab</span></a></div></div>`}<div class="a-carousel">${older ? '' : item(ids[1], 'Corn chips', 'Cancelled') + item(ids[2], 'Hair shampoo') + item(ids[3], 'Corn chips') + item(ids[4], 'Popcorn') + item('B000000006', 'Folding Camping Table') + item('B000000007', 'Compression Knee Braces')}</div></div></main><aside class="recommendations">${item('B000000009', 'Suggested oats')}</aside>`;
   const page = await context.newPage(); page.on('pageerror', e => errors.push('orders: ' + e.message));
   await page.route('**/*', r => {
     const u = new URL(r.request().url()), asin = u.pathname.match(/\/dp\/([A-Z0-9]{10})/i)?.[1];
@@ -26,20 +26,37 @@ export async function ordersEndToEnd(context, worker, errors) {
   const average = Math.round(rated.reduce((sum, r) => sum + r.score, 0) / rated.length);
   if (!await page.locator('#air-order-history').innerText().then(t => t.includes(`Page average: ${average}/100`))) throw new Error('order page average missing or includes unavailable/cancelled products');
   for (const r of rated) if (!await page.locator('.air-order-badge').allTextContents().then(values => values.some(t => t.includes(`${r.score}/100`)))) throw new Error('individual order points missing');
+  if (!await page.locator('#air-order-history').innerText().then(t => t.includes('3 non-food items excluded'))) throw new Error('non-food coverage count wrong');
+  if (!await page.evaluate(() => document.querySelector('#air-order-history').parentElement.id === 'yourOrders' && document.querySelector('.order-card').previousElementSibling.id === 'air-order-history')) throw new Error('summary displaced Amazon navigation');
+  for (const id of ['B000000006', 'B000000007']) if (requests.some(r => r.url().includes(id))) throw new Error('known non-food fetched a food label');
+  if (!await page.locator('.air-order-badge').first().getAttribute('href').then(h => h === `${origin}/dp/${ids[0]}`)) throw new Error('order score link missing or leaks order context');
   if (records.length !== 4 || records.filter(r => r.state === 'purchased' && r.score !== null).length !== 2 || records.some(r => r.asin === 'B000000003')) throw new Error('order eligibility or scoring failed: ' + JSON.stringify(records));
   if (JSON.stringify(records).includes('PRIVATE') || JSON.stringify(records).includes('111-1234567-1234567')) throw new Error('order personal fields saved');
   if (requests.some(r => r.url().includes(ids[4]))) throw new Error('orders did not reuse a valid saved score');
   if (requests.some(r => r.headers().cookie || r.headers().referer || r.url().includes('your-orders'))) throw new Error('order product request leaked cookies/referrer');
   await page.reload(); await page.waitForFunction(() => document.querySelector('#air-order-history')?.textContent.includes('This page imported'));
   if ((await worker.evaluate(async () => (await chrome.storage.local.get('purchaseHistory')).purchaseHistory)).length !== 4) throw new Error('revisited order duplicated');
+  // A record misclassified by an older build must stop driving trends when revisited.
+  await worker.evaluate(async () => {
+    const old = (await chrome.storage.local.get('purchaseHistory')).purchaseHistory;
+    const key = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('amazon.com:111-1234567-1234567:B000000006')))].map(n => n.toString(16).padStart(2, '0')).join('');
+    await chrome.storage.local.set({ purchaseHistory: [...old, { ...old[0], key, asin: 'B000000006', name: 'Folding Camping Table', state: 'purchased', score: 44, scoredAt: Date.now(), observedAt: Date.now() }] });
+  });
+  const refreshed = await worker.evaluate(() => chrome.storage.local.get(null));
+  await worker.evaluate(({ key, value }) => chrome.storage.local.set({ [key]: value }), { key: scores.key('amazon.com', ids[3]), value: { schema: scores.SCHEMA, store: 'amazon.com', asin: ids[3], v: version, t: Date.now(), source: 'page', score: 66, verdict: 'Fair', prefs: scores.fingerprint(refreshed, 'page'), name: 'Corn chips' } });
+  await page.getByRole('button', { name: 'Refresh ratings' }).click();
+  await page.waitForFunction(() => document.querySelector('#air-order-history')?.textContent.includes('This page imported'));
+  const upgraded = await worker.evaluate(async () => (await chrome.storage.local.get('purchaseHistory')).purchaseHistory);
+  if (!upgraded.some(r => r.asin === 'B000000006' && r.state === 'unknown') || !upgraded.some(r => r.asin === 'B000000004' && r.score === 66)) throw new Error('refresh did not exclude legacy non-food or reuse a newly saved label');
+  if (!await page.locator('.air-order-badge').allTextContents().then(t => t.some(x => x.includes('66/100')) && t.filter(x => x.includes('Not a food')).length === 3)) throw new Error('refresh badges missing or duplicated');
   await page.evaluate(() => { document.querySelector('.delivery-status').textContent = 'Returned'; });
   await page.waitForFunction(() => document.querySelector('.air-order-badge')?.textContent.includes('returned'));
   await page.goto(origin + '/gp/your-account/order-history/ref=ppx_yo_pagination_2?page=2'); await page.waitForFunction(() => document.querySelector('#air-order-history')?.textContent.includes('This page imported'));
   const final = await worker.evaluate(async () => (await chrome.storage.local.get('purchaseHistory')).purchaseHistory);
-  if (final.length !== 5 || !final.some(r => r.date === '2026-08-01' && r.score !== null)) throw new Error('older order import failed');
+  if (final.length !== 6 || !final.some(r => r.date === '2026-08-01' && r.score !== null)) throw new Error('older order import failed');
   const opened = context.waitForEvent('page'); await page.getByRole('button', { name: 'History & sync settings' }).click();
   const dashboard = await opened; await dashboard.waitForLoadState(); dashboard.on('pageerror', e => errors.push('history dashboard: ' + e.message));
-  await dashboard.waitForFunction(() => document.querySelector('#coverage')?.textContent.includes('2 of 3 imported purchases rated'));
+  await dashboard.waitForFunction(() => document.querySelector('#coverage')?.textContent.includes('3 of 3 imported purchases rated'));
   if (!await dashboard.locator('#months').innerText().then(t => t.includes('2026-08'))) throw new Error('monthly purchase trends missing');
   await dashboard.locator('#historyAutoSync').check(); await dashboard.locator('#historyAutoSync').uncheck();
   // Real extension UI and worker; OAuth and remote network use controlled fixtures only.
@@ -77,7 +94,7 @@ export async function ordersEndToEnd(context, worker, errors) {
   await dashboard.locator('#historyAutoSync').uncheck();
   await worker.evaluate(() => { self.__purchaseOffline = true; });
   await dashboard.locator('#sync').click(); await dashboard.waitForFunction(() => document.querySelector('#status')?.textContent.includes('working connection'));
-  if ((await worker.evaluate(async () => (await chrome.storage.local.get('purchaseHistory')).purchaseHistory)).length !== 5) throw new Error('offline sync lost local purchases');
+  if ((await worker.evaluate(async () => (await chrome.storage.local.get('purchaseHistory')).purchaseHistory)).length !== 6) throw new Error('offline sync lost local purchases');
   await worker.evaluate(() => { self.__purchaseOffline = false; });
   dashboard.on('dialog', dialog => dialog.accept());
   await dashboard.locator('#delete').click(); await dashboard.waitForFunction(() => document.querySelector('#status')?.textContent.includes('History deleted'));
@@ -85,6 +102,6 @@ export async function ordersEndToEnd(context, worker, errors) {
   await worker.evaluate(() => { self.fetch = self.__purchaseFetch; AIR.googleAuth.token = self.__purchaseToken; chrome.permissions.contains = self.__purchasePermissions; delete self.__purchaseToken; delete self.__purchasePermissions; delete self.__purchaseFetch; delete self.__purchaseRequests; delete self.__purchaseRemote; delete self.__purchaseOffline; });
   await page.evaluate(() => history.pushState({}, '', '/checkout')); await page.waitForFunction(() => !document.querySelector('.air-order-badge'), null, { timeout: 5000 });
   await dashboard.close(); await page.close(); await context.clearCookies({ name: 'private_order_test' });
-  await worker.evaluate(async () => { await chrome.storage.local.set({ historyEnabled: false, historyAutoSync: false, purchaseHistory: [] }); await chrome.storage.local.remove('s:amazon.com:B000000005'); });
+  await worker.evaluate(async () => { await chrome.storage.local.set({ historyEnabled: false, historyAutoSync: false, purchaseHistory: [] }); await chrome.storage.local.remove(['s:amazon.com:B000000005', 's:amazon.com:B000000004']); });
   console.log('  ok orders → opt-in first page, real scoring, no personal fields, deduplication, returns, older pages, purchase-only trends, automatic/manual account sync, offline retention and confirmed deletion (OAuth/backend fixtures)');
 }

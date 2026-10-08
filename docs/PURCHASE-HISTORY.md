@@ -12,7 +12,12 @@ normal Orders page. Sign in to Amazon normally. Only identifiable items on the p
 imported. There is no background order-page fetching, automatic pagination, account crawling or
 checkout access. The extension never receives your Amazon password.
 
-The page shows scores and an import summary. **History & sync settings** opens the dashboard;
+The page shows individual scores and a page average beside the order list, including image-only
+and multi-item shipment tiles. Unscored items never count as zero. Non-food merchandise is
+excluded; previously imported entries recognized as non-food on revisit stop driving trends.
+Badges open public product pages in a new tab. After reading a missing label there, use
+**Refresh ratings** to reuse newly saved scores. Amazon challenges stop further public lookups;
+refreshing does not bypass them. The summary states its coverage and excluded entries. **History & sync settings** opens the dashboard;
 it is also linked from the toolbar and Settings → Backup. Sign in with Google there if needed.
 Google sign-in identifies your sync account, not your Amazon account. Automatic sync starts within
 about a minute after an import; **Sync now** works with automatic sync off. Failed requests keep

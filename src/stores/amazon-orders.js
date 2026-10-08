@@ -16,28 +16,48 @@
   }
   function read(doc, loc) {
     if (!allowed(loc)) return [];
-    const out = [], seen = new Set();
+    const out = [], seen = new Set(), origin = new URL(loc.href).origin;
+    const tiles = '.order-item, .item-box, .product-box, .yohtmlc-item, .yohtmlc-product, .a-carousel-card, [data-testid="order-item"], [data-asin]';
+    const excluded = node => {
+      if (node.closest('header, footer, nav, .air-order-badge, #air-order-history, [hidden], [aria-hidden="true"], .aok-hidden, [class*="recommend"], [id*="recommend"], .order-header, .order-info, [data-testid="order-header"]')) return true;
+      for (let n = node; n?.getAttribute; n = n.parentNode) if (/display\s*:\s*none|visibility\s*:\s*hidden/i.test(n.getAttribute('style') || '')) return true;
+      return false;
+    };
+    const identity = a => {
+      try { const u = new URL(a.getAttribute('href'), loc.href); return u.origin === origin && !u.username && !u.password ? (u.pathname.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})(?:\/|$)/i) || [])[1]?.toUpperCase() || '' : ''; } catch { return ''; }
+    };
+    const productLinks = node => [...node.querySelectorAll('a[href]')].filter(a => { const id = identity(a), declared = a.closest('[data-asin]')?.getAttribute('data-asin'); return id && !excluded(a) && (!declared || declared.toUpperCase() === id); });
+    const visibleText = node => {
+      if (node.nodeType === 3) return node.textContent || '';
+      if (!node.tagName || /^(SCRIPT|STYLE)$/.test(node.tagName) || excluded(node)) return '';
+      return [...node.childNodes].map(visibleText).join(' ').replace(/\s+/g, ' ').trim();
+    };
+    const nameOf = a => (visibleText(a) || a.getAttribute('aria-label') || a.querySelector('img')?.getAttribute('alt') || a.getAttribute('title') || '').replace(/\s+/g, ' ').trim();
     for (const card of doc.querySelectorAll('.order-card, .order, [data-order-id]')) {
-      if (card.closest('header, footer, nav, [hidden], [class*="recommend"], [class*="carousel"]')) continue;
+      if (excluded(card)) continue;
       const header = card.querySelector('.order-header, .order-info, [data-testid="order-header"]');
       const order = card.getAttribute('data-order-id') || (header?.textContent.match(/\b\d{3}-\d{7}-\d{7}\b/) || [])[0];
       if (!/^\d{3}-\d{7}-\d{7}$/.test(order || '')) continue;
       const dateNode = header?.querySelector('time, .order-date, [data-testid="order-date"]');
       const placed = date(dateNode?.getAttribute('datetime') || dateNode?.textContent || header?.textContent);
       if (!placed) continue;
-      for (const line of card.querySelectorAll('.order-item, .item-box, .product-box, .yohtmlc-item, .a-fixed-left-grid, [data-testid="order-item"]')) {
-        if (line.closest('[hidden], [class*="recommend"], [class*="carousel"]')) continue;
-        const links = [...line.querySelectorAll('a[href]')].filter(a => {
-          try { const u = new URL(a.getAttribute('href'), loc.href); return u.origin === new URL(loc.href).origin && !u.username && !u.password && /\/(?:dp|gp\/product)\/[A-Z0-9]{10}(?:\/|$)/i.test(u.pathname); } catch { return false; }
-        });
-        const ids = new Set(links.map(a => new URL(a.getAttribute('href'), loc.href).pathname.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})(?:\/|$)/i)[1].toUpperCase()));
+      const candidates = [...card.querySelectorAll(tiles + ', .a-fixed-left-grid')];
+      // Current compact grids sometimes have only an image link and no item class. Read its
+      // immediate tile inside this verified order card; never split a mixed explicit item.
+      for (const a of productLinks(card)) if (!a.closest(tiles) && a.parentNode !== card) candidates.push(a.parentNode);
+      for (const line of candidates) {
+        if (excluded(line)) continue;
+        const links = productLinks(line), ids = new Set(links.map(identity));
         if (ids.size !== 1) continue;
-        const asin = [...ids][0], key = `${order}:${asin}`;
+        const asin = [...ids][0], key = `${order}:${asin}`, declared = line.getAttribute('data-asin');
+        if (declared && declared.toUpperCase() !== asin) continue;
         if (seen.has(key)) continue;
-        const anchor = links.find(a => a.textContent.trim() && !a.closest('[hidden], .aok-hidden'));
+        const anchor = links.find(a => visibleText(a)) || links.find(a => nameOf(a));
         if (!anchor) continue;
-        const name = anchor.textContent.replace(/\s+/g, ' ').trim().slice(0, 250);
-        const status = line.querySelector('.delivery-status, .shipment-status, .shipment-top-row .a-size-medium, .delivery-box__primary-text, [data-testid="item-status"]') || line.closest('.shipment, .shipment-container')?.querySelector('.delivery-status, .shipment-status');
+        const name = nameOf(anchor).slice(0, 250);
+        if (!name || /^(?:opens? in (?:a )?new tab|product image|image)$/i.test(name)) continue;
+        const statusSelector = '.delivery-status, .shipment-status, .shipment-top-row .a-size-medium, .delivery-box__primary-text, [data-testid="item-status"]';
+        const status = line.querySelector(statusSelector) || line.closest('.shipment, .shipment-container, .delivery-box')?.querySelector(statusSelector);
         const words = [status?.textContent, card.querySelector('.order-status, [data-testid="order-status"]')?.textContent].join(' ');
         // Ignore action links such as "Return items"; only explicit status counts.
         const state = /cancelled|canceled/i.test(words) ? 'cancelled' : /returned|refunded|refund issued|return complete/i.test(words) ? 'returned' : /return requested|partial return|pending|not yet confirmed/i.test(words) ? 'unknown' : 'purchased';

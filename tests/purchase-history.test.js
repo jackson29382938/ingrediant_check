@@ -88,3 +88,27 @@ test('legacy order pagination ref paths are accepted without widening into priva
   const cs = require('../manifest.json').content_scripts.find(c => c.js.includes('src/content/orders.js'));
   assert.ok(cs.matches.includes('https://www.amazon.com/gp/your-account/order-history/ref=*'));
 });
+
+test('actual order carousels and image-only compact tiles are imported; recommendation carousels are not', () => {
+  const image = (asin, name) => `<a href="/dp/${asin}"><img alt="${name}"><span class="aok-hidden">Opens in a new tab</span></a>`;
+  const html = card(`<div class="a-carousel"><div class="a-carousel-card">${image('B000000001', 'Whole grain oats')}</div><div class="a-carousel-card"><a href="/dp/B000000002">Popcorn</a></div></div>`) + `<div class="order-card" data-order-id="222-1234567-1234567"><div class="order-header">Order placed October 7, 2026</div><section class="compact-grid"><div>${image('B000000003', 'Cheddar cheese')}<a class="air-order-badge" href="/dp/B000000003">78/100</a></div><div>${image('B000000004', 'Oranges')}</div></section><aside class="recommendations"><div class="a-carousel-card">${image('B000000005', 'Suggested oats')}</div></aside></div>`;
+  const rows = O.read(createDocument(html), loc);
+  assert.deepEqual(rows.map(r => r.name), ['Whole grain oats', 'Popcorn', 'Cheddar cheese', 'Oranges']);
+  assert.deepEqual(rows.map(r => r.asin), ['B000000001', 'B000000002', 'B000000003', 'B000000004']);
+});
+test('hidden compact products and conflicting declared ASINs cannot borrow order identities', () => {
+  const html = card('<div class="a-carousel-card" data-asin="B000000002"><a href="/dp/B000000001">Oats</a></div><div style="display:none"><a href="/dp/B000000003"><img alt="Hidden oats"></a></div>');
+  // The mixed explicit item is rejected, and its child identity must also match its declared tile.
+  assert.equal(O.read(createDocument(html), loc).length, 0);
+});
+test('camping tables and knee braces are non-food without misclassifying groceries or vitamins', () => {
+  const gate = require('../src/engine/db/ingestible.js');
+  for (const title of ['Beach Table Folding Camping Portable Table', 'Knee Braces for Running, Compression Knee Sleeve']) {
+    const food = gate.assess({ querySelector: () => null }, { title, text: title });
+    assert.equal(food.ok, false); assert.ok(food.negatives.includes('furnitureOrSupport'));
+  }
+  for (const title of ['Table Salt', 'Coffee Beans', 'Hair Skin and Nails Vitamins', 'Protein Tablets', 'Knee Support Vitamins']) {
+    const food = gate.assess({ querySelector: () => null }, { title, text: title });
+    assert.ok(!food.negatives.includes('furnitureOrSupport'));
+  }
+});
