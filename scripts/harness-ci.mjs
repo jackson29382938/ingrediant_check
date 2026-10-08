@@ -10,6 +10,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { recallEndToEnd } from './recall-harness.mjs';
+import { historyScanEndToEnd } from './history-scan-harness.mjs';
 import { ordersEndToEnd } from './orders-harness.mjs';
 import { bottomFiveEndToEnd } from './bottom-five-harness.mjs';
 import { cartEndToEnd, amazonCartEndToEnd } from './cart-harness.mjs';
@@ -937,6 +938,7 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
     await cartEndToEnd(context, worker, pageErrors, root);
     await amazonCartEndToEnd(context, worker, pageErrors, root);
     await recallEndToEnd(context, worker, pageErrors, root);
+    await historyScanEndToEnd(context, worker, pageErrors, id);
     await ordersEndToEnd(context, worker, pageErrors);
     await bottomFiveEndToEnd(context, worker, pageErrors, root);
     await bottomFiveEndToEnd(context, worker, pageErrors, root, ['kroger', 'frys', 'ralphs', 'kingsoopers', 'smiths', 'fredmeyer']);

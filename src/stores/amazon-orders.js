@@ -69,7 +69,7 @@
         const words = [status?.textContent, card.querySelector('.order-status, [data-testid="order-status"]')?.textContent].join(' ');
         // Ignore action links such as "Return items"; only explicit status counts.
         const state = /cancelled|canceled/i.test(words) ? 'cancelled' : /returned|refunded|refund issued|return complete/i.test(words) ? 'returned' : /return requested|partial return|pending|not yet confirmed/i.test(words) ? 'unknown' : 'purchased';
-        seen.add(key); out.push({ order, asin, name, date: placed, state, anchor, imageOnly: !visibleText(anchor) });
+        seen.add(key); out.push({ order, asin, name, date: placed, state, anchor, imageAnchor: links.find(a => a.querySelector('img')) || null, imageOnly: !visibleText(anchor) });
         if (out.length >= 100) return out;
       }
     }

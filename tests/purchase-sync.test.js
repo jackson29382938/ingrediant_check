@@ -10,7 +10,7 @@ function client(initial = {}, opts = {}) {
   const data = { enabled: true, historyEnabled: true, historyAutoSync: true, googleProfile: { email: 'one@example.com' }, ...initial }, calls = [], alarms = [];
   const c = vm.createContext({ AIR: { db: { purchaseHistory: H, prefs: { endpoint: () => 'https://example.test/exec', oauthClientId: () => 'client', OAUTH_CLIENT_ID: 'client' } }, googleAuth: { token: async () => 'test-token', profile: async () => ({ email: opts.tokenEmail || 'one@example.com' }) } },
     chrome: { alarms: { create: (_n, v) => alarms.push(v), clear: async () => {}, onAlarm: { addListener() {} } }, permissions: { contains: async () => true }, storage: { onChanged: { addListener() {} }, local: { get: async () => structuredClone(data), set: async v => Object.assign(data, structuredClone(v)) } } },
-    networkRequest: async () => { if (opts.offline) throw new Error('offline'); return { history: opts.oldBackend ? undefined : true, historySchema: 1 }; },
+    networkRequest: async () => { if (opts.offline) throw new Error('offline'); return { history: opts.oldBackend ? undefined : true, historySchema: 1, historyCapacity: opts.capacity }; },
     accountRequest: async (kind, token, payload) => { calls.push({ kind, token, payload }); if (opts.request) return opts.request(kind, payload); return kind === 'historyGet' ? { ok: true, kind, account: opts.remoteAccount || 'c'.repeat(64), records: opts.remote || [], clearedAt: opts.clearedAt || 0 } : { ok: true, kind, clearedAt: Date.now() }; },
   }); vm.runInContext(fs.readFileSync('src/worker/purchase-history.js', 'utf8'), c);
   return { data, calls, alarms, api: c.AIR.historyWorker };
@@ -86,4 +86,15 @@ test('history reads cannot race with a locked account clear', () => {
   assert.equal(s.post({ kind: 'historyGet', token }).ok, false);
   s.setLocked(false);
   assert.equal(s.post({ kind: 'historyGet', token }).ok, true);
+});
+
+test('large histories require advertised backend capacity before private account requests', async () => {
+  const records = Array.from({ length: 1001 }, (_, i) => r('a', { key: i.toString(16).padStart(64, '0') }));
+  const old = client({ purchaseHistory: records });
+  assert.equal((await old.api.sync()).reason, 'backend-capacity-update-required');
+  assert.equal(old.calls.length, 0); assert.equal(old.data.purchaseHistory.length, 1001);
+  const updated = client({ purchaseHistory: records }, { capacity: 10000 });
+  assert.equal((await updated.api.sync()).ok, true);
+  assert.equal(updated.data.purchaseHistory.length, 1001);
+  assert.equal(receiver().get({}).historyCapacity, 10000);
 });

@@ -12,7 +12,7 @@ const card = (body, extra = '') => `<div class="order-card" data-order-id="123-1
 test('orders reader accepts explicit cards and ignores recommendation links, addresses and actions', () => {
   const doc = createDocument(card('<a href="/Organic-Oats/dp/B000000001/ref=ppx">Whole grain oats</a><a href="/gp/returns">Return items</a>') + '<aside class="recommendations"><a href="/dp/B000000002">Suggested chips</a></aside>');
   const rows = O.read(doc, loc); assert.equal(rows.length, 1); assert.equal(rows[0].state, 'purchased'); assert.equal(rows[0].date, '2026-09-01'); assert.equal(rows[0].name, 'Whole grain oats');
-  assert.deepEqual(Object.keys(rows[0]).sort(), ['order', 'asin', 'name', 'date', 'state', 'anchor', 'imageOnly'].sort());
+  assert.deepEqual(Object.keys(rows[0]).sort(), ['order', 'asin', 'name', 'date', 'state', 'anchor', 'imageAnchor', 'imageOnly'].sort());
 });
 test('visible item cancellations and completed returns override purchase status; return buttons do not', () => {
   for (const [status, state] of [['Cancelled', 'cancelled'], ['Refund issued', 'returned'], ['Return requested', 'unknown'], ['Delivered September 5', 'purchased']]) {

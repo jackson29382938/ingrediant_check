@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "1.11.5",
+  "version": "1.12.0",
   "minimum_chrome_version": "116",
   "description": "__MSG_appDescription__",
   "permissions": [
@@ -1595,6 +1595,9 @@
         "src/stores/cart.js",
         "src/engine/db/purchase-history.js",
         "src/stores/amazon-orders.js",
+        "src/engine/db/history-scan.js",
+        "src/content/panel.js",
+        "src/content/order-hover.js",
         "src/content/orders.js"
       ],
       "run_at": "document_idle",

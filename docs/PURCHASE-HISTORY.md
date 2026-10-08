@@ -8,14 +8,12 @@ Cart and viewed-product ratings never create purchase records.
 
 Run setup again and select **Include my Amazon purchase history** on the goals step. Finish saves
 your goals and warning choices, enables history with automatic account sync, and opens Amazon's
-normal Orders page. Sign in to Amazon normally. Only identifiable items on the page you open are
-imported. There is no background order-page fetching, automatic pagination, account crawling or
-checkout access. The extension never receives your Amazon password.
+normal Orders page. Sign in to Amazon normally. Identifiable items on opened order pages are imported. **Scan all Amazon orders** in History & sync starts a separate ordinary browser tab that visits the available year filters and Next links. Background mode is on by default; Chrome must remain open. It pauses for sign-in, verification, unreadable pages or storage limits. Pause, Resume, Cancel and Open scan tab remain available. Imported purchases are kept and deduplicated on repeat scans. There is no checkout access. The extension never receives your Amazon password.
 
 The page shows individual scores and a page average beside the order list, including image-only
 and multi-item shipment tiles. Unscored items never count as zero. Non-food merchandise is
 excluded; previously imported entries recognized as non-food on revisit stop driving trends.
-Badges open public product pages in a new tab. After reading a missing label there, use
+Scores overlay product images by default; History & sync → Order score display can move them beside titles. Hover or keyboard focus opens saved purchase details. Historical point deductions appear only when the locally saved label and scoring setup still reproduce that snapshot. Clicking badges opens public product pages in a new tab. After reading a missing label there, use
 **Refresh ratings** to reuse newly saved scores. Amazon challenges stop further public lookups;
 refreshing does not bypass them. The summary states its coverage and excluded entries. **History & sync settings** opens the dashboard;
 it is also linked from the toolbar and Settings → Backup. Sign in with Google there if needed.
@@ -25,8 +23,8 @@ the local copy and retry. The master pause stops network requests. History and i
 excluded from settings imports and backups.
 
 Open additional order pages or change Amazon's year filter to include older purchases. This version
-holds 1,000 distinct order/product entries and reads at most 100 lines per page. Capacity errors
-are explicit, not silent deletion. Whole-account import is a future expansion. Current layouts
+holds 10,000 distinct order/product entries and reads at most 100 lines per page. Capacity errors
+are explicit, not silent deletion. Full-history scanning follows available year filters and pagination, with a 2,000-page limit. The initial estimate is 15–60 seconds per page (roughly ten orders); measured page times and discovered order counts update the range. OCR and retailer delays can extend it. Coverage describes what was actually readable, not guaranteed access to every archived order. Current layouts
 have controlled fixture coverage; no signed-in live order history was available here. Unrecognized
 layouts/identities stay unimported.
 
@@ -75,20 +73,20 @@ devices from restoring deleted records; a device learning of a reset discards it
 Target supplied by the owner: [open the Apps Script project](https://script.google.com/home/projects/1gppT8lt9Gz1_r6RWMStOhb7Sc9Imb1MNjML1xwmqfOozsU8pmk4gyNOs/edit).
 The cloud environment has no authenticated Apps Script editing/deployment connection. The project
 ID identifies the target but does not authorize the Google API. The live endpoint was checked on
-October 7, 2026: accounts work, but purchase-history capabilities are absent.
+October 8, 2026: purchase-history capabilities are enabled. For more than 1,000 records, redeploy the updated backend below; local import and trends already support 10,000.
 
 1. Open the project above while signed in as its owner.
 2. Replace the existing server code with [apps-script.gs](apps-script.gs), preserving the existing
    `OAUTH_CLIENT_ID` script property, spreadsheet binding and deployment configuration.
 3. Choose **Deploy → Manage deployments → Edit → New version → Deploy** on the existing web app.
    Keep its existing `/exec` URL.
-4. Open that `/exec` URL. It must return `"history": true` and `"historySchema": 1`.
+4. Open that `/exec` URL. It must return `"history": true` and `"historySchema": 1`, with `"historyCapacity": 10000` for large histories.
 5. In Purchase history, sign in to Google and click **Sync now**. Confirm the timestamp and that
    another device using the same account can retrieve the history.
 
 The extension checks capabilities BEFORE sending any history token/payload. Older deployments
 receive only a capability GET; their legacy contribution handler never receives private history.
-Until deployment, the UI says **backend update required** and local imports/trends still work.
+Older history deployments continue to sync up to 1,000 records. Larger uploads stop with an explicit backend-capacity update message before sending tokens or history. Local imports/trends still work.
 
 ## Validation
 

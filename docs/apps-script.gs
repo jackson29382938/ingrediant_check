@@ -160,7 +160,7 @@ function handleGet(e) {
   // `accounts` says whether Google account storage has a client id, so a deployment can be checked
   // by opening the /exec URL: `"accounts":true` means this version is live and configured.
   var clientId = PropertiesService.getScriptProperties().getProperty('OAUTH_CLIENT_ID') || OAUTH_CLIENT_ID;
-  return json({ ok: true, service: 'ingredient-check', accounts: !!clientId, history: !!clientId, historySchema: 1,
+  return json({ ok: true, service: 'ingredient-check', accounts: !!clientId, history: !!clientId, historySchema: 1, historyCapacity: AIR.db.purchaseHistory.MAX,
     accepts: ['lookup', 'products', 'diagnostics', 'report', 'account', 'accountGet', 'historyGet', 'historyPut', 'historyClear', 'contribution'] });
 }
 
@@ -465,7 +465,7 @@ function json(obj) {
 // Purchase history schema: generated from src/engine/db/purchase-history.js.
 // Private purchase snapshots; intentionally outside settings backup and shared product caches.
 (function(root) {
-  const MAX = 1000;
+  const MAX = 10000;
   function clean(raw) {
     if (!raw || !/^[a-f0-9]{64}$/.test(raw.key || '') || raw.store !== 'amazon.com' || !/^[A-Z0-9]{10}$/.test(raw.asin || '') || !/^\d{4}-\d{2}-\d{2}$/.test(raw.date || '') || !Number.isFinite(Date.parse(raw.date)) || new Date(raw.date).toISOString().slice(0, 10) !== raw.date || !['purchased', 'cancelled', 'returned', 'unknown'].includes(raw.state)) return null;
     const score = Number.isFinite(raw.score) && raw.score >= 0 && raw.score <= 100 ? Math.round(raw.score) : null;

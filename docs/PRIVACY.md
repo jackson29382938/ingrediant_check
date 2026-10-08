@@ -4,7 +4,7 @@
 
 Setup's **Include my Amazon purchase history** enables Amazon.com order-page imports and automatic
 Google-account sync, with **Sync now** and a sync-off option in Purchase history. Only actual opened
-order pages contribute purchases; carts and viewed products do not. Public label lookups omit
+order pages contribute purchases; carts and viewed products do not. An explicit **Scan all Amazon orders** action opens a dedicated browser tab and visits available year filters and pagination, optionally in the background while Chrome remains open. Local scan progress stores validated order-page URLs, counts and timing; it does not store raw order-page content. Verification pauses the scan. Public label lookups omit
 cookies and referrers. Optional missing-label fallbacks send only a product barcode to Open Food
 Facts (with its permission) or fetch public product-label images for local OCR. Orders, addresses
 and payment details are never sent to those services. Fresh product readings stay in the local

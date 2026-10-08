@@ -24,7 +24,7 @@ var SETTINGS_MESSAGE_TYPES = new Set([
   'flushDiagnostics', 'diagnosticsStatus', 'refreshSheet',
   'accountSave', 'accountLoad', 'accountFetch',
 ]);
-var HISTORY_MESSAGE_TYPES = new Set(['purchaseImport', 'purchaseOpenHistory', 'purchaseSync', 'purchaseConfigure', 'purchaseDelete']);
+var HISTORY_MESSAGE_TYPES = new Set(['purchaseScanStart', 'purchaseScanResume', 'purchaseScanPause', 'purchaseScanCancel', 'purchaseScanState', 'purchaseScanProgress', 'purchaseImport', 'purchaseOpenHistory', 'purchaseSync', 'purchaseConfigure', 'purchaseDelete']);
 var OFFSCREEN_MESSAGE_TYPES = new Set(['ocrIdle']);
 var AMAZON_HOST = /(^|\.)amazon\.(com|co\.uk|ca|com\.au|ie|in|sg|ae|sa|de|fr|es|it|nl|se|pl|com\.be|com\.tr|com\.mx|com\.br|co\.jp)$/i;
 // Retailer previews perform their public same-origin reads in the content script.
@@ -73,7 +73,7 @@ function isOffscreenSender(sender) {
 
 function allowMessage(msg, sender) {
   if (!msg || !isOwnExtension(sender)) return false;
-  if (msg.type === 'purchaseImport' || msg.type === 'purchaseOpenHistory') {
+  if (msg.type === 'purchaseImport' || msg.type === 'purchaseOpenHistory' || msg.type === 'purchaseScanState' || msg.type === 'purchaseScanProgress') {
     try {
       const u = new URL(sender.url || '');
       return sender.frameId === 0 && sender.tab && new URL(sender.tab.url).origin === u.origin && new URL(sender.tab.url).pathname === u.pathname && u.protocol === 'https:'

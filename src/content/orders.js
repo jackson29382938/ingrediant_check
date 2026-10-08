@@ -1,8 +1,16 @@
-// Opt-in reading of the order page already open. No authenticated order requests or pagination.
+// Opt-in reading of opened order pages; an explicit background scan uses ordinary tab navigation.
 (function(root) {
   const A = root.AIR, O = A.amazonOrders, H = A.db.purchaseHistory, cache = A.db.scoreCache;
   let running = false, dirty = false, stopped = false, generation = 0, banner, badges = new WeakMap();
   const controllers = new Set(), imageWrappers = new Set(), readings = new Map();
+  let scanHold = false, lastScanReport = null;
+  async function reportScan(reason = '') {
+    const state = await chrome.runtime.sendMessage({ type: 'purchaseScanState' });
+    if (!state?.ok || scanHold) return;
+    const plan = A.db.historyScan.plan(document, location);
+    lastScanReport = { type: 'purchaseScanProgress', nonce: state.nonce, pageURL: location.href, items: O.read(document, location).length, plan, reason };
+    await chrome.runtime.sendMessage(lastScanReport);
+  }
   let currentConf, currentItems = [], currentProfile, currentVersion, currentSummary;
   const hash = async text => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)))].map(x => x.toString(16).padStart(2, '0')).join('');
   function note(text) {
@@ -32,17 +40,19 @@
     if (!badge?.isConnected) {
       badge = document.createElement('a'); badge.className = 'air-order-badge';
       badge.href = new URL(`/dp/${line.asin}`, location.origin).href; badge.target = '_blank'; badge.rel = 'noopener noreferrer';
-      const img = line.anchor.querySelector('img');
-      if (img && line.imageOnly) {
+      const imageAnchor = currentConf?.orderBadgePlacement === 'title' && !line.imageOnly ? null : line.imageAnchor || (line.anchor.querySelector('img') ? line.anchor : null);
+      const img = imageAnchor?.querySelector('img');
+      if (img) {
         const wrapper = document.createElement('span'); wrapper.className = 'air-order-image';
         wrapper.style.cssText = 'display:inline-block;position:relative;vertical-align:top;max-width:100%;line-height:0';
-        line.anchor.before(wrapper); wrapper.append(line.anchor, badge); imageWrappers.add(wrapper); badge.dataset.imageOnly = 'true';
+        imageAnchor.before(wrapper); wrapper.append(imageAnchor, badge); imageWrappers.add(wrapper); badge.dataset.imageOnly = 'true';
       } else (line.anchor.closest('.a-truncate') || line.anchor).after(badge);
       badges.set(line.anchor, badge);
     }
     const state = record.state === 'purchased' ? '' : ` · ${record.state}`;
     badge.textContent = record.score !== null ? ` ${record.score}/100${state} ` : ` ${text || (record.state === 'purchased' ? 'Label unavailable' : 'Excluded from trends')}${state} `;
     badge.title = record.score !== null ? `Purchase snapshot, scored ${new Date(record.scoredAt).toLocaleDateString()}. Ingredient labels may differ from when ordered. ${record.flags.join('; ')}. Open product.` : `${line.name}: ${text || 'Label unavailable'}. Open the product to read its label, then use Refresh ratings. Missing labels do not receive an invented score.`;
+    A.orderHover?.bind(badge, line, record);
     badge.setAttribute('aria-label', `${line.name}: ${badge.textContent.trim()}. Open product in a new tab.`);
     const c = record.score !== null ? A.db.theme.band(record.score) : { fg: '#374151', bg: '#f3f4f6', ring: '#9ca3af' };
     badge.style.cssText = `display:inline-block;max-width:100%;box-sizing:border-box;white-space:normal;margin:4px 0;padding:3px 7px;border:2px solid ${c.ring};border-radius:999px;color:${c.fg};background:${c.bg};font:700 12px/1.4 sans-serif;text-decoration:none${badge.dataset.imageOnly ? ';position:absolute;bottom:2px;left:2px;margin:0;max-width:calc(100% - 4px);font-size:10px;padding:1px 3px' : ''}`;
@@ -119,14 +129,14 @@
     running = true; dirty = false;
     const turn = generation;
     try {
-      if (!O.allowed(location)) return;
-      const conf = await chrome.storage.local.get(['historyEnabled', 'historyOwner', 'googleProfile', 'enabled', 'purchaseHistory', 'weights', 'foodOnly', 'goals', 'allergens', 'diets', 'avoidList', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'ocrLabels', 'useOpenFoodFacts', 'ratePace', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'theme', 'palette']);
+      if (!O.allowed(location) || scanHold) return;
+      const conf = await chrome.storage.local.get(['historyEnabled', 'historyOwner', 'googleProfile', 'enabled', 'purchaseHistory', 'weights', 'foodOnly', 'goals', 'allergens', 'diets', 'avoidList', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'ocrLabels', 'useOpenFoodFacts', 'ratePace', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'orderBadgePlacement', 'hoverBreakdown', 'breakdownDelayMs', 'breakdownDetail', 'theme', 'palette']);
       if (conf.enabled === false) { note('Ingredient Check is paused. Resume it in the extension popup to show order ratings.'); return; }
       if (!conf.historyEnabled) { note('Purchase history is off. Open History & sync settings and enable import to show individual order scores and averages.'); return; }
       if (conf.historyOwner && conf.googleProfile?.email && conf.historyOwner !== conf.googleProfile.email.toLowerCase()) { note('Purchase import paused: your Google account changed. Manage history before switching accounts.'); return; }
       const lines = O.read(document, location), sig = JSON.stringify(lines.map(x => [x.order, x.asin, x.state, x.date]));
-      if (sig === signature) return;
-      if (!lines.length) { note('No identifiable order items on this page. Open Your Orders; recommendations and order details are not imported.'); return; }
+      if (sig === signature) { if (lastScanReport) await reportScan(stopped ? 'Amazon blocked label lookups. Check the scan tab, then Resume.' : ''); return; }
+      if (!lines.length) { note('No identifiable order items on this page. Open Your Orders; recommendations and order details are not imported.'); await reportScan(/robot|captcha|verification|sign.in/i.test(document.title) ? 'Amazon sign-in or verification is required. Check the scan tab, then Resume.' : ''); return; }
       note('Importing this order page. Only actual order items enter trends; cancelled and returned items are excluded.');
       A.db.theme.use(conf);
       const scoring = A.db.prefs.sanitizeScoring(conf);
@@ -144,6 +154,7 @@
         return { line, record: H.clean(excluded ? { ...record, state: 'unknown' } : record), old, excluded };
       }));
       if (turn !== generation || !O.allowed(location)) return;
+      A.orderHover?.configure(conf, profile, version);
       currentConf = conf; currentItems = items; currentProfile = profile; currentVersion = version;
       const draw = item => { if (item.line.anchor.isConnected) paint(item.line, item.excluded ? { ...item.record, score: null, state: 'purchased' } : item.record, item.excluded ? 'Not a food' : item.record.score === null && item.record.state === 'purchased' ? 'Checking label…' : undefined); };
       const summary = done => {
@@ -158,7 +169,7 @@
       const save = async selected => {
         if (!selected.length || turn !== generation || !O.allowed(location)) return;
         const saved = await chrome.runtime.sendMessage({ type: 'purchaseImport', records: selected.map(i => H.clean(i.record)) });
-        if (!saved?.ok) throw new Error('history-not-saved');
+        if (!saved?.ok) throw new Error(saved?.reason || 'history-not-saved');
         for (const item of selected) { const row = saved.records?.find(r => r.key === item.record.key); if (row) Object.assign(item.record, H.merge([item.record], [row])[0]); }
       };
       await save(items.filter(i => !i.excluded || i.old));
@@ -210,7 +221,7 @@
               await persistReading(line, rating); await complete(affected, rating);
             });
             else { await persistReading(line, data); await complete(affected, data); }
-          } catch (e) { if (e.message === 'history-not-saved') throw e; await complete(affected, null); }
+          } catch (e) { if (['history-not-saved', 'history-full', 'storage-error'].includes(e.message)) throw e; await complete(affected, null); }
         }
       };
       await Promise.all(Array.from({ length: pace.concurrent }, work));
@@ -218,12 +229,19 @@
       if (turn !== generation || !O.allowed(location)) return;
       signature = sig;
       summary(true);
-    } catch { note('Order import did not complete. Successfully imported items are kept; check History & sync settings and retry this page.'); }
+      await reportScan(stopped ? 'Amazon blocked public label lookups. Check the scan tab, then Resume.' : '');
+    } catch (error) { if (turn !== generation) return; await reportScan(error.message === 'history-full' ? 'The history capacity limit was reached. Export your history before proceeding.' : 'Order import failed. Successfully imported purchases are kept; check the scan tab and Resume.').catch(() => {}); note('Order import did not complete. Successfully imported items are kept; check History & sync settings and retry this page.'); }
     finally { running = false; if (dirty) setTimeout(run, 250); }
   }
+  chrome.runtime.onMessage.addListener((msg, sender, reply) => {
+    if (sender.id !== chrome.runtime.id) return false;
+    if (msg.type === 'purchaseScanPause') { scanHold = true; generation++; controllers.forEach(c => c.abort()); reply({ ok: true }); return false; }
+    if (msg.type === 'purchaseScanRetry') { if (!scanHold) { if (lastScanReport && !running) void reportScan(); else void run(); } reply({ ok: true }); return false; }
+    return false;
+  });
   let timer;
   new MutationObserver(() => { clearTimeout(timer); timer = setTimeout(run, 300); }).observe(document.documentElement, { childList: true, subtree: true });
-  function reset(clearStop = true) { generation++; currentItems = []; currentSummary = null; readings.clear(); signature = ''; if (clearStop) stopped = false; badges = new WeakMap(); controllers.forEach(c => c.abort()); document.querySelectorAll('.air-order-badge').forEach(b => b.remove()); for (const wrapper of imageWrappers) { wrapper.replaceWith(...wrapper.childNodes); } imageWrappers.clear(); banner?.remove(); banner = null; void run(); }
+  function reset(clearStop = true) { A.orderHover?.close(); generation++; currentItems = []; currentSummary = null; readings.clear(); signature = ''; if (clearStop) stopped = false; badges = new WeakMap(); controllers.forEach(c => c.abort()); document.querySelectorAll('.air-order-badge').forEach(b => b.remove()); for (const wrapper of imageWrappers) { wrapper.replaceWith(...wrapper.childNodes); } imageWrappers.clear(); banner?.remove(); banner = null; void run(); }
   async function cacheChanged(changes) {
     if (!currentItems.length || !currentConf) return;
     const turn = generation, selected = currentItems.filter(i => !i.excluded && i.record.state === 'purchased' && i.record.score === null && [cache.key(location.hostname, i.line.asin), A.db.productCache.localKey(location.hostname, i.line.asin)].some(k => changes[k]));
@@ -241,14 +259,14 @@
       currentSummary?.();
       const saved = await chrome.runtime.sendMessage({ type: 'purchaseImport', records: updates });
       if (turn !== generation || !O.allowed(location)) return;
-      if (!saved?.ok) throw new Error('history-not-saved');
+      if (!saved?.ok) throw new Error(saved?.reason || 'history-not-saved');
       for (const item of selected) { const row = saved.records?.find(r => r.key === item.record.key); if (row) { Object.assign(item.record, H.merge([item.record], [row])[0]); if (item.line.anchor.isConnected) paint(item.line, item.record); } }
       signature = ''; dirty = true; if (!running) void run();
     }
   }
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
-    if (['enabled', 'historyEnabled', 'theme', 'palette', 'ocrLabels', 'useOpenFoodFacts', 'ratePace', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays'].some(k => changes[k]) || (changes.googleProfile && changes.googleProfile.oldValue?.email !== changes.googleProfile.newValue?.email)) reset();
+    if (['enabled', 'historyEnabled', 'theme', 'palette', 'ocrLabels', 'useOpenFoodFacts', 'ratePace', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'orderBadgePlacement', 'hoverBreakdown', 'breakdownDelayMs', 'breakdownDetail'].some(k => changes[k]) || (changes.googleProfile && changes.googleProfile.oldValue?.email !== changes.googleProfile.newValue?.email)) reset();
     else if (Object.keys(changes).some(k => /^(s|p):amazon\.com:/.test(k))) void cacheChanged(changes).catch(() => { note('A saved product rating could not be added to history. Open History & sync settings and refresh this page.'); });
   });
   setInterval(() => { if (location.href !== lastURL) { lastURL = location.href; reset(); } }, 1000);

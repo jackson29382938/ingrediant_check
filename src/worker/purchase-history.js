@@ -30,11 +30,12 @@
     if (conf.historyAutoSync !== false) retry();
     return { ok: true, count: records.length, records: records.filter(r => msg.records.some(x => x.key === r.key)) };
   }
-  async function capabilities() {
+  async function capabilities(count = 0) {
     const endpoint = root.AIR.db.prefs.endpoint();
     if (!endpoint) throw new Error('no-endpoint');
     const res = await networkRequest(endpoint, { credentials: 'omit', referrerPolicy: 'no-referrer' }, r => r.ok ? r.json() : null);
     if (res?.history !== true || res.historySchema !== 1) throw new Error('backend-update-required');
+    if (count > (Number(res.historyCapacity) || 1000)) throw new Error('backend-capacity-update-required');
   }
   async function sync(token, manual = false) {
     const conf = await chrome.storage.local.get(keys);
@@ -43,7 +44,7 @@
       if (!email(conf.googleProfile)) throw new Error('needs-sign-in');
       // An account switch never transfers another account's local purchase history.
       if (conf.historyOwner && conf.historyOwner !== email(conf.googleProfile)) throw new Error('account-changed');
-      await capabilities();
+      await capabilities(conf.purchaseHistory?.length || 0);
       if (!token) {
         if (!await chrome.permissions.contains({ permissions: ['identity'] })) throw new Error('needs-sign-in');
         token = await root.AIR.googleAuth.token(chrome, root.AIR.db.prefs.oauthClientId(conf.oauthClientId) || root.AIR.db.prefs.OAUTH_CLIENT_ID, { silent: true });
@@ -74,7 +75,7 @@
       }
       await status(true); await chrome.alarms.clear(ALARM); return { ok: true, count: merged.length };
     } catch (e) {
-      const reason = ['backend-update-required', 'account-changed', 'off', 'history-full', 'no-endpoint'].includes(e.message) ? e.message : 'needs-sign-in-or-network';
+      const reason = ['backend-update-required', 'backend-capacity-update-required', 'account-changed', 'off', 'history-full', 'no-endpoint'].includes(e.message) ? e.message : 'needs-sign-in-or-network';
       await status(false, reason);
       if (reason !== 'off') retry(5);
       return { ok: false, reason };
