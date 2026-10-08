@@ -39,6 +39,10 @@ export async function historyDashboardEndToEnd(history, worker) {
     await history.waitForFunction(() => getComputedStyle(document.documentElement).colorScheme.includes('dark'));
     await history.setViewportSize({ width: 390, height: 844 });
     if (await history.evaluate(() => document.documentElement.scrollWidth > innerWidth + 2)) throw new Error('Dashboard overflows a mobile viewport');
+    await history.evaluate(() => { document.body.style.fontSize = '20px'; document.body.style.fontFamily = 'Arial, sans-serif'; });
+    await history.setViewportSize({ width: 340, height: 844 });
+    if (await history.evaluate(() => document.documentElement.scrollWidth > innerWidth + 2)) throw new Error('Dashboard overflows a narrow viewport with larger fonts');
+    await history.evaluate(() => { document.body.style.removeProperty('font-size'); document.body.style.removeProperty('font-family'); });
     const large = Array.from({ length: 502 }, (_, i) => ({ ...records[0], key: (i + 100).toString(16).padStart(64, '0'), orderKey: (i + 1000).toString(16).padStart(64, '0') }));
     await worker.evaluate(records => chrome.storage.local.set({ purchaseHistory: records }), large);
     await history.waitForFunction(() => document.querySelector('#metricItems').textContent === '502');
