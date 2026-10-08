@@ -33,8 +33,14 @@ layouts/identities stay unimported.
 ## Ratings and trends
 
 Order ratings use the same engine, labels/certifications, goals, weights and warnings as product
-and cart ratings. Public product lookups omit cookies and the order-page referrer, run two at a
-time, and use the existing Speed budget (20–60 per page). Challenges stop new lookups. No private
+and cart ratings. Orders paint cached scores before network requests and automatically pick up ratings saved by
+product pages. The same ASIN is fetched once per order page; new product readings stay in the local
+cache. Missing text can use barcode/Open Food Facts and label-photo OCR when their existing
+controls are enabled. History settings exposes those controls and product-fetch pace (2–5 at a
+time). OCR has a separate bounded queue, reads ingredient text locally, and never supplies nutrition
+numbers from images. Photo quality and Amazon restrictions can still leave an item unscored.
+
+Public product lookups omit cookies and the order-page referrer, follow the selected bounded pace, and use the existing Speed budget (20–60 per page). Challenges stop new lookups. No private
 retailer APIs are used. Valid saved scores and fresh local labels are reused first; cached scores without label text cannot supply warning matches. Each completed item is saved immediately.
 
 Missing labels stay unscored, not zero; coverage is shown. Known non-food products are excluded.

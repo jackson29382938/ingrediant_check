@@ -5,7 +5,10 @@
 Setup's **Include my Amazon purchase history** enables Amazon.com order-page imports and automatic
 Google-account sync, with **Sync now** and a sync-off option in Purchase history. Only actual opened
 order pages contribute purchases; carts and viewed products do not. Public label lookups omit
-cookies and referrers. Separate authenticated private backend rows hold product names/IDs, purchase
+cookies and referrers. Optional missing-label fallbacks send only a product barcode to Open Food
+Facts (with its permission) or fetch public product-label images for local OCR. Orders, addresses
+and payment details are never sent to those services. Fresh product readings stay in the local
+cache; purchase capture does not publish them to shared product storage. Separate authenticated private backend rows hold product names/IDs, purchase
 dates, status, scores, bounded ingredients and warning matches. Addresses, payment details, prices
 and raw order numbers are not stored or uploaded. The feature is off until enabled and excluded
 from settings imports/backups and shared product databases. Account switches do not transfer another

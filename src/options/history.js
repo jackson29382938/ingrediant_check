@@ -5,9 +5,10 @@
   function say(text) { $('status').textContent = text; }
   function row(target, values) { const tr = document.createElement('tr'); for (const v of values) { const td = document.createElement('td'); td.textContent = String(v ?? '—'); tr.append(td); } target.append(tr); }
   async function paint() {
-    conf = await chrome.storage.local.get(['purchaseHistory', 'historyEnabled', 'historyAutoSync', 'historyOwner', 'historySyncStatus', 'historyDeletePending', 'googleProfile', 'oauthClientId', 'theme', 'palette', 'accent']);
+    conf = await chrome.storage.local.get(['purchaseHistory', 'historyEnabled', 'historyAutoSync', 'historyOwner', 'historySyncStatus', 'historyDeletePending', 'googleProfile', 'oauthClientId', 'theme', 'palette', 'accent', 'ocrLabels', 'useOpenFoodFacts', 'ratePace']);
     AIR.db.theme.use(conf); AIR.db.theme.force(document);
     $('historyEnabled').checked = conf.historyEnabled === true; $('historyAutoSync').checked = conf.historyAutoSync !== false;
+    const toggles = AIR.db.prefs.sanitizeToggles(conf); $('ocrLabels').checked = toggles.ocrLabels; $('useOpenFoodFacts').checked = toggles.useOpenFoodFacts; $('ratePace').value = ['gentle', 'normal', 'quick', 'fast'].includes(conf.ratePace) ? conf.ratePace : 'normal';
     $('account').textContent = conf.googleProfile?.email ? `Signed in: ${conf.googleProfile.email}` : 'Not signed in. Import can work locally; account sync waits for Google sign-in.';
     const status = conf.historySyncStatus;
     if (!busy) say(conf.historyDeletePending ? 'Local history cleared. Account deletion is pending; sign in to its Google account and click Sync now.' : status ? status.ok ? status.reason === 'deleted' ? reasons.deleted : `Synced ${new Date(status.at).toLocaleString()}` : reasons[status.reason] || 'Sync has not completed. Local history is kept.' : 'No account sync yet.');
@@ -25,13 +26,20 @@
     const who = await AIR.googleAuth.profile(token); await chrome.storage.local.set({ googleProfile: { ...who, at: Date.now() } }); return token;
   }
   async function action(fn) {
-    if (busy) return; busy = true; document.querySelectorAll('button,input').forEach(b => { b.disabled = true; }); say('Working…');
+    if (busy) return; busy = true; document.querySelectorAll('button,input,select').forEach(b => { b.disabled = true; }); say('Working…');
     try { const r = await fn(); say(r?.ok ? 'Done.' : reasons[r?.reason] || r?.reason || 'Could not complete this action.'); }
     catch (e) { say(e.message === 'cancelled' ? 'Google sign-in cancelled. Local history is kept.' : 'Could not finish. Check your connection and Google sign-in settings.'); }
-    finally { busy = false; document.querySelectorAll('button,input').forEach(b => { b.disabled = false; }); await paint(); }
+    finally { busy = false; document.querySelectorAll('button,input,select').forEach(b => { b.disabled = false; }); await paint(); }
   }
   $('historyEnabled').addEventListener('change', () => action(() => chrome.runtime.sendMessage({ type: 'purchaseConfigure', enabled: $('historyEnabled').checked, autoSync: $('historyAutoSync').checked })));
   $('historyAutoSync').addEventListener('change', () => action(() => chrome.runtime.sendMessage({ type: 'purchaseConfigure', enabled: $('historyEnabled').checked, autoSync: $('historyAutoSync').checked })));
+  $('ocrLabels').addEventListener('change', () => action(async () => { await chrome.storage.local.set({ ocrLabels: $('ocrLabels').checked }); return { ok: true }; }));
+  $('useOpenFoodFacts').addEventListener('change', () => action(async () => {
+    const enabled = $('useOpenFoodFacts').checked;
+    if (enabled && !await chrome.permissions.request({ origins: ['https://world.openfoodfacts.org/*'] })) return { ok: false, reason: 'Barcode lookup permission was not granted.' };
+    await chrome.storage.local.set({ useOpenFoodFacts: enabled }); return { ok: true };
+  }));
+  $('ratePace').addEventListener('change', () => action(async () => { await chrome.storage.local.set({ ratePace: $('ratePace').value }); return { ok: true }; }));
   $('signIn').addEventListener('click', () => action(async () => { await auth(); return { ok: true }; }));
   $('sync').addEventListener('click', () => action(async () => chrome.runtime.sendMessage({ type: 'purchaseSync', token: await auth() })));
   $('delete').addEventListener('click', () => { if (confirm('Delete purchase history from this device and your authenticated account? Import will be switched off. Offline account deletion will remain pending.')) action(async () => chrome.runtime.sendMessage({ type: 'purchaseDelete', token: conf.historyOwner ? await auth() : undefined })); });

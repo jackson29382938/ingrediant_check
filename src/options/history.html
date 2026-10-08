@@ -7,6 +7,14 @@
 <label><input type="checkbox" id="historyEnabled"> Import the Amazon order pages I open</label>
 <label><input type="checkbox" id="historyAutoSync" checked> Automatically sync my purchase history with my Google account</label>
 <p>Sync sends product names and IDs, purchase dates, ingredient text, ratings and selected warning matches to your authenticated account record in Ingredient Check's private backend. No addresses, prices, payment details or raw order numbers are stored. History is separate from settings backups.</p>
+<fieldset><legend>Label reading and speed</legend>
+<label><input type="checkbox" id="ocrLabels"> Read label photos (OCR)</label>
+<p>Reads ingredient text from product label images on your computer. Photo reading can take longer than text or saved ratings; it never guesses nutrition numbers.</p>
+<label><input type="checkbox" id="useOpenFoodFacts"> Look up missing labels by barcode with Open Food Facts</label>
+<p>Only the public product barcode is sent to Open Food Facts. Your orders are not sent there.</p>
+<label for="ratePace">Product-page fetching</label><select id="ratePace"><option value="gentle">Gentle · 2 at a time</option><option value="normal">Normal · 3 at a time</option><option value="quick">Quick · 4 at a time</option><option value="fast">Fast · 5 at a time</option></select>
+<p>Saved ratings always appear first. Photo reading has its own queue. Amazon may refuse faster requests; blocked requests stop.</p>
+</fieldset>
 <p id="account" role="status"></p>
 <div class="actions"><button id="signIn">Sign in with Google</button><button id="sync">Sync now</button><button id="openOrders">Open Amazon Orders</button><button id="export">Export history</button><button id="delete">Delete local and account history</button></div>
 <p id="status" role="status" aria-live="polite"></p>
