@@ -25,7 +25,7 @@
       const dateNode = header?.querySelector('time, .order-date, [data-testid="order-date"]');
       const placed = date(dateNode?.getAttribute('datetime') || dateNode?.textContent || header?.textContent);
       if (!placed) continue;
-      for (const line of card.querySelectorAll('.order-item, .item-box, .yohtmlc-item, .a-fixed-left-grid, [data-testid="order-item"]')) {
+      for (const line of card.querySelectorAll('.order-item, .item-box, .product-box, .yohtmlc-item, .a-fixed-left-grid, [data-testid="order-item"]')) {
         if (line.closest('[hidden], [class*="recommend"], [class*="carousel"]')) continue;
         const links = [...line.querySelectorAll('a[href]')].filter(a => {
           try { const u = new URL(a.getAttribute('href'), loc.href); return u.origin === new URL(loc.href).origin && !u.username && !u.password && /\/(?:dp|gp\/product)\/[A-Z0-9]{10}(?:\/|$)/i.test(u.pathname); } catch { return false; }

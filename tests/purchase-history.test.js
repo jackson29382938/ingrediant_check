@@ -26,6 +26,14 @@ test('missing order identities/dates and mixed or cross-origin product identitie
 test('order dates reject impossible dates without aborting the page', () => {
   assert.equal(O.date('Order placed February 31, 2026'), ''); assert.equal(O.date('2026-99-99'), ''); assert.equal(O.date('October 7, 2026'), '2026-10-07');
 });
+test('multi-product shipment tiles remain separate purchases and ignore buy-again recommendations', () => {
+  const tile = (asin, name) => `<div class="product-box"><a href="/dp/${asin}"><img></a><a href="/dp/${asin}">${name}</a><button>Buy it again</button></div>`;
+  const html = `<div class="order-card"><div class="order-header">ORDER #123-1234567-1234567 Order placed October 7, 2026</div><div class="a-fixed-left-grid">${tile('B000000001', 'Whole grain oats')}${tile('B000000002', 'Popcorn')}</div></div><aside class="recommendations">${tile('B000000003', 'Suggested food')}</aside>`;
+  const rows = O.read(createDocument(html), loc);
+  assert.equal(rows.length, 2);
+  assert.deepEqual(rows.map(r => r.asin), ['B000000001', 'B000000002']);
+  assert.ok(rows.every(r => r.date === '2026-10-07' && r.state === 'purchased'));
+});
 test('deduplication preserves first score and settings but updates later return status', () => {
   const first = record(), later = record(1, { score: 35, version: '2.0.0', profile: 'b'.repeat(64), state: 'returned', observedAt: 20000, scoredAt: 20000 });
   for (const inputs of [[first, later], [later, first]]) { const out = H.merge([], inputs); assert.equal(out.length, 1); assert.equal(out[0].score, 98); assert.equal(out[0].state, 'returned'); assert.equal(out[0].version, '1.11.0'); }

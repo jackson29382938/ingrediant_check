@@ -71,7 +71,8 @@
     try {
       if (!O.allowed(location)) return;
       const conf = await chrome.storage.local.get(['historyEnabled', 'historyOwner', 'googleProfile', 'enabled', 'purchaseHistory', 'weights', 'foodOnly', 'goals', 'allergens', 'diets', 'avoidList', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'ocrLabels', 'useOpenFoodFacts', 'theme', 'palette']);
-      if (!conf.historyEnabled || conf.enabled === false) return;
+      if (conf.enabled === false) { note('Ingredient Check is paused. Resume it in the extension popup to show order ratings.'); return; }
+      if (!conf.historyEnabled) { note('Purchase history is off. Open History & sync settings and enable import to show individual order scores and averages.'); return; }
       if (conf.historyOwner && conf.googleProfile?.email && conf.historyOwner !== conf.googleProfile.email.toLowerCase()) { note('Purchase import paused: your Google account changed. Manage history before switching accounts.'); return; }
       const lines = O.read(document, location), sig = JSON.stringify(lines.map(x => [x.order, x.asin, x.state, x.date]));
       if (sig === signature) return;
@@ -105,8 +106,9 @@
       await Promise.all([work(), work()]);
       if (turn !== generation || !O.allowed(location)) return;
       signature = sig;
-      const rated = records.filter(r => r.state === 'purchased' && r.score !== null).length;
-      note(`This page imported: ${rated} rated food purchases; ${records.filter(r => r.state === 'purchased' && r.score === null).length} labels unavailable. Open older order pages to extend history. Ratings use today's available labels.`);
+      const scored = records.filter(r => r.state === 'purchased' && r.score !== null), rated = scored.length;
+      const average = rated ? `${Math.round(scored.reduce((sum, r) => sum + r.score, 0) / rated)}/100` : 'unavailable (no rated food purchases)';
+      note(`Page average: ${average}. This page imported: ${rated} rated food purchases; ${records.filter(r => r.state === 'purchased' && r.score === null).length} labels unavailable. Open older order pages to extend history. Ratings use today's available labels.`);
     } catch { note('Order import did not complete. Successfully imported items are kept; check History & sync settings and retry this page.'); }
     finally { running = false; if (dirty) setTimeout(run, 250); }
   }

@@ -4,7 +4,7 @@ const scores = createRequire(import.meta.url)('../src/engine/db/score-cache.js')
 export async function ordersEndToEnd(context, worker, errors) {
   const origin = 'https://www.amazon.com', orders = `${origin}/your-orders/orders`, requests = [];
   const ids = ['B000000001', 'B000000002', 'B000000003', 'B000000004', 'B000000005'];
-  const item = (id, title, status = 'Delivered') => `<div class="item-box"><span class="delivery-status">${status}</span><a href="/Organic-Food/dp/${id}/ref=order">${title}</a><button>Return items</button></div>`;
+  const item = (id, title, status = 'Delivered') => `<div class="product-box"><span class="delivery-status">${status}</span><a href="/Organic-Food/dp/${id}/ref=order">${title}</a><button>Return items</button></div>`;
   const html = (older = false) => `<main id="yourOrders"><h1>Your Orders</h1><div class="order-card" data-order-id="${older ? '222-1234567-1234567' : '111-1234567-1234567'}"><div class="order-header">Order placed ${older ? 'August' : 'September'} 1, 2026 <span>Ship to PRIVATE ADDRESS</span><span>Payment PRIVATE</span></div>${item(ids[0], 'Whole grain oats')}${older ? '' : item(ids[1], 'Corn chips', 'Cancelled') + item(ids[2], 'Hair shampoo') + item(ids[3], 'Corn chips') + item(ids[4], 'Popcorn')}</div></main><aside class="recommendations">${item('B000000009', 'Suggested oats')}</aside>`;
   const page = await context.newPage(); page.on('pageerror', e => errors.push('orders: ' + e.message));
   await page.route('**/*', r => {
@@ -18,9 +18,14 @@ export async function ordersEndToEnd(context, worker, errors) {
   await context.addCookies([{ name: 'private_order_test', value: 'do-not-send', domain: 'www.amazon.com', path: '/', secure: true }]);
   await page.goto(orders); await page.waitForTimeout(600);
   if (await page.locator('.air-order-badge').count() || requests.length) throw new Error('orders imported before opt-in');
+  if (!await page.locator('#air-order-history').innerText().then(t => t.includes('Purchase history is off'))) throw new Error('disabled import explanation missing');
   await worker.evaluate(() => chrome.storage.local.set({ historyEnabled: true }));
   await page.waitForFunction(() => document.querySelector('#air-order-history')?.textContent.includes('This page imported'), null, { timeout: 20000 });
   const records = await worker.evaluate(async () => (await chrome.storage.local.get('purchaseHistory')).purchaseHistory);
+  const rated = records.filter(r => r.state === 'purchased' && r.score !== null);
+  const average = Math.round(rated.reduce((sum, r) => sum + r.score, 0) / rated.length);
+  if (!await page.locator('#air-order-history').innerText().then(t => t.includes(`Page average: ${average}/100`))) throw new Error('order page average missing or includes unavailable/cancelled products');
+  for (const r of rated) if (!await page.locator('.air-order-badge').allTextContents().then(values => values.some(t => t.includes(`${r.score}/100`)))) throw new Error('individual order points missing');
   if (records.length !== 4 || records.filter(r => r.state === 'purchased' && r.score !== null).length !== 2 || records.some(r => r.asin === 'B000000003')) throw new Error('order eligibility or scoring failed: ' + JSON.stringify(records));
   if (JSON.stringify(records).includes('PRIVATE') || JSON.stringify(records).includes('111-1234567-1234567')) throw new Error('order personal fields saved');
   if (requests.some(r => r.url().includes(ids[4]))) throw new Error('orders did not reuse a valid saved score');
