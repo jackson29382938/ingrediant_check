@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 const cache = createRequire(import.meta.url)('../src/engine/db/score-cache.js');
 export async function recallEndToEnd(context, worker, errors, root) {
   for (const [cart, store] of [[false, 'target'], [true, 'target'], [false, 'amazon'], [true, 'amazon']]) {
-    const id = store === 'amazon' ? 'B000000001' : '79364857', key = `s:${store}.com:${id}`, origin = `https://www.${store}.com`;
+    const id = store === 'amazon' ? 'B0RECALL01' : '79364857', key = `s:${store}.com:${id}`, origin = `https://www.${store}.com`;
     const productPath = store === 'amazon' ? `/dp/${id}` : `/p/oats/-/A-${id}`;
     const label = store === 'amazon' ? `<html><body><h1 id="productTitle">Whole grain oats</h1><div id="nic-ingredients-content">Ingredients: whole grain rolled oats</div></body></html>` : fs.readFileSync(path.join(root, 'tests/pages/target-p-oats.html'), 'utf8');
     const badge = cart ? '.air-cart-badge' : '.air-badge', url = origin + (cart ? store === 'amazon' ? '/gp/cart/view.html' : '/cart' : store === 'amazon' ? '/s?k=oats' : '/s?searchTerm=oats');
@@ -51,7 +51,7 @@ export async function recallEndToEnd(context, worker, errors, root) {
         } else { await page.waitForTimeout(600); if (requests) throw new Error('Disabled refresh made a product request'); }
       } finally { release(); await page.close(); }
     }
-    await worker.evaluate(key => chrome.storage.local.remove(key), key);
+    await worker.evaluate(key => chrome.storage.local.remove([key, key.replace(/^s:/, 'p:')]), key);
   }
   await worker.evaluate(async () => {
     await chrome.storage.local.set({ autoScoreSearch: true, cacheFirst: true, cacheMemory: true, cacheBackgroundRefresh: true, cacheGraceDays: 7 });
