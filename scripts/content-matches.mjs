@@ -58,7 +58,7 @@ if (process.argv[1] && import.meta.url === (await import('node:url')).pathToFile
   const manifest = JSON.parse(fs.readFileSync(url, 'utf8'));
   let entries = 0;
   for (const cs of manifest.content_scripts || []) {
-    if (!(cs.matches || []).some(m => /amazon\./.test(m))) continue;
+    if (!(cs.matches || []).some(m => /amazon\./.test(m)) || cs.js.includes('src/content/orders.js')) continue;
     // The cart entry has no product paths; every other Amazon entry gets the product and search paths.
     cs.matches = (cs.matches || []).some(m => /\/dp\//.test(m)) ? buildContentMatches() : buildCartMatches();
     entries++;

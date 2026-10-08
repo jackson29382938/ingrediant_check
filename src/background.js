@@ -13,7 +13,7 @@ if (typeof importScripts === 'function') {
     'engine/db/ingestible.js', 'engine/db/prefs.js', 'engine/db/theme.js',
     'engine/db/ocr-text.js', 'engine/db/product-cache.js', 'engine/db/storefronts.js', 'engine/db/sorted-results.js',
     'engine/db/speed.js', 'engine/db/unit-price.js',
-    'engine/db/activity.js', 'options/google-auth.js', 'worker/messages.js', 'worker/sheet-store.js');
+    'engine/db/activity.js', 'options/google-auth.js', 'worker/messages.js', 'worker/sheet-store.js', 'engine/db/purchase-history.js', 'worker/purchase-history.js');
 }
 
 const OFF_ENDPOINT = 'https://world.openfoodfacts.org/api/v2/product/';
@@ -278,6 +278,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   // Replies from the offscreen document travel on this same channel; ignore them here.
   if (msg && msg.target === 'ocr-offscreen') return false;
   if (!allowMessage(msg, sender)) return false;
+  if (self.AIR.historyWorker?.handle(msg, sender, reply)) return true;
   if (msg && msg.type === 'pageScore') {
     paintActionBadge(sender && sender.tab && sender.tab.id, msg.score, msg.status);
     return false;

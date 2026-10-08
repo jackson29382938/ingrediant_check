@@ -26,7 +26,7 @@ function setup(initial = {}, permission = true, auth = {}) {
   const context = vm.createContext({ AIR: air, console, location: { reload() { auth.reloaded = true; } },
     document: { getElementById: get, querySelectorAll: () => [], querySelector: () => element(), createElement: element,
       addEventListener(type, fn) { if (type === 'keydown') keydown = fn; } },
-    chrome: { identity: { getRedirectURL: () => 'https://test.chromiumapp.org/' }, runtime: { getURL: p => p, async sendMessage(message) { backups.push({ ...message, onboarded: data.onboarded }); if (auth.backupPending) await auth.backupPending; if (auth.backupError) throw new Error('offline'); if (message.type === 'accountFetch') return auth.existingCopy ? { ok: true, values: {} } : { ok: false, reason: 'no-backup' }; return { ok: auth.backup !== false }; } }, i18n: { getMessage: () => '' }, tabs: { create() {}, getCurrent(cb) { cb({ id: 7 }); }, remove(id) { auth.closedTab = id; } },
+    chrome: { identity: { getRedirectURL: () => 'https://test.chromiumapp.org/' }, runtime: { getURL: p => p, async sendMessage(message) { backups.push({ ...message, onboarded: data.onboarded }); if (auth.backupPending) await auth.backupPending; if (auth.backupError) throw new Error('offline'); if (message.type === 'accountFetch') return auth.existingCopy ? { ok: true, values: {} } : { ok: false, reason: 'no-backup' }; return { ok: auth.backup !== false }; } }, i18n: { getMessage: () => '' }, tabs: { create(options) { (auth.openedTabs ||= []).push(options); }, getCurrent(cb) { cb({ id: 7 }); }, remove(id) { auth.closedTab = id; } },
       permissions: { request(_p, cb) { requests++; cb(auth.permission === undefined ? permission : auth.permission); }, remove(_p, cb) { cb(); } },
       storage: { local: { get(_keys, cb) { if (auth.initialReadError) context.chrome.runtime.lastError = { message: 'unavailable' }; cb(data); delete context.chrome.runtime.lastError; }, set(values, cb) { if (!auth.saveError) Object.assign(data, values); if (auth.saveError) context.chrome.runtime.lastError = { message: 'storage quota' }; cb(); delete context.chrome.runtime.lastError; } } } },
   });
@@ -368,4 +368,21 @@ test('setup that cannot tell whether a Google copy exists writes nothing', async
   await s.finish();
   assert.equal(s.saves().length, 0);
   assert.match(s.get('backupStatus').textContent, /saved locally/);
+});
+
+
+test('setup purchase-history opt-in enables automatic sync and opens only the normal Orders page', async () => {
+  const auth = {}, s = setup({}, true, auth);
+  assert.equal(s.get('setupPurchaseHistory').checked, false);
+  s.get('setupPurchaseHistory').checked = true;
+  await s.finish();
+  const configured = s.backups.find(b => b.type === 'purchaseConfigure');
+  assert.equal(configured.enabled, true); assert.equal(configured.autoSync, true);
+  assert.equal(configured.onboarded, true);
+  assert.equal(auth.openedTabs[0].url, 'https://www.amazon.com/your-orders/orders');
+});
+test('rerunning setup preserves an existing manual-only history-sync choice', async () => {
+  const s = setup({ historyEnabled: true, historyAutoSync: false });
+  await s.finish();
+  assert.equal(s.backups.some(b => b.type === 'purchaseConfigure'), false);
 });

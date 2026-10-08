@@ -12,6 +12,7 @@ const OPTIONS = ['autoScoreSearch', 'sharedCache', 'ocrLabels', 'useOpenFoodFact
 // A step is asked when the chosen level (index into PREFS.LEVELS) is at least this.
 const STEPS = [['level', 0], ['goals', 0], ['warn', 0], ['avoid', 1], ['options', 2], ['google', 2]];
 let setupToken = null;
+let startHistoryEnabled = false;
 let busy = false;
 let setupReady = false;
 let setupClientId = PREFS.OAUTH_CLIENT_ID;
@@ -208,6 +209,12 @@ async function finish() {
       diets: scoring.diets, avoidList: scoring.avoidList, onboarded: true, settingsLevel: picked.level };
     if (asked('options')) for (const id of OPTIONS) values[id] = document.getElementById(id).checked;
     await saveChoices(values);
+    const historyBox = document.getElementById('setupPurchaseHistory');
+    if (historyBox && historyBox.checked !== startHistoryEnabled) {
+      const configured = await chrome.runtime.sendMessage({ type: 'purchaseConfigure', enabled: historyBox.checked, autoSync: historyBox.checked });
+      if (!configured?.ok) throw new Error('history-configuration-failed');
+    }
+    if (historyBox?.checked) await chrome.tabs.create({ url: 'https://www.amazon.com/your-orders/orders' });
     if (setupToken) {
       const token = setupToken;
       setupToken = null;
@@ -313,7 +320,7 @@ document.getElementById('useOpenFoodFacts').addEventListener('change', e => {
 });
 
 setBusy(true);
-chrome.storage.local.get(['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'oauthClientId', 'settingsLevel', 'onboarded', ...OPTIONS], o => {
+chrome.storage.local.get(['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'oauthClientId', 'settingsLevel', 'onboarded', 'historyEnabled', ...OPTIONS], o => {
   if (chrome.runtime.lastError) {
     document.getElementById('status').textContent = 'Could not load your saved choices. Retry before changing settings.';
     document.getElementById('next').textContent = 'Retry loading';
@@ -321,6 +328,9 @@ chrome.storage.local.get(['weights', 'goals', 'goalImportance', 'allergens', 'di
     return;
   }
   setupReady = true;
+  const historyBox = document.getElementById('setupPurchaseHistory');
+  startHistoryEnabled = o.historyEnabled === true;
+  if (historyBox) historyBox.checked = startHistoryEnabled;
   setupClientId = PREFS.oauthClientId(o.oauthClientId) || PREFS.OAUTH_CLIENT_ID;
   const scoring = PREFS.sanitizeScoring(o);
   const toggles = PREFS.sanitizeToggles(o);

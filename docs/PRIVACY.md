@@ -1,5 +1,20 @@
 # Privacy (Chrome Web Store)
 
+## Optional purchase history
+
+Setup's **Include my Amazon purchase history** enables Amazon.com order-page imports and automatic
+Google-account sync, with **Sync now** and a sync-off option in Purchase history. Only actual opened
+order pages contribute purchases; carts and viewed products do not. Public label lookups omit
+cookies and referrers. Separate authenticated private backend rows hold product names/IDs, purchase
+dates, status, scores, bounded ingredients and warning matches. Addresses, payment details, prices
+and raw order numbers are not stored or uploaded. The feature is off until enabled and excluded
+from settings imports/backups and shared product databases. Account switches do not transfer another
+account's records. Export and confirmed local/account deletion are available; failed account
+deletion stays visibly pending. The backend owner operates the private spreadsheet.
+See [purchase history](PURCHASE-HISTORY.md) for limitations, retention and backend deployment.
+
+## Existing scoring and settings
+
 Ingredient Check scores grocery labels on Amazon, and as previews on Target, Walmart, Costco, Instacart and eleven additional grocery banners, **on your computer**. By default, settings backup uses your Chrome profile storage; Chrome syncs it to your own account when browser sync is enabled. Automatic search and cart rating, owner-kept certification lookups, and on-device label OCR are enabled by default. Barcode lookup is recommended and checked in setup but requires Chrome’s optional permission. Diagnostics and sharing product readings stay off. Backup can also be switched off.
 
 This page is the one-screen note for a store listing. Settings copy and [DIAGNOSTICS.md](DIAGNOSTICS.md) say the same things at more length.
@@ -8,7 +23,7 @@ This page is the one-screen note for a store listing. Settings copy and [DIAGNOS
 
 On Amazon product, search, browse, and store pages it already has permission to run on, it reads the product title, department crumbs, published ingredient text, nutrition table, barcode/ASIN, and (unless you switch label OCR off) the product image URL already on the page.
 
-It does not read passwords, payment details, orders or account pages. Cart rating reads only product links and product titles from cart line items. It does not collect quantities, prices, cart totals, delivery addresses, account identifiers or payment fields, and it never changes the cart or submits checkout. The cart average and the optional points are worked out on your computer from the scores.
+Regular scoring does not read passwords, payment details, orders or account pages. The separate opt-in purchase-history reader above reads only identifiable order items on Amazon.com. Cart rating reads only product links and product titles from cart line items. It does not collect quantities, prices, cart totals, delivery addresses, account identifiers or payment fields, and it never changes the cart or submits checkout. The cart average and the optional points are worked out on your computer from the scores.
 
 Retailer previews read the product title, published ingredients, allergen warnings, nutrition and product identity on narrowly scoped public product/search pages. With **Rate search results and cart items** enabled (the default), they request each uncached result’s public product page on the same origin, without cookies (`credentials: omit`). Two requests run concurrently; the existing speed setting caps requests at 20–60 per search page. Requests stop on recognized challenges or rate-limit responses; no internal retailer APIs or access controls are bypassed. Missing labels remain unknown. Turning automatic rating off uses saved local scores only.
 
@@ -21,7 +36,7 @@ Cart rating on all listed stores uses valid saved local scores first. With **Rat
 When it is installed, the extension asks Chrome for access to the 21 Amazon stores it supports
 (`host_permissions` in `manifest.json`: amazon.com, .co.uk, .ca, .com.au, .ie, .in, .sg, .ae, .sa,
 .de, .fr, .es, .it, .nl, .se, .pl, .com.be, .com.tr, .com.mx, .com.br and .co.jp). It needs that
-access to read product, search and cart pages. **Rate search results and cart items** and **Score on hover** also
+access to read product, search and cart pages, plus narrowly scoped Amazon.com order-history pages when purchase history is enabled. **Rate search results and cart items** and **Score on hover** also
 use it to request product pages. Settings → *What to rate* lists the stores and explains how to limit
 access (`chrome://extensions` → *Details* → *Site access*).
 

@@ -17,6 +17,7 @@ function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true, pro
       appendRow(row) { assert.equal(locked, true, 'all appends must hold the shared lock'); data.push([...row]); },
       setFrozenRows() {},
       deleteRow(row) { assert.equal(locked, true); data.splice(row - 1, 1); },
+      deleteRows(row, count) { assert.equal(locked, true); data.splice(row - 1, count); },
       getRangeList: a1s => ({ getRanges: () => a1s.map(a1 => {
         const [, r] = a1.match(/^A(\d+):G\d+$/);
         return sheet.getRange(Number(r), 1, 1, 7);

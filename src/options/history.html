@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Ingredient Check — Purchase history</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="history.css"></head><body>
+<main><h1>Purchase history & trends</h1>
+<p>Only actual Amazon orders drive trends. Viewed products and carts are excluded. Purchase ratings use the ingredient information available when imported, which may differ from the original package. Purchases do not tell us what you ate.</p>
+<section aria-labelledby="controls"><h2 id="controls">Import and account sync</h2>
+<label><input type="checkbox" id="historyEnabled"> Import the Amazon order pages I open</label>
+<label><input type="checkbox" id="historyAutoSync" checked> Automatically sync my purchase history with my Google account</label>
+<p>Sync sends product names and IDs, purchase dates, ingredient text, ratings and selected warning matches to your authenticated account record in Ingredient Check's private backend. No addresses, prices, payment details or raw order numbers are stored. History is separate from settings backups.</p>
+<p id="account" role="status"></p>
+<div class="actions"><button id="signIn">Sign in with Google</button><button id="sync">Sync now</button><button id="openOrders">Open Amazon Orders</button><button id="export">Export history</button><button id="delete">Delete local and account history</button></div>
+<p id="status" role="status" aria-live="polite"></p>
+<p>Open the first Orders page and sign in to Amazon normally. Import runs on that page only. Open additional pages or change the year filter to include older orders; the extension does not navigate your account or fetch order-history pages in the background. Unavailable labels remain unscored. This first version holds up to 1,000 distinct order/product entries.</p>
+</section>
+<section aria-labelledby="trends"><h2 id="trends">Monthly purchase trends</h2><p id="coverage"></p>
+<p>Each distinct product within an order counts once; quantities are not read. Different scoring setups and extension versions have separate averages. A revisited order keeps its first usable score. Visible cancellations and completed returns are excluded.</p>
+<div class="table"><table><thead><tr><th>Order month</th><th>Scoring setup</th><th>Average /100</th><th>Rated purchases</th><th>Warning matches</th></tr></thead><tbody id="months"></tbody></table></div></section>
+<section aria-labelledby="frequent"><h2 id="frequent">Frequently purchased food products</h2><ul id="products"></ul></section>
+<section aria-labelledby="entries"><h2 id="entries">Imported items</h2><div class="table"><table><thead><tr><th>Order date</th><th>Product</th><th>Status</th><th>Score</th><th>Rated on</th></tr></thead><tbody id="items"></tbody></table></div></section>
+<p><a href="options.html">Settings</a> · <a href="welcome.html">Run setup again</a></p></main>
+<script src="../engine/db/_module.js"></script><script src="../engine/db/allergens.js"></script><script src="../engine/categories.js"></script><script src="../engine/db/prefs.js"></script><script src="../engine/db/theme.js"></script><script src="../engine/db/purchase-history.js"></script><script src="google-auth.js"></script><script src="history.js"></script>
+</body></html>
