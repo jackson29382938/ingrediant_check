@@ -230,9 +230,9 @@ function exportPayload(prefs) {
   };
 }
 
-const WORKFLOW_KEYS = ['speedMode', 'ratePace', 'sortMissing', 'sortLoadMore', 'sortCount', 'sortTimeLimit', 'sortPriorities', 'unitMissing'];
+const WORKFLOW_KEYS = ['speedMode', 'ratePace', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'sortMissing', 'sortLoadMore', 'sortCount', 'sortTimeLimit', 'sortPriorities', 'unitMissing'];
 function sanitizeWorkflow(raw) {
-  return { ...db('speed').sanitizeSpeed(raw), ...db('speed').sanitizePace(raw), ...db('sortedResults').sanitizeSort(raw),
+  return { ...db('speed').sanitizeSpeed(raw), ...db('speed').sanitizePace(raw), ...db('speed').sanitizeRecall(raw), ...db('sortedResults').sanitizeSort(raw),
     ...db('sortedResults').sanitizePriorities(raw), ...db('unitPrice').sanitizeUnit(raw) };
 }
 

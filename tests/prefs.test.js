@@ -164,6 +164,7 @@ console.log('\nevery setting is saved');
 check('the backup carries every setting, including level, pace, sort depth, time limit and remembered priorities', () => {
   const stored = {
     panelOpen: true, sortRemember: false, settingsLevel: 'simple', scoreHoverDelayMs: 1200, breakdownDetail: 'compact',
+    cacheFirst: false, cacheMemory: false, cacheBackgroundRefresh: false, cacheGraceDays: 30,
     speedMode: 'fast', ratePace: 'quick', sortMissing: 'end', sortLoadMore: true, sortCount: 300, sortTimeLimit: 120,
     sortPriorities: { unitPrice: { health: 2, unitPrice: 8, price: 0, rating: 0, reviews: 0 } }, unitMissing: 'infer-more',
   };

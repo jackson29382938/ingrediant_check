@@ -303,7 +303,7 @@
     };
     const miss = () => { done(); next(); };
     const localKey = C.localKey(storeHost(), key);
-    chrome.storage.local.get(localKey, obj => {
+    root.AIR.db.scoreCache.readLocal([localKey], state.cacheOptions, obj => {
       if (!live()) return;
       const local = C.sanitize(obj && obj[localKey]);
       if (local && local.status === 'ok' && freshLocal(local)) { use(local, false); return; }
@@ -316,7 +316,7 @@
           if (row && row.status === 'ok' && sharedOk(row)) use(row, true); else miss();
         });
       } catch (e) { miss(); }
-    });
+    }, chrome.storage);
   }
 
   function ocrReadingBlocked(via) {

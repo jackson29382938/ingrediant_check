@@ -30,10 +30,12 @@
   state.ratePace = 'normal';
   const pace = () => (root.AIR.db.speed ? root.AIR.db.speed.pace(state.ratePace) : { concurrent: 3, gapMs: 250 });
   const speed = () => (root.AIR.db.speed ? root.AIR.db.speed.profile(state.speedMode) : BALANCED);
-  const usableCache = (hit, asin) => CACHE.valid(hit, {
+  const cacheContext = asin => ({
     store: location.hostname, asin, version: ENGINE_VERSION, prefs: { ...cachePrefs(), ocrLabels: state.ocrLabels, useOpenFoodFacts: (state.cacheOptions || {}).useOpenFoodFacts }, maxAgeMs: speed().maxAgeMs,
   });
-  const freshLocal = row => !root.AIR.db.productCache.stale(row, Date.now(), speed().maxAgeMs);
+  const recallCache = (hit, asin) => CACHE.recall(hit, cacheContext(asin));
+  const usableCache = (hit, asin) => state.cacheOptions.cacheFirst !== false && CACHE.valid(hit, cacheContext(asin));
+  const freshLocal = row => state.cacheOptions.cacheFirst !== false && !root.AIR.db.productCache.stale(row, Date.now(), speed().maxAgeMs);
   const sharedOk = row => !!row && (!root.AIR.db.speed || root.AIR.db.speed.sharedUsable(row.scanned_at, state.speedMode));
   // Product readings from other computers, and uploading this one's: only when the reader turned
   // them on (prefs.js sharedProducts). The worker checks again; this saves the message.
@@ -165,7 +167,7 @@
 
   const page = {
     HOST_ID, BADGE_ATTR, state, ENGINE_VERSION, CACHE,
-    cachePrefs, cacheKey, usableCache, freshLocal, sharedOk, sharedProductsOn, speed, pace, storeHost, ingredientSig,
+    cachePrefs, cacheKey, usableCache, recallCache, freshLocal, sharedOk, sharedProductsOn, speed, pace, storeHost, ingredientSig,
     MAX_EXTRACT_RETRIES, isProductPage, isListPage, isRelevantPage,
     MIN_COVERAGE, unreadable,
     sendDiagnostic, publishActionBadge, cacheScore, cache, rememberProduct, logAction,

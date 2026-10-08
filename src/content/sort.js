@@ -373,7 +373,7 @@
     const { cacheKey, usableCache, freshLocal, storeHost, unreadable, state, cacheScore } = P();
     const C = root.AIR.db.productCache;
     const localKey = asin => C.localKey(storeHost(), asin);
-    const got = await storageGet(asins.flatMap(a => [cacheKey(a), localKey(a)]));
+    const got = await root.AIR.db.scoreCache.readLocal(asins.flatMap(a => [cacheKey(a), localKey(a)]), state.cacheOptions, null, chrome.storage);
     const out = new Map();
     for (const asin of asins) {
       const hit = got[cacheKey(asin)];

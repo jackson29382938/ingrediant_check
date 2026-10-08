@@ -102,6 +102,10 @@
     const color = hit ? A.db.theme.band(hit.score) : { fg: '#374151', bg: '#f3f4f6', ring: '#9ca3af' };
     for (const k of ['fg', 'bg', 'ring']) b.style.setProperty('--' + k, color[k]);
   }
+  function markSaved(tile, hit) {
+    const badge = tile.anchor.querySelector('.air-cart-badge');
+    if (badge) { badge.textContent = `${hit.score} · saved`; badge.setAttribute('aria-label', `Ingredient Check: ${hit.score}/100, saved ${new Date(hit.t).toLocaleDateString()}.`); }
+  }
   async function read(job, turn) {
     const control = new AbortController(); controllers.add(control);
     const timeout = setTimeout(() => control.abort(), 15000);
@@ -146,25 +150,27 @@
     const tiles = C.tiles(document, location), turn = generation;
     const current = new Set(tiles.map(t => t.anchor));
     document.querySelectorAll('.air-cart-badge').forEach(b => { if (!current.has(b.parentElement)) b.remove(); });
-    const scores = await chrome.storage.local.get(tiles.map(t => cache.key(location.hostname, t.id)));
+    const scores = await cache.readLocal(tiles.map(t => cache.key(location.hostname, t.id)), raw, null, chrome.storage);
     if (turn !== generation || location.href !== url) return;
     const speed = A.db.speed.profile(raw.speedMode), done = [];
     for (const tile of tiles) {
       if (!tile.anchor.isConnected) continue;
       const saved = scores[cache.key(location.hostname, tile.id)];
-      if (cache.valid(saved, { store: location.hostname, asin: tile.id, version, prefs: raw, maxAgeMs: speed.maxAgeMs })) { paint(tile, saved); done.push({ id: tile.id, score: saved.score, status: 'scored' }); continue; }
+      const recalled = cache.recall(saved, { store: location.hostname, asin: tile.id, version, prefs: raw, maxAgeMs: speed.maxAgeMs });
+      if (recalled && !recalled.refresh) { paint(tile, saved); if (recalled.stale) markSaved(tile, saved); done.push({ id: tile.id, score: saved.score, status: 'scored' }); continue; }
       let job = jobs.get(tile.id);
       if (!job && settings.autoScoreSearch && !blocked && used < speed.autoFetches && active < 2) {
         job = { ...tile, status: 'checking' }; jobs.set(tile.id, job); used++; active++; void read(job, turn);
       }
       const status = job?.status || (blocked ? 'unavailable' : 'limited');
-      paint(tile, job?.hit, status);
-      done.push({ id: tile.id, score: job?.hit?.score, status: job?.hit ? 'scored' : status });
+      paint(tile, job?.hit || recalled?.hit, status);
+      if (recalled?.stale && !job?.hit) markSaved(tile, saved);
+      done.push({ id: tile.id, score: job?.hit?.score ?? recalled?.hit.score, status: job?.hit || recalled ? 'scored' : status });
     }
     renderSummary(done, tiles);
     void award(done);
   }
-  const keys = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'pointsEnabled', 'hoverBreakdown', 'weights', 'allergens', 'diets', 'avoidList', 'speedMode', 'sheetIndexRev', 'producerIndexRev', 'theme', 'palette'];
+  const keys = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'pointsEnabled', 'hoverBreakdown', 'weights', 'allergens', 'diets', 'avoidList', 'speedMode', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'sheetIndexRev', 'producerIndexRev', 'theme', 'palette'];
   function load() { chrome.storage.local.get([...keys, 'xp'], o => { raw = o || {}; settings = A.db.prefs.sanitizeToggles(raw); prefs = A.db.prefs.sanitizeScoring(raw); xp = P.sanitize(raw.xp); A.db.theme.use(raw); reset(); }); }
   const observer = new MutationObserver(schedule); observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['href', 'hidden', 'aria-hidden'] });
   setInterval(() => { if (url !== location.href) reset(); }, 1000);
@@ -173,7 +179,12 @@
     if (keys.some(k => changes[k])) load();
     else {
       if (changes.xp) { xp = P.sanitize(changes.xp.newValue); schedule(); }   // another tab earned points
-      for (const k of Object.keys(changes)) if (k.startsWith(`s:${cache.normalizeStore(location.hostname)}:`)) jobs.delete(k.split(':')[2]);
+      for (const k of Object.keys(changes)) if (k.startsWith(`s:${cache.normalizeStore(location.hostname)}:`)) {
+        const id = k.split(':')[2], job = jobs.get(id);
+        // Keep our just-completed lookup even when disk recall is off; otherwise its own write
+        // starts another lookup on every storage event.
+        if (!job?.hit || job.hit.t !== changes[k].newValue?.t || job.hit.score !== changes[k].newValue?.score) jobs.delete(id);
+      }
       if (Object.keys(changes).some(k => k.startsWith('s:'))) schedule();
     }
   });

@@ -216,12 +216,13 @@ test('runner: a missing label waits for the page, then fails honestly with Targe
   assert.equal(w.writes.length, 0, 'pasted scores stay on the tab, as on Amazon');
 });
 
-test('runner: search badges come only from this computer\'s cache; nothing is requested', () => {
+test('runner: search badges come only from this computer\'s cache; nothing is requested', async () => {
   const oats = engine.score({ ingredients_text: 'organic whole grain rolled oats.' }, {});
   const entry = { schema: scoreCache.SCHEMA, v: '1.1.0', t: Date.now() - 1000, store: 'target.com', asin: '79364857',
     prefs: scoreCache.fingerprint({}, 'page'), score: oats.score, verdict: oats.verdict, nova: oats.nova, source: 'page',
     provenanceSource: '', name: 'Oats' };
   const w = runner('target-s-oats.html', 'https://www.target.com/s?searchTerm=organic+oats', { 's:target.com:79364857': entry });
+  await new Promise(setImmediate);
   const painted = [...w.page.querySelectorAll('h3')].filter(h => h.inserted?.some(b => /^\d+$/.test(b.textContent)));
   assert.equal(painted.length, 1, 'only the product opened before gets a badge');
   assert.equal(painted[0].inserted[0].textContent, String(oats.score));
@@ -239,6 +240,7 @@ test('runner: search badges come only from this computer\'s cache; nothing is re
   Object.defineProperty(badge, 'textContent', { get: () => text, set: v => { rewrites++; text = v; } });
   painted[0].querySelector = sel => (sel === '.air-badge' ? badge : null);
   w.pass();
+  await new Promise(setImmediate);
   assert.equal(rewrites, 0, 'an unchanged badge is left alone');
 
   const shampoo = runner('target-s-oats.html', 'https://www.target.com/s?searchTerm=shampoo', { 's:target.com:79364857': entry });
@@ -264,24 +266,26 @@ test('nutrition rows read thousands commas and decimals', () => {
   assert.equal(data.nutrition.servingGrams, 245);
 });
 
-test('runner: search badges keep a saved score as long as the speed setting says', () => {
+test('runner: search badges keep a saved score as long as the speed setting says', async () => {
   const oats = engine.score({ ingredients_text: 'organic whole grain rolled oats.' }, {});
   const entry = { schema: scoreCache.SCHEMA, v: '1.1.0', t: Date.now() - 45 * 24 * 60 * 60 * 1000, store: 'target.com', asin: '79364857',
     prefs: scoreCache.fingerprint({}, 'page'), score: oats.score, verdict: oats.verdict, nova: oats.nova, source: 'page',
     provenanceSource: '', name: 'Oats' };
-  const painted = speedMode => {
+  const painted = async speedMode => {
     const w = runner('target-s-oats.html', 'https://www.target.com/s?searchTerm=organic+oats', { 's:target.com:79364857': entry, speedMode });
+    await new Promise(setImmediate);
     return [...w.page.querySelectorAll('h3')].filter(h => h.inserted?.some(b => /^\d+$/.test(b.textContent))).length;
   };
-  assert.equal(painted('balanced'), 0, 'Balanced: 45 days is past 30');
-  assert.equal(painted('fastest'), 1, 'Fastest keeps 90 days');
+  assert.equal(await painted('balanced'), 0, 'Balanced: 45 days is past 30');
+  assert.equal(await painted('fastest'), 1, 'Fastest keeps 90 days');
 });
 
-test('Target removes invalid badges and clears the toolbar on SPA navigation', () => {
+test('Target removes invalid badges and clears the toolbar on SPA navigation', async () => {
   const key = 's:target.com:79364857';
   const hit = {schema:scoreCache.SCHEMA,v:'1.1.0',t:Date.now()-1000,store:'target.com',asin:'79364857',
     prefs:scoreCache.fingerprint({},'page'),score:98,verdict:'Excellent',source:'page'};
   const w = runner('target-s-oats.html', 'https://www.target.com/s?searchTerm=organic+oats', {[key]:hit});
+  await new Promise(setImmediate);
   const anchor = [...w.page.querySelectorAll('h3')].find(h=>h.inserted?.length);
   const badge = anchor.inserted[0]; let removed = false;
   badge.remove = () => { removed = true; };

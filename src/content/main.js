@@ -224,7 +224,7 @@
   }
 
   chrome.storage.local.get(['enabled', 'badges', 'hoverScore', 'autoScoreSearch', 'hoverBreakdown',
-    'breakdownDetail', 'breakdownDelayMs', 'scoreHoverDelayMs', 'panelOpen', 'foodOnly', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList', 'useOpenFoodFacts', 'sharedCache', 'sharedProducts', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'ratePace', 'unitPrice', 'theme', 'palette', 'accent'], o => {
+    'breakdownDetail', 'breakdownDelayMs', 'scoreHoverDelayMs', 'panelOpen', 'foodOnly', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList', 'useOpenFoodFacts', 'sharedCache', 'sharedProducts', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'ratePace', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'unitPrice', 'theme', 'palette', 'accent'], o => {
     const toggles = AIR.db.prefs.sanitizeToggles(o);
     state.cacheOptions = { ...o, ...toggles };
     state.enabled = toggles.enabled;
@@ -257,7 +257,7 @@
 
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area && area !== 'local') return;
-    for (const key of ['weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sharedCache', 'sharedProducts', 'sheetIndexRev', 'producerIndexRev']) {
+    for (const key of ['cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sharedCache', 'sharedProducts', 'sheetIndexRev', 'producerIndexRev']) {
       if (changes[key]) state.cacheOptions[key] = Object.hasOwn(AIR.db.prefs.TOGGLE_DEFAULTS, key)
         ? AIR.db.prefs.sanitizeToggles({ [key]: changes[key].newValue })[key] : changes[key].newValue;
     }
@@ -272,8 +272,8 @@
     }
     // A new speed changes which saved scores are fresh enough and how many pages may be requested:
     // badges already on the page are worked out again under it, as for a weight change.
-    if (changes.speedMode) {
-      state.speedMode = speedModeOf(changes.speedMode.newValue);
+    if (changes.speedMode || AIR.db.speed?.RECALL_KEYS.some(k => changes[k])) {
+      if (changes.speedMode) state.speedMode = speedModeOf(changes.speedMode.newValue);
       resetListState();
       if (state.enabled && state.badges) { wake(); armAutoScorePass(); }
     }

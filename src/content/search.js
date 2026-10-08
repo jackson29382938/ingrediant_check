@@ -102,19 +102,28 @@
   // weight change lands here), then the shared products tab. Whatever is left goes to onMiss. One
   // storage read and at most one worker request per call, however many tiles.
   function resolveTiles(items, onMiss) {
-    const { state, cacheKey, usableCache, freshLocal, sharedOk, sharedProductsOn, speed, storeHost, rememberProduct } = P();
+    const { state, cacheKey, recallCache, freshLocal, sharedOk, sharedProductsOn, speed, storeHost, rememberProduct } = P();
     const C = root.AIR.db.productCache;
     if (!items.length) return;
     const epoch = queue.epoch;
     const live = () => epoch === queue.epoch && state.enabled && state.badges;
     const localKey = asin => C.localKey(storeHost(), asin);
-    chrome.storage.local.get(items.flatMap(({ asin }) => [cacheKey(asin), localKey(asin)]), obj => {
+    root.AIR.db.scoreCache.readLocal(items.flatMap(({ asin }) => [cacheKey(asin), localKey(asin)]), state.cacheOptions, obj => {
       if (!live()) return;
       const misses = [];
       for (const it of items) {
         if (!it.tile.isConnected || it.tile.getAttribute('data-asin') !== it.asin) continue;
         const hit = obj[cacheKey(it.asin)];
-        if (usableCache(hit, it.asin)) { paintBadge(it.tile, hit); queue.seen.add(it.asin); continue; }
+        const saved = recallCache(hit, it.asin);
+        if (saved) {
+          const badge = paintBadge(it.tile, hit);
+          if (saved.stale && badge) {
+            badge.dataset.saved = 'true'; badge.textContent = `${hit.score} · saved`;
+            badge.setAttribute('aria-label', `Ingredient Check: ${hit.score}/100, saved ${new Date(hit.t).toLocaleDateString()}, ${saved.refresh && state.autoScoreSearch ? 'label refresh pending' : 'older label reading'}.`);
+          }
+          if (saved.refresh) enqueue(it.tile, it.asin); else queue.seen.add(it.asin);
+          continue;
+        }
         const local = C.sanitize(obj[localKey(it.asin)]);
         if (local && freshLocal(local) && applyRow(it.tile, it.asin, local)) { queue.seen.add(it.asin); continue; }
         misses.push(it);
@@ -141,7 +150,7 @@
           if (pulls.length) chrome.runtime.sendMessage({ type: 'productsQueue', pulls }, () => void chrome.runtime.lastError);
         });
       } catch (e) { if (onMiss) misses.forEach(onMiss); }
-    });
+    }, chrome.storage);
   }
 
   function badgeSearchResults() {
@@ -213,7 +222,7 @@
     }
     const breakdown = hit !== 'pending' && hit !== 'unreadable' && P().state.hoverBreakdown;
     const sig = hit === 'pending' ? 'p' : hit === 'unreadable' ? '?' : `${hit.score}:${hit.verdict}`;
-    if (typeof b.getAttribute === 'function' && b.getAttribute('data-air') === sig) return b;
+    if (typeof b.getAttribute === 'function' && b.getAttribute('data-air') === sig && !b.dataset.saved) return b;
     if (typeof b.setAttribute === 'function') b.setAttribute('data-air', sig);
     // A numbered badge opens the breakdown card (hover-card.js) when that setting is on, so it is a
     // focusable link (Enter opens the product, as a click does) and drops the plain tooltip the card replaces.
@@ -240,6 +249,7 @@
       b.style.cssText = 'color:#6a6a6a;background:#f7f8f8;border:2px dashed #d5d9d9;cursor:pointer;';
       return b;
     }
+    delete b.dataset.saved;
     const c = root.AIR.panel.BAND_COLOR(hit.score);
     b.textContent = hit.score;
     const verdictKey = ({
@@ -407,7 +417,12 @@
     if (queue.throttled) return;
     if (!state.enabled || !state.badges || !searchAllowed()) return;
     if (front ? !state.hoverScore : !state.autoScoreSearch) return;
-    if (queue.seen.has(asin)) return;
+    if (queue.seen.has(asin)) {
+      const done = queue.readings.get(asin);
+      if (done) paintReading(tile, done);
+      else if (!tile.querySelector('.air-badge')) paintBadge(tile, 'pending');
+      return;
+    }
     if (!front && queue.fetches >= autoFetchCap()) return;
     if (state.foodOnly && root.AIR.db.ingestible && root.AIR.db.ingestible.looksNonFoodFromTitle(tileTitle(tile))) {
       queue.seen.add(asin);
@@ -620,11 +635,14 @@
     if (!current()) return;
     const done = queue.readings.get(asin);
     if (done) { paintReading(tile, done); return; }
-    paintBadge(tile, 'pending');
+    if (!tile.querySelector('.air-badge')?.dataset.saved) paintBadge(tile, 'pending');
     try {
       const reading = await readProductPage(asin, 'search-tile');
       if (!current()) return;
-      paintReading(tile, reading);
+      for (const target of new Set([tile, ...document.querySelectorAll('[data-asin]')])) {
+        if (!target.isConnected || target.getAttribute('data-asin') !== asin || !badgeable(target)) continue;
+        if (reading.outcome === 'scored' || reading.outcome === 'not-food' || !target.querySelector('.air-badge')?.dataset.saved) paintReading(target, reading);
+      }
     } catch (e) {
       if (!current()) return;
       // Refused, offline, or a request the sorted list started and then stopped.

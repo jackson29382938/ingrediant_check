@@ -2,7 +2,8 @@
 
 Reading a product from Amazon is the expensive part of a score: a page request per product, a few
 at a time, and seconds of CPU when the label photo is read. Scoring what was read takes about a
-millisecond. So the cache stores **what was read**, not the score:
+millisecond. Two local caches keep the computed score (`s:`) and **what was read** (`p:`).
+The product reading includes:
 
 - ingredient text, title, feature bullets, certifications, nutrition numbers
 - how it was read (`via`) and whether the food gate passed it
@@ -162,3 +163,22 @@ this extension without assuming that deployment has been updated.
 ## Warning preservation (1.5.2)
 
 Product input includes separately published `advisory_text` for allergen/Contains/May contain statements. It is bounded, stored independently from ingredients, and affects warning flags rather than the score. Readings created before this field existed are due for a fresh scan because an absent field cannot establish that no warning was published. Current page nutrition/advisories can supplement cached ingredients locally without refreshing the original scan age or uploading a mixed-age record.
+
+## Instant recall controls
+
+Settings → Advanced → Speed and freshness has independent controls for showing saved scores first,
+keeping recent readings in memory, refreshing stale scores in the background, and a 0/7/30-day
+stale grace period. Defaults: all three switches on, seven days of grace, Balanced freshness
+(30 days), Normal request pacing. The in-memory LRU is per content-script context, at most 256
+entries and 2 MB, and invalidates on Chrome local-storage changes. Only product readings and
+scores are held there; account tokens and purchase history are excluded.
+
+Fresh local scores avoid network lookups. Within the grace period, search and cart badges show
+“saved” alongside the older score while optional automatic refresh runs through existing request
+limits and challenge pauses. Turning background refresh off keeps that older answer until its
+grace ends. Settings/version/product/source mismatches never gain a grace period. Refresh failure
+keeps the older answer with its original timestamp; it does not extend freshness. Repeated products
+share one in-flight request. This sharing remains enabled to avoid duplicate retailer traffic.
+Opening a product page still reads the current published label. Actual purchase-history snapshots
+never expire and are never replaced by a background refresh; only missing snapshots are filled.
+These controls are included in settings backups and restores. No price tracking is added.

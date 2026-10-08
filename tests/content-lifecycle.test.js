@@ -7,7 +7,9 @@ const fs = require('node:fs');
 function setup() {
   const observations = [];
   const timers = [], badges = [], fetches = [], writes = [], rendered = [], messages = [], notices = [];
-  let changed, pasted, failMeta;
+  const storageListeners = [];
+  const changed = (...args) => storageListeners.forEach(fn => fn(...args));
+  let pasted, failMeta;
   let host = { dataset: {}, isConnected: true, remove() { this.isConnected = false; } };
   const title = { innerText: 'Organic oats', insertBefore(b) { badges.push(b); } };
   const tile = { isConnected: true, getAttribute: () => 'B000000001',
@@ -44,7 +46,7 @@ function setup() {
       querySelectorAll: s => s === '.air-badge' ? [...badges] : [],
       createElement: tag => {
         if (tag === 'span') {
-          const el = { style: { cssText: '' }, textContent: '', className: '',
+          const el = { style: { cssText: '' }, dataset: {}, textContent: '', className: '',
             setAttribute() {}, removeAttribute() {}, getAttribute: () => null, appendChild() {},
             remove() { badges.splice(badges.indexOf(el), 1); } };
           return el;
@@ -76,7 +78,7 @@ function setup() {
         if (Array.isArray(keys) && keys.includes('enabled')) return;
         cb({});
       }, set: v => writes.push(v), remove(k, cb) { cb?.(); } },
-      onChanged: { addListener: fn => { changed = fn; } } },
+      onChanged: { addListener: fn => { storageListeners.push(fn); } } },
     },
     AIR: {
       db: {

@@ -115,3 +115,43 @@ test('listScores includes Amazon and all retailer previews', () => {
   const listed = cache.listScores(all, { version: context.version, prefs: {} }, now);
   assert.deepEqual(listed.map(x => x.asin).sort(), ['100423971', '10314926', '1234567890', '16600402', 'B000000001']);
 });
+
+
+test('recall only relaxes age within the chosen grace; fresh hits never refresh', () => {
+  const day = 86400000, old = { ...entry, t: now - 31 * day };
+  assert.deepEqual(cache.recall(entry, context, now), { hit: entry, stale: false, refresh: false });
+  assert.deepEqual(cache.recall(old, context, now), { hit: old, stale: true, refresh: true });
+  assert.equal(cache.recall(old, { ...context, prefs: { cacheGraceDays: 0 } }, now), null);
+  assert.equal(cache.recall(old, { ...context, prefs: { cacheBackgroundRefresh: false } }, now).refresh, false);
+  assert.equal(cache.recall(entry, { ...context, prefs: { cacheFirst: false } }, now), null);
+  assert.equal(cache.recall({ ...old, t: now - 38 * day }, context, now), null);
+  for (const patch of [{ v: 'old' }, { asin: 'B000000002' }, { prefs: 'different' }, { source: 'manual-paste' }]) {
+    assert.equal(cache.recall({ ...old, ...patch }, context, now), null);
+  }
+});
+
+test('bounded memory reader reuses batches, respects opt-out and invalidates writes/deletes', async () => {
+  let calls = 0, notify; const values = { 's:amazon.com:B000000001': entry };
+  const read = cache.createReader({ get(keys, cb) { calls++; cb(Object.fromEntries(keys.filter(k => values[k]).map(k => [k, values[k]]))); } },
+    { addListener(fn) { notify = fn; } });
+  const keys = Object.keys(values);
+  assert.equal((await read(keys))[keys[0]].score, 90);
+  await read(keys); assert.equal(calls, 1);
+  values[keys[0]] = { ...entry, score: 50 }; notify({ [keys[0]]: { newValue: values[keys[0]] } }, 'local');
+  assert.equal((await read(keys))[keys[0]].score, 50); assert.equal(calls, 2);
+  delete values[keys[0]]; notify({ [keys[0]]: {} }, 'local');
+  assert.deepEqual(await read(keys), {});
+  values[keys[0]] = entry;
+  await read(keys, { cacheMemory: false }); await read(keys, { cacheMemory: false }); assert.equal(calls, 5);
+  for (let i = 0; i < 257; i++) values[`s:test:${i}`] = entry;
+  await read(Object.keys(values));
+  await read(['s:test:0']); assert.equal(calls, 7, 'oldest entry is evicted');
+});
+
+test('an invalidation during disk read does not repopulate memory with an old reading', async () => {
+  let notify, finish, calls = 0;
+  const key = 's:amazon.com:B000000001';
+  const read = cache.createReader({ get(keys, cb) { calls++; finish = cb; } }, { addListener(fn) { notify = fn; } });
+  const first = read([key]); notify({ [key]: {} }, 'local'); finish({ [key]: entry }); await first;
+  const second = read([key]); assert.equal(calls, 2); finish({}); await second;
+});

@@ -101,6 +101,7 @@
   }
   function savedRating(line, conf, version, saved) {
     const P = A.db.productCache, scoreKey = cache.key(location.hostname, line.asin), labelKey = P.localKey(location.hostname, line.asin);
+    if (!A.db.speed.sanitizeRecall(conf).cacheFirst) return null;
     const row = P.sanitize(saved[labelKey]);
     const age = A.db.speed.profile(conf.speedMode).maxAgeMs, toggles = A.db.prefs.sanitizeToggles(conf);
     if (row && row.store === 'amazon.com' && row.asin === line.asin && row.data.food === false && !P.stale(row, Date.now(), age)) return { nonfood: true };
@@ -119,7 +120,7 @@
     const turn = generation;
     try {
       if (!O.allowed(location)) return;
-      const conf = await chrome.storage.local.get(['historyEnabled', 'historyOwner', 'googleProfile', 'enabled', 'purchaseHistory', 'weights', 'foodOnly', 'goals', 'allergens', 'diets', 'avoidList', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'ocrLabels', 'useOpenFoodFacts', 'ratePace', 'theme', 'palette']);
+      const conf = await chrome.storage.local.get(['historyEnabled', 'historyOwner', 'googleProfile', 'enabled', 'purchaseHistory', 'weights', 'foodOnly', 'goals', 'allergens', 'diets', 'avoidList', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'ocrLabels', 'useOpenFoodFacts', 'ratePace', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'theme', 'palette']);
       if (conf.enabled === false) { note('Ingredient Check is paused. Resume it in the extension popup to show order ratings.'); return; }
       if (!conf.historyEnabled) { note('Purchase history is off. Open History & sync settings and enable import to show individual order scores and averages.'); return; }
       if (conf.historyOwner && conf.googleProfile?.email && conf.historyOwner !== conf.googleProfile.email.toLowerCase()) { note('Purchase import paused: your Google account changed. Manage history before switching accounts.'); return; }
@@ -132,7 +133,7 @@
       const profile = await hash(JSON.stringify({ scoring: cache.fingerprint(conf, 'page'), allergens: scoring.allergens, diets: scoring.diets, avoid: scoring.avoidList })), version = chrome.runtime.getManifest().version;
       const existing = new Map(H.merge([], conf.purchaseHistory).map(r => [r.key, r]));
       const P = A.db.productCache, speed = A.db.speed.profile(conf.speedMode), pace = A.db.speed.pace(conf.ratePace);
-      const local = await chrome.storage.local.get([...new Set(lines.flatMap(line => [cache.key(location.hostname, line.asin), P.localKey(location.hostname, line.asin)]))]);
+      const local = await cache.readLocal([...new Set(lines.flatMap(line => [cache.key(location.hostname, line.asin), P.localKey(location.hostname, line.asin)]))], conf, null, chrome.storage);
       const items = await Promise.all(lines.map(async line => {
         const key = await hash(`amazon.com:${line.order}:${line.asin}`), old = existing.get(key);
         const record = { ...(old || {}), key, store: 'amazon.com', asin: line.asin, name: line.name, date: line.date, state: line.state, observedAt: Date.now(), score: old?.score ?? null, profile: old?.profile || profile, version: old?.version || version, scoredAt: old?.scoredAt || 0 };
@@ -247,7 +248,7 @@
   }
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
-    if (['enabled', 'historyEnabled', 'theme', 'palette', 'ocrLabels', 'useOpenFoodFacts', 'ratePace'].some(k => changes[k]) || (changes.googleProfile && changes.googleProfile.oldValue?.email !== changes.googleProfile.newValue?.email)) reset();
+    if (['enabled', 'historyEnabled', 'theme', 'palette', 'ocrLabels', 'useOpenFoodFacts', 'ratePace', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays'].some(k => changes[k]) || (changes.googleProfile && changes.googleProfile.oldValue?.email !== changes.googleProfile.newValue?.email)) reset();
     else if (Object.keys(changes).some(k => /^(s|p):amazon\.com:/.test(k))) void cacheChanged(changes).catch(() => { note('A saved product rating could not be added to history. Open History & sync settings and refresh this page.'); });
   });
   setInterval(() => { if (location.href !== lastURL) { lastURL = location.href; reset(); } }, 1000);

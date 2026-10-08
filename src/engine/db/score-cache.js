@@ -4,6 +4,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
   require('../categories.js');
   require('./revision.js');
   require('./prefs.js');
+  require('./speed.js');
 }
 (function () {
   const TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -78,8 +79,70 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
   }
   const isCacheKey = k => /^(s|p|off):/.test(k);
 
+  // Stale answers must still match product, engine and settings; only age gets a grace period.
+  function recall(hit, context, now = Date.now()) {
+    const options = AIR.db.speed.sanitizeRecall(context.prefs);
+    if (!options.cacheFirst) return null;
+    if (valid(hit, context, now)) return { hit, stale: false, refresh: false };
+    const maxAgeMs = (context.maxAgeMs ?? TTL_MS) + options.cacheGraceDays * AIR.db.speed.DAY;
+    if (!options.cacheGraceDays || !valid(hit, { ...context, maxAgeMs }, now)) return null;
+    return { hit, stale: true, refresh: options.cacheBackgroundRefresh };
+  }
+
+  // Per-content-script LRU: disk remains authoritative, and writes/deletes invalidate memory.
+  // Bound both item count and bytes; never cache history, tokens or general settings here.
+  function createReader(area, events) {
+    const memory = new Map(); let bytes = 0, epoch = 0;
+    const clear = () => { memory.clear(); bytes = 0; epoch++; };
+    events?.addListener((changes, storageArea) => {
+      if (storageArea && storageArea !== 'local') return;
+      if (changes.cacheMemory) { clear(); return; }
+      epoch++;
+      for (const key of Object.keys(changes)) {
+        const old = memory.get(key); if (old) { bytes -= old.bytes; memory.delete(key); }
+      }
+    });
+    return (keys, prefs = {}, callback) => {
+      const enabled = AIR.db.speed.sanitizeRecall(prefs).cacheMemory;
+      if (!enabled) clear();
+      const out = {}, missing = [], turn = epoch;
+      for (const key of new Set(keys)) {
+        const item = enabled && memory.get(key);
+        if (item) { memory.delete(key); memory.set(key, item); out[key] = item.value; }
+        else missing.push(key);
+      }
+      if (!missing.length) { callback?.(out); return Promise.resolve(out); }
+      return new Promise((resolve, reject) => {
+        try { area.get(missing, value => {
+          const error = typeof chrome !== 'undefined' && chrome.runtime?.lastError;
+          if (error) { if (callback) { callback({}); resolve({}); } else reject(new Error(error.message)); return; }
+          const got = value || {}; Object.assign(out, got);
+          if (enabled && turn === epoch) for (const key of missing) {
+            if (!/^(s|p):/.test(key) || !got[key]) continue;
+            const size = JSON.stringify(got[key]).length * 2;
+            if (size > 2 * 1024 * 1024) continue;
+            const old = memory.get(key); if (old) bytes -= old.bytes;
+            memory.delete(key); memory.set(key, { value: got[key], bytes: size }); bytes += size;
+            while (memory.size > 256 || bytes > 2 * 1024 * 1024) {
+              const first = memory.keys().next().value; bytes -= memory.get(first).bytes; memory.delete(first);
+            }
+          }
+          callback?.(out); resolve(out);
+        }); } catch (error) { reject(error); }
+      });
+    };
+  }
+
+  const readers = new WeakMap();
+  function readLocal(keys, prefs, callback, storage = globalThis.chrome?.storage) {
+    let reader = readers.get(storage.local);
+    if (!reader) { reader = createReader(storage.local, storage.onChanged); readers.set(storage.local, reader); }
+    const task = reader(keys, prefs, callback);
+    return task;
+  }
+
   const api = AIRmodule('scoreCache', {
-    key, fingerprint, valid, parseKey, listScores, SCHEMA, TTL_MS, normalizeStore, storedKeys, isCacheKey,
+    key, fingerprint, valid, recall, createReader, readLocal, parseKey, listScores, SCHEMA, TTL_MS, normalizeStore, storedKeys, isCacheKey,
   });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();

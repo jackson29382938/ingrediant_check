@@ -80,7 +80,7 @@ function runner({ ids = ['79364857'], stored = {}, query = 'oats' } = {}) {
       runtime: { getManifest: () => ({ version: '2.0.0' }), sendMessage: (_message, callback) => callback?.(), onMessage: { addListener() {} } },
       storage: { local: { get: (keys, callback) => callback(Object.fromEntries([].concat(keys).map(key => [key, settings[key]]))),
         set: values => { Object.assign(settings, values); writes.push(values); return Promise.resolve(); }, remove: (key, callback) => { delete settings[key]; callback?.(); } },
-        onChanged: { addListener: callback => { settingsChanged = callback; } } } },
+        onChanged: { addListener: callback => { const previous = settingsChanged; settingsChanged = (...args) => { previous?.(...args); callback(...args); }; } } } },
     AIR: { storeAdapters: { target: adapter }, db: { prefs, scoreCache,
       ingestible: { RESULT_SAMPLE_MIN: 4, assessSearch: () => ({ ok: true }), looksNonFoodFromResults: () => false,
         assess: () => ({ ok: true, negatives: [] }), looksNonFoodFromTitle: () => false } },

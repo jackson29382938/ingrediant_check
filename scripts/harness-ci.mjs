@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { recallEndToEnd } from './recall-harness.mjs';
 import { ordersEndToEnd } from './orders-harness.mjs';
 import { bottomFiveEndToEnd } from './bottom-five-harness.mjs';
 import { cartEndToEnd, amazonCartEndToEnd } from './cart-harness.mjs';
@@ -533,7 +534,7 @@ async function run() {
       await settingsPage.addInitScript(({ hosts }) => {
         // Every control is checked below, so the page starts at the level that shows them all
         // (src/options/options.html hides settings above the reader's level).
-        const data = { settingsLevel: 'expert' };
+        const data = { settingsLevel: 'expert', ...JSON.parse(sessionStorage.getItem('settings-fixture') || '{}') };
         window.__stored = data;
         window.chrome = {
           runtime: { lastError: null, getManifest: () => ({ version: '0', host_permissions: hosts }),
@@ -548,7 +549,7 @@ async function run() {
                 if (typeof cb === 'function') cb(result);
                 return Promise.resolve(result);
               },
-              set(values, cb) { Object.assign(data, values); if (typeof cb === 'function') cb(); return Promise.resolve(); },
+              set(values, cb) { Object.assign(data, values); sessionStorage.setItem('settings-fixture', JSON.stringify(data)); if (typeof cb === 'function') cb(); return Promise.resolve(); },
             },
           },
         };
@@ -640,6 +641,21 @@ async function run() {
       const disabled = await settingsPage.evaluate(() => [...document.querySelectorAll('input[name="unitMissing"]')].every(r => r.disabled));
       if (!disabled) throw new Error('unit price off should disable its choices');
       console.log('  ok  settings → price per ounce on, "clear weight", speed Balanced by default; each saves; off disables its choices');
+      const recall = await settingsPage.evaluate(() => ({
+        first: document.getElementById('cacheFirst').checked, memory: document.getElementById('cacheMemory').checked,
+        refresh: document.getElementById('cacheBackgroundRefresh').checked, days: document.getElementById('cacheGraceDays').value,
+      }));
+      if (!recall.first || !recall.memory || !recall.refresh || recall.days !== '7') throw new Error('Recall defaults incorrect');
+      for (const key of ['cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh']) await settingsPage.click('#' + key);
+      await settingsPage.selectOption('#cacheGraceDays', '30');
+      await settingsPage.waitForFunction(() => window.__stored.cacheFirst === false && window.__stored.cacheMemory === false
+        && window.__stored.cacheBackgroundRefresh === false && window.__stored.cacheGraceDays === 30);
+      await settingsPage.reload();
+      const savedRecall = await settingsPage.evaluate(() => ({ first: document.getElementById('cacheFirst').checked,
+        memory: document.getElementById('cacheMemory').checked, refresh: document.getElementById('cacheBackgroundRefresh').checked,
+        days: document.getElementById('cacheGraceDays').value }));
+      if (savedRecall.first || savedRecall.memory || savedRecall.refresh || savedRecall.days !== '30') throw new Error('Recall controls lost on reload');
+      console.log('  ok  settings → instant recall defaults, independent switches, grace and persistence after reload');
       // Certification lookups default on; product exchange remains closed independently.
       const sharing = () => settingsPage.evaluate(() => ({
         on: document.getElementById('sharedProducts').checked,
@@ -920,6 +936,7 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
     await retailerEndToEnd(context, worker, pageErrors);
     await cartEndToEnd(context, worker, pageErrors, root);
     await amazonCartEndToEnd(context, worker, pageErrors, root);
+    await recallEndToEnd(context, worker, pageErrors, root);
     await ordersEndToEnd(context, worker, pageErrors);
     await bottomFiveEndToEnd(context, worker, pageErrors, root);
     await bottomFiveEndToEnd(context, worker, pageErrors, root, ['kroger', 'frys', 'ralphs', 'kingsoopers', 'smiths', 'fredmeyer']);

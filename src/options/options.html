@@ -430,6 +430,18 @@
       <label><input type="radio" name="speedMode" value="freshest" aria-describedby="spD-freshest"><span data-i18n="optSpeedFreshest">Most up to date</span></label>
       <p class="choice-d" id="spD-freshest" data-i18n="optSpeedFreshestD">Saved scores for 1 day. At most 60 product pages per results page. Never uses shared readings: reads every product page itself, so more requests go to Amazon.</p>
     </fieldset>
+    <h3 class="sub-h" id="recallH">Instant score recall</h3>
+    <fieldset class="sort-choices" aria-labelledby="recallH">
+      <label><input type="checkbox" id="cacheFirst"> Show saved scores first (recommended)</label>
+      <p class="choice-d">Reuse fresh local ratings instead of requesting product pages. Repeated products share one lookup.</p>
+      <label><input type="checkbox" id="cacheMemory"> Keep recent readings in memory (recommended)</label>
+      <p class="choice-d">Avoid repeated disk reads while this page is open. Limited to 256 entries and 2 MB; saved scores remain on this computer.</p>
+      <label><input type="checkbox" id="cacheBackgroundRefresh"> Refresh stale scores in the background (recommended)</label>
+      <p class="choice-d">Show an older saved score while its label refreshes. Existing automatic-scoring switches, request limits and retailer pauses still apply. Turn off to keep that saved score until its grace period ends.</p>
+      <label for="cacheGraceDays">Extra time to show an older score</label>
+      <select id="cacheGraceDays"><option value="0">None — fresh scores only</option><option value="7">7 days (recommended)</option><option value="30">30 days</option></select>
+      <p class="choice-d">Added to the freshness limit above. Older ratings are marked as saved. Product pages still read their current labels; purchase-history snapshots stay unchanged.</p>
+    </fieldset>
     <h3 class="sub-h" id="paceH" data-i18n="optPaceH">How fast to request product pages</h3>
     <p class="sec-lede" data-i18n="optPaceLede">Applies to scoring a results page and building the sorted list. Faster finishes sooner but looks more like automated traffic, so Amazon may refuse sooner; five refusals in a row pause everything.</p>
     <fieldset class="sort-choices" id="paceChoices" aria-labelledby="paceH">

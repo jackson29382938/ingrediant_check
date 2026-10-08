@@ -62,7 +62,15 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     return Number.isFinite(t) && now - t < p.sharedMs;
   }
 
-  const api = { MODES, DEFAULT_MODE, PROFILES, DAY, sanitizeSpeed, profile, sharedUsable,
+  const RECALL_KEYS = ['cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays'];
+  function sanitizeRecall(raw = {}) {
+    const src = raw && typeof raw === 'object' ? raw : {};
+    return { cacheFirst: src.cacheFirst !== false, cacheMemory: src.cacheMemory !== false,
+      cacheBackgroundRefresh: src.cacheBackgroundRefresh !== false,
+      cacheGraceDays: [0, 7, 30].includes(src.cacheGraceDays) ? src.cacheGraceDays : 7 };
+  }
+
+  const api = { RECALL_KEYS, sanitizeRecall, MODES, DEFAULT_MODE, PROFILES, DAY, sanitizeSpeed, profile, sharedUsable,
     PACES, DEFAULT_PACE, PACE_PROFILES, sanitizePace, pace };
   const out = AIRmodule('speed', api);
   if (typeof module !== 'undefined' && module.exports) module.exports = out;

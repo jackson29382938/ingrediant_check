@@ -777,6 +777,20 @@ function wireSpeed() {
     persist(v, ok => { if (ok) flash(msg('optSaved', 'Saved')); });
   }));
 
+  const recallKeys = SP.RECALL_KEYS;
+  const paintRecall = o => { const clean = SP.sanitizeRecall(o); for (const key of recallKeys) {
+    const el = document.getElementById(key); if (!el) continue;
+    if (el.type === 'checkbox') el.checked = clean[key]; else el.value = String(clean[key]);
+  } };
+  chrome.storage.local.get(recallKeys, paintRecall);
+  chrome.storage.onChanged.addListener(changes => {
+    if (recallKeys.some(key => changes[key])) chrome.storage.local.get(recallKeys, paintRecall);
+  });
+  recallKeys.forEach(key => document.getElementById(key)?.addEventListener('change', event => {
+    const el = event.target, value = el.type === 'checkbox' ? el.checked : Number(el.value);
+    persist({ [key]: SP.sanitizeRecall({ [key]: value })[key] }, ok => { if (ok) flash(msg('optSaved', 'Saved')); });
+  }));
+
   // How fast product pages are requested: its own choice, beside how long scores are kept.
   const paces = [...document.querySelectorAll('input[name="ratePace"]')];
   const paintPace = o => { const { ratePace } = SP.sanitizePace(o); paces.forEach(r => { r.checked = r.value === ratePace; }); };

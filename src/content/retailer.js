@@ -40,7 +40,7 @@
     const scoring = PREFS.sanitizeScoring(o);
     state.prefs = { weights: scoring.weights, allergens: scoring.allergens, diets: scoring.diets, avoidList: scoring.avoidList };
     // The same fingerprint inputs the popup validates with, so its "This page" card accepts these.
-    state.raw = { weights: o.weights, foodOnly: toggles.foodOnly,
+    state.raw = { ...root.AIR.db.speed?.sanitizeRecall(o), weights: o.weights, foodOnly: toggles.foodOnly,
       sheetIndexRev: o.sheetIndexRev, producerIndexRev: o.producerIndexRev };
     // How old a saved score may be: the speed setting's age (1 to 90 days), as on Amazon.
     state.fetchLimit = root.AIR.db.speed ? root.AIR.db.speed.profile(o.speedMode).autoFetches : 60;
@@ -321,14 +321,13 @@
     if (!state.badges || !tiles.length) return false;
     const generation = state.generation;
     const keys = tiles.map(x => CACHE.key(STORE, x.id));
-    chrome.storage.local.get(keys, got => {
+    CACHE.readLocal(keys, state.raw, got => {
       if (generation !== state.generation || !state.enabled || !state.badges || location.href !== state.url) return;
       for (const x of tiles) {
         if (!currentTile(x)) continue;
         const hit = got && got[CACHE.key(STORE, x.id)];
-        if (CACHE.valid(hit, { store: STORE, asin: x.id, version: VERSION, prefs: state.raw, maxAgeMs: state.maxAgeMs })) {
-          paintBadge(x, hit); continue;
-        }
+        const saved = CACHE.recall(hit, { store: STORE, asin: x.id, version: VERSION, prefs: state.raw, maxAgeMs: state.maxAgeMs });
+        if (saved && !saved.refresh) { paintBadge(x, hit); if (saved.stale) markSaved(x, hit); continue; }
         let job = state.requests.get(x.id);
         if (!job && state.autoScoreSearch && adapter.productUrl && !state.throttled && state.fetchCount < state.fetchLimit) {
           job = { status: 'checking' };
@@ -336,11 +335,17 @@
           state.fetchCount++;
           state.queue.push({ id: x.id, generation });
         }
-        paintBadge(x, job?.hit || null, job?.status || (state.throttled ? 'unavailable' : 'limited'));
+        paintBadge(x, job?.hit || saved?.hit || null, job?.status || (state.throttled ? 'unavailable' : 'limited'));
+        if (saved?.stale && !job?.hit) markSaved(x, hit);
       }
       drain();
-    });
+    }, chrome.storage);
     return false;
+  }
+
+  function markSaved(tile, hit) {
+    const badge = tile.anchor?.querySelector('.air-badge') || tile.tile?.querySelector('.air-badge');
+    if (badge) { badge.textContent = `${hit.score} · saved`; badge.setAttribute('aria-label', `Ingredient Check: ${hit.score}/100, saved ${new Date(hit.t).toLocaleDateString()}.`); }
   }
 
   function clearBadges() { document.querySelectorAll('.' + BADGE_CLASS).forEach(b => b.remove()); }
@@ -397,7 +402,7 @@
   setInterval(() => { if (location.href !== state.url) { state.manual = null; reset(); } }, 1000);
 
   const KEYS = ['enabled', 'badges', 'foodOnly', 'weights', 'allergens', 'diets', 'avoidList',
-    'sheetIndexRev', 'producerIndexRev', 'speedMode', 'autoScoreSearch', 'panelOpen', 'theme', 'palette'];
+    'sheetIndexRev', 'producerIndexRev', 'speedMode', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'autoScoreSearch', 'panelOpen', 'theme', 'palette'];
   chrome.storage.local.get(KEYS, o => { readSettings(o || {}); reset(); });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area && area !== 'local') return;

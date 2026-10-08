@@ -154,6 +154,7 @@ const VARIANTS = {
   avoidList: ['palm oil', 'red 40'],
   speedMode: 'fast',
   ratePace: 'quick',
+  cacheFirst: false, cacheMemory: false, cacheBackgroundRefresh: false, cacheGraceDays: 30,
   sortMissing: 'end',
   sortLoadMore: true,
   sortCount: 250,
@@ -178,7 +179,7 @@ const LOOP_KEYS = SETTINGS.filter(k => !OWN_TEST.has(k));
 // The settings, spelled out. Written by hand on purpose: if a setting is dropped from the code that
 // builds backups, it would also vanish from every list derived from that code and nothing would
 // notice. Adding a setting means adding it here, with a test value above.
-const EXPECTED_KEYS = ['accent', 'allergens', 'autoScoreSearch', 'avoidList', 'badges', 'breakdownDelayMs', 'breakdownDetail',
+const EXPECTED_KEYS = ['accent', 'allergens', 'autoScoreSearch', 'avoidList', 'badges', 'breakdownDelayMs', 'breakdownDetail', 'cacheBackgroundRefresh', 'cacheFirst', 'cacheGraceDays', 'cacheMemory',
   'diets', 'foodOnly', 'goalImportance', 'goals', 'googleAutoSave', 'hoverBreakdown', 'hoverScore', 'ocrLabels',
   'palette', 'panelOpen', 'pointsEnabled', 'ratePace', 'scoreHoverDelayMs', 'sendDiagnostics', 'settingsBackup', 'settingsLevel',
   'shareContributions', 'sharedCache', 'sharedProducts', 'sortCount', 'sortLoadMore', 'sortMissing',
