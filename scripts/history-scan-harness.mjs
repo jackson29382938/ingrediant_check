@@ -1,8 +1,9 @@
+import { historyDashboardEndToEnd } from './history-dashboard-harness.mjs';
 // Controlled authenticated-page-shaped fixtures; never contacts a real Amazon account.
 export async function historyScanEndToEnd(context, worker, errors, extensionId) {
   const ids = ['B0SCAN0001', 'B0SCAN0002'];
   const requests = [];
-  const card = (year, second) => `<div class="order-card" data-order-id="${year === '2025' ? '222' : second ? '333' : '111'}-1234567-1234567"><div class="order-header">Order placed January 3, ${year}</div><div class="product-box"><a href="/dp/${ids[second ? 1 : 0]}"><img alt="Whole grain oats" width="100" height="100"></a><a href="/dp/${ids[second ? 1 : 0]}">Whole grain oats</a></div></div>`;
+  const card = (year, second) => `<div class="order-card" data-order-id="${year === '2025' ? '222' : second ? '333' : '111'}-1234567-1234567"><div class="order-header">Order placed January 3, ${year}</div><div class="product-box"><a href="/dp/${ids[second ? 1 : 0]}"><img alt="Whole grain oats" width="100" height="100"></a><a href="/dp/${ids[second ? 1 : 0]}">Whole grain oats</a></div>${year === '2026' && !second ? `<div class="product-box"><a href="/dp/${ids[1]}"><img alt="Whole grain oats" width="100" height="100"></a><a href="/dp/${ids[1]}">Whole grain oats</a></div>` : ''}</div>`;
   const route = async r => {
     const u = new URL(r.request().url()), id = ids.find(id => u.pathname.includes(id));
     if (id) return r.fulfill({ contentType: 'text/html', body: `<h1 id="productTitle">Whole grain oats</h1><input id="ASIN" value="${id}"><div id="nic-ingredients-content">whole grain rolled oats</div>` });
@@ -26,7 +27,7 @@ export async function historyScanEndToEnd(context, worker, errors, extensionId) 
     const state = await worker.evaluate(async () => (await chrome.storage.local.get('historyScan')).historyScan);
     if (state.pages !== 4 || state.status !== 'complete' || !state.background) throw new Error(`Unexpected scan coverage: ${JSON.stringify(state)}`);
     const stored = await worker.evaluate(async () => (await chrome.storage.local.get('purchaseHistory')).purchaseHistory);
-    if (stored.length !== 3 || stored.some(r => r.score === null)) throw new Error('All available fixture years/pages were not imported and scored');
+    if (stored.length !== 4 || stored.some(r => r.score === null)) throw new Error('All available fixture years/pages were not imported and scored');
     if (!requests.some(u => u.includes('year-2025')) || !requests.some(u => u.includes('startIndex=10'))) throw new Error('Older year or Next page missed');
     const tab = await worker.evaluate(async id => chrome.tabs.get(id), state.tabId);
     if (tab.active) throw new Error('Background scan stole foreground focus');
@@ -55,7 +56,10 @@ export async function historyScanEndToEnd(context, worker, errors, extensionId) 
     await history.click('#scanPause'); await history.waitForFunction(() => document.querySelector('#scanStatus').textContent.includes('Scan paused'));
     await history.click('#scanResume'); await history.waitForFunction(() => document.querySelector('#scanStatus').textContent.includes('Scan complete'), null, { timeout: 30000 });
     const repeated = await worker.evaluate(async () => (await chrome.storage.local.get('purchaseHistory')).purchaseHistory);
-    if (repeated.length !== 3) throw new Error('Full scan duplicated existing purchases');
+    if (repeated.length !== 4) throw new Error('Full scan duplicated existing purchases');
+    if (new Set(stored.map(r => r.orderKey)).size !== 3) throw new Error('Multiple products in one order were split into different orders');
+    if (stored.some(r => !r.orderKey || !r.input)) throw new Error('Order grouping or replay input was not saved');
+    await historyDashboardEndToEnd(history, worker);
   } catch (error) {
     console.log('  full-history debug', JSON.stringify({ state: await worker.evaluate(async () => (await chrome.storage.local.get('historyScan')).historyScan), status: await history.locator('#scanStatus').textContent(), requests, pages: context.pages().map(p => p.url()), errors }));
     throw error;

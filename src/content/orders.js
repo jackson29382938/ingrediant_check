@@ -8,7 +8,7 @@
     const state = await chrome.runtime.sendMessage({ type: 'purchaseScanState' });
     if (!state?.ok || scanHold) return;
     const plan = A.db.historyScan.plan(document, location);
-    lastScanReport = { type: 'purchaseScanProgress', nonce: state.nonce, pageURL: location.href, items: O.read(document, location).length, plan, reason };
+    lastScanReport = { type: 'purchaseScanProgress', nonce: state.nonce, pageURL: location.href, items: O.read(document, location).length, ordersOnPage: new Set(O.read(document, location).map(line => line.order)).size, plan, reason };
     await chrome.runtime.sendMessage(lastScanReport);
   }
   let currentConf, currentItems = [], currentProfile, currentVersion, currentSummary;
@@ -118,7 +118,7 @@
     if (row && row.store === 'amazon.com' && row.asin === line.asin && row.status === 'ok' && row.data.food !== false && !P.stale(row, Date.now(), age)
       && (!/ocr/i.test(row.data.via) || toggles.ocrLabels) && (row.data.via !== 'open-food-facts' || toggles.useOpenFoodFacts)) {
       const result = A.engine.score(P.toInput(row), A.db.prefs.sanitizeScoring(conf));
-      if (result.parsed && result.coverage >= 0.34) return { score: result.score, scoredAt: Date.now(), ingredients: row.data.text, flags: (result.flags || []).map(f => f.label || f.name || f.id || '').filter(Boolean) };
+      if (result.parsed && result.coverage >= 0.34) return { score: result.score, scoredAt: Date.now(), ingredients: row.data.text, input: P.toInput(row), flags: (result.flags || []).map(f => f.label || f.name || f.id || '').filter(Boolean) };
     }
     const hit = saved[scoreKey];
     return cache.valid(hit, { store: location.hostname, asin: line.asin, version, prefs: conf, maxAgeMs: age }) ? { score: hit.score, scoredAt: hit.t, ingredients: '', flags: [] } : null;
@@ -146,7 +146,7 @@
       const local = await cache.readLocal([...new Set(lines.flatMap(line => [cache.key(location.hostname, line.asin), P.localKey(location.hostname, line.asin)]))], conf, null, chrome.storage);
       const items = await Promise.all(lines.map(async line => {
         const key = await hash(`amazon.com:${line.order}:${line.asin}`), old = existing.get(key);
-        const record = { ...(old || {}), key, store: 'amazon.com', asin: line.asin, name: line.name, date: line.date, state: line.state, observedAt: Date.now(), score: old?.score ?? null, profile: old?.profile || profile, version: old?.version || version, scoredAt: old?.scoredAt || 0 };
+        const record = { ...(old || {}), key, orderKey: await hash(`amazon.com:order:${line.order}`), store: 'amazon.com', asin: line.asin, name: line.name, date: line.date, state: line.state, observedAt: Date.now(), score: old?.score ?? null, profile: old?.profile || profile, version: old?.version || version, scoredAt: old?.scoredAt || 0 };
         const food = A.db.ingestible.assess({ querySelector: () => null }, { title: line.name, text: line.name });
         const hit = record.score === null && line.state === 'purchased' ? savedRating(line, conf, version, local) : null;
         const excluded = (!food.ok && !!food.negatives?.length) || !!hit?.nonfood;
@@ -161,7 +161,7 @@
         if (turn !== generation || !O.allowed(location)) return;
         const records = items.filter(i => !i.excluded).map(i => i.record), scored = records.filter(r => r.state === 'purchased' && r.score !== null), rated = scored.length;
         const average = rated ? `${Math.round(scored.reduce((sum, r) => sum + r.score, 0) / rated)}/100` : 'unavailable (no rated food purchases)';
-        note(`Page average: ${average}. ${done ? 'This page imported:' : 'Checking missing labels:'} ${rated} rated food purchases of ${records.filter(r => r.state === 'purchased').length} eligible purchases; ${records.filter(r => r.state === 'purchased' && r.score === null).length} labels unavailable; ${items.filter(i => i.excluded).length} non-food items excluded; ${records.filter(r => r.state !== 'purchased').length} cancelled, returned or unconfirmed entries excluded. Open older order pages to extend history. Ratings use available product labels, not the original purchased package.${stopped ? ' Amazon blocked public label lookups; open products to read labels, then refresh ratings.' : ''}`);
+        note(`Page average: ${average}. ${new Set(records.map(r => r.orderKey).filter(Boolean)).size} orders with ${records.length} product entries. ${done ? 'This page imported:' : 'Checking missing labels:'} ${rated} rated food purchases of ${records.filter(r => r.state === 'purchased').length} eligible purchases; ${records.filter(r => r.state === 'purchased' && r.score === null).length} labels unavailable; ${items.filter(i => i.excluded).length} non-food items excluded; ${records.filter(r => r.state !== 'purchased').length} cancelled, returned or unconfirmed entries excluded. Open older order pages to extend history. Ratings use available product labels, not the original purchased package.${stopped ? ' Amazon blocked public label lookups; open products to read labels, then refresh ratings.' : ''}`);
       };
       currentSummary = () => summary(!running);
       // Paint every saved answer before even the first public lookup, independently of its position.

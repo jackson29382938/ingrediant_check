@@ -25,6 +25,16 @@ const include = [
   'docs/apps-script.gs',
 ];
 
+function readyFolder() {
+  const folder = path.join(outDir, 'unpacked');
+  fs.rmSync(folder, { recursive: true, force: true });
+  fs.mkdirSync(folder, { recursive: true });
+  for (const item of include) {
+    const dest = path.join(folder, item); fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.cpSync(path.join(root, item), dest, { recursive: true, filter: source => !path.basename(source).startsWith('._') && path.basename(source) !== '.DS_Store' });
+  }
+  console.log('Load unpacked from dist/unpacked (extension files only).');
+}
 const pre = spawnSync(process.execPath, [path.join(root, 'scripts/preflight.mjs')], {
   cwd: root, stdio: 'inherit',
 });
@@ -39,6 +49,7 @@ const zip = spawnSync('zip', ['-r', '-q', outFile, ...include, '-x', '*.DS_Store
 if (zip.status === 0) {
   const mb = (fs.statSync(outFile).size / 1048576).toFixed(1);
   console.log(`packed ${zipName} (${mb} MB)`);
+  readyFolder();
   process.exit(0);
 }
 
@@ -62,6 +73,7 @@ with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
                 z.write(abs_path, os.path.relpath(abs_path, root))
 print('packed', os.path.basename(out), f"({os.path.getsize(out)/1048576:.1f} MB)")
 `], { cwd: root, stdio: 'inherit' });
+if (py.status === 0) readyFolder();
 if (py.status) {
   console.error('pack: need `zip` or python3 to write the archive');
   process.exit(py.status || 1);

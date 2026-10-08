@@ -52,13 +52,13 @@ check('every engine file is loaded somewhere', () => {
   // A new rule file that nothing loads is invisible: the engine keeps running with the old rules
   // and no error is raised anywhere.
   const worker = read(manifest.background.service_worker);
-  const optionsHtml = read('src/options/options.html');
+  const optionsHtml = fs.readdirSync(path.join(root, 'src/options')).filter(name => name.endsWith('.html')).map(name => read('src/options/' + name)).join('\n');
   const engine = srcFiles.filter(f => rel(f).startsWith('src/engine'));
   for (const f of engine) {
     const p = rel(f).split(path.sep).join('/');
     const base = path.basename(p);
     const loaded = declared.includes(p) || worker.includes(base) || optionsHtml.includes(base);
-    assert.ok(loaded, `${p} is loaded by nothing — not the manifest, the worker, or the options page`);
+    assert.ok(loaded, `${p} is loaded by nothing — not the manifest, the worker, or an extension page`);
   }
 });
 

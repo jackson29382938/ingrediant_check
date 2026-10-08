@@ -53,10 +53,36 @@ by order month AND scoring setup/version, so changed preferences do not masquera
 changes. Warnings depend on available ingredient evidence. Purchases may be for a household; they
 do not establish consumption or medical health.
 
+## Visual dashboard and comparisons
+
+The scan progress bar is an estimate: totals can grow as more year filters and pages are discovered.
+Scan appearances can overlap across filters; the dashboard shows deduplicated totals. Product entries
+are distinct products within an order, not quantities or pack counts. The order-summary table sums
+entries within each identified order. Legacy records have unknown order grouping until their order
+pages are revisited; they are not assumed to be separate orders.
+
+Recorded scores are the default. **Recalculate with current goals & weights** is a local view using
+your saved settings and today's engine, leaving original scores and timestamps unchanged. New
+snapshots retain bounded original scoring inputs; older ingredient-only comparisons are approximate,
+with no invented nutrition or certifications. Missing labels stay unscored. Settings changes update
+an open comparison. No new product lookups are needed for this view.
+
+Search/date/status/rating/score filters affect charts and item tables; sorting and progressive table
+loading do not change the records. Only purchases enter statistics. Equal-product weighting is the
+default; equal-order weighting excludes ungrouped legacy entries. The timeline keeps recorded
+setups separate. Statistical details show sample size, median, sample SD, quartiles and range.
+Optional confidence bars use conservative Student-t approximations with order clusters, require at
+least two rated identified orders, and for item weighting require every rated entry to be grouped.
+These are descriptive purchase intervals, not medical claims, label-accuracy confidence or a random
+sample of consumption. Repeated products and household shopping may remain correlated.
+
+Redeploy the updated backend to preserve order grouping and scoring inputs on other devices. An
+older server drops fields it does not understand; local merging retains existing metadata, and
+legacy entries imported from that server remain visibly ungrouped.
+
 ## Private account storage
 
-Separate private backend rows hold product name/identity, purchase date/status, score, bounded
-ingredient text, warning matches, scoring identifier and timestamps. Every read/write verifies
+Separate private backend rows hold product name/identity, a hashed order-group identifier, purchase date/status, score, bounded ingredient text and original scoring input (available nutrition, certifications and label evidence), warning matches, scoring identifier and timestamps. Every read/write verifies
 the Google token's audience and subject; account keys are hashes of that subject. The backend
 owner operates and can access the private spreadsheet. This is account-linked storage, not a file
 automatically created in the user's Google Drive. Access tokens are never stored or logged by the

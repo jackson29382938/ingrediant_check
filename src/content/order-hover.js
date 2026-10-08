@@ -8,12 +8,13 @@
   async function show(badge) {
     const value = values.get(badge); if (!value || value.record.score === null || conf.hoverBreakdown === false || conf.enabled === false) return;
     close(); const mine = token, { line, record } = value;
-    const stored = await A.db.scoreCache.readLocal([A.db.productCache.localKey(location.hostname, line.asin)], conf, null, chrome.storage);
+    const stored = record.input ? {} : await A.db.scoreCache.readLocal([A.db.productCache.localKey(location.hostname, line.asin)], conf, null, chrome.storage);
     if (mine !== token || !badge.isConnected) return;
     const row = A.db.productCache.sanitize(stored[A.db.productCache.localKey(location.hostname, line.asin)]);
     let result = null;
-    if (record.profile === profile && record.version === version && row?.status === 'ok' && row.data.text.slice(0, 2000) === record.ingredients) {
-      const scored = A.engine.score(A.db.productCache.toInput(row), A.db.prefs.sanitizeScoring(conf));
+    const input = record.input || (row?.status === 'ok' ? A.db.productCache.toInput(row) : null);
+    if (record.profile === profile && record.version === version && input?.ingredients_text.slice(0, 2000) === record.ingredients) {
+      const scored = A.engine.score(input, A.db.prefs.sanitizeScoring(conf));
       if (scored.score === record.score) result = scored;
     }
     host = document.createElement('div'); host.id = 'air-order-details'; host.setAttribute('role', 'dialog'); host.setAttribute('aria-label', `${line.name}: purchase score ${record.score}/100`);

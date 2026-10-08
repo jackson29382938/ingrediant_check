@@ -9,7 +9,7 @@ cookies and referrers. Optional missing-label fallbacks send only a product barc
 Facts (with its permission) or fetch public product-label images for local OCR. Orders, addresses
 and payment details are never sent to those services. Fresh product readings stay in the local
 cache; purchase capture does not publish them to shared product storage. Separate authenticated private backend rows hold product names/IDs, purchase
-dates, status, scores, bounded ingredients and warning matches. Addresses, payment details, prices
+dates, status, scores, bounded ingredients, available nutrition/certifications, hashed order groups and warning matches. Charts and current-goal comparisons run on your computer and do not rewrite the recorded ratings or contact a chart provider. Addresses, payment details, prices
 and raw order numbers are not stored or uploaded. The feature is off until enabled and excluded
 from settings imports/backups and shared product databases. Account switches do not transfer another
 account's records. Export and confirmed local/account deletion are available; failed account

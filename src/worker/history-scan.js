@@ -54,6 +54,8 @@
     if (msg.reason) { await pause(String(msg.reason).slice(0, 200)); return { ok: true }; }
     if (!msg.plan || msg.plan.unsupportedNext || (S.url(msg.plan.next) && state.visited.includes(S.url(msg.plan.next))) || (!msg.items && !msg.plan.empty)) { await pause('This order-page layout could not be read completely. Check the scan tab before resuming.'); return { ok: true }; }
     state.pages++; state.visited.push(state.currentURL);
+    state.pageItems = (state.pageItems || 0) + Math.max(0, Math.min(100, Number(msg.items) || 0));
+    state.pageOrders = (state.pageOrders || 0) + Math.max(0, Math.min(100, Number(msg.ordersOnPage) || 0));
     state.averageMs = state.averageMs ? state.averageMs * 0.7 + (Date.now() - state.pageStartedAt) * 0.3 : Date.now() - state.pageStartedAt;
     const candidates = [msg.plan.next, ...(Array.isArray(msg.plan.years) ? msg.plan.years.slice(0, 100) : [])].map(S.url).filter(Boolean);
     for (const u of candidates) if (!state.visited.includes(u) && !state.queue.includes(u)) state.queue.push(u);

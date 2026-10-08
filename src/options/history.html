@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>Ingredient Check — Purchase history</title>
 <link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="history.css"></head><body>
-<main><h1>Purchase history & trends</h1>
+<main><header class="hero"><span class="eyebrow">YOUR PURCHASE PATTERNS</span><h1>Purchase history & trends</h1><p>See what changes. Keep the original record.</p></header>
 <p>Only actual Amazon orders drive trends. Viewed products and carts are excluded. Purchase ratings use the ingredient information available when imported, which may differ from the original package. Purchases do not tell us what you ate.</p>
 <section aria-labelledby="controls"><h2 id="controls">Import and account sync</h2>
 <label><input type="checkbox" id="historyEnabled"> Import the Amazon order pages I open</label>
 <label><input type="checkbox" id="historyAutoSync" checked> Automatically sync my purchase history with my Google account</label>
-<p>Sync sends product names and IDs, purchase dates, ingredient text, ratings and selected warning matches to your authenticated account record in Ingredient Check's private backend. No addresses, prices, payment details or raw order numbers are stored. History is separate from settings backups.</p>
+<p>Sync sends product names and IDs, purchase dates, ingredient text, available nutrition and certifications, hashed order groups, ratings and selected warning matches to your authenticated account record in Ingredient Check's private backend. No addresses, prices, payment details or raw order numbers are stored. History is separate from settings backups.</p>
 <fieldset><legend>Order score display</legend>
 <label for="orderBadgePlacement">Where to place order scores</label><select id="orderBadgePlacement"><option value="image">On the product image (default)</option><option value="title">Beside the product title</option></select>
 <label><input type="checkbox" id="hoverBreakdown">Show score details on hover or keyboard focus</label>
@@ -28,15 +28,39 @@
 <label><input type="checkbox" id="scanBackground" checked>Run in a background tab</label>
 <p>Initial estimate: roughly 15–60 seconds per page of about 10 orders. Cached labels can be much faster; missing labels and photo reading can take several minutes per page. The remaining-time range updates after pages finish and more years are discovered.</p>
 <div class="actions"><button id="scanStart">Scan all Amazon orders</button><button id="scanPause">Pause scan</button><button id="scanResume">Resume scan</button><button id="scanCancel">Cancel scan</button><button id="scanOpen">Open scan tab</button></div>
+<div class="scan-track"><label for="scanProgress">Order-page scan progress</label><progress id="scanProgress" max="100"></progress><p id="scanProgressNote"></p></div>
 <p id="scanStatus" role="status" aria-live="polite"></p>
 <p>Only confirmed purchases contribute to trends. Quantities, addresses, payment details and raw order numbers are excluded. Up to 10,000 distinct order/product entries can be kept locally. Older account backends need the updated history capacity to sync more than 1,000 entries.</p>
 </section>
 </section>
-<section aria-labelledby="trends"><h2 id="trends">Monthly purchase trends</h2><p id="coverage"></p>
-<p>Each distinct product within an order counts once; quantities are not read. Different scoring setups and extension versions have separate averages. A revisited order keeps its first usable score. Visible cancellations and completed returns are excluded.</p>
-<div class="table"><table><thead><tr><th>Order month</th><th>Scoring setup</th><th>Average /100</th><th>Rated purchases</th><th>Warning matches</th></tr></thead><tbody id="months"></tbody></table></div></section>
-<section aria-labelledby="frequent"><h2 id="frequent">Frequently purchased food products</h2><ul id="products"></ul></section>
-<section aria-labelledby="entries"><h2 id="entries">Imported items</h2><div class="table"><table><thead><tr><th>Order date</th><th>Product</th><th>Status</th><th>Score</th><th>Rated on</th></tr></thead><tbody id="items"></tbody></table></div><button id="moreItems">Show more items</button></section>
+<section class="dashboard" aria-labelledby="trends"><div class="section-heading"><div><span class="eyebrow">PURCHASE INSIGHTS</span><h2 id="trends">Your patterns, at a glance</h2></div><a href="options.html#sec-presets" target="_blank" rel="noopener noreferrer">Edit goals &amp; weights</a></div>
+<div class="view-controls">
+<label>Score view<select id="scoreView"><option value="recorded">Recorded scores (default)</option><option value="current">Recalculate with current goals &amp; weights</option></select></label>
+<label>Average weighting<select id="averageWeight"><option value="item">Each product entry equally</option><option value="order">Each identified order equally</option></select></label>
+<label>Timeline<select id="period"><option value="month">Monthly</option><option value="year">Yearly</option></select></label>
+</div>
+<p id="viewNote" role="status" aria-live="polite"></p><p id="goalSummary"></p>
+<p>Recorded scores stay unchanged. The comparison uses today's engine and your saved goals, weights and warning choices. <a href="options.html" target="_blank" rel="noopener noreferrer">Change those settings</a> and this view updates automatically. Older entries with only ingredient text have an approximate comparison without their original nutrition or certifications.</p>
+<div class="filters" aria-label="History filters">
+<label>Search products<input type="search" id="itemSearch" placeholder="Name or product ID"></label>
+<label>From<input type="date" id="dateFrom"></label><label>Through<input type="date" id="dateTo"></label>
+<label>Status<select id="itemStatus"><option value="all">All statuses</option><option value="purchased">Purchased</option><option value="returned">Returned</option><option value="cancelled">Cancelled</option><option value="unknown">Unconfirmed / excluded</option></select></label>
+<label>Rating<select id="ratingFilter"><option value="all">All ratings</option><option value="rated">Rated</option><option value="missing">Label unavailable</option><option value="flagged">Recorded warning matches</option></select></label>
+<label>Minimum score<input type="number" id="scoreMin" min="0" max="100" placeholder="0"></label><label>Maximum score<input type="number" id="scoreMax" min="0" max="100" placeholder="100"></label>
+<label>Sort items<select id="itemSort"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="highest">Highest score</option><option value="lowest">Lowest score</option><option value="name">Product name</option><option value="change">Largest increase in comparison</option></select></label><button id="resetFilters">Reset filters</button>
+</div>
+<p id="coverage"></p><div id="metrics" class="metrics" aria-label="Purchase statistics"></div>
+<div class="chart-grid"><figure><h3>Score over time</h3><div id="trendChart" class="chart"></div><figcaption>Separate lines preserve recorded scoring setups. Missing periods are not zero. Focus a point for its numbers.</figcaption></figure>
+<figure><h3>Score distribution</h3><div id="distributionChart" class="chart"></div><figcaption>Product entries in five score bands. Missing scores are excluded.</figcaption></figure></div>
+<details class="statistics"><summary>Statistical details &amp; error bars</summary>
+<label>Timeline bars<select id="errorBars"><option value="none">No bars (default)</option><option value="iqr">Middle 50% (IQR): descriptive spread</option><option value="range">Minimum–maximum: descriptive spread</option><option value="ci">95% confidence interval: order-cluster estimate</option></select></label>
+<p>Confidence intervals use a Student-t approximation with orders as clusters, so three products in one order are not three independent samples. They require at least two rated, identified orders and complete order grouping for item-weighted averages. Purchases are not a random sample; intervals are descriptive, not medical claims, label-accuracy estimates or predictions. Repeated products and household shopping can still be correlated.</p><p id="statsNote"></p><dl id="statistics" class="stat-grid"></dl>
+</details>
+<details><summary>Order summaries: how product entries add up</summary><p>Purchased product entries in the current filters. Quantities and pack sizes are not inferred. Older ungrouped entries are listed separately. Beyond 500 groups, remaining groups share an aggregate row so large histories stay responsive.</p><div class="table"><table><thead><tr><th>Order group</th><th>Date</th><th>Product entries</th><th>Rated entries</th><th>Average /100</th></tr></thead><tbody id="orderTotals"></tbody></table></div></details>
+<details><summary>Timeline data table</summary><div class="table"><table><thead><tr><th>Period</th><th>Scoring setup</th><th>Average /100</th><th>Rated product entries</th><th>Recorded warnings</th></tr></thead><tbody id="months"></tbody></table></div></details>
+</section>
+<section aria-labelledby="frequent"><h2 id="frequent">Frequently purchased food products</h2><ol id="products" class="frequent-list"></ol></section>
+<section aria-labelledby="entries"><div class="section-heading"><h2 id="entries">Imported items</h2><span id="itemCount"></span></div><p>Each entry represents a distinct product in an order, not its quantity or pack count. Multiple entries can belong to one order. Filters apply to charts and this table; only purchased entries drive trends.</p><div class="table"><table><thead><tr><th>Order date</th><th>Product</th><th>Order group</th><th>Status</th><th>Recorded /100</th><th>Current goals /100</th><th>Change</th><th>Rated on</th></tr></thead><tbody id="items"></tbody></table></div><button id="moreItems">Show more items</button></section>
 <p><a href="options.html">Settings</a> · <a href="welcome.html">Run setup again</a></p></main>
-<script src="../engine/db/_module.js"></script><script src="../engine/db/allergens.js"></script><script src="../engine/categories.js"></script><script src="../engine/db/prefs.js"></script><script src="../engine/db/theme.js"></script><script src="../engine/db/purchase-history.js"></script><script src="../engine/db/history-scan.js"></script><script src="google-auth.js"></script><script src="history.js"></script>
+<script src="../engine/db/_module.js"></script><script src="../engine/db/allergens.js"></script><script src="../engine/categories.js"></script><script src="../engine/db/prefs.js"></script><script src="../engine/db/theme.js"></script><script src="../engine/db/oils.js"></script><script src="../engine/db/sugars.js"></script><script src="../engine/db/additives.js"></script><script src="../engine/db/labels.js"></script><script src="../engine/db/provenance.js"></script><script src="../engine/score.js"></script><script src="../engine/db/purchase-history.js"></script><script src="../engine/db/purchase-analytics.js"></script><script src="../engine/db/history-scan.js"></script><script src="google-auth.js"></script><script src="history-dashboard.js"></script><script src="history.js"></script>
 </body></html>

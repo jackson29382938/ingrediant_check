@@ -107,7 +107,8 @@ export async function ordersEndToEnd(context, worker, errors) {
   await worker.evaluate(() => { self.lookupBarcode = self.__orderBarcode; self.ocrLabels = self.__orderOcr; delete self.__orderBarcode; delete self.__orderOcr; delete self.__orderFallbacks; delete self.__orderSlowStarted; delete self.__orderBarcodeRelease; delete self.__orderOcrRelease; });
   const opened = context.waitForEvent('page'); await page.getByRole('button', { name: 'History & sync settings' }).click();
   const dashboard = await opened; await dashboard.waitForLoadState(); dashboard.on('pageerror', e => errors.push('history dashboard: ' + e.message));
-  await dashboard.waitForFunction(() => document.querySelector('#coverage')?.textContent.includes('6 of 6 imported purchases rated'));
+  await dashboard.waitForFunction(() => document.querySelector('#metricItems')?.textContent === '6' && document.querySelector('#metricCoverage')?.textContent === '100%');
+  await dashboard.locator('#months').evaluate(node => { node.closest('details').open = true; });
   if (!await dashboard.locator('#months').innerText().then(t => t.includes('2026-08'))) throw new Error('monthly purchase trends missing');
   if (!await dashboard.locator('#ocrLabels').isChecked() || !await dashboard.locator('#useOpenFoodFacts').isChecked()) throw new Error('label controls not visible or reflect wrong settings');
   await dashboard.locator('#ratePace').selectOption('fast');

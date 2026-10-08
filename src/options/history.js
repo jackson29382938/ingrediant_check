@@ -1,11 +1,11 @@
 (function() {
   const H = AIR.db.purchaseHistory, $ = id => document.getElementById(id);
-  let conf = {}, busy = false, itemLimit = 500;
+  let conf = {}, busy = false, dashboardDirty = true;
+  const dashboardKeys = ['purchaseHistory', 'theme', 'palette', 'accent', 'weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly'];
   const reasons = { 'backend-capacity-update-required': 'History is kept locally. Update the Apps Script backend before syncing more than its current history capacity.', pending: 'New purchases are saved locally and waiting for automatic sync.', 'local-only': 'New purchases are saved locally. Automatic sync is off; use Sync now to upload them.', 'delete-pending': 'Account deletion is still pending. Complete deletion before enabling import.', 'backend-update-required': 'The account backend needs the purchase-history update. Your history remains local; no purchase data was sent.', 'account-changed': 'This local history belongs to another Google account. Sign in to that account before syncing or deleting its account copy.', 'needs-sign-in-or-network': 'Sync needs Google sign-in or a working connection. Your local history is kept, and automatic sync will retry.', 'history-full': 'The 10,000-entry limit has been reached. Export your history before removing entries.', off: 'Import or automatic sync is off.', deleted: 'History deleted from this device and the authenticated account.' };
   function say(text) { $('status').textContent = text; }
-  function row(target, values) { const tr = document.createElement('tr'); for (const v of values) { const td = document.createElement('td'); td.textContent = String(v ?? '—'); tr.append(td); } target.append(tr); }
   async function paint() {
-    conf = await chrome.storage.local.get(['purchaseHistory', 'historyEnabled', 'historyAutoSync', 'historyOwner', 'historySyncStatus', 'historyDeletePending', 'googleProfile', 'oauthClientId', 'theme', 'palette', 'accent', 'ocrLabels', 'useOpenFoodFacts', 'ratePace', 'orderBadgePlacement', 'hoverBreakdown', 'historyScan']);
+    conf = await chrome.storage.local.get(['purchaseHistory', 'historyEnabled', 'historyAutoSync', 'historyOwner', 'historySyncStatus', 'historyDeletePending', 'googleProfile', 'oauthClientId', 'theme', 'palette', 'accent', 'ocrLabels', 'useOpenFoodFacts', 'ratePace', 'orderBadgePlacement', 'hoverBreakdown', 'historyScan', 'weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly']);
     AIR.db.theme.use(conf); AIR.db.theme.force(document);
     $('historyEnabled').checked = conf.historyEnabled === true; $('historyAutoSync').checked = conf.historyAutoSync !== false;
     const toggles = AIR.db.prefs.sanitizeToggles(conf); $('ocrLabels').checked = toggles.ocrLabels; $('useOpenFoodFacts').checked = toggles.useOpenFoodFacts; $('ratePace').value = ['gentle', 'normal', 'quick', 'fast'].includes(conf.ratePace) ? conf.ratePace : 'normal';
@@ -18,15 +18,14 @@
     if (!busy) { $('scanStart').disabled = !conf.historyEnabled || scan?.status === 'running'; $('scanPause').disabled = scan?.status !== 'running'; $('scanResume').disabled = scan?.status !== 'paused'; $('scanCancel').disabled = !['running', 'paused'].includes(scan?.status); $('scanOpen').disabled = scan?.tabId === undefined; }
     const status = conf.historySyncStatus;
     if (!busy) say(conf.historyDeletePending ? 'Local history cleared. Account deletion is pending; sign in to its Google account and click Sync now.' : status ? status.ok ? status.reason === 'deleted' ? reasons.deleted : `Synced ${new Date(status.at).toLocaleString()}` : reasons[status.reason] || 'Sync has not completed. Local history is kept.' : 'No account sync yet.');
-    const records = H.merge([], conf.purchaseHistory), purchases = records.filter(r => r.state === 'purchased'), rated = purchases.filter(r => r.score !== null);
-    $('coverage').textContent = `${rated.length} of ${purchases.length} imported purchases rated. ${records.length - purchases.length} cancelled, returned or unconfirmed entries excluded. ${purchases.filter(r => r.ingredients).length} ingredient lists available for warning checks.`;
-    if (records.length > itemLimit) $('coverage').textContent += ` The item table shows the latest ${itemLimit} entries; trends and export use the full history.`;
-    $('months').replaceChildren(); const profiles = new Map();
-    for (const g of H.trends(records)) { const key = g.profile + ':' + g.version; if (!profiles.has(key)) profiles.set(key, profiles.size + 1); row($('months'), [g.month, `Setup ${profiles.get(key)} · ${g.version}`, g.average, `${g.rated}/${g.total}`, g.flagged]); }
-    $('items').replaceChildren(); for (const r of records.slice(0, itemLimit)) row($('items'), [r.date, r.name, r.state, r.score, r.scoredAt ? new Date(r.scoredAt).toLocaleDateString() : 'Unavailable']);
-    $('moreItems').hidden = records.length <= itemLimit;
-    const counts = new Map(); for (const r of purchases) { const v = counts.get(r.asin) || { name: r.name, count: 0 }; v.count++; counts.set(r.asin, v); }
-    $('products').replaceChildren(); for (const v of [...counts.values()].sort((a, b) => b.count - a.count).slice(0, 10)) { const li = document.createElement('li'); li.textContent = `${v.name} — ${v.count} orders`; $('products').append(li); }
+    const estimateTotal = (scan?.pages || 0) + estimate.pages;
+    if (!scan || (scan.status !== 'running' && !scan.pages)) $('scanProgress').value = 0;
+    else if (scan.status === 'complete') $('scanProgress').value = 100;
+    else if (estimateTotal > 0 && scan?.pages) $('scanProgress').value = Math.min(99, scan.pages / estimateTotal * 100);
+    else $('scanProgress').removeAttribute('value');
+    $('scanProgress').setAttribute('aria-label', scan?.status === 'complete' ? 'Order-page scan complete' : 'Estimated order-page scan progress; total may grow as years are discovered');
+    $('scanProgressNote').textContent = scan ? `${scan.pages || 0} pages finished · ${scan.pageOrders || 0} order appearances · ${scan.pageItems || 0} product-entry appearances processed. Pages revisited across filters can overlap; deduplicated purchase totals are shown below. ${scan.status !== 'complete' ? 'Progress is an estimate and may decrease when more pages are discovered.' : ''}` : 'Start a scan to see progress.';
+    if (dashboardDirty) { dashboardDirty = false; void AIR.historyDashboard.update(conf); }
   }
   async function auth() {
     const granted = await chrome.permissions.request({ permissions: ['identity'] }); if (!granted) throw new Error('Google sign-in permission was not granted.');
@@ -52,13 +51,12 @@
   $('ratePace').addEventListener('change', () => action(async () => { await chrome.storage.local.set({ ratePace: $('ratePace').value }); return { ok: true }; }));
   for (const [id, type] of [['scanStart', 'purchaseScanStart'], ['scanPause', 'purchaseScanPause'], ['scanResume', 'purchaseScanResume'], ['scanCancel', 'purchaseScanCancel']]) $(id).addEventListener('click', () => action(() => chrome.runtime.sendMessage({ type, background: $('scanBackground').checked })));
   $('scanOpen').addEventListener('click', () => { if (conf.historyScan?.tabId !== undefined) chrome.tabs.update(conf.historyScan.tabId, { active: true }).catch(() => say('The scan tab was closed. Resume to open another.')); });
-  $('moreItems').addEventListener('click', () => { itemLimit += 500; void paint(); });
   $('signIn').addEventListener('click', () => action(async () => { await auth(); return { ok: true }; }));
   $('sync').addEventListener('click', () => action(async () => chrome.runtime.sendMessage({ type: 'purchaseSync', token: await auth() })));
   $('delete').addEventListener('click', () => { if (confirm('Delete purchase history from this device and your authenticated account? Import will be switched off. Offline account deletion will remain pending.')) action(async () => chrome.runtime.sendMessage({ type: 'purchaseDelete', token: conf.historyOwner ? await auth() : undefined })); });
   $('openOrders').addEventListener('click', () => chrome.tabs.create({ url: 'https://www.amazon.com/your-orders/orders' }));
   $('export').addEventListener('click', () => { const url = URL.createObjectURL(new Blob([JSON.stringify({ format: 'ingredient-check-purchases', records: H.merge([], conf.purchaseHistory) }, null, 2)], { type: 'application/json' })); const a = document.createElement('a'); a.href = url; a.download = 'ingredient-check-purchases.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); });
   let paintTimer;
-  chrome.storage.onChanged.addListener((changes, area) => { if (area === 'local' && ['purchaseHistory', 'historyScan', 'historyEnabled', 'historyAutoSync', 'historyOwner', 'historySyncStatus', 'historyDeletePending', 'googleProfile', 'theme', 'palette', 'accent', 'ocrLabels', 'useOpenFoodFacts', 'ratePace', 'orderBadgePlacement', 'hoverBreakdown'].some(key => changes[key])) { clearTimeout(paintTimer); paintTimer = setTimeout(() => { void paint(); }, 150); } });
+  chrome.storage.onChanged.addListener((changes, area) => { if (area === 'local' && dashboardKeys.some(key => changes[key])) dashboardDirty = true; if (area === 'local' && ['purchaseHistory', 'historyScan', 'historyEnabled', 'historyAutoSync', 'historyOwner', 'historySyncStatus', 'historyDeletePending', 'googleProfile', 'theme', 'palette', 'accent', 'ocrLabels', 'useOpenFoodFacts', 'ratePace', 'orderBadgePlacement', 'hoverBreakdown', 'weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly'].some(key => changes[key])) { clearTimeout(paintTimer); paintTimer = setTimeout(() => { void paint(); }, 150); } });
   void paint();
 })();

@@ -9,7 +9,7 @@ This is a guide to what is written on the label, not health or allergy advice. A
 You do not need a build step.
 
 1. `chrome://extensions` → enable **Developer mode**
-2. **Load unpacked** → select this folder
+2. Run `npm run pack`, then **Load unpacked** → select `dist/unpacked`. Alternatively extract the latest release ZIP into its own folder and select that folder. Loading the whole source checkout includes development tools, Git files and old builds in Chrome's disk-size estimate; the install folder contains only extension files. **Existing installs:** update the extension files in the same existing folder and use Chrome's Reload button. Keep that folder path to retain the unpacked extension ID, local history and OAuth redirect. Use `dist/unpacked` or a fresh extracted ZIP for new installations; do not uninstall an existing extension just to reduce its size.
 3. Expect **Ingredient Check 1.4.4** with no errors on the card
 
 Optional local session (Chrome for Testing, extension preloaded):
