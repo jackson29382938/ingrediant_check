@@ -44,7 +44,15 @@
       const candidates = [...card.querySelectorAll(tiles + ', .a-fixed-left-grid')];
       // Current compact grids sometimes have only an image link and no item class. Read its
       // immediate tile inside this verified order card; never split a mixed explicit item.
-      for (const a of productLinks(card)) if (!a.closest(tiles) && a.parentNode !== card) candidates.push(a.parentNode);
+      for (const a of productLinks(card)) {
+        const owner = a.closest(tiles);
+        let tile = a.parentNode;
+        if (tile === card || (owner && (tile === owner || !tile.querySelector('img') || new Set(productLinks(owner).map(identity)).size === 1))) continue;
+        // A shipment wrapper may contain several products; only its separate image-bearing
+        // children are tiles. A mixed row of bare title links remains ambiguous.
+        while (tile.parentNode !== card && tile.parentNode !== owner && tile.parentNode?.querySelectorAll && new Set(productLinks(tile.parentNode).map(identity)).size === 1) tile = tile.parentNode;
+        candidates.push(tile);
+      }
       for (const line of candidates) {
         if (excluded(line)) continue;
         const links = productLinks(line), ids = new Set(links.map(identity));

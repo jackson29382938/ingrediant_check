@@ -112,3 +112,10 @@ test('camping tables and knee braces are non-food without misclassifying groceri
     assert.ok(!food.negatives.includes('furnitureOrSupport'));
   }
 });
+
+test('multi-product shipment wrappers are split only at distinct image-bearing product tiles', () => {
+  const tile = (id, name) => `<section><div><a href="/dp/${id}"><img alt="${name}"></a></div><a href="/dp/${id}">${name}</a></section>`;
+  const rows = O.read(createDocument(card(tile('B000000001', 'Vitamin gummies') + tile('B000000002', 'Protein bars'))), loc);
+  assert.deepEqual(rows.map(r => r.name), ['Vitamin gummies', 'Protein bars']);
+  assert.equal(O.read(createDocument(card('<span><a href="/dp/B000000001">Oats</a></span><span><a href="/dp/B000000002">Chips</a></span>')), loc).length, 0);
+});
