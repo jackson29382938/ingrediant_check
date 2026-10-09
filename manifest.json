@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "minimum_chrome_version": "116",
   "description": "__MSG_appDescription__",
   "permissions": [
@@ -748,6 +748,7 @@
       ],
       "run_at": "document_idle",
       "js": [
+        "src/browser-compat.js",
         "src/engine/db/_module.js",
         "src/engine/db/oils.js",
         "src/engine/db/sugars.js",
@@ -930,6 +931,7 @@
       ],
       "run_at": "document_idle",
       "js": [
+        "src/browser-compat.js",
         "src/engine/db/_module.js",
         "src/engine/db/oils.js",
         "src/engine/db/sugars.js",
@@ -1343,6 +1345,7 @@
       ],
       "run_at": "document_idle",
       "js": [
+        "src/browser-compat.js",
         "src/engine/db/_module.js",
         "src/engine/db/oils.js",
         "src/engine/db/sugars.js",
@@ -1504,6 +1507,7 @@
       ],
       "run_at": "document_idle",
       "js": [
+        "src/browser-compat.js",
         "src/engine/db/_module.js",
         "src/engine/db/oils.js",
         "src/engine/db/sugars.js",
@@ -1568,6 +1572,7 @@
         "https://www.amazon.com/gp/css/order-history.html/ref=*"
       ],
       "js": [
+        "src/browser-compat.js",
         "src/engine/db/_module.js",
         "src/engine/db/oils.js",
         "src/engine/db/sugars.js",

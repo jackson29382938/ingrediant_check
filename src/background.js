@@ -9,7 +9,7 @@
 //   - the settings backup (chrome.storage.sync) and the optional Google-account copy
 
 if (typeof importScripts === 'function') {
-  importScripts('engine/db/_module.js', 'engine/db/allergens.js', 'engine/categories.js',
+  importScripts('browser-compat.js', 'engine/db/_module.js', 'engine/db/allergens.js', 'engine/categories.js',
     'engine/db/ingestible.js', 'engine/db/prefs.js', 'engine/db/theme.js',
     'engine/db/ocr-text.js', 'engine/db/product-cache.js', 'engine/db/storefronts.js', 'engine/db/sorted-results.js',
     'engine/db/speed.js', 'engine/db/unit-price.js',
@@ -151,6 +151,19 @@ const OCR_PATH = 'src/offscreen/ocr.html';
 let offscreenReady = null;
 
 async function ensureOffscreen() {
+  if (!chrome.offscreen && AIR.browser?.firefox) {
+    if (document.getElementById('air-ocr-host')) return;
+    if (!offscreenReady) {
+      offscreenReady = new Promise((resolve, reject) => {
+        const frame = document.createElement('iframe'); frame.id = 'air-ocr-host'; frame.hidden = true;
+        const timeout = setTimeout(() => { frame.remove(); reject(new Error('OCR host timeout')); }, 15000);
+        frame.onload = () => { clearTimeout(timeout); resolve(); };
+        frame.onerror = () => { clearTimeout(timeout); frame.remove(); reject(new Error('OCR host failed')); };
+        frame.src = chrome.runtime.getURL(OCR_PATH); document.body.append(frame);
+      }).finally(() => { offscreenReady = null; });
+    }
+    await offscreenReady; return;
+  }
   if (!chrome.offscreen) throw new Error('offscreen API unavailable');
   const existing = await chrome.runtime.getContexts({
     contextTypes: ['OFFSCREEN_DOCUMENT'],
@@ -201,6 +214,7 @@ async function ocrLabels(urls) {
 }
 
 async function closeOffscreenIfIdle() {
+  if (AIR.browser?.firefox) { document.getElementById('air-ocr-host')?.remove(); return; }
   if (!chrome.offscreen || typeof chrome.offscreen.closeDocument !== 'function') return;
   try { await chrome.offscreen.closeDocument(); } catch (e) { /* already gone */ }
 }

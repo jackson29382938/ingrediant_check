@@ -120,7 +120,8 @@ check('content scripts split page / product / search before main', () => {
 check('db files load before the engine that consumes them', () => {
   const iEngine = declared.indexOf('src/engine/score.js');
   const iModule = declared.indexOf('src/engine/db/_module.js');
-  assert.ok(iModule === 0, '_module.js must be first; it defines AIRmodule');
+  assert.equal(declared[0], 'src/browser-compat.js', 'Browser compatibility loads before API consumers');
+  assert.ok(iModule === 1, '_module.js must precede engine modules; it defines AIRmodule');
   for (const p of declared.filter(p => p.startsWith('src/engine/db/'))) {
     assert.ok(declared.indexOf(p) < iEngine, `${p} loads after score.js`);
   }

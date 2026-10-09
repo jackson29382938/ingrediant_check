@@ -18,7 +18,7 @@ function worker(initial = {}, fetcher, { alarms, endpoint = ENDPOINT, productsAl
     console, URL, URLSearchParams, AbortSignal, AbortController, setTimeout, clearTimeout,
     fetch: fetcher || (async () => { throw new Error('offline'); }),
     chrome: {
-      runtime: { id: 'ext', getManifest: () => ({ version: '1.0.0' }), getURL: p => p,
+      runtime: { id: 'ext', getManifest: () => ({ version: '1.0.0' }), getURL: p => `chrome-extension://ext/${p}`,
         sendMessage: async () => ({ ok: true }),
         getContexts: async () => [],
         onMessage: { addListener(fn) { onMessage = fn; } },

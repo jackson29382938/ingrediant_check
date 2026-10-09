@@ -994,7 +994,7 @@ function wireShortcuts() {
   });
   paint();
   window.addEventListener('focus', paint);
-  if (change) change.addEventListener('click', () => chrome.tabs.create({ url: 'chrome://extensions/shortcuts' }));
+  if (change) change.addEventListener('click', () => chrome.tabs.create({ url: AIR.browser?.firefox ? 'about:addons' : 'chrome://extensions/shortcuts' }));
 }
 
 // Called from settings-database.js, the options page's second classic script, once it has loaded.

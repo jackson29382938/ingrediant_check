@@ -187,7 +187,13 @@ async function finish() {
   try {
     // Request optional barcode access directly from Finish's user gesture.
     // A checked recommendation is not itself a Chrome permission grant.
-    if (asked('options') && document.getElementById('useOpenFoodFacts').checked) {
+    const barcode = asked('options') && document.getElementById('useOpenFoodFacts').checked;
+    const sharing = (asked('options') && ['settingsBackup', 'googleAutoSave', 'shareContributions', 'sendDiagnostics'].some(id => document.getElementById(id)?.checked)) || document.getElementById('setupPurchaseHistory')?.checked;
+    if (AIR.browser?.firefox && sharing) {
+      const granted = await AIR.browser.requestData(barcode ? OFF_PERMISSION : {});
+      if (!granted) { status.textContent = 'Firefox did not grant data-sharing permission. Turn off optional account backup and purchase history to continue locally.'; return; }
+    }
+    if (barcode && !(AIR.browser?.firefox && sharing)) {
       const granted = await new Promise(resolve => chrome.permissions.request(OFF_PERMISSION,
         ok => resolve(!chrome.runtime.lastError && ok)));
       if (!granted) {
@@ -353,7 +359,7 @@ chrome.storage.local.get(['weights', 'goals', 'goalImportance', 'allergens', 'di
 });
 
 document.getElementById('openChromeProfile').addEventListener('click', () => {
-  chrome.tabs.create({ url: 'chrome://settings/people' });
+  chrome.tabs.create({ url: AIR.browser?.firefox ? 'about:preferences#sync' : 'chrome://settings/people' });
 });
 document.getElementById('openAccountSettings').addEventListener('click', () => {
   chrome.tabs.create({ url: chrome.runtime.getURL('src/options/options.html#sec-account') });

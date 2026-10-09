@@ -116,3 +116,8 @@ Renaming the GitHub repository is an owner action in GitHub settings (not a code
 Release evidence and outstanding owner checks: [October 1 validation](docs/RELEASE-VALIDATION-2026-10-01.md).
 
 Scoring and preset decisions: [complete calibration review](docs/SCORING-CALIBRATION-2026-10-01.md), including an inventory of every factor and default.
+
+## Chrome and Firefox
+
+Both desktop browsers are release targets. `npm run pack` builds Chrome and Firefox ZIPs together;
+CI tests both browsers. See [browser installation, Google redirects and Firefox signing](docs/BROWSERS.md).

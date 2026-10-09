@@ -164,7 +164,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
   // Only the extension's own pages; a content script shares this file and must not restyle the store page.
   // Run at once: the styles in <head> are parsed, so the cached colours are in place before the first
   // paint. A linked stylesheet (sorted.css) may not have loaded yet, so the override is repeated on load.
-  if (typeof location !== 'undefined' && location.protocol === 'chrome-extension:' && typeof document !== 'undefined') {
+  if (typeof location !== 'undefined' && ['chrome-extension:', 'moz-extension:'].includes(location.protocol) && typeof document !== 'undefined') {
     try { boot(); } catch (e) { /* storage unavailable */ }
     window.addEventListener('load', () => force(document));
   }

@@ -58,7 +58,8 @@ function extensionPagePath(sender) {
   try {
     const u = new URL(raw);
     const id = chrome.runtime && chrome.runtime.id;
-    if (!id || u.protocol !== 'chrome-extension:' || u.hostname !== id) return '';
+    const own = new URL(chrome.runtime.getURL ? chrome.runtime.getURL('') : `chrome-extension://${id}/`);
+    if (!id || !['chrome-extension:', 'moz-extension:'].includes(u.protocol) || u.protocol !== own.protocol || u.hostname !== own.hostname) return '';
     return u.pathname || '';
   } catch { return ''; }
 }

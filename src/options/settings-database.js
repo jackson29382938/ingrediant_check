@@ -158,7 +158,7 @@ function applyRestored(values) {
 
 function wireBackup() {
   document.getElementById('openChromeProfile')?.addEventListener('click', () => {
-    chrome.tabs.create({ url: 'chrome://settings/people' }).catch(() => say('backupStatus', 'Could not open Chrome profile settings', 'error'));
+    chrome.tabs.create({ url: AIR.browser?.firefox ? 'about:preferences#sync' : 'chrome://settings/people' }).catch(() => say('backupStatus', 'Could not open Chrome profile settings', 'error'));
   });
   const restore = document.getElementById('restoreChrome');
   const sync = chrome.storage && chrome.storage.sync;

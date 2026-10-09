@@ -30,7 +30,7 @@
   function pageAddress(raw) {
     let u;
     try { u = new URL(String(raw || '')); } catch (e) { return ''; }
-    if (!/^https?:$/.test(u.protocol)) return u.protocol === 'chrome-extension:' ? `extension page ${u.pathname}` : '';
+    if (!/^https?:$/.test(u.protocol)) return ['chrome-extension:', 'moz-extension:'].includes(u.protocol) ? `extension page ${u.pathname}` : '';
     const path = u.pathname.replace(/\/ref=[^/]*$/, '');
     return `${u.origin}${path}`;
   }

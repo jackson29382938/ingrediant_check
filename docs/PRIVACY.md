@@ -163,3 +163,9 @@ hash of the verified account ID and contain settings, not your email, browsing c
 ## Grocery retailer previews
 
 Target, Walmart, Costco, Instacart, Kroger, Fry’s, Ralphs, King Soopers, Smith’s, Fred Meyer, QFC, Harris Teeter, Dillons, Safeway and Albertsons use the shared local-scoring runner described above. Store adapters identify each current product and search card before accepting a label. Scores are kept in local storage. The same-site public-page requests are visible to the retailer and carry your normal browser connection metadata, but omit cookies. Costco Same-Day is outside scope. New content-script sites may cause Chrome to request approval of site access when updating.
+
+## Browser compatibility
+
+Chrome and Firefox packages share these privacy choices. Firefox uses its own profile sync and
+OAuth redirect and requests its optional data-sharing consent before uploads. Local scoring and
+local purchase analysis remain on the device. A consent grant does not enable optional features.
