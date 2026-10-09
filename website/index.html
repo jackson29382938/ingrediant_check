@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ingredient Check</title>
+  <meta name="description" content="Ingredient Check rates Amazon grocery products 0–100 on ingredients, additives and processing. You set the weights. Scoring runs on your computer.">
+  <link rel="icon" href="icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/"><img src="icon.png" alt="" width="32" height="32"> Ingredient Check</a>
+    <nav>
+      <a href="#how">How it works</a>
+      <a href="#install">Install</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="#support">Support</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>Know what is in the grocery cart.</h1>
+      <p class="lede">Ingredient Check is a Chrome extension that rates Amazon grocery products <strong>0–100</strong> on ingredients, additives and processing. You set every weight. Scoring runs on your computer.</p>
+      <p class="actions">
+        <a class="btn primary" href="#install">Install the extension</a>
+        <a class="btn" href="privacy.html">Read the privacy policy</a>
+      </p>
+      <p class="note">This is a guide to what is written on the label, not health or allergy advice. Always read the package.</p>
+    </section>
+
+    <section id="how" class="grid-section">
+      <h2>How it works</h2>
+      <div class="cards">
+        <article class="card">
+          <h3>Score on the product page</h3>
+          <p>On an Amazon grocery product page it reads the ingredient list and shows a score. The list comes from page text, an optional on-device label read, an optional barcode lookup, or a paste box.</p>
+        </article>
+        <article class="card">
+          <h3>Scores on search and carts</h3>
+          <p>Search results show score chips. Your active Amazon cart shows a score on each item and a cart average. Saved-for-later items and recommendations are left alone.</p>
+        </article>
+        <article class="card">
+          <h3>Sort by score or price per ounce</h3>
+          <p>On supported Amazon grocery searches, Amazon's <em>Sort by</em> menu gets two extra options: score (high to low) and price per ounce (per 100 g on metric stores).</p>
+        </article>
+        <article class="card">
+          <h3>Your weights, your rules</h3>
+          <p>Choose how much each factor counts, set allergen, diet and avoid-list flags, and see exactly why a product scored the way it did when you hover over its number.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="grid-section">
+      <h2>What it covers</h2>
+      <ul class="facts">
+        <li><strong>Amazon</strong> storefronts across 21 countries, with the most complete rules for English US, UK, Canada and Australia labels.</li>
+        <li><strong>15 retailer previews</strong>, including Target, Walmart, Costco, Instacart and Kroger. These are still being validated.</li>
+        <li><strong>Local by default.</strong> Scores are calculated and cached on your computer. Optional features are off until you turn them on.</li>
+      </ul>
+      <p class="muted">Language support varies. See the full <a href="https://github.com/jackson29382938/ingrediant_check/blob/main/docs/STORES.md">store coverage notes</a>.</p>
+    </section>
+
+    <section id="install" class="grid-section">
+      <h2>Install</h2>
+      <p>Ingredient Check is currently installed from its release files. Chrome Web Store listing is not published yet.</p>
+      <ol class="steps">
+        <li>Download the latest ZIP from the <a href="https://github.com/jackson29382938/ingrediant_check/releases">releases page</a>, then extract it into its own folder.</li>
+        <li>Open <code>chrome://extensions</code> and turn on <strong>Developer mode</strong>.</li>
+        <li>Click <strong>Load unpacked</strong> and select the extracted folder.</li>
+        <li>Expect <strong>Ingredient Check</strong> on the extensions page with no errors. Pin it to the toolbar to see the score for the current product.</li>
+      </ol>
+      <p class="muted">Updating later? Replace the files in the same folder and press Reload, so your settings and local history are kept.</p>
+    </section>
+
+    <section id="support" class="grid-section">
+      <h2>Support and feedback</h2>
+      <p>Found a bad score, a missing store, or have an idea? Use the extension's <strong>Report a problem or idea</strong> button in the toolbar popup, or email <a href="mailto:jackson29382938@gmail.com">jackson29382938@gmail.com</a>.</p>
+      <p>To request a store, open Settings → <strong>Stores</strong> in the extension. It builds an email draft for you to review and send.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Ingredient Check is open source under the <a href="https://github.com/jackson29382938/ingrediant_check/blob/main/LICENSE">MIT License</a>. <a href="privacy.html">Privacy</a> · <a href="https://github.com/jackson29382938/ingrediant_check">GitHub</a></p>
+    <p class="muted">Not affiliated with Amazon, Target, Walmart, Costco or any other retailer.</p>
+  </footer>
+</body>
+</html>

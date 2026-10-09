@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy · Ingredient Check</title>
+  <meta name="description" content="How the Ingredient Check extension handles your data.">
+  <link rel="icon" href="icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/"><img src="icon.png" alt="" width="32" height="32"> Ingredient Check</a>
+    <nav><a href="/">Home</a><a href="#contact">Contact</a></nav>
+  </header>
+
+  <main class="prose">
+    <h1>Privacy</h1>
+    <p class="muted">Summary of the Ingredient Check extension's privacy practices. The full policy, which is what the Chrome Web Store listing uses, is in <a href="https://github.com/jackson29382938/ingrediant_check/blob/main/docs/PRIVACY.md">docs/PRIVACY.md</a>.</p>
+
+    <h2>The short version</h2>
+    <ul>
+      <li>Scoring runs on your computer. Scores, settings and the product cache stay in your browser's local extension storage.</li>
+      <li>The extension does not sell data, show ads, or use analytics or tracking.</li>
+      <li>Most features send nothing beyond the page you are already visiting. The optional features listed below are off until you turn them on.</li>
+      <li>This website has no analytics scripts and sets no cookies.</li>
+    </ul>
+
+    <h2>What the extension reads</h2>
+    <p>On supported retailer pages it reads product titles, ingredient lists, prices and the page structure needed to find them, and only what is needed to score the product or show a result.</p>
+
+    <h2>What stays on your device</h2>
+    <p>Your weights, allergen and diet flags, avoid list, toggles, and a score cache are kept in <code>chrome.storage.local</code>. Product data behind each score is kept for 30 days by default (adjustable from 1 to 90 days). <strong>Clear cached scores</strong> in the popup removes both. The sorted list and its priorities live in memory only and are cleared when Chrome closes.</p>
+
+    <h2>Optional features that contact other services</h2>
+    <ul>
+      <li><strong>Barcode lookup (Open Food Facts).</strong> Off unless you grant permission. Only a product barcode is sent, to fill in a missing ingredient list.</li>
+      <li><strong>Public label lookups.</strong> When automatic rating is enabled, the extension can request public product pages from the same retailer. These requests omit cookies and referrers.</li>
+      <li><strong>Google sign-in and sync.</strong> Only if you use the Google save/restore or purchase-history sync features. These use Google's sign-in and request the <code>openid</code> scope. Tokens are kept in memory only.</li>
+      <li><strong>Purchase history (preview).</strong> Only if you turn it on. It reads order pages you open and can sync to a private backend you enable. Addresses, payment details, prices and raw order numbers are not stored or uploaded.</li>
+      <li><strong>Shared product readings.</strong> Off by default and experimental.</li>
+    </ul>
+
+    <h2>Reports and store requests</h2>
+    <p>The <strong>Report a problem or idea</strong> form sends nothing from the extension. You see everything it would include, and you choose whether to download a report file or open an email draft yourself. A screenshot is taken only when you click the toolbar button on an Amazon or retailer tab.</p>
+    <p>The <strong>Request a store</strong> form builds an email draft in your own email app. Nothing is sent until you press Send.</p>
+
+    <h2>What the extension does not do</h2>
+    <ul>
+      <li>It does not read your browsing history beyond the supported retailer pages.</li>
+      <li>It does not send your settings, products, or account details to us or anyone else.</li>
+      <li>It does not change quantities, prices, totals or checkout controls on carts.</li>
+    </ul>
+
+    <h2 id="contact">Contact</h2>
+    <p>Questions about privacy: <a href="mailto:jackson29382938@gmail.com">jackson29382938@gmail.com</a>.</p>
+    <p class="muted">Last updated October 9, 2026.</p>
+  </main>
+
+  <footer class="site-footer">
+    <p><a href="/">Home</a> · <a href="https://github.com/jackson29382938/ingrediant_check">GitHub</a></p>
+  </footer>
+</body>
+</html>
