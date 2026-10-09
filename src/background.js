@@ -9,7 +9,7 @@
 //   - the settings backup (chrome.storage.sync) and the optional Google-account copy
 
 if (typeof importScripts === 'function') {
-  importScripts('browser-compat.js', 'engine/db/_module.js', 'engine/db/allergens.js', 'engine/categories.js',
+  importScripts('browser-compat.js', 'browser-platform.js', 'engine/db/_module.js', 'engine/db/allergens.js', 'engine/categories.js',
     'engine/db/ingestible.js', 'engine/db/prefs.js', 'engine/db/theme.js',
     'engine/db/ocr-text.js', 'engine/db/product-cache.js', 'engine/db/storefronts.js', 'engine/db/sorted-results.js',
     'engine/db/speed.js', 'engine/db/unit-price.js',
@@ -148,42 +148,7 @@ async function fetchOpenFoodFacts(code, key) {
 // third-party request.
 
 const OCR_PATH = 'src/offscreen/ocr.html';
-let offscreenReady = null;
-
-async function ensureOffscreen() {
-  if (!chrome.offscreen && AIR.browser?.firefox) {
-    if (document.getElementById('air-ocr-host')) return;
-    if (!offscreenReady) {
-      offscreenReady = new Promise((resolve, reject) => {
-        const frame = document.createElement('iframe'); frame.id = 'air-ocr-host'; frame.hidden = true;
-        const timeout = setTimeout(() => { frame.remove(); reject(new Error('OCR host timeout')); }, 15000);
-        frame.onload = () => { clearTimeout(timeout); resolve(); };
-        frame.onerror = () => { clearTimeout(timeout); frame.remove(); reject(new Error('OCR host failed')); };
-        frame.src = chrome.runtime.getURL(OCR_PATH); document.body.append(frame);
-      }).finally(() => { offscreenReady = null; });
-    }
-    await offscreenReady; return;
-  }
-  if (!chrome.offscreen) throw new Error('offscreen API unavailable');
-  const existing = await chrome.runtime.getContexts({
-    contextTypes: ['OFFSCREEN_DOCUMENT'],
-    documentUrls: [chrome.runtime.getURL(OCR_PATH)],
-  }).catch(() => []);
-  if (existing && existing.length) return;
-  if (!offscreenReady) {
-    offscreenReady = chrome.offscreen.createDocument({
-      url: OCR_PATH,
-      reasons: ['WORKERS'],
-      justification: 'Reads the ingredient list from a product label photo, on this device.',
-    }).catch(err => {
-      offscreenReady = null;
-      // Two callers can race here; the loser gets "only a single offscreen document" and is fine.
-      if (!/single offscreen/i.test(String(err && err.message))) throw err;
-    });
-  }
-  try { await offscreenReady; }
-  finally { offscreenReady = null; }
-}
+function ensureOffscreen() { return AIR.platform.ensureOcrHost(OCR_PATH); }
 
 // The offscreen page closes itself after sitting idle (see src/offscreen/ocr.js), which frees the
 // engine's memory. A request can land in the moment between its last job and its exit, in which
@@ -213,11 +178,7 @@ async function ocrLabels(urls) {
   return { ok: false, reason: 'offscreen unavailable' };
 }
 
-async function closeOffscreenIfIdle() {
-  if (AIR.browser?.firefox) { document.getElementById('air-ocr-host')?.remove(); return; }
-  if (!chrome.offscreen || typeof chrome.offscreen.closeDocument !== 'function') return;
-  try { await chrome.offscreen.closeDocument(); } catch (e) { /* already gone */ }
-}
+function closeOffscreenIfIdle() { return AIR.platform.closeOcrHost(); }
 
 // The action badge follows the selected score palette, independently of the page's scheme/accent.
 // Keep exact scores while awake; Chrome retains badge text across worker suspension, so startup
@@ -352,9 +313,7 @@ function openSortedPanel(msg, sender, reply) {
   const tab = (sender && sender.tab) || {};
   let opening;
   try {
-    opening = chrome.sidePanel && typeof chrome.sidePanel.open === 'function'
-      ? chrome.sidePanel.open({ tabId: tab.id })
-      : Promise.reject(new Error('no-side-panel'));
+    opening = AIR.platform.openPanel({ tabId: tab.id });
   } catch (e) { opening = Promise.reject(e); }
   const mode = msg.mode === 'unitPrice' ? 'unitPrice' : 'health';
   const unitEnabled = msg.unitEnabled !== false;

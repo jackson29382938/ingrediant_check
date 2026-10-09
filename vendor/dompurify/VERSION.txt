@@ -1,0 +1,8 @@
+DOMPurify 3.4.16 (modern HTML build)
+
+Upstream SHA256 (dist/purify.js):
+acefba6ebc9733869f60c80b519eaefad1691ea56022c54a3e6cbe74286d8d46
+
+The legacy innerHTML parser fallback is removed; DOMParser failures return null.
+All sanitizer rules are unchanged. Rebuild with scripts/build-panel-sanitizer.mjs.
+See docs/MOZILLA-REVIEW.md for exact package pins and reviewer instructions.

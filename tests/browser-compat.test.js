@@ -49,3 +49,20 @@ test('Firefox console checks separate only the exact native inactive-page diagno
   const entries = [{ source: base + 'content.js', message: 'Promise resolved while context is inactive\n' }, { source: base + 'app.js', message: 'TypeError: broken score' }, { source: base + 'app.js', message: 'Error: Promise resolved while context is inactive' }, { source: base + 'app.js', message: 'Promise rejected while context is inactive' }, { source: 'moz-extension://other/app.js', message: 'Other extension error' }];
   const result = firefoxConsole(entries, base); assert.equal(result.inactive.length, 1); assert.equal(result.errors.length, 3);
 });
+test('Firefox concurrent OCR requests wait for a loaded host and can retry a failed load', async () => {
+  let frame, attempts = 0, opens = 0;
+  const context = { browser: { runtime: { getURL: p => 'moz-extension://own/' + p }, sidebarAction: { open() { opens++; return Promise.resolve(); } } },
+    document: { getElementById: () => frame, body: { append(value) { frame = value; attempts++; } },
+      createElement: () => ({ remove() { frame = null; } }) }, setTimeout, clearTimeout };
+  vm.runInNewContext(fs.readFileSync('src/browser-platform-firefox.js', 'utf8'), context);
+  const platform = context.AIR.platform;
+  let firstDone = false, secondDone = false;
+  const first = platform.ensureOcrHost('ocr.html').then(() => { firstDone = true; });
+  const second = platform.ensureOcrHost('ocr.html').then(() => { secondDone = true; });
+  await Promise.resolve(); assert.equal(attempts, 1); assert.equal(firstDone, false); assert.equal(secondDone, false);
+  frame.onload(); await Promise.all([first, second]); assert.equal(firstDone, true); assert.equal(secondDone, true);
+  await platform.closeOcrHost(); assert.equal(frame, null);
+  const failed = platform.ensureOcrHost('ocr.html'); frame.onerror(); await assert.rejects(failed, /OCR host failed/);
+  const retry = platform.ensureOcrHost('ocr.html'); frame.onload(); await retry; assert.equal(attempts, 3);
+  const opening = platform.openPanel({ tabId: 1 }); assert.equal(opens, 1, 'sidebar starts synchronously within the user gesture'); await opening;
+});

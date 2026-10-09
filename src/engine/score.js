@@ -9,7 +9,7 @@
 
 (function (root, factory) {
   const req = (typeof require !== 'undefined' && typeof module !== 'undefined')
-    ? p => require(p)
+    ? p => module.require(p)
     : null;
   const db = req
     ? { oils: req('./db/oils.js'), sugars: req('./db/sugars.js'),

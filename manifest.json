@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "1.15.0",
+  "version": "1.15.1",
   "minimum_chrome_version": "116",
   "description": "__MSG_appDescription__",
   "permissions": [
@@ -772,6 +772,7 @@
         "src/engine/db/points.js",
         "src/engine/score.js",
         "src/content/extract.js",
+        "vendor/dompurify/purify.js",
         "src/content/panel.js",
         "src/content/page.js",
         "src/content/product.js",
@@ -948,6 +949,7 @@
         "src/engine/db/points.js",
         "src/engine/db/score-cache.js",
         "src/engine/score.js",
+        "vendor/dompurify/purify.js",
         "src/content/panel.js",
         "src/stores/target.js",
         "src/stores/label-reader.js",
@@ -1369,6 +1371,7 @@
         "src/engine/db/points.js",
         "src/engine/score.js",
         "src/content/extract.js",
+        "vendor/dompurify/purify.js",
         "src/content/panel.js",
         "src/content/page.js",
         "src/content/product.js",
@@ -1524,6 +1527,7 @@
         "src/engine/db/points.js",
         "src/engine/db/score-cache.js",
         "src/engine/score.js",
+        "vendor/dompurify/purify.js",
         "src/content/panel.js",
         "src/stores/target.js",
         "src/stores/label-reader.js",
@@ -1601,6 +1605,7 @@
         "src/engine/db/purchase-history.js",
         "src/stores/amazon-orders.js",
         "src/engine/db/history-scan.js",
+        "vendor/dompurify/purify.js",
         "src/content/panel.js",
         "src/content/order-hover.js",
         "src/content/orders.js"

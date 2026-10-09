@@ -24,6 +24,7 @@ const include = [
   'README.md',
   'docs/PRIVACY.md',
   'docs/BROWSERS.md',
+  'docs/MOZILLA-REVIEW.md',
   'docs/PURCHASE-HISTORY.md',
   'docs/apps-script.gs',
 ];
@@ -39,6 +40,7 @@ for (const browser of browsers) {
     fs.cpSync(path.join(root, item), dest, { recursive: true, filter: source => !path.basename(source).startsWith('._') && path.basename(source) !== '.DS_Store' });
   }
   if (browser === 'firefox') {
+    fs.copyFileSync(path.join(root, 'src/browser-platform-firefox.js'), path.join(folder, 'src/browser-platform.js'));
     // Adapt visible browser instructions and translations, without changing shared logic or IDs.
     const copy = text => text.replaceAll('chrome://settings/people', 'about:preferences#sync').replaceAll('chrome://extensions/shortcuts', 'about:addons').replaceAll('chrome://extensions', 'about:addons').replace(/Chrome(?:’s|'s) side panel/g, "Firefox's sidebar").replace(/Chrome/g, 'Firefox');
     for (const name of fs.readdirSync(path.join(folder, 'src/options')).filter(name => name.endsWith('.html'))) {
@@ -55,6 +57,7 @@ for (const browser of browsers) {
       fs.writeFileSync(file, JSON.stringify(messages, null, 2) + '\n');
     }
   }
+  fs.rmSync(path.join(folder, 'src/browser-platform-firefox.js'));
   fs.writeFileSync(path.join(folder, 'manifest.json'), JSON.stringify(readBrowserManifest(root, browser), null, 2) + '\n');
   const zipName = `ingredient-check-${manifest.version}${browser === 'firefox' ? '-firefox' : ''}.zip`, outFile = path.join(outDir, zipName);
   fs.rmSync(outFile, { force: true });

@@ -116,6 +116,24 @@ check('content scripts skip account and checkout', () => {
 });
 
 console.log('\nOCR');
+check('browser runtime implementations and panel sanitizer are present', () => {
+  for (const file of ['src/browser-platform.js', 'src/browser-platform-firefox.js', 'vendor/dompurify/purify.js', 'vendor/dompurify/LICENSE']) {
+    if (!exists(file)) throw new Error('missing: ' + file);
+  }
+  for (const content of manifest.content_scripts) {
+    const panel = content.js.indexOf('src/content/panel.js');
+    if (panel >= 0 && (content.js.indexOf('vendor/dompurify/purify.js') < 0 || content.js.indexOf('vendor/dompurify/purify.js') >= panel)) {
+      throw new Error('panel sanitizer must load before panel.js');
+    }
+  }
+  return 'browser runtimes + panel sanitizer load order';
+});
+check('OCR bundles cannot compile JavaScript strings', () => {
+  for (const file of ['tesseract.min.js', 'worker.min.js']) {
+    if (/\b(?:new\s+)?Function\s*\(|\beval\s*\(/.test(read('vendor/tesseract/' + file))) throw new Error('dynamic evaluation in ' + file);
+  }
+  return 'no eval or Function constructor in OCR bundles';
+});
 check('vendored engine complete', () => {
   const need = ['tesseract.min.js', 'worker.min.js', 'tesseract-core-simd-lstm.wasm.js', 'eng.traineddata.gz'];
   const missing = need.filter(f => !exists('vendor/tesseract/' + f));

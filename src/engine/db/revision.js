@@ -15,7 +15,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
 
 (function () {
   const RULES_REVISION = '2026-10-03.1';
-  const RULES_HASH = 'b11c1cb7-281122';
+  // 1.15.1 changes only the Node loader (require -> module.require). Keep the scoring revision
+  // and cached scores: browser scoring rules and their results are unchanged.
+  const RULES_HASH = 'ab65a4e1-281129';
   const _exports = AIRmodule('revision', { RULES_REVISION, RULES_HASH });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 })();

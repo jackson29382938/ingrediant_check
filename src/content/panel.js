@@ -523,7 +523,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
 
   function mount(host, html, onReport, onPaste) {
     const shadow = attach(host);
-    shadow.innerHTML = html;
+    const safe = root.DOMPurify.sanitize(html, { RETURN_DOM_FRAGMENT: true, FORCE_BODY: true, USE_PROFILES: { html: true } });
+    if (!safe) throw new Error('Score panel HTML parsing failed');
+    shadow.replaceChildren(safe);
     root.AIR.db.theme.force(shadow);          // light or dark as the reader chose, not only the system's
     const card = shadow.querySelector('.card');
     const report = shadow.querySelector('.report');

@@ -128,8 +128,8 @@
   function openSidePanel(b) {
     const target = windowId != null ? { windowId } : Number.isInteger(saved && saved.sourceWindowId) ? { windowId: saved.sourceWindowId } : null;
     const fail = () => { b.textContent = t('sortedPanelFallback', 'Open the side panel from Chrome’s side panel menu'); };
-    if (!target || !chrome.sidePanel || typeof chrome.sidePanel.open !== 'function') { fail(); return; }
-    try { chrome.sidePanel.open(target).catch(fail); } catch (e) { fail(); }
+    if (!target || !AIR.platform?.openPanel) { fail(); return; }
+    try { AIR.platform.openPanel(target).catch(fail); } catch (e) { fail(); }
   }
   function openSettings() {
     chrome.tabs.create({ url: chrome.runtime.getURL('src/options/options.html#sec-sort') }).catch(() => {});

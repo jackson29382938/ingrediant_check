@@ -46,7 +46,12 @@ try {
     const reply=await c.runtime.sendMessage({type:'purchaseConfigure',enabled:false,autoSync:false}); if(!reply?.ok)throw Error('history sender authorization');
     await bg.ensureOffscreen(); const frame=bg.document.getElementById('air-ocr-host'); if(!frame)throw Error('OCR frame missing');
     if(!frame.contentWindow.Tesseract)throw Error('local Tesseract not loaded');
-    await frame.contentWindow.getWorker(); await frame.contentWindow.resetWorker(); await bg.closeOffscreenIfIdle();
+    const canvas=frame.contentDocument.createElement('canvas'); canvas.width=1200; canvas.height=180;
+    const ctx=canvas.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,1200,180);ctx.fillStyle='black';ctx.font='40px sans-serif';
+    ctx.fillText('INGREDIENTS: whole grain oats, milk, sugar.',30,80);
+    const {data}=await (await frame.contentWindow.getWorker()).recognize(canvas);
+    if(!/whole grain oats/i.test(data.text))throw Error('Local OCR recognition failed: '+data.text);
+    await frame.contentWindow.resetWorker(); await bg.closeOffscreenIfIdle();
     if(bg.document.getElementById('air-ocr-host'))throw Error('OCR did not release memory');
     return {redirect,sidebar:typeof c.sidePanel.open};`);
   console.log('  Firefox OAuth redirect: ' + state.redirect);
@@ -54,7 +59,8 @@ try {
   await open('options.html#sec-labels'); await wait('return !document.getElementById("sec-labels").classList.contains("lvl-hidden");');
   await execute('document.getElementById("ocrLabels").click();');
   await wait('return document.getElementById("ocrLabels").checked===false;');
-  await execute('const b=document.createElement("button");b.id="ff-sidebar-test";b.textContent="Open Firefox sidebar";b.onclick=()=>window.chrome.sidePanel.open().then(()=>b.dataset.open="yes",e=>b.dataset.error=String(e));document.body.append(b);');
+  await open('sorted.html');
+  await execute('const b=document.createElement("button");b.id="ff-sidebar-test";b.textContent="Open Firefox sidebar";b.onclick=()=>window.AIR.platform.openPanel().then(()=>b.dataset.open="yes",e=>b.dataset.error=String(e));document.body.append(b);');
   const button = await call(`/session/${session}/element`, { using: 'css selector', value: '#ff-sidebar-test' });
   await call(`/session/${session}/element/${button['element-6066-11e4-a52e-4f735466cecf']}/click`, {});
   await wait('return document.getElementById("ff-sidebar-test").dataset.open==="yes";');

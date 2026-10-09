@@ -180,7 +180,7 @@ check('a harness page that runs main.js loads every Amazon content script, in ma
   const pages = fs.readdirSync(path.join(root, 'tests')).filter(f => f.endsWith('.html'));
   let checked = 0;
   for (const file of pages) {
-    const srcs = [...read(`tests/${file}`).matchAll(/<script src="\/?(src\/[^"]+)"/g)].map(m => m[1]);
+    const srcs = [...read(`tests/${file}`).matchAll(/<script src="\/?((?:src|vendor)\/[^"]+)"/g)].map(m => m[1]);
     if (!srcs.includes('src/content/main.js')) continue;
     checked++;
     assert.deepEqual(srcs.filter(f => declared.includes(f)), declared, `${file} loads a different set or order`);

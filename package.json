@@ -20,7 +20,7 @@
     "pack:chrome": "node scripts/pack.mjs chrome",
     "pack:firefox": "node scripts/pack.mjs firefox",
     "firefox:setup": "node scripts/setup-firefox.mjs",
-    "firefox:lint": "web-ext lint --source-dir dist/firefox",
+    "firefox:lint": "web-ext lint --source-dir dist/firefox --warnings-as-errors",
     "harness:firefox": "node scripts/firefox-harness.mjs"
   }
 }

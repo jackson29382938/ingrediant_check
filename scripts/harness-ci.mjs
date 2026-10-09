@@ -128,6 +128,21 @@ async function run() {
       await page.waitForFunction(() => /extract failed/i.test(document.getElementById('verdict')?.textContent || ''), { timeout: 8000 });
       console.log('  ok  panel none → paste / failure');
 
+      const sanitized = await page.evaluate(() => {
+        const host = document.createElement('div'); document.body.append(host);
+        const shadow = AIR.panel.mount(host, '<style>.safe-test { color: rgb(1, 2, 3); }</style><div class="card safe-test">Safe text</div><script>window.__unsafePanel=true</script><img src="missing.png" onerror="window.__unsafePanel=true"><a href="javascript:window.__unsafePanel=true">Unsafe URL</a>');
+        const failing = window.DOMPurify(new Proxy(window, { get(target, key) {
+          if (key === 'DOMParser') return class { parseFromString() { throw new Error('Parser failure'); } };
+          return Reflect.get(target, key, target);
+        } }));
+        const closed = failing.sanitize('<img src=x onerror=alert(1)>', { RETURN_DOM_FRAGMENT: true }) === null;
+        const result = closed && !shadow.querySelector('script,[onerror],a[href]') && !window.__unsafePanel
+          && getComputedStyle(shadow.querySelector('.safe-test')).color === 'rgb(1, 2, 3)';
+        host.remove(); return result;
+      });
+      if (!sanitized) throw new Error('Panel sanitizer did not remove executable input or preserve scoped styles');
+      console.log('  ok  panel sanitizer → executable input removed, shadow styles preserved');
+
       // Every panel state, rendered into the page so the contrast check can read it (on Amazon it
       // sits in a closed shadow root). Disabled controls are exempt, as WCAG allows.
       await page.evaluate(() => {

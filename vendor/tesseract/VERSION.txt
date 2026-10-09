@@ -3,7 +3,10 @@ tesseract.js-core 5.1.1
 eng.traineddata: tessdata 4.0.0_fast
 
 Vendored, not fetched at runtime: MV3 forbids remote code, and OCR must stay
-on the user's machine. Update by copying from the npm packages of the same names.
+on the user's machine. The JS bundles use a reproducible modern-browser adaptation of upstream 5.1.1.
+Do not overwrite them with upstream minified bundles: that restores obsolete eval
+fallbacks. See docs/MOZILLA-REVIEW.md and scripts/build-ocr-vendor.mjs.
+The combined WASM core and English language data remain unchanged.
 
 FILE CHOICE MATTERS. The worker importScripts()s tesseract-core-simd-lstm.wasm.js
 by name -- the build with the wasm embedded. Vendoring the split

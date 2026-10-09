@@ -58,8 +58,9 @@ then run `npm run harness:firefox`. Install web-ext 10.0.0 and run `npm run fire
 CI runs both real browsers. Firefox store requests use local HTTPS fixtures with a test certificate;
 no retailer or private-account requests leave the test fixture proxy. It grants the production
 store permissions in the temporary test profile, checks search/product/cart ratings on Amazon and
-15 retailers, extension pages, local OCR worker startup and purchase analytics. Shared Chrome checks
+15 retailers, extension pages, local OCR image recognition and purchase analytics. Shared Chrome checks
 also cover dynamic listings, cart edits, background order scanning and account-sync fixtures.
-Mozilla's validator reports pre-existing vendored OCR and guarded Chrome-API warnings; these may
-require explanation/source evidence during Mozilla review. Signing/publication approval is separate
+The 1.15.1 package validates with zero errors and zero warnings using web-ext 10.0.0. Browser-specific
+APIs are packaged separately. Vendored OCR and panel-sanitizer builds are reproducible from pinned,
+checksum-verified upstream files; see docs/MOZILLA-REVIEW.md. Signing/publication approval is separate
 from local tests and CI. Every GitHub release automatically attaches both browser ZIPs.
