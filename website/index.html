@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Ingredient Check</title>
-  <meta name="description" content="Ingredient Check rates Amazon grocery products 0–100 on ingredients, additives and processing. You set the weights. Scoring runs on your computer.">
+  <meta name="description" content="Ingredient Check for Chrome and Firefox rates grocery labels 0–100. Choose your goals, see ingredient details, and explore optional purchase trends.">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="site-header">
     <a class="brand" href="/">Ingredient Check</a>
-    <nav>
+    <nav aria-label="Main navigation">
       <a href="#how">How it works</a>
       <a href="#install">Install</a>
       <a href="privacy.html">Privacy</a>
@@ -21,7 +21,7 @@
   <main>
     <section class="hero">
       <h1>Know what is in the grocery cart.</h1>
-      <p class="lede">Ingredient Check is a Chrome extension that rates Amazon grocery products <strong>0–100</strong> on ingredients, additives and processing. You set every weight. Scoring runs on your computer.</p>
+      <p class="lede">Ingredient Check for Chrome and Firefox rates grocery labels <strong>0–100</strong> on ingredients, additives and processing. Choose your goals and weights, see what contributed to each score, and keep your scores on your computer.</p>
       <p class="actions">
         <a class="btn primary" href="#install">Install the extension</a>
         <a class="btn" href="privacy.html">Read the privacy policy</a>
@@ -34,11 +34,11 @@
       <div class="cards">
         <article class="card">
           <h3>Score on the product page</h3>
-          <p>On an Amazon grocery product page it reads the ingredient list and shows a score. The list comes from page text, an optional on-device label read, an optional barcode lookup, or a paste box.</p>
+          <p>On supported food product pages it reads available ingredients and shows a score with a breakdown. Amazon also supports local label-image OCR, permission-based barcode lookup, and pasted labels. Missing or blocked labels stay unavailable.</p>
         </article>
         <article class="card">
           <h3>Scores on search and carts</h3>
-          <p>Search results show score chips. Your active Amazon cart shows a score on each item and a cart average. Saved-for-later items and recommendations are left alone.</p>
+          <p>Supported search results and active carts show ratings from saved labels or available public product pages. Amazon's cart also shows a cart average. Saved-for-later items and recommendations are left alone.</p>
         </article>
         <article class="card">
           <h3>Sort by score or price per ounce</h3>
@@ -48,6 +48,10 @@
           <h3>Your weights, your rules</h3>
           <p>Choose how much each factor counts, set allergen, diet and avoid-list flags, and see exactly why a product scored the way it did when you hover over its number.</p>
         </article>
+        <article class="card">
+          <h3>Optional purchase trends</h3>
+          <p>Enable Amazon purchase history to see order-item ratings, averages, charts and the biggest score contributors. You can scan older orders, filter your records, and compare recorded scores with your current goals.</p>
+        </article>
       </div>
     </section>
 
@@ -56,21 +60,30 @@
       <ul class="facts">
         <li><strong>Amazon</strong> storefronts across 21 countries, with the most complete rules for English US, UK, Canada and Australia labels.</li>
         <li><strong>15 retailer previews</strong>, including Target, Walmart, Costco, Instacart and Kroger. These are still being validated.</li>
-        <li><strong>Local by default.</strong> Scores are calculated and cached on your computer. Optional features are off until you turn them on.</li>
+        <li><strong>Local scoring.</strong> Scores and product labels are cached on your computer. Automatic rating, local OCR and certification lookups are enabled by default. Settings backup follows your browser profile sync and permissions; other account and sharing features are explained in setup and privacy settings.</li>
       </ul>
       <p class="muted">Language support varies. See the full <a href="https://github.com/jackson29382938/ingrediant_check/blob/main/docs/STORES.md">store coverage notes</a>.</p>
     </section>
 
     <section id="install" class="grid-section">
       <h2>Install</h2>
-      <p>Ingredient Check is currently installed from its release files. Chrome Web Store listing is not published yet.</p>
+      <p>Download the current Chrome or Firefox package from <a href="https://github.com/jackson29382938/ingrediant_check/releases/latest">the latest GitHub release</a>. These are development packages; the Firefox ZIP requires Mozilla signing for permanent installation.</p>
+      <h3>Chrome</h3>
       <ol class="steps">
-        <li>Download the latest ZIP from the <a href="https://github.com/jackson29382938/ingrediant_check/releases">releases page</a>, then extract it into its own folder.</li>
+        <li>Choose the ZIP whose name ends with the version number and <code>.zip</code>, then extract it into its own folder. The ZIP with <code>-firefox</code> in its name is for Firefox.</li>
         <li>Open <code>chrome://extensions</code> and turn on <strong>Developer mode</strong>.</li>
         <li>Click <strong>Load unpacked</strong> and select the extracted folder.</li>
         <li>Expect <strong>Ingredient Check</strong> on the extensions page with no errors. Pin it to the toolbar to see the score for the current product.</li>
       </ol>
       <p class="muted">Updating later? Replace the files in the same folder and press Reload, so your settings and local history are kept.</p>
+      <h3>Firefox</h3>
+      <ol class="steps">
+        <li>Choose the release ZIP ending in <code>-firefox.zip</code> and extract it.</li>
+        <li>In Firefox 142 or newer, open <code>about:debugging#/runtime/this-firefox</code>.</li>
+        <li>Click <strong>Load Temporary Add-on</strong> and select the extracted <code>manifest.json</code>.</li>
+        <li>Grant site access for the stores you use. Temporary add-ons are removed when Firefox restarts.</li>
+      </ol>
+      <p class="muted">See the <a href="https://github.com/jackson29382938/ingrediant_check/blob/main/docs/BROWSERS.md">browser setup guide</a> for signing and Google sign-in configuration. Google sign-in is optional; local scoring works without it.</p>
     </section>
 
     <section id="support" class="grid-section">

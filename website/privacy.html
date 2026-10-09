@@ -10,34 +10,37 @@
 <body>
   <header class="site-header">
     <a class="brand" href="/">Ingredient Check</a>
-    <nav><a href="/">Home</a><a href="#contact">Contact</a></nav>
+    <nav aria-label="Privacy navigation"><a href="/">Home</a><a href="#contact">Contact</a></nav>
   </header>
 
   <main class="prose">
     <h1>Privacy</h1>
-    <p class="muted">Summary of the Ingredient Check extension's privacy practices. The full policy, which is what the Chrome Web Store listing uses, is in <a href="https://github.com/jackson29382938/ingrediant_check/blob/main/docs/PRIVACY.md">docs/PRIVACY.md</a>.</p>
+    <p class="muted">Privacy practices for Ingredient Check on Chrome and Firefox. Detailed feature disclosures are in the <a href="https://github.com/jackson29382938/ingrediant_check/blob/main/docs/PRIVACY.md">full extension privacy policy</a>.</p>
 
     <h2>The short version</h2>
     <ul>
-      <li>Scoring runs on your computer. Scores, settings and the product cache stay in your browser's local extension storage.</li>
+      <li>Scoring runs on your computer. Scores, settings and product labels are stored locally. Browser backup and optional Google features can also store the data described below.</li>
       <li>The extension does not sell data, show ads, or use analytics or tracking.</li>
-      <li>Most features send nothing beyond the page you are already visiting. The optional features listed below are off until you turn them on.</li>
+      <li>Automatic rating, local OCR and certification-table lookups are enabled by default. Browser settings backup is enabled by default, subject to browser sync and permissions. Purchase history, Google sign-in, diagnostics and product sharing require your choices.</li>
       <li>This website has no analytics scripts and sets no cookies.</li>
     </ul>
 
     <h2>What the extension reads</h2>
-    <p>On supported retailer pages it reads product titles, ingredient lists, prices and the page structure needed to find them, and only what is needed to score the product or show a result.</p>
+    <p>On supported public retailer product and search pages it reads product titles, ingredients, nutrition, product IDs, certifications and prices needed for ratings and sorting. Cart rating reads identifiable product links and titles; it does not collect cart quantities, prices, totals, payment details or addresses. Amazon purchase-history reading is a separate opt-in feature.</p>
 
     <h2>What stays on your device</h2>
-    <p>Your weights, allergen and diet flags, avoid list, toggles, and a score cache are kept in <code>chrome.storage.local</code>. Product data behind each score is kept for 30 days by default (adjustable from 1 to 90 days). <strong>Clear cached scores</strong> in the popup removes both. The sorted list and its priorities live in memory only and are cleared when Chrome closes.</p>
+    <p>Your weights, goals, allergen and diet flags, avoid list, preferences and cached scores are kept in local extension storage. Product labels are kept for 30 days by default (adjustable from 1 to 90 days). <strong>Clear cached scores</strong> in the popup removes score and product caches. Optional purchase records are stored separately and have their own export and deletion controls. The sorted list and its current priorities live in session memory and are cleared when the browser closes.</p>
 
-    <h2>Optional features that contact other services</h2>
+    <h2>Features that contact other services</h2>
     <ul>
-      <li><strong>Barcode lookup (Open Food Facts).</strong> Off unless you grant permission. Only a product barcode is sent, to fill in a missing ingredient list.</li>
-      <li><strong>Public label lookups.</strong> When automatic rating is enabled, the extension can request public product pages from the same retailer. These requests omit cookies and referrers.</li>
-      <li><strong>Google sign-in and sync.</strong> Only if you use the Google save/restore or purchase-history sync features. These use Google's sign-in and request the <code>openid</code> scope. Tokens are kept in memory only.</li>
-      <li><strong>Purchase history (preview).</strong> Only if you turn it on. It reads order pages you open and can sync to a private backend you enable. Addresses, payment details, prices and raw order numbers are not stored or uploaded.</li>
-      <li><strong>Shared product readings.</strong> Off by default and experimental.</li>
+      <li><strong>Automatic product lookups.</strong> Enabled by default. Amazon search lookups use your Amazon sign-in cookies. Retailer-preview lookups omit cookies; cart lookups on all supported stores also omit referrers. Retailers still receive normal connection information, such as your IP address.</li>
+      <li><strong>Local label OCR.</strong> Enabled by default on supported Amazon labels. It fetches public label images and processes them on your device; it does not send the image to an OCR service.</li>
+      <li><strong>Barcode lookup (Open Food Facts).</strong> Recommended in setup but requires permission. A product barcode is sent to Open Food Facts to find a missing label.</li>
+      <li><strong>Certification tables.</strong> Enabled by default. The extension requests owner-maintained certification tables from the Ingredient Check Google Apps Script backend. These table requests do not identify the products you view.</li>
+      <li><strong>Browser settings backup.</strong> Enabled by default. Your browser can sync weights, goals, allergen and diet choices, avoid list and preferences to your own browser account when profile sync and required permissions are enabled. Firefox also requires its optional data-sharing consent. Backup can be disabled in Settings.</li>
+      <li><strong>Google sign-in and settings sync.</strong> Sign-in requests <code>openid email profile</code>. Your name, email and Google picture URL are stored locally to show the account; the picture loads from Google's image host. Tokens stay in memory. Settings save/restore sends your preferences to the configured private Apps Script backend, keyed by a hash of the verified account ID. Automatic saving can be disabled. Signing out clears the local Google profile.</li>
+      <li><strong>Purchase history.</strong> Off until enabled. Setup's history choice enables automatic Google sync, which can be switched off independently. The reader imports Amazon order items; an explicit full-history scan visits available older order pages and pauses on verification challenges. Records can include product IDs and names, dates, purchase status, scores, ingredients, nutrition, warning matches, score breakdowns and hashed order groups. These records stay local or sync to the configured private backend. Addresses, payment details, prices and raw order numbers are not stored or uploaded. Only actual purchases drive trends.</li>
+      <li><strong>Shared product readings and diagnostics.</strong> Off by default. Product sharing can send product IDs and public label data to the configured shared backend. Opt-in diagnostic and contribution uploads are described in the <a href="https://github.com/jackson29382938/ingrediant_check/blob/main/docs/DIAGNOSTICS.md">diagnostics policy</a>. They are separate from private purchase history.</li>
     </ul>
 
     <h2>Reports and store requests</h2>
@@ -47,9 +50,15 @@
     <h2>What the extension does not do</h2>
     <ul>
       <li>It does not read your browsing history beyond the supported retailer pages.</li>
-      <li>It does not send your settings, products, or account details to us or anyone else.</li>
+      <li>It does not sell your data or use advertising trackers. The network features above have their own controls and disclosures.</li>
       <li>It does not change quantities, prices, totals or checkout controls on carts.</li>
     </ul>
+
+    <h2>Your controls and retention</h2>
+    <p>Use Settings to disable automatic rating, certification lookups, backups or sharing. Clear cached scores in the popup; export or delete purchase records in Purchase history. Account deletion requires confirmation and remains visibly pending if it fails. Clearing local data does not delete an account backup. The configured backend owner operates the private spreadsheet that stores enabled Google backups and purchase records.</p>
+
+    <h2>This website</h2>
+    <p>The site uses static HTML and CSS, with no analytics scripts or application cookies. When hosted on Vercel, Vercel may process ordinary request metadata for hosting and security; see <a href="https://vercel.com/legal/privacy-policy">Vercel's privacy policy</a>. External GitHub and email links open the services you choose to use.</p>
 
     <h2 id="contact">Contact</h2>
     <p>Questions about privacy: <a href="mailto:jackson29382938@gmail.com">jackson29382938@gmail.com</a>.</p>

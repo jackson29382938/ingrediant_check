@@ -1,8 +1,12 @@
 # Ingredient Check
 
-Chrome extension that rates Amazon grocery products **0–100** on ingredients, additives, and processing. You set every weight. Scoring runs on your computer.
+Chrome and Firefox extension that rates grocery labels **0–100** on ingredients, additives, and processing. You set every weight. Scoring runs on your computer.
 
 This is a guide to what is written on the label, not health or allergy advice. Always read the package.
+
+The support website is in **[website/](website/)**, directly inside this repository on `main`.
+For Vercel, use `website` as the Root Directory, `main` as the production branch and the Other
+framework preset. See the [website deployment instructions](website/README.md).
 
 ## Load it
 
@@ -10,7 +14,7 @@ You do not need a build step.
 
 1. `chrome://extensions` → enable **Developer mode**
 2. Run `npm run pack`, then **Load unpacked** → select `dist/unpacked`. Alternatively extract the latest release ZIP into its own folder and select that folder. Loading the whole source checkout includes development tools, Git files and old builds in Chrome's disk-size estimate; the install folder contains only extension files. **Existing installs:** update the extension files in the same existing folder and use Chrome's Reload button. Keep that folder path to retain the unpacked extension ID, local history and OAuth redirect. Use `dist/unpacked` or a fresh extracted ZIP for new installations; do not uninstall an existing extension just to reduce its size.
-3. Expect **Ingredient Check 1.4.4** with no errors on the card
+3. Expect **Ingredient Check** with the current release version and no errors on the card
 
 Optional local session (Chrome for Testing, extension preloaded):
 
