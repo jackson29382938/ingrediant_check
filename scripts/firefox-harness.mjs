@@ -7,6 +7,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { FIREFOX_ID } from './browser-manifest.mjs';
 import { fixtures } from './firefox-fixtures.mjs';
+import { firefoxConsole } from './firefox-console.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const driverPath = process.env.GECKODRIVER || 'geckodriver', binary = process.env.FIREFOX_BINARY || 'firefox';
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'ic-firefox-')), port = 4448;
@@ -91,8 +92,10 @@ try {
     assert(await execute('return document.querySelector("input[aria-label=Quantity]").value==="2";'), 'Cart quantity changed');
   }
   await call(`/session/${session}/moz/context`, { context: 'chrome' });
-  const errors = await execute('return Services.console.getMessageArray().filter(m=>m instanceof Ci.nsIScriptError && !(m.flags & Ci.nsIScriptError.warningFlag) && m.sourceName?.startsWith(arguments[0])).map(m=>m.errorMessage);', [base]);
-  assert(!errors.length, 'Firefox extension errors: ' + JSON.stringify(errors));
+  const errors = await execute('return Services.console.getMessageArray().filter(m=>m instanceof Ci.nsIScriptError && !(m.flags & Ci.nsIScriptError.warningFlag) && m.sourceName?.startsWith(arguments[0])).map(m=>({source:m.sourceName,message:m.errorMessage}));', [base]);
+  const consoleState = firefoxConsole(errors, base);
+  console.log(`  Firefox native inactive-page diagnostics: ${consoleState.inactive.length}`);
+  assert(!consoleState.errors.length, 'Firefox extension errors: ' + JSON.stringify(consoleState.errors));
   console.log('  ok real Firefox: Amazon + 15 retailers, search/product/cart ratings through isolated content scripts; no retailer network');
   console.log('Firefox harness passed (temporary unsigned extension; no live accounts).');
  } catch (error) {

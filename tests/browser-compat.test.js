@@ -44,3 +44,8 @@ test('Firefox profile backup cannot upload without native data-sharing consent',
   let writes = 0; const context = { browser: { runtime: { getURL: () => 'moz-extension://own/' }, storage: { sync: { set: async () => { writes++; } } }, permissions: { contains: async () => false } }, chrome: {} };
   vm.runInNewContext(source, context); await assert.rejects(context.chrome.storage.sync.set({ allergens: ['milk'] }), /data-sharing permission/); assert.equal(writes, 0);
 });
+test('Firefox console checks separate only the exact native inactive-page diagnostic', async () => {
+  const { firefoxConsole } = await import('../scripts/firefox-console.mjs'), base = 'moz-extension://own/';
+  const entries = [{ source: base + 'content.js', message: 'Promise resolved while context is inactive\n' }, { source: base + 'app.js', message: 'TypeError: broken score' }, { source: base + 'app.js', message: 'Error: Promise resolved while context is inactive' }, { source: base + 'app.js', message: 'Promise rejected while context is inactive' }, { source: 'moz-extension://other/app.js', message: 'Other extension error' }];
+  const result = firefoxConsole(entries, base); assert.equal(result.inactive.length, 1); assert.equal(result.errors.length, 3);
+});
