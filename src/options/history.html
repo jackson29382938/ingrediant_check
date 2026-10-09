@@ -1,30 +1,10 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>Ingredient Check — Purchase history</title>
 <link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="history.css"></head><body>
-<main><header class="hero"><span class="eyebrow">YOUR PURCHASE PATTERNS</span><h1>Purchase history & trends</h1><p>See what changes. Keep the original record.</p></header>
+<main><header class="hero"><span class="eyebrow">YOUR PURCHASE PATTERNS</span><h1>Purchase history & trends</h1><p>See what changes. Keep the original record.</p></header><nav class="history-nav" aria-label="Purchase history navigation"><a href="#trends">Insights</a><a href="#driversHeading">Score drivers</a><a href="#entries">Imported items</a><a href="#scanHeading">Scan orders</a><a href="#historySettings">Purchase settings</a><a href="options.html" target="_blank" rel="noopener noreferrer">Extension Settings</a></nav>
 <p>Only actual Amazon orders drive trends. Viewed products and carts are excluded. Purchase ratings use the ingredient information available when imported, which may differ from the original package. Purchases do not tell us what you ate.</p>
-<section aria-labelledby="controls"><h2 id="controls">Import and account sync</h2>
-<label><input type="checkbox" id="historyEnabled"> Import the Amazon order pages I open</label>
-<label><input type="checkbox" id="historyAutoSync" checked> Automatically sync my purchase history with my Google account</label>
-<p>Sync sends product names and IDs, purchase dates, ingredient text, available nutrition and certifications, hashed order groups, ratings and selected warning matches to your authenticated account record in Ingredient Check's private backend. No addresses, prices, payment details or raw order numbers are stored. History is separate from settings backups.</p>
-<fieldset><legend>Order score display</legend>
-<label for="orderBadgePlacement">Where to place order scores</label><select id="orderBadgePlacement"><option value="image">On the product image (default)</option><option value="title">Beside the product title</option></select>
-<label><input type="checkbox" id="hoverBreakdown">Show score details on hover or keyboard focus</label>
-<p>Image placement falls back to the title when an item has no product image; title placement keeps an overlay for image-only items. Hover details use the saved purchase rating.</p>
-</fieldset>
-<fieldset><legend>Label reading and speed</legend>
-<label><input type="checkbox" id="ocrLabels"> Read label photos (OCR)</label>
-<p>Reads ingredient text from product label images on your computer. Photo reading can take longer than text or saved ratings; it never guesses nutrition numbers.</p>
-<label><input type="checkbox" id="useOpenFoodFacts"> Look up missing labels by barcode with Open Food Facts</label>
-<p>Only the public product barcode is sent to Open Food Facts. Your orders are not sent there.</p>
-<label for="ratePace">Product-page fetching</label><select id="ratePace"><option value="gentle">Gentle · 2 at a time</option><option value="normal">Normal · 3 at a time</option><option value="quick">Quick · 4 at a time</option><option value="fast">Fast · 5 at a time</option></select>
-<p>Saved ratings always appear first. Photo reading has its own queue. Amazon may refuse faster requests; blocked requests stop.</p>
-</fieldset>
-<p id="account" role="status"></p>
-<div class="actions"><button id="signIn">Sign in with Google</button><button id="sync">Sync now</button><button id="openOrders">Open Amazon Orders</button><button id="export">Export history</button><button id="delete">Delete local and account history</button></div>
-<p id="status" role="status" aria-live="polite"></p>
 <section aria-labelledby="scanHeading"><h3 id="scanHeading">Establish your Amazon history</h3>
-<p>Scan all available Orders pages and year filters using your Amazon sign-in. This opens one ordinary Amazon tab; it can work while you use other tabs. Chrome must stay open. Login checks or unsupported pages pause the scan. Imported purchases are kept when you pause or cancel.</p>
+<p>Enable import in <a href="#historySettings">Purchase settings</a>, then scan all available Orders pages and year filters using your Amazon sign-in. This opens one ordinary Amazon tab; it can work while you use other tabs. Chrome must stay open. Login checks or unsupported pages pause the scan. Imported purchases are kept when you pause or cancel.</p>
 <label><input type="checkbox" id="scanBackground" checked>Run in a background tab</label>
 <p>Initial estimate: roughly 15–60 seconds per page of about 10 orders. Cached labels can be much faster; missing labels and photo reading can take several minutes per page. The remaining-time range updates after pages finish and more years are discovered.</p>
 <div class="actions"><button id="scanStart">Scan all Amazon orders</button><button id="scanPause">Pause scan</button><button id="scanResume">Resume scan</button><button id="scanCancel">Cancel scan</button><button id="scanOpen">Open scan tab</button></div>
@@ -32,7 +12,7 @@
 <p id="scanStatus" role="status" aria-live="polite"></p>
 <p>Only confirmed purchases contribute to trends. Quantities, addresses, payment details and raw order numbers are excluded. Up to 10,000 distinct order/product entries can be kept locally. Older account backends need the updated history capacity to sync more than 1,000 entries.</p>
 </section>
-</section>
+
 <section class="dashboard" aria-labelledby="trends"><div class="section-heading"><div><span class="eyebrow">PURCHASE INSIGHTS</span><h2 id="trends">Your patterns, at a glance</h2></div><a href="options.html#sec-presets" target="_blank" rel="noopener noreferrer">Edit goals &amp; weights</a></div>
 <div class="view-controls">
 <label>Score view<select id="scoreView"><option value="recorded">Recorded scores (default)</option><option value="current">Recalculate with current goals &amp; weights</option></select></label>
@@ -40,7 +20,7 @@
 <label>Timeline<select id="period"><option value="month">Monthly</option><option value="year">Yearly</option></select></label>
 </div>
 <p id="viewNote" role="status" aria-live="polite"></p><p id="goalSummary"></p>
-<p>Recorded scores stay unchanged. The comparison uses today's engine and your saved goals, weights and warning choices. <a href="options.html" target="_blank" rel="noopener noreferrer">Change those settings</a> and this view updates automatically. Older entries with only ingredient text have an approximate comparison without their original nutrition or certifications.</p>
+<p>Recorded scores stay unchanged. The comparison uses today's engine and your saved goals, weights and warning choices. <a href="options.html" target="_blank" rel="noopener noreferrer">Change those settings</a> · <a href="options.html#sec-warnings" target="_blank" rel="noopener noreferrer">Warnings &amp; diets</a> · <a href="options.html#sec-appearance" target="_blank" rel="noopener noreferrer">Appearance</a> and this view updates automatically. Older entries with only ingredient text have an approximate comparison without their original nutrition or certifications.</p>
 <div class="filters" aria-label="History filters">
 <label>Search products<input type="search" id="itemSearch" placeholder="Name or product ID"></label>
 <label>From<input type="date" id="dateFrom"></label><label>Through<input type="date" id="dateTo"></label>
@@ -52,6 +32,11 @@
 <p id="coverage"></p><div id="metrics" class="metrics" aria-label="Purchase statistics"></div>
 <div class="chart-grid"><figure><h3>Score over time</h3><div id="trendChart" class="chart"></div><figcaption>Separate lines preserve recorded scoring setups. Missing periods are not zero. Focus a point for its numbers.</figcaption></figure>
 <figure><h3>Score distribution</h3><div id="distributionChart" class="chart"></div><figcaption>Product entries in five score bands. Missing scores are excluded.</figcaption></figure></div>
+<section aria-labelledby="driversHeading" class="drivers"><div class="section-heading"><h3 id="driversHeading">Biggest bonuses &amp; deductions</h3><a href="options.html#sec-weights" target="_blank" rel="noopener noreferrer">Adjust scoring weights</a></div>
+<label>Breakdown basis<select id="driverBasis"><option value="current">Current goals on saved labels (default)</option><option value="recorded">Original recorded point breakdowns</option></select></label>
+<p id="driversNote" role="status"></p><p>Total net points across matching purchased product entries. Each entry counts once; quantities are not inferred. Positive and negative occurrences of the same factor offset each other. Score limits count only their actual extra deduction. Processing bases and scale-floor adjustments are reported separately. These totals do not use the chart's average-weighting option.</p>
+<div class="chart-grid"><div><h4>Biggest net bonuses</h4><ol id="bonusDrivers" class="driver-list"></ol></div><div><h4>Biggest net deductions</h4><ol id="minusDrivers" class="driver-list"></ol></div></div>
+<details><summary>All point contributors</summary><div class="table"><table><thead><tr><th>Factor</th><th>Bonus points</th><th>Deduction points</th><th>Net points</th><th>Affected entries</th><th>Identified orders</th></tr></thead><tbody id="driverRows"></tbody></table></div></details></section>
 <details class="statistics"><summary>Statistical details &amp; error bars</summary>
 <label>Timeline bars<select id="errorBars"><option value="none">No bars (default)</option><option value="iqr">Middle 50% (IQR): descriptive spread</option><option value="range">Minimum–maximum: descriptive spread</option><option value="ci">95% confidence interval: order-cluster estimate</option></select></label>
 <p>Confidence intervals use a Student-t approximation with orders as clusters, so three products in one order are not three independent samples. They require at least two rated, identified orders and complete order grouping for item-weighted averages. Purchases are not a random sample; intervals are descriptive, not medical claims, label-accuracy estimates or predictions. Repeated products and household shopping can still be correlated.</p><p id="statsNote"></p><dl id="statistics" class="stat-grid"></dl>
@@ -61,6 +46,20 @@
 </section>
 <section aria-labelledby="frequent"><h2 id="frequent">Frequently purchased food products</h2><ol id="products" class="frequent-list"></ol></section>
 <section aria-labelledby="entries"><div class="section-heading"><h2 id="entries">Imported items</h2><span id="itemCount"></span></div><p>Each entry represents a distinct product in an order, not its quantity or pack count. Multiple entries can belong to one order. Filters apply to charts and this table; only purchased entries drive trends.</p><div class="table"><table><thead><tr><th>Order date</th><th>Product</th><th>Order group</th><th>Status</th><th>Recorded /100</th><th>Current goals /100</th><th>Change</th><th>Rated on</th></tr></thead><tbody id="items"></tbody></table></div><button id="moreItems">Show more items</button></section>
+<section id="historySettings" aria-labelledby="controls"><details id="purchasePreferences"><summary>Purchase import, account sync &amp; order display</summary><h2 id="controls">Purchase-specific settings</h2>
+<label><input type="checkbox" id="historyEnabled"> Import the Amazon order pages I open</label>
+<label><input type="checkbox" id="historyAutoSync" checked> Automatically sync my purchase history with my Google account</label>
+<p>Sync sends product names and IDs, purchase dates, ingredient text, available nutrition and certifications, hashed order groups, ratings and selected warning matches to your authenticated account record in Ingredient Check's private backend. No addresses, prices, payment details or raw order numbers are stored. History is separate from settings backups.</p>
+<fieldset><legend>Order score display</legend>
+<label for="orderBadgePlacement">Where to place order scores</label><select id="orderBadgePlacement"><option value="image">On the product image (default)</option><option value="title">Beside the product title</option></select>
+
+<p>Image placement falls back to the title when an item has no product image; title placement keeps an overlay for image-only items. Hover details use the saved purchase rating.</p>
+</fieldset>
+<p id="readingSummary"></p><p>Shared controls live in Settings: <a href="options.html#sec-labels" target="_blank" rel="noopener noreferrer">Label photos &amp; barcode lookup</a> · <a href="options.html#sec-speed" target="_blank" rel="noopener noreferrer">Fetching speed &amp; saved labels</a> · <a href="options.html#sec-rate" target="_blank" rel="noopener noreferrer">Hover details</a>.</p>
+<p id="account" role="status"></p>
+<div class="actions"><button id="signIn">Sign in with Google</button><button id="sync">Sync now</button><button id="openOrders">Open Amazon Orders</button><button id="export">Export history</button><button id="delete">Delete local and account history</button></div>
+<p id="status" role="status" aria-live="polite"></p>
+</details></section>
 <p><a href="options.html">Settings</a> · <a href="welcome.html">Run setup again</a></p></main>
 <script src="../engine/db/_module.js"></script><script src="../engine/db/allergens.js"></script><script src="../engine/categories.js"></script><script src="../engine/db/prefs.js"></script><script src="../engine/db/theme.js"></script><script src="../engine/db/oils.js"></script><script src="../engine/db/sugars.js"></script><script src="../engine/db/additives.js"></script><script src="../engine/db/labels.js"></script><script src="../engine/db/provenance.js"></script><script src="../engine/score.js"></script><script src="../engine/db/purchase-history.js"></script><script src="../engine/db/purchase-analytics.js"></script><script src="../engine/db/history-scan.js"></script><script src="google-auth.js"></script><script src="history-dashboard.js"></script><script src="history.js"></script>
 </body></html>

@@ -8,9 +8,9 @@
     conf = await chrome.storage.local.get(['purchaseHistory', 'historyEnabled', 'historyAutoSync', 'historyOwner', 'historySyncStatus', 'historyDeletePending', 'googleProfile', 'oauthClientId', 'theme', 'palette', 'accent', 'ocrLabels', 'useOpenFoodFacts', 'ratePace', 'orderBadgePlacement', 'hoverBreakdown', 'historyScan', 'weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly']);
     AIR.db.theme.use(conf); AIR.db.theme.force(document);
     $('historyEnabled').checked = conf.historyEnabled === true; $('historyAutoSync').checked = conf.historyAutoSync !== false;
-    const toggles = AIR.db.prefs.sanitizeToggles(conf); $('ocrLabels').checked = toggles.ocrLabels; $('useOpenFoodFacts').checked = toggles.useOpenFoodFacts; $('ratePace').value = ['gentle', 'normal', 'quick', 'fast'].includes(conf.ratePace) ? conf.ratePace : 'normal';
+    const toggles = AIR.db.prefs.sanitizeToggles(conf); $('readingSummary').textContent = `Shared settings: label photos ${toggles.ocrLabels ? 'on' : 'off'} · barcode lookup ${toggles.useOpenFoodFacts ? 'on' : 'off'} · fetching pace ${['gentle', 'normal', 'quick', 'fast'].includes(conf.ratePace) ? conf.ratePace : 'normal'} · hover details ${toggles.hoverBreakdown ? 'on' : 'off'}.`;
     $('account').textContent = conf.googleProfile?.email ? `Signed in: ${conf.googleProfile.email}` : 'Not signed in. Import can work locally; account sync waits for Google sign-in.';
-    $('orderBadgePlacement').value = conf.orderBadgePlacement === 'title' ? 'title' : 'image'; $('hoverBreakdown').checked = toggles.hoverBreakdown;
+    $('orderBadgePlacement').value = conf.orderBadgePlacement === 'title' ? 'title' : 'image';
     const scan = conf.historyScan;
     if (scan && !busy) $('scanBackground').checked = scan.background !== false;
     const estimate = AIR.db.historyScan.estimate(scan || {}), minutes = seconds => seconds < 60 ? 'under 1 minute' : `${Math.ceil(seconds / 60)} minutes`;
@@ -40,15 +40,7 @@
   }
   $('historyEnabled').addEventListener('change', () => action(() => chrome.runtime.sendMessage({ type: 'purchaseConfigure', enabled: $('historyEnabled').checked, autoSync: $('historyAutoSync').checked })));
   $('historyAutoSync').addEventListener('change', () => action(() => chrome.runtime.sendMessage({ type: 'purchaseConfigure', enabled: $('historyEnabled').checked, autoSync: $('historyAutoSync').checked })));
-  $('ocrLabels').addEventListener('change', () => action(async () => { await chrome.storage.local.set({ ocrLabels: $('ocrLabels').checked }); return { ok: true }; }));
-  $('useOpenFoodFacts').addEventListener('change', () => action(async () => {
-    const enabled = $('useOpenFoodFacts').checked;
-    if (enabled && !await chrome.permissions.request({ origins: ['https://world.openfoodfacts.org/*'] })) return { ok: false, reason: 'Barcode lookup permission was not granted.' };
-    await chrome.storage.local.set({ useOpenFoodFacts: enabled }); return { ok: true };
-  }));
   $('orderBadgePlacement').addEventListener('change', () => action(async () => { await chrome.storage.local.set({ orderBadgePlacement: $('orderBadgePlacement').value === 'title' ? 'title' : 'image' }); return { ok: true }; }));
-  $('hoverBreakdown').addEventListener('change', () => action(async () => { await chrome.storage.local.set({ hoverBreakdown: $('hoverBreakdown').checked }); return { ok: true }; }));
-  $('ratePace').addEventListener('change', () => action(async () => { await chrome.storage.local.set({ ratePace: $('ratePace').value }); return { ok: true }; }));
   for (const [id, type] of [['scanStart', 'purchaseScanStart'], ['scanPause', 'purchaseScanPause'], ['scanResume', 'purchaseScanResume'], ['scanCancel', 'purchaseScanCancel']]) $(id).addEventListener('click', () => action(() => chrome.runtime.sendMessage({ type, background: $('scanBackground').checked })));
   $('scanOpen').addEventListener('click', () => { if (conf.historyScan?.tabId !== undefined) chrome.tabs.update(conf.historyScan.tabId, { active: true }).catch(() => say('The scan tab was closed. Resume to open another.')); });
   $('signIn').addEventListener('click', () => action(async () => { await auth(); return { ok: true }; }));
@@ -58,5 +50,7 @@
   $('export').addEventListener('click', () => { const url = URL.createObjectURL(new Blob([JSON.stringify({ format: 'ingredient-check-purchases', records: H.merge([], conf.purchaseHistory) }, null, 2)], { type: 'application/json' })); const a = document.createElement('a'); a.href = url; a.download = 'ingredient-check-purchases.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); });
   let paintTimer;
   chrome.storage.onChanged.addListener((changes, area) => { if (area === 'local' && dashboardKeys.some(key => changes[key])) dashboardDirty = true; if (area === 'local' && ['purchaseHistory', 'historyScan', 'historyEnabled', 'historyAutoSync', 'historyOwner', 'historySyncStatus', 'historyDeletePending', 'googleProfile', 'theme', 'palette', 'accent', 'ocrLabels', 'useOpenFoodFacts', 'ratePace', 'orderBadgePlacement', 'hoverBreakdown', 'weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly'].some(key => changes[key])) { clearTimeout(paintTimer); paintTimer = setTimeout(() => { void paint(); }, 150); } });
+  const reveal = () => { if (['#historySettings', '#controls'].includes(location.hash)) $('purchasePreferences').open = true; };
+  addEventListener('hashchange', reveal); reveal();
   void paint();
 })();

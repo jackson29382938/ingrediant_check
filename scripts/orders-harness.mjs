@@ -110,10 +110,16 @@ export async function ordersEndToEnd(context, worker, errors) {
   await dashboard.waitForFunction(() => document.querySelector('#metricItems')?.textContent === '6' && document.querySelector('#metricCoverage')?.textContent === '100%');
   await dashboard.locator('#months').evaluate(node => { node.closest('details').open = true; });
   if (!await dashboard.locator('#months').innerText().then(t => t.includes('2026-08'))) throw new Error('monthly purchase trends missing');
-  if (!await dashboard.locator('#ocrLabels').isChecked() || !await dashboard.locator('#useOpenFoodFacts').isChecked()) throw new Error('label controls not visible or reflect wrong settings');
-  await dashboard.locator('#ratePace').selectOption('fast');
-  await dashboard.waitForFunction(() => !document.querySelector('#ratePace').disabled);
-  if (await worker.evaluate(async () => (await chrome.storage.local.get('ratePace')).ratePace) !== 'fast') throw new Error('fetch pace setting not saved');
+  await dashboard.locator('#purchasePreferences').evaluate(node => { node.open = true; });
+  if (!await dashboard.locator('#readingSummary').innerText().then(t => t.includes('on'))) throw new Error('shared label summary missing');
+  const settings = await context.newPage(); await settings.goto(dashboard.url().replace('history.html', 'options.html#sec-labels'));
+  await settings.waitForFunction(() => document.querySelector('#ocrLabels').checked);
+  const permission = await settings.evaluate(() => chrome.permissions.contains({ origins: ['https://world.openfoodfacts.org/*'] }));
+  if (await settings.locator('#useOpenFoodFacts').isChecked() !== permission) throw new Error('label permission control disagrees with Chrome');
+  await settings.goto(settings.url().replace('#sec-labels', '#sec-speed'));
+  await settings.locator('input[name="ratePace"][value="fast"]').check();
+  await settings.waitForFunction(async () => (await chrome.storage.local.get('ratePace')).ratePace === 'fast'); await settings.close();
+  await dashboard.locator('#purchasePreferences').evaluate(node => { node.open = true; });
   await dashboard.locator('#historyAutoSync').check(); await dashboard.locator('#historyAutoSync').uncheck();
   // Real extension UI and worker; OAuth and remote network use controlled fixtures only.
   await worker.evaluate(() => {

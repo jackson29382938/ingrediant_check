@@ -25,7 +25,11 @@
     const add = (tag, text) => { const node = document.createElement(tag); node.textContent = text; box.append(node); return node; };
     add('h3', `${record.score}/100 · ${line.name}`);
     add('p', `Purchase snapshot rated ${new Date(record.scoredAt).toLocaleDateString()}. Version ${record.version}.`);
-    if (result) {
+    if (record.breakdown) {
+      add('p', `Original base: ${record.breakdown.base} points`);
+      const list = document.createElement('ul'); box.append(list);
+      for (const row of record.breakdown.rows) { const li = document.createElement('li'); li.textContent = `${row.c > 0 ? '+' : ''}${row.c} · ${row.why}`; list.append(li); }
+    } else if (result) {
       const panel = document.createElement('div'); box.append(panel);
       A.panel.mount(panel, A.panel.renderBreakdown(result, { asin: line.asin, score: record.score, detail: A.db.prefs.sanitizeDisplay(conf).breakdownDetail }));
       for (const link of A.panel.shadowOf(panel).querySelectorAll('a')) { link.target = '_blank'; link.rel = 'noopener noreferrer'; }

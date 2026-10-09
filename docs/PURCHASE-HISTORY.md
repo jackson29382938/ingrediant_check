@@ -121,3 +121,16 @@ isolation, older-backend refusal, offline writes, retry-after-lost-acknowledgeme
 stale-device prevention. The unpacked Chrome harness exercises setup, first/older order pages,
 returns, the dashboard, automatic/manual sync, offline retention and deletion. OAuth and remote
 history requests use controlled fixtures; these are not live account-sync or signed-in order checks.
+
+## Score contributors and navigation
+
+History's Biggest bonuses & deductions ranks net point contributions across filtered purchased
+product entries. Positive and negative occurrences offset; score limits count only their additional
+deduction, while processing bases and floor adjustments are separate. Quantities are not inferred.
+Current-goal analysis uses saved inputs locally; older ingredient-only inputs are approximate.
+Original recorded breakdowns are saved with new usable ratings and remain unchanged. Legacy scores
+without a saved breakdown remain unavailable in the original-breakdown view. Redeploy the updated
+Apps Script code to preserve this optional field across devices.
+
+Purchase import, private account sync and order badge placement live in History. Goals, weights,
+warnings, label reading, speed and appearance live in Settings, with contextual links from History.

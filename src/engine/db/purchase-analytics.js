@@ -10,6 +10,26 @@
     return { record, score: mode === 'current' ? current : record.score, recorded: record.score, current,
       delta: current !== null && record.score !== null ? current - record.score : null, partial };
   }
+  function drivers(rows, basis, scorer, breakdownOf) {
+    const groups = new Map(); let eligible = 0, covered = 0, base = 0, adjustment = 0;
+    for (const { record } of rows.filter(r => r.record.state === 'purchased')) {
+      eligible++;
+      const input = record.input || (record.ingredients ? { name: record.name, ingredients_text: record.ingredients } : null);
+      let breakdown = record.breakdown;
+      if (basis === 'current') { const result = input && scorer(input); breakdown = result?.parsed && result.coverage >= 0.34 ? breakdownOf(result) : null; }
+      if (!breakdown) continue;
+      covered++; base += breakdown.base;
+      for (const row of breakdown.rows) {
+        if (row.kind === 'adjustment') { adjustment += row.c; continue; }
+        const why = row.kind === 'limit' ? 'Score limit: ' + row.why.split(' — ')[0] : row.why;
+        const group = groups.get(why) || { why, positive: 0, negative: 0, net: 0, items: new Set(), orders: new Set() };
+        group.net += row.c; if (row.c > 0) group.positive += row.c; else group.negative += row.c;
+        group.items.add(record.key); if (record.orderKey) group.orders.add(record.orderKey); groups.set(why, group);
+      }
+    }
+    const factors = [...groups.values()].map(g => ({ ...g, items: g.items.size, orders: g.orders.size, average: covered ? g.net / covered : 0 }));
+    return { eligible, covered, base, adjustment, factors, positives: factors.filter(g => g.net > 0).sort((a, b) => b.net - a.net), negatives: factors.filter(g => g.net < 0).sort((a, b) => a.net - b.net) };
+  }
   function quantile(sorted, p) {
     if (!sorted.length) return null;
     const index = (sorted.length - 1) * p, low = Math.floor(index);
@@ -65,6 +85,6 @@
     }
     return [...groups.values()].sort((a, b) => a.month.localeCompare(b.month) || a.setup.localeCompare(b.setup)).map(g => ({ ...g, ...stats(g.rows, options.weighting) }));
   }
-  const api = { project, stats, filter, periods, quantile }; root.AIR = root.AIR || {}; root.AIR.db = root.AIR.db || {}; root.AIR.db.purchaseAnalytics = api;
+  const api = { project, stats, filter, periods, quantile, drivers }; root.AIR = root.AIR || {}; root.AIR.db = root.AIR.db || {}; root.AIR.db.purchaseAnalytics = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

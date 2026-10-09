@@ -1,7 +1,7 @@
 // Dependency-free charts and local, reversible comparison views.
 (function() {
   const A = AIR.db.purchaseAnalytics, H = AIR.db.purchaseHistory, $ = id => document.getElementById(id);
-  let conf = {}, limit = 500, generation = 0, memoKey = '', memo = new Map(), projected = [], calculating = false;
+  let conf = {}, limit = 500, generation = 0, memoKey = '', memo = new Map(), projected = [], calculating = false, scoreInput = () => null;
   const fmt = n => n === null || n === undefined ? '—' : Number(n).toLocaleString(undefined, { maximumFractionDigits: 1 });
   const el = (tag, text) => { const n = document.createElement(tag); if (text !== undefined) n.textContent = text; return n; };
   function svgNode(tag, attrs = {}, text) { const n = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); if (text !== undefined) n.textContent = text; return n; }
@@ -54,6 +54,11 @@
       const card = el('div'); card.className = 'metric'; card.append(el('span', name)); const valueNode = el('strong', value); valueNode.id = id; card.append(valueNode, el('small', hint)); $('metrics').append(card);
     }
     timeline(periods); histogram(rows);
+    const drivers = A.drivers(rows, $('driverBasis').value, scoreInput, result => result.breakdown);
+    $('driversNote').textContent = `${$('driverBasis').value === 'current' ? 'Current-goal analysis; original ratings stay unchanged.' : 'Original recorded point breakdowns only; older scores are not reconstructed.'} ${drivers.covered}/${drivers.eligible} matching purchased entries have usable breakdowns. Processing base total: ${fmt(drivers.base)} points. Scale-floor adjustments: ${fmt(drivers.adjustment)} points.${$('driverBasis').value === 'current' ? ' Older entries without full inputs use ingredient-only approximations.' : ''}`;
+    for (const [id, factors] of [['bonusDrivers', drivers.positives], ['minusDrivers', drivers.negatives]]) { $(id).replaceChildren(); for (const factor of factors.slice(0, 8)) $(id).append(el('li', `${factor.net > 0 ? '+' : ''}${fmt(factor.net)} points · ${factor.why} · ${factor.items} entries / ${factor.orders} identified orders`)); if (!factors.length) $(id).append(el('li', 'No contributors available for this view.')); }
+    $('driverRows').replaceChildren(); for (const factor of drivers.factors.sort((a,b) => Math.abs(b.net) - Math.abs(a.net)).slice(0, 500)) { const tr = el('tr'); for (const value of [factor.why, fmt(factor.positive), fmt(factor.negative), fmt(factor.net), factor.items, factor.orders]) tr.append(el('td', value)); $('driverRows').append(tr); }
+
     $('statistics').replaceChildren();
     for (const [name, value] of [['Sample size', s.n], ['Median', s.median], ['Sample SD', s.sd], ['25th percentile', s.q1], ['75th percentile', s.q3], ['Minimum', s.min], ['Maximum', s.max], ['95% interval', s.ci ? `${fmt(s.ci[0])}–${fmt(s.ci[1])}` : 'Unavailable'], ['Rated order clusters', s.orderRated]]) { const div = el('div'); div.append(el('dt', name), el('dd', typeof value === 'string' ? value : fmt(value))); $('statistics').append(div); }
     $('statsNote').textContent = `Sample size counts ${opts.weighting === 'order' ? 'rated identified order means; ungrouped entries are excluded' : 'rated product entries'}. Missing scores are never zero. ${opts.mode === 'recorded' ? 'The overall average mixes recorded setups; the timeline separates them.' : 'Warnings below remain those recorded at import.'} ${!s.ci ? 'Not enough complete order grouping for a confidence interval.' : ''}`;
@@ -76,19 +81,22 @@
     $('products').replaceChildren(); for (const c of [...counts.values()].sort((a, b) => b.entries - a.entries).slice(0, 10)) $('products').append(el('li', `${c.name} — ${c.entries} product entries · ${c.orders.size} identified orders${c.unknown ? ` · ${c.unknown} ungrouped` : ''}`));
   }
   async function update(raw) {
-    conf = raw; calculating = $('scoreView').value === 'current'; $('trends').closest('section').setAttribute('aria-busy', String(calculating)); const turn = ++generation, opts = options(), scoring = AIR.db.prefs.sanitizeScoring(conf), key = JSON.stringify(scoring);
+    conf = raw; calculating = $('scoreView').value === 'current' || $('driverBasis').value === 'current'; $('trends').closest('section').setAttribute('aria-busy', String(calculating)); const turn = ++generation, opts = options(), scoring = AIR.db.prefs.sanitizeScoring(conf), key = JSON.stringify(scoring);
     if (key !== memoKey) { memo.clear(); memoKey = key; }
-    const score = input => { const key = JSON.stringify(input); if (!memo.has(key)) { const { score, parsed, coverage } = AIR.engine.score(input, scoring); memo.set(key, { score, parsed, coverage }); } return memo.get(key); };
+    const score = input => { const key = JSON.stringify(input); if (!memo.has(key)) { const result = AIR.engine.score(input, scoring), { score, parsed, coverage } = result; memo.set(key, { score, parsed, coverage, breakdown: H.fromResult(result) }); } return memo.get(key); };
+    scoreInput = score;
     const records = H.merge([], conf.purchaseHistory), result = [];
+    if ($('driverBasis').value === 'current') $('driversNote').textContent = 'Analysing saved labels locally…';
     if (opts.mode === 'current') $('viewNote').textContent = 'Calculating current-goal comparisons on your computer…';
     for (let offset = 0; offset < records.length; offset += 100) {
-      for (const record of records.slice(offset, offset + 100)) result.push(A.project(record, opts.mode, score));
-      if (opts.mode === 'current') { await new Promise(resolve => setTimeout(resolve, 0)); if (turn !== generation) return; }
+      for (const record of records.slice(offset, offset + 100)) { result.push(A.project(record, opts.mode, score)); const input = record.input || (record.ingredients ? { name: record.name, ingredients_text: record.ingredients } : null); if ($('driverBasis').value === 'current' && input) score(input); }
+      if (calculating) { await new Promise(resolve => setTimeout(resolve, 0)); if (turn !== generation) return; }
     }
     if (turn !== generation) return; calculating = false; $('trends').closest('section').setAttribute('aria-busy', 'false'); projected = result; render();
   }
   let timer;
   for (const id of ['itemSearch', 'dateFrom', 'dateTo', 'itemStatus', 'ratingFilter', 'scoreMin', 'scoreMax', 'itemSort', 'averageWeight', 'period', 'errorBars']) $(id).addEventListener('input', () => { limit = 500; clearTimeout(timer); timer = setTimeout(render, 100); });
+  $('driverBasis').addEventListener('change', () => { void update(conf); });
   $('scoreView').addEventListener('change', () => { limit = 500; void update(conf); });
   $('resetFilters').addEventListener('click', () => { for (const id of ['itemSearch', 'dateFrom', 'dateTo', 'scoreMin', 'scoreMax']) $(id).value = ''; $('itemStatus').value = 'all'; $('ratingFilter').value = 'all'; $('itemSort').value = 'newest'; limit = 500; render(); });
   $('moreItems').addEventListener('click', () => { limit += 500; render(); });

@@ -194,6 +194,7 @@
         </div>
         <button type="button" class="btn" id="googleSignOut" data-i18n="optGoogleSignOut">Sign out</button>
       </div>
+      <a class="btn" href="history.html">Purchase history</a>
       <a class="btn" href="welcome.html" data-i18n="popupSetupAgain">Run setup again</a>
     </div>
   </header>
@@ -206,6 +207,7 @@
     <a href="#sec-warnings" data-i18n="optNavWarnings">Warnings</a>
     <a href="#sec-avoid" data-level="1" data-i18n="optNavAvoid">Avoid</a>
     <a href="#sec-rate" data-level="1" data-i18n="optNavRate">Rate</a>
+    <a href="#sec-labels" data-level="2">Labels</a>
     <a href="#sec-sort" data-level="2" data-i18n="optNavSort">Sort</a>
     <a href="#sec-speed" data-level="3" data-i18n="optNavSpeed">Speed</a>
     <a href="#sec-appearance" data-level="1" data-i18n="optNavAppearance">Appearance</a>
@@ -293,8 +295,17 @@
     <div class="chips" id="avoidHints"></div>
   </section>
 
+  <section id="sec-labels" data-level="2">
+    <h2>Label reading</h2>
+    <p class="sec-lede">Shared by product pages, search results, carts and purchased items.</p>
+    <div class="opt"><label class="sw"><input type="checkbox" id="ocrLabels" role="switch"><span class="sw-title">Read label photos on this computer</span></label><p class="sw-hint">Uses local OCR when a readable ingredient photo is available. Photos are not uploaded. Missing or unreadable labels remain unknown.</p></div>
+    <div class="opt"><label class="sw"><input type="checkbox" id="useOpenFoodFacts" role="switch"><span class="sw-title">Look up barcodes in Open Food Facts</span></label><p class="sw-hint">Requires Chrome permission. Sends only the product barcode to Open Food Facts; your purchase history is not sent.</p></div>
+    <p class="note"><a href="history.html#historySettings">Purchase import and order display settings</a> · <a href="history.html#driversHeading">Purchase score drivers</a></p>
+  </section>
+
   <section id="sec-rate" data-level="1">
     <h2 data-i18n="optRateH">What to rate</h2>
+    <p class="note"><a href="history.html#historySettings">Order badge placement and purchase import</a></p>
     <p class="sec-lede" data-i18n="optNoteRateSame">The same switches as in the toolbar popup.</p>
     <div class="opt">
       <label class="sw"><input type="checkbox" id="foodOnly" role="switch" checked aria-describedby="h-foodOnly"><span class="sw-title" data-i18n="optFoodOnly">Only rate food and supplements</span></label>

@@ -664,6 +664,25 @@ function bindToggle(id, onPaint) {
   return box;
 }
 
+function wireLabelReading() {
+  bindToggle('ocrLabels');
+  const box = document.getElementById('useOpenFoodFacts'), permission = { origins: ['https://world.openfoodfacts.org/*'] };
+  const read = () => chrome.storage.local.get('useOpenFoodFacts', raw => {
+    chrome.permissions.contains(permission, granted => { box.checked = PREFS.sanitizeToggles(raw).useOpenFoodFacts && granted; });
+  });
+  read(); chrome.storage.onChanged.addListener(changes => { if (changes.useOpenFoodFacts) read(); });
+  box.addEventListener('change', () => {
+    const enabled = box.checked; box.disabled = true;
+    const save = value => persist({ useOpenFoodFacts: value }, ok => { box.checked = value; box.disabled = false; if (ok) flash(value ? 'Saved' : enabled ? 'Chrome did not grant Open Food Facts access.' : 'Saved'); });
+    if (!enabled) { chrome.permissions.remove(permission, () => { void chrome.runtime.lastError; save(false); }); return; }
+    chrome.permissions.request(permission, granted => {
+      const error = chrome.runtime.lastError;
+      if (error || !granted) { save(false); return; }
+      chrome.permissions.contains(permission, confirmed => save(!!confirmed));
+    });
+  });
+}
+
 // "Amazon access" names the stores from the manifest, so the list cannot drift from what Chrome
 // actually granted. "*://*.amazon.co.uk/*" -> "amazon.co.uk".
 function amazonStores(manifest) {
@@ -997,6 +1016,7 @@ function startSettingsPage() {
     wireFileActions();
     wireDatabase();
     wireSearchScoring();
+    wireLabelReading();
     wireSort();
     wireSpeed();
     wireBreakdown();

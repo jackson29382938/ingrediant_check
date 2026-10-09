@@ -3,10 +3,16 @@ export async function historyDashboardEndToEnd(history, worker) {
   const keys = ['purchaseHistory', 'weights', 'goals', 'goalImportance', 'theme'];
   const before = await worker.evaluate(async keys => chrome.storage.local.get(keys), keys);
   const records = Array.from({ length: 6 }, (_, i) => ({ key: (i + 10).toString(16).padStart(64, '0'), orderKey: ['a', 'a', 'b', 'c', 'c', 'd'][i].repeat(64), store: 'amazon.com', asin: 'B0DASH000' + i, date: ['2026-09-01', '2026-09-01', '2026-08-01', '2026-05-01', '2026-05-01', '2026-10-01'][i], state: i === 5 ? 'returned' : 'purchased', name: ['Rolled oats', 'Wholegrain cereal', 'Snack bar', 'Plain yogurt', 'Missing label', 'Returned snack'][i], score: [10, 80, 40, 90, null, 0][i], ingredients: i === 4 ? '' : 'sugar, wheat flour, palm oil, salt', input: i === 4 ? undefined : { name: 'Snack', ingredients_text: 'sugar, wheat flour, palm oil, salt' }, flags: i === 2 ? ['Palm oil'] : [], profile: 'f'.repeat(64), version: '1.13.0', observedAt: 10000, scoredAt: i === 4 ? 0 : 10000 }));
+  records[0].breakdown = { base: 20, rows: [{ why: 'Saved original deduction', c: -10, kind: 'factor' }] };
   try {
     await worker.evaluate(records => chrome.storage.local.set({ purchaseHistory: records, weights: {}, goals: [], goalImportance: {} }), records);
     const initialStored = await worker.evaluate(async () => (await chrome.storage.local.get('purchaseHistory')).purchaseHistory);
     await history.waitForFunction(() => document.querySelector('#metricItems').textContent === '5');
+    await history.waitForFunction(() => document.querySelector('#driversNote').textContent.includes('4/5'));
+    if (await history.locator('#minusDrivers li').count() < 1) throw new Error('current-goal deductions missing');
+    await history.selectOption('#driverBasis', 'recorded'); await history.waitForFunction(() => document.querySelector('#driversNote').textContent.includes('1/5'));
+    if (!(await history.locator('#minusDrivers').textContent()).includes('-10 points · Saved original deduction')) throw new Error('saved original deduction missing or legacy breakdown invented');
+    await history.selectOption('#driverBasis', 'current'); await history.waitForFunction(() => document.querySelector('#driversNote').textContent.includes('4/5'));
     if (await history.locator('#orderTotals tr').count() !== 4) throw new Error('Order summary totals missing');
     if (await history.locator('#metricOrders').textContent() !== '3') throw new Error('Product entries were incorrectly counted as orders');
     if (await history.locator('#metricAverage').textContent() !== '55') throw new Error('Recorded score average changed');

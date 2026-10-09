@@ -47,6 +47,7 @@ export async function historyScanEndToEnd(context, worker, errors, extensionId) 
     await scanPage.waitForTimeout(50);
     await scanPage.locator('.air-order-badge').focus(); await scanPage.waitForSelector('#air-order-details');
     await scanPage.keyboard.press('Escape');
+    await history.locator('#purchasePreferences').evaluate(node => { node.open = true; });
     await history.selectOption('#orderBadgePlacement', 'title');
     await scanPage.waitForFunction(() => !document.querySelector('.air-order-badge')?.dataset.imageOnly);
     await history.selectOption('#orderBadgePlacement', 'image');

@@ -538,6 +538,7 @@ async function run() {
         const data = { settingsLevel: 'expert', ...JSON.parse(sessionStorage.getItem('settings-fixture') || '{}') };
         window.__stored = data;
         window.chrome = {
+          permissions: { contains: (p, cb) => cb(false), request: (p, cb) => cb(false), remove: (p, cb) => cb(true) },
           runtime: { lastError: null, getManifest: () => ({ version: '0', host_permissions: hosts }),
             sendMessage: (m, cb) => { if (typeof cb === 'function') cb(undefined); } },
           i18n: { getMessage: () => '' },

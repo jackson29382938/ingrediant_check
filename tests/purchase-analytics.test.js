@@ -40,3 +40,36 @@ test('periods keep original scoring setups separate but combine current comparis
   assert.equal(A.periods(rows(records)).length, 3);
   assert.equal(A.periods(records.map(r => A.project(r, 'current', () => ({ parsed: 1, coverage: 1, score: 80 }))), { mode: 'current' }).length, 2);
 });
+test('score drivers net opposing contributions, count entries/orders once and exclude returns', () => {
+  const breakdown = { base: 50, rows: [{ why: 'Protein', c: 10, kind: 'factor' }, { why: 'Protein', c: -5, kind: 'factor' }, { why: 'Sugar', c: -10, kind: 'factor' }, { why: 'Seed oil — cap of 25', c: -20, kind: 'limit' }] };
+  const records = [r(1, 'a', { score: 25, breakdown }), r(2, 'a', { score: 25, breakdown }), r(3, 'b', { score: 25, breakdown, state: 'returned' }), r(4, 'b')];
+  const result = A.drivers(rows(records), 'recorded');
+  assert.equal(result.eligible, 3); assert.equal(result.covered, 2); assert.equal(result.base, 100);
+  assert.equal(result.positives[0].net, 10); assert.equal(result.positives[0].positive, 20); assert.equal(result.positives[0].negative, -10);
+  assert.equal(result.positives[0].items, 2); assert.equal(result.positives[0].orders, 1);
+  assert.equal(result.negatives[0].net, -40); assert.equal(result.negatives[0].why, 'Score limit: Seed oil');
+});
+test('breakdown snapshots require exact arithmetic and retain their original recording', () => {
+  const breakdown = { base: 50, rows: [{ why: 'Oats', c: 10, kind: 'factor' }] };
+  assert.equal(H.cleanBreakdown(breakdown, 50), null);
+  const first = r(1, 'a', { score: 60, breakdown });
+  assert.deepEqual(first.breakdown, breakdown);
+  const later = r(1, 'a', { score: 70, breakdown: { base: 60, rows: breakdown.rows }, observedAt: 2000, scoredAt: 2000 });
+  assert.deepEqual(H.merge([first], [later])[0].breakdown, breakdown);
+  assert.equal(H.fromResult({ score: 60, base: 50, good: [{ c: 10, why: 'Oats' }], bad: [{ c: 'CAP', why: 'No extra deduction' }] }).rows.length, 1);
+});
+test('current score drivers gate missing/low coverage labels without changing recorded data', () => {
+  const records = [r(1), r(2, 'b', { ingredients: '' })], original = JSON.stringify(records);
+  const result = A.drivers(rows(records), 'current', () => ({ parsed: 1, coverage: 1 }), () => ({ base: 50, rows: [{ c: -5, why: 'Sugar', kind: 'factor' }] }));
+  assert.equal(result.covered, 1); assert.equal(result.negatives[0].net, -5); assert.equal(JSON.stringify(records), original);
+  assert.equal(A.drivers(rows(records), 'current', () => ({ parsed: 1, coverage: 0.1 }), () => { throw Error('invalid coverage'); }).covered, 0);
+});
+test('real engine snapshots reconcile every corpus score including limits and floors', () => {
+  const engine = require('../src/engine/score.js'), cats = require('../src/engine/categories.js'), corpus = require('./corpus.json');
+  for (const entry of [...corpus.products, ...corpus.defects]) for (const weights of [{}, ...Object.values(cats.PRESETS).map(p => p.weights)]) {
+    const scored = engine.score(entry.product, { weights });
+    const breakdown = H.fromResult(scored);
+    assert.ok(breakdown, entry.id + ': exact point snapshot');
+    assert.equal(breakdown.base + breakdown.rows.reduce((sum, row) => sum + row.c, 0), scored.score);
+  }
+});
