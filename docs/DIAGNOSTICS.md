@@ -4,7 +4,8 @@ The engine has 215 rules and a lot of hand-tuned constants. The test suite prove
 way it is specified to; it cannot tell you whether a score matches what a careful person would say
 about the product. That needs volume, and it needs the evidence next to the answer.
 
-Turning on **Accuracy diagnostics** sends one row per scored product to the shared database — the
+Turning on **Accuracy diagnostics** sends one row per scored product — and one per scan that could not be
+scored, and one per "Looks wrong?" click — to the shared database — the
 same Apps Script and private spreadsheet as the product cache ([SETTINGS-SYNC.md](SETTINGS-SYNC.md)).
 
 ## Setup
@@ -30,9 +31,27 @@ of your own instead, deploy the same script from it and build with that `ENDPOIN
 | `flags`, `provenance` | Allergen/diet flags and certification handling |
 | `weights` | Only the weights differing from default, so a row is reproducible |
 | `ingredients` | The text that was actually scored |
+| `outcome` | `scored`, or why there is no score: `unreadable` (no ingredient list found), `low-coverage` (list found, rulebase could not read it), `not-food` (food gate declined), `locale-declined` (Japanese/Arabic label, no local reader). `wrong-score` marks a "Looks wrong?" click |
+| `feedback` | `looks-wrong` on a click; blank otherwise |
 
 `ingredients` is what makes this diagnostic rather than decorative: without it a wrong score can be
 noticed but not explained.
+
+## Misses and feedback
+
+A scan that produces no score is the cheapest signal there is, so it gets a row too: the product
+(`asin`, `brand`, `product_name`, `source`) with `score` blank and the reason in `outcome`. Filter
+`outcome` to anything but `scored` to see where the extension goes quiet, then group by `brand` or
+`store`. A `low-coverage` row also carries `coverage`, `parsed` and `ingredients`, so the missing
+vocabulary is on the row.
+
+The **Looks wrong?** link on a product's score panel files the full row with `outcome` =
+`wrong-score`, `feedback` = `looks-wrong`. It is one click, so it says a score is disputed, not in
+which direction: read `ingredients`, `penalties` and `bonuses` beside it. Like every row it is sent
+only while diagnostics is on (the older report to the `reports` tab is unchanged).
+
+Sheets made before these columns existed are upgraded on the next write: `rowId` moves to column 27
+and the two new headers appear. Publish a new version of the Apps Script deployment first.
 
 ## Questions worth asking of the data
 

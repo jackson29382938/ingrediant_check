@@ -53,6 +53,29 @@ check('only non-default weights are recorded, so a row is reproducible', () => {
   assert.strictEqual(build({ weights: categories.DEFAULT_WEIGHTS }).weights, '');
 });
 
+console.log('\nscans that produced no score, and reader feedback');
+check('a normal row is outcome "scored" with no feedback', () => {
+  const r = build();
+  assert.strictEqual(r.outcome, 'scored');
+  assert.strictEqual(r.feedback, '');
+});
+check('a declined scan keeps the product and leaves the score cells empty', () => {
+  const r = diagnostics.buildRecord(DATA, null, { version: '1', store: 'amazon.com', outcome: 'unreadable' });
+  assert.strictEqual(r.outcome, 'unreadable');
+  assert.strictEqual(r.asin, DATA.asin);
+  assert.strictEqual(r.score, '');
+  assert.strictEqual(r.coverage, '');
+});
+check('a "Looks wrong?" click records the evidence and the feedback', () => {
+  const r = build({ outcome: 'wrong-score', feedback: 'looks-wrong' });
+  assert.strictEqual(r.outcome, 'wrong-score');
+  assert.strictEqual(r.feedback, 'looks-wrong');
+  assert.ok(r.score && /cane sugar/i.test(r.ingredients));
+});
+check('an unknown outcome falls back to "scored" rather than polluting the column', () => {
+  assert.strictEqual(build({ outcome: 'made-up' }).outcome, 'scored');
+});
+
 console.log('\nnothing about the person is on the row');
 check('no identifiers beyond the product', () => {
   const keys = Object.keys(build());

@@ -77,7 +77,9 @@
   const unreadable = result =>
     typeof result.coverage === 'number' && result.parsed > 0 && result.coverage < MIN_COVERAGE;
 
-  function sendDiagnostic(data, result, source, text) {
+  // `extra` is { outcome, feedback } for rows that are not a plain score: a scan that produced none,
+  // or a reader's "Looks wrong?" click. `result` may be null then.
+  function sendDiagnostic(data, result, source, text, extra) {
     if (!state.sendDiagnostics || !root.AIR.db || !root.AIR.db.diagnostics) return;
     try {
       const record = root.AIR.db.diagnostics.buildRecord(data, result, {
@@ -85,6 +87,8 @@
         store: location.hostname,
         source,
         text: text || data.text,
+        outcome: extra && extra.outcome,
+        feedback: extra && extra.feedback,
         weights: state.prefs.weights,
         defaultWeights: root.AIR.db.categories && root.AIR.db.categories.DEFAULT_WEIGHTS,
       });

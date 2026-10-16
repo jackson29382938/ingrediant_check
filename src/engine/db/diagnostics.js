@@ -24,7 +24,12 @@ const COLUMNS = [
   'source', 'via', 'confidence', 'gate', 'coverage', 'parsed',
   'score', 'verdict', 'nova', 'base', 'cap',
   'penalties', 'bonuses', 'flags', 'provenance', 'weights', 'ingredients',
+  'outcome', 'feedback',
 ];
+
+// Why a row exists. 'scored' is the normal case; the rest are scans that produced no score
+// (the misses that most need fixing) and a reader's own "Looks wrong?" click.
+const OUTCOMES = ['scored', 'unreadable', 'low-coverage', 'not-food', 'locale-declined', 'wrong-score'];
 
 const trim = (v, n) => (v == null ? '' : String(v).replace(/\s+/g, ' ').trim().slice(0, n));
 const num = v => (typeof v === 'number' && isFinite(v) ? v : '');
@@ -59,7 +64,8 @@ function weightSummary(weights, defaults) {
     .slice(0, 300);
 }
 
-// `data` is the extractor output, `result` the engine output, `meta` the surrounding context.
+// `data` is the extractor output, `result` the engine output (empty when nothing was scored),
+// `meta` the surrounding context.
 function buildRecord(data, result, meta = {}) {
   data = data || {};
   result = result || {};
@@ -92,10 +98,12 @@ function buildRecord(data, result, meta = {}) {
     // The evidence the score was drawn from. Without it a wrong score cannot be diagnosed, only
     // noticed — which is the difference between this being useful and being a vanity metric.
     ingredients: trim(meta.text || data.text, 1200),
+    outcome: OUTCOMES.includes(meta.outcome) ? meta.outcome : 'scored',
+    feedback: trim(meta.feedback, 120),
   };
 }
 
-const _exports = AIRmodule('diagnostics', { COLUMNS, buildRecord, rows, provenanceSummary, weightSummary });
+const _exports = AIRmodule('diagnostics', { COLUMNS, OUTCOMES, buildRecord, rows, provenanceSummary, weightSummary });
 if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 
 })();

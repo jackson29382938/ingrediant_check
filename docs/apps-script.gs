@@ -9,7 +9,8 @@
  * POST kinds (body is JSON sent as text/plain):
  *   lookup      — { keys: ["amazon.com:B00…"] } -> fresh rows of the products tab (read only)
  *   products    — product-cache upserts and pull counts (tab: products; docs/CACHE.md)
- *   diagnostics — one row per scored product, for accuracy analysis (tab: diagnostics)
+ *   diagnostics — one row per scored product, plus scans that produced no score and "Looks wrong?"
+ *                 clicks (outcome column), for accuracy analysis (tab: diagnostics)
  *   report      — a "Looks wrong?" click (tab: reports)
  *   account     — { token, payload } a signed-in user's settings (tab: accounts, one row each)
  *   accountGet  — { token } -> that user's settings
@@ -31,7 +32,7 @@
 // Empty turns account storage off.
 var OAUTH_CLIENT_ID = '483888107675-hofgo4a3uh1g2khv4hja9ci8nhama6tk.apps.googleusercontent.com';
 
-var DIAGNOSTIC_COLUMNS = ["ts","version","store","asin","upc","brand","product_name","source","via","confidence","gate","coverage","parsed","score","verdict","nova","base","cap","penalties","bonuses","flags","provenance","weights","ingredients"];
+var DIAGNOSTIC_COLUMNS = ["ts","version","store","asin","upc","brand","product_name","source","via","confidence","gate","coverage","parsed","score","verdict","nova","base","cap","penalties","bonuses","flags","provenance","weights","ingredients","outcome","feedback"];
 
 var CONTRIBUTION_COLUMNS = [
   'ts', 'asin', 'upc', 'brand', 'product_name', 'kind',
@@ -388,8 +389,16 @@ function writeDiagnostics(rows, batchId) {
   }
   var columns = DIAGNOSTIC_COLUMNS.concat(['rowId']);
   var sheet = sheetFor('diagnostics', columns);
-  // Upgrade existing 24-column sheets without touching their original data.
-  sheet.getRange(1, columns.length).setValue('rowId');
+  // Upgrade older sheets without touching their data. Before outcome/feedback existed, rowId sat in
+  // column 25; move it to the end, then (re)write the header so every column is named.
+  var base = DIAGNOSTIC_COLUMNS.length - 2;
+  var used = sheet.getLastRow();
+  if (used && String(sheet.getRange(1, base + 1, 1, 1).getValues()[0][0]) === 'rowId') {
+    var ids = sheet.getRange(1, base + 1, used, 1).getValues();
+    sheet.getRange(1, columns.length, used, 1).setValues(ids);
+    sheet.getRange(1, base + 1, used, 2).setValues(ids.map(function () { return ['', '']; }));
+  }
+  sheet.getRange(1, 1, 1, columns.length).setValues([columns]);
   var count = Math.max(0, sheet.getLastRow() - 1);
   var stored = count ? sheet.getRange(2, columns.length, count, 1).getValues() : [];
   var seen = new Set(legacy.rows.concat(stored.map(function (r) { return String(r[0]); })));

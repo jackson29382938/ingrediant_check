@@ -562,10 +562,14 @@
     const { outcome, real, food, data } = reading;
     if (outcome === 'not-food' || outcome === 'unreadable') {
       if (real) rememberProduct(asin, { status: outcome, input: { name: data.title }, food });
+      sendDiagnostic({ ...data, asin: data.asin || asin }, null, source, data.text, { outcome });
       return;
     }
     rememberProduct(asin, { input: reading.input, via: data.via || source, confidence: data.confidence, food });
-    if (outcome !== 'scored') return;
+    if (outcome !== 'scored') {
+      sendDiagnostic({ ...data, asin: data.asin || asin }, reading.result, source, data.text, { outcome });   // low-coverage
+      return;
+    }
     cacheScore(asin, reading.result, data.title, data.via || source);
     sendDiagnostic(data, reading.result, source);
   }

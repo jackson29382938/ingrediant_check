@@ -193,3 +193,22 @@ test('deployment template uses the same public OAuth client as the extension', (
   const client = template.match(/var OAUTH_CLIENT_ID = '([^']*)';/)[1];
   assert.equal(client, require('../src/engine/db/prefs.js').OAUTH_CLIENT_ID);
 });
+
+test('a sheet from before outcome/feedback keeps its rowIds and gains the new columns', () => {
+  const r = receiver();
+  const base = ['ts', 'version', 'store', 'asin', 'upc', 'brand', 'product_name', 'source', 'via', 'confidence', 'gate',
+    'coverage', 'parsed', 'score', 'verdict', 'nova', 'base', 'cap', 'penalties', 'bonuses', 'flags', 'provenance',
+    'weights', 'ingredients'];
+  assert.equal(r.post(batch(0, 1)).inserted, 1);                  // creates the tab (new layout)
+  const sheet = r.tabs.get('diagnostics');
+  // Rebuild it as the old layout: rowId in column 25, nothing after it.
+  sheet.data.length = 0;
+  r.setLocked(true);
+  sheet.data.push([...base, 'rowId'], [...base.map(() => 'x'), 'r-old']);
+  r.setLocked(false);
+  assert.equal(r.post(batch(0, 1)).inserted, 1);                  // r-0 is new here
+  assert.equal(r.post({ kind: 'diagnostics', batchId: 'again', rows: [{ rowId: 'r-old', ingredients: 'x' }] }).inserted, 0);
+  assert.deepEqual(sheet.data[0].slice(-3), ['outcome', 'feedback', 'rowId']);
+  assert.equal(sheet.data[1].at(-1), 'r-old');
+  assert.equal(sheet.data[1][24], '');
+});

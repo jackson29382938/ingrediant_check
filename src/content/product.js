@@ -52,6 +52,8 @@
       anchor.parentNode.insertBefore(host, anchor);
     }
     state.lastKey = key;
+    // This runs on every re-read while Amazon hydrates; log the decline once per product.
+    if (host.dataset.airState !== 'not-food') P().sendDiagnostic(data, null, data.via, data.text, { outcome: 'not-food' });
     host.dataset.airState = 'not-food';
     publishActionBadge({ status: 'not-food' });
     const shadow = root.AIR.panel.mount(host, root.AIR.panel.renderNotFood(data));
@@ -62,6 +64,7 @@
   function presentResult(host, data, key, result, meta) {
     const { state, unreadable, cacheScore, publishActionBadge, sendDiagnostic, ingredientSig } = P();
     if (unreadable(result) && meta && meta.checkCoverage !== false) {
+      if (host.dataset.airState !== 'fail') P().sendDiagnostic(data, result, meta.via, meta.text || data.text, { outcome: 'low-coverage' });
       showFailure(host, { ...data, lowCoverage: true, ocrAttempted: !!meta.ocrAttempted }, key);
       return false;
     }
@@ -79,7 +82,7 @@
       confidence: meta.confidence,
       via: meta.via,
       provenanceSource: meta.provenanceSource,
-    }), meta.report === false ? null : reporter(data, result));
+    }), meta.report === false ? null : reporter(data, result, meta));
     if (state.panelOpen) root.AIR.panel.openCard(host);
     cacheScore(key, result, meta.cacheName || data.title, meta.via, meta.provenanceSource, meta.t);
     if (meta.input && meta.via !== 'manual-paste' && meta.via !== 'food-override') {
@@ -233,6 +236,7 @@
         if (requestId !== state.requestId || state.lastKey !== key || !host.isConnected) return;
         if (fallback && fallback.rejected === 'not-food') {
           host.dataset.airState = 'not-food';
+          P().sendDiagnostic(data, null, 'open-food-facts', data.text, { outcome: 'not-food' });
           P().publishActionBadge({ status: 'not-food' });
           const shadow = root.AIR.panel.mount(host, root.AIR.panel.renderNotFood({
             ...data,
@@ -413,9 +417,13 @@
     } catch (e) { /* ignore */ }
   }
 
-  function reporter(data, result) {
+  function reporter(data, result, meta) {
     return done => {
       try {
+        // The same click also files the whole row (ingredients, rules that fired) in diagnostics,
+        // so a wrong score can be explained rather than just counted. Dropped unless diagnostics is on.
+        P().sendDiagnostic(data, result, meta.via, meta.text || data.text,
+          { outcome: 'wrong-score', feedback: 'looks-wrong' });
         chrome.runtime.sendMessage({ type: 'report', payload: {
           asin: data.asin || '', upc: data.upc || '', brand: data.brand || '',
           product_name: data.title || '',
@@ -482,6 +490,11 @@
       }
     }
     host.dataset.airState = 'fail';
+    // A low-coverage decline was already logged, with its score evidence, by presentResult.
+    if (!data.lowCoverage) {
+      P().sendDiagnostic(data, null, data.via, data.text,
+        { outcome: data.localeDeclined ? 'locale-declined' : 'unreadable' });
+    }
     publishActionBadge({ status: 'fail' });
     root.AIR.panel.mount(host, root.AIR.panel.renderFailure(data), null, text => {
       state.manual = { key, data, text };
