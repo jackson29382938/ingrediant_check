@@ -7,6 +7,10 @@
 <style>
   :root { color-scheme: light dark; }
   * { box-sizing: border-box; }
+  input[type=checkbox], input[type=radio] { accent-color: var(--u-accent, #0f7b3f); }
+  input[type=file] { font: inherit; max-width: 100%; }
+  input[type=file]::file-selector-button { font: inherit; font-weight: 600; margin-right: 8px; padding: 5px 12px; border: 1px solid #b9c4bf;
+            border-radius: 8px; background: #fff; color: #0f1111; cursor: pointer; }
   body { margin: 0; padding: 24px 20px 70px; color: #0f1111; background: #f7f8f8;
          font: 14px/1.55 "Amazon Ember", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   .wrap { max-width: 860px; margin: 0 auto; }
@@ -24,7 +28,9 @@
   .part:first-of-type { border-top: 0; }
   .part > label { font-weight: 600; display: flex; gap: 8px; align-items: center; }
   .part .body { margin: 6px 0 0 26px; }
-  .part.off .body { opacity: .35; }
+  /* Dimmed, not hidden: an unticked part's preview stays readable so a reader can see what they are
+     leaving out. Only the preview dims; the note beneath it is text and keeps its contrast (4.5:1). */
+  .part.off .body pre { opacity: .6; }
   pre { white-space: pre-wrap; word-break: break-word; background: #f4f6f5; border-radius: 8px; padding: 10px; font-size: 12px; max-height: 260px; overflow: auto; margin: 0; }
   #shot { max-width: 100%; max-height: 320px; border: 1px solid #d5d9d9; border-radius: 6px; display: block; margin-bottom: 8px; }
   #shot[hidden], [hidden] { display: none !important; }
@@ -41,6 +47,7 @@
     body { background: #151616; color: #f3f3f3; }
     section { background: #1f2020; border-color: #3a3c3c; }
     input[type=text], textarea { background: #151616; border-color: #3a3c3c; }
+    input[type=file]::file-selector-button { background: #151616; border-color: #3a3c3c; color: #f3f3f3; }
     pre { background: #151616; color: #cfd3d3; }
     .part { border-color: #3a3c3c; }
     .lede, .note, h2 { color: #aeaeae; }

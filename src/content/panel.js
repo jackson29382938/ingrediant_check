@@ -148,6 +148,13 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
     .report, button.copy { color: #4db6c8; }
     .report:hover, button.copy:hover { color: #e8a07a; }
     .hint { color: #f5b5b5; }
+    /* "How this was produced": the rows inherited the page's black text and a light-theme grey for the
+       description, so a certification read as black on near-black. */
+    .cert { color: #f3f3f3; }
+    .cert .m { color: #aeaeae; }
+    .cert.v .tick { color: #7bd99b; }
+    .cert.c .tick { color: #f0b455; }
+    .cert.h .tick { color: #ff8585; }
   }
   `;
 

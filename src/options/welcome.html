@@ -29,6 +29,9 @@
   .chip[aria-pressed="true"], .chip:has(input:checked) { border-color: var(--accent); background: var(--accent-bg); font-weight: 600; }
   .chip input { margin: 0; accent-color: var(--accent); }
   .chip:focus-visible, .chip:focus-within, button:focus-visible, input:focus-visible { outline: 3px solid var(--link); outline-offset: 2px; }
+  /* The step heading takes focus on each step so a screen reader announces it; it is not a control, so it
+     shows no ring (a black box around a title read as an error state). */
+  [tabindex="-1"]:focus { outline: none; }
   .goal-note { color: var(--muted); font-size: 13px; min-height: 2.6em; margin: 12px 0 0; }
   .opt { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-top: 1px solid var(--line); cursor: pointer; }
   .opt:first-of-type { border-top: 0; }
