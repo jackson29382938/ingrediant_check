@@ -120,7 +120,7 @@
   function cacheScore(asin, result, name, source, provenanceSource, t = Date.now()) {
     if (!asin || !result) return;
     const entry = {
-      schema: CACHE.SCHEMA, v: ENGINE_VERSION, t,
+      schema: CACHE.SCHEMA, cacheRevision: CACHE.CACHE_REVISION, v: ENGINE_VERSION, t,
       store: storeHost(), asin, prefs: CACHE.fingerprint(cachePrefs(), source || 'page'),
       score: result.score, verdict: result.verdict, nova: result.nova,
       source: source || 'page',

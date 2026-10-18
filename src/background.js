@@ -606,6 +606,8 @@ async function postRecord(url, payload) {
 const DIAG_KEY = 'diagQueue';
 const DIAG_BATCH = 12;
 const DIAG_MAX = 300;
+const DIAG_SCHEMA = 2;
+let diagnosticCapability = null;
 
 // Storage read/modify/write and network flushes must share one queue. Otherwise simultaneous
 // tabs overwrite rows, or a completed POST clears rows appended while it was in flight.
@@ -662,16 +664,31 @@ async function sendDiagnostics() {
   // Upgrade old queued rows before sending, so their retry IDs survive a worker restart.
   await chrome.storage.local.set({ [DIAG_KEY]: queue });
   try {
+    const needsSchema = queue.some(row => row.outcome || row.feedback);
+    if (needsSchema) {
+      if (!diagnosticCapability || diagnosticCapability.url !== safe || diagnosticCapability.until < Date.now()) {
+        const status = await networkRequest(safe, { credentials: 'omit', cache: 'no-store' }, res => res.ok ? res.json() : null);
+        const schema = status?.service === 'ingredient-check' && Number.isSafeInteger(status.diagnosticsSchema) ? status.diagnosticsSchema : 0;
+        diagnosticCapability = { url: safe, until: schema >= DIAG_SCHEMA ? Date.now() + 60000 : 0, schema };
+      }
+      if (diagnosticCapability.schema < DIAG_SCHEMA) {
+        await chrome.storage.local.set({ diagLastError: 'backend-update-required' });
+        return { ok: false, reason: 'backend-update-required', queued: queue.length };
+      }
+    }
+    const current = await chrome.storage.local.get(['enabled', 'sendDiagnostics']);
+    if (current.enabled === false || !current.sendDiagnostics) return { ok: false, reason: 'not-enabled', queued: queue.length };
     const receipt = await networkRequest(safe, {
       method: 'POST', credentials: 'omit',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ kind: 'diagnostics', batchId: batchIdFor(queue), rows: queue }),
+      body: JSON.stringify({ kind: 'diagnostics', diagnosticsSchema: needsSchema ? DIAG_SCHEMA : 1, batchId: batchIdFor(queue), rows: queue }),
     }, res => res.ok ? res.json() : null);
     // Only clear on a confirmed write. A failed flush keeps the rows for the next attempt rather
     // than silently dropping the data the user turned this on to collect. The receiver may answer
     // wrote=N for a replay it already stored (duplicate:true); that still counts as confirmed.
-    const confirmed = !!(receipt && receipt.ok === true && Number(receipt.wrote) === queue.length);
-    if (confirmed) await chrome.storage.local.set({ [DIAG_KEY]: [] });
+    const confirmed = !!(receipt && receipt.ok === true && Number(receipt.wrote) === queue.length
+      && (!needsSchema || Number(receipt.diagnosticsSchema) >= DIAG_SCHEMA));
+    if (confirmed) await chrome.storage.local.set({ [DIAG_KEY]: [], diagLastError: '' });
     return { ok: confirmed, reason: confirmed ? undefined : 'write-not-confirmed', sent: confirmed ? queue.length : 0, queued: confirmed ? 0 : queue.length };
   } catch (e) {
     return { ok: false, reason: 'network', queued: queue.length };
@@ -967,7 +984,8 @@ function handleSharedDbMessage(msg, reply) {
     return true;
   }
   if (msg.type === 'diagnosticsStatus') {
-    chrome.storage.local.get([DIAG_KEY, 'sendDiagnostics'], o => reply({
+    chrome.storage.local.get([DIAG_KEY, 'sendDiagnostics', 'diagLastError'], o => reply({
+      reason: o.diagLastError || '',
       queued: (o[DIAG_KEY] || []).length,
       enabled: o.sendDiagnostics === true,
       configured: !!self.AIR.db.prefs.endpoint(),

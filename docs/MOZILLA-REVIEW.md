@@ -1,4 +1,4 @@
-# Mozilla reviewer notes — 1.15.1
+# Mozilla reviewer notes — 1.15.2
 
 Ingredient Check scores food ingredient labels locally and displays ratings on retailer search,
 product, cart and order pages. Core scoring and settings require no extension account. Google
@@ -7,7 +7,7 @@ and explicit data-sharing consent. Retailer order-history features require the u
 public search/product pages can be tested without an account. No shared test credentials are
 included. To validate private-page handling without real accounts, use the repository's fixtures.
 
-The source for this release is https://github.com/jackson29382938/ingrediant_check/tree/v1.15.1.
+The source for this release is https://github.com/jackson29382938/ingrediant_check/tree/v1.15.2.
 The extension includes only local executable code. Tesseract's JavaScript, WASM core and English
 language data are vendored; product label images are processed on the user's machine.
 

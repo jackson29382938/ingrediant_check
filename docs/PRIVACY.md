@@ -154,8 +154,11 @@ Help you read grocery ingredient lists on Amazon and, as previews, Target, Walma
 ## Google and Chrome profile sign-in
 
 Chrome profile sign-in is managed by Chrome itself; settings includes a link to Chrome profile settings.
-The separate Google save/restore flow requests the optional `identity` permission only when you use it.
-It requests the `openid` scope and selects a Google account for one operation. Tokens stay in memory
+On Chrome, the separate Google save/restore flow requests the optional `identity` permission only
+when you use it. Firefox declares `identity` at installation because of its API requirements;
+Google sign-in and account uploads still require your choices and applicable data-sharing consent.
+It requests the `openid email profile` scopes so the local account display can show your name,
+email and picture. Tokens stay in memory
 and are not saved in extension storage, reports, backups, or the account spreadsheet. OAuth client IDs
 are public configuration, stored locally and excluded from backups. Google backups are keyed by a
 hash of the verified account ID and contain settings, not your email, browsing cookies, or product cache.

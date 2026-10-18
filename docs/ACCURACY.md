@@ -31,6 +31,33 @@ Every corpus entry declares `lang` and `evidence`:
 
 Three English live captures include Amazon US kefir, Amazon UK granola and Target oats, with public source URLs in the corpus. Every non-English entry remains `synthetic`.
 
+## Additional public database label evidence — October 18, 2026
+
+`tests/public-label-evidence.json` adds **seven actual public Open Food Facts responses** in English
+(3), French (3) and Spanish (1): hazelnut spread, cola, pesto, cereal, ice cream, ketchup and marzipan
+chocolate. Each retains the exact selected-field response, source URL, capture date and SHA256,
+with required/excluded allergen expectations reviewed against the captured text. Attribution and
+the Open Database License are recorded in the fixture. These records are separate from the
+retailer-extraction corpus: database text does not prove a store reader or OCR worked and has
+not been independently checked against physical packaging.
+
+The French Nutella record exposed a false wheat flag from **Sans gluten**. Scoring had correctly
+excluded that note from ingredients but incorrectly included it in the allergen advisory detector.
+The regression now excludes absence notes while retaining actual wheat ingredients, cross-contact
+warnings and the positive Turkish declaration **gluten içerir**. This is a development regression,
+not an out-of-sample accuracy percentage or a clinically validated health rating.
+
+Capture fresh candidates with TLS verification and no account access:
+
+```sh
+node scripts/capture-label-evidence.mjs --output /tmp/new-labels.json 3017620422003
+```
+
+The script refuses to overwrite reviewed evidence. Review candidates before adding assertions;
+never copy the engine's answer into an expected result. Future expansion should include
+independently checked retailer labels and OCR photos across stores and food categories. Missing,
+blocked and unavailable sources remain distinct from successful captures.
+
 ## By language
 
 | Language | Stores | What exists | Status |

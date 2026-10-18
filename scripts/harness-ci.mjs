@@ -203,8 +203,11 @@ async function run() {
     const oatsKey = cache.key(store, 'B08KQM8K62');
     const barKey = cache.key(store, 'B00LOAW7U6');
     const milkKey = cache.key(store, 'B000000003');
+    const instacartKey = cache.key('instacart.com', '2695935'), krogerKey = cache.key('kroger.com', '0001111008490');
     const seed = {
       enabled: true, badges: true, foodOnly: true,
+      [instacartKey]: { schema: cache.SCHEMA, cacheRevision: cache.CACHE_REVISION, t: now - 5000, v: '1.15.1', store: 'instacart.com', asin: '2695935', prefs: fp, source: 'page', score: 62, name: 'Instacart oats' },
+      [krogerKey]: { schema: cache.SCHEMA, cacheRevision: cache.CACHE_REVISION, t: now - 6000, v: '1.15.1', store: 'kroger.com', asin: '0001111008490', prefs: fp, source: 'page', score: 83, name: 'Kroger oats' },
       [oatsKey]: {
         schema: cache.SCHEMA, t: now - 1000, v: version, store, asin: 'B08KQM8K62',
         prefs: fp, source: 'page', score: 96, name: 'Organic Rolled Oats', verdict: 'Excellent', nova: 1,
@@ -277,6 +280,13 @@ async function run() {
         return nums.includes('74');
       }, { timeout: 5000 });
       console.log('  ok  popup compare →', cmp.nums.join(' vs '), `(${cmp.options} cached, B→74)`);
+      for (const [key, score, host] of [[instacartKey, '62', 'instacart.com'], [krogerKey, '83', 'kroger.com']]) {
+        await comparePage.selectOption('#compareB', key);
+        await comparePage.waitForFunction(score => [...document.querySelectorAll('.compare-card .ps-num')].some(n => n.textContent === score), score);
+        const hrefs = await comparePage.locator('.compare-card a').evaluateAll(links => links.map(a => a.href));
+        if (!hrefs.some(href => new URL(href).hostname === 'www.' + host)) throw new Error('Missing safe compare product link: ' + host);
+      }
+      console.log('  ok  Compare → Instacart/Kroger saved scores survive an app-version change, appear in picker, and link to public products');
 
       // Goals combine across tabs: picking one on another tab keeps that tab open with it selected,
       // and each tab counts its picks. (It used to jump back to the first goal's tab.)

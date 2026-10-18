@@ -5,6 +5,15 @@ const fs = require('node:fs');
 const { receiver } = require('./receiver-harness.js');
 const batch = (start, count = 12) => ({ kind: 'diagnostics', batchId: `b-${start}`,
   rows: Array.from({ length: count }, (_, i) => ({ rowId: `r-${start + i}`, ingredients: 'Oats' })) });
+test('diagnostic protocol advertises and confirms outcomes support, and refuses future schemas', () => {
+  const r = receiver();
+  assert.equal(r.get({}).diagnosticsSchema, 2);
+  assert.equal(r.post({ ...batch(0), diagnosticsSchema: 2 }).diagnosticsSchema, 2);
+  assert.equal(r.tabs.get('diagnostics').getMaxColumns(), 27, 'default grid expands before the schema migration writes column 27');
+  assert.equal(r.post({ ...batch(0), diagnosticsSchema: 2 }).diagnosticsSchema, 2, 'duplicate receipt retains schema');
+  assert.equal(r.post({ ...batch(12), diagnosticsSchema: 3 }).ok, false);
+  assert.equal(r.tabs.get('diagnostics').data.length, 13);
+});
 test('retry after append but before acknowledgement never duplicates data', () => {
   const r = receiver();
   r.failNext();

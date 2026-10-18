@@ -67,7 +67,7 @@
 
   function cacheEntry(id, result, name, source) {
     return {
-      schema: CACHE.SCHEMA, v: VERSION, t: Date.now(), store: STORE, asin: id,
+      schema: CACHE.SCHEMA, cacheRevision: CACHE.CACHE_REVISION, v: VERSION, t: Date.now(), store: STORE, asin: id,
       prefs: CACHE.fingerprint(state.raw, source), score: result.score, verdict: result.verdict,
       nova: result.nova, source, provenanceSource: '', name: String(name || '').slice(0, 120),
     };

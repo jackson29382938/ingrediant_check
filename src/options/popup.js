@@ -412,7 +412,7 @@ const cacheKeys = async () => (await CACHE.storedKeys(chrome.storage.local)).fil
 
 function compareLabel(hit) {
   const name = (hit.name || hit.asin || '').replace(/\s+/g, ' ').trim();
-  return [hit.score, hit.verdict, name].filter(Boolean).join(' · ');
+  return [String(hit.score), hit.verdict, AIR.stores.storeForHost(hit.store)?.name, name].filter(Boolean).join(' · ');
 }
 
 function paintCompareCard(hit) {
@@ -435,6 +435,17 @@ function paintCompareCard(hit) {
   sub.className = 'ps-sub';
   sub.textContent = [NOVA_SHORT[hit.nova], hit.name, hit.asin].filter(Boolean).join(' · ');
   card.append(num, verdict, sub);
+  const store = AIR.stores.storeForHost(hit.store);
+  if (store) {
+    const origin = `https://www.${CACHE.normalizeStore(hit.store)}`;
+    const adapter = Object.values(AIR.storeAdapters || {}).find(a => a.matchesHost(hit.store));
+    const url = store.id === 'amazon' && /^[A-Z0-9]{10}$/.test(hit.asin) ? `${origin}/dp/${hit.asin}`
+      : adapter?.productUrl(hit.asin, { href: origin + '/' });
+    if (url && productOnPage(url) === hit.asin && new URL(url).protocol === 'https:') {
+      const link = document.createElement('a'); link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer';
+      link.textContent = msg('popupCompareOpen', 'Open product on ' + store.name, store.name); card.append(link);
+    }
+  }
   return card;
 }
 

@@ -16,8 +16,8 @@ You do **not** need Chrome for Testing. That was only needed for the `--load-ext
 command-line flag; loading by hand works in your normal Chrome.
 
 1. `chrome://extensions` → enable **Developer mode** (top right)
-2. **Load unpacked** → select this folder
-3. Expect: *Ingredient Check 1.3.1*, no errors under the card
+2. **Load unpacked** → select the extracted release folder, or `dist/unpacked` after `npm run pack`
+3. Expect: *Ingredient Check* with the current release version, no errors under the card
 
 If a red **Errors** button appears, open it — a manifest problem shows here and nowhere else.
 

@@ -909,7 +909,11 @@ function score(product, options = {}) {
   // wheat" was charged as wheat. It still feeds the allergen flags below, and nothing else.
   const parsed = parseEntries(rawTxt);
   const aside = e => MAY_CONTAIN.test(e.ing) || LABEL_NOTE.test(e.ing);
-  const mayContain = [...parsed.filter(aside).map(e => e.ing), ...(product.advisory_text ? [String(product.advisory_text)] : [])];
+  // Absence/packaging notes are not allergen declarations: sending "sans gluten" through
+  // the advisory detector falsely flags wheat. Preserve actual cross-contact and the Turkish
+  // positive declaration "gluten içerir" while leaving unrelated notes out of the detector.
+  const mayContain = [...parsed.filter(e => MAY_CONTAIN.test(e.ing) || /^gluten i[çc]erir$/i.test(e.ing)).map(e => e.ing),
+    ...(product.advisory_text ? [String(product.advisory_text)] : [])];
   // The label's own allergen line ("Contains: milk, soy") is set aside from scoring but, unlike a "may contain"
   // warning, it also feeds the avoid list: a reader who avoids soy asked about exactly this.
   const statements = parsed.filter(e => e.parent === 0 && allergenDeclaration(e.ing)).map(e => e.ing);

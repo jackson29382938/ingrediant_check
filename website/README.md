@@ -22,3 +22,13 @@ Use the live `/privacy` URL for extension listings. No Vercel account credential
 folder. A 403 when creating projects must be resolved through the selected team's permissions;
 installing a CLI does not grant team access. If an existing project still cannot find the site,
 check its Git repository, production branch and Root Directory, then redeploy the newest `main`.
+
+
+Validation (with the pinned Playwright development tooling installed): `npm run website:check`.
+CI checks both pages, navigation, mobile/desktop themes and production security headers. To verify
+the actual deployment, run `npm run website:check -- --url https://YOUR-PRODUCTION-DOMAIN`.
+Set the GitHub repository variable `WEBSITE_URL` to that HTTPS origin to enable the deployed check
+in CI and release validation. Use a public production deployment with deployment protection off.
+Once the final domain is chosen, use its `/privacy` URL in both browser listings and configure the
+extension homepage and canonical/social metadata for that same domain. No live URL is invented
+or claimed by this source-only setup.

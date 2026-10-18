@@ -39,6 +39,39 @@ test('cache rejects expired, mismatched, incomplete, and manual records', () => 
   assert.equal(cache.key('www.amazon.com', context.asin), cache.key('amazon.com', context.asin));
   assert.notEqual(cache.key(context.store, context.asin), cache.key('www.amazon.co.uk', context.asin));
 });
+test('routine releases retain compatible scores but changes to rules, extraction, preferences or age do not', () => {
+  const next = { ...context, version: '1.15.2' };
+  for (const version of ['1.15.0', '1.15.1']) assert.equal(cache.valid({ ...entry, v: version }, next, now), true);
+  const stamped = { ...entry, cacheRevision: cache.CACHE_REVISION };
+  assert.equal(cache.valid(stamped, next, now), true);
+  for (const patch of [{ cacheRevision: 0 }, { cacheRevision: 999 }, { prefs: JSON.stringify({ rules: 'old' }) },
+    { t: now - cache.TTL_MS }, { source: 'manual-paste' }, { v: '' }]) {
+    assert.equal(cache.valid({ ...stamped, ...patch }, next, now), false, JSON.stringify(patch));
+  }
+  assert.equal(cache.valid({ ...entry, v: '1.14.0' }, next, now), false, 'unknown legacy extraction is not migrated');
+});
+test('a future extraction-contract bump cannot retain unstamped legacy or prior-contract scores', () => {
+  const vm = require('node:vm'), fs = require('node:fs');
+  const sandbox = { AIR: { db: { ...AIR.db }, stores: AIR.stores } };
+  sandbox.AIRmodule = (name, api) => { sandbox.AIR.db[name] = api; return api; };
+  const futureRevision = cache.CACHE_REVISION + 1;
+  const source = fs.readFileSync(require.resolve('../src/engine/db/score-cache.js'), 'utf8')
+    .replace(/const CACHE_REVISION = \d+;/, `const CACHE_REVISION = ${futureRevision};`);
+  vm.runInNewContext(source, sandbox);
+  const future = sandbox.AIR.db.scoreCache, ask = { ...context, version: '2.0.0' };
+  assert.equal(future.valid({ ...entry, v: '1.15.1' }, ask, now), false);
+  assert.equal(future.valid({ ...entry, cacheRevision: cache.CACHE_REVISION }, ask, now), false);
+  assert.equal(future.valid({ ...entry, cacheRevision: futureRevision }, ask, now), true);
+});
+test('comparison includes every active registered domain and rejects unknown stores', () => {
+  const stores = require('../src/stores/registry.js');
+  const domains = stores.STORES.filter(s => s.status !== 'planned').flatMap(s => s.domains);
+  const all = Object.fromEntries([...domains, 'amazon.evil', 'unknown.example'].map(store => {
+    const asin = '1234567890'; return [cache.key(store, asin), { ...entry, store, asin }];
+  }));
+  const listed = cache.listScores(all, { version: context.version, prefs: {} }, now);
+  assert.deepEqual(listed.map(hit => hit.store).sort(), domains.sort());
+});
 test('listScores returns valid s: entries newest first and skips off: / stale', () => {
   const prefs = {};
   const a = { ...entry, asin: 'B000000001', t: now - 1000, name: 'Oats', verdict: 'Excellent', nova: 1 };

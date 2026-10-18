@@ -7,18 +7,19 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  workflow_call:
 
-# Read-only by default; a newer push to the same pull request cancels the run it supersedes.
 permissions:
   contents: read
 
+# A newer push to the same pull request cancels the run it supersedes.
 concurrency:
   group: test-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -35,7 +36,7 @@ jobs:
       - run: npm run preflight
 
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
@@ -47,7 +48,7 @@ jobs:
       - run: npm run lint
 
   harness:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
@@ -59,9 +60,15 @@ jobs:
       - run: npm install --no-save --no-package-lock playwright@1.63.0
       - run: npx playwright install --with-deps chromium
       - run: npm run harness:ci
+      - run: npm run website:check
+      - name: Check deployed website when configured
+        if: ${{ vars.WEBSITE_URL != '' }}
+        run: npm run website:check -- --url "$IC_WEBSITE_URL"
+        env:
+          IC_WEBSITE_URL: ${{ vars.WEBSITE_URL }}
 
   firefox:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
