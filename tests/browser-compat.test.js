@@ -49,6 +49,17 @@ test('Firefox console checks separate only the exact native inactive-page diagno
   const entries = [{ source: base + 'content.js', message: 'Promise resolved while context is inactive\n' }, { source: base + 'app.js', message: 'TypeError: broken score' }, { source: base + 'app.js', message: 'Error: Promise resolved while context is inactive' }, { source: base + 'app.js', message: 'Promise rejected while context is inactive' }, { source: 'moz-extension://other/app.js', message: 'Other extension error' }];
   const result = firefoxConsole(entries, base); assert.equal(result.inactive.length, 1); assert.equal(result.errors.length, 3);
 });
+test('Firefox native RuntimeMessage actor teardown is separated without hiding application failures', async () => {
+  const { firefoxConsole } = await import('../scripts/firefox-console.mjs'), base = 'moz-extension://own/';
+  const native = "Promise rejected after context unloaded: Actor 'Conduits' destroyed before query 'RuntimeMessage' was resolved";
+  const result = firefoxConsole([
+    { source: base + 'browser-compat.js', message: native + '\n' },
+    { source: base + 'app.js', message: 'Promise rejected after context unloaded: database write failed' },
+    { source: base + 'app.js', message: 'Error: ' + native },
+    { source: base + 'app.js', message: "Promise rejected after context unloaded: Actor 'Conduits' destroyed before query 'OtherQuery' was resolved" },
+  ], base);
+  assert.equal(result.inactive.length, 1); assert.equal(result.errors.length, 3);
+});
 test('Firefox concurrent OCR requests wait for a loaded host and can retry a failed load', async () => {
   let frame, attempts = 0, opens = 0;
   const context = { browser: { runtime: { getURL: p => 'moz-extension://own/' + p }, sidebarAction: { open() { opens++; return Promise.resolve(); } } },
