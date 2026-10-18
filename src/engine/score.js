@@ -476,8 +476,23 @@ function recognitionCoverage(entries) {
 const TRAILING_SHARE = /\s*(?:\b(?:min(?:imum)?|max(?:imum)?|ca|approx)\.?\s*|<\s*|>\s*)?(?:\d+(?:[.,]\d+)?\s*(?:%|per ?cent)|%\s*\d+(?:[.,]\d+)?)$/i;
 // "Wheat flour - 60%", "Sugar: 20%", "Salt = 1%": the separator belongs to the declaration, and left on the
 // entry it hid the ingredient from every rule anchored at the end ("sugar -" was charged nothing).
-const SHARE_SEPARATOR = /[\s\-–—:=~≈]+$/;
-const dropShare = s => { const bare = s.replace(TRAILING_SHARE, ''); return bare === s ? s : bare.replace(SHARE_SEPARATOR, ''); };
+const SHARE_SEPARATORS = ' \t-–—:=~≈';
+// A declared share is a few characters at the end of an entry, so only the end is searched. The pattern is
+// anchored with `$`, which makes it try every start position and rescan the whole run each time: on 6,000 digits
+// it cost 340 ms against 60 for the rest of scoring, over tests/hostile-input.test.js's limit on a slower runner.
+const SHARE_WINDOW = 48;
+function trailingShare(s) {
+  const from = Math.max(0, s.length - SHARE_WINDOW);
+  const m = TRAILING_SHARE.exec(from ? s.slice(from) : s);
+  return m ? { index: from + m.index, text: m[0] } : null;
+}
+function dropShare(s) {
+  const found = trailingShare(s);
+  if (!found) return s;
+  let end = found.index;
+  while (end > 0 && SHARE_SEPARATORS.includes(s[end - 1])) end--;   // a loop, not /[...]+$/, for the same reason
+  return s.slice(0, end);
+}
 // Organic and footnote markers ("sucre*", "cane sugar #", "lait°") hid the ingredient from anchored rules.
 const MARKERS = /[*°¹²³†‡#]+/g;
 // The share in front ("19,5% sucre", "46% flocons d'avoine"), and an ingredient heading left inside
@@ -761,10 +776,10 @@ const BRACKET_SHARE = /^(?:(?:min(?:imum)?|max(?:imum)?|ca|approx)\.?\s*|[<>]\s*
 function shareOf(part) {
   const { head: outside, groups } = bracketGroups(part);
   const head = outside.replace(MARKERS, ' ').replace(/^[\s*•\-–:]+/, '').replace(/\s+/g, ' ').trim().toLowerCase();
-  const m = TRAILING_SHARE.exec(head)
-    || LEADING_SHARE.exec(head.replace(TRAILING_SHARE, '').trim().replace(LEADING_HEADING, ''));
+  const trailing = trailingShare(head);
+  const m = trailing ? trailing.text : (LEADING_SHARE.exec(head.trim().replace(LEADING_HEADING, '')) || [null])[0];
   const alone = m ? null : groups.map(g => BRACKET_SHARE.exec(g.trim())).find(Boolean);
-  const pct = m ? parseFloat(SHARE_NUMBER.exec(m[0])[0].replace(',', '.')) : alone ? parseFloat(alone[1].replace(',', '.')) : NaN;
+  const pct = m ? parseFloat(SHARE_NUMBER.exec(m)[0].replace(',', '.')) : alone ? parseFloat(alone[1].replace(',', '.')) : NaN;
   return pct > 0 && pct <= 100 ? pct : null;
 }
 

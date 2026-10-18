@@ -22,6 +22,9 @@ const PIECES = ['1', '1,', '1.', ' ', ',', 'a', 'oil ', '(', 'ingredients\n', 'I
   '-', '%', '\n', 'natural ', 'x ', '1 ', '€', 'fl oz ', 'kcal ', 'salt ',
   '(a, ', 'may contain (', 'b (c), ', ')', 'arom'];
 const INPUTS = PIECES.map(p => p.repeat(Math.ceil(LENGTH / p.length)).slice(0, LENGTH) + '!');
+// A quantity is read from the end of an entry, so a long run that ends the way a quantity does (a digit,
+// a percent sign, a separator and a number) must not be rescanned from every start position.
+for (const tail of ['', ' %', '%', ' - 1', ' per cent']) INPUTS.push('1'.repeat(LENGTH) + tail);
 // A few fixed shuffles of the same pieces (deterministic, so a failure reproduces).
 let seed = 7;
 const rand = n => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed % n; };
