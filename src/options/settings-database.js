@@ -98,6 +98,7 @@ function wireDatabase() {
       chrome.runtime.sendMessage({ type: 'flushDiagnostics' }, res => {
         if (chrome.runtime.lastError || !res) { say('diagStatus', 'Could not reach the database', 'error'); return; }
         say('diagStatus', res.ok ? `Sent ${res.sent} rows`
+          : res.reason === 'backend-update-required' ? `Update the Apps Script deployment to support diagnostic outcomes. ${res.queued} rows are kept locally.`
           : res.reason === 'nothing-to-send' ? 'Nothing queued'
           : `Could not send — ${res.reason} (${res.queued || 0} still queued)`, res.ok ? '' : 'error');
       });
@@ -124,6 +125,7 @@ function paintDiag() {
   chrome.runtime.sendMessage({ type: 'diagnosticsStatus' }, res => {
     if (chrome.runtime.lastError || !res) return;
     say('diagStatus', !res.configured ? 'Not set up in this build'
+      : res.reason === 'backend-update-required' ? 'Diagnostic rows are kept locally. Update the Apps Script deployment, then try Send now.'
       : res.queued ? `${res.queued} row${res.queued === 1 ? '' : 's'} waiting to send`
       : 'Nothing queued');
   });

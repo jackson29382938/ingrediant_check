@@ -1,5 +1,22 @@
 # Product cache
 
+## Compatibility across releases
+
+Computed scores now carry `cacheRevision`, independently of the extension version. Matching
+record schema, extraction/record contract, scoring-rule fingerprint, preferences, product identity,
+source and age are still required. A routine UI or documentation release does not invalidate them.
+Known 1.15.0/1.15.1 schema-3 records can migrate only when their rule/preference fingerprint still
+matches. Unknown legacy versions and future/unknown contracts stay cache misses. Bump
+`CACHE_REVISION` in score-cache.js when extraction interpretation or the record contract changes;
+scoring changes advance `RULES_REVISION` instead. Product labels remain separately cached.
+
+Release 1.15.2 corrects a false allergen flag and advances the scoring revision, so older computed
+scores are recalculated. Fresh saved labels can supply that calculation without another lookup.
+Future updates with unchanged rules and contract keep their computed scores immediately.
+
+The Compare picker uses the active store registry, including every retailer preview. Unknown
+domains and planned stores are excluded.
+
 Reading a product from Amazon is the expensive part of a score: a page request per product, a few
 at a time, and seconds of CPU when the label photo is read. Scoring what was read takes about a
 millisecond. Two local caches keep the computed score (`s:`) and **what was read** (`p:`).

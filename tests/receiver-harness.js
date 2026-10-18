@@ -12,7 +12,10 @@ function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true, pro
   let locked = false, failFlush = false, legacy = '{}';
   function newSheet() {
     const data = [];
+    let maxColumns = 26;
     const sheet = { data, getLastRow: () => data.length,
+      getMaxColumns: () => maxColumns,
+      insertColumnsAfter(column, count) { assert.equal(column, maxColumns); maxColumns += count; },
       getLastColumn: () => Math.max(0, ...data.map(r => r.length)),
       appendRow(row) { assert.equal(locked, true, 'all appends must hold the shared lock'); data.push([...row]); },
       setFrozenRows() {},
@@ -23,6 +26,7 @@ function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true, pro
         return sheet.getRange(Number(r), 1, 1, 7);
       }) }),
       getRange(r, c, height = 1, width = 1) {
+        assert.ok(c + width - 1 <= maxColumns, 'range exceeds sheet column grid');
         const values = () => Array.from({ length: height }, (_, i) =>
           Array.from({ length: width }, (_, j) => data[r - 1 + i]?.[c - 1 + j] ?? ''));
         return {

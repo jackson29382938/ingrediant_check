@@ -7,10 +7,14 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         node: ['20', '22']
@@ -24,7 +28,7 @@ jobs:
       - run: npm run preflight
 
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -35,7 +39,7 @@ jobs:
       - run: npm run lint
 
   harness:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -46,9 +50,15 @@ jobs:
       - run: npm install --no-save --no-package-lock playwright@1.63.0
       - run: npx playwright install --with-deps chromium
       - run: npm run harness:ci
+      - run: npm run website:check
+      - name: Check deployed website when configured
+        if: ${{ vars.WEBSITE_URL != '' }}
+        run: npm run website:check -- --url "$IC_WEBSITE_URL"
+        env:
+          IC_WEBSITE_URL: ${{ vars.WEBSITE_URL }}
 
   firefox:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6

@@ -123,7 +123,10 @@ function handlePost(e, seen) {
   try {
     acquired = lock.tryLock(15000);
     if (!acquired) return json({ ok: false, error: 'busy; retry later' });
-    if (body.kind === 'diagnostics') return writeDiagnostics(body.rows || [], body.batchId);
+    if (body.kind === 'diagnostics') {
+      if (body.diagnosticsSchema && body.diagnosticsSchema > 2) return json({ ok: false, error: 'unsupported-diagnostics-schema', diagnosticsSchema: 2 });
+      return writeDiagnostics(body.rows || [], body.batchId);
+    }
     if (body.kind === 'report') return writeRows('reports', CONTRIBUTION_COLUMNS, [stamp(body)]);
     if (body.kind === 'products') return writeProducts(body);
     if (body.kind === 'account') return writeAccount(body.token, body.payload);
@@ -161,7 +164,7 @@ function handleGet(e) {
   // `accounts` says whether Google account storage has a client id, so a deployment can be checked
   // by opening the /exec URL: `"accounts":true` means this version is live and configured.
   var clientId = PropertiesService.getScriptProperties().getProperty('OAUTH_CLIENT_ID') || OAUTH_CLIENT_ID;
-  return json({ ok: true, service: 'ingredient-check', accounts: !!clientId, history: !!clientId, historySchema: 1, historyCapacity: AIR.db.purchaseHistory.MAX,
+  return json({ ok: true, service: 'ingredient-check', diagnosticsSchema: 2, accounts: !!clientId, history: !!clientId, historySchema: 1, historyCapacity: AIR.db.purchaseHistory.MAX,
     accepts: ['lookup', 'products', 'diagnostics', 'report', 'account', 'accountGet', 'historyGet', 'historyPut', 'historyClear', 'contribution'] });
 }
 
@@ -382,10 +385,10 @@ function clearHistory(token) {
 // doPost holds the script lock across both the duplicate check and the append.
 function writeDiagnostics(rows, batchId) {
   if (!Array.isArray(rows) || rows.length > 300) throw new Error('invalid diagnostic batch');
-  if (!rows.length) return json({ ok: true, wrote: 0, inserted: 0 });
+  if (!rows.length) return json({ diagnosticsSchema: 2, ok: true, wrote: 0, inserted: 0 });
   var legacy = loadSeen();
   if (batchId && legacy.batches.indexOf(String(batchId)) !== -1) {
-    return json({ ok: true, wrote: rows.length, inserted: 0, duplicate: true });
+    return json({ diagnosticsSchema: 2, ok: true, wrote: rows.length, inserted: 0, duplicate: true });
   }
   var columns = DIAGNOSTIC_COLUMNS.concat(['rowId']);
   var sheet = sheetFor('diagnostics', columns);
@@ -412,7 +415,7 @@ function writeDiagnostics(rows, batchId) {
     fresh.push(Object.assign({}, row, { rowId: id }));
   });
   if (fresh.length) writeRows('diagnostics', columns, fresh, sheet);
-  return json({ ok: true, wrote: rows.length, inserted: fresh.length, duplicate: fresh.length === 0 });
+  return json({ diagnosticsSchema: 2, ok: true, wrote: rows.length, inserted: fresh.length, duplicate: fresh.length === 0 });
 }
 
 // Read the old history for migration only. New writes never grow this property.
@@ -454,11 +457,12 @@ function unquote(v) {
 function sheetFor(name, columns) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(name);
-  if (!sheet) {
-    sheet = ss.insertSheet(name);
-    sheet.appendRow(columns);
-    sheet.setFrozenRows(1);
-  } else if (sheet.getLastRow() === 0) {
+  if (!sheet) sheet = ss.insertSheet(name);
+  // A default/new or older diagnostics sheet may have only 26 columns. The outcome/feedback
+  // migration writes rowId in column 27; expand before either header or migration range writes.
+  var maxColumns = sheet.getMaxColumns();
+  if (maxColumns < columns.length) sheet.insertColumnsAfter(maxColumns, columns.length - maxColumns);
+  if (sheet.getLastRow() === 0) {
     sheet.appendRow(columns);
     sheet.setFrozenRows(1);
   }

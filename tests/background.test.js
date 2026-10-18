@@ -111,6 +111,47 @@ test('HTTP success without a confirmed write retains the batch', async () => {
     assert.equal(w.data.diagQueue.length, 1);
   }
 });
+test('diagnostic outcomes require a compatible backend before any row is uploaded', async () => {
+  for (const status of [{ ok: true, service: 'ingredient-check' }, { ok: true, service: 'other', diagnosticsSchema: 2 }]) {
+    let posts = 0;
+    const w = worker({ ...enabled, diagQueue: [{ outcome: 'unreadable' }] }, async (_url, options) => {
+      if (options.method === 'POST') posts++;
+      return { ok: true, json: async () => status };
+    });
+    const reply = await w.call('flushDiagnostics()'); assert.equal(reply.reason, 'backend-update-required');
+    assert.equal(posts, 0); assert.equal(w.data.diagQueue.length, 1); assert.equal(w.data.diagLastError, 'backend-update-required');
+  }
+});
+test('new diagnostics clear only after a schema-aware receipt and retain stable IDs on retry', async () => {
+  let receiptSchema = 0, gets = 0; const bodies = [];
+  const w = worker({ ...enabled, diagQueue: [{ outcome: 'wrong-score', feedback: 'looks-wrong' }] }, async (_url, options) => {
+    if (options.method !== 'POST') { gets++; return { ok: true, json: async () => ({ ok: true, service: 'ingredient-check', diagnosticsSchema: 2 }) }; }
+    bodies.push(JSON.parse(options.body)); return { ok: true, json: async () => ({ ok: true, wrote: 1, diagnosticsSchema: receiptSchema }) };
+  });
+  assert.equal((await w.call('flushDiagnostics()')).ok, false); assert.equal(w.data.diagQueue.length, 1);
+  receiptSchema = 2; assert.equal((await w.call('flushDiagnostics()')).ok, true);
+  assert.equal(gets, 1); assert.equal(bodies[0].diagnosticsSchema, 2);
+  assert.equal(bodies[0].rows[0].rowId, bodies[1].rows[0].rowId); assert.equal(w.data.diagQueue.length, 0);
+});
+test('updating an old diagnostic backend can be retried immediately without losing queued outcomes', async () => {
+  let schema = 0, gets = 0;
+  const w = worker({ ...enabled, diagQueue: [{ outcome: 'unreadable' }] }, async (_url, options) => {
+    if (options.method !== 'POST') { gets++; return { ok: true, json: async () => ({ service: 'ingredient-check', diagnosticsSchema: schema }) }; }
+    return { ok: true, json: async () => ({ ok: true, wrote: 1, diagnosticsSchema: 2 }) };
+  });
+  assert.equal((await w.call('flushDiagnostics()')).reason, 'backend-update-required'); schema = 2;
+  assert.equal((await w.call('flushDiagnostics()')).ok, true); assert.equal(gets, 2); assert.equal(w.data.diagLastError, '');
+});
+test('turning diagnostics off during a capability check prevents the pending upload', async () => {
+  let release, started, posts = 0; const ready = new Promise(resolve => { started = resolve; });
+  const w = worker({ ...enabled, diagQueue: [{ outcome: 'unreadable' }] }, async (_url, options) => {
+    if (options.method === 'POST') posts++;
+    started(); await new Promise(resolve => { release = resolve; });
+    return { ok: true, json: async () => ({ service: 'ingredient-check', diagnosticsSchema: 2 }) };
+  });
+  const pending = w.call('flushDiagnostics()'); await ready; w.data.sendDiagnostics = false; release();
+  assert.equal((await pending).reason, 'not-enabled'); assert.equal(posts, 0); assert.equal(w.data.diagQueue.length, 1);
+});
 test('offscreen document can be recreated after Chrome closes it', async () => {
   const w = worker();
   await w.call('ensureOffscreen()');

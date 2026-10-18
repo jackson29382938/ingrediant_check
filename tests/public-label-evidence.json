@@ -1,0 +1,121 @@
+{
+  "source": "Open Food Facts contributors",
+  "license": "https://opendatacommons.org/licenses/odbl/1-0/",
+  "limitation": "Public database text, not independently verified packaging, retailer extraction, OCR or clinical validation.",
+  "entries": [
+    {
+      "barcode": "3017620422003",
+      "captured": "2026-10-18",
+      "evidence": "public-database-capture",
+      "sourceUrl": "https://world.openfoodfacts.org/api/v2/product/3017620422003.json?fields=code,product_name,ingredients_text,ingredients_text_en,ingredients_text_fr,lang,allergens_tags",
+      "responseSha256": "69c942ed687e266b024854f7b6806da4525c0a8d795f1dbf678c9edc15c48644",
+      "responseJson": "{\"code\":\"3017620422003\",\"product\":{\"allergens_tags\":[\"en:milk\",\"en:nuts\",\"en:soybeans\"],\"code\":\"3017620422003\",\"ingredients_text\":\"Sucre, huile de palme, NOISETTES 13%, cacao maigre 7,4%, LAIT écrémé en poudre 6,6%, LACTOSERUM en poudre, émulsifiants: lécithines [SOJA), vanilline. Sans gluten.\",\"ingredients_text_en\":\"Sugar, vegetable fat (palm), hazelnuts (13%), skimmed milk powder (8.7%), fat-reduced cocoa powder (7.4%), emulsifier: lecithins (soya), flavouring (vanillin).\",\"ingredients_text_fr\":\"Sucre, huile de palme, NOISETTES 13%, cacao maigre 7,4%, LAIT écrémé en poudre 6,6%, LACTOSERUM en poudre, émulsifiants: lécithines [SOJA), vanilline. Sans gluten.\",\"lang\":\"fr\",\"product_name\":\"Nutella\"},\"status\":1,\"status_verbose\":\"product found\"}",
+      "review": "Required/excluded allergen matches reviewed against the captured ingredient text; may-contain declarations are not treated as proof of presence.",
+      "requiredAllergens": [
+        "milk",
+        "treeNut",
+        "soy"
+      ],
+      "excludedAllergens": [
+        "wheat"
+      ]
+    },
+    {
+      "barcode": "5449000000996",
+      "captured": "2026-10-18",
+      "evidence": "public-database-capture",
+      "sourceUrl": "https://world.openfoodfacts.org/api/v2/product/5449000000996.json?fields=code,product_name,ingredients_text,ingredients_text_en,ingredients_text_fr,lang,allergens_tags",
+      "responseSha256": "f22d18cac1ae4c85a0d1b8f9642e4407a09afdf110547a19d8cde7018d443df0",
+      "responseJson": "{\"code\":\"5449000000996\",\"product\":{\"allergens_tags\":[],\"code\":\"5449000000996\",\"ingredients_text\":\"Agua carbonatada, azúcar, colorante (E-150d), acidulante (ácido fosfórico), aromas naturales (contiene cafeína).\",\"ingredients_text_en\":\"carbonated water, sugar, colour (caramel e150d), acid (phosphoric acid), natural flavourings, caffeine flavouring,\",\"ingredients_text_fr\":\"Eau gazéifiée, sucre, colorant : E150d, acidifiant : acide phosphorique, arômes naturels (extraits végétaux), dont caféine.\",\"lang\":\"es\",\"product_name\":\"Coca-Cola Original\"},\"status\":1,\"status_verbose\":\"product found\"}",
+      "review": "Required/excluded allergen matches reviewed against the captured ingredient text; may-contain declarations are not treated as proof of presence.",
+      "requiredAllergens": [],
+      "excludedAllergens": [
+        "milk",
+        "egg",
+        "peanut",
+        "treeNut",
+        "soy",
+        "wheat",
+        "celery"
+      ]
+    },
+    {
+      "barcode": "8076809513753",
+      "captured": "2026-10-18",
+      "evidence": "public-database-capture",
+      "sourceUrl": "https://world.openfoodfacts.org/api/v2/product/8076809513753.json?fields=code,product_name,ingredients_text,ingredients_text_en,ingredients_text_fr,lang,allergens_tags",
+      "responseSha256": "403e312d2724f72981fe27ba239378304ff195fce9a9f312ba06e2bc2b580948",
+      "responseJson": "{\"code\":\"8076809513753\",\"product\":{\"allergens_tags\":[\"en:milk\",\"en:nuts\"],\"code\":\"8076809513753\",\"ingredients_text\":\"sunflower oil, fresh basil 30%, cashew nuts, parmigiano reggiano pdo cheese 5%, (milk), maize fibre, whey powder (milk), salt, milk protein, extra virgin olive oil, sugar, basil extract, natural flavourings (milk), acidity regulator: lactic acid, garlic\",\"ingredients_text_en\":\"sunflower oil, fresh basil 30%, cashew nuts, parmigiano reggiano pdo cheese 5%, (milk), maize fibre, whey powder (milk), salt, milk protein, extra virgin olive oil, sugar, basil extract, natural flavourings (milk), acidity regulator: lactic acid, garlic\",\"ingredients_text_fr\":\"Huile de tournesol, basilic 30%, NOIX DE CAJOU, fromage Parmigiano Reggiano AOP 5% (LAIT), fibre de maïs, lactosérum en poudre (LAIT), sel, protéines de LAIT, arômes naturels (LAIT), huile d'olive vierge extra, sucre, correcteur d'acidité : acide lactique, ail. Peut contenir des traces d'autres FRUITS À COQUE.\",\"lang\":\"en\",\"product_name\":\"Barilla PESTO alla GENOVESE\"},\"status\":1,\"status_verbose\":\"product found\"}",
+      "review": "Required/excluded allergen matches reviewed against the captured ingredient text; may-contain declarations are not treated as proof of presence.",
+      "requiredAllergens": [
+        "milk",
+        "treeNut"
+      ],
+      "excludedAllergens": [
+        "soy"
+      ]
+    },
+    {
+      "barcode": "7613034626844",
+      "captured": "2026-10-18",
+      "evidence": "public-database-capture",
+      "sourceUrl": "https://world.openfoodfacts.org/api/v2/product/7613034626844.json?fields=code,product_name,ingredients_text,ingredients_text_en,ingredients_text_fr,lang,allergens_tags",
+      "responseSha256": "de7f7cdf87dbf939d9affbabaf52dfa8bd76cfde2d0a8c8aed4dff1dbf86beda",
+      "responseJson": "{\"code\":\"7613034626844\",\"product\":{\"allergens_tags\":[\"en:gluten\"],\"code\":\"7613034626844\",\"ingredients_text\":\"Blé complet 35,0%, chocolat en poudre 22,5% (sucre, cacao en poudre), farine de blé 17,0%, semoule de maïs, sirop de glucose, sucre, extrait de malt d'orge (orge, orge malté), contient de l'huile de tournesol et/ou de palme, carbonate de calcium, émulsifiant : lécithines; sel, arômes naturels, fer, vitamines B3, B5, D, B6, B1, B2 et B9.\",\"ingredients_text_en\":\"whole wheat 35.0%, chocolate powder 22.5% (, cocoa powder), wheat flour 17.0%, cornmeal, glucose syrup, , barley malt extract (barley, malted barley), contains sunflower and/or palm oil, , emulsifier: , , natural flavours,  iron, vitamins b3, b5, d, b6, b1, b2 and b9, may contain milk and nuts.\",\"ingredients_text_fr\":\"Blé complet 35,0%, chocolat en poudre 22,5% (sucre, cacao en poudre), farine de blé 17,0%, semoule de maïs, sirop de glucose, sucre, extrait de malt d'orge (orge, orge malté), contient de l'huile de tournesol et/ou de palme, carbonate de calcium, émulsifiant : lécithines; sel, arômes naturels, fer, vitamines B3, B5, D, B6, B1, B2 et B9.\",\"lang\":\"fr\",\"product_name\":\"Céréales Chocapic\"},\"status\":1,\"status_verbose\":\"product found\"}",
+      "review": "Required/excluded allergen matches reviewed against the captured ingredient text; may-contain declarations are not treated as proof of presence.",
+      "requiredAllergens": [
+        "wheat"
+      ],
+      "excludedAllergens": [
+        "milk",
+        "soy"
+      ]
+    },
+    {
+      "barcode": "5000159484695",
+      "captured": "2026-10-18",
+      "evidence": "public-database-capture",
+      "sourceUrl": "https://world.openfoodfacts.org/api/v2/product/5000159484695.json?fields=code,product_name,ingredients_text,ingredients_text_en,ingredients_text_fr,lang,allergens_tags",
+      "responseSha256": "cb62ddbc631c8be3a08584b2759ed38a72fc51d835a838a134112b1558895d8d",
+      "responseJson": "{\"code\":\"5000159484695\",\"product\":{\"allergens_tags\":[\"en:gluten\",\"en:milk\",\"en:soybeans\"],\"code\":\"5000159484695\",\"ingredients_text\":\"Sucre, sirop de glucose, _lait_ écrémé, crème légère (_lait_), eau, beurre de cacao, matière grasse de noix de coco, _lait_ écrémé concentré sucré, pâte de cacao, farine de _blé_, matière grasse de palme, _lait_ écrémé en poudre, _lactose_, matière grasse du _lait_, huile de palmiste, petit-_lait_ en poudre, cacao maigre, beurre (_lait_), émulsifiants (lécithine de _soja_, E471, tristéarate de sorbitane), _lait_ entier en poudre, stabilisants (E407, E410, E412), arômes naturels (_lait_), sel, colorant naturel (caramel ordinaire), cacao en poudre, poudre à lever (E503), extrait naturel de vanille. (Peut contenir: cacahuète, noisette, amande). Produit en France.\",\"ingredients_text_en\":\"\",\"ingredients_text_fr\":\"Sucre, sirop de glucose, _lait_ écrémé, crème légère (_lait_), eau, beurre de cacao, matière grasse de noix de coco, _lait_ écrémé concentré sucré, pâte de cacao, farine de _blé_, matière grasse de palme, _lait_ écrémé en poudre, _lactose_, matière grasse du _lait_, huile de palmiste, petit-_lait_ en poudre, cacao maigre, beurre (_lait_), émulsifiants (lécithine de _soja_, E471, tristéarate de sorbitane), _lait_ entier en poudre, stabilisants (E407, E410, E412), arômes naturels (_lait_), sel, colorant naturel (caramel ordinaire), cacao en poudre, poudre à lever (E503), extrait naturel de vanille. (Peut contenir: cacahuète, noisette, amande). Produit en France.\",\"lang\":\"fr\",\"product_name\":\"Twix glacé\"},\"status\":1,\"status_verbose\":\"product found\"}",
+      "review": "Required/excluded allergen matches reviewed against the captured ingredient text; may-contain declarations are not treated as proof of presence.",
+      "requiredAllergens": [
+        "milk",
+        "wheat",
+        "soy"
+      ],
+      "excludedAllergens": []
+    },
+    {
+      "barcode": "87157239",
+      "captured": "2026-10-18",
+      "evidence": "public-database-capture",
+      "sourceUrl": "https://world.openfoodfacts.org/api/v2/product/87157239.json?fields=code,product_name,ingredients_text,ingredients_text_en,ingredients_text_fr,lang,allergens_tags",
+      "responseSha256": "1ef011bc0e0e8bad9f0d3458c520f27f745c3c43576675c08d8edd98f020a204",
+      "responseJson": "{\"code\":\"87157239\",\"product\":{\"allergens_tags\":[\"en:celery\"],\"code\":\"87157239\",\"ingredients_text\":\"tomato paste 55%, vinegar, sugar, salt, spice and herb extract (contains celery), spices,\",\"ingredients_text_en\":\"tomato paste 55%, vinegar, sugar, salt, spice and herb extract (contains celery), spices,\",\"ingredients_text_fr\":\"Tomates (148 g pour 100 g de Tomate Ketchup), vinaigre, sucre, sel, extraits d'épices et d'herbes (contient du céleri)\",\"lang\":\"en\",\"product_name\":\"heinz Tomato Ketchup\"},\"status\":1,\"status_verbose\":\"product found\"}",
+      "review": "Required/excluded allergen matches reviewed against the captured ingredient text; may-contain declarations are not treated as proof of presence.",
+      "requiredAllergens": [
+        "celery"
+      ],
+      "excludedAllergens": [
+        "milk",
+        "soy",
+        "treeNut"
+      ]
+    },
+    {
+      "barcode": "4000417025005",
+      "captured": "2026-10-18",
+      "evidence": "public-database-capture",
+      "sourceUrl": "https://world.openfoodfacts.org/api/v2/product/4000417025005.json?fields=code,product_name,ingredients_text,ingredients_text_en,ingredients_text_fr,lang,allergens_tags",
+      "responseSha256": "d81e6fa4dcfb4be0c5c4cc6f8c74f2629ddabb42e612838ec0e282dcb776b774",
+      "responseJson": "{\"code\":\"4000417025005\",\"product\":{\"allergens_tags\":[\"en:nuts\",\"en:soybeans\"],\"code\":\"4000417025005\",\"ingredients_text\":\"sugar, cocoa mass¹, ALMONDS (16 %), cocoa butter¹, invert sugar syrup, emulsifier (SOYA lecithins), humectant (invertase).  May contain traces of peanuts, other nuts, cereals containing gluten, milk and egg.\\r\\n¹Rainforest Alliance Certified\",\"ingredients_text_en\":\"sugar, cocoa mass¹, ALMONDS (16 %), cocoa butter¹, invert sugar syrup, emulsifier (SOYA lecithins), humectant (invertase).  May contain traces of peanuts, other nuts, cereals containing gluten, milk and egg.\\r\\n¹Rainforest Alliance Certified\",\"ingredients_text_fr\":\"Sucre, pâte de cacao, amandes (16%), beurre de cacao, sirop de sucre inverti, émulsifiant : lécithine (de soja), humectant : invertase, arôme naturel.\",\"lang\":\"en\",\"product_name\":\"Marzipane chocolate\"},\"status\":1,\"status_verbose\":\"product found\"}",
+      "review": "Required/excluded allergen matches reviewed against the captured ingredient text; may-contain declarations are not treated as proof of presence.",
+      "requiredAllergens": [
+        "treeNut",
+        "soy"
+      ],
+      "excludedAllergens": []
+    }
+  ]
+}

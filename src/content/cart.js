@@ -139,7 +139,7 @@
       // What was read stays on this computer, as a search tile keeps it (docs/CACHE.md), so the card behind the number
       // can say why. Amazon only (A.page), and never shared.
       A.page?.rememberProduct(job.id, { input, via: data.via, confidence: data.confidence, food: food.ok !== false }, { share: false });
-      job.hit = { schema: cache.SCHEMA, v: version, t: Date.now(), store: cache.normalizeStore(location.hostname), asin: job.id,
+      job.hit = { schema: cache.SCHEMA, cacheRevision: cache.CACHE_REVISION, v: version, t: Date.now(), store: cache.normalizeStore(location.hostname), asin: job.id,
         prefs: cache.fingerprint(raw, 'page'), source: 'page', score: result.score, verdict: result.verdict, nova: result.nova, name: data.title.slice(0, 120) };
       await chrome.storage.local.set({ [cache.key(location.hostname, job.id)]: job.hit });
     } catch { if (turn === generation) job.status = 'unavailable'; }

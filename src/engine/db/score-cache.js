@@ -5,11 +5,16 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
   require('./revision.js');
   require('./prefs.js');
   require('./speed.js');
+  require('../../stores/registry.js');
 }
 (function () {
   const TTL_MS = 30 * 24 * 60 * 60 * 1000;
   // Schema 3: host normalized (no www.); OCR/OFF toggles only fingerprint entries from those sources.
   const SCHEMA = 3;
+  // Bump when extraction interpretation or the score-record contract changes. Rules and
+  // preferences have their own fingerprint; a UI/docs/app-version update is not a cache reset.
+  const CACHE_REVISION = 1;
+  const LEGACY_COMPATIBLE = new Set(['1.15.0', '1.15.1']);
 
   function normalizeStore(store) {
     return String(store || '').toLowerCase().replace(/^www\./, '');
@@ -36,7 +41,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
 
   // maxAgeMs: the speed setting's age limit (AIR.db.speed); TTL_MS when not given.
   function valid(hit, { store, asin, version, prefs, allowManual = false, maxAgeMs = TTL_MS }, now = Date.now()) {
-    if (!hit || hit.schema !== SCHEMA || hit.v !== version) return false;
+    if (!hit || hit.schema !== SCHEMA || typeof hit.v !== 'string' || hit.v.length > 30 || !/^\d+(?:\.\d+){0,3}$/.test(hit.v)) return false;
+    if (Object.hasOwn(hit, 'cacheRevision') ? hit.cacheRevision !== CACHE_REVISION
+      : hit.v !== version && !(CACHE_REVISION === 1 && LEGACY_COMPATIBLE.has(hit.v))) return false;
     if (normalizeStore(hit.store) !== normalizeStore(store) || hit.asin !== asin) return false;
     if (hit.prefs !== fingerprint(prefs, hit.source)) return false;
     if (!Number.isFinite(hit.score) || hit.score < 0 || hit.score > 100) return false;
@@ -52,12 +59,12 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
   }
 
   // maxAgeMs: the speed setting's age limit, as for valid().
-  const COMPARABLE_STORE = /^(?:amazon\.[a-z.]+|target\.com|walmart\.com|costco\.com)$/;
   function listScores(all, { version, prefs, maxAgeMs = TTL_MS } = {}, now = Date.now()) {
     const out = [];
     for (const [cacheKey, hit] of Object.entries(all || {})) {
       const parsed = parseKey(cacheKey);
-      if (!parsed || !hit || !COMPARABLE_STORE.test(parsed.store)) continue;
+      const store = parsed && AIR.stores?.storeForHost(parsed.store);
+      if (!store || store.status === 'planned' || !hit) continue;
       if (!valid(hit, { store: parsed.store, asin: parsed.asin, version, prefs, maxAgeMs }, now)) continue;
       out.push({
         key: cacheKey, store: hit.store, asin: hit.asin,
@@ -142,7 +149,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
   }
 
   const api = AIRmodule('scoreCache', {
-    key, fingerprint, valid, recall, createReader, readLocal, parseKey, listScores, SCHEMA, TTL_MS, normalizeStore, storedKeys, isCacheKey,
+    key, fingerprint, valid, recall, createReader, readLocal, parseKey, listScores, SCHEMA, CACHE_REVISION, TTL_MS, normalizeStore, storedKeys, isCacheKey,
   });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();

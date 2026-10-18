@@ -1,6 +1,6 @@
 # Ingredient Check
 
-**See how healthy a grocery product is before you buy it.**
+**Understand grocery ingredient labels before you buy.**
 
 Ingredient Check is a Chrome extension (also works in Firefox). When you shop on Amazon, it reads the
 ingredient list and gives the product a score from **0 to 100**. Scores are worked out on your own
@@ -13,28 +13,25 @@ computer, and you choose which things matter to you.
 
 ## Install in Chrome (about 3 minutes)
 
-You need **Chrome 116 or newer** and **Node.js 20 or newer** (download it from nodejs.org if you do not have it).
+You need **Chrome 116 or newer**. Download the ready-to-install extension; Node and Python are only needed to package the source yourself.
 
-**1. Download the code**
+**1. Download the release**
 
-Click the green **Code** button above, then **Download ZIP**. Unzip it into a folder you can find again.
+Open the [latest release](https://github.com/jackson29382938/ingrediant_check/releases/latest).
+Choose `ingredient-check-<version>.zip` for Chrome. The file ending in `-firefox.zip` is for Firefox.
+Extract it into a permanent folder you can find again.
 
-**2. Build the extension**
+**2. Keep the install folder**
 
-Open Terminal in that folder and run:
-
-```bash
-npm run pack
-```
-
-This creates a folder called `dist/unpacked`.
+Chrome loads the extracted extension files directly. When updating, replace the files in this
+same folder and press **Reload**. Keeping the folder preserves the extension ID, local data and Google redirect.
 
 **3. Load it into Chrome**
 
 1. Open a new tab and go to `chrome://extensions`
 2. Turn on **Developer mode** (switch in the top right)
 3. Click **Load unpacked**
-4. Select the `dist/unpacked` folder
+4. Select the folder containing the extracted `manifest.json`
 
 You should see **Ingredient Check** in your list of extensions.
 
@@ -42,6 +39,20 @@ You should see **Ingredient Check** in your list of extensions.
 
 Click the puzzle-piece icon in Chrome's toolbar and click the pin next to **Ingredient Check**.
 Its score for the product you are looking at will show on the icon.
+
+---
+
+## Install in Firefox
+
+Use Firefox 142 or newer. Download the ZIP ending in `-firefox.zip` from the same release.
+Until a Mozilla-signed version is available, extract it, open `about:debugging#/runtime/this-firefox`,
+choose **Load Temporary Add-on**, and select its `manifest.json`. Grant access to the stores you use.
+Temporary installation ends when Firefox restarts; permanent installation requires Mozilla signing.
+See [browser installation and signing](docs/BROWSERS.md).
+
+For developers: source packaging needs **Node 20+ and Python 3** (`python3` on PATH).
+Run `npm run pack` from the repository root; the Chrome output is `dist/unpacked` and Firefox is
+`dist/firefox`. Development tests and setup are in [docs/VERIFY.md](docs/VERIFY.md).
 
 ---
 
@@ -81,10 +92,10 @@ Change any of this later from the extension icon → **Settings**, or click **Ru
 
 | Problem | Try this |
 |---|---|
-| No Ingredient Check in `chrome://extensions` | Check you selected the `dist/unpacked` folder, not the top folder |
-| Errors on the card | Run `npm run pack` again, then press the **Reload** button on the card |
+| No Ingredient Check in `chrome://extensions` | Select the extracted release folder containing `manifest.json` |
+| Errors on the card | Check you downloaded the Chrome ZIP, then press **Reload** |
 | No score on a product | The label may be missing or unreadable. The product page offers a paste box. |
-| Updated the code | Run `npm run pack`, then press **Reload** on the card (keep the same folder) |
+| Updated the code | Extract the newer release into the same folder, then press **Reload** |
 
 ---
 

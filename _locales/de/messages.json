@@ -1729,5 +1729,8 @@
   },
   "optAccentAdjusted": {
     "message": "Auf $1 angepasst, damit der Text lesbar bleibt."
+  },
+  "popupCompareOpen": {
+    "message": "Produkt bei $1 öffnen"
   }
 }

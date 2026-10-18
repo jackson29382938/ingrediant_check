@@ -85,6 +85,15 @@ try {
   await execute('document.getElementById("ff-narrow-history").remove();');
   console.log('  ok real Firefox Settings persistence, contextual links, purchase averages/contributors, dark theme and narrow layout');
   for (const file of ['popup.html','welcome.html','sorted.html','sidepanel.html','report.html']) { await open(file); assert(await execute('return !!document.querySelector("body") && !document.querySelector("script[src^=http]");'), file + ' did not boot'); }
+  await open('popup.html');
+  await run(`const c=window.AIR.db.scoreCache; const values={};
+    for(const [store,asin,score] of [['instacart.com','2695935',62],['kroger.com','0001111008490',83]])
+      values[c.key(store,asin)]={schema:c.SCHEMA,cacheRevision:c.CACHE_REVISION,v:'1.15.1',store,asin,score,source:'page',t:Date.now(),name:store+' oats',prefs:c.fingerprint({})};
+    await window.chrome.storage.local.set(values);`);
+  await wait('return [...document.getElementById("compareA").options].some(o=>o.value==="s:instacart.com:2695935") && [...document.getElementById("compareB").options].some(o=>o.value==="s:kroger.com:0001111008490");');
+  const compareLinks = await execute('return [...document.querySelectorAll(".compare-card a")].map(a=>a.href);');
+  assert(compareLinks.some(url => url.startsWith('https://www.instacart.com/')) && compareLinks.some(url => url.startsWith('https://www.kroger.com/')), 'Firefox cross-store Compare links missing');
+  console.log('  ok Firefox Compare: Instacart/Kroger picker, safe product links, compatible cached scores across app versions');
   await open('history.html');
   await run(`await window.chrome.storage.local.set({enabled:true,badges:true,autoScoreSearch:true,foodOnly:true,sharedCache:false,useOpenFoodFacts:false,ocrLabels:false,settingsBackup:false});`);
   for (const item of fixture.cases) {

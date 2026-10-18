@@ -796,7 +796,11 @@ function score(product, options = {}) {
   // wheat" was charged as wheat. It still feeds the allergen flags below, and nothing else.
   const parsed = parseEntries(rawTxt);
   const aside = e => MAY_CONTAIN.test(e.ing) || LABEL_NOTE.test(e.ing);
-  const mayContain = [...parsed.filter(aside).map(e => e.ing), ...(product.advisory_text ? [String(product.advisory_text)] : [])];
+  // Absence/packaging notes are not allergen declarations: sending "sans gluten" through
+  // the advisory detector falsely flags wheat. Preserve actual cross-contact and the Turkish
+  // positive declaration "gluten içerir" while leaving unrelated notes out of the detector.
+  const mayContain = [...parsed.filter(e => MAY_CONTAIN.test(e.ing) || /^gluten i[çc]erir$/i.test(e.ing)).map(e => e.ing),
+    ...(product.advisory_text ? [String(product.advisory_text)] : [])];
   const listed = parsed.filter(e => !isDenialEntry(e.ing) && !aside(e));
   // An allergen bracket that only repeats its parent ("Cacahuètes (arachides)", "Arachidi
   // (arachidi)", "cheese (milk)") is a declaration, not a second ingredient: counted as one it made

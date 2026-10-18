@@ -1,5 +1,17 @@
 # Measuring whether the scores are right
 
+## Backend compatibility in 1.15.2
+
+Diagnostic outcomes and feedback require the deployed Apps Script to advertise
+`diagnosticsSchema: 2` in its status response and confirm it in write receipts. The extension checks
+before uploading new-format rows, retains the bounded local queue when a backend is older, and
+shows an update message in Settings. Successful GET capability results are cached for one minute; an older backend is rechecked on retry. Deploy the
+updated `docs/apps-script.gs` as a new Apps Script deployment version, then use Send now. The
+queue keeps up to 300 rows; this is retry storage, not a permanent archive. Private purchase
+history and settings backup use separate protocols and are not blocked by this check.
+
+
+
 The engine has 215 rules and a lot of hand-tuned constants. The test suite proves it behaves the
 way it is specified to; it cannot tell you whether a score matches what a careful person would say
 about the product. That needs volume, and it needs the evidence next to the answer.
