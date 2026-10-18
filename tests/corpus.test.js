@@ -49,7 +49,7 @@ console.log('\ncorpus — recognition coverage');
 // The gate that stops unreadable text from being scored. Entries carrying an explicit expectation
 // assert it; everything else must clear the threshold content/main.js uses, or the tool would go
 // silent on a product it can actually read.
-const MIN_COVERAGE = 0.34;
+const MIN_COVERAGE = engine.MIN_COVERAGE;
 for (const entry of [...corpus.products, ...corpus.defects]) {
   const { coverage } = engine.score(entry.product, {});
   const pct = (coverage * 100).toFixed(0) + '%';

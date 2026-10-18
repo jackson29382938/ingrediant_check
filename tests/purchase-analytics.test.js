@@ -16,9 +16,9 @@ test('snapshots preserve original full inputs and order grouping through older b
 });
 test('current-goal comparison is separate, coverage gated, and cannot change snapshots', () => {
   const record = r(1), original = JSON.stringify(record);
-  const compared = A.project(record, 'current', () => ({ parsed: 1, coverage: 1, score: 70 }));
+  const compared = A.project(record, 'current', () => ({ parsed: 1, coverage: 1, readable: true, score: 70 }));
   assert.equal(compared.score, 70); assert.equal(compared.recorded, 50); assert.equal(compared.delta, 20); assert.equal(compared.partial, true); assert.equal(JSON.stringify(record), original);
-  assert.equal(A.project(record, 'current', () => ({ parsed: 1, coverage: 0.1, score: 90 })).score, null);
+  assert.equal(A.project(record, 'current', () => ({ parsed: 1, coverage: 0.1, readable: false, score: 90 })).score, null);
   assert.equal(A.project(r(2, 'a', { ingredients: '' }), 'current', () => { throw Error('should not score'); }).score, null);
 });
 test('filters and score sorts keep missing ratings missing and support status/date/text bounds', () => {
@@ -38,7 +38,7 @@ test('median and IQR use interpolation; confidence requires enough complete orde
 test('periods keep original scoring setups separate but combine current comparisons', () => {
   const records = [r(1), r(2, 'b', { version: 'older' }), r(3, 'c', { date: '2025-09-01' })];
   assert.equal(A.periods(rows(records)).length, 3);
-  assert.equal(A.periods(records.map(r => A.project(r, 'current', () => ({ parsed: 1, coverage: 1, score: 80 }))), { mode: 'current' }).length, 2);
+  assert.equal(A.periods(records.map(r => A.project(r, 'current', () => ({ parsed: 1, coverage: 1, readable: true, score: 80 }))), { mode: 'current' }).length, 2);
 });
 test('score drivers net opposing contributions, count entries/orders once and exclude returns', () => {
   const breakdown = { base: 50, rows: [{ why: 'Protein', c: 10, kind: 'factor' }, { why: 'Protein', c: -5, kind: 'factor' }, { why: 'Sugar', c: -10, kind: 'factor' }, { why: 'Seed oil — cap of 25', c: -20, kind: 'limit' }] };
@@ -60,9 +60,9 @@ test('breakdown snapshots require exact arithmetic and retain their original rec
 });
 test('current score drivers gate missing/low coverage labels without changing recorded data', () => {
   const records = [r(1), r(2, 'b', { ingredients: '' })], original = JSON.stringify(records);
-  const result = A.drivers(rows(records), 'current', () => ({ parsed: 1, coverage: 1 }), () => ({ base: 50, rows: [{ c: -5, why: 'Sugar', kind: 'factor' }] }));
+  const result = A.drivers(rows(records), 'current', () => ({ parsed: 1, coverage: 1, readable: true }), () => ({ base: 50, rows: [{ c: -5, why: 'Sugar', kind: 'factor' }] }));
   assert.equal(result.covered, 1); assert.equal(result.negatives[0].net, -5); assert.equal(JSON.stringify(records), original);
-  assert.equal(A.drivers(rows(records), 'current', () => ({ parsed: 1, coverage: 0.1 }), () => { throw Error('invalid coverage'); }).covered, 0);
+  assert.equal(A.drivers(rows(records), 'current', () => ({ parsed: 1, coverage: 0.1, readable: false }), () => { throw Error('invalid coverage'); }).covered, 0);
 });
 test('real engine snapshots reconcile every corpus score including limits and floors', () => {
   const engine = require('../src/engine/score.js'), cats = require('../src/engine/categories.js'), corpus = require('./corpus.json');
@@ -72,4 +72,13 @@ test('real engine snapshots reconcile every corpus score including limits and fl
     assert.ok(breakdown, entry.id + ': exact point snapshot');
     assert.equal(breakdown.base + breakdown.rows.reduce((sum, row) => sum + row.c, 0), scored.score);
   }
+});
+
+test('a scorer result must carry the engine\'s readable verdict to be used', () => {
+  // The dashboard wraps engine.score(); a wrapper that drops `readable` would silently blank every
+  // current-goal score, so the contract is that the field is required, not inferred.
+  const record = r(1, 'a', { ingredients: 'oats' });
+  assert.equal(A.project(record, 'current', () => ({ parsed: 1, coverage: 1, score: 70 })).score, null);
+  assert.equal(A.project(record, 'current', () => ({ parsed: 1, coverage: 1, readable: true, score: 70 })).score, 70);
+  assert.equal(A.drivers(rows([record]), 'current', () => ({ parsed: 1, coverage: 1 }), () => { throw Error('unread'); }).covered, 0);
 });

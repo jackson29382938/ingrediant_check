@@ -134,7 +134,7 @@
       // Scored from what a product page scores from, so the same product reads the same number everywhere.
       const input = { name: data.title, labels: data.labels, certifications: data.certifications, ingredients_text: data.ingredients, advisory_text: data.advisoryText, nutrition: data.nutrition };
       const result = A.engine.score(input, prefs);
-      if (!result.parsed || result.coverage < 0.34) throw new Error('coverage');
+      if (!A.engine.isReadable(result)) throw new Error('coverage');
       if (turn !== generation || control.signal.aborted || location.href !== url || !C.allowed(location)) return;
       // What was read stays on this computer, as a search tile keeps it (docs/CACHE.md), so the card behind the number
       // can say why. Amazon only (A.page), and never shared.

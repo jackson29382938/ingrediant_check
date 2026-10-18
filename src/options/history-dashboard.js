@@ -83,7 +83,7 @@
   async function update(raw) {
     conf = raw; calculating = $('scoreView').value === 'current' || $('driverBasis').value === 'current'; $('trends').closest('section').setAttribute('aria-busy', String(calculating)); const turn = ++generation, opts = options(), scoring = AIR.db.prefs.sanitizeScoring(conf), key = JSON.stringify(scoring);
     if (key !== memoKey) { memo.clear(); memoKey = key; }
-    const score = input => { const key = JSON.stringify(input); if (!memo.has(key)) { const result = AIR.engine.score(input, scoring), { score, parsed, coverage } = result; memo.set(key, { score, parsed, coverage, breakdown: H.fromResult(result) }); } return memo.get(key); };
+    const score = input => { const key = JSON.stringify(input); if (!memo.has(key)) { const result = AIR.engine.score(input, scoring), { score, parsed, coverage, readable } = result; memo.set(key, { score, parsed, coverage, readable, breakdown: H.fromResult(result) }); } return memo.get(key); };
     scoreInput = score;
     const records = H.merge([], conf.purchaseHistory), result = [];
     if ($('driverBasis').value === 'current') $('driversNote').textContent = 'Analysing saved labels locally…';

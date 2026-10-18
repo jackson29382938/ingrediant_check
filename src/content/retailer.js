@@ -12,7 +12,6 @@
 
   const HOST_ID = 'air-score-panel';
   const BADGE_CLASS = 'air-badge';
-  const MIN_COVERAGE = 0.34;           // the same gate as the Amazon pipeline (src/content/page.js)
   const WAIT_FOR_LABEL_MS = 15000;      // how long a product page may take to render its label
   const P = root.AIR.panel;
   const CACHE = root.AIR.db.scoreCache;
@@ -84,7 +83,7 @@
 
   function scoreText(host, data, text, via) {
     const result = root.AIR.engine.score({ name: data.title, ingredients_text: text, advisory_text: data.advisoryText, nutrition: data.nutrition }, state.prefs);
-    if (!result.parsed || result.coverage < MIN_COVERAGE) {
+    if (!root.AIR.engine.isReadable(result)) {
       show(host, P.renderFailure({ lowCoverage: true, storeName: adapter.name }), 'fail', { paste: onPaste(host, data) });
       badge({ status: 'fail' });
       return;
@@ -281,7 +280,7 @@
         }
         const result = root.AIR.engine.score({ name: data.title, ingredients_text: data.ingredients,
           advisory_text: data.advisoryText, nutrition: data.nutrition }, state.prefs);
-        if (!result.parsed || result.coverage < MIN_COVERAGE) throw new Error('unavailable');
+        if (!root.AIR.engine.isReadable(result)) throw new Error('unavailable');
         const entry = cacheEntry(job.id, result, data.title, 'page');
         state.requests.set(job.id, { hit: entry });
         try { await chrome.storage.local.set({ [CACHE.key(STORE, job.id)]: entry }); }

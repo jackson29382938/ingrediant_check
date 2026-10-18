@@ -5,7 +5,7 @@
     if (mode === 'current') {
       const input = record.input || (record.ingredients ? { name: record.name, ingredients_text: record.ingredients } : null);
       partial = !record.input;
-      if (input) { const result = score(input); if (result?.parsed && result.coverage >= 0.34 && Number.isFinite(result.score)) current = result.score; }
+      if (input) { const result = score(input); if (result?.readable && Number.isFinite(result.score)) current = result.score; }
     }
     return { record, score: mode === 'current' ? current : record.score, recorded: record.score, current,
       delta: current !== null && record.score !== null ? current - record.score : null, partial };
@@ -16,7 +16,7 @@
       eligible++;
       const input = record.input || (record.ingredients ? { name: record.name, ingredients_text: record.ingredients } : null);
       let breakdown = record.breakdown;
-      if (basis === 'current') { const result = input && scorer(input); breakdown = result?.parsed && result.coverage >= 0.34 ? breakdownOf(result) : null; }
+      if (basis === 'current') { const result = input && scorer(input); breakdown = result?.readable ? breakdownOf(result) : null; }
       if (!breakdown) continue;
       covered++; base += breakdown.base;
       for (const row of breakdown.rows) {

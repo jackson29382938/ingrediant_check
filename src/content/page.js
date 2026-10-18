@@ -73,9 +73,9 @@
 
   // Below this share of the ingredient list matching anything the rulebase knows, the score is not
   // evidence about the product — it is evidence that the rules are in the wrong language.
-  const MIN_COVERAGE = 0.34;
+  // The gate itself lives in the engine (AIR.engine.MIN_COVERAGE), so every pipeline shares one number.
   const unreadable = result =>
-    typeof result.coverage === 'number' && result.parsed > 0 && result.coverage < MIN_COVERAGE;
+    typeof result.coverage === 'number' && result.parsed > 0 && !root.AIR.engine.isReadable(result);
 
   // `extra` is { outcome, feedback } for rows that are not a plain score: a scan that produced none,
   // or a reader's "Looks wrong?" click. `result` may be null then.
@@ -173,7 +173,7 @@
     HOST_ID, BADGE_ATTR, state, ENGINE_VERSION, CACHE,
     cachePrefs, cacheKey, usableCache, recallCache, freshLocal, sharedOk, sharedProductsOn, speed, pace, storeHost, ingredientSig,
     MAX_EXTRACT_RETRIES, isProductPage, isListPage, isRelevantPage,
-    MIN_COVERAGE, unreadable,
+    unreadable,
     sendDiagnostic, publishActionBadge, cacheScore, cache, rememberProduct, logAction,
   };
   root.AIR.page = page;

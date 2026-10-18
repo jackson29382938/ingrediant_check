@@ -86,7 +86,7 @@
   function rate(input, source, conf) {
     if (!input.ingredients_text) return null;
     const result = A.engine.score(input, A.db.prefs.sanitizeScoring(conf));
-    if (!result.parsed || result.coverage < 0.34) return null;
+    if (!A.engine.isReadable(result)) return null;
     return { breakdown: H.fromResult(result), score: result.score, ingredients: input.ingredients_text, flags: (result.flags || []).map(f => f.label || f.name || f.message || f.id || '').filter(Boolean), scoredAt: Date.now(), input, source };
   }
   async function fallback(reading, conf, turn, status) {
@@ -118,7 +118,7 @@
     if (row && row.store === 'amazon.com' && row.asin === line.asin && row.status === 'ok' && row.data.food !== false && !P.stale(row, Date.now(), age)
       && (!/ocr/i.test(row.data.via) || toggles.ocrLabels) && (row.data.via !== 'open-food-facts' || toggles.useOpenFoodFacts)) {
       const result = A.engine.score(P.toInput(row), A.db.prefs.sanitizeScoring(conf));
-      if (result.parsed && result.coverage >= 0.34) return { breakdown: H.fromResult(result), score: result.score, scoredAt: Date.now(), ingredients: row.data.text, input: P.toInput(row), flags: (result.flags || []).map(f => f.label || f.name || f.id || '').filter(Boolean) };
+      if (A.engine.isReadable(result)) return { breakdown: H.fromResult(result), score: result.score, scoredAt: Date.now(), ingredients: row.data.text, input: P.toInput(row), flags: (result.flags || []).map(f => f.label || f.name || f.id || '').filter(Boolean) };
     }
     const hit = saved[scoreKey];
     return cache.valid(hit, { store: location.hostname, asin: line.asin, version, prefs: conf, maxAgeMs: age }) ? { score: hit.score, scoredAt: hit.t, ingredients: '', flags: [] } : null;

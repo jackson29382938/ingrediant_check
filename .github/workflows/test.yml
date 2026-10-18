@@ -8,12 +8,23 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Read-only by default; a newer push to the same pull request cancels the run it supersedes.
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
+      fail-fast: false
+      # engines.node is >=20; 24 is the current LTS line the scoring audit was last validated on.
       matrix:
-        node: ['20', '22']
+        node: ['20', '22', '24']
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -25,6 +36,7 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -36,6 +48,7 @@ jobs:
 
   harness:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -49,6 +62,7 @@ jobs:
 
   firefox:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6

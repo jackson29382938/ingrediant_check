@@ -26,6 +26,15 @@ const { oils, sugars, additives: add, labels } = db;
 const HYDROGENATED_OIL = oils.HARD.find(r => r.id === 'hydrogen').m;
 
 const NOVA_BASE = { 1: 96, 2: 90, 3: 80, 4: 60 };
+
+// Below this share of the list matching anything the rulebase knows, a score is not evidence about the
+// product; it is evidence that the rules are in the wrong language (or that the text is not a food
+// list at all). One definition, because eight call sites each kept their own copy of the number, and
+// because a list with nothing in it scores 90: with no entries every "all culinary" test passes
+// vacuously. `readable` is the only question a caller should ask before showing a score.
+const MIN_COVERAGE = 0.34;
+const isReadable = r => !!r && r.parsed > 0 && typeof r.coverage === 'number' && r.coverage >= MIN_COVERAGE
+  && Number.isFinite(r.score);
 const BANDS = [[90, 'Excellent'], [75, 'Good'], [50, 'Mediocre'], [25, 'Poor'], [0, 'Avoid']];
 const SCORE_FLOOR = 3;
 
@@ -324,6 +333,13 @@ const COMMON_PANEL = new RegExp('\\b(?:' + [
   // Benign E-numbers, so an EU list written in codes is still recognised as a list. Every E-number
   // that a rule charges is recognised through that rule; these are the ones nothing charges.
   'e[- ]?(?:100|120|14[01]|16[0-3][a-i]?|262|32[5-7]|33[1-3]|40[1-6]|440a?|50[0-4](?:i{1,3})?|50[89]|524|57[45]|49[1-5]|901|903|941|948)',
+  // Plain English foods and seasonings that real lists name and no rule charges. Each missed `\\b` on a
+  // plural or compound ("blackberries" beside "berries", "flaxseed" beside "flax"), so "Shallots" or
+  // "Okra, water, salt" read as unrecognised and a clean list could fall under the coverage gate.
+  'blackberr(?:y|ies)|pomegranates?|papayas?|guavas?|kiwis?|kiwifruit|a[çc]a[íi]|acai|elderberr(?:y|ies)|mulberr(?:y|ies)|lingonberr(?:y|ies)|sea buckthorn|tart cherr(?:y|ies)|rhubarb|chestnuts?|bulgur|freekeh|polenta|grits|popcorn|oatmeal|flaxseeds?',
+  'jalape[ñn]os?|habaneros?|poblanos?|chipotles?|sun-?dried tomato(?:es)?|roasted red peppers?|scallions?|shallots?|leeks?|bok choy|brussels sprouts?|collard greens?|chard|arugula|rocket|yams?|cassava|yuca|plantains?|jackfruit|bamboo shoots?|okra|kohlrabi|rutabaga|watercress|endive|radicchio|dulse|konjac',
+  'carob|rooibos|hibiscus|chamomile|peppermint|spearmint|caraway|sumac|za.?atar|wasabi|horseradish|capers?|pickles?|harissa|sriracha|tabasco|hot sauce|hoisin|tamari|worcestershire|mirin|curry(?: powder| leaves)?|garam masala',
+  'ricotta|feta|skyr|lobster|squid|calamari|prosciutto|pancetta|salami|pepperoni|chorizo|rabbit|seitan|krill oil|algal oil|mct oil|selenium|chromium|manganese|molybdenum',
 ].join('|') + ')\\b'
   + '|(?<![a-zß-ÿ\\u0100-\\u017f])(?:ägg|äggula|äggvita|äpple|äpplen|ärtor|ärter|[śs]mietan[a-zß-ÿ\\u0100-\\u017f]*|łoso[śs]|żyto'
   // Turkish staples: most end or begin in ı, ş, ğ, ç or ü, so they take the same boundaries.
@@ -457,7 +473,11 @@ function recognitionCoverage(entries) {
 // A trailing quantity ("sugar 20%", "Zucker 45 %", "hazelnuts min. 13%") is how EU labels declare
 // the share of an ingredient, and every rule anchored at the end of the entry failed on it: the
 // sugar in "sugar 20%" was charged nothing. The share is dropped from the entry the rules see.
-const TRAILING_SHARE = /\s*(?:\b(?:min(?:imum)?|max(?:imum)?|ca|approx)\.?\s*|<\s*|>\s*)?(?:\d+(?:[.,]\d+)?\s*%|%\s*\d+(?:[.,]\d+)?)$/i;
+const TRAILING_SHARE = /\s*(?:\b(?:min(?:imum)?|max(?:imum)?|ca|approx)\.?\s*|<\s*|>\s*)?(?:\d+(?:[.,]\d+)?\s*(?:%|per ?cent)|%\s*\d+(?:[.,]\d+)?)$/i;
+// "Wheat flour - 60%", "Sugar: 20%", "Salt = 1%": the separator belongs to the declaration, and left on the
+// entry it hid the ingredient from every rule anchored at the end ("sugar -" was charged nothing).
+const SHARE_SEPARATOR = /[\s\-–—:=~≈]+$/;
+const dropShare = s => { const bare = s.replace(TRAILING_SHARE, ''); return bare === s ? s : bare.replace(SHARE_SEPARATOR, ''); };
 // Organic and footnote markers ("sucre*", "cane sugar #", "lait°") hid the ingredient from anchored rules.
 const MARKERS = /[*°¹²³†‡#]+/g;
 // The share in front ("19,5% sucre", "46% flocons d'avoine"), and an ingredient heading left inside
@@ -465,8 +485,8 @@ const MARKERS = /[*°¹²³†‡#]+/g;
 // "1% milk" and "2% milk" are a fat level, not a share, and the fat-reduced dairy rule reads them.
 const LEADING_SHARE = /^(?:\d+(?:[.,]\d+)?\s*%|%\s*\d+(?:[.,]\d+)?)\s+(?=\D)(?!(?:\S+\s+){0,2}(?:milk|milkfat|dairy|yogh?urt|cheese|kefir|cream|buttermilk|chocolate milk)\b)/;
 const LEADING_HEADING = /^(?:ingredients?|zutaten|ingr[ée]dients|ingredientes|ingredienti|ingredi[ëe]nten|ingredienser|sk[łl]ad(?:niki)?|i[çc]indekiler)\s*:\s*/i;
-const tidy = s => s.replace(MARKERS, ' ').replace(/^[\s*•\-–:]+/, '').replace(/\s+/g, ' ').trim().toLowerCase().replace(/i\u0307/g, 'i')
-  .replace(TRAILING_SHARE, '').trim().replace(LEADING_HEADING, '').replace(LEADING_SHARE, '');
+const tidy = s => dropShare(s.replace(MARKERS, ' ').replace(/^[\s*•\-–:]+/, '').replace(/\s+/g, ' ').trim().toLowerCase().replace(/i\u0307/g, 'i'))
+  .trim().replace(LEADING_HEADING, '').replace(LEADING_SHARE, '');
 const usable = s => s.length > 1 && s.length < 80;
 
 // Split on commas at the TOP level only, leaving parenthesised sub-lists attached to their parent.
@@ -547,6 +567,7 @@ const isFunctionWord = head => add.UNNAMED.some(r => r.m.test(head)) || SWEETENE
 // brackets it came from (0 at the top level), so a function word can be told apart from its
 // siblings in a sub-list.
 function expandEntry(raw, depth = 0, ids = { n: 0 }, parent = 0) {
+  if (raw.trim() === MINOR_MARK) return [];   // a marker inside brackets has no list to demote
   const fam = ++ids.n;
   const part = lecithinWithSource(colonAsParenthesis(raw));
   // A "may contain" statement stays one entry, brackets and all: "may contain cereals containing
@@ -556,9 +577,10 @@ function expandEntry(raw, depth = 0, ids = { n: 0 }, parent = 0) {
   // (The text outside brackets comes from one linear pass: the pattern /\([^)]*\)/ took 150 ms on a
   // run of 20,000 open brackets, once per level.)
   const { head, groups } = bracketGroups(part);
-  if (MAY_CONTAIN.test(tidy(head))) {
-    const whole = tidy(part.replace(/[()]/g, ' ').replace(/\s+/g, ' ').replace(/ ,/g, ',')).slice(0, 400);
-    return whole.length > 1 ? [{ ing: whole, fam, parent }] : [];
+  const whole = () => tidy(part.replace(/[()]/g, ' ').replace(/\s+/g, ' ').replace(/ ,/g, ',')).slice(0, 400);
+  if (MAY_CONTAIN.test(tidy(head)) || (depth === 0 && allergenDeclaration(whole()))) {
+    const statement = whole();
+    return statement.length > 1 ? [{ ing: statement, fam, parent }] : [];
   }
   // Brackets are read by depth. The flat pattern closed "milk chocolate (sugar, emulsifier:
   // lecithins (soy), flavouring: vanillin)" at the inner ")", so ", flavouring: vanillin)" stayed in
@@ -578,7 +600,7 @@ function expandEntry(raw, depth = 0, ids = { n: 0 }, parent = 0) {
       else pieces.push({ ing: one, fam: ++ids.n, parent: fam });
     }
   }
-  return pieces.filter(p => usable(p.ing));
+  return pieces.filter(p => usable(p.ing) && !p.ing.includes(MINOR_MARK));
 }
 
 // The text outside brackets, and each top-level bracket's contents with its own brackets kept.
@@ -603,17 +625,39 @@ function bracketGroups(part) {
 }
 
 // "May contain milk, soy, wheat." is one statement to the end of its sentence. Split at its commas,
-// "soy" and "wheat" became ingredients of their own and wheat was charged (72 against 94).
+// "soy" and "wheat" became ingredients of their own and wheat was charged (72 against 94). The same holds
+// for the allergen line US labels print under the list: "CONTAINS: MILK, SOY." Read as ingredients, its
+// entries were unrecognised words, which made "Oats, Honey" NOVA 3 with a 15-point lower score.
 function joinStatements(parts) {
   const out = [];
-  let open = null;
-  parts.forEach((part, i) => {
-    if (open) open.push(part);
-    else if (MAY_CONTAIN.test(tidy(bracketGroups(part).head))) open = [part];
-    else out.push(part);
-    if (open && (parts.sentenceEnds.has(i) || i === parts.length - 1)) { out.push(open.join(', ')); open = null; }
-  });
+  for (let i = 0; i < parts.length; i++) {
+    const head = tidy(bracketGroups(parts[i]).head);
+    const may = MAY_CONTAIN.test(head);
+    if (!may && !DECLARATION_HEAD.test(head)) { out.push(parts[i]); continue; }
+    let end = i;
+    while (end < parts.length - 1 && !parts.sentenceEnds.has(end)) end++;
+    const joined = parts.slice(i, end + 1).join(', ');
+    // A declaration is only an allergen line when every item in it names an allergen: "Contains: sugar,
+    // salt" is a list, and keeps scoring as one.
+    if (may || allergenDeclaration(tidy(joined))) { out.push(joined); i = end; } else out.push(parts[i]);
+  }
   return out;
+}
+
+// "Contains: milk, soy", "Allergens: wheat", "Contains peanuts and tree nuts (almonds)." — the statement
+// that closes a US or EU label, in the store languages. Everything after the heading must be an allergen
+// (or "none"), so a real ingredient written after the word "contains" is never mistaken for one. Turkish
+// writes the verb after the allergens ("Süt, soya içerir"), which this does not read.
+const DECLARATION_HEAD = /^(?:allerg(?:en|y)s?(?: (?:information|advice|statement|warning|note))?\s*[:\-–]|(?:contains?|contiene|enth[äa]lt|contient|cont[ée]m|bevat|inneh[åa]ller|zawiera)(?:\s*[:\-–]\s*|\s+)(?=\S))/i;
+const NO_ALLERGEN = /^(?:none|nil|n\/a|no allergens?|nothing)$/i;
+const DECLARATION_ITEMS = /[,;]|\s(?:and|&|und|et|y|e|en|och|ve|oraz)\s/i;
+function allergenDeclaration(text) {
+  const head = DECLARATION_HEAD.exec(text);
+  if (!head || !db.allergens) return false;
+  const items = text.slice(head[0].length).replace(/\([^)]*\)/g, ' ').split(DECLARATION_ITEMS)
+    .map(item => item.trim().replace(/[.:]$/, '')).filter(Boolean);
+  return items.length > 0 && items.length <= 14
+    && items.every(item => NO_ALLERGEN.test(item) || db.allergens.ALLERGENS.some(a => a.m.test(item)));
 }
 
 // An organic qualifier before or after the ingredient. EU labels write it after ("sucre bio",
@@ -642,7 +686,7 @@ function withoutOrganic(ing) {
 const CONJUNCTION = /\s(?:and|&|und|et|e|y|i|en|och|ve|oraz)\s/i;
 function splitConjunction(e) {
   const ing = tidy(e.ing);
-  if (!CONJUNCTION.test(ing) || MAY_CONTAIN.test(ing) || LABEL_NOTE.test(ing)) return [e];
+  if (!CONJUNCTION.test(ing) || MAY_CONTAIN.test(ing) || LABEL_NOTE.test(ing) || allergenDeclaration(ing)) return [e];
   if (PENALTIES.some(r => eitherForm(r.m, ing)) || CAPS.some(c => eitherForm(c.m, ing))) return [e];
   const pieces = ing.split(new RegExp(CONJUNCTION.source, 'gi')).map(p => p.trim());
   if (pieces.length < 2 || !pieces.every(p => p.length > 1 && recognised(withoutOrganic(p) || p))) return [e];
@@ -657,17 +701,28 @@ function parseEntries(text) {
   // "FD&C Red No. 40" and "Red #40" are how US labels print dyes. The full stop after "No" ended the
   // entry ("fd&c red no" / "40"), so the dye went unread; both now read as "no 40".
   const numbered = text.replace(/\bno\.\s*(?=\d)/gi, 'no ').replace(/#\s*(?=\d)/g, 'no ');
-  const flat = joinStrains(numbered.replace(/\b((?:contains )?(?:less than \d+(?:\.\d+)?% of|\d+(?:\.\d+)?% or less of)|and\/or)\b/gi, ','));
+  // "Contains 2% or less of:" opens the block US labels use for everything below two percent. It used to
+  // be flattened to a comma, so trace ingredients kept the weight of their list position; it is now
+  // kept as a marker and every top-level entry after it is weighted as a minor ingredient. Only a
+  // limit of two percent or less marks that block ("less than 5% of" is a plain separator).
+  const flat = joinStrains(numbered.replace(/\b(?:(?:contains )?(?:less than (\d+(?:\.\d+)?)% of|(\d+(?:\.\d+)?)% or less of)|and\/or)\b/gi,
+    (all, lessThan, orLess) => (lessThan ?? orLess) !== undefined && parseFloat(lessThan ?? orLess) <= MINOR_LIMIT ? `,${MINOR_MARK},` : ','))
+    // "...of the following: sugar" left the lead-in glued to the first ingredient ("the following: sugar"),
+    // which no anchored rule could read: that sugar was charged nothing.
+    .replace(LEAD_IN, ',');
   const out = [], ids = { n: 0 };
-  let pos = -1, strainRun = false;
+  let pos = -1, strainRun = false, minor = false;
   for (const part of joinStatements(splitTopLevel(flat))) {
+    if (part.trim() === MINOR_MARK) { minor = true; continue; }
+    const share = shareOf(part);
     const strain = STRAIN_ENTRY.test(tidy(part));
     if (!(strain && strainRun)) pos++;
     strainRun = strain;
     for (const x of expandEntry(part, 0, ids)) {
       for (const e of splitConjunction(x)) {
         const bare = withoutOrganic(e.ing);
-        out.push({ ing: bare || e.ing, pos, fam: e.fam, parent: e.parent, ...(bare ? { organic: true } : {}) });
+        out.push({ ing: bare || e.ing, pos, fam: e.fam, parent: e.parent, ...(bare ? { organic: true } : {}),
+          ...(share != null ? { share } : {}), ...(minor ? { minor: true } : {}) });
       }
     }
   }
@@ -675,13 +730,43 @@ function parseEntries(text) {
 }
 
 function parse(text) {
-  return parseEntries(text).map(e => e.ing);
+  return parseEntries(cleanText(text)).map(e => e.ing);
 }
 
 // Earlier ingredients make up more of the product, so they carry more weight. Indexed by TOP-LEVEL
 // position: a sub-ingredient declared inside the first item shares the first item's weight.
 const POSITION_WEIGHTS = [1.5, 1.25, 1, 0.5];
 const weight = i => POSITION_WEIGHTS[i === 0 ? 0 : i <= 2 ? 1 : i <= 6 ? 2 : 3];
+
+// Position is only a proxy for quantity. When a label declares the quantity ("Hazelnuts 13%",
+// "sugar 60%", "46% flocons d'avoine"), the declaration is better evidence than the rank, and it was
+// being discarded: "oats 98%, sugar 2%" scored exactly like "oats 60%, sugar 40%". A declared share
+// picks the same four tiers the list positions do, so nothing is rescaled: at least a quarter of the
+// product weighs like the first ingredient, a tenth like the next two, two percent like the middle of
+// the list, and anything under two percent like the tail. Sub-ingredients take their parent's share.
+// Entries after a "contains 2% or less of" marker are minor, whatever their position.
+const SHARE_TIERS = [[25, 0], [10, 1], [2, 2]];
+const MINOR_LIMIT = 2;
+const MINOR_MARK = '\u0001minor\u0001';
+const LEAD_IN = /\b(?:contains\s+)?(?:(?:one|any) or more of\s+|any of\s+|all of\s+)?the following(?:\s+ingredients?)?\s*:/gi;
+const shareWeight = pct => POSITION_WEIGHTS[(SHARE_TIERS.find(([min]) => pct >= min) || [0, 3])[1]];
+const entryWeight = e => {
+  const w = e.share != null ? shareWeight(e.share) : weight(e.pos);
+  return e.minor ? Math.min(w, POSITION_WEIGHTS[3]) : w;
+};
+const SHARE_NUMBER = /\d+(?:[.,]\d+)?/;
+// A bracket that holds nothing but a quantity: "Hazelnuts (13%)", "Skimmed milk powder (8.7 %)", "Oats (min. 60%)".
+const BRACKET_SHARE = /^(?:(?:min(?:imum)?|max(?:imum)?|ca|approx)\.?\s*|[<>]\s*)?(\d+(?:[.,]\d+)?)\s*(?:%|per ?cent)$/i;
+// The quantity a top-level entry declares: in front of or after its own text, or alone in its bracket.
+function shareOf(part) {
+  const { head: outside, groups } = bracketGroups(part);
+  const head = outside.replace(MARKERS, ' ').replace(/^[\s*•\-–:]+/, '').replace(/\s+/g, ' ').trim().toLowerCase();
+  const m = TRAILING_SHARE.exec(head)
+    || LEADING_SHARE.exec(head.replace(TRAILING_SHARE, '').trim().replace(LEADING_HEADING, ''));
+  const alone = m ? null : groups.map(g => BRACKET_SHARE.exec(g.trim())).find(Boolean);
+  const pct = m ? parseFloat(SHARE_NUMBER.exec(m[0])[0].replace(',', '.')) : alone ? parseFloat(alone[1].replace(',', '.')) : NaN;
+  return pct > 0 && pct <= 100 ? pct : null;
+}
 
 // ---------------------------------------------------------------- NOVA
 function novaClass(list, text, hardHits, softHits) {
@@ -773,6 +858,34 @@ const LABEL_NOTE = new RegExp('^(?:(?:\\*\\s*)?(?:(?:certified )?organic ingredi
   + '|confezionato in atmosfera protettiva|embalado em atmosfera protetora|verpakt onder beschermende atmosfeer|f[öo]rpackad i skyddande atmosf[äa]r|pakowano w atmosferze ochronnej|koruyucu atmosferde paketlenmi[şs]tir'
   + '|contient (?:de l[\'’])?alcool|gluten i[çc]erir)', 'i');
 
+// ---------------------------------------------------------------- text hygiene
+// The characters a list is written with are not always the ones the parser splits on. Text from a store
+// API, an OCR pass or a copied page arrives with zero-width characters inside words, full-width and
+// Arabic commas, bullets or pipes between items, and HTML left in. Each glued two ingredients into one
+// unreadable entry, and an entry no rule can read is charged nothing: "Oats， Sugar" scored 90 where
+// "Oats, Sugar" scores 65. Newlines are deliberately NOT separators, because a label wraps lines in the
+// middle of one ingredient ("high fructose\ncorn syrup").
+const INVISIBLE = /[\u00ad\u200b-\u200d\u2060\ufeff]/g;
+const HTML_TAG = /<\/?[a-z][^<>]{0,200}>/gi;
+const HTML_ENTITY = /&(#x[0-9a-f]{1,6}|#\d{1,7}|[a-z]{2,8});/gi;
+const ENTITY_TEXT = { amp: '&', nbsp: ' ', quot: '"', apos: "'", lt: '<', gt: '>', ndash: '-', mdash: '-' };
+function entityText(whole, name) {
+  const key = name.toLowerCase();
+  if (key[0] === '#') {
+    const code = key[1] === 'x' ? parseInt(key.slice(2), 16) : parseInt(key.slice(1), 10);
+    return code > 0 && code < 0x110000 ? String.fromCodePoint(code) : ' ';
+  }
+  return Object.prototype.hasOwnProperty.call(ENTITY_TEXT, key) ? ENTITY_TEXT[key] : whole;
+}
+function cleanText(value) {
+  return String(value ?? '')
+    .replace(HTML_TAG, ' ').replace(HTML_ENTITY, entityText)
+    .replace(INVISIBLE, '')
+    .replace(/[，、،﹐﹑]/g, ',').replace(/[；؛]/g, ';').replace(/：/g, ':').replace(/％/g, '%')
+    .replace(/[（［｛]/g, '(').replace(/[）］｝]/g, ')')
+    .replace(/[•●▪◦‣⁃·｜|]/g, ',');
+}
+
 // ---------------------------------------------------------------- scoring
 // options: { weights, allergens, diets, avoidList }
 function score(product, options = {}) {
@@ -786,7 +899,7 @@ function score(product, options = {}) {
   // are read as the parentheses they stand for.
   // A hyphen left from a line break keeps its spaces in Open Food Facts text ("mono - i diglicerydy",
   // "glucose - fructosestroop", "zuurte - regelaar"), which no rule reads; it is closed up.
-  const rawTxt = String(product.ingredients_text || '').replace(/_+/g, '').replace(/[[{]/g, '(').replace(/[\]}]/g, ')')
+  const rawTxt = cleanText(product.ingredients_text || '').replace(/_+/g, '').replace(/[[{]/g, '(').replace(/[\]}]/g, ')')
     .replace(/([a-zß-ÿœ\u0100-\u017f]) +- +([a-zß-ÿœ\u0100-\u017f])/gi, '$1-$2');
   // Parse the list as written, then drop only the entries that are themselves denials. The
   // scoring surface is rebuilt from what survives, so caps and penalties see the real ingredients
@@ -797,14 +910,17 @@ function score(product, options = {}) {
   const parsed = parseEntries(rawTxt);
   const aside = e => MAY_CONTAIN.test(e.ing) || LABEL_NOTE.test(e.ing);
   const mayContain = [...parsed.filter(aside).map(e => e.ing), ...(product.advisory_text ? [String(product.advisory_text)] : [])];
-  const listed = parsed.filter(e => !isDenialEntry(e.ing) && !aside(e));
+  // The label's own allergen line ("Contains: milk, soy") is set aside from scoring but, unlike a "may contain"
+  // warning, it also feeds the avoid list: a reader who avoids soy asked about exactly this.
+  const statements = parsed.filter(e => e.parent === 0 && allergenDeclaration(e.ing)).map(e => e.ing);
+  const listed = parsed.filter(e => !isDenialEntry(e.ing) && !aside(e) && !(e.parent === 0 && statements.includes(e.ing)));
   // An allergen bracket that only repeats its parent ("Cacahuètes (arachides)", "Arachidi
   // (arachidi)", "cheese (milk)") is a declaration, not a second ingredient: counted as one it made
   // a three-ingredient peanut list four, and NOVA 3 where the English is NOVA 2. It still feeds the
   // allergen flags and the avoid list, where the word it uses may be the one that matters.
   const repeats = new Set(repeatedAllergenBrackets(listed));
   const entries = listed.filter(e => !repeats.has(e));
-  const declared = [...repeats].map(e => e.ing);
+  const declared = [...[...repeats].map(e => e.ing), ...statements];
   // Close the gaps left by dropped claim entries, so a leading "no artificial colors" does not
   // leave the real first ingredient sitting at position 1.
   const dense = new Map();
@@ -882,8 +998,9 @@ function score(product, options = {}) {
   const firstFullFat = entries.reduce((min, e) => (e.pos < min && labels.isFullFatDairy && labels.isFullFatDairy(e.ing) ? e.pos : min), Infinity);
   const fullFatBefore = pos => firstFullFat < pos;
 
-  entries.forEach(({ ing, pos, fam }) => {
-    const w = weight(pos);
+  entries.forEach(entry => {
+    const { ing, pos, fam } = entry;
+    const w = entryWeight(entry);
     const tripped = penaltiesFor(ing);
 
     const isFreeSugar = hitsAny(sugars.FREE, ing);
@@ -1270,6 +1387,7 @@ function score(product, options = {}) {
     good, bad,
     parsed: list.length,
     coverage, nutritionBasis:nutritionInfo.basis,
+    readable: list.length > 0 && coverage >= MIN_COVERAGE,
     ruleCount: PENALTIES.length + CAPS.length + labels.BONUSES.length,
   };
 }
@@ -1278,6 +1396,9 @@ const SCORING_POLICY = Object.freeze({floor:SCORE_FLOOR, ceilingKnee:CEIL_KNEE, 
   penaltySaturation:PENALTY_SATURATION, groupExtra:GROUP_EXTRA, groupCeiling:GROUP_CEIL,
   goalRewardCap:GOAL_REWARD_CAP, provenanceBonusCap:PROVENANCE_BONUS_CAP,
   provenanceUnknownCost:PROVENANCE_UNKNOWN_COST, provenanceClaimCost:PROVENANCE_CLAIM_COST,
-  singleIngredientBonus:SINGLE_INGREDIENT_BONUS, positionWeights:POSITION_WEIGHTS});
-return { score, parse, parseEntries, stripNegations, PENALTIES, CAPS, BANDS, NOVA_BASE, NUTRITION, normaliseNutrition, SCORING_POLICY };
+  singleIngredientBonus:SINGLE_INGREDIENT_BONUS, positionWeights:POSITION_WEIGHTS,
+  shareTiers:SHARE_TIERS.map(([min, tier]) => `${min}%+ → ${POSITION_WEIGHTS[tier]}`).concat(`under 2% → ${POSITION_WEIGHTS[3]}`),
+  minorBlockLimit:MINOR_LIMIT, minCoverage:MIN_COVERAGE});
+return { score, parse, parseEntries, stripNegations, PENALTIES, CAPS, BANDS, NOVA_BASE, NUTRITION, normaliseNutrition, SCORING_POLICY,
+  MIN_COVERAGE, isReadable };
 });

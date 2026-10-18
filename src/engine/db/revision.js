@@ -14,10 +14,11 @@
 if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./_module.js');
 
 (function () {
-  const RULES_REVISION = '2026-10-03.1';
-  // 1.15.1 changes only the Node loader (require -> module.require). Keep the scoring revision:
-  // browser scoring rules and their results are unchanged.
-  const RULES_HASH = 'ab65a4e1-281129';
+  // 2026-10-18.1: declared shares and "contains 2% or less of" blocks set an ingredient's weight, the
+  // label's own allergen line is no longer scored as ingredients, and text written with full-width,
+  // bullet or HTML separators is read as the list it is. See docs/releases/1.16.0.md.
+  const RULES_REVISION = '2026-10-18.1';
+  const RULES_HASH = '2d8a764c-290855';
   const _exports = AIRmodule('revision', { RULES_REVISION, RULES_HASH });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 })();

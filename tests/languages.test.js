@@ -24,15 +24,8 @@ const corpus = require('./corpus.json');
 const EVIDENCE = new Set(['live-capture', 'representative', 'synthetic']);
 const entries = [...corpus.products, ...corpus.defects];
 
-// The gate the content script applies. Read from source rather than imported, because page.js is a
-// content script that expects a browser around it.
-function pageGate() {
-  const src = fs.readFileSync(path.join(__dirname, '..', 'src', 'content', 'page.js'), 'utf8');
-  const m = src.match(/const MIN_COVERAGE = ([\d.]+);/);
-  assert.ok(m, 'MIN_COVERAGE not found in src/content/page.js');
-  return Number(m[1]);
-}
-const GATE = pageGate();
+// The gate every pipeline applies: one definition in the engine, shared by the content scripts.
+const GATE = engine.MIN_COVERAGE;
 const declined = r => r.parsed > 0 && r.coverage < GATE;
 
 test('every corpus entry declares its language and evidence', () => {
@@ -71,9 +64,15 @@ test('the coverage gate stays where the corpus was calibrated', () => {
   // Lowering the gate makes more products score, and the twins below show what it would score
   // them as. Change it only with evidence from real labels, and update this number on purpose.
   assert.equal(GATE, 0.34);
+  // No caller keeps its own copy of the number: the engine owns it, and a content script that
+  // redeclares it would drift from the gate the corpus was calibrated against.
+  const root = path.join(__dirname, '..', 'src');
+  for (const file of ['content/page.js', 'content/retailer.js', 'content/cart.js', 'content/orders.js', 'engine/db/purchase-analytics.js']) {
+    const src = fs.readFileSync(path.join(root, file), 'utf8');
+    assert.doesNotMatch(src, /\b0\.34\b|const MIN_COVERAGE\b/, `${file} carries its own coverage gate; use engine.isReadable`);
+  }
   const corpusSrc = fs.readFileSync(path.join(__dirname, 'corpus.test.js'), 'utf8');
-  assert.match(corpusSrc, new RegExp(`const MIN_COVERAGE = ${GATE};`),
-    'tests/corpus.test.js checks coverage against a different gate than the content script');
+  assert.match(corpusSrc, /engine\.MIN_COVERAGE/, 'tests/corpus.test.js must read the engine gate');
 });
 
 // English list first, then synthetic translations into storefront languages.
