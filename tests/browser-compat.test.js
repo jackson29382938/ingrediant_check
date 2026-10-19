@@ -60,6 +60,18 @@ test('Firefox native RuntimeMessage actor teardown is separated without hiding a
   ], base);
   assert.equal(result.inactive.length, 1); assert.equal(result.errors.length, 3);
 });
+test('Firefox native "resolved after context unloaded" is separated only when it is exactly that message', async () => {
+  const { firefoxConsole } = await import('../scripts/firefox-console.mjs'), base = 'moz-extension://own/';
+  const native = 'Promise resolved after context unloaded';
+  const result = firefoxConsole([
+    { source: base + 'browser-compat.js', message: native + '\n' },
+    { source: base + 'app.js', message: native + ': database write failed' },
+    { source: base + 'app.js', message: 'Error: ' + native },
+    { source: base + 'app.js', message: 'Promise rejected after context unloaded' },
+    { source: 'moz-extension://other/app.js', message: native },
+  ], base);
+  assert.equal(result.inactive.length, 1); assert.equal(result.errors.length, 3);
+});
 test('Firefox concurrent OCR requests wait for a loaded host and can retry a failed load', async () => {
   let frame, attempts = 0, opens = 0;
   const context = { browser: { runtime: { getURL: p => 'moz-extension://own/' + p }, sidebarAction: { open() { opens++; return Promise.resolve(); } } },
