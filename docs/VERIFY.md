@@ -128,16 +128,17 @@ Measured with `tests/harness-lifecycle.html`, which counts what the content scri
 Previously the observer stayed connected for the life of the page and re-ran the full extraction on
 every Amazon ad refresh, on non-food pages included.
 
-## 7. Sort by score or price per ounce
+## 7. Sort by score or unit price
 
 Reload the extension in `chrome://extensions` first, then open an Amazon grocery search
 (`organic rolled oats`).
 
-1. Open Amazon's **Sort by** menu. *Price per ounce: Low to High* sits under *Price: Low to High*, and
+1. Open Amazon's **Sort by** menu. *Price per …: Low to High* (the unit most listings on the page use: ounce,
+   gallon, count…) sits under *Price: Low to High*, and
    *Ingredient Check score: High to Low* is at the end.
-2. Choose **Price per ounce: Low to High**. Chrome's side panel opens beside the page, and Amazon's
+2. Choose **Price per …: Low to High**. Chrome's side panel opens beside the page, and Amazon's
    page does not change or reload. The panel says *Reading Amazon listings…*, then fills in, cheapest
-   per ounce first. With *Rate every search result* on, listings without a score are rated while you
+   per unit first. With *Rate every search result* on, listings without a score are rated while you
    watch; **Stop rating** halts that.
 3. In **Prioritize**, try *Healthiest*, *Balanced* and the sliders: the list re-ranks at once. With
    more than one factor, each listing shows a *Match* number.
@@ -148,12 +149,15 @@ Reload the extension in `chrome://extensions` first, then open an Amazon grocery
    tab. **Back to Amazon search** returns to the search tab.
 5. Choose **Ingredient Check score: High to Low** from Amazon's menu: a new list, healthiest first.
 6. Amazon's own options (*Price: High to Low*) still sort Amazon's page as normal.
-7. Toolbar popup → **More** → turn **Price per ounce** off: its menu option and the price-per-ounce slider go.
-8. Settings → *Sort* → turn on *Load more Amazon results* and set 30; choose an option again: the
+7. In the panel, open the **Price per** picker: *Automatic* names the unit the menu used. Pick another weight,
+   volume or count unit: the list re-ranks, prices and headings follow, and listings that cannot convert go
+   last, labelled *No price per …*. Choose *Automatic* to go back.
+8. Toolbar popup → **More** → turn **Unit price** off: its menu option and the unit-price slider go.
+9. Settings → *Sort* → turn on *Load more Amazon results* and set 30; choose an option again: the
    panel collects 30 listings across Amazon's results pages.
-9. Settings → *Speed*: *Balanced* is selected. *Most up to date* rates results without asking the
+10. Settings → *Speed*: *Balanced* is selected. *Most up to date* rates results without asking the
    shared database; *Fastest* rates at most 20 per results page.
-10. Turn the master switch off: the options leave Amazon's menu.
+11. Turn the master switch off: the options leave Amazon's menu.
 11. With *Rate every search result* on and hover scoring on, choose an option while badges are still
     being rated: DevTools → Network never shows more than three `/dp/` requests at once, and never
     the same ASIN twice.

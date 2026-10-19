@@ -319,13 +319,15 @@ function openSortedPanel(msg, sender, reply) {
   const unitEnabled = msg.unitEnabled !== false;
   const runId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
   const list = {
-    runId, mode, unitEnabled, loading: true, status: '', items: [],
+    runId, mode, unitEnabled, unit: '', loading: true, status: '', items: [],
     sourceUrl: R.sanitizeSourceUrl(msg.sourceUrl), sourceTabId: tab.id, sourceWindowId: tab.windowId, t: Date.now(),
   };
   // The priorities the reader last set for this menu option, when they asked to keep them.
   const saving = chrome.storage.local.get(['sortRemember', 'sortPriorities']).catch(() => ({})).then(conf => {
     const kept = self.AIR.db.prefs.sanitizeToggles(conf).sortRemember && R.sanitizePriorities(conf).sortPriorities[mode];
-    return chrome.storage.session.set({ sortedResults: list, sortWeights: R.sanitizeWeights(kept || R.presetFor(mode), { unitEnabled }) });
+    // `sortUnit` is the unit the reader picked in the panel for this list; every list starts on 'auto',
+    // the unit most of its listings are priced in (content/sort.js sends it with each update).
+    return chrome.storage.session.set({ sortedResults: list, sortUnit: 'auto', sortWeights: R.sanitizeWeights(kept || R.presetFor(mode), { unitEnabled }) });
   });
   Promise.allSettled([opening, saving]).then(([opened, saved]) => {
     if (saved.status !== 'fulfilled') { reply({ ok: false, reason: 'no-session-storage' }); return; }
@@ -363,7 +365,7 @@ function sortFromCommand(command, tab) {
     if (!reply || !reply.runId) return;
     const conf = await chrome.storage.local.get('unitPrice');
     if (mode === 'unitPrice' && conf.unitPrice === false) {
-      await endSortedList(reply.runId, 'sortUnitOff', 'Price per ounce is switched off in Ingredient Check settings.');
+      await endSortedList(reply.runId, 'sortUnitOff', 'Unit price is switched off in Ingredient Check settings.');
       return;
     }
     // No side panel (an older Chrome): the same list in a tab, as Amazon's menu does.
@@ -386,7 +388,7 @@ async function updateSortedResults(msg, sender) {
   if (!list || !msg.runId || list.runId !== msg.runId || list.sourceTabId !== tabId) return { ok: false, stale: true };
   const items = R.sanitizeResults(msg.items);
   await chrome.storage.session.set({ sortedResults: {
-    ...list, items, loading: msg.loading === true, status: R.sanitizeStatus(msg.status), t: Date.now(),
+    ...list, items, unit: R.sanitizeUnitId(msg.unit), loading: msg.loading === true, status: R.sanitizeStatus(msg.status), t: Date.now(),
   } });
   return { ok: true, count: items.length };
 }

@@ -12,7 +12,7 @@
 // hosts. The results page renders with textContent only, so this is defence in depth, not the only
 // line.
 
-if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('./_module.js'); require('./storefronts.js'); }
+if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('./_module.js'); require('./storefronts.js'); require('./unit-price.js'); }
 
 (function () {
   const MAX_RESULTS = 500;
@@ -24,6 +24,26 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
   const UNIT_SOURCES = new Set(['amazon', 'calculated', 'none']);
 
   const finiteScore = s => (typeof s === 'number' && Number.isFinite(s) && s >= 0 && s <= 100 ? s : null);
+  // Loaded after this file on some pages, so looked up when used rather than when this file runs.
+  const UP = () => AIR.db.unitPrice;
+  const FAMILIES = ['weight', 'fluid', 'count'];
+  const unitNumber = raw => { const n = raw == null ? NaN : Number(raw); return Number.isFinite(n) && n > 0 && n < 1e5 ? Math.round(n * 10000) / 10000 : null; };
+  // The prices a listing can be shown in, per base unit (oz, fl oz or one item), one per family.
+  function sanitizeUnitPrices(raw, rawSources) {
+    const prices = {}, sources = {};
+    const src = raw && typeof raw === 'object' ? raw : {};
+    const from = rawSources && typeof rawSources === 'object' ? rawSources : {};
+    for (const f of FAMILIES) {
+      const n = unitNumber(src[f]);
+      if (n == null) continue;
+      prices[f] = n;
+      sources[f] = from[f] === 'amazon' ? 'amazon' : 'calculated';
+    }
+    return { prices, sources };
+  }
+  // 'auto', or one of the units a price can be shown in.
+  const sanitizeUnitChoice = raw => (raw === 'auto' || (typeof raw === 'string' && UP().isUnitId(raw)) ? raw : 'auto');
+  const sanitizeUnitId = raw => (typeof raw === 'string' && UP().isUnitId(raw) ? raw : '');
 
   // Best score first. Missing scores keep their relative order at the end; equal scores keep Amazon's.
   function sortByScore(products) {
@@ -100,6 +120,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
     if (!asin && !url) return null;
     const price = Number(raw.listingPrice);
     const unit = raw.unitPrice == null ? NaN : Number(raw.unitPrice);
+    const { prices, sources } = sanitizeUnitPrices(raw.unitPrices, raw.unitSources);
+    const servings = raw.servings == null ? NaN : Number(raw.servings);
     const stars = raw.ratingValue == null ? NaN : Number(raw.ratingValue);
     const count = raw.reviewCount == null ? NaN : Math.round(Number(raw.reviewCount));
     const page = Math.round(Number(raw.pageNumber));
@@ -111,7 +133,11 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
       listingPrice: Number.isFinite(price) && price > 0 && price < 1e6 ? Math.round(price * 100) / 100 : null,
       unitPrice: Number.isFinite(unit) && unit > 0 && unit < 1e5 ? Math.round(unit * 10000) / 10000 : null,
       unitSource: UNIT_SOURCES.has(raw.unitSource) && Number.isFinite(unit) && unit > 0 && unit < 1e5 ? raw.unitSource : 'none',
-      unitKind: Number.isFinite(unit) && unit > 0 && unit < 1e5 && (raw.unitKind === 'fluid' || raw.unitKind === 'weight') ? raw.unitKind : '',
+      unitKind: Number.isFinite(unit) && unit > 0 && unit < 1e5 && FAMILIES.includes(raw.unitKind) ? raw.unitKind : '',
+      unitId: (Number.isFinite(unit) && unit > 0 && unit < 1e5) || Object.keys(prices).length ? sanitizeUnitId(raw.unitId) : '',
+      unitPrices: prices,
+      unitSources: sources,
+      servings: Number.isFinite(servings) && servings >= 1 && servings <= 1000 ? Math.round(servings * 10) / 10 : null,
       score: finiteScore(raw.score),
       verdict: str(raw.verdict, 20),
       source: SOURCES.has(raw.source) ? raw.source : 'unrated',
@@ -185,8 +211,12 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
 
   // Each listing's value per factor, 0 (worst in this list) to 1 (best), or null when missing.
   // Prices compare on a log scale, so $0.10 vs $0.20 an ounce counts as much as $1 vs $2.
-  function factorValues(items) {
-    const logs = key => items.map(p => (p && p[key] > 0 ? Math.log(p[key]) : null));
+  // `family` ('weight', 'fluid' or 'count') says which of a listing's unit prices the price factor reads;
+  // without one it reads the listing's main unit price, as lists saved before units did.
+  function factorValues(items, family) {
+    const unitOf = p => (family ? UP().priceIn(p, family) : p && p.unitPrice > 0 ? p.unitPrice : null);
+    const logs = key => items.map(p => (key === 'unitPrice' ? unitOf(p) : p && p[key] > 0 ? p[key] : null))
+      .map(v => (v > 0 ? Math.log(v) : null));
     const lowIsBetter = values => {
       const present = values.filter(v => v != null);
       const lo = Math.min(...present), hi = Math.max(...present);
@@ -210,7 +240,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
     const list = Array.isArray(products) ? products.filter(p => p && typeof p === 'object') : [];
     const w = sanitizeWeights(weights, opts);
     const total = FACTORS.reduce((sum, f) => sum + w[f], 0);
-    const values = factorValues(list);
+    const values = factorValues(list, opts && opts.family);
     return list.map((product, index) => {
       let sum = 0, missingWeight = 0;
       const missing = [];
@@ -232,6 +262,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
     MAX_RESULTS, COUNT_MIN, COUNT_MAX, TIME_LIMITS, SORT_DEFAULTS, FACTORS, WEIGHT_MAX, PRESETS,
     sortByScore, parseMoney, sanitizeSort, sanitizeProduct, sanitizeResults, sanitizeSourceUrl,
     sanitizeWeights, sanitizePriorities, PRIORITY_MODES, presetFor, factorValues, rank, sanitizeStatus, sanitizeWhy,
+    sanitizeUnitPrices, sanitizeUnitChoice, sanitizeUnitId,
   });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 })();

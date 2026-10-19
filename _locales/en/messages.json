@@ -920,7 +920,7 @@
     "message": "No sorted results yet"
   },
   "sortedEmptyBody": {
-    "message": "On an Amazon grocery search, open Amazon’s “Sort by” menu and choose “Ingredient Check score: High to Low” or “Price per ounce: Low to High”."
+    "message": "On an Amazon grocery search, open Amazon’s “Sort by” menu and choose “Ingredient Check score: High to Low” or “Price per …: Low to High”."
   },
   "sortedReviews": {
     "message": "$FIRST$ reviews",
@@ -963,13 +963,13 @@
     "message": "Sort"
   },
   "optSortH": {
-    "message": "Sort by score or price per ounce"
+    "message": "Sort by score or unit price"
   },
   "optSortLedeShort": {
     "message": "Adds two options to Amazon's “Sort by” menu. Choosing one ranks this search's listings in Chrome's side panel; Amazon's page is left as it is."
   },
   "optSortLede": {
-    "message": "On an Amazon grocery search, Amazon's own “Sort by” menu gets “Ingredient Check score: High to Low” and “Price per ounce: Low to High”. Choosing one opens Chrome's side panel with this search's listings ranked; Amazon's page is left as it is. In the panel, Prioritize weighs health score, price per ounce, total price, rating and number of reviews, and Open in new tab shows the same list in a tab."
+    "message": "On an Amazon grocery search, Amazon's own “Sort by” menu gets “Ingredient Check score: High to Low” and “Price per …: Low to High”, in the unit most listings are priced in (ounce, fl oz, pound, gallon, count…), which you can change in the side panel. Choosing one opens Chrome's side panel with this search's listings ranked; Amazon's page is left as it is. In the panel, Prioritize weighs health score, unit price, total price, rating and number of reviews, and Open in new tab shows the same list in a tab."
   },
   "optSortMissingH": {
     "message": "Listings without a score"
@@ -1004,9 +1004,6 @@
   "sortMenuScore": {
     "message": "Ingredient Check score: High to Low"
   },
-  "sortMenuUnit": {
-    "message": "Price per ounce: Low to High"
-  },
   "sortStatusFound": {
     "message": "$FIRST$ listings so far.",
     "placeholders": {
@@ -1021,9 +1018,6 @@
   "sortedFactorHealth": {
     "message": "Health score"
   },
-  "sortedFactorUnit": {
-    "message": "Price per ounce"
-  },
   "sortedFactorPrice": {
     "message": "Total price"
   },
@@ -1035,9 +1029,6 @@
   },
   "sortedPresetHealth": {
     "message": "Healthiest"
-  },
-  "sortedPresetUnit": {
-    "message": "Cheapest per ounce"
   },
   "sortedPresetBalanced": {
     "message": "Balanced"
@@ -1051,12 +1042,6 @@
   "sortedTitleHealth": {
     "message": "Healthiest first"
   },
-  "sortedTitleUnit": {
-    "message": "Lowest price per ounce first"
-  },
-  "sortedTitleBalanced": {
-    "message": "Balanced: health, price per ounce and rating"
-  },
   "sortedTitlePrice": {
     "message": "Lowest price first"
   },
@@ -1068,9 +1053,6 @@
   },
   "sortedMissingHealth": {
     "message": "no score"
-  },
-  "sortedMissingUnit": {
-    "message": "no price per ounce"
   },
   "sortedMissingPrice": {
     "message": "no price"
@@ -1100,18 +1082,7 @@
     "message": "Starting points"
   },
   "sortedPriorityNote": {
-    "message": "Drag toward 10 for what matters most, 0 to ignore it. A listing missing a value counts as the worst on it. Prices compare on a log scale; price per ounce and price come from the results page, never a coupon or subscription price."
-  },
-  "sortedPerOunce": {
-    "message": "$FIRST$/oz",
-    "placeholders": {
-      "first": {
-        "content": "$1"
-      }
-    }
-  },
-  "sortedNoUnit": {
-    "message": "No price per ounce"
+    "message": "Drag toward 10 for what matters most, 0 to ignore it. A listing missing a value counts as the worst on it. Prices compare on a log scale; unit price and price come from the results page, never a coupon or subscription price."
   },
   "sortedUnitAmazon": {
     "message": "Amazon’s unit price"
@@ -1153,7 +1124,7 @@
     "message": "Speed"
   },
   "optSortUnitPrice": {
-    "message": "Price per ounce"
+    "message": "Unit price (per ounce, pound, gallon, count…)"
   },
   "optHintUnitPrice": {
     "message": "Amazon's unit price, or worked out from the price and package weight."
@@ -1174,7 +1145,7 @@
     "message": "Amazon's unit price only"
   },
   "optUnitDisplayedD": {
-    "message": "Listings without one have no price per ounce."
+    "message": "Listings without one have no unit price."
   },
   "optUnitMore": {
     "message": "Look through more of the listing"
@@ -1219,10 +1190,10 @@
     "message": "Saved scores for 1 day. At most 60 product pages per results page. Never uses shared readings: reads every product page itself, so more requests go to Amazon."
   },
   "popupUnitPrice": {
-    "message": "Price per ounce"
+    "message": "Unit price"
   },
   "popupUnitPriceD": {
-    "message": "Adds “Price per ounce: Low to High” to Amazon's sort menu and the sorted list. Worked out from the results page — no extra requests."
+    "message": "Adds “Price per …: Low to High” to Amazon's sort menu and the sorted list, in the unit most listings use (ounce, pound, gallon, count…). Worked out from the results page — no extra requests."
   },
   "sortFailed": {
     "message": "Could not read this results page ($FIRST$). Refresh the Amazon page and choose the option again.",
@@ -1237,14 +1208,6 @@
   },
   "sortedStalled": {
     "message": "Nothing has arrived from the Amazon tab yet. Refresh the Amazon results page (after reloading the extension, old tabs lose their connection to it) and choose the option again."
-  },
-  "sortedPerFlOunce": {
-    "message": "$FIRST$/fl oz",
-    "placeholders": {
-      "first": {
-        "content": "$1"
-      }
-    }
   },
   "reportTitle": {
     "message": "Report a problem or suggest an improvement — Ingredient Check"
@@ -1377,30 +1340,6 @@
   "sortPageTimeout": {
     "message": "Amazon took too long to send the next results page"
   },
-  "sortMenuUnitMetric": {
-    "message": "Price per 100 g: Low to High"
-  },
-  "sortedFactorUnitMetric": {
-    "message": "Price per 100 g"
-  },
-  "sortedPresetUnitMetric": {
-    "message": "Cheapest per 100 g"
-  },
-  "sortedTitleUnitMetric": {
-    "message": "Lowest price per 100 g first"
-  },
-  "sortedMissingUnitMetric": {
-    "message": "no price per 100 g"
-  },
-  "sortedNoUnitMetric": {
-    "message": "No price per 100 g"
-  },
-  "sortedPer100g": {
-    "message": "$1/100 g"
-  },
-  "sortedPer100ml": {
-    "message": "$1/100 ml"
-  },
   "reportShotNotStore": {
     "message": "No screenshot was taken: the tab you were on was not an Amazon or Target page, so it was left alone. You can add one below, or paste an image with Ctrl/Cmd+V."
   },
@@ -1414,10 +1353,10 @@
     "message": "e.g. palm oil, natural flavors"
   },
   "repTitlePh": {
-    "message": "e.g. Side panel shows no price per ounce for kefir"
+    "message": "e.g. Side panel shows no unit price for kefir"
   },
   "repStepsPh": {
-    "message": "1. Searched Amazon for kefir\n2. Chose Price per ounce in Amazon's Sort by menu\n3. …"
+    "message": "1. Searched Amazon for kefir\n2. Chose Price per … in Amazon's Sort by menu\n3. …"
   },
   "optNavLevel": {
     "message": "Detail"
@@ -1444,7 +1383,7 @@
     "message": "Standard (default)"
   },
   "optLevelStandardD": {
-    "message": "Adds sorting, price per ounce, score on hover, the shared database, backup and stores."
+    "message": "Adds sorting, unit price, score on hover, the shared database, backup and stores."
   },
   "optLevelAdvanced": {
     "message": "Advanced"
@@ -1617,16 +1556,16 @@
     "message": "The sorted list reopens its Prioritize sliders the way you last set them."
   },
   "optSortRememberD": {
-    "message": "In the sorted list, the Prioritize sliders reopen the way you last set them, separately for the score and price-per-ounce options in Amazon's menu. Off: each list starts from that option's default."
+    "message": "In the sorted list, the Prioritize sliders reopen the way you last set them, separately for the score and unit-price options in Amazon's menu. Off: each list starts from that option's default."
   },
   "cmdSortHealth": {
     "message": "Sort this Amazon search by Ingredient Check score"
   },
   "cmdSortPrice": {
-    "message": "Sort this Amazon search by price per ounce"
+    "message": "Sort this Amazon search by unit price"
   },
   "sortUnitOff": {
-    "message": "Price per ounce is switched off in Ingredient Check settings."
+    "message": "Unit price is switched off in Ingredient Check settings."
   },
   "sortNotHere": {
     "message": "Ingredient Check is not sorting this page: it is switched off, or this is not a food search on a supported Amazon store."
@@ -1674,7 +1613,7 @@
     "message": "Sort by Ingredient Check score"
   },
   "optShortcutPrice": {
-    "message": "Sort by price per ounce"
+    "message": "Sort by unit price"
   },
   "optShortcutNone": {
     "message": "not set"
@@ -1732,5 +1671,175 @@
   },
   "popupCompareOpen": {
     "message": "Open product on $1"
+  },
+  "sortMenuUnitPer": {
+    "message": "Price per $FIRST$: Low to High",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "sortedFactorUnitPer": {
+    "message": "Price per $FIRST$",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "sortedPresetUnitPer": {
+    "message": "Cheapest per $FIRST$",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "sortedTitleUnitPer": {
+    "message": "Lowest price per $FIRST$ first",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "sortedTitleBalancedUnit": {
+    "message": "Balanced: health, price per $FIRST$ and rating",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "sortedMissingUnitPer": {
+    "message": "no price per $FIRST$",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "sortedNoUnitPer": {
+    "message": "No price per $FIRST$",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "sortedPerUnit": {
+    "message": "$FIRST$/$SECOND$",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      },
+      "second": {
+        "content": "$2"
+      }
+    }
+  },
+  "sortedPerServing": {
+    "message": "$FIRST$/serving",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "sortedAlso": {
+    "message": "Also"
+  },
+  "sortedUnitPicker": {
+    "message": "Price per"
+  },
+  "sortedUnitWeight": {
+    "message": "Weight"
+  },
+  "sortedUnitVolume": {
+    "message": "Volume"
+  },
+  "sortedUnitCount": {
+    "message": "Count"
+  },
+  "sortedUnitAuto": {
+    "message": "Automatic: $FIRST$, what most listings use",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "sortedUnitGroup": {
+    "message": "$FIRST$ ($SECOND$)",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      },
+      "second": {
+        "content": "$2"
+      }
+    }
+  },
+  "sortedUnitNone": {
+    "message": "None of these listings can be priced per $FIRST$. Choose another unit, or Automatic.",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "sortedUnitCover": {
+    "message": "Priced per $THIRD$: $FIRST$ of $SECOND$ listings. Weight, volume and count do not convert into each other.",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      },
+      "second": {
+        "content": "$2"
+      },
+      "third": {
+        "content": "$3"
+      }
+    }
+  },
+  "unitName_oz": {
+    "message": "ounce"
+  },
+  "unitName_lb": {
+    "message": "pound"
+  },
+  "unitName_100g": {
+    "message": "100 g"
+  },
+  "unitName_kg": {
+    "message": "kilogram"
+  },
+  "unitName_g": {
+    "message": "gram"
+  },
+  "unitName_floz": {
+    "message": "fl oz"
+  },
+  "unitName_pt": {
+    "message": "pint"
+  },
+  "unitName_qt": {
+    "message": "quart"
+  },
+  "unitName_gal": {
+    "message": "gallon"
+  },
+  "unitName_100ml": {
+    "message": "100 ml"
+  },
+  "unitName_l": {
+    "message": "liter"
+  },
+  "unitName_ml": {
+    "message": "ml"
+  },
+  "unitName_ct": {
+    "message": "count"
   }
 }

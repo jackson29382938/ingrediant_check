@@ -1,8 +1,9 @@
 // Ingredient Check in Amazon's own "Sort by" menu.
 //
 // Ported from the Amazon Cost per Ounce Sorter (github.com/jackson29382938/amazon_cost_sorting): two
-// options join Amazon's list, "Ingredient Check score: High to Low" and, while the price-per-ounce
-// setting is on, "Price per ounce: Low to High". Choosing one never reorders Amazon's page. It opens
+// options join Amazon's list, "Ingredient Check score: High to Low" and, while the unit-price setting
+// is on, "Price per <unit>: Low to High", where the unit is the one most of the page's listings already
+// show (ounce, fl oz, pound, gallon, count...) and the side panel can change it. Choosing one never reorders Amazon's page. It opens
 // Chrome's side panel beside the results, with this search's listings ranked there; the panel's
 // priority bar mixes health score, price per ounce, total price and customer rating.
 //
@@ -27,7 +28,6 @@
   const R = () => root.AIR.db.sortedResults;
   const U = () => root.AIR.db.unitPrice;
   const SF = () => root.AIR.db.storefronts;
-  const metric = () => SF().storefront(location.hostname).units === 'metric';
 
   const CARD = '[data-component-type="s-search-result"][data-asin], .s-result-item[data-asin]';
   const VALUE = { health: 'ingredient-check-score', unitPrice: 'ingredient-check-price-per-ounce' };
@@ -66,9 +66,25 @@
   const toAbsoluteUrl = value => { if (!value) return ''; try { return new URL(value, location.href).href; } catch { return ''; } };
 
   // ------------------------------------------------------------------ the menu
+  // The unit's name in the menu: "ounce", "gallon", "count", "100 g". Localised by key, English otherwise.
+  const unitName = id => { const u = U().UNIT_CHOICES.find(c => c.id === id); return u ? t(`unitName_${id}`, u.long) : id; };
+  // The unit most of this page's listings already show, worked out from the cards on the page before anything
+  // is fetched (extract.js reads each card's own unit price, else its title). Kept until the cards change.
+  let unitSettings = U() ? { ...U().UNIT_DEFAULTS } : {};
+  let menuUnitHeld = { sig: '', unit: null };
+  function menuUnit() {
+    const cards = productCardsIn(document);
+    // Which listings, and how much text each holds: a card that gains a unit price keeps its ASIN.
+    const sig = cards.map(card => `${card.dataset.asin}:${(card.textContent || '').length}`).join(',');
+    if (menuUnitHeld.sig === sig) return menuUnitHeld.unit;
+    const likely = U().likelyUnit(cards.map(card => extractProduct(card, 1, unitSettings)), SF().storefront(location.hostname).units);
+    menuUnitHeld = { sig, unit: likely ? likely.unit : null };
+    return menuUnitHeld.unit;
+  }
+  // "Price per gallon: Low to High": one entry, whose unit is the one most listings are priced in.
   const labels = () => ({
     health: t('sortMenuScore', 'Ingredient Check score: High to Low'),
-    unitPrice: metric() ? t('sortMenuUnitMetric', 'Price per 100 g: Low to High') : t('sortMenuUnit', 'Price per ounce: Low to High'),
+    unitPrice: t('sortMenuUnitPer', 'Price per $1: Low to High', unitName(menuUnit() || U().defaultUnit('weight', SF().storefront(location.hostname).units))),
   });
   const modes = () => (P().state.unitPrice === false ? ['health'] : ['unitPrice', 'health']);
   const modeOfValue = value => Object.keys(VALUE).find(mode => VALUE[mode] === value) || null;
@@ -116,7 +132,12 @@
         const row = list.querySelector(`[${MARK}="${mode}"]`)
           || [...list.querySelectorAll('a')].find(a => dataValue(a) === VALUE[mode])?.closest('li');
         if (!want.includes(mode)) { row?.remove(); continue; }
-        if (row) { row.setAttribute(MARK, mode); continue; }
+        if (row) {
+          row.setAttribute(MARK, mode);
+          const link = row.querySelector('a');
+          if (link && link.textContent !== names[mode]) link.textContent = names[mode];
+          continue;
+        }
         const template = list.querySelector('li');
         if (!template) continue;
         const li = template.cloneNode(true);
@@ -220,7 +241,7 @@
     for (const c of controllers) c.abort();
     controllers.clear();
     const sourceUrl = location.href;
-    P().logAction?.('Amazon sort menu', `chose ${mode === 'unitPrice' ? 'Price per ounce' : 'Ingredient Check score'} on ${location.pathname}`);
+    P().logAction?.('Amazon sort menu', `chose ${mode === 'unitPrice' ? 'Unit price' : 'Ingredient Check score'} on ${location.pathname}`);
     send({ type: 'openSortedPanel', mode, sourceUrl, unitEnabled: P().state.unitPrice !== false }).then(async reply => {
       pending = false;
       if (token !== run || !reply || !reply.runId) return;
@@ -251,7 +272,7 @@
     controllers.clear();
     const token = ++run;
     runId = msg.runId;
-    P().logAction?.('keyboard shortcut', `sorted ${msg.mode === 'unitPrice' ? 'by price per ounce' : 'by Ingredient Check score'} on ${location.pathname}`);
+    P().logAction?.('keyboard shortcut', `sorted ${msg.mode === 'unitPrice' ? 'by unit price' : 'by Ingredient Check score'} on ${location.pathname}`);
     return gather(token);
   }
 
@@ -331,8 +352,8 @@
     // "2,310 ratings" in aria-label is exact where the visible text is rounded ("(2.3K)").
     const reviewsLabel = reviewsNode?.getAttribute('aria-label') || '';
     const reviews = (/\d/.test(reviewsLabel) ? reviewsLabel : (reviewsNode?.innerText || reviewsNode?.textContent || '')).trim();
-    const unit = settings.unitPrice === false ? { unitPrice: null, unitSource: 'none', unitKind: '' }
-      : U().unitPriceFor({ title, text, listingPrice }, settings, location.hostname);
+    const unit = settings.unitPrice === false ? { unitPrice: null, unitSource: 'none', unitKind: '', unitId: '', unitPrices: {}, unitSources: {} }
+      : U().unitPricesFor({ title, text, listingPrice }, settings, location.hostname);
     const asin = card.dataset.asin || '';
     return {
       asin,
@@ -343,6 +364,9 @@
       unitPrice: unit.unitPrice,
       unitSource: unit.unitSource,
       unitKind: unit.unitKind,
+      unitId: unit.unitId,
+      unitPrices: unit.unitPrices,
+      unitSources: unit.unitSources,
       rating,
       ratingValue: ratingValue(rating),
       reviews,
@@ -382,7 +406,7 @@
       if (usableCache(hit, asin)) {
         // The saved score keeps no reasons; the product reading behind it does.
         const why = okRow ? whyOf(root.AIR.engine.score(C.toInput(row), state.prefs)) : null;
-        out.set(asin, { score: hit.score, verdict: hit.verdict, source: 'scored', why });
+        out.set(asin, { score: hit.score, verdict: hit.verdict, source: 'scored', why, servings: okRow ? servingsFor(C.toInput(row)) : null });
         continue;
       }
       if (!row || !freshLocal(row)) continue;
@@ -391,10 +415,14 @@
       const result = root.AIR.engine.score(C.toInput(row), state.prefs);
       if (unreadable(result)) { out.set(asin, { score: null, source: 'unreadable' }); continue; }
       cacheScore(asin, result, row.data.title, row.data.via || 'search-tile', '', Date.parse(row.scanned_at));
-      out.set(asin, { score: result.score, verdict: result.verdict, source: 'scored', why: whyOf(result) });
+      out.set(asin, { score: result.score, verdict: result.verdict, source: 'scored', why: whyOf(result), servings: servingsFor(C.toInput(row)) });
     }
     return out;
   }
+
+  // Servings in the package, from the product reading behind a score, for the price per serving shown
+  // with each listing. Only a product page publishes it; a listing never read has none.
+  const servingsFor = input => (input && U() && U().servingsOf(input.nutrition)) || null;
 
   // Shared-database rows for listings this computer has not read, scored here under this reader's
   // settings; counts one pull per row used, as the badges do. Skipped unless shared product readings
@@ -417,7 +445,7 @@
         const result = root.AIR.engine.score(C.toInput(row), state.prefs);
         if (unreadable(result)) { out.set(asin, { score: null, source: 'unreadable' }); continue; }
         cacheScore(asin, result, row.data.title, row.data.via || 'search-tile', '', Date.parse(row.scanned_at));
-        out.set(asin, { score: result.score, verdict: result.verdict, source: 'scored', why: whyOf(result) });
+        out.set(asin, { score: result.score, verdict: result.verdict, source: 'scored', why: whyOf(result), servings: servingsFor(C.toInput(row)) });
       }
     }
     if (pulls.length) send({ type: 'productsQueue', pulls });
@@ -453,7 +481,7 @@
           const reading = await search.readProductPage(asin, 'sort-list');
           if (token !== run) return;
           out.set(asin, reading.outcome === 'scored'
-            ? { score: reading.result.score, verdict: reading.result.verdict, source: 'scored', why: whyOf(reading.result) }
+            ? { score: reading.result.score, verdict: reading.result.verdict, source: 'scored', why: whyOf(reading.result), servings: servingsFor(reading.input) }
             : { score: null, source: reading.outcome === 'not-food' ? 'not-food' : 'unreadable' });
         } catch (e) {
           // Refused, offline, or aborted: the listing stays without a score. Refusals count toward the
@@ -482,7 +510,8 @@
   // ------------------------------------------------------------------ building the list
   async function getSettings() {
     const got = await storageGet([...Object.keys(R().SORT_DEFAULTS), ...Object.keys(U().UNIT_DEFAULTS)]);
-    return { ...R().sanitizeSort(got), ...U().sanitizeUnit(got), unitPrice: P().state.unitPrice !== false };
+    unitSettings = U().sanitizeUnit(got);
+    return { ...R().sanitizeSort(got), ...unitSettings, unitPrice: P().state.unitPrice !== false };
   }
 
   // Everything the panel shows comes through here; the worker re-checks it and keeps it in session
@@ -497,7 +526,9 @@
     const id = runId;
     publishing = publishing.then(async () => {
       if (token !== run) return false;
-      const reply = await send({ type: 'updateSortedResults', runId: id, items, loading, status });
+      // The unit most of these listings are priced in; the panel uses it until the reader picks another.
+      const likely = U() && SF() ? U().likelyUnit(items, SF().storefront(location.hostname).units) : null;
+      const reply = await send({ type: 'updateSortedResults', runId: id, items, loading, status, unit: likely ? likely.unit : '' });
       // A newer sort (in this tab or another) took the panel over: stop working for this one.
       if (reply && reply.stale) { if (token === run) run++; return false; }
       return true;
@@ -602,7 +633,7 @@
     else if (partialError) status = `${collected} ${t('sortPartial', 'More results could not be loaded')} (${partialError}).${tail}`;
     else if (settings.sortLoadMore && items.length < settings.sortCount) status = `${t('sortNoMore', 'Amazon has no more results.')} ${collected}${tail}`;
     else status = `${collected}${tail}`;
-    P().logAction?.('side panel list', `${status} (${items.filter(p => p.unitPrice != null).length} with price per ounce)`);
+    P().logAction?.('side panel list', `${status} (${items.filter(p => p.unitPrice != null).length} with a unit price)`);
     await publish(token, items, false, status, true);
   }
 
@@ -648,6 +679,10 @@
     }
     mounted = true;
     install();
+    if (U()) storageGet(Object.keys(U().UNIT_DEFAULTS)).then(got => {
+      const next = U().sanitizeUnit(got);
+      if (next.unitMissing !== unitSettings.unitMissing) { unitSettings = next; menuUnitHeld = { sig: '', unit: null }; if (mounted) install(); }
+    });
     if (observer) return;
     // Amazon rebuilds the menu when results change; put the options back when it does.
     observer = new MutationObserver(() => {

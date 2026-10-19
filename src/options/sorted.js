@@ -1,6 +1,6 @@
 // The sorted list, in Chrome's side panel (sidepanel.html) or a tab (sorted.html). Ported from the
 // Amazon Cost per Ounce Sorter's results view, with a priority bar: the reader weighs health score,
-// price per ounce, total price, customer rating and number of reviews, and the list re-ranks at once
+// unit price (in the unit most listings use, changeable above the list), total price, customer rating and number of reviews, and the list re-ranks at once
 // (AIR.db.sortedResults.rank). Choosing an option in Amazon's sort menu opens this with that option's
 // preset; the listings arrive while it is open (src/content/sort.js -> worker -> session storage).
 //
@@ -13,11 +13,10 @@
   const { BAND_COLOR } = AIR.panel;
   const root = document.querySelector('#results-root');
   const isPanel = document.body.dataset.view === 'panel';
-  // Prices in the currency and style of the store the list came from (storefronts.js), and a price per
-  // ounce as that store's shoppers read it: per ounce on amazon.com, per 100 g / 100 ml elsewhere.
+  // Prices in the currency and style of the store the list came from (storefronts.js); a unit price in the
+  // unit the reader picked, else the one most of the list is priced in.
   const SF = AIR.db.storefronts;
   const store = () => SF.storefront(saved && saved.sourceUrl);
-  const metric = () => store().units === 'metric';
   const formatters = new Map();
   const money = value => {
     const { currency, locale } = store();
@@ -28,6 +27,22 @@
     }
     return formatters.get(key).format(value);
   };
+  // A unit price is often a few cents (a fluid ounce of milk is $0.031), and two decimals would round two
+  // different milks to the same "$0.03". Below ten cents it shows a third decimal; a total price never does.
+  const unitFormatters = new Map();
+  const unitMoney = value => {
+    const { currency, locale } = store();
+    const long = value > 0 && value < 0.1;
+    const key = `${locale}|${currency}|${long}`;
+    if (!unitFormatters.has(key)) {
+      try {
+        const base = new Intl.NumberFormat(locale, { style: 'currency', currency }).resolvedOptions().maximumFractionDigits;
+        unitFormatters.set(key, new Intl.NumberFormat(locale, { style: 'currency', currency,
+          minimumFractionDigits: base, maximumFractionDigits: long && base >= 2 ? 3 : base }));
+      } catch (e) { unitFormatters.set(key, new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })); }
+    }
+    return unitFormatters.get(key).format(value);
+  };
   const count = { format: n => new Intl.NumberFormat(store().locale).format(n) };
   const t = (key, fallback, ...subs) => {
     const args = subs.map(String);
@@ -36,24 +51,35 @@
     return text || fallback.replace(/\$(\d)/g, (m, n) => (args[n - 1] != null ? args[n - 1] : m));
   };
 
+  // ---------------------------------------------------------------- the unit prices are shown in
+  // The reader's choice for this list: 'auto' (the unit most listings are priced in, worked out by the Amazon
+  // tab and sent with every update) or one unit. Everything that names the unit follows `unit()`.
+  const U = AIR.db.unitPrice;
+  let unitChoice = 'auto';
+  const autoUnit = () => (saved && U.isUnitId(saved.unit) ? saved.unit : U.defaultUnit('weight', store().units));
+  const unit = () => (unitChoice !== 'auto' && U.isUnitId(unitChoice) ? unitChoice : autoUnit());
+  const family = () => U.familyOf(unit());
+  const unitName = id => { const c = U.UNIT_CHOICES.find(u => u.id === id); return c ? t(`unitName_${id}`, c.long) : id; };
+  const unitShort = id => (U.UNIT_CHOICES.find(u => u.id === id) || { short: id }).short;
+
   const FACTOR_TEXT = {
     health: () => t('sortedFactorHealth', 'Health score'),
-    unitPrice: () => (metric() ? t('sortedFactorUnitMetric', 'Price per 100 g') : t('sortedFactorUnit', 'Price per ounce')),
+    unitPrice: () => t('sortedFactorUnitPer', 'Price per $1', unitName(unit())),
     price: () => t('sortedFactorPrice', 'Total price'),
     rating: () => t('sortedFactorRating', 'Customer rating'),
     reviews: () => t('sortedFactorReviews', 'Number of reviews'),
   };
   const PRESET_TEXT = {
     health: () => t('sortedPresetHealth', 'Healthiest'),
-    unitPrice: () => (metric() ? t('sortedPresetUnitMetric', 'Cheapest per 100 g') : t('sortedPresetUnit', 'Cheapest per ounce')),
+    unitPrice: () => t('sortedPresetUnitPer', 'Cheapest per $1', unitName(unit())),
     balanced: () => t('sortedPresetBalanced', 'Balanced'),
     price: () => t('sortedPresetPrice', 'Lowest price'),
     rating: () => t('sortedPresetRating', 'Best rated'),
   };
   const HEADING_TEXT = {
     health: () => t('sortedTitleHealth', 'Healthiest first'),
-    unitPrice: () => (metric() ? t('sortedTitleUnitMetric', 'Lowest price per 100 g first') : t('sortedTitleUnit', 'Lowest price per ounce first')),
-    balanced: () => t('sortedTitleBalanced', 'Balanced: health, price per ounce and rating'),
+    unitPrice: () => t('sortedTitleUnitPer', 'Lowest price per $1 first', unitName(unit())),
+    balanced: () => t('sortedTitleBalancedUnit', 'Balanced: health, price per $1 and rating', unitName(unit())),
     price: () => t('sortedTitlePrice', 'Lowest price first'),
     rating: () => t('sortedTitleRating', 'Best rated first'),
     custom: () => t('sortedTitleCustom', 'Ranked by your priorities'),
@@ -66,7 +92,7 @@
   };
   const MISSING_TEXT = {
     health: () => t('sortedMissingHealth', 'no score'),
-    unitPrice: () => (metric() ? t('sortedMissingUnitMetric', 'no price per 100 g') : t('sortedMissingUnit', 'no price per ounce')),
+    unitPrice: () => t('sortedMissingUnitPer', 'no price per $1', unitName(unit())),
     price: () => t('sortedMissingPrice', 'no price'),
     rating: () => t('sortedMissingRating', 'no rating'),
     reviews: () => t('sortedMissingReviews', 'no reviews count'),
@@ -176,12 +202,70 @@
     header.append(actions);
     root.append(header);
 
+    root.append(buildUnitPicker());
     root.append(buildPriorities());
     ui.list = node('section', 'result-list');
     ui.list.setAttribute('aria-label', t('sortedListAria', 'Amazon listings ranked by your priorities'));
     root.append(ui.list);
     ui.empty = node('section', 'empty-state');
     root.append(ui.empty);
+  }
+
+  // "Price per" sits above the priorities, always in view: the unit is the first thing a reader wants to
+  // change when the list is priced in the wrong one (per count when they think in gallons).
+  const FAMILY_TEXT = {
+    weight: () => t('sortedUnitWeight', 'Weight'),
+    fluid: () => t('sortedUnitVolume', 'Volume'),
+    count: () => t('sortedUnitCount', 'Count'),
+  };
+  function unitLabel(c) {
+    const name = unitName(c.id);
+    return name.toLowerCase().includes(c.short.toLowerCase()) || /^\d/.test(name) || c.family === 'count' ? name : `${name} (${c.short})`;
+  }
+  function buildUnitPicker() {
+    const box = node('div', 'unit-picker');
+    const label = node('label', 'unit-label', t('sortedUnitPicker', 'Price per'));
+    ui.unitSelect = node('select', 'unit-select');
+    ui.unitSelect.id = 'unit-select';
+    label.htmlFor = 'unit-select';
+    ui.unitAuto = new Option('', 'auto');
+    ui.unitSelect.append(ui.unitAuto);
+    ui.unitGroups = {};
+    for (const f of U.FAMILIES) {
+      const group = document.createElement('optgroup');
+      for (const c of U.UNIT_CHOICES.filter(u => u.family === f)) group.append(new Option(unitLabel(c), c.id));
+      ui.unitGroups[f] = group;
+      ui.unitSelect.append(group);
+    }
+    ui.unitSelect.addEventListener('change', () => {
+      unitChoice = U.isUnitId(ui.unitSelect.value) ? ui.unitSelect.value : 'auto';
+      logUi(`unit ${unitChoice}`);
+      try { chrome.storage.session.set({ sortUnit: unitChoice }); } catch (e) { /* not an extension page */ }
+      paintUnit();
+      paintSliders();
+      renderList();
+    });
+    ui.unitNote = node('p', 'unit-note');
+    ui.unitNote.setAttribute('role', 'status');
+    box.append(label, ui.unitSelect, ui.unitNote);
+    return box;
+  }
+  // The picker's wording follows the list: the automatic unit, how many listings each family covers.
+  function paintUnit(items) {
+    const enabled = unitEnabled();
+    ui.unitSelect.parentElement.hidden = !enabled;
+    if (!enabled) return;
+    ui.unitAuto.textContent = t('sortedUnitAuto', 'Automatic: $1, what most listings use', unitName(autoUnit()));
+    const reach = { weight: 0, fluid: 0, count: 0 };
+    for (const p of items || []) for (const f of U.FAMILIES) if (U.priceIn(p, f) != null) reach[f]++;
+    for (const f of U.FAMILIES) ui.unitGroups[f].label = items ? t('sortedUnitGroup', '$1 ($2)', FAMILY_TEXT[f](), reach[f]) : FAMILY_TEXT[f]();
+    if (ui.unitSelect.value !== unitChoice) ui.unitSelect.value = U.isUnitId(unitChoice) ? unitChoice : 'auto';
+    const here = items ? reach[family()] : null;
+    ui.unitNote.textContent = here === 0 && items.length
+      ? t('sortedUnitNone', 'None of these listings can be priced per $1. Choose another unit, or Automatic.', unitName(unit()))
+      : here != null && items.length
+        ? t('sortedUnitCover', 'Priced per $3: $1 of $2 listings. Weight, volume and count do not convert into each other.', here, items.length, unitName(unit()))
+        : '';
   }
 
   function buildPriorities() {
@@ -358,6 +442,21 @@
     return score;
   }
 
+  // The listing's price in each other family it can be priced in (the store's usual unit for it), then per serving.
+  function otherPrices(product) {
+    const out = [];
+    for (const f of U.FAMILIES) {
+      if (f === family()) continue;
+      const id = U.defaultUnit(f, store().units);
+      const value = U.perUnit(U.priceIn(product, f), id, store().key);
+      if (value != null) out.push(t('sortedPerUnit', '$1/$2', unitMoney(value), unitShort(id)));
+    }
+    if (product.servings > 0 && product.listingPrice > 0) {
+      out.push(t('sortedPerServing', '$1/serving', money(product.listingPrice / product.servings)));
+    }
+    return out;
+  }
+
   // One listing's DOM, built once and kept while the listing is unchanged (views below): re-ranking
   // 500 listings used to rebuild every one of them, about half a second per slider step. Only the
   // rank, the match number and the missing-values line change with the priorities.
@@ -387,17 +486,14 @@
 
     const facts = node('div', 'facts');
     if (unitEnabled()) {
-      const shown = AIR.db.unitPrice.displayUnit(product.unitPrice, product.unitKind, store().units);
-      const PER = {
-        oz: v => t('sortedPerOunce', '$1/oz', v), floz: v => t('sortedPerFlOunce', '$1/fl oz', v),
-        '100g': v => t('sortedPer100g', '$1/100 g', v), '100ml': v => t('sortedPer100ml', '$1/100 ml', v),
-      };
-      const unit = node('span', 'fact unit', shown
-        ? PER[shown.per](money(shown.value))
-        : metric() ? t('sortedNoUnitMetric', 'No price per 100 g') : t('sortedNoUnit', 'No price per ounce'));
-      if (product.unitPrice != null) unit.title = product.unitSource === 'amazon'
+      const id = unit();
+      const each = U.perUnit(U.priceIn(product, family()), id, store().key);
+      const text = each != null ? t('sortedPerUnit', '$1/$2', unitMoney(each), unitShort(id))
+        : t('sortedNoUnitPer', 'No price per $1', unitName(id));
+      const unitFact = node('span', 'fact unit', text);
+      if (each != null) unitFact.title = U.sourceIn(product, family()) === 'amazon'
         ? t('sortedUnitAmazon', 'Amazon’s unit price') : t('sortedUnitCalculated', 'Worked out from the listed price and package size');
-      facts.append(unit);
+      facts.append(unitFact);
     }
     if (product.listingPrice != null) facts.append(node('span', 'fact', money(product.listingPrice)));
     if (product.ratingValue != null) facts.append(node('span', 'fact', `★ ${product.ratingValue.toLocaleString(store().locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`));
@@ -405,6 +501,14 @@
     const match = node('span', 'fact match', '');
     facts.append(match);
     content.append(facts);
+    // The same listing in the other units it can be priced in, and per serving where the label said how many.
+    const extra = unitEnabled() ? otherPrices(product) : [];
+    if (extra.length) {
+      const also = node('div', 'facts also');
+      also.append(node('span', 'also-label', t('sortedAlso', 'Also')));
+      for (const e of extra) also.append(node('span', 'fact alt', e));
+      content.append(also);
+    }
 
     const meta = node('div', 'product-meta');
     if (product.bought) meta.append(node('span', '', product.bought));
@@ -430,7 +534,7 @@
   const views = new Map();
   function viewFor(product) {
     const key = product.asin || product.url;
-    const sig = `${unitEnabled()}|${store().key}|${JSON.stringify(product)}`;
+    const sig = `${unitEnabled()}|${unit()}|${store().key}|${JSON.stringify(product)}`;
     const held = views.get(key);
     if (held && held.sig === sig) return held;
     const view = { ...makeProduct(product), sig };
@@ -467,7 +571,7 @@
       ui.empty.append(node('h2', '', loading ? t('sortedReading', 'Reading Amazon listings…')
         : saved ? t('sortedNothingFound', 'No listings came back') : t('sortedEmptyTitle', 'No sorted results yet')));
       if (!loading) {
-        ui.empty.append(node('p', '', status || t('sortedEmptyBody', 'On an Amazon grocery search, open Amazon’s “Sort by” menu and choose “Ingredient Check score: High to Low” or “Price per ounce: Low to High”.')));
+        ui.empty.append(node('p', '', status || t('sortedEmptyBody', 'On an Amazon grocery search, open Amazon’s “Sort by” menu and choose “Ingredient Check score: High to Low” or “Price per …: Low to High”.')));
         ui.status.textContent = '';
       } else {
         // The Amazon tab sends the first listings within a second or two. If nothing has come, say so
@@ -481,7 +585,8 @@
       }
       return;
     }
-    const ranked = R.rank(items, weights, { unitEnabled: unitEnabled() });
+    paintUnit(items);
+    const ranked = R.rank(items, weights, { unitEnabled: unitEnabled(), family: family() });
     const multi = R.FACTORS.filter(f => weights[f] > 0).length > 1;
     ui.subtitle.textContent = loading
       ? t('sortedSubtitleLoading', '$1 listings so far · still loading', items.length)
@@ -511,8 +616,10 @@
 
   async function load() {
     let got = {};
-    try { got = await chrome.storage.session.get(['sortedResults', 'sortWeights']); } catch (e) { got = {}; }
+    try { got = await chrome.storage.session.get(['sortedResults', 'sortWeights', 'sortUnit']); } catch (e) { got = {}; }
     saved = got.sortedResults || null;
+    unitChoice = R.sanitizeUnitChoice(got.sortUnit);
+    paintUnit();
     weights = R.sanitizeWeights(got.sortWeights || R.presetFor(saved && saved.mode), { unitEnabled: unitEnabled() });
     paintSliders();
     renderList();
@@ -528,10 +635,11 @@
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area !== 'session') return;
       if (changes.sortedResults) saved = changes.sortedResults.newValue || null;
+      if (changes.sortUnit) unitChoice = R.sanitizeUnitChoice(changes.sortUnit.newValue);
       if (changes.sortWeights && JSON.stringify(changes.sortWeights.newValue) !== lastSaved) {
         weights = R.sanitizeWeights(changes.sortWeights.newValue, { unitEnabled: unitEnabled() });
       }
-      if (changes.sortedResults || changes.sortWeights) { paintSliders(); scheduleRender(); }
+      if (changes.sortedResults || changes.sortWeights || changes.sortUnit) { paintUnit(); paintSliders(); scheduleRender(); }
     });
   } catch (e) { /* not an extension page */ }
   load().catch(() => renderList());

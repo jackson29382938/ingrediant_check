@@ -80,7 +80,7 @@ Scoring is always local: the rules, your weights and every score are computed in
 | **Cart points** (off by default) | Nothing. A running total, and for each product the day it last earned points (store and product ID only), are kept in `chrome.storage.local` on this computer. | Nobody. Not part of a backup, the settings file or a report, and never uploaded; **Reset points** in Settings deletes it. |
 | **Sort menu → Rate them** (the default sort setting; only when *Rate every search result* is on) | After you choose an Ingredient Check option in Amazon's sort menu: the same product-page `GET`s as *Rate every search result*, for listings in the list without a score. They go through the same queue as the badges: three at a time in total, never twice for one product, paused for both when Amazon refuses, and inside the same limit — 60 product pages (fewer under *Speed*) for each Amazon results page in the list, counting the ones the badges already requested. It stops at that limit or when you press *Stop rating* | **Amazon**, as above. |
 | **Sort menu → Load more results** (off by default) | Amazon search pages after this one, until the chosen number of listings (1–500), then, with *Rate them*, product pages of listings still without a score, as above | **Amazon**, as above. Shared product readings are asked first, like for badges, if you turned them on. |
-| **Price per ounce** (on by default) | Nothing. Read from the results page already open | Nobody. |
+| **Unit price** (on by default) | Nothing. Read from the results page already open | Nobody. |
 | **Speed and freshness** | *Fastest* and *Faster* request fewer product pages than before; *Fresher* and *Most up to date* re-read products sooner and trust shared readings less, so they request more. *Most up to date* never asks the shared database for answers | **Amazon** (product pages), as above. |
 | **Show why on hover** (on by default) | Nothing. The breakdown is worked out on your computer from what was already read. | — |
 | **Read label photos** | Fetch of the product image on `m.media-amazon.com` | The image is read **on your computer** (Tesseract). The pixels are not uploaded. |
@@ -108,12 +108,12 @@ everything that would be included:
 - what you type: the kind of report, a title, what happened, what you clicked, what you expected
 - the screenshot (you can replace it, or add one by pasting)
 - the page's address, cut to its path and search term, the score shown for it, and a summary of the
-  side panel list (option, how many listings, how many with a score or a price per ounce, its status)
+  side panel list (option, how many listings, how many with a score or a unit price, its status)
 - your Ingredient Check settings, read through the same checks the extension uses: switches, weights,
   goals and how much each counts, allergens, diets, avoid list, sort and speed settings, and how many scores are cached. Never
   the cached scores themselves, a sign-in token, queued diagnostics, or anything another page stored
 - your recent clicks in the extension this browser session (up to 60 short lines, such as "popup:
-  autoScoreSearch off" or "Amazon sort menu: chose Price per ounce on /s"), kept in memory only
+  autoScoreSearch off" or "Amazon sort menu: chose Price per unit on /s"), kept in memory only
   (`chrome.storage.session`) and gone when Chrome closes
 - the extension version, rules revision, browser and language
 

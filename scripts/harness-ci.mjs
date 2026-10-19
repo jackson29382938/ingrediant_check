@@ -433,7 +433,39 @@ async function run() {
       await sortPage.click('.a-popover a:text-is("Price: High to Low")');
       const picks = await sortPage.evaluate(() => window.__amazonPicks);
       if (picks.join() !== 'price-desc-rank') throw new Error(`Amazon's own option: ${picks}`);
-      console.log(`  ok  sort menu → 2 options in Amazon's list; a pick opens the panel (Amazon's page untouched), sends ${items.length} listings with price per ounce; keyboard works; off removes it`);
+      // The unit follows the page. Back on, the entry is per ounce (most cards are priced in ounces); when the
+      // cards come to show a price per gallon, the entry says so, and the list goes to the panel with that
+      // default unit and every unit price each card can supply.
+      await sortPage.evaluate(() => window.__set('unitPrice', true));
+      await sortPage.waitForFunction(t => window.__options().includes(t), unitText, { timeout: 5000 });
+      await sortPage.evaluate(() => {
+        for (const card of document.querySelectorAll('.s-result-item[data-asin]')) {
+          const note = document.createElement('span');
+          note.textContent = ' ($3.99/Gallon) ';
+          card.append(note);
+        }
+      });
+      const gallonText = 'Price per gallon: Low to High';
+      await sortPage.waitForFunction(t => window.__options().includes(t), gallonText, { timeout: 5000 });
+      const renamed = await sortPage.evaluate(() => window.__options());
+      if (renamed.includes(unitText) || renamed.filter(o => /^Price per /.test(o)).length !== 1) throw new Error(`one unit entry, renamed: ${renamed}`);
+      await sortPage.evaluate(() => { window.__messages.length = 0; });
+      await sortPage.evaluate(v => {
+        const select = document.getElementById('s-result-sort-select');
+        select.value = v;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      }, 'ingredient-check-price-per-ounce');
+      await sortPage.waitForFunction(() => window.__final(), { timeout: 10000 });
+      const gallon = await sortPage.evaluate(() => window.__final());
+      // Seven of the eight cards now show a price per gallon; the eighth already showed Amazon's own price per ounce
+      // and keeps it. The majority sets the default, and every card keeps the price it can supply in each unit.
+      const byAsin = Object.fromEntries(gallon.items.map(r => [r.asin, r]));
+      const others = gallon.items.filter(r => r.asin !== 'B0SORT0003');
+      if (gallon.unit !== 'gal' || others.length !== 7 || !others.every(r => r.unitId === 'gal' && r.unitKind === 'fluid' && r.unitPrices.fluid > 0)
+        || byAsin.B0SORT0003.unitId !== 'oz' || !(byAsin.B0SORT0003.unitPrices.weight > 0) || byAsin.B0SORT0003.unitSources.weight !== 'amazon') {
+        throw new Error(`gallon list: ${JSON.stringify({ unit: gallon.unit, odd: gallon.items.map(r => [r.asin, r.unitId, r.unitKind]) })}`);
+      }
+      console.log(`  ok  sort menu → 2 options in Amazon's list; a pick opens the panel (Amazon's page untouched), sends ${items.length} listings with price per ounce; keyboard works; off removes it; the unit entry renames itself to the unit most listings show and sends that default`);
     });
 
     // The list page: side panel and tab, ranked by the priority bar, unsafe input dropped.
@@ -510,7 +542,26 @@ async function run() {
       await listPage.click('.chip[data-preset="unitPrice"]');
       const unit = await read();
       if (unit.asins.slice(0, 5).join() !== 'B0SORT0008,B0SORT0006,B0SORT0003,B0SORT0002,B0SORT0001'
-        || unit.title !== 'Lowest price per ounce first' || unit.units[0] !== '$0.09/oz') throw new Error(`list (price per ounce): ${JSON.stringify(unit)}`);
+        || unit.title !== 'Lowest price per ounce first' || unit.units[0] !== '$0.091/oz') throw new Error(`list (price per ounce): ${JSON.stringify(unit)}`);
+      // "Price per" above the list: the unit most listings use is the default, and any other can be picked. Pounds
+      // is the same order in other units; count lists the listings that can be priced per item first and says
+      // so for the rest; Automatic puts it back.
+      const pick = async value => { await listPage.selectOption('#unit-select', value); await listPage.waitForTimeout(200); return read(); };
+      const picker = await listPage.evaluate(() => ({ shown: !document.querySelector('.unit-picker').hidden, auto: document.querySelector('#unit-select option[value="auto"]').textContent,
+        groups: [...document.querySelectorAll('#unit-select optgroup')].map(g => g.label), named: !!document.querySelector('label[for="unit-select"]') }));
+      if (!picker.shown || !picker.named || !/^Automatic: ounce/.test(picker.auto) || picker.groups.length !== 3) throw new Error(`unit picker: ${JSON.stringify(picker)}`);
+      const pounds = await pick('lb');
+      if (pounds.asins.slice(0, 5).join() !== unit.asins.slice(0, 5).join() || pounds.title !== 'Lowest price per pound first' || pounds.units[0] !== '$1.45/lb') {
+        throw new Error(`list (per pound): ${JSON.stringify(pounds)}`);
+      }
+      const perCount = await pick('ct');
+      const priced = perCount.units.filter(u => /\/ct$/.test(u)).length;
+      if (perCount.title !== 'Lowest price per count first' || priced < 2 || perCount.units.slice(0, priced).some(u => !/\/ct$/.test(u))
+        || perCount.units.slice(priced).some(u => u !== 'No price per count')) throw new Error(`list (per count): ${JSON.stringify(perCount)}`);
+      const gallons = await pick('gal');
+      if (gallons.units.some(u => u !== 'No price per gallon')) throw new Error(`list (per gallon, no volume listings): ${JSON.stringify(gallons)}`);
+      const back = await pick('auto');
+      if (back.title !== 'Lowest price per ounce first' || back.units[0] !== '$0.091/oz') throw new Error(`list (automatic): ${JSON.stringify(back)}`);
       // A slider: health back up to 10 with price per ounce still at 10 is a mix, not a preset.
       await listPage.evaluate(() => {
         const input = document.querySelector('.slider[data-factor="health"] input');

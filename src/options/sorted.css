@@ -39,6 +39,17 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px soli
 .button.tertiary { border-color: transparent; background: transparent; color: var(--u-link, #007185); }
 .button.tertiary:hover { text-decoration: underline; }
 .button[hidden] { display: none; }
+/* The unit prices are shown in: always visible above the priorities. */
+.unit-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 14px; padding: 10px 14px; border: 1px solid #d5d9d9; border-radius: 8px; background: #fff; }
+.unit-picker[hidden] { display: none; }
+.unit-label { font-size: 13px; font-weight: 700; }
+.unit-select { flex: 1 1 200px; min-width: 0; max-width: 100%; padding: 6px 8px; border: 1px solid #b9c4bf; border-radius: 8px; background: #fff; color: #0f1111; font: inherit; font-size: 13px; }
+.unit-select:focus-visible { outline: 3px solid var(--u-link, #007185); outline-offset: 2px; }
+.unit-note { flex-basis: 100%; margin: 0; color: #565959; font-size: 11px; line-height: 1.45; min-height: 1em; }
+.unit-note:empty { display: none; }
+.facts.also { align-items: center; margin-top: -2px; }
+.also-label { color: #565959; font-size: 11px; font-weight: 700; }
+.fact.alt { background: transparent; border: 1px solid #d5d9d9; color: #3d4545; font-weight: 500; }
 .priorities { margin-top: 14px; padding: 12px 14px; border: 1px solid #d5d9d9; border-radius: 8px; background: #fff; }
 .priorities > summary { font-size: 13px; font-weight: 700; cursor: pointer; }
 .preset-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 12px; }
@@ -90,7 +101,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px soli
 .results-page[data-view="panel"] .score small { display: none; }
 .results-page[data-view="panel"] .score { margin: 6px 0; }
 .results-page[data-view="panel"] .listing-price { font-size: 12px; }
-.results-page[data-view="panel"] .priorities { padding: 9px 10px; }
+.results-page[data-view="panel"] .priorities, .results-page[data-view="panel"] .unit-picker { padding: 9px 10px; }
 .results-page[data-view="panel"] .slider-grid { grid-template-columns: 1fr; gap: 6px; }
 .results-page[data-view="panel"] .slider { grid-template-columns: minmax(0, 1fr) 110px 20px; font-size: 11px; }
 .results-page[data-view="panel"] .fact { font-size: 11px; padding: 2px 6px; }
@@ -107,7 +118,10 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px soli
   .button.secondary { background: #262828; border-color: #3a3c3c; color: #f3f3f3; }
   .button.secondary:hover { background: #2f3131; }
   .empty-state h2 { color: #f3f3f3; }
-  .priorities { background: #1f2020; border-color: #3a3c3c; }
+  .priorities, .unit-picker { background: #1f2020; border-color: #3a3c3c; }
+  .unit-select { background: #262828; border-color: #3a3c3c; color: #f3f3f3; }
+  .unit-note, .also-label { color: #aeaeae; }
+  .fact.alt { border-color: #3a3c3c; color: #cfd3d3; }
   .chip { background: #262828; border-color: #3a3c3c; color: #f3f3f3; }
   .chip[aria-pressed="true"] { background: var(--u-accent-bg-d, #173a26); border-color: var(--u-accent-d, #3fa66b); color: var(--u-accent-d, #bfe8cf); }
   .fact { background: #2a2c2c; color: #e3e3e3; }
