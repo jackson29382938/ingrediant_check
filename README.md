@@ -1,8 +1,8 @@
 # Ingredient Check
 
-**Understand grocery ingredient labels before you buy.**
+**Conveniently, quickly, and safely inspects, analyzes, and briefs grocery ingredient labels before you buy.**
 
-Ingredient Check is a Chrome extension (also works in Firefox). When you shop on Amazon, it reads the
+Ingredient Check is a Chrome extension (also works in Firefox). When you shop on Amazon (and many other online stores), it reads the
 ingredient list and gives the product a score from **0 to 100**. Scores are worked out on your own
 computer, and you choose which things matter to you.
 
