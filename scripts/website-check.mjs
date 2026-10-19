@@ -21,11 +21,11 @@ if (arg >= 0) {
     const route = new URL(req.url, 'http://localhost').pathname;
     if (route === '/privacy.html') { res.writeHead(308, { location: '/privacy' }); res.end(); return; }
     const file = route === '/' ? 'index.html' : route === '/privacy' ? 'privacy.html' : route.slice(1);
-    if (!['index.html', 'privacy.html', 'styles.css', 'robots.txt'].includes(file) || !fs.existsSync(path.join(root, file))) {
+    if (!(['index.html', 'privacy.html', 'styles.css', 'robots.txt'].includes(file) || /^img\/[\w-]+\.webp$/.test(file)) || !fs.existsSync(path.join(root, file))) {
       res.writeHead(404); res.end('Not found'); return;
     }
     for (const header of config.headers[0].headers) res.setHeader(header.key, header.value);
-    res.setHeader('content-type', file.endsWith('.css') ? 'text/css' : file.endsWith('.html') ? 'text/html' : 'text/plain');
+    res.setHeader('content-type', file.endsWith('.css') ? 'text/css' : file.endsWith('.html') ? 'text/html' : file.endsWith('.webp') ? 'image/webp' : 'text/plain');
     res.end(fs.readFileSync(path.join(root, file)));
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -33,7 +33,7 @@ if (arg >= 0) {
 }
 let browser;
 try {
-  browser = await chromium.launch({ headless: true });
+  browser = await chromium.launch({ headless: true, executablePath: process.env.HARNESS_CHROME || undefined });
   const page = await browser.newPage(), errors = [];
   page.on('pageerror', error => errors.push(error.message));
   for (const scheme of ['light', 'dark']) for (const width of [390, 1280]) for (const route of ['/', '/privacy']) {
@@ -43,10 +43,11 @@ try {
     const headers = response.headers();
     assert(headers['content-security-policy']?.includes("script-src 'none'"), 'Static-site script policy missing');
     assert.equal(headers['x-content-type-options'], 'nosniff');
+    if (route === '/') { await page.evaluate(() => Promise.all([...document.images].map(i => i.loading === 'lazy' ? (i.loading = 'eager', i.decode().catch(() => {})) : 0))); }
     const state = await page.evaluate(() => ({ overflow: document.documentElement.scrollWidth > innerWidth,
       theme: getComputedStyle(document.documentElement).colorScheme, h1: document.querySelector('h1')?.textContent,
-      scripts: document.scripts.length, missingAnchors: [...document.querySelectorAll('a[href^="#"]')].filter(a => !document.getElementById(a.hash.slice(1))).length }));
-    assert(state.h1 && !state.overflow && !state.scripts && !state.missingAnchors, JSON.stringify(state));
+      scripts: document.scripts.length, brokenImages: [...document.images].filter(i => i.complete && !i.naturalWidth).length, noAlt: [...document.images].filter(i => !i.alt.trim()).length, missingAnchors: [...document.querySelectorAll('a[href^="#"]')].filter(a => !document.getElementById(a.hash.slice(1))).length }));
+    assert(state.h1 && !state.overflow && !state.scripts && !state.missingAnchors && !state.brokenImages && !state.noAlt, JSON.stringify(state));
     assert.equal(state.theme, scheme, 'Stylesheet/theme did not load');
     if (route === '/') {
       await page.getByRole('heading', { name: 'Chrome', exact: true }).waitFor();

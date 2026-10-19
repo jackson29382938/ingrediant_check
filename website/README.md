@@ -4,9 +4,15 @@ Static site for the Ingredient Check extension, prepared for Vercel. No build st
 The folder is directly inside the repository root, next to `manifest.json` and `src/`.
 It is on `main`: https://github.com/jackson29382938/ingrediant_check/tree/main/website.
 
-- `index.html` landing page and install steps
+- `index.html` landing page, feature screenshots and install steps
+- `img/` screenshots (WebP, a `-light` and `-dark` file for each; the page picks one by colour scheme)
 - `privacy.html` privacy summary (full policy: `docs/PRIVACY.md`)
 - `vercel.json` clean URLs and security headers
+
+Screenshots are of the real extension on sample products, taken in Chromium with the unpacked
+extension (the score panel from `tests/harness.html`, the other pages with example listings loaded into
+session storage). Retake them after a visible UI change and keep product names generic: they are
+examples, not claims about a brand.
 
 Preview locally from the repository root: `python3 -m http.server 8000 --directory website`.
 
