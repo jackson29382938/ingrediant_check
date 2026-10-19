@@ -87,7 +87,7 @@
     if (!input.ingredients_text) return null;
     const result = A.engine.score(input, A.db.prefs.sanitizeScoring(conf));
     if (!A.engine.isReadable(result)) return null;
-    return { breakdown: H.fromResult(result), score: result.score, ingredients: input.ingredients_text, flags: (result.flags || []).map(f => f.label || f.name || f.message || f.id || '').filter(Boolean), scoredAt: Date.now(), input, source };
+    return { breakdown: H.fromResult(result), score: result.score, ingredients: input.ingredients_text, flags: (result.flags || []).map(f => f.label || f.name || f.message || f.id || '').filter(Boolean), scoredAt: Date.now(), input: { ...input, inputSchema: 1 }, source };
   }
   async function fallback(reading, conf, turn, status) {
     if (turn !== generation || !O.allowed(location)) return null;
@@ -97,7 +97,7 @@
       const found = await chrome.runtime.sendMessage({ type: 'lookupBarcode', code: data.upc, foodOnly: true });
       if (turn !== generation || !O.allowed(location)) return null;
       if (found?.rejected === 'not-food') return { nonfood: true };
-      const rating = rate({ ...input, name: data.title || found?.name, labels: `${input.labels || ''} ${found?.labels || ''}`, ingredients_text: found?.ingredients_text }, 'open-food-facts', conf);
+      const rating = rate({ ...input, name: data.title || found?.name, labels: `${input.labels || ''} ${found?.labels || ''}`, ingredients_text: found?.ingredients_text, nutrition: input.nutrition || found?.nutrition }, 'open-food-facts', conf);
       if (rating) return rating;
     }
     if (toggles.ocrLabels && urls.length) {

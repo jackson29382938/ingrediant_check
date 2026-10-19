@@ -50,7 +50,7 @@ for (const [kind, rules] of [['penalties', E.PENALTIES], ['caps', E.CAPS], ['bon
 }
 
 test('every nutrition contributor has a measurable, correctly directed effect', () => {
-  const product = {ingredients_text:'oats', nutrition:{servingGrams:100, sodium:1200, saturatedFat:15, sugar:40, addedSugar:25, carbs:70, fibre:10, protein:20}};
+  const product = {ingredients_text:'oats', nutrition:{servingGrams:100, sodium:1200, saturatedFat:15, sugar:40, addedSugar:25, carbs:70, fibre:10, protein:15}};
   const off = E.score(product, {weights:zero});
   for (const rule of E.NUTRITION) {
     const on = E.score(product, {weights:{...zero, [rule.cat]:1}});
@@ -105,7 +105,8 @@ test('nutrition inputs are immutable and presets cannot retain another score’s
   assert.deepEqual(nutrition,{servingGrams:40,sugar:12,protein:8});
   const perServing = E.score({ingredients_text:'oats',nutrition:{sugar:12,_normalised:true}}, {weights:{totalSugar:1}});
   assert.equal(perServing.nutritionBasis,'per-serving');
-  assert.ok(perServing.bad.some(r => /per serving/.test(r.why)));
+  assert.ok(!perServing.bad.some(r => r.cat === 'totalSugar'));
+  assert.equal(perServing.nutritionAssessment.find(r => r.category === 'totalSugar').status, 'unavailable');
 });
 
 test('invalid nutrition cannot create rewards or exaggerated deductions', () => {

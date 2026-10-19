@@ -34,7 +34,7 @@ test('sanitize keeps the columns and bounded engine input, and nothing else', ()
   assert.equal(r.status, 'ok');
   assert.equal(r.pulls, 0);
   assert.deepEqual(Object.keys(r.data).sort(),
-    ['advisory_text', 'certifications', 'confidence', 'food', 'labels', 'nutrition', 'text', 'title', 'via']);
+    ['advisory_text', 'certifications', 'confidence', 'food', 'inputSchema', 'labels', 'nutrition', 'text', 'title', 'via']);
   const dirty = C.sanitize({ ...r, data: { ...r.data, text: 'x'.repeat(9000), notes: 'mine', email: 'a@b.c',
     nutrition: { protein: 5, _normalised: true, sodium: -1, junk: 'x' } } }, NOW);
   assert.equal(dirty.data.text.length, 6000);

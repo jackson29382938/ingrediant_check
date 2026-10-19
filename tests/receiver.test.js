@@ -5,6 +5,20 @@ const fs = require('node:fs');
 const { receiver } = require('./receiver-harness.js');
 const batch = (start, count = 12) => ({ kind: 'diagnostics', batchId: `b-${start}`,
   rows: Array.from({ length: count }, (_, i) => ({ rowId: `r-${start + i}`, ingredients: 'Oats' })) });
+test('Google verification runs outside the global sheet lock without trusting body identity', () => {
+  const token = 'a'.repeat(30), r = receiver({ tokens: { [token]: { aud: 'client-1', sub: 'alice', expires_in: '3600' } } });
+  const fetch = r.context.UrlFetchApp.fetch;
+  let verified = 0;
+  r.context.UrlFetchApp.fetch = (...args) => {
+    const lock = r.context.LockService.getScriptLock();
+    assert.equal(lock.tryLock(0), true, 'remote authentication must not hold the sheet lock');
+    lock.releaseLock(); verified++;
+    return fetch(...args);
+  };
+  assert.equal(r.post({ kind: 'historyGet', token, identity: 'forged' }).ok, true);
+  assert.equal(verified, 1);
+  assert.equal(r.post({ kind: 'historyGet', token: 'invalid', identity: 'forged' }).ok, false);
+});
 test('diagnostic protocol advertises and confirms outcomes support, and refuses future schemas', () => {
   const r = receiver();
   assert.equal(r.get({}).diagnosticsSchema, 2);

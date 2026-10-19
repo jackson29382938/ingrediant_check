@@ -83,10 +83,12 @@ function purgeHistoricalPolishReading() {
 // "Measuring load"): Apps Script > Executions shows them, and Cloud Logging can chart them. No
 // product, token or payload is logged: only the kind, how many items, how long, and the outcome.
 var lastReply = null;   // what json() last answered, for logRequest; reset per request
+var lockTiming = { waitMs: 0, heldMs: 0 };
 function logRequest(kind, items, started) {
   if (typeof console === 'undefined' || !console.log) return;
   var out = lastReply || {};
   console.log(JSON.stringify({ ic: 'request', kind: kind, items: items, ms: Date.now() - started,
+    lockWaitMs: lockTiming.waitMs, lockHeldMs: lockTiming.heldMs,
     ok: out.ok === true, busy: /busy/.test(String(out.error || '')), closed: out.closed === true || /closed/.test(String(out.error || '')) }));
 }
 function itemsOf(body) {
@@ -100,6 +102,7 @@ function doPost(e) {
   var started = Date.now();
   var body = null;
   lastReply = null;
+  lockTiming = { waitMs: 0, heldMs: 0 };
   var result = handlePost(e, function (b) { body = b; });
   logRequest(body && body.kind ? String(body.kind).slice(0, 20) : 'invalid', itemsOf(body), started);
   return result;
@@ -110,18 +113,27 @@ function handlePost(e, seen) {
   try { body = JSON.parse(e.postData.contents); }
   catch (err) { return json({ ok: false, error: 'invalid json' }); }
   seen(body);
+  // Verify Google remotely before taking the global sheet lock. Identity is computed here,
+  // never accepted from the request body; sheet reads/merges/deletions remain atomic below.
+  var identity;
+  try {
+    if (['account', 'accountGet', 'historyGet', 'historyPut', 'historyClear'].indexOf(body.kind) !== -1) identity = accountId(body.token);
+  } catch (err) { return json({ ok: false, error: String(err) }); }
   // Public lookup and settings reads bypass batch-write locks. Private history reads lock below,
   // alongside history deletion, to avoid exposing a partly cleared account.
   try {
     if (body.kind === 'lookup') return lookupProducts(body.keys);
-    if (body.kind === 'accountGet') return readAccount(body.token);
+    if (body.kind === 'accountGet') return readAccount(body.token, identity);
   } catch (err) {
     return json({ ok: false, error: String(err) });
   }
   var lock = LockService.getScriptLock();
   var acquired = false;
+  var waitingAt = Date.now(), acquiredAt = 0;
   try {
     acquired = lock.tryLock(15000);
+    lockTiming.waitMs = Date.now() - waitingAt;
+    acquiredAt = Date.now();
     if (!acquired) return json({ ok: false, error: 'busy; retry later' });
     if (body.kind === 'diagnostics') {
       if (body.diagnosticsSchema && body.diagnosticsSchema > 2) return json({ ok: false, error: 'unsupported-diagnostics-schema', diagnosticsSchema: 2 });
@@ -129,21 +141,22 @@ function handlePost(e, seen) {
     }
     if (body.kind === 'report') return writeRows('reports', CONTRIBUTION_COLUMNS, [stamp(body)]);
     if (body.kind === 'products') return writeProducts(body);
-    if (body.kind === 'account') return writeAccount(body.token, body.payload);
-    if (body.kind === 'historyGet') return readHistory(body.token);
-    if (body.kind === 'historyPut') return writeHistory(body.token, body.payload);
-    if (body.kind === 'historyClear') return clearHistory(body.token);
+    if (body.kind === 'account') return writeAccount(body.token, body.payload, identity);
+    if (body.kind === 'historyGet') return readHistory(body.token, identity);
+    if (body.kind === 'historyPut') return writeHistory(body.token, body.payload, identity);
+    if (body.kind === 'historyClear') return clearHistory(body.token, identity);
     return writeRows('contributions', CONTRIBUTION_COLUMNS, [stamp(body)]);
   } catch (err) {
     return json({ ok: false, error: String(err) });
   } finally {
-    if (acquired) lock.releaseLock();
+    if (acquired) { lockTiming.heldMs = Date.now() - acquiredAt; lock.releaseLock(); }
   }
 }
 
 function doGet(e) {
   var started = Date.now();
   lastReply = null;
+  lockTiming = { waitMs: 0, heldMs: 0 };
   var result = handleGet(e);
   logRequest('get:' + String((e && e.parameter && e.parameter.kind) || 'status').slice(0, 20), 1, started);
   return result;
@@ -306,8 +319,8 @@ function findAccountRow(sheet, id) {
   return -1;
 }
 
-function writeAccount(token, payload) {
-  var id = accountId(token);
+function writeAccount(token, payload, identity) {
+  var id = identity || accountId(token);
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('invalid payload');
   if (payload._format !== 'ingredient-check-settings') throw new Error('unknown settings format');
   var text = JSON.stringify(payload);
@@ -321,8 +334,8 @@ function writeAccount(token, payload) {
   return json({ ok: true, wrote: 1, tab: 'accounts' });
 }
 
-function readAccount(token) {
-  var id = accountId(token);
+function readAccount(token, identity) {
+  var id = identity || accountId(token);
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('accounts');
   var at = sheet ? findAccountRow(sheet, id) : -1;
   if (at === -1) return json({ ok: true, payload: null });
@@ -341,13 +354,13 @@ function historyRows() {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('purchase-history');
   return sheet && sheet.getLastRow() > 1 ? sheet.getRange(2, 1, sheet.getLastRow() - 1, HISTORY_COLUMNS.length).getValues() : [];
 }
-function readHistory(token) {
-  var id = accountId(token), cleared = historyClearTime(id);
+function readHistory(token, identity) {
+  var id = identity || accountId(token), cleared = historyClearTime(id);
   var records = historyRows().filter(function(r) { return unquote(r[0]) === id; }).map(function(r) { return JSON.parse(unquote(r[2])); }).filter(function(r) { return r.observedAt > cleared; });
   return json({ ok: true, kind: 'historyGet', account: id, clearedAt: cleared, records: AIR.db.purchaseHistory.merge([], records) });
 }
-function writeHistory(token, payload) {
-  var id = accountId(token), H = AIR.db.purchaseHistory;
+function writeHistory(token, payload, identity) {
+  var id = identity || accountId(token), H = AIR.db.purchaseHistory;
   if (!payload || !Array.isArray(payload.records) || payload.records.length > 100) throw new Error('invalid history batch');
   if (payload.records.some(function(r) { return !H.clean(r); })) throw new Error('invalid history record');
   var cleared = historyClearTime(id), all = historyRows(), old = [], at = {}, previous = {};
@@ -364,8 +377,8 @@ function writeHistory(token, payload) {
   SpreadsheetApp.flush();
   return json({ ok: true, kind: 'historyPut', count: records.length });
 }
-function clearHistory(token) {
-  var id = accountId(token), cleared = Date.now(), resets = sheetFor('history-resets', ACCOUNT_COLUMNS), at = findAccountRow(resets, id);
+function clearHistory(token, identity) {
+  var id = identity || accountId(token), cleared = Date.now(), resets = sheetFor('history-resets', ACCOUNT_COLUMNS), at = findAccountRow(resets, id);
   var marker = ["'" + id, "'" + String(cleared), "'" + new Date(cleared).toISOString()];
   if (at === -1) resets.appendRow(marker); else resets.getRange(at, 1, 1, 3).setValues([marker]);
   var all = historyRows(), sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('purchase-history');
@@ -482,6 +495,16 @@ function json(obj) {
   function cleanInput(raw) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw) || typeof raw.ingredients_text !== 'string' || !raw.ingredients_text.trim()) return null;
     const out = {};
+    if (raw.inputSchema === 1) out.inputSchema = 1;
+    // A bounded snapshot of every field the scorer reads, not a live registry reference.
+    const evidence = raw.provenanceRecord;
+    const plain = v => typeof v === 'string' ? v.replace(/[<>]/g, '').slice(0, 500) : '';
+    if (evidence && typeof evidence === 'object' && !Array.isArray(evidence)) {
+      out.provenanceRecord = { certifications: plain(evidence.certifications), source: plain(evidence.source).slice(0, 120) };
+      if (evidence.producerRegistry && typeof evidence.producerRegistry === 'object') {
+        out.provenanceRecord.producerRegistry = { certifications: plain(evidence.producerRegistry.certifications) };
+      }
+    }
     for (const [key, limit] of Object.entries({ name: 250, ingredients_text: 6000, advisory_text: 6000, labels: 3000, certifications: 500 })) {
       if (typeof raw[key] === 'string') out[key] = raw[key].replace(/[<>]/g, '').slice(0, limit);
     }

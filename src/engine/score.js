@@ -34,7 +34,7 @@ const NOVA_BASE = { 1: 96, 2: 90, 3: 80, 4: 60 };
 // vacuously. `readable` is the only question a caller should ask before showing a score.
 const MIN_COVERAGE = 0.34;
 const isReadable = r => !!r && r.parsed > 0 && typeof r.coverage === 'number' && r.coverage >= MIN_COVERAGE
-  && Number.isFinite(r.score);
+  && !r.parseWarnings?.length && Number.isFinite(r.score);
 const BANDS = [[90, 'Excellent'], [75, 'Good'], [50, 'Mediocre'], [25, 'Poor'], [0, 'Avoid']];
 const SCORE_FLOOR = 3;
 
@@ -464,7 +464,7 @@ function repeatedAllergenBrackets(entries) {
 function recognitionCoverage(entries) {
   if (!entries.length) return 0;
   let seen = 0;
-  for (const e of entries) if (e.organic || recognised(e.ing)) seen++;
+  for (const e of entries) if (e.ing.length < 80 && recognised(e.ing)) seen++;
   return seen / entries.length;
 }
 
@@ -502,7 +502,9 @@ const LEADING_SHARE = /^(?:\d+(?:[.,]\d+)?\s*%|%\s*\d+(?:[.,]\d+)?)\s+(?=\D)(?!(
 const LEADING_HEADING = /^(?:ingredients?|zutaten|ingr[ée]dients|ingredientes|ingredienti|ingredi[ëe]nten|ingredienser|sk[łl]ad(?:niki)?|i[çc]indekiler)\s*:\s*/i;
 const tidy = s => dropShare(s.replace(MARKERS, ' ').replace(/^[\s*•\-–:]+/, '').replace(/\s+/g, ' ').trim().toLowerCase().replace(/i\u0307/g, 'i'))
   .trim().replace(LEADING_HEADING, '').replace(LEADING_SHARE, '');
-const usable = s => s.length > 1 && s.length < 80;
+// Keep long entries in the assessment: discarding one hid oil caps and falsely reported 100%
+// coverage. The resource limit now produces an explicit incomplete reading, never a clean score.
+const usable = s => s.length > 1;
 
 // Split on commas at the TOP level only, leaving parenthesised sub-lists attached to their parent.
 // A full stop ends an entry only when it ends a sentence: "2.5%" and "vitamin b12." must not split.
@@ -607,9 +609,10 @@ function expandEntry(raw, depth = 0, ids = { n: 0 }, parent = 0) {
   // else a bare number stays a number.
   const codes = isFunctionWord(pieces[0].ing);
   for (const group of groups) {
-    for (const child of group.split(/;|(?<!\d),|,(?!\d)/)) {
+    for (const child of splitTopLevel(codes ? group.replace(/(?<=\d),(?=\d)/g, ', ') : group)) {
       if (depth < 3 && (child.includes('(') || child.includes(':'))) { pieces.push(...expandEntry(child, depth + 1, ids, fam)); continue; }
       const one = tidy(child.replace(/[()]/g, ' '));
+      if (child.includes('(')) { pieces.push({ ing: one, fam: ++ids.n, parent: fam, unassessed: true }); continue; }
       const bare = codes ? one.split(/\s*(?:&|\/|\band\b|\bund\b|\bet\b|\by\b|\be\b|\bi\b|\ben\b|\boch\b|\bve\b)\s*/) : [one];
       if (codes && bare.length && bare.every(c => E_CODE.test(c))) for (const c of bare) pieces.push({ ing: `e${c}`, fam: ++ids.n, parent: fam });
       else pieces.push({ ing: one, fam: ++ids.n, parent: fam });
@@ -737,6 +740,7 @@ function parseEntries(text) {
       for (const e of splitConjunction(x)) {
         const bare = withoutOrganic(e.ing);
         out.push({ ing: bare || e.ing, pos, fam: e.fam, parent: e.parent, ...(bare ? { organic: true } : {}),
+          ...(e.unassessed ? { unassessed: true } : {}),
           ...(share != null ? { share } : {}), ...(minor ? { minor: true } : {}) });
       }
     }
@@ -823,17 +827,29 @@ function normaliseNutrition(raw) {
   const hasMl = !hasGrams && (raw.servingMl != null || legacyMl);
   const serving = hasGrams ? raw.servingGrams : hasMl ? raw.servingMl ?? raw.servingGrams : null;
   if (serving != null && (typeof serving !== 'number' || !Number.isFinite(serving) || serving <= 0 || serving > 10000)) return {values:{},basis:'invalid'};
+  // All quantity curves compare 100g/100ml. An unknown serving cannot use those same thresholds
+  // as if it weighed 100g; retain an unavailable assessment and use ingredient fallbacks instead.
+  if (serving == null) return {values:{},basis:'per-serving',reason:'serving-size-missing'};
   const factor = serving == null ? 1 : 100 / serving;
   const values = {};
   for (const field of ['sodium','saturatedFat','sugar','addedSugar','fibre','protein','carbs']) {
     const value = raw[field];
     if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) continue;
     const normalized = value * factor;
-    const limit = field === 'sodium' ? 40000 : serving == null ? 500 : 100;
+    const limit = field === 'sodium' ? (hasGrams ? 40000 : 100000) : hasGrams ? 100 : 500;
     if (normalized > limit) return {values:{},basis:'invalid'};
     values[field] = normalized;
   }
   if (values.addedSugar != null && values.sugar != null && values.addedSugar > values.sugar) delete values.addedSugar;
+  // Subsets must fit their totals, and independent macronutrients must fit the declared mass.
+  // Volume has no mass bound: 100ml is not necessarily 100g. Allow label rounding of up to 2g.
+  if (hasGrams) {
+    const normalizedFat = Number.isFinite(raw.fat) && raw.fat >= 0 ? raw.fat * factor : null;
+    const fat = normalizedFat ?? values.saturatedFat ?? 0;
+    if ((values.sugar != null && values.carbs != null && values.sugar > values.carbs + 2)
+      || (normalizedFat != null && values.saturatedFat != null && values.saturatedFat > normalizedFat + 2)
+      || fat + (values.carbs ?? values.sugar ?? 0) + (values.protein || 0) > 102) return {values:{},basis:'invalid'};
+  }
   return {values, basis:serving == null ? 'per-serving' : hasGrams ? 'per 100g' : 'per 100ml'};
 }
 
@@ -972,14 +988,23 @@ function score(product, options = {}) {
   const prov = db.provenance;
   // Classified on the scored list, not the raw text: the eggs and milk of "may contain traces of
   // eggs, milk" made a rye bread an animal product with a sourcing charge (55 against 69).
-  const kindInfo = prov ? prov.classify(txt || product.name || '') : null;
+  const dominant = entries.find(e => !e.parent && !penaltiesFor(e.ing).size
+    && !CAPS.some(c => eitherForm(c.m, e.ing))
+    && (hitsAny(labels.WHOLE, e.ing) || hits1(labels.CULINARY, e.ing)));
+  const kindInfo = prov ? prov.classify(dominant?.ing || product.name || '') : null;
 
   const PROVENANCE_CRITICAL = ['beef', 'lamb', 'pork', 'poultry', 'egg', 'seafood'];
-  const provenanceApplies = !!(kindInfo && (kindInfo.animal || kindInfo.seafood) && list.length <= 4);
+  // A fifth seasoning or additional bracket disclosure must not erase sourcing uncertainty.
+  // Only the leading whole/culinary animal food owns this assessment, not a minor animal additive.
+  const provenanceApplies = !!(kindInfo && (kindInfo.animal || kindInfo.seafood) && dominant
+    && (hitsAny(labels.WHOLE, dominant.ing) || hits1(labels.CULINARY, dominant.ing))
+    && ['provenanceVerified', 'provenanceClaimed', 'provenanceUnknown', 'hollowClaims'].some(id => w_(id) > 0));
   // Only the critical kinds hand sourcing over to the provenance block entirely. For dairy and
   // produce the generic label bonuses still apply, otherwise grass-fed butter quietly lost the
   // credit it had before this feature existed.
   const provenanceOwnsSourcing = provenanceApplies && PROVENANCE_CRITICAL.includes(kindInfo.kind);
+  // A claim about an organic onion does not establish how the leading beef was produced.
+  const sourcingClaims = [product.name || '', product.labels || '', dominant?.ing || '', dominant?.organic ? 'organic' : ''].join(' ');
 
   const good = [], bad = [], seen = new Set();
   const hits = [], rewards = [];
@@ -1142,7 +1167,7 @@ function score(product, options = {}) {
     if (b.applies && (!kindInfo || !b.applies.includes(kindInfo.kind))) continue;
     const provenanceEvidence = [product.certifications || '', product.provenanceRecord && product.provenanceRecord.certifications || '',
       product.provenanceRecord && product.provenanceRecord.producerRegistry && product.provenanceRecord.producerRegistry.certifications || '',
-      product.name || '', product.labels || '', txt].join(' ');
+      sourcingClaims].join(' ');
     if (provenanceApplies && b.provenanceIds && prov.detectCertifications(provenanceEvidence, kindInfo.kind)
       .some(c => b.provenanceIds.includes(c.id))) continue;
     const verifiedOrganic = b.cat === 'organic' && kindInfo && prov && prov.detectCertifications([
@@ -1264,8 +1289,7 @@ function score(product, options = {}) {
       record ? (record.certifications || '') : '',
       registry ? (registry.certifications || '') : '',
     ].join(' ');
-    // bonusText, not txt: "organic eggs" loses its organic word to the parser, which keeps it as a note.
-    const claimed = [product.name || '', product.labels || '', bonusText].join(' ');
+    const claimed = sourcingClaims;
 
     // Hollow claims are things the SELLER said, so they are read off the seller's surfaces only.
     // Reading them off `claimed`, which includes the ingredient text, made "natural flavors" in a
@@ -1297,19 +1321,19 @@ function score(product, options = {}) {
       const add = Math.min(Math.round(c.pts * w_('provenanceVerified')), PROVENANCE_BONUS_CAP - gained);
       if (add <= 0) continue;
       gained += add;
-      good.push({ c: +add, why: `${c.label} — verified`, organic: /^organic/i.test(c.id) });
+      good.push({ c: +add, why: `${c.label} — verified`, organic: /^organic/i.test(c.id), sourcing: true });
     }
     for (const c of claims) {
       const add = Math.min(Math.round((c.pts / 2) * w_('provenanceClaimed')), PROVENANCE_BONUS_CAP - gained);
       if (add <= 0) continue;
       gained += add;
-      good.push({ c: +add, why: `${c.label}, unverified`, organic: /^organic/i.test(c.id) });
+      good.push({ c: +add, why: `${c.label}, unverified`, organic: /^organic/i.test(c.id), sourcing: true });
     }
     pts += gained;
 
     if (unknownCost > 0) {
       pts -= unknownCost;
-      bad.push({ c: -unknownCost, why: verified.length || claims.length
+      bad.push({ c: -unknownCost, sourcing: true, why: verified.length || claims.length
         ? 'Animal production details unverified — sourcing preference'
         : 'Animal production details unverified — sourcing preference' });
     }
@@ -1334,6 +1358,16 @@ function score(product, options = {}) {
   // How much of this list the rulebase could actually read. Reported, never scored — a low number
   // means "we cannot assess this", which is a different statement from a low score.
   const coverage = recognitionCoverage(entries);
+  const parseWarnings = [];
+  if (entries.some(e => e.ing.length >= 80)) parseWarnings.push('long-ingredient-entry');
+  if (entries.some(e => e.unassessed)) parseWarnings.push('nested-ingredient-limit');
+  const nutritionAssessment = NUTRITION.filter(n => w_(n.cat) > 0).map(n => ({
+    category: n.cat, label: n.why.replace(/ per serving$/, ''),
+    status: nutritionInfo.values[n.field] != null ? 'assessed'
+      : nutritionInfo.basis === 'invalid' ? 'invalid' : 'unavailable',
+    reason: nutritionInfo.values[n.field] != null ? null
+      : nutritionInfo.reason || (nutritionInfo.basis === 'invalid' ? 'invalid-panel' : 'missing-field'),
+  }));
 
   const rawTotal_ = Math.round(pts);
   // Ceiling only at this point. The floor and the hard cap are applied AFTER the display rows are
@@ -1398,6 +1432,11 @@ function score(product, options = {}) {
     final = SCORE_FLOOR;
   }
 
+  // Components use the reconciled display rows, so their sum is exactly the displayed score.
+  const dimensions = { processing: displayBase, ingredients: 0, nutrition: 0, sourcing: 0 };
+  for (const row of [...good, ...bad]) if (Number.isFinite(row.c)) {
+    dimensions[row.sourcing || row.organic ? 'sourcing' : NUTRITION.some(n => n.cat === row.cat) ? 'nutrition' : 'ingredients'] += row.c;
+  }
   return {
     score: final,
     verdict: BANDS.find(b => final >= b[0])[1],
@@ -1406,7 +1445,8 @@ function score(product, options = {}) {
     good, bad,
     parsed: list.length,
     coverage, nutritionBasis:nutritionInfo.basis,
-    readable: list.length > 0 && coverage >= MIN_COVERAGE,
+    readable: list.length > 0 && coverage >= MIN_COVERAGE && !parseWarnings.length,
+    parseWarnings, nutritionAssessment, dimensions,
     ruleCount: PENALTIES.length + CAPS.length + labels.BONUSES.length,
   };
 }
