@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Install · Ingredient Check</title>
+  <meta name="description" content="How to install Ingredient Check in Chrome or Firefox: which file to download, step-by-step setup, updating and troubleshooting.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">Ingredient Check</a>
+    <nav aria-label="Main navigation"><a href="/">Home</a><a href="/features">Features</a><a href="/scoring">Scoring</a><a href="/stores">Stores</a><a href="/install" aria-current="page">Install</a><a href="/faq">FAQ</a><a href="/privacy">Privacy</a></nav>
+  </header>
+
+  <main>
+
+    <div class="page-head">
+      <p class="eyebrow">Install</p>
+      <h1>Install Ingredient Check</h1>
+      <p class="lede">It installs from a download, not from a browser store, and takes about two minutes. Pick your browser, follow the four steps, then run a short setup.</p>
+      <nav class="toc" aria-label="On this page">
+        <a href="#download">Download</a><a href="#chrome">Chrome</a><a href="#firefox">Firefox</a><a href="#verify">Check it worked</a><a href="#setup">First-run setup</a><a href="#update">Updating</a><a href="#trouble">Troubleshooting</a>
+      </nav>
+    </div>
+
+    <section id="download" class="detail">
+      <div class="download">
+        <h2>First, download the file</h2>
+        <p>Open <a href="https://github.com/jackson29382938/ingrediant_check/releases/latest">the latest release</a> and scroll to <strong>Assets</strong>. There are two ZIP files; pick the one for your browser.</p>
+        <table class="files">
+          <thead><tr><th scope="col">Your browser</th><th scope="col">Download this file</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Chrome (116 or newer)</th><td><code>ingredient-check-<em>version</em>.zip</code></td></tr>
+            <tr><th scope="row">Firefox (142 or newer)</th><td><code>ingredient-check-<em>version</em>-firefox.zip</code></td></tr>
+          </tbody>
+        </table>
+        <p class="actions"><a class="btn primary" href="https://github.com/jackson29382938/ingrediant_check/releases/latest">Go to the latest release</a></p>
+        <p class="muted">These are development packages. The Chrome one loads in Developer mode. The Firefox one is unsigned, so it loads temporarily; see below.</p>
+      </div>
+    </section>
+
+    <section class="detail">
+      <div class="install-cols">
+        <div id="chrome" class="install-col">
+          <h2>Chrome</h2>
+          <ol class="steps big">
+            <li><strong>Extract the ZIP</strong> into a folder you will keep, such as <code>Documents/ingredient-check</code>. Do not delete or move it afterwards: Chrome reads the extension from that folder.</li>
+            <li><strong>Open <code>chrome://extensions</code></strong> (paste it into the address bar) and turn on <strong>Developer mode</strong>, the switch at the top right.</li>
+            <li><strong>Click <em>Load unpacked</em></strong> and choose the extracted folder, the one that contains <code>manifest.json</code>.</li>
+            <li><strong>Pin it.</strong> Click the puzzle-piece icon in the toolbar and pin <strong>Ingredient Check</strong>. A short setup opens the first time.</li>
+          </ol>
+          <p class="muted">Chrome may show a banner about developer-mode extensions each time it starts. That is expected for this kind of install; dismiss it.</p>
+        </div>
+        <div id="firefox" class="install-col">
+          <h2>Firefox</h2>
+          <ol class="steps big">
+            <li><strong>Extract the <code>-firefox.zip</code></strong> into a folder.</li>
+            <li><strong>Open <code>about:debugging#/runtime/this-firefox</code></strong> (paste it into the address bar).</li>
+            <li><strong>Click <em>Load Temporary Add-on</em></strong> and select the <code>manifest.json</code> inside the extracted folder.</li>
+            <li><strong>Allow the stores you use.</strong> Open the extension's permissions and grant site access for the retailers you shop at.</li>
+          </ol>
+          <p class="muted">Firefox removes temporary add-ons when it restarts, so repeat step 3 after a restart. Keeping it permanently needs Mozilla signing; see the <a href="https://github.com/jackson29382938/ingrediant_check/blob/main/docs/BROWSERS.md">browser setup guide</a>.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="verify" class="detail">
+      <div class="callout">
+        <h2>Check that it worked</h2>
+        <ol class="steps">
+          <li>Open any grocery product page on a supported store, for example an Amazon food product.</li>
+          <li>A score panel appears under the title, with a number from 0 to 100.</li>
+          <li>Click the panel to open it and read the reasons. The toolbar icon shows the same score for the current product.</li>
+        </ol>
+        <p class="muted">If the page is not a food product, or the label is missing, the panel says so rather than guessing.</p>
+      </div>
+    </section>
+
+    <section id="setup" class="detail">
+      <h2>First-run setup</h2>
+      <p>The first time you open the extension, a one-minute setup asks about:</p>
+      <ul class="facts">
+        <li><strong>Your goals</strong>, such as weight loss, vitamins or training. You can combine them. See <a href="/features#goals">goals</a>.</li>
+        <li><strong>Allergens and diets</strong> you avoid. These show as warnings and never change the score.</li>
+        <li><strong>An avoid list</strong> of ingredients you do not want.</li>
+        <li><strong>Four fetch choices</strong>, each recommended and switched on by default: rate every search result, look up certification tables, read label photos on your computer, and fall back to the barcode database. The barcode lookup asks Chrome for one extra permission.</li>
+      </ul>
+      <p>Change any of it later from the toolbar icon → <strong>Settings</strong>, or choose <strong>Run setup again</strong>. The <a href="/privacy">privacy page</a> lists what each choice sends.</p>
+    </section>
+
+    <section id="update" class="detail">
+      <h2>Updating</h2>
+      <ol class="steps">
+        <li>Download the newer ZIP from <a href="https://github.com/jackson29382938/ingrediant_check/releases/latest">the latest release</a>.</li>
+        <li>Extract it over the files in the <strong>same folder</strong> you used before.</li>
+        <li>Open <code>chrome://extensions</code> and press <strong>Reload</strong> on the Ingredient Check card.</li>
+      </ol>
+      <p>Keeping the same folder keeps your settings, local history and the extension's identity. Use a fresh folder only for a brand-new install. Firefox temporary add-ons are loaded again from the new folder.</p>
+    </section>
+
+    <section id="trouble" class="detail">
+      <h2>Something not working?</h2>
+      <details>
+        <summary>There is no <em>Load unpacked</em> button</summary>
+        <p>Turn on <strong>Developer mode</strong> on <code>chrome://extensions</code>. The switch is at the top right of the page.</p>
+      </details>
+      <details>
+        <summary>Chrome says the manifest file is missing</summary>
+        <p>You selected the wrong folder. Choose the folder that directly contains <code>manifest.json</code>. Some extractors add one more folder around it; open it and choose the inner one.</p>
+      </details>
+      <details>
+        <summary>I downloaded the wrong ZIP</summary>
+        <p>The ZIP with <code>-firefox</code> in its name is only for Firefox. Chrome needs the one without it. Errors on the extension card after loading usually mean this.</p>
+      </details>
+      <details>
+        <summary>Nothing appears on the store page</summary>
+        <p>Reload the page after installing. Make sure the extension is switched on in the toolbar popup, and that the store is one of the <a href="/stores">supported stores</a>. Some stores are previews that are still being validated.</p>
+      </details>
+      <details>
+        <summary>A product has no score</summary>
+        <p>The label may be missing or unreadable. The product page offers a paste box where you can type the ingredients, and the extension scores what you paste. <a href="/faq#noscore">More on why.</a></p>
+      </details>
+      <details>
+        <summary>My settings disappeared after an update</summary>
+        <p>Chrome ties an unpacked extension to its folder. Update by extracting over the same folder rather than loading a new one. Settings backed up through your browser's sync can be restored from Settings → Backup.</p>
+      </details>
+      <p class="muted">Still stuck? Use <strong>Report a problem or idea</strong> in the toolbar popup, or email <a href="mailto:jackson29382938@gmail.com">jackson29382938@gmail.com</a>.</p>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <p>Ingredient Check is open source under the <a href="https://github.com/jackson29382938/ingrediant_check/blob/main/LICENSE">MIT License</a>. <a href="/privacy">Privacy</a> · <a href="https://github.com/jackson29382938/ingrediant_check">GitHub</a></p>
+    <p class="muted">Not affiliated with Amazon, Target, Walmart, Costco or any other retailer.</p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scoring · Ingredient Check</title>
+  <meta name="description" content="How Ingredient Check builds a 0 to 100 score: reading the list, processing level, penalties, bonuses and ceilings, with worked examples and limits.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">Ingredient Check</a>
+    <nav aria-label="Main navigation"><a href="/">Home</a><a href="/features">Features</a><a href="/scoring" aria-current="page">Scoring</a><a href="/stores">Stores</a><a href="/install">Install</a><a href="/faq">FAQ</a><a href="/privacy">Privacy</a></nav>
+  </header>
+
+  <main>
+
+    <div class="page-head">
+      <p class="eyebrow">Scoring</p>
+      <h1>How a score is built</h1>
+      <p class="lede">A score is a guide to what is written on the label, worked out from open rules on your own computer. Here is each step, what moves the number, and what the score cannot tell you.</p>
+      <nav class="toc" aria-label="On this page">
+        <a href="#steps">The five steps</a><a href="#bands">Score bands</a><a href="#example">Worked examples</a><a href="#goals">What goals change</a><a href="#never">What never changes it</a><a href="#limits">Limits</a>
+      </nav>
+    </div>
+
+    <section id="steps" class="detail">
+      <h2>The five steps</h2>
+      <ol class="steps big">
+        <li><strong>Read the list.</strong> The ingredient text is split into entries, with sub-ingredients in brackets kept under their parent. A declared share counts: <em>Oats 98%, Sugar 2%</em> is not the same as <em>Oats 60%, Sugar 40%</em>. The allergen line ("Contains: milk, soy") is set aside so it is not scored as ingredients, and an ingredient hidden by unusual punctuation is still found. If the rules recognise too little of a list, the product is declined instead of scored.</li>
+        <li><strong>Set the processing level.</strong> Each product lands in one of four classes: <em>Whole / minimally processed</em>, <em>Culinary ingredient</em>, <em>Processed</em> or <em>Ultra-processed</em>. They set the starting score, from about 96 for whole foods to about 60 for ultra-processed ones. It is a NOVA-style heuristic, not a validated classifier, and it does not depend on your weights.</li>
+        <li><strong>Charge what the label shows.</strong> Refined seed oils, added sugars, artificial colours and sweeteners, preservatives, flavourings and similar ingredients each cost points. An ingredient counts for more when it is a larger part of the product: by its declared percentage when the label gives one, otherwise by its place in the list. Nothing is charged that no rule matches.</li>
+        <li><strong>Add bounded bonuses.</strong> Verified organic, third-party certifications and a short ingredient list can add points. A claim the label makes but nothing verifies earns less than a verified one, and meaningless marketing wording earns nothing. A bonus can never lift a score past a ceiling.</li>
+        <li><strong>Apply ceilings.</strong> Some ingredients cap the final score whatever else is on the label, such as a refined seed oil (63) or an artificial sweetener (61). Ceilings stay binding under every goal, and rewards cannot get around them.</li>
+      </ol>
+      <p class="muted">Your goals change how much each step weighs. The panel always shows the rows that moved the number, and the rows add up to the score you see.</p>
+    </section>
+
+    <section id="bands" class="detail">
+      <h2>Score bands</h2>
+      <div class="table-wrap compact">
+        <table class="grid">
+          <thead><tr><th scope="col">Score</th><th scope="col">Verdict</th></tr></thead>
+          <tbody>
+            <tr><td>90–100</td><td>Excellent</td></tr>
+            <tr><td>75–89</td><td>Good</td></tr>
+            <tr><td>50–74</td><td>Mediocre</td></tr>
+            <tr><td>25–49</td><td>Poor</td></tr>
+            <tr><td>0–24</td><td>Avoid</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted">The number and the verdict word always show the score, so colour is never the only signal. A colour-blind-safe palette is in Settings → Appearance.</p>
+    </section>
+
+    <section id="example" class="detail">
+      <h2>Worked examples</h2>
+      <p class="muted">Sample products with generic names, taken from the extension's own test page. They show how the rows read, not how any brand scores.</p>
+      <div class="feature">
+        <div class="feature-text">
+          <h3>Sweetened cereal: 65</h3>
+          <p>Processed, so the starting score is lower. Refined added sugar costs 15 points. Nothing else on the list is charged, so the score lands in Mediocre.</p>
+          <h3>Potato chips: 63</h3>
+          <p>The salt and potatoes are fine, but a refined seed oil sets a ceiling of 63. That is the highest this product can score under the default goal, however good the rest is. Stricter goals such as Whole-food focused apply stronger oil rules.</p>
+          <h3>Rolled oats: 98</h3>
+          <p>One whole-grain ingredient. Verified organic, a non-GMO claim and a single-ingredient list each add a point.</p>
+        </div>
+        <div class="feature-shots">
+          <figure class="shot"><picture><source media="(prefers-color-scheme: dark)" srcset="img/score-flakes-dark.webp"><img src="img/score-flakes-light.webp" width="1100" height="306" alt="Score panel for a sweetened cereal: 65, with refined added sugar costing 15 points." loading="lazy" decoding="async"></picture></figure>
+          <figure class="shot"><picture><source media="(prefers-color-scheme: dark)" srcset="img/score-chips-dark.webp"><img src="img/score-chips-light.webp" width="1100" height="306" alt="Score panel for potato chips: 63, with safflower oil capping the score at 63." loading="lazy" decoding="async"></picture></figure>
+          <figure class="shot"><picture><source media="(prefers-color-scheme: dark)" srcset="img/score-oats-dark.webp"><img src="img/score-oats-light.webp" width="1100" height="378" alt="Score panel for rolled oats: 98, with three small bonuses." loading="lazy" decoding="async"></picture></figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="goals" class="detail">
+      <h2>What goals change</h2>
+      <p>Goals are presets for the same controls you can set by hand. They do not change the label; they change what you care about on it.</p>
+      <div class="table-wrap">
+        <table class="grid">
+          <thead><tr><th scope="col">Goal</th><th scope="col">In short</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Balanced</th><td>The defaults. Processing and additives matter most; fat and total sugar stay off unless you turn them on. Rewards sourcing and short lists.</td></tr>
+            <tr><th scope="row">Whole-food focused</th><td>Short lists and minimal processing above everything: isolates, gums, flavourings and fortification cost more, and traditional preparation earns more. Keeps stricter oil and sweetener preferences.</td></tr>
+            <tr><th scope="row">Weight loss / cutting</th><td>Uses measured added sugar when the label gives it, and gives fat-reduced dairy a modest plus.</td></tr>
+            <tr><th scope="row">Low-carb</th><td>Uses the declared carbohydrate amount.</td></tr>
+            <tr><th scope="row">Vitamins &amp; minerals</th><td>Rewards added vitamins and minerals instead of ignoring them.</td></tr>
+            <tr><th scope="row">Additive-averse</th><td>Colours, sweeteners, preservatives, flavourings (natural ones too), gums and emulsifiers cost much more. Sourcing bonuses shrink so the score is about additives.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>There are 20 goals in all, and they can be combined. See <a href="/features#goals">Features</a> for the full list and for how combined goals are averaged, and Settings to change any individual weight.</p>
+    </section>
+
+    <section id="never" class="detail">
+      <h2>What never changes a score</h2>
+      <ul class="facts">
+        <li><strong>Allergen, diet and avoid-list flags.</strong> They show as warnings, separate from the number.</li>
+        <li><strong>Marketing claims that mean nothing.</strong> They can be flagged, but earn no points.</li>
+        <li><strong>Country of origin alone.</strong> It earns no automatic credit.</li>
+        <li><strong>Price, rating and reviews.</strong> These only matter when you sort a list yourself, and the score stays the same.</li>
+        <li><strong>Missing information.</strong> A product with no readable label gets no score, not a low one.</li>
+      </ul>
+    </section>
+
+    <section id="limits" class="detail">
+      <h2>What a score cannot tell you</h2>
+      <ul class="facts">
+        <li><strong>It is not health or allergy advice.</strong> Weights and ceilings describe this model's preferences, not measured health effects. Check the package.</li>
+        <li><strong>It reads the label, not the food.</strong> Ingredient text can be incomplete or out of date. Portion size and how much you eat are not in it.</li>
+        <li><strong>English labels are the best tested.</strong> Three English labels were captured from live store pages and many more were modelled on real products. German, Spanish, French, Italian, Portuguese, Dutch, Swedish, Polish and Turkish lists are scored through a synonym pack that has only been tested on translated lists, so treat those scores as less certain. Japanese and Arabic lists are declined.</li>
+        <li><strong>Rules change.</strong> When a rule changes, saved scores are retired and recalculated, and release notes say which calibration products moved.</li>
+      </ul>
+      <p>The evidence for each language and reading method is published in the <a href="https://github.com/jackson29382938/ingrediant_check/blob/main/docs/ACCURACY.md">accuracy notes</a>, and every factor and default in the <a href="https://github.com/jackson29382938/ingrediant_check/blob/main/docs/SCORING-CALIBRATION-2026-10-01.md">calibration review</a>.</p>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <p>Ingredient Check is open source under the <a href="https://github.com/jackson29382938/ingrediant_check/blob/main/LICENSE">MIT License</a>. <a href="/privacy">Privacy</a> · <a href="https://github.com/jackson29382938/ingrediant_check">GitHub</a></p>
+    <p class="muted">Not affiliated with Amazon, Target, Walmart, Costco or any other retailer.</p>
+  </footer>
+</body>
+</html>

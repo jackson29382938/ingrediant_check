@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Features · Ingredient Check</title>
+  <meta name="description" content="Everything Ingredient Check does: product page scores, search and cart ratings, unit-price sorting, goals, warnings and purchase history.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">Ingredient Check</a>
+    <nav aria-label="Main navigation"><a href="/">Home</a><a href="/features" aria-current="page">Features</a><a href="/scoring">Scoring</a><a href="/stores">Stores</a><a href="/install">Install</a><a href="/faq">FAQ</a><a href="/privacy">Privacy</a></nav>
+  </header>
+
+  <main>
+
+    <div class="page-head">
+      <p class="eyebrow">Features</p>
+      <h1>Everything Ingredient Check does</h1>
+      <p class="lede">A score on every grocery label you look at, the working behind it, and the tools to sort, compare and track what you buy. Scoring always runs on your computer.</p>
+      <nav class="toc" aria-label="On this page">
+        <a href="#product">Product pages</a><a href="#search">Search results</a><a href="#cart">Carts</a><a href="#sort">Sorting</a><a href="#goals">Goals</a><a href="#warnings">Warnings</a><a href="#labels">Reading labels</a><a href="#history">Purchase history</a><a href="#more">More</a>
+      </nav>
+    </div>
+
+    <section id="product" class="detail">
+      <h2>Scores on the product page</h2>
+      <div class="feature">
+        <div class="feature-text">
+          <p>Open a food product and a panel appears under the title with a score from 0 to 100, a verdict word (Excellent, Good, Mediocre, Poor or Avoid) and the processing level. The toolbar icon shows the same number for the tab you are on.</p>
+          <p>Click the panel to open the working. Rows are grouped as <strong>What's good</strong>, <strong>What hurt</strong> and <strong>Score limits</strong>, each with its points, so you can see which ingredient moved the number and by how much.</p>
+          <ul class="facts">
+            <li><strong>Copy score</strong> copies the result to your clipboard.</li>
+            <li><strong>Looks wrong?</strong> lets you flag a reading you think is mistaken, straight from the panel.</li>
+            <li><strong>Non-food items</strong> such as shampoo are skipped, not scored.</li>
+            <li><strong>An unreadable list is declined</strong> instead of guessed. If the rules recognise too little of it, the panel says so and offers a paste box where you can type or paste the label.</li>
+          </ul>
+        </div>
+        <div class="feature-shots">
+          <figure class="shot"><picture><source media="(prefers-color-scheme: dark)" srcset="img/score-flakes-dark.webp"><img src="img/score-flakes-light.webp" width="1100" height="306" alt="The score panel for a sweetened cereal: 65, Mediocre, with Refined added sugar listed under What hurt as minus 15." loading="lazy" decoding="async"></picture><figcaption>A panel opened to show what hurt.</figcaption></figure>
+          <figure class="shot"><picture><source media="(prefers-color-scheme: dark)" srcset="img/score-oats-dark.webp"><img src="img/score-oats-light.webp" width="1100" height="378" alt="The score panel for rolled oats: 98, Excellent, with organic, non-GMO and single-ingredient bonuses under What is good." loading="lazy" decoding="async"></picture><figcaption>A clean list, with what helped.</figcaption></figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="search" class="detail">
+      <h2>Scores on search results</h2>
+      <p>On a supported search page every food result gets a small score badge. Badges come from three places, in order: a score already saved on your computer, the shared certification data, and, when <strong>Rate search results and cart items</strong> is on, the product's own public page.</p>
+      <ul class="facts">
+        <li><strong>How rating works.</strong> For a result it cannot already answer, the extension requests that product's page from the store you are on, a few at a time and at most 60 per results page. On Amazon the request uses your sign-in, so Amazon sees it much as if you had opened the product. A notice on the first results page says this and has a <strong>Turn off automatic rating</strong> button.</li>
+        <li><strong>Hover</strong> a badge to see why it scored that way. This is worked out locally from what was already read.</li>
+        <li><strong>Click</strong> a badge to open the product.</li>
+        <li><strong>Missing labels stay missing.</strong> A listing with no readable ingredient list shows a question mark or "Label unavailable", never a made-up number.</li>
+        <li><strong>Speed settings</strong> (Settings → Speed) run from <em>Fastest</em> to <em>Most up to date</em>: how long a saved score is reused (90 days down to 1 day), and how many product pages may be requested per results page (20 up to 60). <em>Balanced</em> is the default.</li>
+      </ul>
+    </section>
+
+    <section id="cart" class="detail">
+      <h2>Carts</h2>
+      <p>The Amazon cart shows a score on each item and a <strong>cart average</strong> under <em>Shopping Cart</em> and on the toolbar icon. It also rates the item on the page Amazon opens right after you add it to the cart.</p>
+      <ul class="facts">
+        <li>Only your active cart lines are rated. Saved-for-later items, recommendations and carousels are left alone.</li>
+        <li>Quantities, prices, totals, delivery details and checkout controls are never read or changed.</li>
+        <li>Missing public labels can be fetched without your cookies or a referrer. Items with no label stay unscored, and unscored items never count as zero in the average.</li>
+        <li>Optional <strong>Earn points for healthy carts</strong> (Settings → What to rate) gives points for good items. It is off by default and the total stays on your computer.</li>
+        <li>The retailer previews have cart readers too, checked on saved pages only so far.</li>
+      </ul>
+    </section>
+
+    <section id="sort" class="detail">
+      <h2>Sorting by score or unit price</h2>
+      <div class="feature reverse">
+        <div class="feature-text">
+          <p>On a supported Amazon grocery search, Amazon's own <em>Sort by</em> menu gets two more options. Choosing one opens the side panel with that search's listings ranked; Amazon's page is left as it is.</p>
+          <ul class="facts">
+            <li><strong>Ingredient Check score: High to Low</strong> ranks by health score alone.</li>
+            <li><strong>Price per …: Low to High</strong> names the unit most listings are priced in: ounce, gallon, count, or 100&nbsp;g on the metric stores.</li>
+            <li><strong>Price per picker.</strong> The panel's <em>Automatic</em> setting follows that majority. Pick any weight (oz, lb, g, 100&nbsp;g, kg), volume (fl&nbsp;oz, pint, quart, gallon, ml, 100&nbsp;ml, litre) or count unit instead.</li>
+            <li><strong>Prioritize.</strong> Five sliders (health score, unit price, total price, customer rating, number of reviews) from 0 to 10, with one-click starting points: Healthiest, Cheapest per unit, Balanced, Lowest price and Best rated. With more than one factor each listing shows a <em>Match</em> number.</li>
+            <li><strong>Honest conversion.</strong> Ounces, pounds and grams convert into each other, as do gallons, quarts and litres. Weight, volume and count never convert across. Listings with no price in your chosen unit go last and are labelled. The picker shows how many listings each family covers.</li>
+            <li><strong>Per serving</strong> shows as extra information when the label gives servings per container.</li>
+            <li><strong>Imperial sizes.</strong> UK and Irish pints, quarts and gallons use imperial volumes.</li>
+          </ul>
+          <p>Press <code>Alt+Shift+H</code> on a search page to open the list sorted by score without the mouse. Settings → Sort can rate unscored listings while the panel fills and, if you choose, load more results pages (off by default, up to 500 listings).</p>
+          <p class="muted">Sorting is a preview. It runs on amazon.com, .co.uk, .ie, .ca, .com.au, .sg and .in. The unit price is Amazon's own when the results page shows one, otherwise worked out from the price and an unambiguous size or count in the title. It can be switched off in the toolbar popup.</p>
+        </div>
+        <div class="feature-shots narrow">
+          <figure class="shot"><picture><source media="(prefers-color-scheme: dark)" srcset="img/sort-panel-dark.webp"><img src="img/sort-panel-light.webp" width="700" height="1833" alt="The side panel ranking five milk listings, with the Price per picker set to Automatic and priority sliders below it." loading="lazy" decoding="async"></picture><figcaption>The sorted list (example listings).</figcaption></figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="goals" class="detail">
+      <h2>Goals and weights</h2>
+      <p>Two people can read the same label and want different things. Pick the goals that describe you; the score changes to match. There are 20 goals in four groups, and you can combine them.</p>
+      <div class="cards">
+        <article class="card"><h3>Everyday</h3><p>Balanced, General wellbeing, Conventional nutrition, Additive-averse, Whole-food focused.</p></article>
+        <article class="card"><h3>Body goals</h3><p>Weight loss / cutting, Muscle gain / bulking, Maintenance, Recovery / rest day, Vitamins &amp; minerals.</p></article>
+        <article class="card"><h3>Training</h3><p>Strength training, Running / endurance, High-activity / athlete, Sedentary / low-activity, General fitness.</p></article>
+        <article class="card"><h3>Diet style</h3><p>High protein, Low-carb, High-carb / performance, Sugar-conscious, Animal-based.</p></article>
+      </div>
+      <ul class="facts">
+        <li><strong>Combining goals.</strong> Where two goals set the same dial they are averaged, weighted by how much each goal counts. Settings has a slider per goal, 1 each by default.</li>
+        <li><strong>Plus signs.</strong> Some goals turn a minus into a plus: fat-reduced dairy under Weight loss, added vitamins under Vitamins &amp; minerals, honey under Animal-based. Those rows are labelled "a plus for your goals" and capped at +20 in total. A hard ceiling such as an artificial colour never becomes a plus.</li>
+        <li><strong>Every weight is yours.</strong> Settings exposes the individual controls, from degree of processing to refined oils, sugars, sodium, fibre, protein and sourcing claims. Imports and slider values are checked and clamped before they are trusted.</li>
+      </ul>
+      <p><a href="/scoring">How a score is built</a> explains what each goal changes.</p>
+    </section>
+
+    <section id="warnings" class="detail">
+      <h2>Allergen, diet and avoid-list warnings</h2>
+      <ul class="facts">
+        <li><strong>Allergen flags</strong> cover the US major allergens plus the EU's celery, mustard and lupin, read in the same languages as ingredient headings.</li>
+        <li><strong>Diet flags</strong> mark products that do not fit a diet you chose.</li>
+        <li><strong>An avoid list</strong> flags any ingredient you name. Settings suggests common ones to start from.</li>
+        <li><strong>None of these change the score.</strong> A warning is a warning, not a deduction. Cross-contact warnings are flagged too.</li>
+        <li>Absence notes such as "gluten free" are not read as ingredients, so they do not trigger a flag for the allergen they name.</li>
+      </ul>
+      <p class="muted">Flags are a convenience, not a safety system. Always read the package.</p>
+    </section>
+
+    <section id="labels" class="detail">
+      <h2>How the ingredient list is found</h2>
+      <p>The best available reading wins, and the panel says where it came from.</p>
+      <ol class="steps">
+        <li><strong>The page text.</strong> The ingredient and nutrition sections of the product page, in English and in the headings of Spanish, German, French, Italian, Portuguese, Dutch, Swedish, Polish and Turkish pages.</li>
+        <li><strong>The label photo (optional).</strong> When the page has no text list, a photo of the label can be read on your computer with an on-device OCR engine. The pixels are never uploaded. It is turned off for Japanese and Arabic stores, where the English reader misreads labels.</li>
+        <li><strong>Open Food Facts by barcode (optional).</strong> The barcode alone is looked up in the public database, after the browser grants that permission.</li>
+        <li><strong>You.</strong> A paste box on the product page scores whatever you type. It is the best evidence there is, so it is used as written.</li>
+      </ol>
+      <p>Certification data (organic, grass-fed, origin) comes from a small shared table that is requested a few times a day. The request carries nothing about the products you view.</p>
+    </section>
+
+    <section id="history" class="detail">
+      <h2>Purchase history and trends <span class="tag">opt-in preview</span></h2>
+      <p>Turn this on in setup or Settings and the extension imports the items on your Amazon.com order pages and scores them with your goals. A dashboard then shows monthly trends from what you actually bought.</p>
+      <ul class="facts">
+        <li>Order scores show beside the order list, with a page average. Unscored items never count as zero, and non-food purchases are excluded.</li>
+        <li><strong>Scan all Amazon orders</strong> walks Amazon's year filters and next links in an ordinary tab, with Chrome left open.</li>
+        <li>History is separate from carts and viewed products: ratings you merely looked at never become purchases.</li>
+        <li>Optional account sync, with Google sign-in, backs history up. It can be synced on demand, exported or deleted, and history is left out of settings backups and imports.</li>
+        <li>It currently covers amazon.com only, and capacity is 10,000 order entries.</li>
+      </ul>
+      <p class="muted">Controlled tests cover the import; signed-in live validation was still pending at the last release. <a href="https://github.com/jackson29382938/ingrediant_check/blob/main/docs/PURCHASE-HISTORY.md">Read the full guide</a>.</p>
+    </section>
+
+    <section id="more" class="detail">
+      <h2>And the rest</h2>
+      <div class="cards">
+        <article class="card"><h3>Compare cached scores</h3><p>When two or more products have saved scores, compare them side by side in the popup, with no new requests.</p></article>
+        <article class="card"><h3>Light, dark and colour-blind-safe</h3><p>Match your system, or choose a colour-blind-safe score palette and an accent. Text stays readable at WCAG AA contrast.</p></article>
+        <article class="card"><h3>Settings level</h3><p>Choose how many settings to show, from Minimal to Everything. Hidden settings keep their values and keep working.</p></article>
+        <article class="card"><h3>Back up your settings</h3><p>Settings back up through your browser's own sync and come back only when you click Restore. Google sign-in is optional.</p></article>
+        <article class="card"><h3>Report a problem</h3><p>The popup's report form previews the screenshot, settings and recent actions first. The extension sends nothing; you send the email.</p></article>
+        <article class="card"><h3>Chrome and Firefox</h3><p>The same engine runs in both desktop browsers. See <a href="/install">install</a> for the differences.</p></article>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <p>Ingredient Check is open source under the <a href="https://github.com/jackson29382938/ingrediant_check/blob/main/LICENSE">MIT License</a>. <a href="/privacy">Privacy</a> · <a href="https://github.com/jackson29382938/ingrediant_check">GitHub</a></p>
+    <p class="muted">Not affiliated with Amazon, Target, Walmart, Costco or any other retailer.</p>
+  </footer>
+</body>
+</html>

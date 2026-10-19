@@ -4,7 +4,7 @@ Static site for the Ingredient Check extension, prepared for Vercel. No build st
 The folder is directly inside the repository root, next to `manifest.json` and `src/`.
 It is on `main`: https://github.com/jackson29382938/ingrediant_check/tree/main/website.
 
-- `index.html` landing page, feature screenshots and install steps
+- `index.html` landing page with screenshots; `features.html`, `scoring.html`, `stores.html`, `install.html` and `faq.html` are the detail pages (served at `/features`, `/scoring`, `/stores`, `/install`, `/faq`)
 - `img/` screenshots (WebP, a `-light` and `-dark` file for each; the page picks one by colour scheme)
 - `privacy.html` privacy summary (full policy: `docs/PRIVACY.md`)
 - `vercel.json` clean URLs and security headers
@@ -14,7 +14,12 @@ extension (the score panel from `tests/harness.html`, the other pages with examp
 session storage). Retake them after a visible UI change and keep product names generic: they are
 examples, not claims about a brand.
 
-Preview locally from the repository root: `python3 -m http.server 8000 --directory website`.
+Every page repeats the same header and footer (no build step), so a new tab means adding the file,
+the link in each page's `<nav>`, and its route to `PAGES` in `scripts/website-check.mjs`, which also
+fails on a broken on-site link, a missing `#section`, or a page that does not mark itself in the nav.
+Keep claims on these pages to what `docs/` supports (`STORES.md`, `ACCURACY.md`, `PRIVACY.md`).
+
+Preview locally from the repository root: `python3 -m http.server 8000 --directory website`. That server does not rewrite clean URLs, so open `features.html` and the other pages by file name.
 
 Deploy from the Vercel dashboard:
 

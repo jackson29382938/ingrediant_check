@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stores and languages · Ingredient Check</title>
+  <meta name="description" content="Which stores and languages Ingredient Check supports, what is a preview, and what has been checked on live sites.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">Ingredient Check</a>
+    <nav aria-label="Main navigation"><a href="/">Home</a><a href="/features">Features</a><a href="/scoring">Scoring</a><a href="/stores" aria-current="page">Stores</a><a href="/install">Install</a><a href="/faq">FAQ</a><a href="/privacy">Privacy</a></nav>
+  </header>
+
+  <main>
+
+    <div class="page-head">
+      <p class="eyebrow">Stores and languages</p>
+      <h1>Where Ingredient Check works</h1>
+      <p class="lede">Amazon is the main target. Fifteen other retailers are previews: built and tested, but not yet checked in normal shopping on the live site. This page says exactly what has been checked.</p>
+      <nav class="toc" aria-label="On this page">
+        <a href="#amazon">Amazon</a><a href="#previews">Retailer previews</a><a href="#sorting">Sorting by store</a><a href="#languages">Languages</a><a href="#request">Request a store</a>
+      </nav>
+    </div>
+
+    <section id="status" class="detail">
+      <h2>What the labels mean</h2>
+      <div class="cards">
+        <article class="card"><h3><span class="tag ok">Supported</span></h3><p>The store's product page and search results have been checked in a real browser on the live site, in normal use.</p></article>
+        <article class="card"><h3><span class="tag">Preview</span></h3><p>A public-page adapter is built and tested against saved pages. Live shopping checks are incomplete, so expect gaps.</p></article>
+        <article class="card"><h3><span class="tag off">Off</span></h3><p>A feature is not switched on for that store yet.</p></article>
+      </div>
+      <p class="muted">Saved-page tests and a local test harness do not count as a live check. The full evidence, store by store, is in the <a href="https://github.com/jackson29382938/ingrediant_check/blob/main/docs/STORES.md">store notes</a>.</p>
+    </section>
+
+    <section id="amazon" class="detail">
+      <h2>Amazon: 21 storefronts</h2>
+      <p>Product pages, search results, carts and, on amazon.com, optional purchase history. The extension asks the browser for access to these stores when you install it.</p>
+      <p class="chips"><span>amazon.com</span><span>.co.uk</span><span>.ca</span><span>.com.au</span><span>.ie</span><span>.in</span><span>.sg</span><span>.ae</span><span>.sa</span><span>.de</span><span>.fr</span><span>.es</span><span>.it</span><span>.nl</span><span>.se</span><span>.pl</span><span>.com.be</span><span>.com.tr</span><span>.com.mx</span><span>.com.br</span><span>.co.jp</span></p>
+      <ul class="facts">
+        <li><strong>amazon.com</strong> is the only storefront checked live on product and search pages, including label-photo reading, Open Food Facts and the shared certification data.</li>
+        <li>The other 20 storefronts share its code and page markup. They have not been checked live, so a layout difference can hide a score.</li>
+        <li>Orders and purchase history work on amazon.com only.</li>
+      </ul>
+    </section>
+
+    <section id="previews" class="detail">
+      <h2>Fifteen retailer previews</h2>
+      <p>Previews read the public product page. Where a label is readable it is scored; where it is missing the listing is marked and the product page offers a paste box. They never call the shared database, Open Food Facts, OCR or Google.</p>
+      <div class="table-wrap">
+        <table class="grid">
+          <thead><tr><th scope="col">Store</th><th scope="col">What was seen in live checks (October 2026)</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Target</th><td>Product pages scored in Chrome. Search was only testable in some sessions because of the site's bot check.</td></tr>
+            <tr><th scope="row">Walmart</th><td>Public product pages read from the page's embedded ingredient list. Automated browsers are often met with a "Robot or human?" check.</td></tr>
+            <tr><th scope="row">Costco</th><td>Visible labels only. A product scores once its Nutritional Facts section is open. Heavy rate limiting means many search results show "Label unavailable", and the extension stops rather than retrying around it.</td></tr>
+            <tr><th scope="row">Instacart</th><td>Real scores on search and product pages, with the label read from the page's own data. A signed-out sign-up pop-up no longer hides the page.</td></tr>
+            <tr><th scope="row">Kroger</th><td>Search showed numeric ratings and products scored.</td></tr>
+            <tr><th scope="row">Fry's, King Soopers, Smith's</th><td>Products scored; King Soopers search ratings held steady through repeated checks.</td></tr>
+            <tr><th scope="row">Ralphs, Fred Meyer</th><td>Public product label read in a page fetch. Live browser checks could not be completed, so these are covered by saved-page tests.</td></tr>
+            <tr><th scope="row">Safeway, Albertsons</th><td>Live product pages scored. Search results did not render for the automated browser, so search is covered by saved-page tests only.</td></tr>
+            <tr><th scope="row">QFC, Harris Teeter, Dillons</th><td>Public labels read, but bot protection blocked live browser checks.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted">Availability differs between sessions and queries. If a store shows no score for you, <a href="/faq#noscore">here is why</a>.</p>
+    </section>
+
+    <section id="sorting" class="detail">
+      <h2>Sorting by score and unit price</h2>
+      <p>The extra entries in Amazon's <em>Sort by</em> menu depend on how each store writes prices and sizes.</p>
+      <div class="table-wrap">
+        <table class="grid">
+          <thead><tr><th scope="col">Storefronts</th><th scope="col">Sort entries</th><th scope="col">Prices</th><th scope="col">Default units</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">amazon.com</th><td>On (preview)</td><td>US dollars</td><td>ounce, fluid ounce, count</td></tr>
+            <tr><th scope="row">.co.uk, .ie, .ca, .com.au, .sg, .in</th><td>On (preview)</td><td>£, €, C$, A$, S$, ₹</td><td>100&nbsp;g, 100&nbsp;ml, count</td></tr>
+            <tr><th scope="row">All other storefronts</th><td>Off</td><td>–</td><td>–</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted">"Default units" is what the menu offers first. The side panel can switch to any weight, volume or count unit.</p>
+    </section>
+
+    <section id="languages" class="detail">
+      <h2>Languages</h2>
+      <p>Ingredient headings are recognised in English, German, Spanish, French, Italian, Dutch, Polish, Swedish and Turkish, and scoring covers the same languages plus Portuguese. How well it works depends on how much real-world testing exists.</p>
+      <div class="table-wrap">
+        <table class="grid">
+          <thead><tr><th scope="col">Language</th><th scope="col">Status</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">English (.com, .co.uk, .ca, .com.au, .ie, .in, .sg, .ae, .sa)</th><td><span class="tag ok">Strongest</span> Verbatim live captures, plus dozens of labels modelled on real products.</td></tr>
+            <tr><th scope="row">German, Spanish</th><td><span class="tag">Under-tested</span> A synonym pack maps common words onto the English rules. No real label has been checked.</td></tr>
+            <tr><th scope="row">French, Italian, Portuguese, Dutch</th><td><span class="tag">Under-tested</span> Translated test lists only.</td></tr>
+            <tr><th scope="row">Swedish, Polish, Turkish</th><td><span class="tag">Under-tested</span> Translated test lists score exactly like their English twins; real labels are unchecked.</td></tr>
+            <tr><th scope="row">Japanese, Arabic</th><td><span class="tag off">Not supported</span> The list is declined, and label-photo reading is switched off for these stores.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>See the <a href="https://github.com/jackson29382938/ingrediant_check/blob/main/docs/ACCURACY.md">accuracy evidence</a> for the corpus behind each row.</p>
+    </section>
+
+    <section id="request" class="detail">
+      <h2>Request a store</h2>
+      <p>Open <strong>Settings → Stores</strong> in the extension. It builds an email draft with the store name for you to review and send; the extension itself sends nothing. You can also email <a href="mailto:jackson29382938@gmail.com">jackson29382938@gmail.com</a>.</p>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <p>Ingredient Check is open source under the <a href="https://github.com/jackson29382938/ingrediant_check/blob/main/LICENSE">MIT License</a>. <a href="/privacy">Privacy</a> · <a href="https://github.com/jackson29382938/ingrediant_check">GitHub</a></p>
+    <p class="muted">Not affiliated with Amazon, Target, Walmart, Costco or any other retailer.</p>
+  </footer>
+</body>
+</html>

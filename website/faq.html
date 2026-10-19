@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FAQ · Ingredient Check</title>
+  <meta name="description" content="Answers about scores, privacy, supported stores, languages, sorting and updating Ingredient Check.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">Ingredient Check</a>
+    <nav aria-label="Main navigation"><a href="/">Home</a><a href="/features">Features</a><a href="/scoring">Scoring</a><a href="/stores">Stores</a><a href="/install">Install</a><a href="/faq" aria-current="page">FAQ</a><a href="/privacy">Privacy</a></nav>
+  </header>
+
+  <main>
+
+    <div class="page-head">
+      <p class="eyebrow">FAQ</p>
+      <h1>Questions and answers</h1>
+      <p class="lede">Short answers to the questions people ask first. Open a question to read the answer.</p>
+    </div>
+
+    <section class="detail">
+      <details id="health">
+        <summary>Is this health or allergy advice?</summary>
+        <p>No. A score is a guide to what is written on the label, produced by open rules and your own weights. It cannot see portion size, the food itself or your medical needs, and allergen flags are a convenience rather than a safety system. Always read the package.</p>
+      </details>
+      <details id="noscore">
+        <summary>Why does a product have no score?</summary>
+        <p>Usually the label could not be read. The product page may not publish an ingredient list, a store may block the page, or the list may be in a language the rules do not support well. The extension declines a list it mostly cannot recognise instead of guessing, and a product that is not food is skipped. On a product page you can paste the ingredients into the box the panel offers and it scores what you paste.</p>
+      </details>
+      <details id="data">
+        <summary>Does it send my data anywhere?</summary>
+        <p>Scoring always runs on your computer. By default the extension requests a small shared table of certification data a few times a day and backs settings up through your browser's own sync. Automatic rating requests product pages from the store you are on. Everything else, such as diagnostics, shared product readings and purchase history sync, is off until you choose it. There is no account, no analytics and no ads. The <a href="/privacy">privacy page</a> has a table of every feature and what it sends.</p>
+      </details>
+      <details id="automatic">
+        <summary>Why does it request product pages when I search?</summary>
+        <p>To score search results it has not seen before, it requests each product page from the store you are on, a few at a time and at most 60 per results page. On Amazon the request uses your sign-in, so Amazon sees it much as if you had opened the product. You see a notice about this on the first results page, with a button to turn it off. You can also switch it off any time in the toolbar popup or Settings, and results then only show scores for products already read.</p>
+      </details>
+      <details id="stores">
+        <summary>Which stores does it work on?</summary>
+        <p>Amazon in 21 countries and 15 other retailers, including Target, Walmart, Costco, Instacart and Kroger. Only amazon.com has been checked live on product and search pages; the others are previews. See <a href="/stores">stores and languages</a> for the detail.</p>
+      </details>
+      <details id="different">
+        <summary>Why is my score different from someone else's?</summary>
+        <p>Goals and weights are personal. A score under Whole-food focused is stricter about oils and additives than under Balanced, and Weight loss reads sugar differently again. The panel always lists the rows that moved the number, so you can see why two settings disagree. Ceilings, such as the one a refined seed oil sets, hold under every goal.</p>
+      </details>
+      <details id="allergens">
+        <summary>Do allergen flags change the score?</summary>
+        <p>No. Allergen, diet and avoid-list flags are warnings shown beside the score and never raise or lower it.</p>
+      </details>
+      <details id="sort">
+        <summary>Why does the sort menu say price per ounce, or gallon, or count?</summary>
+        <p>The entry names the unit most listings with a unit price on that search page use, so a milk search reads price per gallon and a cereal search reads price per ounce. Open the side panel and use the Price per picker to switch to any weight, volume or count unit. Weight, volume and count never convert into each other; listings with no price in your chosen unit go last and are labelled.</p>
+      </details>
+      <details id="off">
+        <summary>How do I turn a feature off?</summary>
+        <p>Open the toolbar popup for the master switch and the switches that make requests, or Settings for everything else. Each setting has a one-line description, and the longer explanation opens when you click it. The popup's <strong>More</strong> section holds the rest.</p>
+      </details>
+      <details id="languages">
+        <summary>Does it work in other languages?</summary>
+        <p>English labels are the best tested. German, Spanish, French, Italian, Portuguese, Dutch, Swedish, Polish and Turkish lists are scored through a synonym pack that was tested on translated lists only, so those scores are less certain. Japanese and Arabic lists are declined.</p>
+      </details>
+      <details id="wrong">
+        <summary>A score looks wrong. What can I do?</summary>
+        <p>Use <strong>Looks wrong?</strong> in the panel, or <strong>Report a problem or idea</strong> in the toolbar popup. The report form previews what would be attached before you decide, and the extension sends nothing itself.</p>
+      </details>
+      <details id="update">
+        <summary>How do I update?</summary>
+        <p>Download the newer ZIP, extract it over the same folder and press Reload on the extension card in chrome://extensions. <a href="/install#update">Details</a>.</p>
+      </details>
+      <details id="browsers">
+        <summary>Which browsers and devices?</summary>
+        <p>Desktop Chrome 116 or newer and desktop Firefox 142 or newer. Firefox for Android is not supported. The Firefox package is unsigned, so it loads as a temporary add-on until a signed version exists.</p>
+      </details>
+      <details id="cost">
+        <summary>Is it free? Is the code open?</summary>
+        <p>Yes to both. Ingredient Check is open source under the MIT License, with no runtime dependencies. The code, release notes and tests are on <a href="https://github.com/jackson29382938/ingrediant_check">GitHub</a>.</p>
+      </details>
+    </section>
+
+    <section class="detail">
+      <h2>Still have a question?</h2>
+      <p>Use <strong>Report a problem or idea</strong> in the toolbar popup, or email <a href="mailto:jackson29382938@gmail.com">jackson29382938@gmail.com</a>. You can also browse the <a href="https://github.com/jackson29382938/ingrediant_check/tree/main/docs">full documentation</a>.</p>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <p>Ingredient Check is open source under the <a href="https://github.com/jackson29382938/ingrediant_check/blob/main/LICENSE">MIT License</a>. <a href="/privacy">Privacy</a> · <a href="https://github.com/jackson29382938/ingrediant_check">GitHub</a></p>
+    <p class="muted">Not affiliated with Amazon, Target, Walmart, Costco or any other retailer.</p>
+  </footer>
+</body>
+</html>

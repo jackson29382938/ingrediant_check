@@ -4,19 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Ingredient Check</title>
-  <meta name="description" content="Ingredient Check for Chrome and Firefox rates grocery labels 0–100. Choose your goals, see ingredient details, and explore optional purchase trends.">
+  <meta name="description" content="Ingredient Check for Chrome and Firefox rates grocery labels 0–100. Choose your goals, see ingredient details, sort by score or unit price, and explore optional purchase trends.">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="site-header">
     <a class="brand" href="/">Ingredient Check</a>
-    <nav aria-label="Main navigation">
-      <a href="#see">See it</a>
-      <a href="#how">How it works</a>
-      <a href="#install">Install</a>
-      <a href="privacy.html">Privacy</a>
-      <a href="#support">Support</a>
-    </nav>
+    <nav aria-label="Main navigation"><a href="/" aria-current="page">Home</a><a href="/features">Features</a><a href="/scoring">Scoring</a><a href="/stores">Stores</a><a href="/install">Install</a><a href="/faq">FAQ</a><a href="/privacy">Privacy</a></nav>
   </header>
 
   <main>
@@ -24,8 +18,8 @@
       <h1>Know what is in the grocery cart.</h1>
       <p class="lede">Ingredient Check for Chrome and Firefox rates grocery labels <strong>0–100</strong> on ingredients, additives and processing. Choose your goals and weights, see what contributed to each score, and keep your scores on your computer.</p>
       <p class="actions">
-        <a class="btn primary" href="#install">Install the extension</a>
-        <a class="btn" href="privacy.html">Read the privacy policy</a>
+        <a class="btn primary" href="/install">Install the extension</a>
+        <a class="btn" href="/features">See every feature</a>
       </p>
       <p class="note">This is a guide to what is written on the label, not health or allergy advice. Always read the package.</p>
       <figure class="shot hero-shot">
@@ -108,127 +102,44 @@
       </div>
     </section>
 
-    <section id="how" class="grid-section">
-      <h2>How it works</h2>
+    <section id="explore" class="grid-section">
+      <h2>Explore</h2>
       <div class="cards">
-        <article class="card">
-          <h3>Score on the product page</h3>
-          <p>On supported food product pages it reads available ingredients and shows a score with a breakdown. Amazon also supports local label-image OCR, permission-based barcode lookup, and pasted labels. Missing or blocked labels stay unavailable.</p>
-        </article>
-        <article class="card">
-          <h3>Scores on search and carts</h3>
-          <p>Supported search results and active carts show ratings from saved labels or available public product pages. Amazon's cart also shows a cart average. Saved-for-later items and recommendations are left alone.</p>
-        </article>
-        <article class="card">
-          <h3>Sort by score or unit price</h3>
-          <p>On supported Amazon grocery searches, Amazon's <em>Sort by</em> menu gets two extra options: score (high to low) and price per ounce, gallon, count or whichever unit most listings use. Change the unit in the side panel.</p>
-        </article>
-        <article class="card">
-          <h3>Your weights, your rules</h3>
-          <p>Choose how much each factor counts, set allergen, diet and avoid-list flags, and see exactly why a product scored the way it did when you hover over its number.</p>
-        </article>
-        <article class="card">
-          <h3>Optional purchase trends</h3>
-          <p>Enable Amazon purchase history to see order-item ratings, averages, charts and the biggest score contributors. You can scan older orders, filter your records, and compare recorded scores with your current goals.</p>
-        </article>
+        <a class="card link-card" href="/features"><h3>Features</h3><p>Product, search and cart scores, unit-price sorting, goals, warnings and purchase history, one by one.</p><span class="more">See every feature</span></a>
+        <a class="card link-card" href="/scoring"><h3>How scoring works</h3><p>The five steps from label to number, the score bands, worked examples and what a score cannot tell you.</p><span class="more">Read the method</span></a>
+        <a class="card link-card" href="/stores"><h3>Stores and languages</h3><p>21 Amazon storefronts, 15 retailer previews and what has actually been checked on live sites.</p><span class="more">Check your store</span></a>
+        <a class="card link-card" href="/install"><h3>Install</h3><p>Which file to download, step-by-step for Chrome and Firefox, first-run setup and troubleshooting.</p><span class="more">Install in two minutes</span></a>
+        <a class="card link-card" href="/faq"><h3>FAQ</h3><p>Why a product has no score, what is sent, how to turn things off, and more.</p><span class="more">Read the answers</span></a>
+        <a class="card link-card" href="/privacy"><h3>Privacy</h3><p>Scoring stays on your computer. See what each optional feature sends and to whom.</p><span class="more">Read the policy</span></a>
       </div>
-    </section>
-
-    <section class="grid-section">
-      <h2>What it covers</h2>
-      <ul class="facts">
-        <li><strong>Amazon</strong> storefronts across 21 countries, with the most complete rules for English US, UK, Canada and Australia labels.</li>
-        <li><strong>15 retailer previews</strong>, including Target, Walmart, Costco, Instacart and Kroger. These are still being validated.</li>
-        <li><strong>Local scoring.</strong> Scores and product labels are cached on your computer. Automatic rating, local OCR and certification lookups are enabled by default. Settings backup follows your browser profile sync and permissions; other account and sharing features are explained in setup and privacy settings.</li>
-      </ul>
-      <p class="muted">Language support varies. See the full <a href="https://github.com/jackson29382938/ingrediant_check/blob/main/docs/STORES.md">store coverage notes</a>.</p>
     </section>
 
     <section id="install" class="grid-section">
-      <h2>Install</h2>
-      <p>Ingredient Check is installed from a download, not from a browser store. It takes about two minutes: download the file once, then follow the four steps for your browser.</p>
-
-      <div class="download">
-        <div>
-          <h3>First, download the file</h3>
-          <p>Open <a href="https://github.com/jackson29382938/ingrediant_check/releases/latest">the latest release</a> and scroll to <strong>Assets</strong>. There are two ZIP files; pick the one for your browser:</p>
-          <table class="files">
-            <thead><tr><th scope="col">Your browser</th><th scope="col">Download this file</th></tr></thead>
-            <tbody>
-              <tr><th scope="row">Chrome (116 or newer)</th><td><code>ingredient-check-<em>version</em>.zip</code></td></tr>
-              <tr><th scope="row">Firefox (142 or newer)</th><td><code>ingredient-check-<em>version</em>-firefox.zip</code></td></tr>
-            </tbody>
-          </table>
-          <p class="actions"><a class="btn primary" href="https://github.com/jackson29382938/ingrediant_check/releases/latest">Go to the latest release</a></p>
-        </div>
-      </div>
-
+      <h2>Install in two minutes</h2>
+      <p>Ingredient Check installs from a download. Pick the ZIP for your browser from <a href="https://github.com/jackson29382938/ingrediant_check/releases/latest">the latest release</a>, extract it, then load it:</p>
       <div class="install-cols">
         <div class="install-col">
           <h3>Chrome</h3>
-          <ol class="steps big">
-            <li><strong>Extract the ZIP</strong> into a folder you will keep, such as <code>Documents/ingredient-check</code>. Do not delete or move it afterwards: Chrome reads the extension from that folder.</li>
-            <li><strong>Open <code>chrome://extensions</code></strong> (paste it into the address bar) and turn on <strong>Developer mode</strong>, the switch at the top right.</li>
-            <li><strong>Click <em>Load unpacked</em></strong> and choose the extracted folder, the one that contains <code>manifest.json</code>.</li>
-            <li><strong>Pin it.</strong> Click the puzzle-piece icon in the toolbar and pin <strong>Ingredient Check</strong>. A short setup opens the first time.</li>
-          </ol>
-          <p class="muted">Chrome may show a banner about developer-mode extensions each time it starts. That is expected for this kind of install; dismiss it.</p>
+          <p class="muted">Open <code>chrome://extensions</code>, turn on <strong>Developer mode</strong>, choose <strong>Load unpacked</strong> and select the extracted folder.</p>
         </div>
         <div class="install-col">
           <h3>Firefox</h3>
-          <ol class="steps big">
-            <li><strong>Extract the <code>-firefox.zip</code></strong> into a folder.</li>
-            <li><strong>Open <code>about:debugging#/runtime/this-firefox</code></strong> (paste it into the address bar).</li>
-            <li><strong>Click <em>Load Temporary Add-on</em></strong> and select the <code>manifest.json</code> inside the extracted folder.</li>
-            <li><strong>Allow the stores you use.</strong> Open the extension's permissions and grant site access for the retailers you shop at.</li>
-          </ol>
-          <p class="muted">Firefox removes temporary add-ons when it restarts, so repeat step 3 after a restart. Keeping it permanently needs Mozilla signing; see the <a href="https://github.com/jackson29382938/ingrediant_check/blob/main/docs/BROWSERS.md">browser setup guide</a>.</p>
+          <p class="muted">Open <code>about:debugging#/runtime/this-firefox</code>, choose <strong>Load Temporary Add-on</strong> and select <code>manifest.json</code>.</p>
         </div>
       </div>
-
-      <div class="callout">
-        <h3>Check that it worked</h3>
-        <ol class="steps">
-          <li>Open any grocery product page on a supported store, for example an Amazon food product.</li>
-          <li>A score panel appears under the title, with a number from 0 to 100.</li>
-          <li>Click the panel to open it and read the reasons. The toolbar icon shows the same score for the current product.</li>
-        </ol>
-        <p class="muted">If the page is not a food product, or the label is missing, the panel says so rather than guessing.</p>
-      </div>
-
-      <h3>Something not working?</h3>
-      <details>
-        <summary>There is no <em>Load unpacked</em> button</summary>
-        <p>Turn on <strong>Developer mode</strong> on <code>chrome://extensions</code>. The switch is at the top right of the page.</p>
-      </details>
-      <details>
-        <summary>Chrome says the manifest file is missing</summary>
-        <p>You selected the wrong folder. Choose the folder that directly contains <code>manifest.json</code>. Some extractors add one more folder around it; open it and choose the inner one.</p>
-      </details>
-      <details>
-        <summary>I downloaded the wrong ZIP</summary>
-        <p>The ZIP with <code>-firefox</code> in its name is only for Firefox. Chrome needs the one without it.</p>
-      </details>
-      <details>
-        <summary>Nothing appears on the store page</summary>
-        <p>Reload the page after installing. Make sure the extension is switched on in the toolbar popup, and that the store is one of the <a href="https://github.com/jackson29382938/ingrediant_check/blob/main/docs/STORES.md">supported stores</a>. Some stores are previews that are still being validated.</p>
-      </details>
-      <details>
-        <summary>How do I update?</summary>
-        <p>Download the newer ZIP and extract it over the files in the same folder, then press <strong>Reload</strong> on the extension's card in <code>chrome://extensions</code>. Keeping the same folder keeps your settings and local history.</p>
-      </details>
-      <p class="muted">Google sign-in is optional and local scoring works without it. See the <a href="https://github.com/jackson29382938/ingrediant_check/blob/main/docs/BROWSERS.md">browser setup guide</a> if you want backup across browsers.</p>
+      <p class="actions"><a class="btn primary" href="/install">Full install guide</a> <a class="btn" href="https://github.com/jackson29382938/ingrediant_check/releases/latest">Download the latest release</a></p>
     </section>
 
     <section id="support" class="grid-section">
       <h2>Support and feedback</h2>
       <p>Found a bad score, a missing store, or have an idea? Use the extension's <strong>Report a problem or idea</strong> button in the toolbar popup, or email <a href="mailto:jackson29382938@gmail.com">jackson29382938@gmail.com</a>.</p>
-      <p>To request a store, open Settings → <strong>Stores</strong> in the extension. It builds an email draft for you to review and send.</p>
+      <p>To request a store, open Settings → <strong>Stores</strong> in the extension. It builds an email draft for you to review and send. Common questions are answered in the <a href="/faq">FAQ</a>.</p>
     </section>
+
   </main>
 
   <footer class="site-footer">
-    <p>Ingredient Check is open source under the <a href="https://github.com/jackson29382938/ingrediant_check/blob/main/LICENSE">MIT License</a>. <a href="privacy.html">Privacy</a> · <a href="https://github.com/jackson29382938/ingrediant_check">GitHub</a></p>
+    <p>Ingredient Check is open source under the <a href="https://github.com/jackson29382938/ingrediant_check/blob/main/LICENSE">MIT License</a>. <a href="/privacy">Privacy</a> · <a href="https://github.com/jackson29382938/ingrediant_check">GitHub</a></p>
     <p class="muted">Not affiliated with Amazon, Target, Walmart, Costco or any other retailer.</p>
   </footer>
 </body>
