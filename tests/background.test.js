@@ -284,7 +284,7 @@ const provenanceBody = (rows, producers = [['brand', 'certifications']]) =>
   ({ ok: true, text: async () => JSON.stringify({ ok: true, provenance: rows, producers }) });
 const scan = (i, over = {}) => ({ store: 'amazon.com', asin: `B00TEST${String(i).padStart(3, '0')}`, status: 'ok',
   scanned_at: new Date(Date.now() - 1000).toISOString(), pulls: 0,
-  data: { title: 'Oats', text: 'Organic rolled oats', advisory_text: '', via: 'nic-ingredients-content', confidence: 0.98 }, ...over });
+  data: { inputSchema: 1, title: 'Oats', text: 'Organic rolled oats', advisory_text: '', via: 'nic-ingredients-content', confidence: 0.98 }, ...over });
 
 test('provenance comes from the endpoint, never from a sheet URL, and revisions follow content', async () => {
   const urls = [];

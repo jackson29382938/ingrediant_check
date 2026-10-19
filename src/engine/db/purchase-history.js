@@ -4,6 +4,16 @@
   function cleanInput(raw) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw) || typeof raw.ingredients_text !== 'string' || !raw.ingredients_text.trim()) return null;
     const out = {};
+    if (raw.inputSchema === 1) out.inputSchema = 1;
+    // A bounded snapshot of every field the scorer reads, not a live registry reference.
+    const evidence = raw.provenanceRecord;
+    const plain = v => typeof v === 'string' ? v.replace(/[<>]/g, '').slice(0, 500) : '';
+    if (evidence && typeof evidence === 'object' && !Array.isArray(evidence)) {
+      out.provenanceRecord = { certifications: plain(evidence.certifications), source: plain(evidence.source).slice(0, 120) };
+      if (evidence.producerRegistry && typeof evidence.producerRegistry === 'object') {
+        out.provenanceRecord.producerRegistry = { certifications: plain(evidence.producerRegistry.certifications) };
+      }
+    }
     for (const [key, limit] of Object.entries({ name: 250, ingredients_text: 6000, advisory_text: 6000, labels: 3000, certifications: 500 })) {
       if (typeof raw[key] === 'string') out[key] = raw[key].replace(/[<>]/g, '').slice(0, limit);
     }

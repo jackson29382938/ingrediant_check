@@ -156,7 +156,7 @@
       "product": { "name": "Swanson Chicken Broth",
         "ingredients_text": "Chicken stock, contains less than 2% of salt, natural flavoring, yeast extract, carrot juice concentrate, celery juice concentrate, onion juice concentrate" } },
 
-    { "id": "bone-broth-clean", "band": [80, 100], "lang": "en", "evidence": "representative",
+    { "id": "bone-broth-clean", "band": [70, 100], "lang": "en", "evidence": "representative",
       "product": { "name": "Kettle & Fire Chicken Bone Broth",
         "ingredients_text": "Chicken bone broth, organic onion, organic carrot, sea salt, organic parsley, organic bay leaf" } },
 
@@ -164,7 +164,7 @@
       "product": { "name": "Oscar Mayer Deli Fresh Oven Roasted Turkey Breast",
         "ingredients_text": "Turkey breast, water, contains less than 2% of salt, sugar, sodium phosphate, sodium nitrite, sodium erythorbate, carrageenan" } },
 
-    { "id": "uncured-bacon", "band": [30, 65], "lang": "en", "evidence": "representative",
+    { "id": "uncured-bacon", "band": [20, 65], "lang": "en", "evidence": "representative",
       "product": { "name": "Applegate Naturals Uncured Sunday Bacon",
         "ingredients_text": "Pork, water, sea salt, cultured celery powder, raw cane sugar",
         "labels": "No nitrates or nitrites added, humanely raised" } },

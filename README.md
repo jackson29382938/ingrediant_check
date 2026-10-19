@@ -101,6 +101,8 @@ Change any of this later from the extension icon → **Settings**, or click **Ru
 
 ## More information
 
+- [Current validation and unreleased changes](docs/CURRENT-VALIDATION.md)
+
 - [Full feature guide](docs/FULL-README.md) — every feature in detail
 - [Which stores are supported](docs/STORES.md)
 - [How accurate are scores](docs/ACCURACY.md)

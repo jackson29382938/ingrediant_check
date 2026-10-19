@@ -68,7 +68,7 @@ const CATEGORIES = [
     help: 'Industrial trans fat. The most severe ceiling in the system.' },
   { id: 'saturatedFat', group: 'Fats & oils', kind: 'penalty', def: 0,
     label: 'Saturated fat',
-    help: 'OFF by default. Conventional nutrition guidance penalises saturated fat; other frameworks do not. Raise this if you want butter, cream, coconut oil and fatty meat to lower a score. Requires nutrition data on the page.' },
+    help: 'OFF by default. Conventional nutrition guidance penalises saturated fat; other frameworks do not. Raise this if you want butter, cream, coconut oil and fatty meat to lower a score. Requires nutrition data with a declared mass or volume basis.' },
 
   // ---------------------------------------------------------------- sugars
   { id: 'sugar', group: 'Sugars', kind: 'penalty', def: 1,
@@ -84,8 +84,8 @@ const CATEGORIES = [
     label: 'Naturally occurring sugars',
     help: 'OFF by default. Sugar from whole fruit, dates, and dairy lactose. Raise this if you want total sugar counted regardless of source.' },
   { id: 'totalSugar', group: 'Sugars', kind: 'penalty', def: 0,
-    label: 'Total sugar per serving',
-    help: 'OFF by default. Scores grams of sugar from the nutrition panel, independent of ingredient source. Requires nutrition data on the page.' },
+    label: 'Total sugar quantity',
+    help: 'OFF by default. Scores sugar per 100g or 100ml, independent of ingredient source. Requires a declared mass or volume basis; missing amounts remain unassessed.' },
 
   // ---------------------------------------------------------------- grains & proteins
   { id: 'grain', group: 'Grains & proteins', kind: 'penalty', def: 1,
@@ -120,14 +120,14 @@ const CATEGORIES = [
     label: 'Total carbohydrate',
     help: 'OFF by default. An optional low-carb preference based on declared carbohydrate grams. Requires nutrition data; ingredient names alone cannot establish carb content.' },
   { id: 'sodium', group: 'Nutrition panel', kind: 'penalty', def: 0,
-    label: 'Sodium per serving',
-    help: 'OFF by default. Scores milligrams of sodium against per-serving thresholds. Requires nutrition data on the page.' },
+    label: 'Sodium quantity',
+    help: 'OFF by default. Scores sodium per 100g or 100ml. Requires a declared mass or volume basis; missing amounts remain unassessed.' },
   { id: 'fibre', group: 'Nutrition panel', kind: 'bonus', def: 0,
     label: 'Dietary fibre',
-    help: 'OFF by default. Awards points for fibre per serving. Requires nutrition data on the page.' },
+    help: 'OFF by default. Awards points for fibre per 100g or 100ml. Requires a declared mass or volume basis.' },
   { id: 'protein', group: 'Nutrition panel', kind: 'bonus', def: 0,
     label: 'Protein',
-    help: 'OFF by default. Awards points for protein per serving. Requires nutrition data on the page.' },
+    help: 'OFF by default. Awards points for protein per 100g or 100ml. Requires a declared mass or volume basis.' },
 
   // ---------------------------------------------------------------- sourcing
   { id: 'organic', group: 'Sourcing & certification', kind: 'bonus', def: 1,

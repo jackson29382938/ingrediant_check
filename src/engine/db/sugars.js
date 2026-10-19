@@ -14,7 +14,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // FREE — zero penalty. These are whole foods that happen to contain sugar.
   const FREE = [
     /^[\w' -]{0,24}\bmilk$/i, /^lactose$/i, /^[\w' -]{0,20}\bcream$/i, /^yogh?urt$/i, /^kefir$/i,
-    /^dates?$/i, /^date (paste|puree)$/i, /^raisins?$/i, /^currants?$/i, /^figs?$/i, /^prunes?$/i,
+    /^(?:(?:medjool|deglet noor) )?dates?$/i, /^date (paste|puree)$/i, /^raisins?$/i, /^currants?$/i, /^figs?$/i, /^prunes?$/i,
     /^banana(s| puree)?$/i, /^apple(s| puree| sauce)?$/i, /^pear(s| puree)?$/i, /^berries$/i,
     /^strawberr(y|ies)$/i, /^blueberr(y|ies)$/i, /^raspberr(y|ies)$/i, /^cherr(y|ies)$/i,
     /^mango(es)?$/i, /^pineapple$/i, /^peach(es)?$/i, /^apricots?$/i, /^orange(s)?$/i,

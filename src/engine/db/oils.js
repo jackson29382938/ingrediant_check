@@ -60,7 +60,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   ];
 
   // Cold-pressed / unrefined qualifiers soften an otherwise-capped oil.
-  const UNREFINED = /\b(cold[- ]pressed|expeller[- ]pressed|unrefined|virgin|first press)\b/i;
+  const UNREFINED = /\b(cold[- ]pressed|expeller[- ]pressed|unrefined|virgin|first press|press[ée]e? [àa] froid|premi[èe]re pression [àa] froid|prensad[oa] en fr[íi]o|prensad[oa] a frio|spremitura a freddo|spremuto a freddo|kaltgepresst[a-z]*|koudgeperst[a-z]*|kallpressad[a-z]*|t[łl]oczon[a-zęąó]* na zimno|so[ğg]uk s[ıi]k[ıi]m|non raffin[ée]e?s?|no refinad[oa]s?|n[ãa]o refinad[oa]s?|unraffiniert[a-z]*|ongeraffineerd[a-z]*|oraffinerad[a-z]*|nierafinowan[a-zęąó]*)(?![a-zß-ÿ\u0100-\u017f])/i;
 
   // TRADITIONAL fats earn their bonus via labels.BONUSES ("Minimally refined cooking fat"), not
   // from this list. Kept here as the authoritative set of fats that are not industrial seed oils,
