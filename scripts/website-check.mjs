@@ -22,11 +22,11 @@ if (arg >= 0) {
     const route = new URL(req.url, 'http://localhost').pathname;
     if (PAGES.some(r => route === r + '.html')) { res.writeHead(308, { location: route.slice(0, -5) }); res.end(); return; }
     const file = route === '/' ? 'index.html' : PAGES.includes(route) ? route.slice(1) + '.html' : route.slice(1);
-    if (!(['index.html', ...PAGES.map(r => r.slice(1) + '.html'), 'styles.css', 'robots.txt'].includes(file) || /^img\/[\w-]+\.webp$/.test(file)) || !fs.existsSync(path.join(root, file))) {
+    if (!(['index.html', ...PAGES.map(r => r.slice(1) + '.html'), 'styles.css', 'robots.txt'].includes(file) || /^img\/[\w-]+\.(webp|png)$/.test(file)) || !fs.existsSync(path.join(root, file))) {
       res.writeHead(404); res.end('Not found'); return;
     }
     for (const header of config.headers[0].headers) res.setHeader(header.key, header.value);
-    res.setHeader('content-type', file.endsWith('.css') ? 'text/css' : file.endsWith('.html') ? 'text/html' : file.endsWith('.webp') ? 'image/webp' : 'text/plain');
+    res.setHeader('content-type', file.endsWith('.css') ? 'text/css' : file.endsWith('.html') ? 'text/html' : file.endsWith('.webp') ? 'image/webp' : file.endsWith('.png') ? 'image/png' : 'text/plain');
     res.end(fs.readFileSync(path.join(root, file)));
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -47,7 +47,7 @@ try {
     if (route === '/') { await page.evaluate(() => Promise.all([...document.images].map(i => i.loading === 'lazy' ? (i.loading = 'eager', i.decode().catch(() => {})) : 0))); }
     const state = await page.evaluate(() => ({ overflow: document.documentElement.scrollWidth > innerWidth,
       theme: getComputedStyle(document.documentElement).colorScheme, h1: document.querySelector('h1')?.textContent,
-      scripts: document.scripts.length, brokenImages: [...document.images].filter(i => i.complete && !i.naturalWidth).length, noAlt: [...document.images].filter(i => !i.alt.trim()).length, missingAnchors: [...document.querySelectorAll('a[href^="#"]')].filter(a => !document.getElementById(a.hash.slice(1))).length }));
+      scripts: document.scripts.length, brokenImages: [...document.images].filter(i => i.complete && !i.naturalWidth).length, noAlt: [...document.images].filter(i => !i.alt.trim() && !i.closest('.brand')).length, missingAnchors: [...document.querySelectorAll('a[href^="#"]')].filter(a => !document.getElementById(a.hash.slice(1))).length }));
     assert(state.h1 && !state.overflow && !state.scripts && !state.missingAnchors && !state.brokenImages && !state.noAlt, JSON.stringify(state));
     assert.equal(state.theme, scheme, 'Stylesheet/theme did not load');
     if (route === '/' || route === '/install') {

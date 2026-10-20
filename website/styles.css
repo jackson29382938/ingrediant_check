@@ -180,3 +180,6 @@ details p { margin: 8px 0 4px; color: var(--muted); }
 .install-col h2 { font-size: 1.2rem; margin: 0 0 12px; }
 .detail .steps { max-width: 72ch; }
 .table-wrap.compact { max-width: 420px; }
+
+.brand-logo { width: 32px; height: 32px; border-radius: 8px; }
+.brand { font-size: 1.05rem; }
