@@ -1,234 +1,189 @@
-<div align="center">
-
-<img src="icons/icon128.png" alt="Ingredient Check logo" width="96" height="96">
-
 # Ingredient Check
 
 **Understand grocery ingredient labels before you buy.**
 
-Rates every food label **0–100** on ingredients, additives and processing,
-on your own computer, with the weights you choose.
+A desktop **Chrome and Firefox** extension that scores readable grocery ingredient lists from
+**0 to 100**, explains the bonuses and deductions, and lets you choose which goals matter to you.
+Scoring runs on your computer. Browse ratings on products, search results and carts, or opt into
+Amazon purchase-history trends.
 
-[![Latest release](https://img.shields.io/github/v/release/jackson29382938/ingrediant_check?label=release&color=2f7d4f)](https://github.com/jackson29382938/ingrediant_check/releases/latest)
-[![License: MIT](https://img.shields.io/badge/license-MIT-2f7d4f)](LICENSE)
-![Chrome 116+](https://img.shields.io/badge/Chrome-116%2B-2f7d4f)
-![Firefox 142+](https://img.shields.io/badge/Firefox-142%2B-2f7d4f)
-![No runtime dependencies](https://img.shields.io/badge/runtime%20dependencies-0-2f7d4f)
+**[Download the latest release](https://github.com/jackson29382938/ingrediant_check/releases/latest)**
+· [Install](#installation)
+· [See the features](#features-and-examples)
+· [Store coverage](docs/STORES.md)
+· [Get help](https://github.com/jackson29382938/ingrediant_check/issues)
 
-### [Explore all features →](https://ingrediantcheck-website.vercel.app/#install)
+> Scores describe the available label under your selected settings. They are not medical or
+> allergy advice. Always check the package. Missing labels are shown as unavailable, not given a
+> guessed score.
 
-[Website](https://ingrediantcheck-website.vercel.app/) ·
-[Install](#install) ·
-[How to use it](#how-to-use-it) ·
-[Privacy](#privacy) ·
-[Troubleshooting](#troubleshooting) ·
-[Docs](#more-information)
+## Installation
 
-<br>
+**Start with the ZIP under “Assets” on the [latest release page](https://github.com/jackson29382938/ingrediant_check/releases/latest).**
+You do **not** need Node, Python, a terminal or a Google account to install and score locally.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="website/img/score-oats-dark.webp">
-  <img src="website/img/score-oats-light.webp" alt="The Ingredient Check score panel on a product page: 98, Excellent, with the reasons listed under What's good." width="760">
-</picture>
-
-</div>
-
-> [!NOTE]
-> This is a guide to what is written on the label. It is not medical or allergy advice.
-> Always read the package.
-
-## What it does
-
-When you shop on Amazon (and a growing list of other stores), Ingredient Check reads the ingredient
-list and shows a score, with every point gained or lost spelled out. Nothing is a black box, and
-nothing leaves your computer to be scored.
-
-|   | Feature | What you get |
+| Browser | Download under Assets | Installation type |
 |---|---|---|
-| 🏷️ | **Product pages** | A score and a full breakdown under the title; the toolbar icon shows it too |
-| 🔎 | **Search results** | A small score on each food listing, with the reason on hover |
-| 🛒 | **Carts** | A score on each item and the **cart average** |
-| ↕️ | **Sort by score or unit price** | Two extra entries in Amazon's *Sort by* menu, and a side panel to rank and re-weight the list |
-| 🎯 | **Your goals** | 20 goals you can combine, plus allergen, diet and avoid-list warnings that never change the score |
-| 📈 | **Purchase history** | Opt-in monthly trends from the Amazon.com orders you actually made |
+| **Chrome 116+** | `ingredient-check-<version>.zip` | Extract and use **Load unpacked** |
+| **Firefox 142+** | `ingredient-check-<version>-firefox.zip` | **Temporary add-on**; removed when Firefox restarts |
 
-Coverage: **21 Amazon storefronts** plus **15 retailer previews** (Target, Walmart, Costco, Instacart,
-Kroger and more). See [which stores are supported](docs/STORES.md).
+Do not choose GitHub’s automatically generated **Source code (zip)** or **Source code (tar.gz)**
+for these installation steps. The browser packages include the files needed to run the extension.
 
-## See it
+### Chrome: download → extract → load
 
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <b>Sorted by price per unit, with your priorities</b><br><br>
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="website/img/sort-panel-dark.webp">
-        <img src="website/img/sort-panel-light.webp" alt="The side panel ranking five milk listings, with a Price per picker and priority sliders." width="380">
-      </picture>
-    </td>
-    <td width="50%" valign="top">
-      <b>Every score shows its working</b><br><br>
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="website/img/score-flakes-dark.webp">
-        <img src="website/img/score-flakes-light.webp" alt="A score panel for a sweetened cereal: 65, Mediocre, with refined added sugar costing 15 points." width="380">
-      </picture>
-      <br><br>
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="website/img/score-chips-dark.webp">
-        <img src="website/img/score-chips-light.webp" alt="A score panel for potato chips: 63, Mediocre, with a refined seed oil capping the score." width="380">
-      </picture>
-      <br><br>
-      <b>Pick your goals in one tap</b><br><br>
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="website/img/popup-dark.webp">
-        <img src="website/img/popup-light.webp" alt="The toolbar popup with the master switch and goal presets." width="260">
-      </picture>
-    </td>
-  </tr>
-</table>
+1. Download the **Chrome ZIP** listed above and **extract all files** into a permanent folder,
+   such as `Documents/Ingredient Check`. Keep this folder after installation.
+2. Open **`chrome://extensions`** in Chrome’s address bar.
+3. Turn on **Developer mode** in the top right, then click **Load unpacked**.
+4. Select the **extracted folder containing `manifest.json`**, not the ZIP or its parent folder.
+   You should now see an **Ingredient Check** extension card.
+5. Finish the setup page. Choose your goals, warnings and optional features. If setup does not
+   open, use the extension’s **Settings → Run setup again**.
+6. Click Chrome’s **Extensions** puzzle-piece icon and pin **Ingredient Check**. Open or refresh
+   a supported grocery page to start seeing ratings.
 
-<sub>Screenshots are the real extension on sample products with generic names. The scores show how
-the panel reads, not how any brand scores.</sub>
+**To update:** download the new Chrome ZIP, replace the extension files in the **same install
+folder**, click **Reload** on its card at `chrome://extensions`, then refresh your shopping tabs.
+Keep the folder and existing extension installed to preserve its identity and local history.
 
----
+### Firefox: temporary installation
 
-## Install
+The GitHub Firefox ZIP is **unsigned**. It is suitable for temporary installation and testing;
+a permanent installation in standard Firefox requires a **Mozilla-signed XPI**.
 
-Ingredient Check installs from a download, in about two minutes. No Node or Python is needed unless
-you want to build the package from source.
+1. Download the **Firefox ZIP** listed above and extract it.
+2. Open **`about:debugging#/runtime/this-firefox`** in Firefox’s address bar.
+3. Click **Load Temporary Add-on**, then select `manifest.json` inside the extracted Firefox folder.
+4. Finish setup and grant access to the store websites you use if Firefox asks. Open or refresh
+   a grocery page to check that ratings appear.
 
-**1. Download.** Open the [latest release](https://github.com/jackson29382938/ingrediant_check/releases/latest) and pick the ZIP for your browser:
+Firefox removes temporary add-ons on restart. Repeat these steps to load it again; use a signed
+package for ongoing use. See [browser installation, permissions and signing](docs/BROWSERS.md).
 
-| Your browser | Download |
+## Features and examples
+
+These screenshots show the **actual extension UI** using saved label fixtures and synthetic purchase
+records. They contain no personal account or order data. Scores vary with the label, goals and
+scoring version. **Click any screenshot to open the full-size image.** Previews are individually
+sized to keep this page compact. [Screenshot details](docs/screenshots/README.md).
+
+### See what contributed to a score
+
+Open a grocery product and expand its score panel to see the ingredient bonuses, deductions and
+score limits. The example below uses a saved potato-chip label and balanced scoring settings.
+
+<a href="docs/screenshots/ingredient-score.png"><img src="docs/screenshots/ingredient-score.png" alt="Expanded potato-chip score with contributing factors" width="420" height="346"></a>
+
+For example, a whole-food ingredient may earn a bonus while an oil or additive triggers a deduction
+or limit. **Allergen, diet and avoid-list warnings are separate from the numerical score.** Hover over
+listing, cart or order badges for details when **Score on hover** is enabled.
+
+### Make the scoring fit your goals
+
+Combine goals during setup, then adjust their importance and individual weights in Settings. Choose
+a settings level from **Minimal** to **Everything** to control how many options you see.
+
+<a href="docs/screenshots/personalized-setup.png"><img src="docs/screenshots/personalized-setup.png" alt="Setup goals with Whole-food focused selected" width="229" height="350"></a>
+
+For example, select **Whole-food focused**, add an allergen warning, and enter
+**`palm oil, natural flavors`** in the avoid list. The comma separates those into two ingredients.
+Change goals or warnings later from the extension icon → **Settings**.
+
+### Compare products while shopping
+
+| Where | What you can do |
 |---|---|
-| Chrome 116 or newer | `ingredient-check-<version>.zip` |
-| Firefox 142 or newer | `ingredient-check-<version>-firefox.zip` |
+| **Product pages** | Read the score breakdown; paste label text when the site has no readable label |
+| **Search results** | Compare food-product badges; on Amazon grocery searches, sort by score or price per unit |
+| **Carts** | Review item ratings and the cart average where the store adapter can identify items and labels |
+| **Amazon Orders** *(opt-in preview)* | Import actual purchases, inspect item ratings and open purchase trends |
 
-**2. Extract** it into a folder you will keep. Chrome reads the extension from that folder, so do not delete or move it.
+On Amazon grocery searches, choose **Ingredient Check score: High to Low** in the sort menu,
+or press **`Alt+Shift+H`** to open the score-sorted list. Compare price per ounce or select another
+unit in the comparison view where product price and size are available.
 
-<details open>
-<summary><b>Chrome</b></summary>
+Automatic search/cart scoring, badge placement, hover details, local-cache behavior, speed,
+appearance and score palettes are adjustable in Settings. Cached readings help repeat visits load
+faster; freshness, changed goals and changed scoring rules can still require a refresh or rescore.
 
-1. Open `chrome://extensions` and turn on **Developer mode** (top right).
-2. Click **Load unpacked** and select the extracted folder, the one containing `manifest.json`.
-3. Click the puzzle-piece icon in the toolbar and **pin** Ingredient Check.
+### Explore your purchase trends
 
-You should see **Ingredient Check** in the list with no errors. A short setup opens the first time.
+Opt into **Amazon purchase history** in setup or Purchase history’s own settings. Import an opened
+Orders page, or use **Scan all Amazon orders** to work through available pages and year filters in
+a background tab, with progress, time estimates, pause and resume. Keep the browser open; sign-in
+checks can pause the scan.
 
-</details>
+<a href="docs/screenshots/purchase-trends.png"><img src="docs/screenshots/purchase-trends.png" alt="Demo purchase trends: average 63.4 across 45 entries and 15 orders, with timeline and distribution charts" width="520" height="268"></a>
 
-<details>
-<summary><b>Firefox</b></summary>
+- **Preserve the original scores**, or compare saved labels using your current goals and weights.
+- Track the average over time, score distribution and biggest net bonuses and deductions.
+- Filter by date, product, status, rating or score; sort imported items and inspect statistical details.
+- Distinguish **orders** from **product entries**: three distinct products in one order are one order
+  and three entries. Purchased quantities are not inferred.
 
-1. Open `about:debugging#/runtime/this-firefox`.
-2. Click **Load Temporary Add-on** and select `manifest.json` from the extracted folder.
-3. Grant site access for the stores you use.
+Only confirmed purchases drive trends; viewed products, carts, cancellations and returns are
+excluded. These charts describe purchases, not what you ate or medical outcomes. Confidence intervals
+in the statistical view describe variation in the recorded sample, not certainty that a health score
+is correct. [Purchase-history guide](docs/PURCHASE-HISTORY.md).
 
-Temporary add-ons are removed when Firefox restarts, and a permanent install needs Mozilla signing.
-See [browser installation and signing](docs/BROWSERS.md).
+### More of the interface
 
-</details>
+Seven more views of the controls available in setup and Settings. Advanced options are shown with
+the **Everything** settings level; the appearance example uses dark mode. Click to enlarge.
 
-<details>
-<summary><b>Updating</b></summary>
-
-Download the newer ZIP, extract it over the files in the **same folder**, then press **Reload** on the
-extension's card in `chrome://extensions`. Keeping the folder keeps your settings, local history and
-the extension's identity.
-
-</details>
-
-<details>
-<summary><b>Build from source</b></summary>
-
-Needs **Node 20+** and **Python 3** (`python3` on PATH). From the repository root, run `npm run pack`.
-The Chrome output is `dist/unpacked` and Firefox is `dist/firefox`. Development tests and setup are in
-[docs/VERIFY.md](docs/VERIFY.md).
-
-</details>
-
-Step-by-step guide with troubleshooting: **[ingrediantcheck-website.vercel.app/install](https://ingrediantcheck-website.vercel.app/install)**.
-
----
-
-## How to use it
-
-| Where you are | What you see |
+| Setup and preferences | Scoring and display controls |
 |---|---|
-| An Amazon product page | A score for the ingredient list; the toolbar icon shows it too |
-| An Amazon search results page | A small score on each food product |
-| Your Amazon cart | A score on each item and the **cart average** |
+| **Allergen and diet warnings**<br><a href="docs/screenshots/allergen-warnings.png"><img src="docs/screenshots/allergen-warnings.png" alt="Allergen and diet warnings" width="330" height="269"></a><br>Choose warning flags independently of score weights. | **Your own avoid list**<br><a href="docs/screenshots/avoid-list.png"><img src="docs/screenshots/avoid-list.png" alt="Your own avoid list" width="297" height="270"></a><br>Comma-separated palm oil and natural flavors are counted as two entries. |
+| **Fine-tune scoring weights**<br><a href="docs/screenshots/scoring-weights.png"><img src="docs/screenshots/scoring-weights.png" alt="Fine-tune scoring weights" width="192" height="270"></a><br>Filter categories and adjust individual rule weights. | **Label photos and barcodes**<br><a href="docs/screenshots/label-reading.png"><img src="docs/screenshots/label-reading.png" alt="Label photos and barcodes" width="330" height="135"></a><br>Control local OCR and optional Open Food Facts lookup. |
+| **Search and unit-price sorting**<br><a href="docs/screenshots/search-sorting.png"><img src="docs/screenshots/search-sorting.png" alt="Search and unit-price sorting" width="185" height="270"></a><br>Choose comparison limits and how to handle missing unit prices. | **Cache, speed and freshness**<br><a href="docs/screenshots/cache-and-speed.png"><img src="docs/screenshots/cache-and-speed.png" alt="Cache, speed and freshness" width="267" height="270"></a><br>Adjust saved-score reuse, refresh behavior and request pace. |
+| **Dark mode and score palettes**<br><a href="docs/screenshots/appearance.png"><img src="docs/screenshots/appearance.png" alt="Dark mode and score palettes" width="330" height="160"></a><br>Choose a theme, colour-blind-safe palette and accent. | [Explore all features](ingrediantcheck-website.vercel.app) |
 
-- **Hover** a score to see why it got that number. **Click** it to open the product.
-- **Sort:** on an Amazon grocery search, pick *Ingredient Check score: High to Low* or
-  *Price per …: Low to High* from the *Sort by* menu. The side panel's **Price per** picker switches the
-  unit (ounce, pound, gallon, count, 100 g and more).
-- **Keyboard:** on an Amazon search page, press `Alt+Shift+H` to open the list sorted by score.
+## Which stores work?
 
-### Set it up for you
+**Amazon.com** is the primary live-checked store. **Target, Walmart, Costco, Instacart, Kroger,
+Fry’s, Ralphs, King Soopers, Smith’s, Fred Meyer, QFC, Harris Teeter, Dillons, Safeway and Albertsons**
+have preview adapters with varying live verification. Other Amazon storefronts share the adapter
+but have not all been checked individually.
 
-The first time you open the extension, a short setup asks about your **goals**, the **allergens and
-diets** you avoid, and an **avoid list** of ingredients you do not want. Change any of it later from the
-toolbar icon → **Settings**, or choose **Run setup again**.
+Product, search and cart behavior depends on the store layout, permissions and available labels.
+Purchase-history import currently covers **Amazon.com Orders only**. A preview is not a guarantee
+that every page works. See the [coverage and verification table](docs/STORES.md) for current limits.
 
----
+## Privacy and optional accounts
 
-## Privacy
+- **Scoring and local caches run on your device.** On-device OCR can read supported label photos.
+- A **Google account is optional** for local scoring. Google sign-in enables optional account backup
+  and purchase-history sync; Chrome/Firefox profile backup uses the browser’s own sync service.
+- Settings backup is on by default. Opting into Amazon history also enables automatic Google-account
+  history sync; you can switch it off or use **Sync now** in Purchase history.
+- Barcode lookup and other online lookups depend on their settings and permissions. Diagnostics and
+  sharing product readings are off by default.
 
-- Scores are worked out on your computer. There is no account, no analytics and no ads.
-- Settings back up through your browser's own sync, and you can turn that off.
-- Every optional feature and exactly what it sends: [docs/PRIVACY.md](docs/PRIVACY.md) and the
-  [privacy page](https://ingrediantcheck-website.vercel.app/privacy).
+Read the [full privacy policy](docs/PRIVACY.md) for exactly what is stored, fetched and uploaded.
 
 ## Troubleshooting
 
-<details>
-<summary><b>No Ingredient Check in <code>chrome://extensions</code></b></summary>
-
-Select the extracted release folder that directly contains `manifest.json`. Some extractors add an
-extra folder around it; open it and choose the inner one.
-
-</details>
-
-<details>
-<summary><b>Errors on the extension card</b></summary>
-
-Check you downloaded the Chrome ZIP (the one without `-firefox` in its name), then press **Reload**.
-
-</details>
-
-<details>
-<summary><b>No score on a product</b></summary>
-
-The label may be missing or unreadable. The product page offers a paste box where you can type the
-ingredients, and the extension scores what you paste.
-
-</details>
-
-<details>
-<summary><b>I updated and my settings are gone</b></summary>
-
-Extract the newer release into the **same** folder and press **Reload**. Loading a new folder makes
-Chrome treat it as a different extension.
-
-</details>
-
----
+| Problem | What to check |
+|---|---|
+| Cannot find the right download | Expand **Assets** on the latest release. Choose the browser ZIP, not **Source code**. |
+| Chrome says the manifest is missing | Extract the ZIP first; select the folder that directly contains `manifest.json`. |
+| No ratings after installation or an update | Refresh the shopping tab, check the extension is enabled, and allow access to that store. |
+| “Label unavailable” | Open the product and expand Ingredients/Nutritional Facts. Check label-photo OCR or paste the ingredients. Some labels cannot be read. |
+| Firefox disappears after restart | That is expected for a temporary add-on. Permanent installation requires Mozilla signing. |
+| Google reports a redirect URI mismatch | Local scoring still works. The developer must register the exact redirect URL shown in Google backup settings. See [OAuth setup](docs/BROWSERS.md#google-sign-in-and-optional-data-sharing). |
+| Still stuck | [Open an issue](https://github.com/jackson29382938/ingrediant_check/issues) with your browser, extension version, store URL and a redacted screenshot. Leave out account and order details. |
 
 ## More information
 
-| | |
-|---|---|
-| 📖 [Full feature guide](docs/FULL-README.md) | Every feature in detail |
-| 🏪 [Stores](docs/STORES.md) | Which stores are supported and what has been checked |
-| 🎯 [Accuracy](docs/ACCURACY.md) | How well scores match real labels, by language |
-| 🧮 [Scoring review](docs/SCORING-CALIBRATION-2026-10-01.md) | Every factor and default |
-| 🌐 [Browsers](docs/BROWSERS.md) | Chrome and Firefox setup, signing and Google sign-in |
-| 🧪 [Developer notes](docs/VERIFY.md) | Tests, harnesses and live checks |
-| 🌍 [Website](https://ingrediantcheck-website.vercel.app/) | Screenshots, install guide, FAQ ([source](website/), [deployment](website/README.md)) |
+- [Full feature guide](docs/FULL-README.md)
+- [Scoring accuracy and limitations](docs/ACCURACY.md)
+- [Browser installation and signing](docs/BROWSERS.md)
+- [Developer setup and tests](docs/VERIFY.md)
+- [Support website files](website/) and [Vercel deployment steps](website/README.md)
 
-<div align="center">
+Building from source is optional: with **Node 20+ and Python 3**, run `npm run pack` in the repository
+root to create both browser ZIPs in `dist/`. The extracted Chrome folder is `dist/unpacked` and
+Firefox is `dist/firefox`.
 
-Licensed under [MIT](LICENSE). Not affiliated with Amazon, Target, Walmart, Costco or any other retailer.
-
-</div>
+Licensed under [MIT](LICENSE).
