@@ -65,14 +65,15 @@ package for ongoing use. See [browser installation, permissions and signing](doc
 
 These screenshots show the **actual extension UI** using saved label fixtures and synthetic purchase
 records. They contain no personal account or order data. Scores vary with the label, goals and
-scoring version. [Screenshot details](docs/screenshots/README.md).
+scoring version. **Click any screenshot to open the full-size image.** Previews are individually
+sized to keep this page compact. [Screenshot details](docs/screenshots/README.md).
 
 ### See what contributed to a score
 
 Open a grocery product and expand its score panel to see the ingredient bonuses, deductions and
 score limits. The example below uses a saved potato-chip label and balanced scoring settings.
 
-![Expanded ingredient score for a potato-chip label, showing its score and contributing factors](docs/screenshots/ingredient-score.png)
+<a href="docs/screenshots/ingredient-score.png"><img src="docs/screenshots/ingredient-score.png" alt="Expanded potato-chip score with contributing factors" width="420" height="346"></a>
 
 For example, a whole-food ingredient may earn a bonus while an oil or additive triggers a deduction
 or limit. **Allergen, diet and avoid-list warnings are separate from the numerical score.** Hover over
@@ -83,7 +84,7 @@ listing, cart or order badges for details when **Score on hover** is enabled.
 Combine goals during setup, then adjust their importance and individual weights in Settings. Choose
 a settings level from **Minimal** to **Everything** to control how many options you see.
 
-<img src="docs/screenshots/personalized-setup.png" alt="Setup screen with Whole-food focused selected, alongside nutrition, activity and diet-style goals" width="580">
+<a href="docs/screenshots/personalized-setup.png"><img src="docs/screenshots/personalized-setup.png" alt="Setup goals with Whole-food focused selected" width="229" height="350"></a>
 
 For example, select **Whole-food focused**, add an allergen warning, and enter
 **`palm oil, natural flavors`** in the avoid list. The comma separates those into two ingredients.
@@ -113,7 +114,7 @@ Orders page, or use **Scan all Amazon orders** to work through available pages a
 a background tab, with progress, time estimates, pause and resume. Keep the browser open; sign-in
 checks can pause the scan.
 
-![Purchase dashboard with synthetic data: 45 product entries across 15 orders, an average score of 63.4, a monthly score chart and a score-distribution chart](docs/screenshots/purchase-trends.png)
+<a href="docs/screenshots/purchase-trends.png"><img src="docs/screenshots/purchase-trends.png" alt="Demo purchase trends: average 63.4 across 45 entries and 15 orders, with timeline and distribution charts" width="520" height="268"></a>
 
 - **Preserve the original scores**, or compare saved labels using your current goals and weights.
 - Track the average over time, score distribution and biggest net bonuses and deductions.
@@ -125,6 +126,18 @@ Only confirmed purchases drive trends; viewed products, carts, cancellations and
 excluded. These charts describe purchases, not what you ate or medical outcomes. Confidence intervals
 in the statistical view describe variation in the recorded sample, not certainty that a health score
 is correct. [Purchase-history guide](docs/PURCHASE-HISTORY.md).
+
+### More of the interface
+
+Seven more views of the controls available in setup and Settings. Advanced options are shown with
+the **Everything** settings level; the appearance example uses dark mode. Click to enlarge.
+
+| Setup and preferences | Scoring and display controls |
+|---|---|
+| **Allergen and diet warnings**<br><a href="docs/screenshots/allergen-warnings.png"><img src="docs/screenshots/allergen-warnings.png" alt="Allergen and diet warnings" width="330" height="269"></a><br>Choose warning flags independently of score weights. | **Your own avoid list**<br><a href="docs/screenshots/avoid-list.png"><img src="docs/screenshots/avoid-list.png" alt="Your own avoid list" width="297" height="270"></a><br>Comma-separated palm oil and natural flavors are counted as two entries. |
+| **Fine-tune scoring weights**<br><a href="docs/screenshots/scoring-weights.png"><img src="docs/screenshots/scoring-weights.png" alt="Fine-tune scoring weights" width="192" height="270"></a><br>Filter categories and adjust individual rule weights. | **Label photos and barcodes**<br><a href="docs/screenshots/label-reading.png"><img src="docs/screenshots/label-reading.png" alt="Label photos and barcodes" width="330" height="135"></a><br>Control local OCR and optional Open Food Facts lookup. |
+| **Search and unit-price sorting**<br><a href="docs/screenshots/search-sorting.png"><img src="docs/screenshots/search-sorting.png" alt="Search and unit-price sorting" width="185" height="270"></a><br>Choose comparison limits and how to handle missing unit prices. | **Cache, speed and freshness**<br><a href="docs/screenshots/cache-and-speed.png"><img src="docs/screenshots/cache-and-speed.png" alt="Cache, speed and freshness" width="267" height="270"></a><br>Adjust saved-score reuse, refresh behavior and request pace. |
+| **Dark mode and score palettes**<br><a href="docs/screenshots/appearance.png"><img src="docs/screenshots/appearance.png" alt="Dark mode and score palettes" width="330" height="160"></a><br>Choose a theme, colour-blind-safe palette and accent. | [Explore all features](docs/FULL-README.md) |
 
 ## Which stores work?
 
