@@ -1,21 +1,57 @@
+<div align="center">
+
+<img src="icons/icon128.png" alt="Ingredient Check logo" width="96" height="96">
+
 # Ingredient Check
 
 **Understand grocery ingredient labels before you buy.**
 
 A desktop **Chrome and Firefox** extension that scores readable grocery ingredient lists from
-**0 to 100**, explains the bonuses and deductions, and lets you choose which goals matter to you.
-Scoring runs on your computer. Browse ratings on products, search results and carts, or opt into
-Amazon purchase-history trends.
+**0 to 100**, explains every bonus and deduction, and lets you choose which goals matter to you.
+Scoring runs on your computer.
 
-**[Download the latest release](https://github.com/jackson29382938/ingrediant_check/releases/latest)**
-· [Install](#installation)
-· [See the features](#features-and-examples)
-· [Store coverage](docs/STORES.md)
-· [Get help](https://github.com/jackson29382938/ingrediant_check/issues)
+[![Latest release](https://img.shields.io/github/v/release/jackson29382938/ingrediant_check?label=release&color=2f7d4f)](https://github.com/jackson29382938/ingrediant_check/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-2f7d4f)](LICENSE)
+![Chrome 116+](https://img.shields.io/badge/Chrome-116%2B-2f7d4f)
+![Firefox 142+](https://img.shields.io/badge/Firefox-142%2B-2f7d4f)
+![Runtime dependencies: none](https://img.shields.io/badge/runtime%20dependencies-none-2f7d4f)
 
+### [Download the latest release](https://github.com/jackson29382938/ingrediant_check/releases/latest)  ·  [Explore all features →](https://ingrediantcheck-website.vercel.app/#install)
+
+[Install](#installation) ·
+[Features](#features-and-examples) ·
+[Stores](#which-stores-work) ·
+[Privacy](#privacy-and-optional-accounts) ·
+[Troubleshooting](#troubleshooting) ·
+[Website](https://ingrediantcheck-website.vercel.app/) ·
+[Get help](https://github.com/jackson29382938/ingrediant_check/issues)
+
+<br>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="website/img/score-oats-dark.webp">
+  <img src="website/img/score-oats-light.webp" alt="The Ingredient Check score panel on a product page: 98, Excellent, with the reasons listed under What's good." width="760">
+</picture>
+
+</div>
+
+> [!NOTE]
 > Scores describe the available label under your selected settings. They are not medical or
 > allergy advice. Always check the package. Missing labels are shown as unavailable, not given a
 > guessed score.
+
+## At a glance
+
+|   | Feature | What you get |
+|---|---|---|
+| 🏷️ | **Product pages** | A score and a full breakdown under the title; the toolbar icon shows it too |
+| 🔎 | **Search results** | A small score on each food listing, with the reason on hover |
+| 🛒 | **Carts** | A score on each item and the **cart average** |
+| ↕️ | **Sort by score or unit price** | Extra entries in Amazon's *Sort by* menu, and a side panel to rank and re-weight the list |
+| 🎯 | **Your goals** | 20 goals you can combine, plus allergen, diet and avoid-list warnings that never change the score |
+| 📈 | **Purchase history** *(opt-in preview)* | Monthly trends from the Amazon.com orders you actually made |
+
+Scoring is local and open: [how a score is built](https://ingrediantcheck-website.vercel.app/scoring) · [what is sent and when](docs/PRIVACY.md).
 
 ## Installation
 
@@ -43,11 +79,17 @@ for these installation steps. The browser packages include the files needed to r
 6. Click Chrome’s **Extensions** puzzle-piece icon and pin **Ingredient Check**. Open or refresh
    a supported grocery page to start seeing ratings.
 
-**To update:** download the new Chrome ZIP, replace the extension files in the **same install
+<details>
+<summary><b>Updating</b></summary>
+
+Download the new Chrome ZIP, replace the extension files in the **same install
 folder**, click **Reload** on its card at `chrome://extensions`, then refresh your shopping tabs.
 Keep the folder and existing extension installed to preserve its identity and local history.
 
-### Firefox: temporary installation
+</details>
+
+<details>
+<summary><b>Firefox: temporary installation</b></summary>
 
 The GitHub Firefox ZIP is **unsigned**. It is suitable for temporary installation and testing;
 a permanent installation in standard Firefox requires a **Mozilla-signed XPI**.
@@ -60,6 +102,8 @@ a permanent installation in standard Firefox requires a **Mozilla-signed XPI**.
 
 Firefox removes temporary add-ons on restart. Repeat these steps to load it again; use a signed
 package for ongoing use. See [browser installation, permissions and signing](docs/BROWSERS.md).
+
+</details>
 
 ## Features and examples
 
@@ -99,9 +143,16 @@ Change goals or warnings later from the extension icon → **Settings**.
 | **Carts** | Review item ratings and the cart average where the store adapter can identify items and labels |
 | **Amazon Orders** *(opt-in preview)* | Import actual purchases, inspect item ratings and open purchase trends |
 
-On Amazon grocery searches, choose **Ingredient Check score: High to Low** in the sort menu,
-or press **`Alt+Shift+H`** to open the score-sorted list. Compare price per ounce or select another
-unit in the comparison view where product price and size are available.
+On Amazon grocery searches, choose **Ingredient Check score: High to Low** or **Price per …: Low to High**
+in Amazon's *Sort by* menu, or press **`Alt+Shift+H`** to open the score-sorted list. The menu names the
+unit most listings on the page use (ounce, gallon, count, 100 g). In the side panel, the **Price per**
+picker switches to any weight, volume or count unit. Weight, volume and count do not convert into each
+other, so listings with no price in the chosen unit go last and say so.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="website/img/sort-panel-dark.webp">
+  <img src="website/img/sort-panel-light.webp" alt="The side panel ranking five example milk listings, with a Price per picker set to Automatic and priority sliders below it." width="340">
+</picture>
 
 Automatic search/cart scoring, badge placement, hover details, local-cache behavior, speed,
 appearance and score palettes are adjustable in Settings. Cached readings help repeat visits load
@@ -137,7 +188,7 @@ the **Everything** settings level; the appearance example uses dark mode. Click 
 | **Allergen and diet warnings**<br><a href="docs/screenshots/allergen-warnings.png"><img src="docs/screenshots/allergen-warnings.png" alt="Allergen and diet warnings" width="330" height="269"></a><br>Choose warning flags independently of score weights. | **Your own avoid list**<br><a href="docs/screenshots/avoid-list.png"><img src="docs/screenshots/avoid-list.png" alt="Your own avoid list" width="297" height="270"></a><br>Comma-separated palm oil and natural flavors are counted as two entries. |
 | **Fine-tune scoring weights**<br><a href="docs/screenshots/scoring-weights.png"><img src="docs/screenshots/scoring-weights.png" alt="Fine-tune scoring weights" width="192" height="270"></a><br>Filter categories and adjust individual rule weights. | **Label photos and barcodes**<br><a href="docs/screenshots/label-reading.png"><img src="docs/screenshots/label-reading.png" alt="Label photos and barcodes" width="330" height="135"></a><br>Control local OCR and optional Open Food Facts lookup. |
 | **Search and unit-price sorting**<br><a href="docs/screenshots/search-sorting.png"><img src="docs/screenshots/search-sorting.png" alt="Search and unit-price sorting" width="185" height="270"></a><br>Choose comparison limits and how to handle missing unit prices. | **Cache, speed and freshness**<br><a href="docs/screenshots/cache-and-speed.png"><img src="docs/screenshots/cache-and-speed.png" alt="Cache, speed and freshness" width="267" height="270"></a><br>Adjust saved-score reuse, refresh behavior and request pace. |
-| **Dark mode and score palettes**<br><a href="docs/screenshots/appearance.png"><img src="docs/screenshots/appearance.png" alt="Dark mode and score palettes" width="330" height="160"></a><br>Choose a theme, colour-blind-safe palette and accent. | [Explore all features](ingrediantcheck-website.vercel.app) |
+| **Dark mode and score palettes**<br><a href="docs/screenshots/appearance.png"><img src="docs/screenshots/appearance.png" alt="Dark mode and score palettes" width="330" height="160"></a><br>Choose a theme, colour-blind-safe palette and accent. | **[Explore all features →](https://ingrediantcheck-website.vercel.app/#install)**<br>Screenshots, the scoring method, store coverage, an install guide and an FAQ on the website. |
 
 ## Which stores work?
 
@@ -148,7 +199,7 @@ but have not all been checked individually.
 
 Product, search and cart behavior depends on the store layout, permissions and available labels.
 Purchase-history import currently covers **Amazon.com Orders only**. A preview is not a guarantee
-that every page works. See the [coverage and verification table](docs/STORES.md) for current limits.
+that every page works. See the [coverage and verification table](docs/STORES.md) or the [stores page](https://ingrediantcheck-website.vercel.app/stores) for current limits.
 
 ## Privacy and optional accounts
 
@@ -176,14 +227,23 @@ Read the [full privacy policy](docs/PRIVACY.md) for exactly what is stored, fetc
 
 ## More information
 
-- [Full feature guide](docs/FULL-README.md)
-- [Scoring accuracy and limitations](docs/ACCURACY.md)
-- [Browser installation and signing](docs/BROWSERS.md)
-- [Developer setup and tests](docs/VERIFY.md)
-- [Support website files](website/) and [Vercel deployment steps](website/README.md)
+| | |
+|---|---|
+| 🌍 [Website](https://ingrediantcheck-website.vercel.app/) | Screenshots, install guide, FAQ |
+| 📖 [Full feature guide](docs/FULL-README.md) | Every feature in detail |
+| 🧮 [How a score is built](https://ingrediantcheck-website.vercel.app/scoring) | The five steps, score bands and limits |
+| 🏪 [Stores](docs/STORES.md) | What has been checked on each store |
+| 🎯 [Scoring accuracy and limitations](docs/ACCURACY.md) | Evidence by language and reading method |
+| 🌐 [Browser installation and signing](docs/BROWSERS.md) | Chrome, Firefox and Google sign-in |
+| 🧪 [Developer setup and tests](docs/VERIFY.md) | Harnesses and live checks |
+| 🚀 [Website source](website/) and [deployment steps](website/README.md) | Static site on Vercel |
 
 Building from source is optional: with **Node 20+ and Python 3**, run `npm run pack` in the repository
 root to create both browser ZIPs in `dist/`. The extracted Chrome folder is `dist/unpacked` and
 Firefox is `dist/firefox`.
 
-Licensed under [MIT](LICENSE).
+<div align="center">
+
+Licensed under [MIT](LICENSE). Not affiliated with Amazon, Target, Walmart, Costco or any other retailer.
+
+</div>
