@@ -76,5 +76,7 @@ Rules that are easy to break:
 - A service-worker message handler that returns `true` answers through `answer()` in `background.js`, so a
   rejected promise still replies and leaves a trace.
 - A test that asserts a millisecond limit carries a `// @serial` comment so `npm test` runs it alone.
+- `docs/apps-script.gs` ends with a byte-for-byte copy of `src/engine/db/purchase-history.js`; after editing that file run
+  `node scripts/sync-apps-script-schema.mjs` (a test fails otherwise) and redeploy the script by hand.
 - Do not add runtime dependencies. Vendored OCR and DOMPurify bundles are reproduced by scripts in
   `scripts/` from pinned inputs.
