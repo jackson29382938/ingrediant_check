@@ -10,5 +10,5 @@ This repo is a Manifest V3 Chrome extension. Cursor Browser cannot load unpacked
 - Drive the UI with `npm run ab -- <command>` (or `node scripts/ab.mjs <command>`). That session is `ingredient-check`, headed Chrome for Testing, and already has this folder loaded as an unpacked extension. Do not point it at Google Chrome.app — branded Chrome ignores `--load-extension`.
 - Start or attach with `npm run chrome`. Reload after disk changes with `npm run chrome:reload`.
 - After editing `src/`, `manifest.json`, or `icons/`, wait for the reload hook (~1s) or run `npm run chrome:reload` before verifying in Chrome.
-- Test on Amazon grocery pages (`/dp/` product pages and `/s` search). Content scripts do not run on other hosts.
+- Test on Amazon grocery pages (`/dp/` product pages and `/s` search). Content scripts also run on the retailer previews (Target, Walmart, Costco, Instacart and the Kroger and Albertsons banners; see `docs/STORES.md`), but not on other hosts.
 - Do not use Cursor Browser / `browser_*` MCP tools to check the score panel, popup, or options page.

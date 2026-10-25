@@ -392,3 +392,20 @@ test('reasons never carry an internal marker', () => {
   for (const row of [...r.good, ...r.bad]) assert.ok(!JSON.stringify(row).includes('\u0001'), JSON.stringify(row));
   assert.ok(reasons(r).length > 0);
 });
+
+// The first score() compiles the engine's patterns (about 200 ms). warmUp() does that in idle time, once, and
+// must change nothing a caller can see.
+test('warming the engine up is idle, once, and invisible', async () => {
+  const before = score('Oats, Sugar, Natural Flavors');
+  const scheduled = [];
+  const saved = globalThis.requestIdleCallback;
+  globalThis.requestIdleCallback = (fn, options) => { scheduled.push({ fn, options }); return scheduled.length; };
+  try {
+    engine.warmUp(); engine.warmUp(); engine.warmUp();
+    assert.equal(scheduled.length, 1, 'once however often it is called');
+    assert.equal(scheduled[0].options.timeout, 3000, 'it runs even on a page that never goes idle');
+    scheduled[0].fn();
+  } finally { if (saved) globalThis.requestIdleCallback = saved; else delete globalThis.requestIdleCallback; }
+  assert.deepEqual(score('Oats, Sugar, Natural Flavors'), before, 'scoring after the warm-up is unchanged');
+  assert.deepEqual(engine.parse('Oats, Sugar'), ['oats', 'sugar']);
+});

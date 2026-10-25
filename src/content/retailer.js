@@ -340,6 +340,7 @@
 
   function watch() {
     if (state.observer || !state.enabled) return;
+    root.AIR.engine.warmUp?.();   // compile the engine's patterns in idle time, before the first label needs them
     let pending = null;
     state.observer = new MutationObserver(() => {
       if (pending) return;

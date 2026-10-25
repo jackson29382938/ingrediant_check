@@ -198,6 +198,7 @@
     lastUrl = location.href;
     watchNavigation();
     if (isRelevantPage()) {
+      AIR.engine.warmUp?.();   // compile the engine's patterns in idle time, before the first label needs them
       startObserving();
       schedule();
       armHoverPass();

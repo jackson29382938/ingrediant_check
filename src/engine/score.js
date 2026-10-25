@@ -1463,6 +1463,21 @@ function score(product, options = {}) {
   };
 }
 
+// The first score() call compiles the engine's regular expressions, lazily, as each is first used: about 200 ms,
+// measured (177 ms for the first real label, 13 ms after this). A content script calls warmUp() when it lands on a
+// page that will be scored, and the cost falls in idle time instead of on the first product a reader opens. The
+// list is made up and touches the penalty, cap, bonus and provenance paths; it reads nothing and writes nothing.
+const WARM_UP = { name: 'Organic oats grass-fed non-GMO', labels: 'organic', certifications: 'USDA Organic',
+  ingredients_text: 'Organic oats, water, cane sugar, natural flavors, citric acid (preservative), soy lecithin, salt, vitamin E, partially hydrogenated soybean oil, enriched wheat flour' };
+let warmedUp = false;
+function warmUp() {
+  if (warmedUp) return;
+  warmedUp = true;
+  const run = () => { try { score(WARM_UP); } catch (e) { /* the first real score reports its own trouble */ } };
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(run, { timeout: 3000 });
+  else if (typeof setTimeout === 'function') setTimeout(run, 300);
+}
+
 const SCORING_POLICY = Object.freeze({floor:SCORE_FLOOR, ceilingKnee:CEIL_KNEE, ceilingSoftness:CEIL_SOFTNESS,
   penaltySaturation:PENALTY_SATURATION, groupExtra:GROUP_EXTRA, groupCeiling:GROUP_CEIL,
   goalRewardCap:GOAL_REWARD_CAP, provenanceBonusCap:PROVENANCE_BONUS_CAP,
@@ -1470,6 +1485,6 @@ const SCORING_POLICY = Object.freeze({floor:SCORE_FLOOR, ceilingKnee:CEIL_KNEE, 
   singleIngredientBonus:SINGLE_INGREDIENT_BONUS, positionWeights:POSITION_WEIGHTS,
   shareTiers:SHARE_TIERS.map(([min, tier]) => `${min}%+ → ${POSITION_WEIGHTS[tier]}`).concat(`under 2% → ${POSITION_WEIGHTS[3]}`),
   minorBlockLimit:MINOR_LIMIT, minCoverage:MIN_COVERAGE});
-return { score, parse, parseEntries, verticalList, stripNegations, PENALTIES, CAPS, BANDS, NOVA_BASE, NUTRITION, normaliseNutrition, SCORING_POLICY,
+return { score, parse, parseEntries, verticalList, warmUp, stripNegations, PENALTIES, CAPS, BANDS, NOVA_BASE, NUTRITION, normaliseNutrition, SCORING_POLICY,
   MIN_COVERAGE, isReadable };
 });

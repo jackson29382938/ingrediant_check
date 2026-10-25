@@ -44,6 +44,18 @@ test('a UK gallon is bigger than a US gallon, and the store key works as well as
   assert.equal(U.perUnit(0.03, 'gal', 'www.amazon.ie'), uk);
 });
 
+test('a size and a displayed unit price read the store key as they read the host', () => {
+  // "co.uk" is the key the storefront table uses; before this, parsing took it for a US store (a pint as 16 oz, not 19.2).
+  const hosts = ['www.amazon.co.uk', 'amazon.co.uk', 'co.uk', 'www.amazon.ie', 'ie'];
+  const uk = U.parseQuantity('Milk 1 pint', 'www.amazon.co.uk');
+  assert.ok(Math.abs(uk.ounces - 19.215) < 0.01, `${uk.ounces}`);
+  for (const store of hosts) {
+    assert.equal(U.parseQuantity('Milk 1 pint', store).ounces, uk.ounces, store);
+    assert.equal(U.parseDisplayedUnit('£1.00/pint', store).perOz, U.parseDisplayedUnit('£1.00/pint', 'www.amazon.co.uk').perOz, store);
+  }
+  for (const store of ['www.amazon.com', 'com', 'www.amazon.ca', 'ca', '', undefined]) assert.equal(U.parseQuantity('Milk 1 pint', store).ounces, 16, String(store));
+});
+
 test('Amazon\'s own unit, per count included, is read and its unit remembered', () => {
   const shown = (text, store) => U.parseDisplayedUnit(text, store);
   assert.deepEqual([shown('$12.99 ($0.81/Ounce)').kind, shown('$12.99 ($0.81/Ounce)').unit], ['weight', 'oz']);

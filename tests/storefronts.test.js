@@ -1,5 +1,6 @@
 // Prices, unit prices, package sizes, ratings and Amazon's sort menu, per storefront
 // (src/engine/db/storefronts.js). Each supported currency and a non-English menu has a fixture here.
+// @serial: a price parse is timed against a millisecond budget, so it runs with the CPU to itself (scripts/run-tests.mjs).
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
