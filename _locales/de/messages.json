@@ -8,35 +8,35 @@
     "description": "Store description. Must stay under 132 characters in every locale."
   },
   "novaWhole": {
-    "message": "Whole / minimally processed"
+    "message": "Unverarbeitet / minimal verarbeitet"
   },
   "novaCulinary": {
-    "message": "Culinary ingredient"
+    "message": "Küchenzutat"
   },
   "novaProcessed": {
-    "message": "Processed"
+    "message": "Verarbeitet"
   },
   "novaUltra": {
-    "message": "Ultra-processed"
+    "message": "Hochverarbeitet"
   },
   "headDisqualifying": {
-    "message": "Score limits",
+    "message": "Bewertungsgrenzen",
     "description": "Panel section: ingredients that cap the score."
   },
   "headGood": {
-    "message": "What's good"
+    "message": "Was gut ist"
   },
   "headHurt": {
-    "message": "What hurt"
+    "message": "Was abgezogen wurde"
   },
   "headNeutral": {
-    "message": "Not counted against it"
+    "message": "Nicht negativ gewertet"
   },
   "headProduced": {
-    "message": "How this was produced"
+    "message": "Wie es erzeugt wurde"
   },
   "footRules": {
-    "message": "$COUNT$ rules",
+    "message": "$COUNT$ Regeln",
     "placeholders": {
       "count": {
         "content": "$1"
@@ -44,7 +44,7 @@
     }
   },
   "footCoverage": {
-    "message": "$PCT$% of the list recognised",
+    "message": "$PCT$ % der Liste erkannt",
     "placeholders": {
       "pct": {
         "content": "$1"
@@ -52,7 +52,7 @@
     }
   },
   "footBase": {
-    "message": "base $N$",
+    "message": "Basis $N$",
     "placeholders": {
       "n": {
         "content": "$1"
@@ -102,25 +102,25 @@
     }
   },
   "reportSending": {
-    "message": "Sending…"
+    "message": "Wird gesendet…"
   },
   "reportThanks": {
-    "message": "Thanks — logged"
+    "message": "Danke — protokolliert"
   },
   "reportNoUrl": {
-    "message": "Set a contribution URL in settings"
+    "message": "Lege in den Einstellungen eine Beitrags-URL fest"
   },
   "srcPasted": {
-    "message": "Ingredients you pasted"
+    "message": "Von dir eingefügte Zutaten"
   },
   "srcBarcode": {
-    "message": "Matched by barcode via Open Food Facts — not from this page"
+    "message": "Per Barcode über Open Food Facts gefunden — nicht von dieser Seite"
   },
   "srcPage": {
-    "message": "Ingredients read from page"
+    "message": "Zutaten von der Seite gelesen"
   },
   "srcPageConf": {
-    "message": "Ingredients read from page ($PCT$% confidence)",
+    "message": "Zutaten von der Seite gelesen (Sicherheit $PCT$ %)",
     "placeholders": {
       "pct": {
         "content": "$1"
@@ -131,34 +131,34 @@
     "message": "Ein Leitfaden zu dem, was auf dem Etikett steht — keine Gesundheitsberatung. Zutaten können unvollständig oder veraltet sein — prüfen Sie die Verpackung."
   },
   "allergenCaveat": {
-    "message": "Found in the ingredient text on this page. Absence of a warning is not a safety check — never rely on this for an allergy."
+    "message": "Im Zutatentext dieser Seite gefunden. Keine Warnung heißt nicht, dass ein Produkt sicher ist — verlasse dich bei einer Allergie nie darauf."
   },
   "allergenNoFlags": {
-    "message": "No selected warnings were found in the text this page provided. Lists can be incomplete — this does not confirm a product is free of an allergen."
+    "message": "In dem Text, den diese Seite geliefert hat, wurde keine der gewählten Warnungen gefunden. Listen können unvollständig sein — das bestätigt nicht, dass ein Produkt frei von einem Allergen ist."
   },
   "failTitle": {
     "message": "Zutaten auf dieser Seite konnten nicht gelesen werden."
   },
   "failUnreadable": {
-    "message": "The ingredients are published, but almost none of them match anything this tool knows — usually that means the label is in a language it cannot read yet. Scoring it anyway would produce a confident wrong answer. "
+    "message": "Die Zutaten sind veröffentlicht, aber fast keine davon passt zu etwas, das dieses Werkzeug kennt — meist heißt das, dass das Etikett in einer Sprache ist, die es noch nicht lesen kann. Es trotzdem zu bewerten, ergäbe eine selbstsichere, aber falsche Antwort. "
   },
   "failLookup": {
-    "message": "The optional barcode lookup didn't return an ingredient list. "
+    "message": "Die optionale Barcode-Suche hat keine Zutatenliste geliefert. "
   },
   "failNoText": {
-    "message": "Amazon doesn't always publish them as text — sometimes they only exist inside the label photo. "
+    "message": "Amazon veröffentlicht sie nicht immer als Text — manchmal gibt es sie nur im Etikettenfoto. "
   },
   "failPastePrompt": {
-    "message": "Paste them here and I'll score it."
+    "message": "Füge sie hier ein, dann bewerte ich das Produkt."
   },
   "pastePlaceholder": {
-    "message": "Paste the ingredient list…"
+    "message": "Zutatenliste einfügen…"
   },
   "pasteLabel": {
-    "message": "Ingredient list"
+    "message": "Zutatenliste"
   },
   "pasteInvalid": {
-    "message": "That doesn't look like an ingredient list yet."
+    "message": "Das sieht noch nicht nach einer Zutatenliste aus."
   },
   "scoreButton": {
     "message": "Bewerten"
@@ -167,22 +167,22 @@
     "message": "Open Food Facts wird geprüft…"
   },
   "loadingBody": {
-    "message": "Amazon didn't publish readable ingredients, so the optional barcode fallback is looking for this product. No Amazon page or browsing data is sent."
+    "message": "Amazon hat keine lesbaren Zutaten veröffentlicht, deshalb sucht die optionale Barcode-Abfrage dieses Produkt. Es werden weder eine Amazon-Seite noch Browserdaten gesendet."
   },
   "notFoodTitle": {
     "message": "Nicht bewertet — sieht nicht nach Lebensmittel aus."
   },
   "notFoodBody": {
-    "message": "A score here would treat it as something you eat."
+    "message": "Eine Bewertung würde es hier wie etwas Essbares behandeln."
   },
   "notFoodButton": {
     "message": "Trotzdem bewerten"
   },
   "notFoodWhy": {
-    "message": "This is on because “Only rate food & supplements” is enabled in settings."
+    "message": "Das ist aktiv, weil in den Einstellungen „Nur Lebensmittel & Nahrungsergänzung“ eingeschaltet ist."
   },
   "notFoodNothing": {
-    "message": "Nothing disclosed about how this was produced"
+    "message": "Nichts bekannt darüber, wie es erzeugt wurde"
   },
   "popupBadges": {
     "message": "Bewertungsplaketten"
@@ -238,40 +238,40 @@
     "message": "Zutaten-Check an oder aus"
   },
   "srcOcr": {
-    "message": "Read from the label photo on this page"
+    "message": "Vom Etikettenfoto auf dieser Seite gelesen"
   },
   "loadingOcrTitle": {
     "message": "Etikettenfoto wird gelesen…"
   },
   "loadingOcrBody": {
-    "message": "Amazon didn't publish the ingredients as text, so the label image is being read on your computer. This takes a few seconds and nothing is sent anywhere."
+    "message": "Amazon hat die Zutaten nicht als Text veröffentlicht, deshalb wird das Etikettenbild auf deinem Computer gelesen. Das dauert einige Sekunden, und es wird nichts irgendwohin gesendet."
   },
   "loadingOcrSlowTitle": {
     "message": "Etikett wird noch gelesen…"
   },
   "loadingOcrSlowBody": {
-    "message": "Large photos take longer. This stays on your computer — nothing is sent anywhere."
+    "message": "Große Fotos brauchen länger. Das bleibt auf deinem Computer — es wird nichts irgendwohin gesendet."
   },
   "failOcr": {
-    "message": "The label photo was checked too, and no ingredient list could be read from it. "
+    "message": "Das Etikettenfoto wurde ebenfalls geprüft, doch daraus ließ sich keine Zutatenliste lesen. "
   },
   "failOcrNoImages": {
-    "message": "No usable label photo was available to check. "
+    "message": "Es war kein brauchbares Etikettenfoto zum Prüfen vorhanden. "
   },
   "failOcrError": {
-    "message": "The label photo could not be checked because the reader failed. "
+    "message": "Das Etikettenfoto konnte nicht geprüft werden, weil das Lesen fehlgeschlagen ist. "
   },
   "failOcrNoMatch": {
-    "message": "The label photo was checked, but no ingredient list could be read from it. "
+    "message": "Das Etikettenfoto wurde geprüft, doch daraus ließ sich keine Zutatenliste lesen. "
   },
   "failLocale": {
-    "message": "This Amazon store’s labels are in a script the on-device English reader will misread, so photo OCR is not used here yet. Paste the list if you can read it. "
+    "message": "Die Etiketten dieses Amazon-Shops sind in einer Schrift, die der englische Texterkenner auf deinem Gerät falsch lesen würde; deshalb wird die Foto-OCR hier noch nicht verwendet. Füge die Liste ein, wenn du sie lesen kannst. "
   },
   "throttleTitle": {
-    "message": "Amazon throttled scoring"
+    "message": "Amazon hat die Bewertung gedrosselt"
   },
   "throttleBody": {
-    "message": "Too many product-page requests were blocked. Auto-score is paused on this search so we do not keep retrying. Cached badges still show. Open a product, or start a new search, to try again."
+    "message": "Zu viele Anfragen an Produktseiten wurden blockiert. Die automatische Bewertung ist für diese Suche pausiert, damit nicht ständig neu versucht wird. Gespeicherte Plaketten bleiben sichtbar. Öffne ein Produkt oder starte eine neue Suche, um es erneut zu versuchen."
   },
   "popupOcr": {
     "message": "Etikettenfotos lesen"
@@ -286,13 +286,13 @@
     "message": "Bewertung kopieren"
   },
   "copied": {
-    "message": "Copied"
+    "message": "Kopiert"
   },
   "copyFailed": {
-    "message": "Could not copy"
+    "message": "Kopieren nicht möglich"
   },
   "coverageWarn": {
-    "message": "Only $PCT$% of this list was recognised — treat the score as a partial reading.",
+    "message": "Nur $PCT$ % dieser Liste wurden erkannt — sieh die Bewertung als Teilergebnis.",
     "placeholders": {
       "pct": {
         "content": "$1"
@@ -300,7 +300,7 @@
     }
   },
   "producedSilent": {
-    "message": "No certification, feed, or origin claim on the page. Commodity $KIND$ with a silent label is conventionally raised by default.",
+    "message": "Auf der Seite steht weder ein Zertifikat noch eine Angabe zu Futter oder Herkunft. Handelsübliches $KIND$ mit schweigendem Etikett wird üblicherweise konventionell erzeugt.",
     "placeholders": {
       "kind": {
         "content": "$1"
@@ -337,7 +337,7 @@
     }
   },
   "hollowMeansNothing": {
-    "message": "$LABEL$ means nothing here",
+    "message": "„$LABEL$“ sagt hier nichts aus",
     "placeholders": {
       "label": {
         "content": "$1"
@@ -390,7 +390,7 @@
     "message": "Eigene Gewichte — in den Einstellungen feinjustieren."
   },
   "optTitle": {
-    "message": "Ingredient Check — Settings"
+    "message": "Zutaten-Check — Einstellungen"
   },
   "optLede": {
     "message": "Die Bewertung läuft auf deinem Computer. Online-Funktionen lassen sich unten abschalten."
@@ -420,7 +420,7 @@
     "message": "Datei"
   },
   "optRateH": {
-    "message": "What to rate"
+    "message": "Was bewertet wird"
   },
   "optPresetsH": {
     "message": "Ausgangspunkt"
@@ -429,73 +429,73 @@
     "message": "Wähle ein oder mehrere Ziele; sie werden kombiniert. Ein gewähltes Ziel entfernst du per Klick; „Balanced“ löscht alle."
   },
   "optWeightsH": {
-    "message": "What counts, and how much"
+    "message": "Was zählt und wie stark"
   },
   "optWeightsLede": {
     "message": "1× wendet eine Regel wie beschrieben an, 0 schaltet sie ab, 2× verdoppelt sie. Ziele ändern diese Gewichte. Mit / springst du zum Filter."
   },
   "optWarningsH": {
-    "message": "Allergen warnings"
+    "message": "Allergenwarnungen"
   },
   "optDietsH": {
-    "message": "Diet compatibility"
+    "message": "Ernährungsformen"
   },
   "optAvoidH": {
-    "message": "Your own avoid list"
+    "message": "Deine eigene Meidungsliste"
   },
   "optDatabaseH": {
     "message": "Gemeinsame Online-Datenbank"
   },
   "optDiagnosticsH": {
-    "message": "Accuracy diagnostics"
+    "message": "Genauigkeitsdiagnose"
   },
   "optLeavesH": {
-    "message": "What leaves your computer"
+    "message": "Was deinen Computer verlässt"
   },
   "optScoreIsH": {
-    "message": "What a score is, and is not"
+    "message": "Was eine Bewertung ist und was nicht"
   },
   "optFileH": {
-    "message": "Settings file"
+    "message": "Einstellungsdatei"
   },
   "optFoodOnly": {
-    "message": "Only rate food and supplements"
+    "message": "Nur Lebensmittel und Nahrungsergänzung bewerten"
   },
   "optFilterPh": {
-    "message": "Filter categories"
+    "message": "Kategorien filtern"
   },
   "optFilterAria": {
-    "message": "Filter categories"
+    "message": "Kategorien filtern"
   },
   "optFilterAll": {
-    "message": "All"
+    "message": "Alle"
   },
   "optFilterChanged": {
-    "message": "Changed"
+    "message": "Geändert"
   },
   "optFilterOff": {
-    "message": "Off"
+    "message": "Aus"
   },
   "optFilterNone": {
-    "message": "No categories match."
+    "message": "Keine Kategorie passt."
   },
   "optFilterClear": {
-    "message": "Clear filter"
+    "message": "Filter zurücksetzen"
   },
   "optAvoidPh": {
-    "message": "e.g. palm oil, natural flavors"
+    "message": "z. B. Palmöl, natürliche Aromen"
   },
   "optShare": {
     "message": "Gefundene Zertifizierungen an die gemeinsame Datenbank senden"
   },
   "optRefresh": {
-    "message": "Refresh database now"
+    "message": "Datenbank jetzt aktualisieren"
   },
   "optSendDiag": {
     "message": "Bewertungsdiagnosen an die gemeinsame Datenbank senden"
   },
   "optFlush": {
-    "message": "Send queued rows now"
+    "message": "Wartende Zeilen jetzt senden"
   },
   "optExport": {
     "message": "Einstellungen exportieren"
@@ -513,22 +513,22 @@
     "message": "Gespeichert"
   },
   "optCouldNotSave": {
-    "message": "Could not save"
+    "message": "Speichern fehlgeschlagen"
   },
   "optExported": {
-    "message": "Exported"
+    "message": "Exportiert"
   },
   "optNotJson": {
-    "message": "That file is not JSON"
+    "message": "Diese Datei ist kein JSON"
   },
   "optNotExport": {
-    "message": "That file is not an Ingredient Check settings export"
+    "message": "Diese Datei ist kein Einstellungsexport von Zutaten-Check"
   },
   "optImported": {
-    "message": "Imported"
+    "message": "Importiert"
   },
   "optImportFailed": {
-    "message": "That file could not be read"
+    "message": "Diese Datei konnte nicht gelesen werden"
   },
   "optResetConfirm": {
     "message": "Gewichtungen, Warnungen und Vermeiden-Liste auf Standard zurücksetzen? Online-Sicherungen bleiben erhalten."
@@ -552,7 +552,7 @@
     "message": "Meiden"
   },
   "badgeNoIngredients": {
-    "message": "Amazon doesn't publish readable ingredients for this one"
+    "message": "Amazon veröffentlicht für dieses Produkt keine lesbaren Zutaten"
   },
   "catHelp_grain": {
     "message": "Raffiniertes Mehl, isolierte Stärke und gemahlene Getreidezutaten. Ausdrücklich bezeichnetes Vollkornmehl ist ausgenommen. Gluten ist eine separate Präferenz und standardmäßig ausgeschaltet; zur Vermeidung dienen die Allergenwarnungen."
@@ -561,13 +561,13 @@
     "message": "Dieselben Schalter wie im Symbolleisten-Popup."
   },
   "optNoteFoodOnly": {
-    "message": "Skips shoes, toys, cosmetics, medicine and cleaning products. A score on shampoo would imply it was judged as something you could eat. When this is on, a non-food page shows why it was skipped instead of a silent blank."
+    "message": "Überspringt Schuhe, Spielzeug, Kosmetik, Medikamente und Reinigungsmittel. Eine Bewertung für Shampoo würde nahelegen, es sei wie etwas Essbares beurteilt worden. Ist das eingeschaltet, zeigt eine Seite ohne Lebensmittel den Grund für das Überspringen statt einer stillen Lücke."
   },
   "optHintFoodOnly": {
     "message": "Überspringt Schuhe, Spielzeug, Kosmetik und Reinigungsmittel."
   },
   "optNoteWeights": {
-    "message": "Each category has its own default. A weight of 1.0 applies the listed rule normally; 0 switches its score effect off, and 2.0 doubles its deduction or credit before score limits. Some categories start at 0 or 0.5. Negative weights, available for selected categories, turn a deduction into a preference credit. Goal presets change these weights. Press / to jump to the filter."
+    "message": "Jede Kategorie hat ihren eigenen Standard. Ein Gewicht von 1,0 wendet die aufgeführte Regel normal an; 0 schaltet ihre Wirkung auf die Bewertung ab, und 2,0 verdoppelt ihren Abzug oder Pluspunkt vor den Bewertungsgrenzen. Manche Kategorien beginnen bei 0 oder 0,5. Negative Gewichte, die für ausgewählte Kategorien möglich sind, machen aus einem Abzug einen Pluspunkt für deine Vorlieben. Ziele ändern diese Gewichte. Mit / springst du zum Filter."
   },
   "optNoteAllergen": {
     "message": "Werden als Warnungen im Feld angezeigt; sie ändern nie die Bewertung."
@@ -576,7 +576,7 @@
     "message": "Trenne Einträge mit Kommas oder Zeilenumbrüchen. Jeder ergibt eine eigene Warnung und ändert nie die Bewertung."
   },
   "optNoteAvoidHint": {
-    "message": "Add a common one:"
+    "message": "Häufige hinzufügen:"
   },
   "optNoteExport": {
     "message": "Exportiert alle Einstellungen als einfache JSON-Datei, die du aufbewahren, bearbeiten oder auf einen anderen Computer mitnehmen kannst. Der Hauptschalter und deine Google-Anmeldung sind nicht enthalten."
@@ -673,25 +673,25 @@
     "message": "Zugriff und übertragene Daten"
   },
   "optNoteAutoScore": {
-    "message": "On by default. As you scroll a results page, each result that this computer and the shared database cannot already answer is scored by requesting its product page from the Amazon store you are on: three at a time, at most 60 per results page. The requests carry your Amazon sign-in, so Amazon sees them much as if you had opened each product yourself. Turn this off and only products already read (by you, or through the shared database) show a score. Shop-Vorschauen lesen zwei öffentliche Produktseiten derselben Website gleichzeitig, ohne Cookies. Fehlende Zutatenlisten bleiben unbekannt. Warenkorb-Bewertungen aller Shops lesen öffentliche Produktseiten ohne Cookies oder Referrer, zwei gleichzeitig innerhalb des Geschwindigkeitslimits."
+    "message": "Standardmäßig an. Beim Scrollen einer Ergebnisseite wird jedes Ergebnis, das dieser Computer und die gemeinsame Datenbank noch nicht beantworten können, bewertet, indem seine Produktseite beim Amazon-Shop angefordert wird, auf dem du gerade bist: drei gleichzeitig, höchstens 60 pro Ergebnisseite. Die Anfragen tragen deine Amazon-Anmeldung, daher sieht Amazon sie ungefähr so, als hättest du jedes Produkt selbst geöffnet. Schaltest du das aus, zeigen nur bereits gelesene Produkte (von dir oder über die gemeinsame Datenbank) eine Bewertung. Shop-Vorschauen lesen zwei öffentliche Produktseiten derselben Website gleichzeitig, ohne Cookies. Fehlende Zutatenlisten bleiben unbekannt. Warenkorb-Bewertungen aller Shops lesen öffentliche Produktseiten ohne Cookies oder Referrer, zwei gleichzeitig innerhalb des Geschwindigkeitslimits."
   },
   "optHintAutoScore": {
     "message": "Ruft Produktseiten des aktuellen Shops ab. Bei Amazon mit deiner Anmeldung."
   },
   "optNoteHover": {
-    "message": "Off by default. Hover or tab to one result for half a second and it requests that product page from Amazon in the same way, with your Amazon sign-in. Only the result you point at."
+    "message": "Standardmäßig aus. Verweilst du eine halbe Sekunde mit der Maus oder dem Tab-Fokus auf einem Ergebnis, wird dessen Produktseite bei Amazon auf dieselbe Weise angefordert, mit deiner Amazon-Anmeldung. Nur das Ergebnis, auf das du zeigst."
   },
   "optHintHover": {
     "message": "Standardmäßig aus. Ruft diese Produktseite bei Amazon ab, mit deiner Anmeldung."
   },
   "autoNoticeTitle": {
-    "message": "Ingredient Check is rating these results"
+    "message": "Zutaten-Check bewertet diese Ergebnisse"
   },
   "autoNoticeBody": {
-    "message": "To score a result, it requests that product's page from this Amazon store in the background, signed in as you: a few at a time, at most 60 per results page. Amazon sees each request much as if you had opened the product. You can change this at any time in the Ingredient Check toolbar popup."
+    "message": "Um ein Ergebnis zu bewerten, fordert die Erweiterung dessen Produktseite im Hintergrund bei diesem Amazon-Shop an, mit deiner Anmeldung: einige gleichzeitig, höchstens 60 pro Ergebnisseite. Amazon sieht jede Anfrage ungefähr so, als hättest du das Produkt geöffnet. Du kannst das jederzeit im Popup von Zutaten-Check in der Symbolleiste ändern."
   },
   "autoNoticeOff": {
-    "message": "Turn off automatic rating"
+    "message": "Automatische Bewertung ausschalten"
   },
   "autoNoticeOk": {
     "message": "OK"
@@ -700,7 +700,7 @@
     "message": "Ziele kombiniert: Wo zwei denselben Regler setzen, wird gemittelt."
   },
   "optNotePresets": {
-    "message": "Pick one goal or several. Their priorities combine; where goals overlap, their weights are averaged. A goal focused on a category takes priority over another goal’s incidental setting. Adjust how much each selected goal counts below. Some goals turn deductions into preference credits; hard score limits stay limits. Moving a category slider makes the active label Custom. Click a selected goal to remove it; Balanced clears them all."
+    "message": "Wähle ein Ziel oder mehrere. Ihre Prioritäten werden kombiniert; wo sich Ziele überschneiden, werden ihre Gewichte gemittelt. Ein Ziel, das auf eine Kategorie ausgerichtet ist, hat Vorrang vor der Nebeneinstellung eines anderen Ziels. Unten stellst du ein, wie stark jedes gewählte Ziel zählt. Manche Ziele machen aus Abzügen Pluspunkte für deine Vorlieben; harte Bewertungsgrenzen bleiben Grenzen. Bewegst du den Regler einer Kategorie, heißt die aktive Bezeichnung „Eigene“. Klicke ein gewähltes Ziel an, um es zu entfernen; „Ausgewogen“ entfernt alle."
   },
   "welTitle": {
     "message": "Ingredient Check einrichten"
@@ -709,7 +709,7 @@
     "message": "Was ist dein Ziel?"
   },
   "welGoalsLede": {
-    "message": "Pick goals that fit your preferences. They combine; overlapping priorities are averaged according to how much each goal counts. Change those priorities later in Settings. Goals guide ingredient scores; they do not predict weight loss or medical outcomes. Pick nothing for the balanced default."
+    "message": "Wähle Ziele, die zu deinen Vorlieben passen. Sie werden kombiniert; überschneiden sich Prioritäten, wird nach dem Gewicht jedes Ziels gemittelt. Du kannst diese Prioritäten später in den Einstellungen ändern. Ziele steuern die Zutatenbewertung; sie sagen weder Gewichtsabnahme noch medizinische Ergebnisse voraus. Wähle nichts, um die ausgewogene Voreinstellung zu behalten."
   },
   "welWarnH": {
     "message": "Wovor sollen wir dich warnen?"
@@ -724,13 +724,13 @@
     "message": "Vermeidest du etwas?"
   },
   "welAvoidLede": {
-    "message": "Optional. Products containing these get a red flag, without changing the score. Tap common ones or type your own, separated by commas or new lines. Always check the package."
+    "message": "Optional. Produkte mit diesen Zutaten bekommen eine rote Markierung, ohne dass sich die Bewertung ändert. Tippe auf häufige Einträge oder gib eigene ein, getrennt durch Kommas oder Zeilenumbrüche. Prüfe immer die Verpackung."
   },
   "welOptionsH": {
     "message": "Noch ein paar Entscheidungen"
   },
   "welOptionsLede": {
-    "message": "All four choices are recommended and on by default. Uncheck anything you do not want. Scoring stays on your computer. Chrome will ask for barcode lookup access when you finish. Change these choices later in Settings."
+    "message": "Alle vier Auswahlmöglichkeiten sind empfohlen und standardmäßig an. Entferne den Haken bei allem, was du nicht möchtest. Die Bewertung bleibt auf deinem Computer. Chrome fragt zum Abschluss nach dem Zugriff für die Barcode-Abfrage. Du kannst diese Auswahl später in den Einstellungen ändern."
   },
   "welSharedD": {
     "message": "Zertifizierungen für unverarbeitete Lebensmittel (Bio, Weidehaltung, Herkunft) aus Tabellen, die der Entwickler pflegt. Sendet nie deine Einstellungen oder etwas über dich."
@@ -769,7 +769,7 @@
     "message": "Shops"
   },
   "optStoresH": {
-    "message": "Stores and store wishlist"
+    "message": "Shops und Shop-Wunschliste"
   },
   "optStoresLede": {
     "message": "Wo Ingredient Check heute funktioniert und welche Shops geplant sind. Vorschau-Shops funktionieren auf den Seiten, die du öffnest, werden aber noch geprüft. Ein geplanter Shop ist noch nicht verfügbar: Die Erweiterung läuft dort nicht und liest nichts."
@@ -781,34 +781,34 @@
     "message": "Geplant"
   },
   "optRequestH": {
-    "message": "Request a store"
+    "message": "Einen Shop vorschlagen"
   },
   "optRequestLede": {
-    "message": "Tell us which online grocery store you want next. This makes a draft in your own email app, addressed to jackson29382938@gmail.com. Nothing is sent until you press Send there, and it goes from your email address, so the recipient will see it."
+    "message": "Sag uns, welchen Online-Lebensmittelshop du als Nächstes möchtest. Daraus entsteht ein Entwurf in deiner eigenen E-Mail-App, adressiert an jackson29382938@gmail.com. Es wird nichts gesendet, bis du dort auf „Senden“ drückst, und er geht von deiner E-Mail-Adresse aus, sodass der Empfänger sie sieht."
   },
   "optRequestName": {
-    "message": "Store name"
+    "message": "Name des Shops"
   },
   "optRequestUrl": {
-    "message": "Store website (optional)"
+    "message": "Website des Shops (optional)"
   },
   "optRequestUrlNote": {
-    "message": "Only the website's address is kept. Anything after it, such as a product or a search, is removed before the draft is made."
+    "message": "Nur die Adresse der Website wird behalten. Alles danach, etwa ein Produkt oder eine Suche, wird entfernt, bevor der Entwurf entsteht."
   },
   "optRequestPreviewH": {
-    "message": "The draft will contain exactly this:"
+    "message": "Der Entwurf enthält genau Folgendes:"
   },
   "optRequestPreviewEmpty": {
-    "message": "Enter a store name to see the draft."
+    "message": "Gib einen Shopnamen ein, um den Entwurf zu sehen."
   },
   "optRequestSend": {
-    "message": "Open email draft"
+    "message": "E-Mail-Entwurf öffnen"
   },
   "popupRequestStore": {
     "message": "Shop vorschlagen"
   },
   "failNoTextStore": {
-    "message": "$STORE$ doesn't publish an ingredient list for every product. ",
+    "message": "$STORE$ veröffentlicht nicht für jedes Produkt eine Zutatenliste. ",
     "placeholders": {
       "store": {
         "content": "$1"
@@ -816,13 +816,13 @@
     }
   },
   "labelClosedTitle": {
-    "message": "Open “Label info” to score this product."
+    "message": "Öffne „Etiketteninfo“, um dieses Produkt zu bewerten."
   },
   "labelClosedBody": {
-    "message": "This store only shows the ingredient list once that section is open. Ingredient Check reads it from this page on your computer; nothing is sent anywhere."
+    "message": "Dieser Shop zeigt die Zutatenliste erst, wenn dieser Abschnitt geöffnet ist. Zutaten-Check liest sie auf deinem Computer von dieser Seite; es wird nichts irgendwohin gesendet."
   },
   "labelClosedAction": {
-    "message": "Open Label info"
+    "message": "Etiketteninfo öffnen"
   },
   "optStorePreview": {
     "message": "Vorschau"
@@ -831,10 +831,10 @@
     "message": "Shop-Vorschauen bewerten Suchergebnisse und Warenkorb-Artikel mit gespeicherten Bewertungen oder öffentlichen Produktseiten derselben Website ohne Cookies. Warenkorb-Anfragen senden auch keinen Referrer. Automatische Bewertung ist standardmäßig an; ausgeschaltet werden nur gespeicherte Bewertungen angezeigt. Zwei Anfragen laufen gleichzeitig, innerhalb des Geschwindigkeitslimits (20–60). Fehlende oder blockierte Zutatenlisten bleiben unbekannt. Bewertungen bleiben lokal; Warenkorb-Daten werden nicht geteilt. Bewertung beim Darüberfahren gilt nur für Amazon."
   },
   "sortThrottled": {
-    "message": "Amazon stopped answering product pages, so rating paused."
+    "message": "Amazon hat keine Produktseiten mehr beantwortet, deshalb pausiert die Bewertung."
   },
   "sortLoadingPage": {
-    "message": "Loading Amazon results page $FIRST$ ($SECOND$ products found)…",
+    "message": "Amazon-Ergebnisseite $FIRST$ wird geladen ($SECOND$ Produkte gefunden)…",
     "placeholders": {
       "first": {
         "content": "$1"
@@ -845,7 +845,7 @@
     }
   },
   "sortRatingMore": {
-    "message": "Rating listings without a score: $FIRST$ of $SECOND$…",
+    "message": "Angebote ohne Bewertung werden bewertet: $FIRST$ von $SECOND$…",
     "placeholders": {
       "first": {
         "content": "$1"
@@ -856,10 +856,10 @@
     }
   },
   "sortUnscoredTailOne": {
-    "message": "1 without a score is at the end."
+    "message": "1 Angebot ohne Bewertung steht am Ende."
   },
   "sortUnscoredTail": {
-    "message": "$FIRST$ without a score are at the end.",
+    "message": "$FIRST$ Angebote ohne Bewertung stehen am Ende.",
     "placeholders": {
       "first": {
         "content": "$1"
@@ -867,7 +867,7 @@
     }
   },
   "sortCollected": {
-    "message": "Collected $FIRST$ products.",
+    "message": "$FIRST$ Produkte gesammelt.",
     "placeholders": {
       "first": {
         "content": "$1"
@@ -875,40 +875,40 @@
     }
   },
   "sortPartial": {
-    "message": "More results could not be loaded"
+    "message": "Weitere Ergebnisse konnten nicht geladen werden"
   },
   "sortNoMore": {
-    "message": "Amazon has no more results."
+    "message": "Amazon hat keine weiteren Ergebnisse."
   },
   "sortNoCardsHelp": {
-    "message": "No Amazon product cards were found. Check that this is a search results page, then refresh after listings load."
+    "message": "Es wurden keine Amazon-Produktkarten gefunden. Prüfe, ob das eine Suchergebnisseite ist, und lade sie neu, sobald die Angebote geladen sind."
   },
   "sortLoadMore": {
-    "message": "Load more results"
+    "message": "Weitere Ergebnisse laden"
   },
   "sortStop": {
-    "message": "Stop"
+    "message": "Stopp"
   },
   "sortedSrcScored": {
-    "message": "Ingredient Check score, under your current settings"
+    "message": "Bewertung von Zutaten-Check mit deinen aktuellen Einstellungen"
   },
   "sortedSrcUnreadable": {
-    "message": "No readable ingredient list on Amazon"
+    "message": "Keine lesbare Zutatenliste bei Amazon"
   },
   "sortedSrcNotFood": {
-    "message": "Not scored: does not look like food"
+    "message": "Nicht bewertet: sieht nicht nach Lebensmittel aus"
   },
   "sortedSrcUnrated": {
-    "message": "Not scored yet"
+    "message": "Noch nicht bewertet"
   },
   "sortedEmptyTitle": {
-    "message": "No sorted results yet"
+    "message": "Noch keine sortierten Ergebnisse"
   },
   "sortedEmptyBody": {
-    "message": "On an Amazon grocery search, open Amazon’s “Sort by” menu and choose “Ingredient Check score: High to Low” or “Price per …: Low to High”."
+    "message": "Öffne bei einer Amazon-Lebensmittelsuche das Menü „Sortieren nach“ von Amazon und wähle „Zutaten-Check-Bewertung: Hoch bis niedrig“ oder „Preis pro …: Niedrig bis hoch“."
   },
   "sortedReviews": {
-    "message": "$FIRST$ reviews",
+    "message": "$FIRST$ Rezensionen",
     "placeholders": {
       "first": {
         "content": "$1"
@@ -916,10 +916,10 @@
     }
   },
   "sortedSponsored": {
-    "message": "Sponsored"
+    "message": "Gesponsert"
   },
   "sortedResultPage": {
-    "message": "Amazon page $FIRST$",
+    "message": "Amazon-Seite $FIRST$",
     "placeholders": {
       "first": {
         "content": "$1"
@@ -927,70 +927,70 @@
     }
   },
   "sortedNoScore": {
-    "message": "No score"
+    "message": "Keine Bewertung"
   },
   "sortedEyebrow": {
-    "message": "INGREDIENT CHECK"
+    "message": "ZUTATEN-CHECK"
   },
   "sortedOpenPanel": {
-    "message": "Open side panel"
+    "message": "Seitenleiste öffnen"
   },
   "sortedPanelFallback": {
-    "message": "Open the side panel from Chrome’s side panel menu"
+    "message": "Öffne die Seitenleiste über das Seitenleistenmenü von Chrome"
   },
   "sortedBack": {
-    "message": "Back to Amazon search"
+    "message": "Zurück zur Amazon-Suche"
   },
   "sortedListAria": {
-    "message": "Amazon listings ranked by your priorities"
+    "message": "Amazon-Angebote, nach deinen Prioritäten gereiht"
   },
   "optNavSort": {
     "message": "Sortieren"
   },
   "optSortH": {
-    "message": "Sort by score or unit price"
+    "message": "Nach Bewertung oder Stückpreis sortieren"
   },
   "optSortLedeShort": {
     "message": "Fügt Amazons Menü „Sortieren nach“ zwei Optionen hinzu. Eine Auswahl reiht die Ergebnisse dieser Suche im Seitenbereich von Chrome; Amazons Seite bleibt unverändert."
   },
   "optSortLede": {
-    "message": "On an Amazon grocery search, Amazon's own “Sort by” menu gets “Ingredient Check score: High to Low” and “Price per …: Low to High”, in the unit most listings are priced in (ounce, fl oz, pound, gallon, count…), which you can change in the side panel. Choosing one opens Chrome's side panel with this search's listings ranked; Amazon's page is left as it is. In the panel, Prioritize weighs health score, unit price, total price, rating and number of reviews, and Open in new tab shows the same list in a tab."
+    "message": "Bei einer Amazon-Lebensmittelsuche bekommt Amazons eigenes Menü „Sortieren nach“ die Einträge „Zutaten-Check-Bewertung: Hoch bis niedrig“ und „Preis pro …: Niedrig bis hoch“, in der Einheit, in der die meisten Angebote ausgepreist sind (Unze, fl oz, Pfund, Gallone, Stück …); die Einheit kannst du in der Seitenleiste ändern. Wählst du einen Eintrag, öffnet sich die Seitenleiste von Chrome mit den Angeboten dieser Suche in Rangfolge; Amazons Seite bleibt unverändert. In der Seitenleiste gewichtet „Priorisieren“ Gesundheitsbewertung, Stückpreis, Gesamtpreis, Kundenbewertung und Zahl der Rezensionen, und „In neuem Tab öffnen“ zeigt dieselbe Liste in einem Tab."
   },
   "optSortMissingH": {
-    "message": "Listings without a score"
+    "message": "Angebote ohne Bewertung"
   },
   "optSortRateFirst": {
-    "message": "Rate them"
+    "message": "Bewerten"
   },
   "optSortRateFirstD": {
     "message": "Ruft ihre Produktseiten bei Amazon ab, mit deiner Anmeldung, drei gleichzeitig, während sich der Seitenbereich füllt. Erfordert „Suchergebnisse und Warenkorbartikel bewerten“; im Seitenbereich lässt es sich stoppen."
   },
   "optSortEnd": {
-    "message": "Leave them unscored"
+    "message": "Unbewertet lassen"
   },
   "optSortEndD": {
-    "message": "No extra requests. Only scores this computer or the shared database already has."
+    "message": "Keine zusätzlichen Anfragen. Nur Bewertungen, die dieser Computer oder die gemeinsame Datenbank schon hat."
   },
   "optSortLoadMore": {
-    "message": "Load more Amazon results"
+    "message": "Weitere Amazon-Ergebnisse laden"
   },
   "optHintSortLoadMore": {
     "message": "Standardmäßig aus. Liest weitere Suchseiten und bewertet, was möglich ist."
   },
   "optSortLoadMoreD": {
-    "message": "Off by default. Reads further Amazon search pages until it has the number below, then asks the shared database for their scores and, with “Rate them”, requests the product pages of the rest: three at a time, with your Amazon sign-in, stopping if Amazon starts refusing."
+    "message": "Standardmäßig aus. Liest weitere Amazon-Suchseiten, bis die Zahl unten erreicht ist, fragt dann die gemeinsame Datenbank nach deren Bewertungen und fordert mit „Bewerten“ die Produktseiten der übrigen an: drei gleichzeitig, mit deiner Amazon-Anmeldung, und bricht ab, sobald Amazon sich weigert."
   },
   "optSortCount": {
-    "message": "Products to compare"
+    "message": "Zu vergleichende Produkte"
   },
   "optSortStorage": {
-    "message": "The sorted list is kept in memory for this browser session only and is gone when Chrome closes."
+    "message": "Die sortierte Liste bleibt nur für diese Browsersitzung im Arbeitsspeicher und verschwindet, wenn Chrome geschlossen wird."
   },
   "sortMenuScore": {
-    "message": "Ingredient Check score: High to Low"
+    "message": "Zutaten-Check-Bewertung: Hoch bis niedrig"
   },
   "sortStatusFound": {
-    "message": "$FIRST$ listings so far.",
+    "message": "Bisher $FIRST$ Angebote.",
     "placeholders": {
       "first": {
         "content": "$1"
@@ -998,85 +998,85 @@
     }
   },
   "sortStatusChecking": {
-    "message": "Checking saved scores…"
+    "message": "Gespeicherte Bewertungen werden geprüft…"
   },
   "sortedFactorHealth": {
-    "message": "Health score"
+    "message": "Gesundheitsbewertung"
   },
   "sortedFactorPrice": {
-    "message": "Total price"
+    "message": "Gesamtpreis"
   },
   "sortedFactorRating": {
-    "message": "Customer rating"
+    "message": "Kundenbewertung"
   },
   "sortedFactorReviews": {
-    "message": "Number of reviews"
+    "message": "Zahl der Rezensionen"
   },
   "sortedPresetHealth": {
-    "message": "Healthiest"
+    "message": "Am gesündesten"
   },
   "sortedPresetBalanced": {
-    "message": "Balanced"
+    "message": "Ausgewogen"
   },
   "sortedPresetPrice": {
-    "message": "Lowest price"
+    "message": "Niedrigster Preis"
   },
   "sortedPresetRating": {
-    "message": "Best rated"
+    "message": "Am besten bewertet"
   },
   "sortedTitleHealth": {
-    "message": "Healthiest first"
+    "message": "Am gesündesten zuerst"
   },
   "sortedTitlePrice": {
-    "message": "Lowest price first"
+    "message": "Niedrigster Preis zuerst"
   },
   "sortedTitleRating": {
-    "message": "Best rated first"
+    "message": "Am besten bewertet zuerst"
   },
   "sortedTitleCustom": {
-    "message": "Ranked by your priorities"
+    "message": "Nach deinen Prioritäten gereiht"
   },
   "sortedMissingHealth": {
-    "message": "no score"
+    "message": "keine Bewertung"
   },
   "sortedMissingPrice": {
-    "message": "no price"
+    "message": "kein Preis"
   },
   "sortedMissingRating": {
-    "message": "no rating"
+    "message": "keine Kundenbewertung"
   },
   "sortedMissingReviews": {
-    "message": "no reviews count"
+    "message": "keine Zahl der Rezensionen"
   },
   "sortedOpenTab": {
-    "message": "Open in new tab"
+    "message": "In neuem Tab öffnen"
   },
   "sortedOpenTabFail": {
-    "message": "Could not open a new tab. Try again from Chrome."
+    "message": "Ein neuer Tab konnte nicht geöffnet werden. Versuche es noch einmal aus Chrome."
   },
   "sortedStop": {
-    "message": "Stop rating"
+    "message": "Bewertung stoppen"
   },
   "sortedSettings": {
-    "message": "Settings"
+    "message": "Einstellungen"
   },
   "sortedPriorities": {
-    "message": "Prioritize"
+    "message": "Priorisieren"
   },
   "sortedPresetsAria": {
-    "message": "Starting points"
+    "message": "Ausgangspunkte"
   },
   "sortedPriorityNote": {
-    "message": "Drag toward 10 for what matters most, 0 to ignore it. A listing missing a value counts as the worst on it. Prices compare on a log scale; unit price and price come from the results page, never a coupon or subscription price."
+    "message": "Ziehe in Richtung 10 für das, was am wichtigsten ist, und auf 0, um es zu ignorieren. Ein Angebot, dem ein Wert fehlt, zählt dabei als das schlechteste. Preise werden auf einer logarithmischen Skala verglichen; Stückpreis und Preis stammen von der Ergebnisseite, nie von Gutschein- oder Abopreisen."
   },
   "sortedUnitAmazon": {
-    "message": "Amazon’s unit price"
+    "message": "Amazons Stückpreis"
   },
   "sortedUnitCalculated": {
-    "message": "Worked out from the listed price and package size"
+    "message": "Aus dem angegebenen Preis und der Packungsgröße errechnet"
   },
   "sortedMatch": {
-    "message": "Match $FIRST$",
+    "message": "Treffer $FIRST$",
     "placeholders": {
       "first": {
         "content": "$1"
@@ -1084,13 +1084,13 @@
     }
   },
   "sortedResultFirst": {
-    "message": "Amazon page 1"
+    "message": "Amazon-Seite 1"
   },
   "sortedReading": {
-    "message": "Reading Amazon listings…"
+    "message": "Amazon-Angebote werden gelesen…"
   },
   "sortedSubtitleLoading": {
-    "message": "$FIRST$ listings so far · still loading",
+    "message": "Bisher $FIRST$ Angebote · lädt noch",
     "placeholders": {
       "first": {
         "content": "$1"
@@ -1098,7 +1098,7 @@
     }
   },
   "sortedSubtitleDone": {
-    "message": "$FIRST$ listings · scored on your computer with your settings",
+    "message": "$FIRST$ Angebote · auf deinem Computer mit deinen Einstellungen bewertet",
     "placeholders": {
       "first": {
         "content": "$1"
@@ -1109,79 +1109,79 @@
     "message": "Tempo"
   },
   "optSortUnitPrice": {
-    "message": "Unit price (per ounce, pound, gallon, count…)"
+    "message": "Stückpreis (pro Unze, Pfund, Gallone, Stück …)"
   },
   "optHintUnitPrice": {
     "message": "Amazons Preis pro Einheit oder aus Preis und Packungsgewicht berechnet."
   },
   "optSortUnitPriceD": {
-    "message": "Amazon's unit price when the results page shows one; otherwise worked out from the listed price and a package weight in the title. No extra requests. Coupons and subscription prices are not included. Also in the toolbar popup."
+    "message": "Amazons Stückpreis, wenn die Ergebnisseite einen zeigt; sonst aus dem angegebenen Preis und einem Packungsgewicht im Titel errechnet. Keine zusätzlichen Anfragen. Gutscheine und Abopreise sind nicht enthalten. Auch im Popup der Symbolleiste."
   },
   "optUnitMissingH": {
-    "message": "When Amazon shows no unit price"
+    "message": "Wenn Amazon keinen Stückpreis zeigt"
   },
   "optUnitCalc": {
-    "message": "Work it out when the weight is clear"
+    "message": "Errechnen, wenn das Gewicht eindeutig ist"
   },
   "optUnitCalcD": {
     "message": "Nutzt ein eindeutiges Packungsgewicht im Titel („12 oz, Pack of 6“ sind 72 oz; „100 Count, 7 oz“ bleibt unberührt)."
   },
   "optUnitDisplayed": {
-    "message": "Amazon's unit price only"
+    "message": "Nur Amazons Stückpreis"
   },
   "optUnitDisplayedD": {
-    "message": "Listings without one have no unit price."
+    "message": "Angebote ohne einen haben keinen Stückpreis."
   },
   "optUnitMore": {
-    "message": "Look through more of the listing"
+    "message": "Mehr vom Angebot durchsuchen"
   },
   "optUnitMoreD": {
-    "message": "Also checks the rest of the listing text for a package weight. Ambiguous listings still get none."
+    "message": "Prüft zusätzlich den übrigen Angebotstext auf ein Packungsgewicht. Mehrdeutige Angebote bekommen weiterhin keines."
   },
   "optSpeedH": {
-    "message": "Speed and freshness"
+    "message": "Tempo und Aktualität"
   },
   "optSpeedLede": {
     "message": "Schneller behält gespeicherte Bewertungen länger und ruft weniger Seiten ab; frischer liest früher neu. „Balanced“ ist, wie es schon immer funktioniert hat. Eine Produktseite, die du öffnest, wird immer neu gelesen."
   },
   "optSpeedFastest": {
-    "message": "Fastest"
+    "message": "Am schnellsten"
   },
   "optSpeedFastestD": {
-    "message": "Saved scores for up to 90 days. At most 20 product pages per results page. Shared readings up to 30 days old."
+    "message": "Gespeicherte Bewertungen bis zu 90 Tage. Höchstens 20 Produktseiten pro Ergebnisseite. Gemeinsame Produktdaten bis zu 30 Tage alt."
   },
   "optSpeedFast": {
-    "message": "Faster"
+    "message": "Schneller"
   },
   "optSpeedFastD": {
-    "message": "Saved scores for up to 60 days. At most 40 product pages per results page. Shared readings up to 30 days old."
+    "message": "Gespeicherte Bewertungen bis zu 60 Tage. Höchstens 40 Produktseiten pro Ergebnisseite. Gemeinsame Produktdaten bis zu 30 Tage alt."
   },
   "optSpeedBalanced": {
-    "message": "Balanced (default)"
+    "message": "Ausgewogen (Standard)"
   },
   "optSpeedBalancedD": {
-    "message": "Saved scores for up to 30 days. At most 60 product pages per results page. Shared readings up to 30 days old."
+    "message": "Gespeicherte Bewertungen bis zu 30 Tage. Höchstens 60 Produktseiten pro Ergebnisseite. Gemeinsame Produktdaten bis zu 30 Tage alt."
   },
   "optSpeedFresh": {
-    "message": "Fresher"
+    "message": "Aktueller"
   },
   "optSpeedFreshD": {
-    "message": "Saved scores for up to 7 days. At most 60 product pages per results page. Shared readings up to 7 days old."
+    "message": "Gespeicherte Bewertungen bis zu 7 Tage. Höchstens 60 Produktseiten pro Ergebnisseite. Gemeinsame Produktdaten bis zu 7 Tage alt."
   },
   "optSpeedFreshest": {
-    "message": "Most up to date"
+    "message": "Am aktuellsten"
   },
   "optSpeedFreshestD": {
-    "message": "Saved scores for 1 day. At most 60 product pages per results page. Never uses shared readings: reads every product page itself, so more requests go to Amazon."
+    "message": "Gespeicherte Bewertungen für 1 Tag. Höchstens 60 Produktseiten pro Ergebnisseite. Nutzt nie gemeinsame Produktdaten: liest jede Produktseite selbst, daher gehen mehr Anfragen an Amazon."
   },
   "popupUnitPrice": {
-    "message": "Unit price"
+    "message": "Stückpreis"
   },
   "popupUnitPriceD": {
-    "message": "Adds “Price per …: Low to High” to Amazon's sort menu and the sorted list, in the unit most listings use (ounce, pound, gallon, count…). Worked out from the results page — no extra requests."
+    "message": "Fügt Amazons Sortiermenü und der sortierten Liste „Preis pro …: Niedrig bis hoch“ hinzu, in der Einheit, die die meisten Angebote verwenden (Unze, Pfund, Gallone, Stück …). Wird aus der Ergebnisseite errechnet — keine zusätzlichen Anfragen."
   },
   "sortFailed": {
-    "message": "Could not read this results page ($FIRST$). Refresh the Amazon page and choose the option again.",
+    "message": "Diese Ergebnisseite konnte nicht gelesen werden ($FIRST$). Lade die Amazon-Seite neu und wähle die Option noch einmal.",
     "placeholders": {
       "first": {
         "content": "$1"
@@ -1189,118 +1189,118 @@
     }
   },
   "sortedNothingFound": {
-    "message": "No listings came back"
+    "message": "Es kamen keine Angebote zurück"
   },
   "sortedStalled": {
-    "message": "Nothing has arrived from the Amazon tab yet. Refresh the Amazon results page (after reloading the extension, old tabs lose their connection to it) and choose the option again."
+    "message": "Vom Amazon-Tab ist noch nichts angekommen. Lade die Amazon-Ergebnisseite neu (nach dem Neuladen der Erweiterung verlieren alte Tabs die Verbindung zu ihr) und wähle die Option noch einmal."
   },
   "reportTitle": {
-    "message": "Report a problem or suggest an improvement — Ingredient Check"
+    "message": "Problem melden oder Verbesserung vorschlagen — Zutaten-Check"
   },
   "reportH": {
-    "message": "Report a problem or suggest an improvement"
+    "message": "Problem melden oder Verbesserung vorschlagen"
   },
   "reportLede": {
-    "message": "Tell the developer what went wrong or what you would like. Ingredient Check adds a screenshot, the page you were on, your settings and your recent clicks, so it can be fixed without back-and-forth. Everything is shown below and you can leave any part out. Nothing is sent from here: your email app opens with a draft, and nothing leaves until you press Send."
+    "message": "Sag dem Entwickler, was schiefgelaufen ist oder was du dir wünschst. Zutaten-Check fügt einen Screenshot, die Seite, auf der du warst, deine Einstellungen und deine letzten Klicks hinzu, damit es sich ohne Rückfragen beheben lässt. Alles wird unten angezeigt, und du kannst jeden Teil weglassen. Von hier wird nichts gesendet: Deine E-Mail-App öffnet sich mit einem Entwurf, und erst wenn du auf „Senden“ drückst, verlässt etwas deinen Computer."
   },
   "reportWhatH": {
-    "message": "What is it about?"
+    "message": "Worum geht es?"
   },
   "reportKindLegend": {
-    "message": "Kind of report"
+    "message": "Art der Meldung"
   },
   "reportKindProblem": {
-    "message": "Something is wrong / needs a fix"
+    "message": "Etwas ist falsch / muss behoben werden"
   },
   "reportKindFeature": {
-    "message": "Add something new"
+    "message": "Etwas Neues hinzufügen"
   },
   "reportKindImprovement": {
-    "message": "Make something better"
+    "message": "Etwas verbessern"
   },
   "reportKindOther": {
-    "message": "Other"
+    "message": "Sonstiges"
   },
   "reportTitleLabel": {
-    "message": "Short title"
+    "message": "Kurzer Titel"
   },
   "reportDescLabel": {
-    "message": "What happened, or what would you like?"
+    "message": "Was ist passiert, oder was wünschst du dir?"
   },
   "reportStepsLabel": {
-    "message": "What did you click? (steps, if you remember them)"
+    "message": "Was hast du angeklickt? (Schritte, falls du dich erinnerst)"
   },
   "reportExpectedLabel": {
-    "message": "What did you expect instead?"
+    "message": "Was hattest du stattdessen erwartet?"
   },
   "reportIncludedH": {
-    "message": "Included with your report"
+    "message": "Deiner Meldung beigefügt"
   },
   "reportIncShot": {
-    "message": "Screenshot of the page you were on"
+    "message": "Screenshot der Seite, auf der du warst"
   },
   "reportShotNone": {
-    "message": "No screenshot was taken (Chrome allows it only on normal web pages). You can add one below, or paste an image with Ctrl/Cmd+V."
+    "message": "Es wurde kein Screenshot aufgenommen (Chrome erlaubt das nur auf normalen Webseiten). Du kannst unten einen hinzufügen oder mit Strg/Cmd+V ein Bild einfügen."
   },
   "reportShotAdd": {
-    "message": "Add or replace a screenshot:"
+    "message": "Screenshot hinzufügen oder ersetzen:"
   },
   "reportIncPage": {
-    "message": "The page, its score and the side panel list"
+    "message": "Die Seite, ihre Bewertung und die Liste in der Seitenleiste"
   },
   "reportIncSettings": {
-    "message": "Your Ingredient Check settings"
+    "message": "Deine Einstellungen von Zutaten-Check"
   },
   "reportSettingsNote": {
-    "message": "Includes your allergen, diet and avoid-list choices, since they change scores. Never includes cached scores, sign-in tokens or anything from other pages."
+    "message": "Enthält deine Auswahl bei Allergenen, Ernährungsformen und Meidungsliste, da sie Bewertungen verändern. Nie enthalten sind gespeicherte Bewertungen, Anmelde-Token oder etwas von anderen Seiten."
   },
   "reportIncActions": {
-    "message": "Your recent clicks in Ingredient Check (this browser session)"
+    "message": "Deine letzten Klicks in Zutaten-Check (diese Browsersitzung)"
   },
   "reportIncEnv": {
-    "message": "Extension and browser version (always)"
+    "message": "Version der Erweiterung und des Browsers (immer)"
   },
   "reportSendH": {
-    "message": "Send it"
+    "message": "Absenden"
   },
   "reportStep1": {
-    "message": "Download the report file (one .html file with the screenshot and all the details)."
+    "message": "Lade die Meldungsdatei herunter (eine .html-Datei mit dem Screenshot und allen Einzelheiten)."
   },
   "reportStep2": {
-    "message": "Open the email draft and attach that file, then press Send."
+    "message": "Öffne den E-Mail-Entwurf und hänge diese Datei an, dann drücke auf „Senden“."
   },
   "reportDownload": {
-    "message": "1. Download report file"
+    "message": "1. Meldungsdatei herunterladen"
   },
   "reportEmail": {
-    "message": "2. Open email draft"
+    "message": "2. E-Mail-Entwurf öffnen"
   },
   "reportCopy": {
-    "message": "Copy report text"
+    "message": "Meldungstext kopieren"
   },
   "reportPreviewH": {
-    "message": "Preview the email text"
+    "message": "Vorschau des E-Mail-Textes"
   },
   "popupReport": {
     "message": "Problem oder Idee melden"
   },
   "reportNoActions": {
-    "message": "Nothing recorded yet in this browser session."
+    "message": "In dieser Browsersitzung wurde noch nichts aufgezeichnet."
   },
   "reportDownloaded": {
-    "message": "Saved to your Downloads folder. Now open the email draft and attach it."
+    "message": "In deinem Download-Ordner gespeichert. Öffne jetzt den E-Mail-Entwurf und hänge die Datei an."
   },
   "reportEmailOpened": {
-    "message": "Your email app should open with the draft. Attach the report file, then press Send."
+    "message": "Deine E-Mail-App sollte sich mit dem Entwurf öffnen. Hänge die Meldungsdatei an und drücke auf „Senden“."
   },
   "reportCopied": {
-    "message": "Copied. Paste it wherever you like."
+    "message": "Kopiert. Füge es ein, wo du möchtest."
   },
   "reportCopyFailed": {
-    "message": "Could not copy. Select the preview text below instead."
+    "message": "Kopieren nicht möglich. Markiere stattdessen den Vorschautext unten."
   },
   "sortedWhyHead": {
-    "message": "Why it scored $FIRST$",
+    "message": "Warum es $FIRST$ bekam",
     "placeholders": {
       "first": {
         "content": "$1"
@@ -1308,7 +1308,7 @@
     }
   },
   "sortedWhyNone": {
-    "message": "The reasons were not kept for this saved score. Open the product to see why."
+    "message": "Die Gründe wurden für diese gespeicherte Bewertung nicht aufbewahrt. Öffne das Produkt, um zu sehen, warum."
   },
   "optSharedProducts": {
     "message": "Produktdaten mit anderen Computern teilen (experimentell)"
@@ -1350,7 +1350,7 @@
     "message": "Zweite zwischengespeicherte Bewertung"
   },
   "welAvoidPh": {
-    "message": "e.g. palm oil, natural flavors"
+    "message": "z. B. Palmöl, natürliche Aromen"
   },
   "repTitlePh": {
     "message": "z. B. Die Seitenleiste zeigt für Kefir keinen Preis pro Unze"
@@ -1520,16 +1520,16 @@
     "message": "Wie stark $1 zählt"
   },
   "welGoalsSelected": {
-    "message": "Selected goals"
+    "message": "Gewählte Ziele"
   },
   "welGoalsBalanced": {
-    "message": "No goals selected: use the balanced defaults."
+    "message": "Keine Ziele gewählt: Es gelten die ausgewogenen Voreinstellungen."
   },
   "welGoalsCustom": {
-    "message": "Your custom weights are kept unless you change goals."
+    "message": "Deine eigenen Gewichte bleiben erhalten, solange du die Ziele nicht änderst."
   },
   "optBalancedDefault": {
-    "message": "Balanced default"
+    "message": "Ausgewogene Voreinstellung"
   },
   "optGoogleSignedIn": {
     "message": "Mit Google angemeldet"
@@ -1562,10 +1562,10 @@
     "message": "Diese Amazon-Suche nach Ingredient-Check-Bewertung sortieren"
   },
   "cmdSortPrice": {
-    "message": "Sort this Amazon search by unit price"
+    "message": "Diese Amazon-Suche nach Stückpreis sortieren"
   },
   "sortUnitOff": {
-    "message": "Unit price is switched off in Ingredient Check settings."
+    "message": "Der Stückpreis ist in den Einstellungen von Zutaten-Check ausgeschaltet."
   },
   "sortNotHere": {
     "message": "Ingredient Check sortiert diese Seite nicht: Es ist ausgeschaltet, oder dies ist keine Lebensmittelsuche in einem unterstützten Amazon-Shop."
@@ -1613,7 +1613,7 @@
     "message": "Nach Ingredient-Check-Bewertung sortieren"
   },
   "optShortcutPrice": {
-    "message": "Sort by unit price"
+    "message": "Nach Stückpreis sortieren"
   },
   "optShortcutNone": {
     "message": "nicht festgelegt"
@@ -1673,7 +1673,7 @@
     "message": "Produkt bei $1 öffnen"
   },
   "sortMenuUnitPer": {
-    "message": "Price per $FIRST$: Low to High",
+    "message": "Preis pro $FIRST$: Niedrig bis hoch",
     "placeholders": {
       "first": {
         "content": "$1"
@@ -1681,7 +1681,7 @@
     }
   },
   "sortedFactorUnitPer": {
-    "message": "Price per $FIRST$",
+    "message": "Preis pro $FIRST$",
     "placeholders": {
       "first": {
         "content": "$1"
@@ -1689,7 +1689,7 @@
     }
   },
   "sortedPresetUnitPer": {
-    "message": "Cheapest per $FIRST$",
+    "message": "Am günstigsten pro $FIRST$",
     "placeholders": {
       "first": {
         "content": "$1"
@@ -1697,7 +1697,7 @@
     }
   },
   "sortedTitleUnitPer": {
-    "message": "Lowest price per $FIRST$ first",
+    "message": "Niedrigster Preis pro $FIRST$ zuerst",
     "placeholders": {
       "first": {
         "content": "$1"
@@ -1705,7 +1705,7 @@
     }
   },
   "sortedTitleBalancedUnit": {
-    "message": "Balanced: health, price per $FIRST$ and rating",
+    "message": "Ausgewogen: Gesundheit, Preis pro $FIRST$ und Bewertung",
     "placeholders": {
       "first": {
         "content": "$1"
@@ -1713,7 +1713,7 @@
     }
   },
   "sortedMissingUnitPer": {
-    "message": "no price per $FIRST$",
+    "message": "kein Preis pro $FIRST$",
     "placeholders": {
       "first": {
         "content": "$1"
@@ -1721,7 +1721,7 @@
     }
   },
   "sortedNoUnitPer": {
-    "message": "No price per $FIRST$",
+    "message": "Kein Preis pro $FIRST$",
     "placeholders": {
       "first": {
         "content": "$1"
@@ -1740,7 +1740,7 @@
     }
   },
   "sortedPerServing": {
-    "message": "$FIRST$/serving",
+    "message": "$FIRST$/Portion",
     "placeholders": {
       "first": {
         "content": "$1"
@@ -1748,22 +1748,22 @@
     }
   },
   "sortedAlso": {
-    "message": "Also"
+    "message": "Auch"
   },
   "sortedUnitPicker": {
-    "message": "Price per"
+    "message": "Preis pro"
   },
   "sortedUnitWeight": {
-    "message": "Weight"
+    "message": "Gewicht"
   },
   "sortedUnitVolume": {
-    "message": "Volume"
+    "message": "Volumen"
   },
   "sortedUnitCount": {
-    "message": "Count"
+    "message": "Stück"
   },
   "sortedUnitAuto": {
-    "message": "Automatic: $FIRST$, what most listings use",
+    "message": "Automatisch: $FIRST$, was die meisten Angebote verwenden",
     "placeholders": {
       "first": {
         "content": "$1"
@@ -1782,7 +1782,7 @@
     }
   },
   "sortedUnitNone": {
-    "message": "None of these listings can be priced per $FIRST$. Choose another unit, or Automatic.",
+    "message": "Keines dieser Angebote lässt sich pro $FIRST$ auspreisen. Wähle eine andere Einheit oder „Automatisch“.",
     "placeholders": {
       "first": {
         "content": "$1"
@@ -1790,7 +1790,7 @@
     }
   },
   "sortedUnitCover": {
-    "message": "Priced per $THIRD$: $FIRST$ of $SECOND$ listings. Weight, volume and count do not convert into each other.",
+    "message": "Pro $THIRD$ ausgepreist: $FIRST$ von $SECOND$ Angeboten. Gewicht, Volumen und Stück lassen sich nicht ineinander umrechnen.",
     "placeholders": {
       "first": {
         "content": "$1"
@@ -1804,42 +1804,42 @@
     }
   },
   "unitName_oz": {
-    "message": "ounce"
+    "message": "Unze"
   },
   "unitName_lb": {
-    "message": "pound"
+    "message": "Pfund"
   },
   "unitName_100g": {
     "message": "100 g"
   },
   "unitName_kg": {
-    "message": "kilogram"
+    "message": "Kilogramm"
   },
   "unitName_g": {
-    "message": "gram"
+    "message": "Gramm"
   },
   "unitName_floz": {
     "message": "fl oz"
   },
   "unitName_pt": {
-    "message": "pint"
+    "message": "Pint"
   },
   "unitName_qt": {
-    "message": "quart"
+    "message": "Quart"
   },
   "unitName_gal": {
-    "message": "gallon"
+    "message": "Gallone"
   },
   "unitName_100ml": {
     "message": "100 ml"
   },
   "unitName_l": {
-    "message": "liter"
+    "message": "Liter"
   },
   "unitName_ml": {
     "message": "ml"
   },
   "unitName_ct": {
-    "message": "count"
+    "message": "Stück"
   }
 }
