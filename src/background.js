@@ -41,6 +41,24 @@ async function networkRequest(url, options, read) {
   } finally { networkControllers.delete(controller); }
 }
 
+// Where a worker path fails, the trace used to be nothing: a status key for a few features and 21 empty
+// catches. A failure is now one line in the console and one in "Report a problem"'s recent actions
+// (engine/db/activity.js: in memory, this browser session only, never sent anywhere).
+function noteWorkerError(where, error) {
+  const text = String((error && error.message) || error).slice(0, 160);
+  try { console.warn(`[Ingredient Check] ${where}: ${text}`); } catch (e) { /* no console */ }
+  try { self.AIR.db.activity.log('worker', `${where} failed: ${text}`); } catch (e) { /* no activity log */ }
+}
+const quietly = where => error => noteWorkerError(where, error);
+
+// A message handler that returns true owes its sender a reply. The handlers wrote `work().then(reply)`,
+// so a rejection (a storage or IndexedDB error outside a try block) answered nobody, and the sender
+// waited until Chrome tore the worker down. Every asynchronous reply goes through here: a failure is
+// noted and the sender gets `fallback`, the same shape the handler gives for "nothing to report".
+function answer(where, work, reply, fallback) {
+  Promise.resolve().then(work).then(reply, error => { noteWorkerError(where, error); reply(fallback); });
+}
+
 chrome.storage.onChanged?.addListener((changes, area) => {
   if (area && area !== 'local') return;
   if (changes.enabled?.newValue === false) {
@@ -260,7 +278,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     return false;
   }
   if (msg && msg.type === 'ocrLabels') {
-    ocrLabels(msg.urls).then(reply);
+    answer('ocrLabels', () => ocrLabels(msg.urls), reply, { ok: false, reason: 'worker-error' });
     return true;
   }
   if (msg && msg.type === 'ocrIdle') {
@@ -269,7 +287,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   }
   if (msg && msg.type === 'lookupBarcode' && msg.code) {
     // lookupBarcode re-reads useOpenFoodFacts (and the pause switch) itself.
-    lookupBarcode(msg.code, { foodOnly: msg.foodOnly !== false }).then(reply);
+    answer('lookupBarcode', () => lookupBarcode(msg.code, { foodOnly: msg.foodOnly !== false }), reply, null);
     return true;   // async reply
   }
   if (msg && msg.type === 'ping') { reply({ ok: true }); return false; }
@@ -283,7 +301,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   // A line for "Report a problem" (engine/db/activity.js), from a content script, which cannot reach
   // session storage itself. Short text only; nothing leaves the browser.
   if (msg && msg.type === 'logAction') {
-    self.AIR.db.activity.log(String(msg.where || ''), String(msg.what || '')).then(() => reply({ ok: true }));
+    answer('logAction', () => self.AIR.db.activity.log(String(msg.where || ''), String(msg.what || '')).then(() => ({ ok: true })), reply, { ok: false });
     return true;
   }
   if (msg && msg.type === 'openSortedTab') {
@@ -411,13 +429,13 @@ function ensureHousekeepingAlarm() {
 }
 ensureHousekeepingAlarm();
 chrome.alarms.onAlarm.addListener(a => {
-  if (a.name === BACKUP_ALARM) { backupToChrome().catch(() => {}); return; }
-  if (a.name === GOOGLE_ALARM) { googleAutoSave().catch(() => {}); return; }
+  if (a.name === BACKUP_ALARM) { backupToChrome().catch(quietly('backupToChrome')); return; }
+  if (a.name === GOOGLE_ALARM) { googleAutoSave().catch(quietly('googleAutoSave')); return; }
   if (a.name !== HOUSEKEEPING) return;
-  sweepCache();
+  sweepCache().catch(quietly('sweepCache'));
   // A partial batch would otherwise sit until enough new products were scored to fill it.
-  flushDiagnostics().catch(() => {});
-  flushProducts().catch(() => {});
+  flushDiagnostics().catch(quietly('flushDiagnostics'));
+  flushProducts().catch(quietly('flushProducts'));
 });
 // Keys and indexes from the pasted-URL era (sheet, producers, contribution URL, the one-row
 // settings tab, the per-settings ratings cache). The endpoint is now a build constant.
@@ -425,11 +443,11 @@ const LEGACY_KEYS = ['sheetUrl', 'producersUrl', 'contributeUrl', 'syncSettings'
   'sheetIndex', 'producerIndex', 'ratingsIndex'];
 function dropLegacy() {
   chrome.storage.local.remove(LEGACY_KEYS);
-  for (const k of ['sheetIndex', 'producerIndex', 'ratingsIndex']) clearSheetIndex(k).catch(() => {});
+  for (const k of ['sheetIndex', 'producerIndex', 'ratingsIndex']) clearSheetIndex(k).catch(quietly('clearSheetIndex'));
 }
-chrome.runtime.onStartup.addListener(() => sweepCache());
+chrome.runtime.onStartup.addListener(() => { sweepCache().catch(quietly('sweepCache')); });
 chrome.runtime.onInstalled.addListener(details => {
-  sweepCache();
+  sweepCache().catch(quietly('sweepCache'));
   dropLegacy();
   // An update from a build that uploaded product readings by default: nothing queued then leaves
   // unless the reader has turned shared product readings on since.
@@ -449,8 +467,20 @@ function sweepAges(speedMode) {
   return { s: readings, p: readings, off: TTL_MS };
 }
 
+// The cached readings and the one setting that decides their age. `get(null)` also reads everything else
+// in storage, which includes the purchase history: up to 10,000 records, about 12 MB, copied into the
+// worker at every start and every twelve hours to throw almost all of it away. Where the browser can
+// list keys (Chrome 130+) only the cache's own keys are read.
+async function cacheSnapshot() {
+  const local = chrome.storage.local;
+  if (typeof local.getKeys !== 'function') return local.get(null);
+  const keys = (await local.getKeys()).filter(k => /^(s|p|off):/.test(k));
+  const [readings, setting] = await Promise.all([keys.length ? local.get(keys) : {}, local.get('speedMode')]);
+  return { ...readings, speedMode: setting.speedMode };
+}
+
 async function sweepCache(now = Date.now()) {
-  const all = await chrome.storage.local.get(null);
+  const all = await cacheSnapshot();
   const ages = sweepAges(all.speedMode);
   // s: weighted scores, p: product data (docs/CACHE.md), off: Open Food Facts records.
   const entries = Object.entries(all).filter(([k]) => /^(s|p|off):/.test(k));
@@ -783,7 +813,7 @@ function queueProducts(msg) {
     const queued = C.queueSize(queue);
     clearTimeout(productsTimer);
     if (queued >= PRODUCTS_BATCH && !productsBackoff) return sendProducts();
-    productsTimer = setTimeout(() => { flushProducts().catch(() => {}); }, PRODUCTS_QUIET_MS);
+    productsTimer = setTimeout(() => { flushProducts().catch(quietly('flushProducts')); }, PRODUCTS_QUIET_MS);
     return { ok: true, queued };
   });
 }
@@ -839,7 +869,7 @@ function noteBackupChange(changes) {
   // An alarm survives worker suspension; timers alone can lose the last edit.
   chrome.alarms.create(BACKUP_ALARM, { delayInMinutes: 1 });
   // Debounced: a slider drag is dozens of writes, and chrome.storage.sync allows 120 a minute.
-  backupTimer = setTimeout(() => { backupTimer = null; backupToChrome().catch(() => {}); }, 2000);
+  backupTimer = setTimeout(() => { backupTimer = null; backupToChrome().catch(quietly('backupToChrome')); }, 2000);
   noteGoogleChange();
 }
 
@@ -857,7 +887,7 @@ let googleChain = Promise.resolve();
 function noteGoogleChange() {
   clearTimeout(googleTimer);
   chrome.alarms.create(GOOGLE_ALARM, { delayInMinutes: 1 });
-  googleTimer = setTimeout(() => { googleTimer = null; googleAutoSave().catch(() => {}); }, 8000);
+  googleTimer = setTimeout(() => { googleTimer = null; googleAutoSave().catch(quietly('googleAutoSave')); }, 8000);
 }
 
 // The alarm is the fallback for a suspended worker. Once the save is done, or there is nothing to save,
@@ -916,6 +946,7 @@ function backupToChrome() {
       chrome.alarms.clear(BACKUP_ALARM);   // the fallback alarm is only for a suspended worker; done, so no second save
       return { ok: true };
     } catch (e) {
+      noteWorkerError('backupToChrome', e);
       chrome.alarms.create(BACKUP_ALARM, { delayInMinutes: 5 });
       await chrome.storage.local.set({ backupStatus: { ok: false, t: Date.now(), reason: 'sync-write-failed' } });
       return { ok: false, reason: 'sync-write-failed' };
@@ -978,11 +1009,11 @@ async function accountLoad(token) {
 
 function handleSharedDbMessage(msg, reply) {
   if (msg.type === 'diagnostic') {
-    queueDiagnostic(msg.record).then(reply);
+    answer('diagnostic', () => queueDiagnostic(msg.record), reply, { ok: false, reason: 'worker-error' });
     return true;
   }
   if (msg.type === 'flushDiagnostics') {
-    flushDiagnostics().then(reply);
+    answer('flushDiagnostics', () => flushDiagnostics(), reply, { ok: false, reason: 'worker-error' });
     return true;
   }
   if (msg.type === 'diagnosticsStatus') {
@@ -995,15 +1026,15 @@ function handleSharedDbMessage(msg, reply) {
     return true;
   }
   if (msg.type === 'provenanceLookup') {
-    loadProvenance().then(value => {
+    answer('provenanceLookup', async () => {
+      const value = await loadProvenance();
       const index = value && value.index;
       const producers = value && value.producers;
       const record = lookupRecord(index, msg.key || {});
       const brand = (msg.key && msg.key.brand || '').toLowerCase();
       const producer = producers && brand && Object.hasOwn(producers, brand) ? producers[brand] : null;
-      reply(record || producer ? { ...(producer || {}), ...(record || {}),
-        producerRegistry: producer || null } : null);
-    });
+      return record || producer ? { ...(producer || {}), ...(record || {}), producerRegistry: producer || null } : null;
+    }, reply, null);
     return true;
   }
   // A report is a deliberate click, so it is sent whenever an endpoint is configured — unlike
@@ -1011,39 +1042,38 @@ function handleSharedDbMessage(msg, reply) {
   if (msg.type === 'report') {
     const url = self.AIR.db.prefs.endpoint();
     if (!url) { reply({ ok: false, reason: 'no-endpoint' }); return false; }
-    postRecord(url, { ...msg.payload, kind: 'report' }).then(reply);
+    answer('report', () => postRecord(url, { ...msg.payload, kind: 'report' }), reply, { ok: false, reason: 'worker-error' });
     return true;
   }
   if (msg.type === 'refreshSheet') {
-    loadProvenance(true).then(value => reply({
-      ok: !!value,
-      count: value ? value.index.count : 0,
-      producers: value ? Object.keys(value.producers).length : 0,
-    }));
+    answer('refreshSheet', async () => {
+      const value = await loadProvenance(true);
+      return { ok: !!value, count: value ? value.index.count : 0, producers: value ? Object.keys(value.producers).length : 0 };
+    }, reply, { ok: false, count: 0, producers: 0 });
     return true;
   }
   if (msg.type === 'contribute') {
-    contribute(msg.payload).then(reply);
+    answer('contribute', () => contribute(msg.payload), reply, { ok: false, reason: 'worker-error' });
     return true;
   }
   if (msg.type === 'productsLookup') {
-    productsLookup(String(msg.store || ''), msg.asins).then(reply, () => reply({ rows: {} }));
+    answer('productsLookup', () => productsLookup(String(msg.store || ''), msg.asins), reply, { rows: {} });
     return true;
   }
   if (msg.type === 'productsQueue') {
-    queueProducts(msg).then(reply, () => reply({ ok: false }));
+    answer('productsQueue', () => queueProducts(msg), reply, { ok: false });
     return true;
   }
   if (msg.type === 'accountSave') {
-    accountSave(msg.token).then(reply, () => reply({ ok: false }));
+    answer('accountSave', () => accountSave(msg.token), reply, { ok: false });
     return true;
   }
   if (msg.type === 'accountLoad') {
-    accountLoad(msg.token).then(reply, () => reply({ ok: false }));
+    answer('accountLoad', () => accountLoad(msg.token), reply, { ok: false });
     return true;
   }
   if (msg.type === 'accountFetch') {
-    accountFetch(msg.token).then(reply, () => reply({ ok: false }));
+    answer('accountFetch', () => accountFetch(msg.token), reply, { ok: false });
     return true;
   }
   return false;
