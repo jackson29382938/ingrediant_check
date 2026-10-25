@@ -27,6 +27,18 @@ export default [
     },
   },
   {
+    // The shipped code only. A name that hides another one is how `score()` once held three different `bare`s and
+    // a `const add = ...` over the additives table; a local `keys` over a module `keys` is a ReferenceError the
+    // moment the function reads it before its own declaration. The length limit leaves out what cannot be broken
+    // (strings, templates, patterns, comments); what it catches is a statement written on one line.
+    files: ['src/**/*.js'],
+    rules: {
+      'no-shadow': 'warn',
+      'max-len': ['warn', { code: 200, ignoreUrls: true, ignoreStrings: true, ignoreTemplateLiterals: true,
+        ignoreRegExpLiterals: true, ignoreComments: true }],
+    },
+  },
+  {
     files: ['scripts/**/*.mjs', 'eslint.config.mjs'],
     languageOptions: { sourceType: 'module' },
   },

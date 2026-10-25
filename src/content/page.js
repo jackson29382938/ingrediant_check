@@ -31,7 +31,8 @@
   const pace = () => (root.AIR.db.speed ? root.AIR.db.speed.pace(state.ratePace) : { concurrent: 3, gapMs: 250 });
   const speed = () => (root.AIR.db.speed ? root.AIR.db.speed.profile(state.speedMode) : BALANCED);
   const cacheContext = asin => ({
-    store: location.hostname, asin, version: ENGINE_VERSION, prefs: { ...cachePrefs(), ocrLabels: state.ocrLabels, useOpenFoodFacts: (state.cacheOptions || {}).useOpenFoodFacts }, maxAgeMs: speed().maxAgeMs,
+    store: location.hostname, asin, version: ENGINE_VERSION, maxAgeMs: speed().maxAgeMs,
+    prefs: { ...cachePrefs(), ocrLabels: state.ocrLabels, useOpenFoodFacts: (state.cacheOptions || {}).useOpenFoodFacts },
   });
   const recallCache = (hit, asin) => CACHE.recall(hit, cacheContext(asin));
   const usableCache = (hit, asin) => state.cacheOptions.cacheFirst !== false && CACHE.valid(hit, cacheContext(asin));

@@ -221,7 +221,10 @@
   const publicDocument = (response, signal) => root.AIR.cart.publicDocument(response, signal);
 
   function drain() {
-    while (state.active < 2 && state.queue.length && state.enabled && state.badges && state.autoScoreSearch && state.searchAllowed && !state.throttled && location.href === state.url && adapter.isSearchPage(location)) {
+    while (
+      state.active < 2 && state.queue.length && state.enabled && state.badges && state.autoScoreSearch && state.searchAllowed
+      && !state.throttled && location.href === state.url && adapter.isSearchPage(location)
+    ) {
       const job = state.queue.shift();
       const generation = state.generation;
       if (job.generation !== generation) continue;
@@ -312,8 +315,8 @@
   }
 
   function markSaved(tile, hit) {
-    const badge = tile.anchor?.querySelector('.air-badge') || tile.tile?.querySelector('.air-badge');
-    if (badge) { badge.textContent = `${hit.score} · saved`; badge.setAttribute('aria-label', `Ingredient Check: ${hit.score}/100, saved ${new Date(hit.t).toLocaleDateString()}.`); }
+    const found = tile.anchor?.querySelector('.air-badge') || tile.tile?.querySelector('.air-badge');
+    if (found) { found.textContent = `${hit.score} · saved`; found.setAttribute('aria-label', `Ingredient Check: ${hit.score}/100, saved ${new Date(hit.t).toLocaleDateString()}.`); }
   }
 
   function clearBadges() { document.querySelectorAll('.' + BADGE_CLASS).forEach(b => b.remove()); }
@@ -340,7 +343,7 @@
 
   function watch() {
     if (state.observer || !state.enabled) return;
-    root.AIR.engine.warmUp?.();   // compile the engine's patterns in idle time, before the first label needs them
+    root.AIR.engine?.warmUp?.();   // compile the engine's patterns in idle time, before the first label needs them
     let pending = null;
     state.observer = new MutationObserver(() => {
       if (pending) return;

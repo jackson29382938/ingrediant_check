@@ -53,9 +53,9 @@ AIR.settingsRestore = {
   complete() { restoringSettings = false; },
 };
 
-function flash(msg, kind) {
+function flash(text, kind) {
   const el = document.getElementById('status');
-  el.textContent = msg;
+  el.textContent = text;
   el.className = 'status toast' + (kind === 'error' ? ' error' : '');
   clearTimeout(flash.t);
   // An error stays long enough to read; "Saved" does not need to.
@@ -673,12 +673,12 @@ function wireLabelReading() {
   read(); chrome.storage.onChanged.addListener(changes => { if (changes.useOpenFoodFacts) read(); });
   box.addEventListener('change', () => {
     const enabled = box.checked; box.disabled = true;
-    const save = value => persist({ useOpenFoodFacts: value }, ok => { box.checked = value; box.disabled = false; if (ok) flash(value ? 'Saved' : enabled ? 'Chrome did not grant Open Food Facts access.' : 'Saved'); });
-    if (!enabled) { chrome.permissions.remove(permission, () => { void chrome.runtime.lastError; save(false); }); return; }
+    const commit = value => persist({ useOpenFoodFacts: value }, ok => { box.checked = value; box.disabled = false; if (ok) flash(value ? 'Saved' : enabled ? 'Chrome did not grant Open Food Facts access.' : 'Saved'); });
+    if (!enabled) { chrome.permissions.remove(permission, () => { void chrome.runtime.lastError; commit(false); }); return; }
     chrome.permissions.request(permission, granted => {
       const error = chrome.runtime.lastError;
-      if (error || !granted) { save(false); return; }
-      chrome.permissions.contains(permission, confirmed => save(!!confirmed));
+      if (error || !granted) { commit(false); return; }
+      chrome.permissions.contains(permission, confirmed => commit(!!confirmed));
     });
   });
 }
@@ -737,7 +737,7 @@ function wireSort() {
     custom.hidden = depth.value !== 'custom';
     limit.value = String(v.sortTimeLimit);
   };
-  const save = (over = {}) => {
+  const saveSort = (over = {}) => {
     const v = R.sanitizeSort({
       sortMissing: (radios.find(r => r.checked) || {}).value,
       sortLoadMore: more.checked,
@@ -752,14 +752,14 @@ function wireSort() {
   chrome.storage.onChanged.addListener(changes => {
     if (keys.some(k => changes[k])) chrome.storage.local.get(keys, paint);
   });
-  radios.forEach(r => r.addEventListener('change', () => save()));
-  more.addEventListener('change', () => save());
-  count.addEventListener('change', () => save());
-  limit.addEventListener('change', () => save());
+  radios.forEach(r => r.addEventListener('change', () => saveSort()));
+  more.addEventListener('change', () => saveSort());
+  count.addEventListener('change', () => saveSort());
+  limit.addEventListener('change', () => saveSort());
   depth.addEventListener('change', () => {
     if (depth.value === 'custom') return;
     // Just this page keeps the count, so choosing a depth again starts from it.
-    save(depth.value === 'page' ? { sortLoadMore: false } : { sortLoadMore: true, sortCount: Number(depth.value) });
+    saveSort(depth.value === 'page' ? { sortLoadMore: false } : { sortLoadMore: true, sortCount: Number(depth.value) });
   });
 
   // Price per ounce: the on/off switch (also in the popup) and what to do without Amazon's unit price.
@@ -957,18 +957,18 @@ function wireAppearance() {
     const used = T.accentFor(v.accent, 'light').accent;
     if (note) note.textContent = used !== v.accent ? msg('optAccentAdjusted', 'Adjusted to $1 so text stays readable.', used) : '';
   };
-  const save = values => persist(values, ok => { if (ok) flash(msg('optSaved', 'Saved')); });
+  const saveDisplay = values => persist(values, ok => { if (ok) flash(msg('optSaved', 'Saved')); });
   chrome.storage.local.get(keys, paint);
   chrome.storage.onChanged.addListener(changes => {
     if (keys.some(k => changes[k])) chrome.storage.local.get(keys, paint);
   });
   for (const name of ['theme', 'palette']) {
-    radios(name).forEach(r => r.addEventListener('change', () => save({ [name]: PREFS.sanitizeDisplay({ [name]: r.value })[name] })));
+    radios(name).forEach(r => r.addEventListener('change', () => saveDisplay({ [name]: PREFS.sanitizeDisplay({ [name]: r.value })[name] })));
   }
   accent.addEventListener('input', () => { T.use({ ...T.state, accent: accent.value }); T.page(document); });
-  accent.addEventListener('change', () => save({ accent: PREFS.sanitizeDisplay({ accent: accent.value }).accent }));
+  accent.addEventListener('change', () => saveDisplay({ accent: PREFS.sanitizeDisplay({ accent: accent.value }).accent }));
   const reset = document.getElementById('accentReset');
-  if (reset) reset.addEventListener('click', () => save({ accent: PREFS.DEFAULT_ACCENT }));
+  if (reset) reset.addEventListener('click', () => saveDisplay({ accent: PREFS.DEFAULT_ACCENT }));
 }
 
 // The keyboard shortcuts for the sorted list. Chrome owns the keys (chrome://extensions/shortcuts);

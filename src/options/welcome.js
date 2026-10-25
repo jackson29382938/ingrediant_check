@@ -271,8 +271,8 @@ function onKey(e) {
   const tag = String(t.tagName || '').toUpperCase();
   const toggle = tag === 'INPUT' && (t.type === 'radio' || t.type === 'checkbox');
   const typing = !toggle && (tag === 'TEXTAREA' || tag === 'INPUT' || tag === 'SELECT' || !!t.isContentEditable);
-  const chip = tag === 'BUTTON' && !!t.classList && typeof t.classList.contains === 'function' && t.classList.contains('chip');
-  const press = !chip && (tag === 'BUTTON' || tag === 'A' || tag === 'SUMMARY');
+  const onChip = tag === 'BUTTON' && !!t.classList && typeof t.classList.contains === 'function' && t.classList.contains('chip');
+  const press = !onChip && (tag === 'BUTTON' || tag === 'A' || tag === 'SUMMARY');
   const mod = e.ctrlKey || e.metaKey;
   const click = id => { e.preventDefault(); document.getElementById(id).click(); };
   if (e.key === 'Enter') {

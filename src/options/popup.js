@@ -14,9 +14,9 @@ const cleanToggles = raw => PREFS.sanitizeToggles(raw);
 // A fixed 30 days here showed "Not scored yet" for a score the page still showed under "Fastest".
 const maxAgeFor = speedMode => (AIR.db.speed ? AIR.db.speed.profile(speedMode).maxAgeMs : CACHE.TTL_MS);
 
-function say(msg) {
+function say(text) {
   const el = document.getElementById('status');
-  if (el) el.textContent = msg || '';
+  if (el) el.textContent = text || '';
 }
 
 function persist(values, done) {
@@ -37,12 +37,12 @@ function persist(values, done) {
 (function localise() {
   if (!chrome.i18n || typeof chrome.i18n.getMessage !== 'function') return;
   for (const el of document.querySelectorAll('[data-i18n]')) {
-    const msg = chrome.i18n.getMessage(el.dataset.i18n);
-    if (msg) el.textContent = msg;
+    const translated = chrome.i18n.getMessage(el.dataset.i18n);
+    if (translated) el.textContent = translated;
   }
   for (const el of document.querySelectorAll('[data-i18n-aria]')) {
-    const msg = chrome.i18n.getMessage(el.dataset.i18nAria);
-    if (msg) el.setAttribute('aria-label', msg);
+    const translated = chrome.i18n.getMessage(el.dataset.i18nAria);
+    if (translated) el.setAttribute('aria-label', translated);
   }
 })();
 

@@ -105,18 +105,18 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
       if (storageArea && storageArea !== 'local') return;
       if (changes.cacheMemory) { clear(); return; }
       epoch++;
-      for (const key of Object.keys(changes)) {
-        const old = memory.get(key); if (old) { bytes -= old.bytes; memory.delete(key); }
+      for (const changed of Object.keys(changes)) {
+        const old = memory.get(changed); if (old) { bytes -= old.bytes; memory.delete(changed); }
       }
     });
     return (keys, prefs = {}, callback) => {
       const enabled = AIR.db.speed.sanitizeRecall(prefs).cacheMemory;
       if (!enabled) clear();
       const out = {}, missing = [], turn = epoch;
-      for (const key of new Set(keys)) {
-        const item = enabled && memory.get(key);
-        if (item) { memory.delete(key); memory.set(key, item); out[key] = item.value; }
-        else missing.push(key);
+      for (const wanted of new Set(keys)) {
+        const item = enabled && memory.get(wanted);
+        if (item) { memory.delete(wanted); memory.set(wanted, item); out[wanted] = item.value; }
+        else missing.push(wanted);
       }
       if (!missing.length) { callback?.(out); return Promise.resolve(out); }
       return new Promise((resolve, reject) => {
@@ -124,12 +124,12 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
           const error = typeof chrome !== 'undefined' && chrome.runtime?.lastError;
           if (error) { if (callback) { callback({}); resolve({}); } else reject(new Error(error.message)); return; }
           const got = value || {}; Object.assign(out, got);
-          if (enabled && turn === epoch) for (const key of missing) {
-            if (!/^(s|p):/.test(key) || !got[key]) continue;
-            const size = JSON.stringify(got[key]).length * 2;
+          if (enabled && turn === epoch) for (const asked of missing) {
+            if (!/^(s|p):/.test(asked) || !got[asked]) continue;
+            const size = JSON.stringify(got[asked]).length * 2;
             if (size > 2 * 1024 * 1024) continue;
-            const old = memory.get(key); if (old) bytes -= old.bytes;
-            memory.delete(key); memory.set(key, { value: got[key], bytes: size }); bytes += size;
+            const old = memory.get(asked); if (old) bytes -= old.bytes;
+            memory.delete(asked); memory.set(asked, { value: got[asked], bytes: size }); bytes += size;
             while (memory.size > 256 || bytes > 2 * 1024 * 1024) {
               const first = memory.keys().next().value; bytes -= memory.get(first).bytes; memory.delete(first);
             }

@@ -445,12 +445,12 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
   }
 
   function pasteLooksValid(text) {
-    const t = String(text || '').trim();
-    if (t.length < 4) return false;
+    const pasted = String(text || '').trim();
+    if (pasted.length < 4) return false;
     if (root.AIR.extract && typeof root.AIR.extract.looksLikeIngredients === 'function') {
-      return root.AIR.extract.looksLikeIngredients(t);
+      return root.AIR.extract.looksLikeIngredients(pasted);
     }
-    return t.length >= 8;
+    return pasted.length >= 8;
   }
 
   function wirePasteField(shadow, onPaste) {

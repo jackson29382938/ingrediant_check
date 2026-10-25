@@ -22,7 +22,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // label's own allergen line is no longer scored as ingredients, and text written with full-width,
   // bullet or HTML separators is read as the list it is. See docs/releases/1.16.0.md.
   const RULES_REVISION = '2026-10-25.1';
-  const RULES_HASH = 'e8b1761a-221372';
+  const RULES_HASH = '2fabbce8-222042';
   const _exports = AIRmodule('revision', { RULES_REVISION, RULES_HASH });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 })();

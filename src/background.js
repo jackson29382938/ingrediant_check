@@ -388,9 +388,9 @@ function sortFromCommand(command, tab) {
     }
     // No side panel (an older Chrome): the same list in a tab, as Amazon's menu does.
     if (!reply.ok) await chrome.tabs.create({ url: chrome.runtime.getURL('src/options/sorted.html') }).catch(() => {});
-    let answer = null;
-    try { answer = await chrome.tabs.sendMessage(tab.id, { type: 'sortStart', mode, runId: reply.runId }); } catch (e) { /* no listener */ }
-    if (!answer || answer.ok !== true) {
+    let heard = null;
+    try { heard = await chrome.tabs.sendMessage(tab.id, { type: 'sortStart', mode, runId: reply.runId }); } catch (e) { /* no listener */ }
+    if (!heard || heard.ok !== true) {
       await endSortedList(reply.runId, 'sortNotHere', 'Ingredient Check is not sorting this page: it is switched off, or this is not a food search on a supported Amazon store.');
     }
   });
@@ -1080,5 +1080,9 @@ function handleSharedDbMessage(msg, reply) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { sortFromCommand, googleAutoSave, accountFetch, indexRows, lookupRecord, sweepCache, sweepAges, isOpenFoodFactsFood, batchIdFor, revisionOf, ensureHousekeepingAlarm, allowMessage, isOwnExtension, isAmazonTabSender, isRetailerTabSender, isOptionsPageSender, isOffscreenSender, allowedOcrUrls, openSortedPanel, updateSortedResults, MAX_SHEET_BYTES, MAX_SHEET_ROWS };
+  module.exports = {
+    sortFromCommand, googleAutoSave, accountFetch, indexRows, lookupRecord, sweepCache, sweepAges, isOpenFoodFactsFood,
+    batchIdFor, revisionOf, ensureHousekeepingAlarm, allowMessage, isOwnExtension, isAmazonTabSender, isRetailerTabSender,
+    isOptionsPageSender, isOffscreenSender, allowedOcrUrls, openSortedPanel, updateSortedResults, MAX_SHEET_BYTES, MAX_SHEET_ROWS,
+  };
 }

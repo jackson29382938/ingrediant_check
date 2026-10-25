@@ -606,6 +606,9 @@
     return { ok: false, ...identity, reason: identity.upc ? 'no-dom-match-barcode-available' : 'no-dom-match' };
   }
 
-  root.AIR.extract = { extract, looksLikeIngredients, splitAdvisory, stripBoilerplate, echoesTitle, LINE_BLOCK, LINE_INLINE, INGREDIENT_HEADING, productIdentity, declaredAsin, publishedAdvisory, nutritionFacts, nutritionSummaryTable, ocrReadyForHost, localeStatus };
+  root.AIR.extract = {
+    extract, looksLikeIngredients, splitAdvisory, stripBoilerplate, echoesTitle, LINE_BLOCK, LINE_INLINE, INGREDIENT_HEADING,
+    productIdentity, declaredAsin, publishedAdvisory, nutritionFacts, nutritionSummaryTable, ocrReadyForHost, localeStatus,
+  };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.AIR.extract;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

@@ -144,9 +144,9 @@
   async function pass() {
     if (!settings.enabled || !settings.badges || !C.allowed(location)) return;
     const tiles = C.tiles(document, location), turn = generation;
-    const current = new Set(tiles.map(t => t.anchor));
+    const current = new Set(tiles.map(tile => tile.anchor));
     document.querySelectorAll('.air-cart-badge').forEach(b => { if (!current.has(b.parentElement)) b.remove(); });
-    const scores = await cache.readLocal(tiles.map(t => cache.key(location.hostname, t.id)), raw, null, chrome.storage);
+    const scores = await cache.readLocal(tiles.map(tile => cache.key(location.hostname, tile.id)), raw, null, chrome.storage);
     if (turn !== generation || location.href !== url) return;
     const speed = A.db.speed.profile(raw.speedMode), done = [];
     for (const tile of tiles) {
