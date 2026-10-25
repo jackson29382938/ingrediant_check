@@ -467,3 +467,8 @@ test('why it scored: bounded rows, points or CAP, only for a scored listing', ()
   assert.equal(R.sanitizeProduct(p('B000000004', 99, { why: {} })).why.clean, true, 'nothing moved the score');
   assert.equal(R.sanitizeProduct(p('B000000005', 70, { why: { plus: [{ c: 3, why: 'x'.repeat(500) }] } })).why.plus[0].why.length, 140);
 });
+
+test('price-only priorities cannot retain health weights or fall back to health sorting', () => {
+  const unit=R.sanitizeWeights({health:10},{healthEnabled:false});assert.equal(unit.health,0);assert.equal(unit.unitPrice,10);
+  const price=R.sanitizeWeights({health:10},{healthEnabled:false,unitEnabled:false});assert.equal(price.health,0);assert.equal(price.price,10);
+});

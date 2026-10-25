@@ -95,7 +95,7 @@
           state.lastBadgeScore = undefined;
           publishActionBadge(null);
         }
-        if (!searchAllowed()) { standDown(); AIR.sort?.unmount(); settle('non-food search'); return; }
+        if (!searchAllowed()) { standDown(); AIR.sort?.mount({ priceOnly: true }); startObserving(true); return; }
         // Amazon's Sort by menu gets the Ingredient Check options (sort.js), with or without badges.
         if (!state.badges) { standDown(); AIR.sort?.mount(); settle('badges off'); return; }
         badgeSearchResults();

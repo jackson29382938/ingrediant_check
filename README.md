@@ -158,6 +158,14 @@ Automatic search/cart scoring, badge placement, hover details, local-cache behav
 appearance and score palettes are adjustable in Settings. Cached readings help repeat visits load
 faster; freshness, changed goals and changed scoring rules can still require a refresh or rescore.
 
+### Non-food price comparisons
+
+On Amazon non-food search pages, **Price per …: Low to High** still works when unit-price sorting
+is enabled. Compare per ounce, fluid ounce, item or another compatible unit from the listings.
+This lightweight view hides health scores and health priorities and skips ingredient, barcode, OCR
+and certification lookups. Missing or incompatible package sizes remain unknown rather than being
+guessed. Loading extra results pages still follows your existing sort settings.
+
 ### Explore your purchase trends
 
 Opt into **Amazon purchase history** in setup or Purchase history’s own settings. Import an opened

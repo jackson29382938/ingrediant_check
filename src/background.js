@@ -319,7 +319,7 @@ function openSortedPanel(msg, sender, reply) {
   const unitEnabled = msg.unitEnabled !== false;
   const runId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
   const list = {
-    runId, mode, unitEnabled, unit: '', loading: true, status: '', items: [],
+    runId, mode, unitEnabled, priceOnly: msg.priceOnly === true, unit: '', loading: true, status: '', items: [],
     sourceUrl: R.sanitizeSourceUrl(msg.sourceUrl), sourceTabId: tab.id, sourceWindowId: tab.windowId, t: Date.now(),
   };
   // The priorities the reader last set for this menu option, when they asked to keep them.
@@ -388,7 +388,7 @@ async function updateSortedResults(msg, sender) {
   if (!list || !msg.runId || list.runId !== msg.runId || list.sourceTabId !== tabId) return { ok: false, stale: true };
   const items = R.sanitizeResults(msg.items);
   await chrome.storage.session.set({ sortedResults: {
-    ...list, items, unit: R.sanitizeUnitId(msg.unit), loading: msg.loading === true, status: R.sanitizeStatus(msg.status), t: Date.now(),
+    ...list, items: msg.priceOnly === true ? items.map(p => ({...p, score:null, verdict:'', source:'unrated', why:null})) : items, priceOnly: msg.priceOnly === true, unit: R.sanitizeUnitId(msg.unit), loading: msg.loading === true, status: R.sanitizeStatus(msg.status), t: Date.now(),
   } });
   return { ok: true, count: items.length };
 }

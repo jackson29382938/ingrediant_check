@@ -39,6 +39,7 @@
   let observer = null;
   let observerTimer = 0;
   let mounted = false;
+  let priceOnly = false;
   let pending = false;
   let run = 0;
   let runId = null;
@@ -86,7 +87,7 @@
     health: t('sortMenuScore', 'Ingredient Check score: High to Low'),
     unitPrice: t('sortMenuUnitPer', 'Price per $1: Low to High', unitName(menuUnit() || U().defaultUnit('weight', SF().storefront(location.hostname).units))),
   });
-  const modes = () => (P().state.unitPrice === false ? ['health'] : ['unitPrice', 'health']);
+  const modes = () => priceOnly ? (P().state.unitPrice === false ? [] : ['unitPrice']) : (P().state.unitPrice === false ? ['health'] : ['unitPrice', 'health']);
   const modeOfValue = value => Object.keys(VALUE).find(mode => VALUE[mode] === value) || null;
 
   // Amazon's sort menu, found by its option values ("relevanceblender", "price-asc-rank", …), which do
@@ -225,6 +226,8 @@
     if (!mode) return;
     event.preventDefault();
     event.stopImmediatePropagation();
+    // Native selects fire input before change; retain the chosen value until change handles it.
+    if (event.type === 'input') return;
     // Put Amazon's current sort back so the page and the menu keep saying what Amazon is showing.
     const current = new URLSearchParams(location.search).get('s');
     const back = [...select.options].find(o => o.value === current) || [...select.options].find(o => !o.hasAttribute(MARK));
@@ -235,14 +238,14 @@
   // ------------------------------------------------------------------ choosing
   // Runs inside the click. The message goes out before any await so Chrome still counts the click.
   function choose(mode) {
-    if (pending) return;
+    if (pending || (priceOnly && mode !== 'unitPrice')) return;
     pending = true;
     const token = ++run;
     for (const c of controllers) c.abort();
     controllers.clear();
     const sourceUrl = location.href;
     P().logAction?.('Amazon sort menu', `chose ${mode === 'unitPrice' ? 'Unit price' : 'Ingredient Check score'} on ${location.pathname}`);
-    send({ type: 'openSortedPanel', mode, sourceUrl, unitEnabled: P().state.unitPrice !== false }).then(async reply => {
+    send({ type: 'openSortedPanel', mode, sourceUrl, priceOnly, unitEnabled: P().state.unitPrice !== false }).then(async reply => {
       pending = false;
       if (token !== run || !reply || !reply.runId) return;
       runId = reply.runId;
@@ -528,7 +531,7 @@
       if (token !== run) return false;
       // The unit most of these listings are priced in; the panel uses it until the reader picks another.
       const likely = U() && SF() ? U().likelyUnit(items, SF().storefront(location.hostname).units) : null;
-      const reply = await send({ type: 'updateSortedResults', runId: id, items, loading, status, unit: likely ? likely.unit : '' });
+      const reply = await send({ type: 'updateSortedResults', runId: id, items, loading, status, priceOnly, unit: likely ? likely.unit : '' });
       // A newer sort (in this tab or another) took the panel over: stop working for this one.
       if (reply && reply.stale) { if (token === run) run++; return false; }
       return true;
@@ -538,6 +541,7 @@
 
   async function collect(token) {
     const settings = await getSettings();
+    const pricesOnly = priceOnly;
     const { state } = P();
     const products = new Map();
     const add = product => { const key = product.asin || product.url; if (!key || products.has(key)) return false; products.set(key, product); return true; };
@@ -556,9 +560,9 @@
       await publish(token, [], false, t('sortNoCardsHelp', 'No Amazon product cards were found. Check that this is a search results page, then refresh after listings load.'), true);
       return;
     }
-    for (const [a, s] of await knownScores(noScore())) scores.set(a, s);
-    if (!await publish(token, list(), true, `${counting()} ${t('sortStatusChecking', 'Checking saved scores…')}`, true)) return;
-    for (const [a, s] of await sharedScores(noScore(), token)) scores.set(a, s);
+    if (!pricesOnly) for (const [a, s] of await knownScores(noScore())) scores.set(a, s);
+    if (!await publish(token, list(), true, pricesOnly ? counting() : `${counting()} ${t('sortStatusChecking', 'Checking saved scores…')}`, true)) return;
+    if (!pricesOnly) for (const [a, s] of await sharedScores(noScore(), token)) scores.set(a, s);
     if (!await publish(token, list(), true, counting(), true)) return;
 
     // Further Amazon results pages, when "Load more results" is on.
@@ -594,7 +598,7 @@
             if (products.size >= settings.sortCount) break;
           }
           // Saved scores for this page now, so the list fills in as the pages arrive.
-          for (const [a, s] of await knownScores(fresh)) scores.set(a, s);
+          if (!pricesOnly) for (const [a, s] of await knownScores(fresh)) scores.set(a, s);
           nextUrl = findNextPage(doc, nextUrl);
         } catch (error) {
           if (token !== run) return;
@@ -604,12 +608,12 @@
       }
       if (token !== run) return;
       if (timeUp() && nextUrl && products.size < settings.sortCount) stopped = timeMessage();
-      for (const [a, s] of await sharedScores(noScore(), token)) scores.set(a, s);
+      if (!pricesOnly) for (const [a, s] of await sharedScores(noScore(), token)) scores.set(a, s);
       if (!await publish(token, list(), true, counting(), true)) return;
     }
 
     // Product pages for what is still unscored, when the settings allow it.
-    const rateAllowed = settings.sortMissing === 'rate-first' && state.autoScoreSearch;
+    const rateAllowed = !pricesOnly && settings.sortMissing === 'rate-first' && state.autoScoreSearch;
     if (rateAllowed && noScore().length && token === run) {
       const asins = noScore();
       const budget = () => S().autoFetchCap() * pagesInList;
@@ -620,13 +624,13 @@
       for (const [a, s] of rated.scores) scores.set(a, s);
       stopped = stopped || rated.stopped || (rated.timedOut ? timeMessage() : '');
       // Tiles the badge queue finished meanwhile.
-      for (const [a, s] of await knownScores(noScore())) scores.set(a, s);
+      if (!pricesOnly) for (const [a, s] of await knownScores(noScore())) scores.set(a, s);
     }
     if (token !== run) return;
 
     const items = list();
     const unscored = items.filter(p => p.score == null).length;
-    const tail = unscored ? ' ' + unscoredTail(unscored) : '';
+    const tail = !pricesOnly && unscored ? ' ' + unscoredTail(unscored) : '';
     const collected = t('sortCollected', 'Collected $1 products.', items.length);
     let status;
     if (stopped) status = `${stopped} ${collected}${tail}`;
@@ -642,7 +646,7 @@
     if (msg && msg.type === 'sortStart') {
       // From this extension's worker only, for a page this extension is sorting.
       const own = sender && sender.id === chrome.runtime.id && !sender.tab;
-      const ok = !!own && mounted && typeof msg.runId === 'string' && /^[\w-]{1,64}$/.test(msg.runId);
+      const ok = !!own && mounted && !(priceOnly && msg.mode !== 'unitPrice') && typeof msg.runId === 'string' && /^[\w-]{1,64}$/.test(msg.runId);
       if (typeof respond === 'function') respond({ ok });
       if (ok) startFromCommand({ mode: msg.mode === 'unitPrice' ? 'unitPrice' : 'health', runId: msg.runId });
       return false;
@@ -665,7 +669,10 @@
   // Called by main.js on a food results page while Ingredient Check is on. Idempotent.
   // Only on stores whose menus and listings the tests cover (storefronts.js `sort`).
   const storeSupported = () => !SF() || SF().sortEnabled(location.hostname);
-  function mount() {
+  function mount(options = {}) {
+    const nextPriceOnly = options.priceOnly === true;
+    if (mounted && nextPriceOnly !== priceOnly) unmount();
+    priceOnly = nextPriceOnly;
     const { state } = P();
     if (!state.enabled || !isSearchPage() || !storeSupported()) return;
     if (!listening) {

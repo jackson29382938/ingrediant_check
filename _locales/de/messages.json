@@ -1841,5 +1841,13 @@
   },
   "unitName_ct": {
     "message": "count"
+  },
+  "sortedSubtitlePriceOnly": {
+    "message": "$FIRST$ Angebote · nur Preisvergleich; keine Zutatenabfragen",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
   }
 }

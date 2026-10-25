@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { nonfoodSortEndToEnd } from './nonfood-sort-harness.mjs';
 import { recallEndToEnd } from './recall-harness.mjs';
 import { historyScanEndToEnd } from './history-scan-harness.mjs';
 import { ordersEndToEnd } from './orders-harness.mjs';
@@ -1020,6 +1021,7 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
     await bottomFiveEndToEnd(context, worker, pageErrors, root);
     await bottomFiveEndToEnd(context, worker, pageErrors, root, ['kroger', 'frys', 'ralphs', 'kingsoopers', 'smiths', 'fredmeyer']);
     await amazonEndToEnd(context, worker, pageErrors);
+    await nonfoodSortEndToEnd(context, worker, pageErrors);
   } finally {
     await context.close();
     fs.rmSync(profile, { recursive: true, force: true });

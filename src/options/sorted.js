@@ -123,7 +123,8 @@
   }
   const unitEnabled = () => !saved || saved.unitEnabled !== false;
   const activePreset = () => Object.keys(R.PRESETS).find(id => {
-    const p = R.sanitizeWeights(R.PRESETS[id], { unitEnabled: unitEnabled() });
+    if (saved?.priceOnly && ['health','balanced'].includes(id)) return false;
+    const p = R.sanitizeWeights(R.PRESETS[id], { unitEnabled: unitEnabled(), healthEnabled: !saved?.priceOnly });
     return R.FACTORS.every(f => p[f] === weights[f]);
   }) || 'custom';
 
@@ -278,7 +279,7 @@
     for (const id of Object.keys(R.PRESETS)) {
       const b = button('chip', PRESET_TEXT[id](), () => {
         logUi(`preset ${id}`);
-        weights = R.sanitizeWeights(R.PRESETS[id], { unitEnabled: unitEnabled() });
+        weights = R.sanitizeWeights(R.PRESETS[id], { unitEnabled: unitEnabled(), healthEnabled: !saved?.priceOnly });
         paintSliders();
         renderList();
         saveWeights();
@@ -301,7 +302,7 @@
       const value = node('output', 'slider-value');
       input.addEventListener('change', () => logUi(`slider ${f}=${input.value}`));
       input.addEventListener('input', () => {
-        weights = R.sanitizeWeights({ ...weights, [f]: Number(input.value) }, { unitEnabled: unitEnabled() });
+        weights = R.sanitizeWeights({ ...weights, [f]: Number(input.value) }, { unitEnabled: unitEnabled(), healthEnabled: !saved?.priceOnly });
         paintSliders();
         scheduleRender();
         saveWeights();
@@ -319,7 +320,7 @@
   function paintSliders() {
     for (const f of R.FACTORS) {
       const s = ui.sliders[f];
-      s.row.hidden = f === 'unitPrice' && !unitEnabled();
+      s.row.hidden = (f === 'unitPrice' && !unitEnabled()) || (f === 'health' && saved?.priceOnly);
       s.name.textContent = FACTOR_TEXT[f]();   // per ounce or per 100 g, once the list's store is known
       if (document.activeElement !== s.input) s.input.value = String(weights[f]);
       s.value.textContent = String(weights[f]);
@@ -327,7 +328,7 @@
     const active = activePreset();
     for (const b of ui.presets.children) {
       b.setAttribute('aria-pressed', String(b.dataset.preset === active));
-      b.hidden = b.dataset.preset === 'unitPrice' && !unitEnabled();
+      b.hidden = (b.dataset.preset === 'unitPrice' && !unitEnabled()) || (!!saved?.priceOnly && ['health', 'balanced'].includes(b.dataset.preset));
       b.textContent = PRESET_TEXT[b.dataset.preset]();
     }
     ui.title.textContent = HEADING_TEXT[active]();
@@ -422,7 +423,7 @@
 
   function chipFor(product) {
     const score = node('div', 'score');
-    if (typeof product.score === 'number') {
+    if (!saved?.priceOnly && typeof product.score === 'number') {
       const c = BAND_COLOR(product.score);
       const chip = node('span', 'score-chip', String(product.score));
       chip.style.color = c.fg;
@@ -482,7 +483,7 @@
       heading.append(link);
     } else heading.append(product.title || 'Amazon listing');
     content.append(heading);
-    content.append(chipFor(product));
+    if (!saved?.priceOnly) content.append(chipFor(product));
 
     const facts = node('div', 'facts');
     if (unitEnabled()) {
@@ -519,7 +520,7 @@
     meta.append(missing);
     content.append(meta);
 
-    if (typeof product.score === 'number') {
+    if (!saved?.priceOnly && typeof product.score === 'number') {
       const details = node('details', 'why-details');
       details.append(node('summary', '', t('sortedWhyHead', 'Why it scored $1', product.score)));
       details.append(whyList(product.why));
@@ -534,7 +535,7 @@
   const views = new Map();
   function viewFor(product) {
     const key = product.asin || product.url;
-    const sig = `${unitEnabled()}|${unit()}|${store().key}|${JSON.stringify(product)}`;
+    const sig = `${!!saved?.priceOnly}|${unitEnabled()}|${unit()}|${store().key}|${JSON.stringify(product)}`;
     const held = views.get(key);
     if (held && held.sig === sig) return held;
     const view = { ...makeProduct(product), sig };
@@ -554,9 +555,11 @@
     hideWhy();
     // Re-checked on read too: session storage is shared with every extension page.
     const items = R.sanitizeResults(saved && saved.items);
+    if (saved?.priceOnly) weights = R.sanitizeWeights(weights, {unitEnabled:unitEnabled(), healthEnabled:false});
+    for (const id of ['health', 'balanced']) { const b = ui.presets.querySelector(`[data-preset="${id}"]`); if (b) b.hidden = !!saved?.priceOnly; }
     const loading = !!(saved && saved.loading);
     ui.back.hidden = !R.sanitizeSourceUrl(saved && saved.sourceUrl);
-    ui.stop.hidden = !loading;
+    ui.stop.hidden = !loading || !!saved?.priceOnly;
     if (!loading) ui.stop.disabled = false;
     ui.status.textContent = R.sanitizeStatus(saved && saved.status);
     root.setAttribute('aria-busy', String(loading));
@@ -588,7 +591,7 @@
     paintUnit(items);
     const ranked = R.rank(items, weights, { unitEnabled: unitEnabled(), family: family() });
     const multi = R.FACTORS.filter(f => weights[f] > 0).length > 1;
-    ui.subtitle.textContent = loading
+    ui.subtitle.textContent = saved?.priceOnly ? t('sortedSubtitlePriceOnly', '$1 listings · price comparison only; no ingredient lookups', items.length) : loading
       ? t('sortedSubtitleLoading', '$1 listings so far · still loading', items.length)
       : t('sortedSubtitleDone', '$1 listings · scored on your computer with your settings', items.length);
     const shown = new Set();
@@ -620,7 +623,7 @@
     saved = got.sortedResults || null;
     unitChoice = R.sanitizeUnitChoice(got.sortUnit);
     paintUnit();
-    weights = R.sanitizeWeights(got.sortWeights || R.presetFor(saved && saved.mode), { unitEnabled: unitEnabled() });
+    weights = R.sanitizeWeights(got.sortWeights || R.presetFor(saved && saved.mode), { unitEnabled: unitEnabled(), healthEnabled: !saved?.priceOnly });
     paintSliders();
     renderList();
   }
@@ -637,7 +640,7 @@
       if (changes.sortedResults) saved = changes.sortedResults.newValue || null;
       if (changes.sortUnit) unitChoice = R.sanitizeUnitChoice(changes.sortUnit.newValue);
       if (changes.sortWeights && JSON.stringify(changes.sortWeights.newValue) !== lastSaved) {
-        weights = R.sanitizeWeights(changes.sortWeights.newValue, { unitEnabled: unitEnabled() });
+        weights = R.sanitizeWeights(changes.sortWeights.newValue, { unitEnabled: unitEnabled(), healthEnabled: !saved?.priceOnly });
       }
       if (changes.sortedResults || changes.sortWeights || changes.sortUnit) { paintUnit(); paintSliders(); scheduleRender(); }
     });

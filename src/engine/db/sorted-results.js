@@ -186,7 +186,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
 
   // Weights, each a whole number 0-10. All zero (or nothing usable) falls back to health.
   // `unitEnabled: false` (price per ounce turned off) zeroes that factor.
-  function sanitizeWeights(raw, { unitEnabled = true } = {}) {
+  function sanitizeWeights(raw, { unitEnabled = true, healthEnabled = true } = {}) {
     const src = raw && typeof raw === 'object' ? raw : {};
     const out = {};
     for (const f of FACTORS) {
@@ -194,7 +194,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
       out[f] = Number.isFinite(n) ? Math.min(WEIGHT_MAX, Math.max(0, n)) : 0;
     }
     if (!unitEnabled) out.unitPrice = 0;
-    if (!FACTORS.some(f => out[f] > 0)) out.health = WEIGHT_MAX;
+    if (!healthEnabled) out.health = 0;
+    if (!FACTORS.some(f => out[f] > 0)) out[healthEnabled ? 'health' : unitEnabled ? 'unitPrice' : 'price'] = WEIGHT_MAX;
     return out;
   }
   // The priorities the reader last set in the sorted list, one set per way of opening it (Amazon's
