@@ -221,3 +221,79 @@ test('a sheet from before outcome/feedback keeps its rowIds and gains the new co
   assert.equal(sheet.data[1].at(-1), 'r-old');
   assert.equal(sheet.data[1][24], '');
 });
+
+// ---------------------------------------------------------------- an open receiver, kept small
+
+// The URL ships inside the extension, so anyone can post to it. Reports and contributions are the two
+// writes that need no sign-in; they are checked for what they claim to be, and each cell is bounded.
+test('a report or contribution must name a product, and no cell can be larger than the cap', () => {
+  const r = receiver();
+  // The shapes the extension sends: a contribution's own `kind` is the provenance kind, not a request type.
+  assert.equal(r.post({ asin: 'B00TESTOAT', brand: 'Acme', product_name: 'Oats', kind: 'beef', certifications: 'USDA Organic', verified_by: 'amazon certification widget' }).tab, 'contributions');
+  assert.equal(r.post({ kind: 'report', asin: 'B00TESTOAT', product_name: 'Oats', notes: 'scored 40' }).tab, 'reports');
+  assert.equal(r.post({ kind: 'report', product_name: 'A product with no ASIN' }).wrote, 1);
+  // What the extension sends for a page that gave no ASIN or barcode: blank strings, not missing fields.
+  assert.equal(r.post({ kind: 'report', asin: '', upc: '', brand: '', product_name: 'Oats', notes: 'scored 40', certifications: '', verified_by: 'user report' }).wrote, 1);
+  // Nothing that names no product is a row, whatever it calls itself.
+  for (const body of [{}, { kind: 'beef' }, { kind: 'report' }, { kind: 'nonsense', notes: 'x' }, { notes: 'x' }, { asin: 5 }, { asin: 'not-an-asin' }, { upc: 'abc' }, { product_name: '   ' }, []]) {
+    const reply = r.post(body);
+    assert.equal(reply.ok, false, JSON.stringify(body));
+    assert.match(reply.error, /invalid (?:contribution|report)/, JSON.stringify(body));
+  }
+  assert.equal(r.tabs.get('contributions').data.length, 2, 'header and the one valid row');
+  assert.equal(r.tabs.get('reports').data.length, 4, 'header and the three valid rows');
+  // A cell is cut at the cap, a formula is still quoted, and numbers and blanks pass through.
+  r.post({ kind: 'report', asin: 'B00TESTOAT', notes: 'x'.repeat(60000), product_name: '=1+1' });
+  const row = r.tabs.get('reports').data.at(-1);
+  assert.equal(row[10].length, 10000);
+  assert.equal(row[4], "'=1+1");
+  r.post({ kind: 'diagnostics', batchId: 'b-big', rows: [{ rowId: 'r-big', ingredients: 'y'.repeat(60000), score: 41 }] });
+  const diagnostic = r.tabs.get('diagnostics').data.at(-1);
+  assert.ok(diagnostic.every(cell => typeof cell !== 'string' || cell.length <= 10000));
+  assert.ok(diagnostic.includes(41));
+});
+
+// Every batch read the whole rowId column to find duplicates, under the script lock, so the cost grew with
+// the sheet and other writers were told "busy". A retry arrives within minutes, so only the newest rows count.
+test('duplicate protection reads only the newest rows, however long the sheet grows', () => {
+  const r = receiver();
+  r.context.DEDUP_WINDOW = 36;
+  for (let i = 0; i < 60; i += 12) assert.equal(r.post(batch(i)).inserted, 12);
+  assert.equal(r.post(batch(48)).inserted, 0, 'a retry of the newest batch is a duplicate');
+  assert.equal(r.post(batch(36)).inserted, 0, 'and so is one inside the window');
+  assert.equal(r.post(batch(0)).inserted, 12, 'a batch older than the window is outside what is checked');
+  const reads = [];
+  const sheet = r.tabs.get('diagnostics'), getRange = sheet.getRange;
+  sheet.getRange = (row, column, height, width) => { if (column > 1 && width === 1 && height > 1) reads.push(height); return getRange.call(sheet, row, column, height, width); };
+  r.post(batch(1000));
+  assert.ok(reads.length > 0 && reads.every(height => height <= 36), `rows read for the check: ${reads}`);
+});
+
+const SIGNED_IN = { aud: 'client-1', azp: 'client-1', sub: 'user-1', expires_in: '3500' };
+test('a verified token is not verified again within a minute, and the cache never holds the token', () => {
+  const r = receiver({ tokens: { 'ya29.a-good-token-for-the-test': SIGNED_IN } });
+  const token = 'ya29.a-good-token-for-the-test';
+  assert.equal(r.post({ kind: 'account', token, payload: { _format: 'ingredient-check-settings', weights: { sugar: 0.5 } } }).ok, true);
+  assert.equal(r.tokenChecks(), 1);
+  for (let i = 0; i < 4; i++) assert.equal(r.post({ kind: 'accountGet', token }).ok, true);
+  assert.equal(r.tokenChecks(), 1, 'one call to Google for five requests');
+  for (const [key, entry] of r.cache) {
+    assert.ok(!key.includes(token) && !String(entry.value).includes(token), 'the cache holds a hash, never a usable token');
+    assert.ok(entry.seconds <= 60, `a verified token is remembered for at most a minute, not ${entry.seconds} s`);
+  }
+  // Another token is still checked, a rejected one is never remembered, and a lapsed entry is asked about again.
+  assert.equal(r.post({ kind: 'accountGet', token: 'ya29.some-other-token-entirely' }).ok, false);
+  assert.equal(r.post({ kind: 'accountGet', token: 'ya29.some-other-token-entirely' }).ok, false);
+  assert.equal(r.tokenChecks(), 3, 'the rejected token was asked about twice');
+  r.expireCache();
+  assert.equal(r.post({ kind: 'accountGet', token }).ok, true);
+  assert.equal(r.tokenChecks(), 4);
+  // A token for some other app is refused and not remembered as good.
+  const other = receiver({ tokens: { 'ya29.a-token-for-another-app-xx': { ...SIGNED_IN, aud: 'client-2', azp: 'client-2' } } });
+  assert.equal(other.post({ kind: 'accountGet', token: 'ya29.a-token-for-another-app-xx' }).ok, false);
+  assert.equal(other.cache.size, 0);
+  // A token with no time left is not cached for longer than it has.
+  const short = receiver({ tokens: { 'ya29.a-nearly-expired-token-xxx': { ...SIGNED_IN, expires_in: '20' } } });
+  short.post({ kind: 'accountGet', token: 'ya29.a-nearly-expired-token-xxx' });
+  assert.ok([...short.cache.values()].every(entry => entry.seconds <= 20));
+});

@@ -46,6 +46,15 @@ var LOOKUP_MAX = 100;
 var DATA_MAX_CHARS = 12000;
 var ACCOUNT_COLUMNS = ['id', 'payload', 'ts'];
 var ACCOUNT_MAX_CHARS = 20000;
+// A cell holds at most 50,000 characters, and this receiver is open to anyone with the URL. Text is cut here,
+// long before that, so one post cannot fill the sheet or fail a whole batch.
+var CELL_MAX = 10000;
+// How many of the newest diagnostics rows are searched for a retry. A retry arrives within minutes, and the
+// search used to read every row ever written, under the script lock, so its cost grew with the sheet.
+var DEDUP_WINDOW = 20000;
+// How long a Google token that checked out is remembered: a settings save or a history sync is several
+// requests, each of which used to cost a call to Google (the day's UrlFetch quota is shared by everyone).
+var TOKEN_CACHE_SECONDS = 60;
 
 // Script Properties, not code, so opening product rows needs no redeploy and no code edit.
 function productsOpen() {
@@ -127,13 +136,14 @@ function handlePost(e, seen) {
       if (body.diagnosticsSchema && body.diagnosticsSchema > 2) return json({ ok: false, error: 'unsupported-diagnostics-schema', diagnosticsSchema: 2 });
       return writeDiagnostics(body.rows || [], body.batchId);
     }
-    if (body.kind === 'report') return writeRows('reports', CONTRIBUTION_COLUMNS, [stamp(body)]);
+    if (body.kind === 'report') return writeRows('reports', CONTRIBUTION_COLUMNS, [stamp(productPost(body, 'report'))]);
     if (body.kind === 'products') return writeProducts(body);
     if (body.kind === 'account') return writeAccount(body.token, body.payload);
     if (body.kind === 'historyGet') return readHistory(body.token);
     if (body.kind === 'historyPut') return writeHistory(body.token, body.payload);
     if (body.kind === 'historyClear') return clearHistory(body.token);
-    return writeRows('contributions', CONTRIBUTION_COLUMNS, [stamp(body)]);
+    // Anything else is a contribution (its own `kind` is the provenance kind, "beef" or "egg", not a request type).
+    return writeRows('contributions', CONTRIBUTION_COLUMNS, [stamp(productPost(body, 'contribution'))]);
   } catch (err) {
     return json({ ok: false, error: String(err) });
   } finally {
@@ -280,10 +290,21 @@ function writeProducts(body) {
 // ---------------------------------------------------------------- accounts
 
 // Google says who the token belongs to; the row is keyed by a hash of that id, never the email.
+function hexDigest(text) {
+  var digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, text);
+  return digest.map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('');
+}
+
 function accountId(token) {
   var clientId = PropertiesService.getScriptProperties().getProperty('OAUTH_CLIENT_ID') || OAUTH_CLIENT_ID;
   if (!clientId) throw new Error('accounts are not configured');
   if (typeof token !== 'string' || token.length < 20 || token.length > 4096) throw new Error('no token');
+  // A token that checked out is remembered briefly, under a hash of it: the cache never holds a usable token,
+  // and a revoked one stops being accepted within TOKEN_CACHE_SECONDS.
+  var cache = typeof CacheService !== 'undefined' ? CacheService.getScriptCache() : null;
+  var cacheKey = cache ? 'token:' + hexDigest('ingredient-check-token:' + token) : '';
+  var known = cache ? cache.get(cacheKey) : null;
+  if (known) return known;
   var res = UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo?access_token=' + encodeURIComponent(token),
     { muteHttpExceptions: true });
   if (res.getResponseCode() !== 200) throw new Error('token rejected');
@@ -295,8 +316,12 @@ function accountId(token) {
   if (info.expires_in != null && (!isFinite(Number(info.expires_in)) || Number(info.expires_in) <= 0)) {
     throw new Error('token rejected');
   }
-  var digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, 'ingredient-check:' + info.sub);
-  return digest.map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('');
+  var id = hexDigest('ingredient-check:' + info.sub);
+  if (cache) {
+    var left = info.expires_in != null ? Number(info.expires_in) : TOKEN_CACHE_SECONDS;
+    cache.put(cacheKey, id, Math.max(1, Math.min(TOKEN_CACHE_SECONDS, Math.floor(left))));
+  }
+  return id;
 }
 
 function findAccountRow(sheet, id) {
@@ -403,7 +428,8 @@ function writeDiagnostics(rows, batchId) {
   }
   sheet.getRange(1, 1, 1, columns.length).setValues([columns]);
   var count = Math.max(0, sheet.getLastRow() - 1);
-  var stored = count ? sheet.getRange(2, columns.length, count, 1).getValues() : [];
+  var skip = Math.max(0, count - DEDUP_WINDOW);
+  var stored = count > skip ? sheet.getRange(2 + skip, columns.length, count - skip, 1).getValues() : [];
   var seen = new Set(legacy.rows.concat(stored.map(function (r) { return String(r[0]); })));
   var fresh = [];
   rows.forEach(function (row, i) {
@@ -428,6 +454,21 @@ function loadSeen() {
   }
 }
 
+// A report or a contribution is about a product. A post that names none is not one, whatever it calls itself:
+// before this, `{}` was a row, and so was any request type this script did not know.
+function productPost(body, what) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('invalid ' + what);
+  var text = function (v) { return typeof v === 'string' ? v.trim() : ''; };
+  var asin = text(body.asin), upc = text(body.upc);
+  var named = text(body.product_name) || text(body.brand);
+  // The extension sends '' for what a page did not give, so blank is "absent"; only a wrong type or shape is refused.
+  if ((body.asin != null && typeof body.asin !== 'string') || (body.upc != null && typeof body.upc !== 'string')
+      || (asin && !/^[A-Z0-9]{10}$/.test(asin)) || (upc && !/^\d{8,14}$/.test(upc)) || !(asin || upc || named)) {
+    throw new Error('invalid ' + what);
+  }
+  return body;
+}
+
 function stamp(row) {
   if (!row.ts) row.ts = new Date().toISOString();
   return row;
@@ -441,7 +482,10 @@ function writeRows(tabName, columns, rows, existingSheet) {
       var v = row[c];
       // Leading = + - @ make Sheets evaluate a cell as a formula. Ingredient text is untrusted
       // input from a web page, so it is quoted rather than parsed.
-      if (typeof v === 'string' && /^[=+\-@]/.test(v)) return "'" + v;
+      if (typeof v === 'string') {
+        if (v.length > CELL_MAX) v = v.slice(0, CELL_MAX);
+        if (/^[=+\-@]/.test(v)) return "'" + v;
+      }
       return v === undefined || v === null ? '' : v;
     });
   });

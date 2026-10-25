@@ -32,7 +32,7 @@
     const stored = Array.isArray(conf.purchaseHistory) ? conf.purchaseHistory : [];
     const touched = stored.filter(r => r && arrivedKeys.has(r.key));
     const arrived = H.merge(touched, msg.records);
-    const canonical = list => JSON.stringify(list.map(r => { const { observedAt: _observedAt, ...rest } = H.clean(r); return rest; }));
+    const canonical = list => JSON.stringify(list.map(r => ({ ...H.clean(r), observedAt: 0 })));   // when it was seen is not a change
     if (canonical(H.merge(touched, [])) === canonical(arrived)) return { ok: true, count: stored.length, records: arrived };
     const records = H.merge(conf.purchaseHistory, msg.records);
     await chrome.storage.local.set({ purchaseHistory: records, historySyncStatus: { ok: false, reason: conf.historyAutoSync !== false ? 'pending' : 'local-only', at: Date.now() } });
