@@ -95,7 +95,10 @@
   // because a genuine single-ingredient food legitimately repeats its own title — "Organic Whole
   // Grain Rolled Oats" is both the name and the entire ingredient list, and must still be read.
   function looksLikeIngredients(text, title) {
-    const t = stripBoilerplate(text);
+    // One ingredient per line is a list however it is pasted; the engine reads it the same way.
+    // Read before the whitespace is flattened: the line breaks are what say it is a list.
+    const eng = root.AIR && root.AIR.engine;
+    const t = stripBoilerplate(eng && eng.verticalList ? eng.verticalList(String(text == null ? '' : text)) : text);
     if (t.length < MIN_LEN || t.length > MAX_LEN) return false;
     if (INGREDIENT_HEADING.test(t) || /^(nutrition facts|directions|legal disclaimer)\s*:?\s*$/i.test(t)) return false;
     if (/\b(we believe|our story|customer|review|shipping|guarantee|click here)\b/i.test(t)) return false;

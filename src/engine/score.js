@@ -395,8 +395,8 @@ const COMMON_PANEL = new RegExp('\\b(?:' + [
 // agave 63, oats with organic agave 95. Every anchored rule now sees the entry as written AND with
 // the qualifiers stripped; the displayed ingredient stays as written.
 const QUALIFIERS = /^(?:(?:organic|raw|pure|natural|real|certified|fair[- ]trade|non[- ]?gmo|unsulph?ured|light|dark|golden|blue|100%|grade a|kosher)\s+)+/i;
-const bare = ing => ing.replace(QUALIFIERS, '');
-const hits1 = (re, ing) => re.test(ing) || (QUALIFIERS.test(ing) && re.test(bare(ing)));
+const unqualified = ing => ing.replace(QUALIFIERS, '');
+const hits1 = (re, ing) => re.test(ing) || (QUALIFIERS.test(ing) && re.test(unqualified(ing)));
 const hitsAny = (rules, ing, pick = r => r) => rules.some(r => hits1(pick(r), ing));
 
 // The penalty rules one entry trips, in PENALTIES order. The entry as written is tested first; the
@@ -414,7 +414,7 @@ function penaltiesFor(ing) {
   const hit = new Set(PENALTIES.filter(r => eitherForm(r.m, ing)));
   if (!QUALIFIERS.test(ing)) return hit;
   const groups = new Set([...hit].map(r => r.group));
-  const stripped = bare(ing);
+  const stripped = unqualified(ing);
   for (const r of PENALTIES) {
     if (!hit.has(r) && !groups.has(r.group) && r.m.test(stripped)) hit.add(r);
   }
@@ -712,6 +712,41 @@ function splitConjunction(e) {
   return pieces.map(p => ({ ...e, ing: p }));
 }
 
+// A word broken across two lines keeps its hyphen, and the line break then reads as a space:
+// "Partially Hydro-\ngenated Soybean Oil" arrives as "partially hydro- genated soybean oil", which no
+// rule reads. The trans-fat cap was missed (63 against 5 on a four-ingredient list), and
+// "Carra-\ngeenan", "Sodium Ben-\nzoate" and "Mono-\nsodium Glutamate" each cost nothing. OCR prints a
+// label's own line breaks, so a photographed label hits this routinely.
+//
+// The hyphen is either inside one word ("hydro-genated") or between two ("high-fructose"), and the
+// text cannot say which, so both readings are tried. One is taken only when the rulebase then sees
+// MORE than it charged before: a heavier penalty or a lower cap, or an entry that was unrecognised is
+// read. Hanging prefixes ("mono- and diglycerides", "non- GMO") and real compounds read exactly as they
+// did, because rejoining them adds nothing. Severity is compared, not the number of rules: the joined
+// "partially hydrogenated" trades the plain hydrogenated-oil cap for the trans-fat cap, one rule for one.
+const WRAPPED_WORD = /([a-zß-ÿœ\u0100-\u017f]{2,})-\s+([a-zß-ÿœ\u0100-\u017f]{2,})/g;
+function chargeOf(ing) {
+  let points = 0, ceiling = 100;
+  for (const r of penaltiesFor(ing)) points += r.pts || 0;
+  for (const c of CAPS) if (eitherForm(c.m, ing)) ceiling = Math.min(ceiling, c.cap);
+  return points + (100 - ceiling);
+}
+function rejoinWrapped(ing) {
+  if (!/-\s/.test(ing)) return ing;
+  const re = new RegExp(WRAPPED_WORD.source, 'gi');
+  let out = ing, m;
+  while ((m = re.exec(out))) {
+    const before = out.slice(0, m.index), after = out.slice(m.index + m[0].length);
+    const readings = [m[1] + m[2], `${m[1]} ${m[2]}`].map(word => before + word + after);
+    const charged = chargeOf(out);
+    const better = readings.find(r => chargeOf(r) > charged) || readings.find(r => recognised(r) && !recognised(out));
+    if (!better) continue;
+    out = better;
+    re.lastIndex = Math.max(0, better.length - after.length);
+  }
+  return out;
+}
+
 function parseEntries(text) {
   // "FD&C Red No. 40" and "Red #40" are how US labels print dyes. The full stop after "No" ended the
   // entry ("fd&c red no" / "40"), so the dye went unread; both now read as "no 40".
@@ -736,7 +771,7 @@ function parseEntries(text) {
     for (const x of expandEntry(part, 0, ids)) {
       for (const e of splitConjunction(x)) {
         const bare = withoutOrganic(e.ing);
-        out.push({ ing: bare || e.ing, pos, fam: e.fam, parent: e.parent, ...(bare ? { organic: true } : {}),
+        out.push({ ing: rejoinWrapped(bare || e.ing), pos, fam: e.fam, parent: e.parent, ...(bare ? { organic: true } : {}),
           ...(share != null ? { share } : {}), ...(minor ? { minor: true } : {}) });
       }
     }
@@ -892,13 +927,33 @@ function entityText(whole, name) {
   }
   return Object.prototype.hasOwnProperty.call(ENTITY_TEXT, key) ? ENTITY_TEXT[key] : whole;
 }
+// A list printed one ingredient per line carries no commas at all, and newlines are not separators
+// (above), so it was one long entry: the anchored rules never saw the sugar in "water oats rice flour
+// salt yeast vinegar sugar" (82 against 62 for the comma list), and a longer list went over the
+// length limit and read as nothing. A comma anywhere means the lines are wrapping a comma list, so
+// they stay wraps. Three lines or more, each short: two lines are far more often one ingredient
+// wrapped ("High Fructose\nCorn Syrup"), and a long line is prose, not an ingredient.
+const VERTICAL_MIN_LINES = 3;
+const VERTICAL_MAX_LINES = 80;
+const VERTICAL_MAX_LINE = 48;
+const LIST_SEPARATORS = /[,;]/;
+function verticalList(text) {
+  if (!text.includes('\n') || LIST_SEPARATORS.test(text)) return text;
+  const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+  if (lines.length < VERTICAL_MIN_LINES || lines.length > VERTICAL_MAX_LINES || lines.some(line => line.length > VERTICAL_MAX_LINE)) return text;
+  return lines.join(', ');
+}
+// Markup that ends a line (<br>, the end of a list item or paragraph) is where a vertical list breaks;
+// every other tag is dropped as before.
+const LINE_BREAK_TAG = /<\s*(?:br|\/li|\/p|\/div|\/tr)\b[^<>]{0,200}>/gi;
 function cleanText(value) {
-  return String(value ?? '')
+  return verticalList(String(value ?? '')
+    .replace(LINE_BREAK_TAG, '\n')
     .replace(HTML_TAG, ' ').replace(HTML_ENTITY, entityText)
     .replace(INVISIBLE, '')
     .replace(/[，、،﹐﹑]/g, ',').replace(/[；؛]/g, ';').replace(/：/g, ':').replace(/％/g, '%')
     .replace(/[（［｛]/g, '(').replace(/[）］｝]/g, ')')
-    .replace(/[•●▪◦‣⁃·｜|]/g, ',');
+    .replace(/[•●▪◦‣⁃·｜|]/g, ','));
 }
 
 // ---------------------------------------------------------------- scoring
@@ -1088,19 +1143,18 @@ function score(product, options = {}) {
   // seed oils (a culinary ingredient) and the preservative caps (BHA, TBHQ…) do not vote.
   if (CAPS.some(c => ULTRA_CAP.test(c.why) && list.some(i => eitherForm(c.m, i)))) hardHits++;
   const nova = novaClass(list, txt, hardHits, softHits);
-    // List length is not an independent defect: twenty herbs are not twenty additives.
-  const rawTotal = rawPenalty;
-  const penalty = saturate(rawTotal);
+  // List length is not an independent defect: twenty herbs are not twenty additives.
+  const penalty = saturate(rawPenalty);
 
   // The panel shows a line per problem. Those lines must add up to the score the user is looking
   // at, so the saturation discount is distributed back across them proportionally rather than
   // applied invisibly at the end. Largest remainder gets the rounding slack.
   const shown = kept.map(h => ({ raw: h.scaled, why: h.why, ing: h.ing, cat: h.cat, refined: h.refined }));
-  if (rawTotal > 0 && shown.length) {
+  if (rawPenalty > 0 && shown.length) {
     // Largest-remainder allocation. Every row gets at least 1 point when there is room for it,
     // and the leftover is corrected against the biggest rows in whichever direction it lands, so
     // the displayed numbers sum to exactly `penalty` rather than approximately.
-    const ratio = penalty / rawTotal;
+    const ratio = penalty / rawPenalty;
     const floorAt = penalty >= shown.length ? 1 : 0;
     shown.sort((a, b) => b.raw - a.raw);
     const alloc = shown.map(h => Math.max(floorAt, Math.round(h.raw * ratio)));
@@ -1175,11 +1229,11 @@ function score(product, options = {}) {
     const room = titleOnly
       ? Math.min(labels.BONUS_CAP - bonus, labels.TITLE_BONUS_CAP - titleBonus)
       : labels.BONUS_CAP - bonus;
-    const add_ = Math.min(worth, room);
-    if (add_ <= 0) continue;
-    bonus += add_;
-    if (titleOnly) titleBonus += add_;
-    good.push({ c: +add_, why: b.cat === 'organic' ? verifiedOrganic ? 'Organic — verified' : 'Organic, unverified'
+    const paid = Math.min(worth, room);
+    if (paid <= 0) continue;
+    bonus += paid;
+    if (titleOnly) titleBonus += paid;
+    good.push({ c: +paid, why: b.cat === 'organic' ? verifiedOrganic ? 'Organic — verified' : 'Organic, unverified'
       : titleOnly ? `${b.why} (label claim, unverified)` : b.why, organic: b.cat === 'organic' });
   }
   pts += bonus;
@@ -1230,14 +1284,14 @@ function score(product, options = {}) {
   // Nutrition-panel categories, when the page supplied numbers and the user enabled them.
   const nut = nutritionInfo.values;
   for (const n of NUTRITION) {
-    const weight = w_(n.cat);
-    if (!weight || nut[n.field] == null) continue;
+    const catWeight = w_(n.cat);
+    if (!catWeight || nut[n.field] == null) continue;
     let value = nut[n.field];
     // When both quantity dials are active, total sugar counts only the remainder, not added sugar twice.
     const remainder = n.cat === 'totalSugar' && w_('addedSugar') > 0 && nut.addedSugar != null;
     if (remainder) value = Math.max(0, value - nut.addedSugar);
     const v = Math.round(value * 10) / 10;
-    const amount = Math.round(n.calc(v) * weight);
+    const amount = Math.round(n.calc(v) * catWeight);
     if (amount < 1) continue;
     const label = remainder ? 'Other sugars' : n.why.replace(/ per serving$/, '');
     const suffix = nutritionInfo.basis === 'per-serving' ? 'per serving' : nutritionInfo.basis;
@@ -1294,24 +1348,22 @@ function score(product, options = {}) {
     const unknownCost = Math.round(undisclosed * w_('provenanceUnknown'));
     let gained = 0;
     for (const c of verified) {
-      const add = Math.min(Math.round(c.pts * w_('provenanceVerified')), PROVENANCE_BONUS_CAP - gained);
-      if (add <= 0) continue;
-      gained += add;
-      good.push({ c: +add, why: `${c.label} — verified`, organic: /^organic/i.test(c.id) });
+      const worth = Math.min(Math.round(c.pts * w_('provenanceVerified')), PROVENANCE_BONUS_CAP - gained);
+      if (worth <= 0) continue;
+      gained += worth;
+      good.push({ c: +worth, why: `${c.label} — verified`, organic: /^organic/i.test(c.id) });
     }
     for (const c of claims) {
-      const add = Math.min(Math.round((c.pts / 2) * w_('provenanceClaimed')), PROVENANCE_BONUS_CAP - gained);
-      if (add <= 0) continue;
-      gained += add;
-      good.push({ c: +add, why: `${c.label}, unverified`, organic: /^organic/i.test(c.id) });
+      const worth = Math.min(Math.round((c.pts / 2) * w_('provenanceClaimed')), PROVENANCE_BONUS_CAP - gained);
+      if (worth <= 0) continue;
+      gained += worth;
+      good.push({ c: +worth, why: `${c.label}, unverified`, organic: /^organic/i.test(c.id) });
     }
     pts += gained;
 
     if (unknownCost > 0) {
       pts -= unknownCost;
-      bad.push({ c: -unknownCost, why: verified.length || claims.length
-        ? 'Animal production details unverified — sourcing preference'
-        : 'Animal production details unverified — sourcing preference' });
+      bad.push({ c: -unknownCost, why: 'Animal production details unverified — sourcing preference' });
     }
 
     provenance = {
@@ -1335,7 +1387,7 @@ function score(product, options = {}) {
   // means "we cannot assess this", which is a different statement from a low score.
   const coverage = recognitionCoverage(entries);
 
-  const rawTotal_ = Math.round(pts);
+  const rawPoints = Math.round(pts);
   // Ceiling only at this point. The floor and the hard cap are applied AFTER the display rows are
   // reconciled below, and each pushes its own row, so every clamp stays visible in the panel.
   let final = Math.min(100, Math.round(softCeiling(pts)));
@@ -1350,7 +1402,7 @@ function score(product, options = {}) {
   // keeps at least 1 point so an earned bonus never displays as nothing. Whatever is left comes off
   // the starting score. Nothing below the knee is touched, so this is inert for most products.
   let displayBase = base;
-  let shave = rawTotal_ - final;
+  let shave = rawPoints - final;
   if (shave > 0) {
     // Proportionally, not biggest-first. Taking as much as possible from the largest row inverted
     // the ranking it was meant to preserve: on certified grass-fed beef the American Grassfed
@@ -1418,6 +1470,6 @@ const SCORING_POLICY = Object.freeze({floor:SCORE_FLOOR, ceilingKnee:CEIL_KNEE, 
   singleIngredientBonus:SINGLE_INGREDIENT_BONUS, positionWeights:POSITION_WEIGHTS,
   shareTiers:SHARE_TIERS.map(([min, tier]) => `${min}%+ → ${POSITION_WEIGHTS[tier]}`).concat(`under 2% → ${POSITION_WEIGHTS[3]}`),
   minorBlockLimit:MINOR_LIMIT, minCoverage:MIN_COVERAGE});
-return { score, parse, parseEntries, stripNegations, PENALTIES, CAPS, BANDS, NOVA_BASE, NUTRITION, normaliseNutrition, SCORING_POLICY,
+return { score, parse, parseEntries, verticalList, stripNegations, PENALTIES, CAPS, BANDS, NOVA_BASE, NUTRITION, normaliseNutrition, SCORING_POLICY,
   MIN_COVERAGE, isReadable };
 });

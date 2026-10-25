@@ -29,8 +29,46 @@ function fnv(text) {
   for (let i = 0; i < text.length; i++) { h ^= text.charCodeAt(i); h = Math.imul(h, 16777619); }
   return (h >>> 0).toString(16).padStart(8, '0');
 }
-const blob = RULE_SOURCES.map(f => `// ${f}\n` + fs.readFileSync(src(f), 'utf8').replace(/\r\n/g, '\n')).join('\n');
-const actual = fnv(blob) + '-' + blob.length;
+
+// What the hash sees: the code, not the prose around it. Editing a comment, adding a blank line or
+// trimming trailing spaces cannot move a score, and a hash over the raw text made every such edit
+// (and every pure refactor's comments) retire every cached score. Only WHOLE-LINE comments and blank
+// lines are dropped. A comment trailing code stays in the hash, so the error that remains is an
+// unneeded bump and never a missed one, and a `//` inside a regex or a string is never mistaken for
+// a comment because the line starts with code. The rule sources have no multi-line template literals,
+// which is what would make a line that starts with `//` part of the code.
+function withoutProse(source) {
+  const kept = [];
+  let inBlock = false;
+  for (const raw of source.replace(/\r\n/g, '\n').split('\n')) {
+    let line = raw.trim();
+    if (inBlock) {
+      const end = line.indexOf('*/');
+      if (end < 0) continue;
+      inBlock = false;
+      line = line.slice(end + 2).trim();            // code after the close stays
+      if (!line) continue;
+      kept.push(line);
+      continue;
+    }
+    if (line.startsWith('/*')) {
+      const end = line.indexOf('*/');
+      if (end < 0) { inBlock = true; continue; }
+      line = line.slice(end + 2).trim();
+      if (!line) continue;
+      kept.push(line);
+      continue;
+    }
+    if (!line || line.startsWith('//')) continue;
+    kept.push(raw.replace(/\s+$/, ''));
+  }
+  return kept.join('\n');
+}
+const hashOf = sources => {
+  const blob = sources.map(([name, text]) => `// ${name}\n` + withoutProse(text)).join('\n');
+  return fnv(blob) + '-' + blob.length;
+};
+const actual = hashOf(RULE_SOURCES.map(f => [f, fs.readFileSync(src(f), 'utf8')]));
 
 let failed = 0;
 const check = (label, fn) => {
@@ -47,6 +85,20 @@ check('RULES_HASH matches the rule sources on disk', () => {
     `the rule sources changed. In src/engine/db/revision.js bump RULES_REVISION (today's date, `
     + `or today's date with a suffix if it already is today) and set RULES_HASH = '${actual}'. `
     + `Every cached score will then be retired, which is the point.`);
+});
+check('prose does not move the hash and code does', () => {
+  const base = 'const A = /x\\/\\//;\nfunction f(a) {\n  return a + 1;\n}\n';
+  const h = text => hashOf([['x.js', text]]);
+  assert.equal(h('// a note\n\n' + base + '/* more\n   prose */\n\n'), h(base), 'whole-line comments and blank lines are not code');
+  assert.equal(h(base.replace(/\n/g, '\r\n')), h(base), 'line endings');
+  assert.equal(h(base.replace('return a + 1;', 'return a + 1;   ')), h(base), 'trailing spaces');
+  assert.equal(h('/* one line */\n' + base), h(base));
+  assert.notEqual(h(base.replace('a + 1', 'a + 2')), h(base), 'a changed constant');
+  assert.notEqual(h(base.replace('/x\\/\\//', '/y\\/\\//')), h(base), 'a changed regex containing //');
+  assert.notEqual(h(base.replace('a + 1;', 'a + 1; // note')), h(base), 'a comment trailing code stays hashed: an unneeded bump, never a missed one');
+  assert.notEqual(h(base.replace('  return a + 1;', '  /* x */ return a + 1;')), h(base), 'code after a one-line block comment is code');
+  assert.notEqual(h('/* open\n close */ const B = 2;\n' + base), h(base), 'code after a block comment closes is code');
+  assert.notEqual(h(base.replace('  return', '    return')), h(base), 'indentation is not stripped');
 });
 check('the score cache fingerprints on the revision', () => {
   require(src('engine/categories.js'));
