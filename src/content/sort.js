@@ -583,7 +583,7 @@
             throw error;
           } finally { controllers.delete(controller); }
           if (!response.ok) throw new Error(`Amazon returned ${response.status}`);
-          const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
+          const doc = new DOMParser().parseFromString(await root.AIR.cart.readHtml(response, signal), 'text/html');
           const cards = productCardsIn(doc);
           if (!cards.length) throw new Error('no product cards on the next page');
           pagesInList = pageNumber;

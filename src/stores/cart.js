@@ -127,6 +127,57 @@
     const list = first && (first.row.closest('ul, ol') || first.row);
     return list?.parentNode ? { parent: list.parentNode, before: list } : null;
   }
-  A.cart = { store, isCartPage, allowed, adapter, tiles, summarize, summaryPlace };
+  // ---------------------------------------------------------------- reading another page of the store
+  // Cart lines, order lines, retailer previews, search tiles and the sort's next result pages each fetched a page
+  // and read it their own way, and the ways drifted. "Is this a bot check" had three patterns: orders.js stopped a
+  // whole import for any product with "robot" or "captcha" in its title, and cart.js did not know Amazon's own
+  // "Robot Check" page. Only two of the five capped the body, and only streaming ones could stop on an abort. One
+  // reader now, so a change to how a page is accepted is a change in one place.
+  const MAX_PAGE_BYTES = 8 * 1024 * 1024;
+  // A block page says so in its title or its first heading. The phrases are the ones the stores print (Amazon's
+  // "Robot Check" and "Enter the characters you see below", Walmart's "Robot or human?", the press-and-hold
+  // challenge, Cloudflare's "Just a moment..."); a bare "robot" is not one, since it is also a word in a product's name.
+  const CHALLENGE = /\brobot check\b|robot or human|not a robot|(?:enter|type) the characters you see|verify you are human|access denied|press (?:and|&) hold|just a moment|security verification/i;
+  function isChallenge(doc) {
+    return CHALLENGE.test([doc.title, doc.querySelector('h1')?.textContent].join(' '));
+  }
+  // The body of a response as text, refusing what is not a page worth reading: an error status, another content
+  // type, or more than `limit` bytes (checked on the way in, so a body with no length cannot be buffered whole).
+  // Throws Error('unavailable') for each; callers treat all three alike.
+  async function readHtml(response, signal, limit = MAX_PAGE_BYTES) {
+    if (!response.ok) throw new Error('unavailable');
+    const type = response.headers?.get('content-type') || '';
+    if (type && !/text\/html|application\/xhtml\+xml/i.test(type)) throw new Error('unavailable');
+    if (Number(response.headers?.get('content-length')) > limit) throw new Error('unavailable');
+    if (!response.body?.getReader) {
+      const html = await response.text();
+      if (html.length > limit) throw new Error('unavailable');
+      return html;
+    }
+    const reader = response.body.getReader(), chunks = [];
+    let bytes = 0;
+    try {
+      for (;;) {
+        const part = await reader.read();
+        if (part.done) break;
+        bytes += part.value.byteLength;
+        if (bytes > limit || signal?.aborted) throw new Error('unavailable');
+        chunks.push(part.value);
+      }
+    } finally { await reader.cancel().catch(() => {}); }
+    const joined = new Uint8Array(bytes);
+    let offset = 0;
+    for (const chunk of chunks) { joined.set(chunk, offset); offset += chunk.byteLength; }
+    return new TextDecoder().decode(joined);
+  }
+  // The page as an inert document, or Error('blocked') (with `blocked` set) when it is a challenge page. The
+  // callers that must stop fetching when a store blocks them read that flag.
+  async function publicDocument(response, signal) {
+    const doc = new DOMParser().parseFromString(await readHtml(response, signal), 'text/html');
+    if (isChallenge(doc)) throw Object.assign(new Error('blocked'), { blocked: true });
+    return doc;
+  }
+
+  A.cart = { store, isCartPage, allowed, adapter, tiles, summarize, summaryPlace, isChallenge, readHtml, publicDocument, MAX_PAGE_BYTES };
   if (typeof module !== 'undefined' && module.exports) module.exports = A.cart;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

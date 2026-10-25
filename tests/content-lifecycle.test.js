@@ -2,6 +2,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
+const { loadPageReader } = require('./page-reader.js');
 const fs = require('node:fs');
 
 function setup() {
@@ -102,6 +103,7 @@ function setup() {
   for (const file of ['page.js', 'product.js', 'search.js', 'main.js']) {
     vm.runInContext(fs.readFileSync(require.resolve('../src/content/' + file), 'utf8'), context);
   }
+  loadPageReader(vm, context);   // the shared page reader, which the manifest loads after these and they call at run time
   const h = context.AIR.page;
   h.state.enabled = true; h.state.badges = true; h.state.foodOnly = false;
   h.state.autoScoreSearch = true;
@@ -566,6 +568,7 @@ function sortSetup() {
   w.context.location.search = '?k=oats';
   w.context.location.href = 'https://www.amazon.com/s?k=oats';
   vm.runInContext(fs.readFileSync(require.resolve('../src/content/sort.js'), 'utf8'), w.context);
+  loadPageReader(vm, w.context);
   w.S = w.context.AIR.search;
   w.sort = w.context.AIR.sort;
   // Run the queue's waits (the sandbox collects timers instead of running them).

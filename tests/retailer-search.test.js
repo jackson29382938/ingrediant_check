@@ -3,6 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
+const { loadPageReader } = require('./page-reader.js');
 const prefs = require('../src/engine/db/prefs.js');
 const scoreCache = require('../src/engine/db/score-cache.js');
 
@@ -90,6 +91,7 @@ function runner({ ids = ['79364857'], stored = {}, query = 'oats' } = {}) {
   };
   sandbox.self = sandbox;
   vm.runInNewContext(fs.readFileSync(require.resolve('../src/content/retailer.js'), 'utf8'), sandbox);
+  loadPageReader(vm, sandbox);   // the shared page reader, loaded after retailer.js as in the manifest
   const api = sandbox.module.exports;
   const flush = async (rounds = 5) => { for (let round = 0; round < rounds; round++) {
     await new Promise(resolve => setImmediate(resolve)); now += 250;

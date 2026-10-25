@@ -65,16 +65,14 @@
       const r = await fetch(url.href, { credentials: 'omit', referrerPolicy: 'no-referrer', signal: control.signal });
       if (turn !== generation || !O.allowed(location)) throw new Error('navigation');
       if ([403, 429, 503].includes(r.status)) stopped = true;
-      if (!r.ok || !/text\/html|application\/xhtml\+xml/i.test(r.headers.get('content-type') || '') || Number(r.headers.get('content-length')) > 8 * 1024 * 1024) throw new Error('unavailable');
+      if (!r.ok) throw new Error('unavailable');
       const final = new URL(r.url || url.href), adapter = A.cart.adapter(location);
       if (final.origin !== location.origin || adapter.productId(final.href) !== line.asin) throw new Error('identity');
-      const reader = r.body.getReader(), chunks = []; let size = 0;
-      try { while (true) { const p = await reader.read(); if (p.done) break; size += p.value.byteLength; if (size > 8 * 1024 * 1024 || control.signal.aborted) throw new Error('size'); chunks.push(p.value); } }
-      finally { await reader.cancel().catch(() => {}); }
+      // The same reader every page fetch uses (stores/cart.js): capped, aborts with the signal, and says when the page is a block page.
+      let doc;
+      try { doc = await A.cart.publicDocument(r, control.signal); }
+      catch (error) { if (error.blocked && turn === generation) stopped = true; throw error; }
       if (turn !== generation || !O.allowed(location)) throw new Error('navigation');
-      const bytes = new Uint8Array(size); let offset = 0; for (const part of chunks) { bytes.set(part, offset); offset += part.byteLength; }
-      const doc = new DOMParser().parseFromString(new TextDecoder().decode(bytes), 'text/html');
-      if (/robot|captcha|verify you are human|access denied|security verification/i.test([doc.title, doc.querySelector('h1')?.textContent].join(' '))) { stopped = true; throw new Error('challenge'); }
       const data = A.extract.extract(doc, { asin: line.asin, foodOnly: false });
       if (!doc.querySelector('#productTitle') || data.asin !== line.asin || data.reason === 'product-identity-mismatch') throw new Error('label');
       if (data.ingestible && !data.ingestible.ok && data.ingestible.negatives?.length) return { nonfood: true };
@@ -130,7 +128,7 @@
     const turn = generation;
     try {
       if (!O.allowed(location) || scanHold) return;
-      const conf = await chrome.storage.local.get(['historyEnabled', 'historyOwner', 'googleProfile', 'enabled', 'purchaseHistory', 'weights', 'foodOnly', 'goals', 'allergens', 'diets', 'avoidList', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'ocrLabels', 'useOpenFoodFacts', 'ratePace', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'orderBadgePlacement', 'hoverBreakdown', 'breakdownDelayMs', 'breakdownDetail', 'theme', 'palette']);
+      const conf = await chrome.storage.local.get(['historyEnabled', 'historyOwner', 'googleProfile', 'enabled', 'weights', 'foodOnly', 'goals', 'allergens', 'diets', 'avoidList', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'ocrLabels', 'useOpenFoodFacts', 'ratePace', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'orderBadgePlacement', 'hoverBreakdown', 'breakdownDelayMs', 'breakdownDetail', 'theme', 'palette']);
       if (conf.enabled === false) { note('Ingredient Check is paused. Resume it in the extension popup to show order ratings.'); return; }
       if (!conf.historyEnabled) { note('Purchase history is off. Open History & sync settings and enable import to show individual order scores and averages.'); return; }
       if (conf.historyOwner && conf.googleProfile?.email && conf.historyOwner !== conf.googleProfile.email.toLowerCase()) { note('Purchase import paused: your Google account changed. Manage history before switching accounts.'); return; }
@@ -141,7 +139,12 @@
       A.db.theme.use(conf);
       const scoring = A.db.prefs.sanitizeScoring(conf);
       const profile = await hash(JSON.stringify({ scoring: cache.fingerprint(conf, 'page'), allergens: scoring.allergens, diets: scoring.diets, avoid: scoring.avoidList })), version = chrome.runtime.getManifest().version;
-      const existing = new Map(H.merge([], conf.purchaseHistory).map(r => [r.key, r]));
+      // The history is read only now, when this page needs importing. It used to come with the settings above, so every
+      // quiet moment of a page that was already imported (and every badge the import itself painted) copied up to 10,000
+      // records out of storage before the check at the top found nothing to do.
+      const { purchaseHistory } = await chrome.storage.local.get('purchaseHistory');
+      if (turn !== generation || !O.allowed(location)) return;
+      const existing = new Map(H.merge([], purchaseHistory).map(r => [r.key, r]));
       const P = A.db.productCache, speed = A.db.speed.profile(conf.speedMode), pace = A.db.speed.pace(conf.ratePace);
       const local = await cache.readLocal([...new Set(lines.flatMap(line => [cache.key(location.hostname, line.asin), P.localKey(location.hostname, line.asin)]))], conf, null, chrome.storage);
       const items = await Promise.all(lines.map(async line => {

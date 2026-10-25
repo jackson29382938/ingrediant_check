@@ -217,39 +217,8 @@
     }
   }
 
-  async function publicDocument(response, signal) {
-    if (!response.ok) throw new Error('unavailable');
-    const type = response.headers?.get('content-type') || '';
-    if (type && !/text\/html|application\/xhtml\+xml/i.test(type)) throw new Error('unavailable');
-    const limit = 8 * 1024 * 1024;
-    const size = Number(response.headers?.get('content-length'));
-    if (size > limit) throw new Error('unavailable');
-    let html;
-    if (response.body?.getReader) {
-      const reader = response.body.getReader(), chunks = [];
-      let bytes = 0;
-      try {
-        while (true) {
-          const part = await reader.read();
-          if (part.done) break;
-          bytes += part.value.byteLength;
-          if (bytes > limit || signal.aborted) throw new Error('unavailable');
-          chunks.push(part.value);
-        }
-      } finally { await reader.cancel().catch(() => {}); }
-      const joined = new Uint8Array(bytes);
-      let offset = 0;
-      for (const chunk of chunks) { joined.set(chunk, offset); offset += chunk.byteLength; }
-      html = new TextDecoder().decode(joined);
-    } else {
-      html = await response.text();
-      if (html.length > limit) throw new Error('unavailable');
-    }
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    const challenge = [doc.title, doc.querySelector('h1')?.textContent].join(' ');
-    if (/robot or human|verify you are human|access denied|just a moment|security verification/i.test(challenge)) throw new Error('blocked');
-    return doc;
-  }
+  // Read through the shared page reader (stores/cart.js, loaded after this file and used only at call time).
+  const publicDocument = (response, signal) => root.AIR.cart.publicDocument(response, signal);
 
   function drain() {
     while (state.active < 2 && state.queue.length && state.enabled && state.badges && state.autoScoreSearch && state.searchAllowed && !state.throttled && location.href === state.url && adapter.isSearchPage(location)) {
