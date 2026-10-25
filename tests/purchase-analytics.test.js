@@ -82,3 +82,12 @@ test('a scorer result must carry the engine\'s readable verdict to be used', () 
   assert.equal(A.project(record, 'current', () => ({ parsed: 1, coverage: 1, readable: true, score: 70 })).score, 70);
   assert.equal(A.drivers(rows([record]), 'current', () => ({ parsed: 1, coverage: 1 }), () => { throw Error('unread'); }).covered, 0);
 });
+
+test('source filters distinguish captured evidence from legacy records without changing scores', () => {
+  const input=rows([r(1,'a',{source:'label-ocr'}),r(2,'b',{source:'page'}),r(3,'c')]);
+  assert.equal(A.filter(input,{source:'all'}).length,3);
+  assert.equal(A.filter(input,{source:'label-ocr'})[0].record.key,input[0].record.key);
+  assert.equal(A.filter(input,{source:'unknown'})[0].record.key,input[2].record.key);
+  assert.equal(input[0].score,50);
+  assert.equal(A.filter(rows([r(4,'d',{source:'nic-ingredients-content'})]),{source:'page'}).length,1);
+});

@@ -452,6 +452,8 @@ function sweepAges(speedMode) {
 async function sweepCache(now = Date.now()) {
   const all = await chrome.storage.local.get(null);
   const ages = sweepAges(all.speedMode);
+  const grace = self.AIR.db.speed.sanitizeRecall(all).cacheGraceDays * self.AIR.db.speed.DAY;
+  ages.s += grace; ages.p += grace;
   // s: weighted scores, p: product data (docs/CACHE.md), off: Open Food Facts records.
   const entries = Object.entries(all).filter(([k]) => /^(s|p|off):/.test(k));
   const stale = entries
@@ -890,7 +892,19 @@ function googleSaveOnce() {
       await chrome.storage.local.set({ googleBackupStatus: { ok: false, t: Date.now(), reason: 'needs-sign-in' } });
       return { ok: false, reason: 'needs-sign-in' };
     }
-    return accountSave(token);
+    let who;
+    try { who = await auth.profile(token); } catch {
+      await chrome.storage.local.set({ googleBackupStatus: { ok: false, t: Date.now(), reason: 'needs-sign-in' } });
+      return { ok: false, reason: 'needs-sign-in' };
+    }
+    const current = await chrome.storage.local.get(['googleAutoSave', 'googleLinked', 'googleProfile', 'enabled']);
+    if (current.enabled === false || !P.sanitizeToggles(current).googleAutoSave || current.googleLinked !== true) return { ok: false, reason: 'off' };
+    const email = p => String(p?.email || '').toLowerCase();
+    if (!email(who) || email(who) !== email(conf.googleProfile) || email(current.googleProfile) !== email(who)) {
+      await chrome.storage.local.set({ googleBackupStatus: { ok: false, t: Date.now(), reason: 'account-changed' } });
+      return { ok: false, reason: 'account-changed' };
+    }
+    return accountSave(token, email(who));
   });
 }
 
@@ -951,9 +965,14 @@ async function noteGoogleResult(res) {
     : { googleBackupStatus: { ok: false, t: Date.now(), reason: String(res.reason || 'failed').slice(0, 80) } });
 }
 
-async function accountSave(token) {
+async function accountSave(token, automaticOwner) {
   const P = self.AIR.db.prefs;
   const conf = await chrome.storage.local.get(BACKUP_SOURCE_KEYS);
+  if (automaticOwner) {
+    const current = await chrome.storage.local.get(['googleProfile', 'googleLinked', 'googleAutoSave', 'enabled']);
+    if (current.enabled === false || current.googleLinked !== true || !P.sanitizeToggles(current).googleAutoSave
+      || String(current.googleProfile?.email || '').toLowerCase() !== automaticOwner) return { ok: false, reason: 'off' };
+  }
   const res = await accountRequest('account', token, P.backupPayload(conf));
   const out = res.ok === true && res.tab === 'accounts' ? { ok: true } : { ok: false, reason: res.reason || res.error || 'write-not-confirmed' };
   await noteGoogleResult(out);

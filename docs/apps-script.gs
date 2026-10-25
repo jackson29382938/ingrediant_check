@@ -512,7 +512,7 @@ function json(obj) {
     const breakdown = cleanBreakdown(raw.breakdown, score);
     const plain = (v, n) => typeof v === 'string' ? v.replace(/[<>]/g, '').slice(0, n) : '';
     return { key: raw.key, store: 'amazon.com', asin: raw.asin, date: raw.date, state: raw.state,
-      name: plain(raw.name, 250), ...(breakdown ? { breakdown } : {}), ...( /^[a-f0-9]{64}$/.test(raw.orderKey || '') ? { orderKey: raw.orderKey } : {}), ...(cleanInput(raw.input) ? { input: cleanInput(raw.input) } : {}), score, profile: /^[a-f0-9]{64}$/.test(raw.profile || '') ? raw.profile : '',
+      name: plain(raw.name, 250), ...(typeof raw.source === 'string' ? { source: plain(raw.source, 60) } : {}), ...(typeof raw.rulesRevision === 'string' ? { rulesRevision: plain(raw.rulesRevision, 60) } : {}), ...(breakdown ? { breakdown } : {}), ...( /^[a-f0-9]{64}$/.test(raw.orderKey || '') ? { orderKey: raw.orderKey } : {}), ...(cleanInput(raw.input) ? { input: cleanInput(raw.input) } : {}), score, profile: /^[a-f0-9]{64}$/.test(raw.profile || '') ? raw.profile : '',
       version: plain(raw.version, 30), ingredients: plain(raw.ingredients, 2000),
       flags: Array.isArray(raw.flags) ? raw.flags.filter(x => typeof x === 'string').slice(0, 20).map(x => plain(x, 200)) : [],
       observedAt: Number.isFinite(raw.observedAt) ? Math.max(0, Math.min(Date.now() + 300000, raw.observedAt)) : 0,
@@ -530,7 +530,7 @@ function json(obj) {
       // Preserve the first usable score, even after preferences or rules change.
       const snapshot = was.score !== null && (r.score === null || was.scoredAt <= r.scoredAt) ? was : r;
       map.set(r.key, { ...latest, state: terminal?.state || latest.state, score: snapshot.score, profile: snapshot.profile, version: snapshot.version,
-        ingredients: snapshot.ingredients, flags: snapshot.flags, scoredAt: snapshot.scoredAt,
+        source: snapshot.source, rulesRevision: snapshot.rulesRevision, ingredients: snapshot.ingredients, flags: snapshot.flags, scoredAt: snapshot.scoredAt,
         ...((was.orderKey || r.orderKey) ? { orderKey: was.orderKey || r.orderKey } : {}),
         breakdown: snapshot.breakdown || ((was.scoredAt === r.scoredAt && was.score === r.score && was.profile === r.profile && was.version === r.version && was.ingredients === r.ingredients) ? was.breakdown || r.breakdown : undefined),
         input: snapshot.input || ((was.scoredAt === r.scoredAt && was.score === r.score && was.profile === r.profile && was.version === r.version && was.ingredients === r.ingredients) ? was.input || r.input : undefined) });

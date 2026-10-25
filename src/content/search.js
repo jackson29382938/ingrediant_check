@@ -118,7 +118,7 @@
         if (saved) {
           const badge = paintBadge(it.tile, hit);
           if (saved.stale && badge) {
-            badge.dataset.saved = 'true'; badge.textContent = `${hit.score} · saved`;
+            badge.dataset.saved = 'true'; if (badge.textContent !== `${hit.score} · saved`) badge.textContent = `${hit.score} · saved`;
             badge.setAttribute('aria-label', `Ingredient Check: ${hit.score}/100, saved ${new Date(hit.t).toLocaleDateString()}, ${saved.refresh && state.autoScoreSearch ? 'label refresh pending' : 'older label reading'}.`);
           }
           if (saved.refresh) enqueue(it.tile, it.asin); else queue.seen.add(it.asin);
@@ -222,7 +222,7 @@
     }
     const breakdown = hit !== 'pending' && hit !== 'unreadable' && P().state.hoverBreakdown;
     const sig = hit === 'pending' ? 'p' : hit === 'unreadable' ? '?' : `${hit.score}:${hit.verdict}`;
-    if (typeof b.getAttribute === 'function' && b.getAttribute('data-air') === sig && !b.dataset.saved) return b;
+    if (typeof b.getAttribute === 'function' && b.getAttribute('data-air') === sig && (!b.dataset.saved || b.dataset.cacheTime === String(hit.t))) return b;
     if (typeof b.setAttribute === 'function') b.setAttribute('data-air', sig);
     // A numbered badge opens the breakdown card (hover-card.js) when that setting is on, so it is a
     // focusable link (Enter opens the product, as a click does) and drops the plain tooltip the card replaces.
@@ -249,6 +249,7 @@
       b.style.cssText = 'color:#6a6a6a;background:#f7f8f8;border:2px dashed #d5d9d9;cursor:pointer;';
       return b;
     }
+    b.dataset.cacheTime = String(hit.t);
     delete b.dataset.saved;
     const c = root.AIR.panel.BAND_COLOR(hit.score);
     b.textContent = hit.score;

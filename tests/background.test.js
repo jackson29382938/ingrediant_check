@@ -475,7 +475,7 @@ test('the housekeeping sweep keeps scores and readings as long as the speed sett
   const ages = { fastest: 90, fast: 60, balanced: 30, fresh: 7, freshest: 1 };
   for (const [speedMode, days] of Object.entries(ages)) {
     const before = { t: now - (days - 0.5) * DAY };
-    const after = { t: now - (days + 0.5) * DAY };
+    const after = { t: now - (days + 7.5) * DAY };
     const w = worker({
       speedMode,
       's:amazon.com:B000000001': before, 'p:amazon.com:B000000001': before,
@@ -717,4 +717,41 @@ test('a late startup settings read cannot replace a newly selected toolbar palet
   w.call('paintActionBadge(7, 95)'); w.change({ palette: { newValue: 'cvd' } });
   release({ palette: 'standard' }); await settleBadges();
   assert.equal(w.badges.filter(b => b.kind === 'color' && b.tabId === 7).at(-1).color, w.call('self.AIR.db.theme.toolbar(95, "cvd").bg'));
+});
+
+test('automatic Google backup checks token identity and consent after authentication', async () => {
+  for (const mode of ['different-account', 'disabled', 'signed-out', 'same-account']) {
+    let posts = 0;
+    const w = worker({ googleProfile: { email: 'a@example.com' }, googleLinked: true, googleAutoSave: true }, async () => {
+      posts++; return { ok: true, json: async () => ({ ok: true, tab: 'accounts' }) };
+    });
+    w.call(`self.AIR.googleAuth.token = async () => 'a'.repeat(30); self.AIR.googleAuth.profile = async () => ({email: '${mode === 'different-account' ? 'b' : 'a'}@example.com'})`);
+    if (mode === 'disabled') w.call("self.AIR.googleAuth.token = async () => { await chrome.storage.local.set({googleAutoSave:false}); return 'a'.repeat(30); }");
+    if (mode === 'signed-out') w.call("self.AIR.googleAuth.token = async () => { await chrome.storage.local.remove('googleProfile'); return 'a'.repeat(30); }");
+    const result = await w.call('googleSaveOnce()');
+    assert.equal(posts, mode === 'same-account' ? 1 : 0, mode);
+    assert.equal(result.ok, mode === 'same-account', mode);
+  }
+});
+
+test('housekeeping retains both readings and scores throughout recall grace', async () => {
+  const now = Date.now(), day = 86400000;
+  const w = worker({ speedMode: 'freshest', cacheGraceDays: 7, 's:amazon.com:B000000001': {t:now-2*day}, 'p:amazon.com:B000000001': {t:now-2*day}, 's:amazon.com:B000000002': {t:now-9*day} });
+  await w.call(`sweepCache(${now})`);
+  assert.ok(w.data['s:amazon.com:B000000001']); assert.ok(w.data['p:amazon.com:B000000001']); assert.equal(w.data['s:amazon.com:B000000002'], undefined);
+});
+
+test('purchase sync uploads only records that differ from the remote copy', async () => {
+  const row={key:'a'.repeat(64),store:'amazon.com',asin:'B000000001',date:'2026-09-01',state:'purchased',name:'Oats',score:98,profile:'b'.repeat(64),version:'1.17.1',ingredients:'oats',flags:[],scoredAt:10000,observedAt:10000};
+  const clean=require('../src/engine/db/purchase-history.js').clean(row);let puts=0;
+  const w=worker({historyEnabled:true,historyAutoSync:true,historyOwner:'a@example.com',googleProfile:{email:'a@example.com'},purchaseHistory:[clean]},async (_url,opts)=>{
+    if(opts.method!=='POST')return{ok:true,json:async()=>({history:true,historySchema:1,historyCapacity:10000})};
+    const body=JSON.parse(opts.body);
+    if(body.kind==='historyGet')return{ok:true,json:async()=>({ok:true,kind:'historyGet',records:[clean],account:'c'.repeat(64),clearedAt:0})};
+    assert.equal(body.kind,'historyPut');puts++;return{ok:true,json:async()=>({ok:true,kind:'historyPut'})};
+  });
+  w.call("self.AIR.googleAuth.profile=async()=>({email:'a@example.com'})");
+  assert.equal((await w.call("self.AIR.historyWorker.sync('a'.repeat(30),true)")).ok,true);assert.equal(puts,0);
+  w.data.purchaseHistory=[{...clean,name:'Updated oats',observedAt:20000}];
+  assert.equal((await w.call("self.AIR.historyWorker.sync('a'.repeat(30),true)")).ok,true);assert.equal(puts,1);
 });

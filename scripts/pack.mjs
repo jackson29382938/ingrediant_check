@@ -21,7 +21,6 @@ const include = [
   '_locales',
   'vendor',
   'LICENSE',
-  'README.md',
   'docs/PRIVACY.md',
   'docs/BROWSERS.md',
   'docs/MOZILLA-REVIEW.md',
@@ -39,6 +38,7 @@ for (const browser of browsers) {
     const dest = path.join(folder, item); fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.cpSync(path.join(root, item), dest, { recursive: true, filter: source => !path.basename(source).startsWith('._') && path.basename(source) !== '.DS_Store' });
   }
+  fs.writeFileSync(path.join(folder, 'README.md'), `# Ingredient Check\n\nInstallation, updates, screenshots and help: https://github.com/jackson29382938/ingrediant_check#readme\n\nPrivacy: docs/PRIVACY.md. Browser instructions: docs/BROWSERS.md.\n`);
   if (browser === 'firefox') {
     fs.copyFileSync(path.join(root, 'src/browser-platform-firefox.js'), path.join(folder, 'src/browser-platform.js'));
     // Adapt visible browser instructions and translations, without changing shared logic or IDs.

@@ -61,6 +61,7 @@
     const selected = rows.filter(r => (!options.search || `${r.record.name} ${r.record.asin}`.toLowerCase().includes(options.search.toLowerCase()))
       && (!options.from || r.record.date >= options.from) && (!options.to || r.record.date <= options.to)
       && (!options.status || options.status === 'all' || r.record.state === options.status)
+      && (!options.source || options.source === 'all' || (options.source === 'unknown' ? !r.record.source : options.source === 'page' ? !!r.record.source && !['label-ocr', 'open-food-facts', 'ocr'].includes(r.record.source) : r.record.source === options.source))
       && (options.rating !== 'rated' || r.score !== null) && (options.rating !== 'missing' || r.score === null)
       && (options.rating !== 'flagged' || r.record.flags.length)
       && (options.min === '' || options.min === undefined || (r.score !== null && r.score >= Number(options.min)))

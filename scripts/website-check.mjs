@@ -44,7 +44,7 @@ try {
     const headers = response.headers();
     assert(headers['content-security-policy']?.includes("script-src 'none'"), 'Static-site script policy missing');
     assert.equal(headers['x-content-type-options'], 'nosniff');
-    if (route === '/') { await page.evaluate(() => Promise.all([...document.images].map(i => i.loading === 'lazy' ? (i.loading = 'eager', i.decode().catch(() => {})) : 0))); }
+    { await page.evaluate(() => Promise.all([...document.images].map(i => i.loading === 'lazy' ? (i.loading = 'eager', i.decode().catch(() => {})) : 0))); }
     const state = await page.evaluate(() => ({ overflow: document.documentElement.scrollWidth > innerWidth,
       theme: getComputedStyle(document.documentElement).colorScheme, h1: document.querySelector('h1')?.textContent,
       scripts: document.scripts.length, brokenImages: [...document.images].filter(i => i.complete && !i.naturalWidth).length, noAlt: [...document.images].filter(i => !i.alt.trim() && !i.closest('.brand')).length, missingAnchors: [...document.querySelectorAll('a[href^="#"]')].filter(a => !document.getElementById(a.hash.slice(1))).length }));

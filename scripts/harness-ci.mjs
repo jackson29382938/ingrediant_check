@@ -1280,6 +1280,17 @@ async function retailerEndToEnd(context, worker, pageErrors) {
 
     await page.goto(item.search);
     await page.waitForFunction(() => [...document.querySelectorAll('.air-badge')].some(b => /\d/.test(b.textContent)), { timeout: 10000 });
+    await page.locator('.air-badge').first().focus();
+    await page.waitForSelector('#air-retailer-details', { timeout: 5000 });
+    const detailSession = await context.newCDPSession(page);
+    await detailSession.send('DOM.enable');
+    const { nodes: detailNodes } = await detailSession.send('DOM.getFlattenedDocument', { depth: -1, pierce: true });
+    const detailAnchor = detailNodes.find(node => node.nodeName === 'A' && node.attributes?.includes('more'));
+    const detailLink = detailAnchor?.attributes?.[detailAnchor.attributes.indexOf('href') + 1];
+    await detailSession.detach();
+    if (!detailLink || new URL(detailLink).origin !== new URL(item.url).origin) throw new Error('Preview breakdown lost its store product link');
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('#air-retailer-details', { state: 'detached' });
     await page.close();
   }
   await ratingBesideTheLink(context, worker, pageErrors);

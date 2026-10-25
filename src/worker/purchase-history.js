@@ -67,10 +67,12 @@
       const merged = H.merge(afterClear, remote.records);
       // Save the merged local copy before uploads, so interrupted sync retains every record.
       await chrome.storage.local.set({ purchaseHistory: merged, historyEpoch: epoch });
-      for (let i = 0; i < merged.length; i += 100) {
+      const remoteByKey = new Map(H.merge([], remote.records).map(r => [r.key, JSON.stringify(r)]));
+      const pending = merged.filter(r => remoteByKey.get(r.key) !== JSON.stringify(r));
+      for (let i = 0; i < pending.length; i += 100) {
         const current = await chrome.storage.local.get(keys);
         if (!current.historyEnabled || current.enabled === false || (!manual && current.historyAutoSync === false) || current.historyOwner !== email(current.googleProfile)) throw new Error('off');
-        const written = await accountRequest('historyPut', token, { epoch, records: merged.slice(i, i + 100) });
+        const written = await accountRequest('historyPut', token, { epoch, records: pending.slice(i, i + 100) });
         if (written.ok !== true || written.kind !== 'historyPut') throw new Error('write-not-confirmed');
       }
       await status(true); await chrome.alarms.clear(ALARM); return { ok: true, count: merged.length };

@@ -41,7 +41,7 @@
       svg.append(svgNode('text', { x: 67 + i * 100, y: 210 - height, 'text-anchor': 'middle' }, bins[i])); svg.append(svgNode('text', { x: 67 + i * 100, y: 245, 'text-anchor': 'middle' }, labels[i]));
     }
   }
-  function options() { return { mode: $('scoreView').value, weighting: $('averageWeight').value, period: $('period').value, search: $('itemSearch').value.trim(), from: $('dateFrom').value, to: $('dateTo').value, status: $('itemStatus').value, rating: $('ratingFilter').value, min: $('scoreMin').value, max: $('scoreMax').value, sort: $('itemSort').value }; }
+  function options() { return { mode: $('scoreView').value, weighting: $('averageWeight').value, period: $('period').value, search: $('itemSearch').value.trim(), from: $('dateFrom').value, to: $('dateTo').value, status: $('itemStatus').value, source: $('sourceFilter').value, rating: $('ratingFilter').value, min: $('scoreMin').value, max: $('scoreMax').value, sort: $('itemSort').value }; }
   function render() {
     if (calculating) return;
     const opts = options(), rows = A.filter(projected, opts), s = A.stats(rows, opts.weighting), periods = A.periods(rows, opts);
@@ -74,7 +74,7 @@
     const total = el('tr'); for (const value of ['Total purchased entries', '', s.items, s.rated, fmt(s.mean)]) total.append(el('td', value)); $('orderTotals').append(total);
     $('items').replaceChildren(); for (const item of rows.slice(0, limit)) {
       const r = item.record, tr = el('tr'), name = el('td'), link = el('a', r.name); link.href = `https://www.amazon.com/dp/${r.asin}`; link.target = '_blank'; link.rel = 'noopener noreferrer'; name.append(link);
-      tr.append(el('td', r.date), name); for (const value of [r.orderKey ? `Order ${groups.get(r.orderKey)}` : 'Unknown', r.state, fmt(r.score), opts.mode === 'current' ? fmt(item.current) + (item.current !== null && item.partial ? ' (approx.)' : '') : 'Select comparison', item.delta === null ? '—' : (item.delta > 0 ? '+' : '') + fmt(item.delta), r.scoredAt ? new Date(r.scoredAt).toLocaleDateString() : 'Unavailable']) tr.append(el('td', value)); $('items').append(tr);
+      tr.append(el('td', r.date), name); for (const value of [r.orderKey ? `Order ${groups.get(r.orderKey)}` : 'Unknown', r.state, fmt(r.score), opts.mode === 'current' ? fmt(item.current) + (item.current !== null && item.partial ? ' (approx.)' : '') : 'Select comparison', item.delta === null ? '—' : (item.delta > 0 ? '+' : '') + fmt(item.delta), r.scoredAt ? new Date(r.scoredAt).toLocaleDateString() : 'Unavailable', r.source || 'Not recorded']) tr.append(el('td', value)); $('items').append(tr);
     }
     $('itemCount').textContent = `${rows.length} matching entries · ${Math.min(limit, rows.length)} shown`; $('moreItems').hidden = rows.length <= limit;
     const counts = new Map(); for (const r of rows.filter(r => r.record.state === 'purchased')) { const c = counts.get(r.record.asin) || { name: r.record.name, entries: 0, orders: new Set(), unknown: 0 }; c.entries++; if (r.record.orderKey) c.orders.add(r.record.orderKey); else c.unknown++; counts.set(r.record.asin, c); }
@@ -95,10 +95,10 @@
     if (turn !== generation) return; calculating = false; $('trends').closest('section').setAttribute('aria-busy', 'false'); projected = result; render();
   }
   let timer;
-  for (const id of ['itemSearch', 'dateFrom', 'dateTo', 'itemStatus', 'ratingFilter', 'scoreMin', 'scoreMax', 'itemSort', 'averageWeight', 'period', 'errorBars']) $(id).addEventListener('input', () => { limit = 500; clearTimeout(timer); timer = setTimeout(render, 100); });
+  for (const id of ['itemSearch', 'dateFrom', 'dateTo', 'itemStatus', 'sourceFilter', 'ratingFilter', 'scoreMin', 'scoreMax', 'itemSort', 'averageWeight', 'period', 'errorBars']) $(id).addEventListener('input', () => { limit = 500; clearTimeout(timer); timer = setTimeout(render, 100); });
   $('driverBasis').addEventListener('change', () => { void update(conf); });
   $('scoreView').addEventListener('change', () => { limit = 500; void update(conf); });
-  $('resetFilters').addEventListener('click', () => { for (const id of ['itemSearch', 'dateFrom', 'dateTo', 'scoreMin', 'scoreMax']) $(id).value = ''; $('itemStatus').value = 'all'; $('ratingFilter').value = 'all'; $('itemSort').value = 'newest'; limit = 500; render(); });
+  $('resetFilters').addEventListener('click', () => { for (const id of ['itemSearch', 'dateFrom', 'dateTo', 'scoreMin', 'scoreMax']) $(id).value = ''; $('itemStatus').value = 'all'; $('ratingFilter').value = 'all'; $('sourceFilter').value = 'all'; $('itemSort').value = 'newest'; limit = 500; render(); });
   $('moreItems').addEventListener('click', () => { limit += 500; render(); });
   AIR.historyDashboard = { update };
 })();

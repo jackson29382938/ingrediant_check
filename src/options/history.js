@@ -45,7 +45,7 @@
   $('scanOpen').addEventListener('click', () => { if (conf.historyScan?.tabId !== undefined) chrome.tabs.update(conf.historyScan.tabId, { active: true }).catch(() => say('The scan tab was closed. Resume to open another.')); });
   $('signIn').addEventListener('click', () => action(async () => { await auth(); return { ok: true }; }));
   $('sync').addEventListener('click', () => action(async () => chrome.runtime.sendMessage({ type: 'purchaseSync', token: await auth() })));
-  $('delete').addEventListener('click', () => { if (confirm('Delete purchase history from this device and your authenticated account? Import will be switched off. Offline account deletion will remain pending.')) action(async () => chrome.runtime.sendMessage({ type: 'purchaseDelete', token: conf.historyOwner ? await auth() : undefined })); });
+  $('delete').addEventListener('click', () => { if (confirm('Delete purchase history from this device and your authenticated account? Import will be switched off. Offline account deletion will remain pending.')) action(async () => chrome.runtime.sendMessage({ type: 'purchaseDelete', token: undefined })); });
   $('openOrders').addEventListener('click', () => chrome.tabs.create({ url: 'https://www.amazon.com/your-orders/orders' }));
   $('export').addEventListener('click', () => { const url = URL.createObjectURL(new Blob([JSON.stringify({ format: 'ingredient-check-purchases', records: H.merge([], conf.purchaseHistory) }, null, 2)], { type: 'application/json' })); const a = document.createElement('a'); a.href = url; a.download = 'ingredient-check-purchases.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); });
   let paintTimer;

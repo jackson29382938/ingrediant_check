@@ -20,7 +20,7 @@
   // Only a numbered badge has a breakdown; "…", "?" and the cart's status words keep their plain tooltip.
   const scoreBadge = el => {
     const b = el && el.closest && el.closest('.air-badge, .air-cart-badge');
-    return b && /^\d+$/.test((b.textContent || '').trim()) ? b : null;
+    return b && /^\d+(?: · saved)?$/.test((b.textContent || '').trim()) ? b : null;
   };
   // Events from inside the closed shadow root are retargeted to the host.
   const inCard = el => !!(host && el && (el === host || host.contains(el)));

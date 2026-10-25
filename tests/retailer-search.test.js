@@ -67,7 +67,7 @@ function runner({ ids = ['79364857'], stored = {}, query = 'oats' } = {}) {
     clearTimeout: id => { if (timers[id - 1]) timers[id - 1].active = false; },
     setInterval: fn => { intervals.push(fn); return intervals.length; }, clearInterval() {},
     MutationObserver: class { constructor(callback) { this.callback = callback; observers.push(this); } observe() {} disconnect() {} },
-    DOMParser: class { parseFromString(html) { return { productData: JSON.parse(html), querySelector: () => null, querySelectorAll: () => [] }; } },
+    DOMParser: class { parseFromString(html) { return { title: JSON.parse(html).pageTitle || '', productData: JSON.parse(html), querySelector: () => null, querySelectorAll: () => [] }; } },
     fetch: (url, options = {}) => new Promise((resolve, reject) => {
       const request = { url: String(url), options, resolve, reject }; requests.push(request);
       options.signal?.addEventListener('abort', () => reject(Object.assign(new Error('Aborted'), { name: 'AbortError' })), { once: true });
@@ -192,4 +192,17 @@ test('retailer search rejects non-HTML and oversized responses without inventing
 test('retailer automatic-rating opt-out keeps status visible without requesting pages', async () => {
   const w = runner({ stored: { autoScoreSearch: false } }); await w.flush();
   assert.equal(w.requests.length, 0); assert.equal(w.badges()[0].textContent, 'Open to rate');
+});
+
+test('a retailer search enumerates tiles a bounded number of times per pass', async () => {
+  const w = runner({ids:Array.from({length:50},(_,i)=>String(10000000+i)),stored:{autoScoreSearch:false}});
+  let calls=0; const original=w.api.adapter.searchTiles;
+  w.api.adapter.searchTiles=(...args)=>{calls++;return original(...args);};
+  w.api.pass(); await w.flush(1); assert.ok(calls<=3, `enumerated ${calls} times`);
+});
+
+test('HTTP-200 Press and Hold challenges stop the remaining retailer queue', async () => {
+  const w=runner({ids:['10000000','10000001','10000002','10000003']}); await w.flush();
+  assert.equal(w.requests.length,2); w.reply(0,{pageTitle:'Press & Hold',ingredients:''}); await w.flush();
+  assert.equal(w.api.state.throttled,true); assert.equal(w.requests.length,2);
 });

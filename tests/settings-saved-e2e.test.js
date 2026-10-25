@@ -82,6 +82,7 @@ account = GMAIL, local = {}, signedIn = true } = {}) {
     clearTimeout: id => { const i = timers.findIndex(t => t.id === id); if (i >= 0) timers.splice(i, 1); },
     fetch: async (url, options) => {
       if (!state.network) throw new Error('offline');
+      if (String(url) === 'https://openidconnect.googleapis.com/v1/userinfo') return { ok: true, json: async () => ({email:state.account.email}) };
       assert.equal(String(url), prefs.endpoint(), `the worker may only call the database: ${url}`);
       const body = JSON.parse(options.body);
       if (state.hold) await new Promise(resolve => state.holds.push(resolve));

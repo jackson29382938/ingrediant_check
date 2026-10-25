@@ -119,3 +119,9 @@ test('multi-product shipment wrappers are split only at distinct image-bearing p
   assert.deepEqual(rows.map(r => r.name), ['Vitamin gummies', 'Protein bars']);
   assert.equal(O.read(createDocument(card('<span><a href="/dp/B000000001">Oats</a></span><span><a href="/dp/B000000002">Chips</a></span>')), loc).length, 0);
 });
+
+test('recorded source and rule revision survive later imports under a different scorer', () => {
+  const first=record(1,{source:'label-ocr',rulesRevision:'old'});
+  const later=record(1,{score:20,source:'page',rulesRevision:'new',scoredAt:20000,observedAt:20000});
+  const merged=H.merge([first],[later])[0]; assert.equal(merged.source,'label-ocr');assert.equal(merged.rulesRevision,'old');assert.equal(merged.score,98);
+});

@@ -20,11 +20,14 @@
     host = document.createElement('div'); host.id = 'air-order-details'; host.setAttribute('role', 'dialog'); host.setAttribute('aria-label', `${line.name}: purchase score ${record.score}/100`);
     host.style.cssText = 'position:fixed;z-index:2147483000;width:min(360px,calc(100vw - 16px));max-height:70vh;overflow:auto;box-shadow:0 4px 18px #0004;border-radius:12px';
     shadow = host.attachShadow({ mode: 'closed' });
-    const style = document.createElement('style'); style.textContent = ':host{font:14px/1.5 sans-serif;color:#111;background:#fff}.box{padding:14px;background:#fff;color:#111}h3{margin:0 0 8px;font-size:16px}p{margin:8px 0}button{padding:6px 10px;background:#fff;color:#007185;border:1px solid #007185;border-radius:6px}button:focus-visible,a:focus-visible{outline:3px solid #007185}'; shadow.append(style);
+    const dark = conf.theme === 'dark' || (conf.theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+    if (dark) { host.style.setProperty('--detail-bg', '#1a211d'); host.style.setProperty('--detail-fg', '#e6ece8'); }
+    const style = document.createElement('style'); style.textContent = ':host{font:14px/1.5 sans-serif;color:var(--detail-fg,#111);background:var(--detail-bg,#fff)}.box{padding:14px;background:var(--detail-bg,#fff);color:var(--detail-fg,#111)}h3{margin:0 0 8px;font-size:16px}p{margin:8px 0}button{padding:6px 10px;background:#fff;color:#007185;border:1px solid #007185;border-radius:6px}button:focus-visible,a:focus-visible{outline:3px solid #007185}'; shadow.append(style);
     const box = document.createElement('div'); box.className = 'box'; shadow.append(box);
     const add = (tag, text) => { const node = document.createElement(tag); node.textContent = text; box.append(node); return node; };
     add('h3', `${record.score}/100 · ${line.name}`);
     add('p', `Purchase snapshot rated ${new Date(record.scoredAt).toLocaleDateString()}. Version ${record.version}.`);
+    if (record.flags.length) { const list = document.createElement('ul'); box.append(list); for (const flag of record.flags) { const li = document.createElement('li'); li.textContent = flag; list.append(li); } }
     if (record.breakdown) {
       add('p', `Original base: ${record.breakdown.base} points`);
       const list = document.createElement('ul'); box.append(list);
@@ -35,7 +38,6 @@
       for (const link of A.panel.shadowOf(panel).querySelectorAll('a')) { link.target = '_blank'; link.rel = 'noopener noreferrer'; }
     } else {
       add('p', 'This is the saved purchase rating. The current scoring setup or label may differ; historical point deductions are not reconstructed.');
-      if (record.flags.length) { const list = document.createElement('ul'); box.append(list); for (const flag of record.flags) { const li = document.createElement('li'); li.textContent = flag; list.append(li); } }
     }
     if (record.ingredients) { const details = document.createElement('details'); const summary = document.createElement('summary'); summary.textContent = 'Saved ingredient list'; details.append(summary); const text = document.createElement('p'); text.textContent = record.ingredients; details.append(text); box.append(details); }
     else add('p', 'The ingredient list was not saved with this snapshot. Open the product for its current label.');

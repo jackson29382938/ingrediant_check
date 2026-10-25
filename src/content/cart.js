@@ -74,7 +74,7 @@
     schedule();
   }
   function schedule() { clearTimeout(timer); timer = setTimeout(pass, 200); }
-  function paint(tile, hit, status) {
+  function paint(tile, hit, status, saved = false) {
     let b = tile.anchor.querySelector('.air-cart-badge');
     if (!b) {
       b = document.createElement('span'); b.className = 'air-cart-badge';
@@ -85,7 +85,7 @@
       }
       tile.anchor.insertBefore(b, tile.anchor.firstChild);
     }
-    const label = hit ? `${hit.score}` : status === 'checking' ? 'Checking label…' : status === 'not-food' ? 'Not a food' : status === 'unavailable' ? 'Label unavailable' : 'Open to rate';
+    const label = hit ? `${hit.score}${saved ? ' · saved' : ''}` : status === 'checking' ? 'Checking label…' : status === 'not-food' ? 'Not a food' : status === 'unavailable' ? 'Label unavailable' : 'Open to rate';
     if (b.textContent !== label) b.textContent = label;
     b.dataset.airProduct = tile.id; b.dataset.airStatus = hit ? 'scored' : status || 'limited';
     // As on a results page: where this page has the breakdown card (Amazon, hover-card.js) a score opens it from the
@@ -101,10 +101,6 @@
     }
     const color = hit ? A.db.theme.band(hit.score) : { fg: '#374151', bg: '#f3f4f6', ring: '#9ca3af' };
     for (const k of ['fg', 'bg', 'ring']) b.style.setProperty('--' + k, color[k]);
-  }
-  function markSaved(tile, hit) {
-    const badge = tile.anchor.querySelector('.air-cart-badge');
-    if (badge) { badge.textContent = `${hit.score} · saved`; badge.setAttribute('aria-label', `Ingredient Check: ${hit.score}/100, saved ${new Date(hit.t).toLocaleDateString()}.`); }
   }
   async function read(job, turn) {
     const control = new AbortController(); controllers.add(control);
@@ -140,7 +136,7 @@
       // can say why. Amazon only (A.page), and never shared.
       A.page?.rememberProduct(job.id, { input, via: data.via, confidence: data.confidence, food: food.ok !== false }, { share: false });
       job.hit = { schema: cache.SCHEMA, cacheRevision: cache.CACHE_REVISION, v: version, t: Date.now(), store: cache.normalizeStore(location.hostname), asin: job.id,
-        prefs: cache.fingerprint(raw, 'page'), source: 'page', score: result.score, verdict: result.verdict, nova: result.nova, name: data.title.slice(0, 120) };
+        prefs: cache.fingerprint(raw, 'page'), source: 'page', input, score: result.score, verdict: result.verdict, nova: result.nova, name: data.title.slice(0, 120) };
       await chrome.storage.local.set({ [cache.key(location.hostname, job.id)]: job.hit });
     } catch { if (turn === generation) job.status = 'unavailable'; }
     finally { clearTimeout(timeout); controllers.delete(control); if (turn === generation) { active--; schedule(); } }
@@ -157,14 +153,13 @@
       if (!tile.anchor.isConnected) continue;
       const saved = scores[cache.key(location.hostname, tile.id)];
       const recalled = cache.recall(saved, { store: location.hostname, asin: tile.id, version, prefs: raw, maxAgeMs: speed.maxAgeMs });
-      if (recalled && !recalled.refresh) { paint(tile, saved); if (recalled.stale) markSaved(tile, saved); done.push({ id: tile.id, score: saved.score, status: 'scored' }); continue; }
+      if (recalled && !recalled.refresh) { paint(tile, saved, undefined, recalled.stale); done.push({ id: tile.id, score: saved.score, status: 'scored' }); continue; }
       let job = jobs.get(tile.id);
       if (!job && settings.autoScoreSearch && !blocked && used < speed.autoFetches && active < 2) {
         job = { ...tile, status: 'checking' }; jobs.set(tile.id, job); used++; active++; void read(job, turn);
       }
       const status = job?.status || (blocked ? 'unavailable' : 'limited');
-      paint(tile, job?.hit || recalled?.hit, status);
-      if (recalled?.stale && !job?.hit) markSaved(tile, saved);
+      paint(tile, job?.hit || recalled?.hit, status, recalled?.stale && !job?.hit);
       done.push({ id: tile.id, score: job?.hit?.score ?? recalled?.hit.score, status: job?.hit || recalled ? 'scored' : status });
     }
     renderSummary(done, tiles);

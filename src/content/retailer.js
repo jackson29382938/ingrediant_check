@@ -65,11 +65,11 @@
       : { type: 'pageScore', status: result && result.status });
   }
 
-  function cacheEntry(id, result, name, source) {
+  function cacheEntry(id, result, name, source, input) {
     return {
       schema: CACHE.SCHEMA, cacheRevision: CACHE.CACHE_REVISION, v: VERSION, t: Date.now(), store: STORE, asin: id,
       prefs: CACHE.fingerprint(state.raw, source), score: result.score, verdict: result.verdict,
-      nova: result.nova, source, provenanceSource: '', name: String(name || '').slice(0, 120),
+      nova: result.nova, ...(input ? { input } : {}), source, provenanceSource: '', name: String(name || '').slice(0, 120),
     };
   }
 
@@ -82,14 +82,15 @@
   }
 
   function scoreText(host, data, text, via) {
-    const result = root.AIR.engine.score({ name: data.title, ingredients_text: text, advisory_text: data.advisoryText, nutrition: data.nutrition }, state.prefs);
+    const input = { name: data.title, ingredients_text: text, advisory_text: data.advisoryText, nutrition: data.nutrition };
+    const result = root.AIR.engine.score(input, state.prefs);
     if (!root.AIR.engine.isReadable(result)) {
       show(host, P.renderFailure({ lowCoverage: true, storeName: adapter.name }), 'fail', { paste: onPaste(host, data) });
       badge({ status: 'fail' });
       return;
     }
     show(host, P.render(result, { title: data.title, confidence: via === 'manual-paste' ? 1 : 0.95, via, report: false }), 'scored');
-    const entry = cacheEntry(data.id, result, data.title, via === 'manual-paste' ? 'manual-paste' : (via === 'food-override' ? 'food-override' : 'page'));
+    const entry = cacheEntry(data.id, result, data.title, via === 'manual-paste' ? 'manual-paste' : (via === 'food-override' ? 'food-override' : 'page'), input);
     badge({ ...entry });
     // Pasted and overridden scores stay on this tab, as on Amazon.
     if (entry.source === 'page') chrome.storage.local.set({ [CACHE.key(STORE, data.id)]: entry });
@@ -164,12 +165,11 @@
   }
 
   // ------------------------------------------------------------------ search page
-  function currentTile(tile) {
-    return tile.anchor && tile.anchor.isConnected && adapter.searchTiles(document).some(now =>
-      now.id === tile.id && now.anchor === tile.anchor);
+  function currentTile(tile, current) {
+    return tile.anchor && tile.anchor.isConnected && current.get(tile.anchor) === tile.id;
   }
 
-  function paintBadge(tile, hit, status = '') {
+  function paintBadge(tile, hit, status = '', saved = false) {
     const anchor = tile.anchor;
     let b = anchor.querySelector('.' + BADGE_CLASS);
     // Image-only links cannot contain a badge: it would change the image box/grid tracks.
@@ -184,7 +184,7 @@
       b.style.cssText = 'display:inline-flex!important;position:static!important;float:none!important;'
         + 'vertical-align:middle!important;margin:4px 0 4px 6px!important;max-width:100%!important;';
       if (tile.badgePlacement === 'corner') b.style.cssText = 'display:inline-flex!important;position:absolute!important;'
-        + 'top:6px!important;left:6px!important;z-index:2!important;max-width:calc(100% - 12px)!important;pointer-events:none!important;';
+        + 'top:6px!important;left:6px!important;z-index:2!important;max-width:calc(100% - 12px)!important;pointer-events:auto!important;';
       if (b.attachShadow) {
         const shadow = b.attachShadow({ mode: 'open' });
         shadow.innerHTML = '<style>:host{line-height:normal}span{display:inline-flex;align-items:center;'
@@ -194,7 +194,7 @@
           + '<span><slot></slot></span>';
       }
     }
-    const text = hit ? String(hit.score) : status === 'checking' ? 'Checking label…'
+    const text = hit ? String(hit.score) + (saved ? ' · saved' : '') : status === 'checking' ? 'Checking label…'
       : status === 'unavailable' ? 'Label unavailable' : status === 'not-food' ? 'Not a food'
       : status === 'limited' ? 'Open to rate' : 'Open to rate';
     const title = hit ? `Ingredient Check: ${hit.score}/100 — ${hit.verdict}`
@@ -209,6 +209,7 @@
     b.dataset.airStatus = hit ? 'scored' : status;
     b.setAttribute('aria-label', title);
     b.setAttribute('role', 'img');
+    if (hit?.input) b.setAttribute('tabindex', '0');
     const c = hit ? P.BAND_COLOR(hit.score) : { fg: '#374151', bg: '#f3f4f6', ring: '#9ca3af' };
     if (b.style.setProperty) {
       b.style.setProperty('--air-fg', c.fg);
@@ -247,7 +248,7 @@
     }
     const doc = new DOMParser().parseFromString(html, 'text/html');
     const challenge = [doc.title, doc.querySelector('h1')?.textContent].join(' ');
-    if (/robot or human|verify you are human|access denied|just a moment|security verification/i.test(challenge)) throw new Error('blocked');
+    if (/press.*hold|robot or human|verify you are human|access denied|just a moment|security verification/i.test(challenge)) throw new Error('blocked');
     return doc;
   }
 
@@ -281,7 +282,7 @@
         const result = root.AIR.engine.score({ name: data.title, ingredients_text: data.ingredients,
           advisory_text: data.advisoryText, nutrition: data.nutrition }, state.prefs);
         if (!root.AIR.engine.isReadable(result)) throw new Error('unavailable');
-        const entry = cacheEntry(job.id, result, data.title, 'page');
+        const entry = cacheEntry(job.id, result, data.title, 'page', { name: data.title, ingredients_text: data.ingredients, advisory_text: data.advisoryText, nutrition: data.nutrition });
         state.requests.set(job.id, { hit: entry });
         try { await chrome.storage.local.set({ [CACHE.key(STORE, job.id)]: entry }); }
         catch (e) { /* The score can still be displayed on this tab if persistence fails. */ }
@@ -322,11 +323,12 @@
     const keys = tiles.map(x => CACHE.key(STORE, x.id));
     CACHE.readLocal(keys, state.raw, got => {
       if (generation !== state.generation || !state.enabled || !state.badges || location.href !== state.url) return;
+      const current = new Map(adapter.searchTiles(document).map(tile => [tile.anchor, tile.id]));
       for (const x of tiles) {
-        if (!currentTile(x)) continue;
+        if (!currentTile(x, current)) continue;
         const hit = got && got[CACHE.key(STORE, x.id)];
         const saved = CACHE.recall(hit, { store: STORE, asin: x.id, version: VERSION, prefs: state.raw, maxAgeMs: state.maxAgeMs });
-        if (saved && !saved.refresh) { paintBadge(x, hit); if (saved.stale) markSaved(x, hit); continue; }
+        if (saved && !saved.refresh) { paintBadge(x, hit, '', saved.stale); continue; }
         let job = state.requests.get(x.id);
         if (!job && state.autoScoreSearch && adapter.productUrl && !state.throttled && state.fetchCount < state.fetchLimit) {
           job = { status: 'checking' };
@@ -334,17 +336,11 @@
           state.fetchCount++;
           state.queue.push({ id: x.id, generation });
         }
-        paintBadge(x, job?.hit || saved?.hit || null, job?.status || (state.throttled ? 'unavailable' : 'limited'));
-        if (saved?.stale && !job?.hit) markSaved(x, hit);
+        paintBadge(x, job?.hit || saved?.hit || null, job?.status || (state.throttled ? 'unavailable' : 'limited'), saved?.stale && !job?.hit);
       }
       drain();
     }, chrome.storage);
     return false;
-  }
-
-  function markSaved(tile, hit) {
-    const badge = tile.anchor?.querySelector('.air-badge') || tile.tile?.querySelector('.air-badge');
-    if (badge) { badge.textContent = `${hit.score} · saved`; badge.setAttribute('aria-label', `Ingredient Check: ${hit.score}/100, saved ${new Date(hit.t).toLocaleDateString()}.`); }
   }
 
   function clearBadges() { document.querySelectorAll('.' + BADGE_CLASS).forEach(b => b.remove()); }
@@ -411,6 +407,34 @@
     }
     chrome.storage.local.get(KEYS, o => { readSettings(o || {}); reset(); });
   });
+
+  let detailHost, detailTurn = 0, detailTimer;
+  function closeDetails() { detailTurn++; clearTimeout(detailTimer); detailHost?.remove(); detailHost = null; }
+  async function showDetails(badge) {
+    const turn = ++detailTurn, id = badge.dataset.airProduct;
+    if (!id || !state.enabled) return;
+    const display = await chrome.storage.local.get(['hoverBreakdown', 'breakdownDetail']);
+    if (display.hoverBreakdown === false) return;
+    const got = await CACHE.readLocal([CACHE.key(STORE, id)], state.raw, null, chrome.storage);
+    const hit = got[CACHE.key(STORE, id)];
+    if (turn !== detailTurn || !badge.isConnected || !hit?.input || !CACHE.recall(hit, {store:STORE, asin:id, version:VERSION, prefs:state.raw, maxAgeMs:state.maxAgeMs})) return;
+    const result = root.AIR.engine.score(hit.input, state.prefs);
+    if (!root.AIR.engine.isReadable(result)) return;
+    detailHost?.remove(); detailHost = document.createElement('div');
+    detailHost.id = 'air-retailer-details'; detailHost.style.cssText = 'position:fixed;z-index:2147483000;max-height:70vh;overflow:auto';
+    const shadow = P.mount(detailHost, P.renderBreakdown(result, {asin:id, score:hit.score, verdict:hit.verdict, detail:display.breakdownDetail}));
+    for (const link of shadow.querySelectorAll('a')) { link.href = adapter.productUrl(id, location); link.target = '_blank'; link.rel = 'noopener noreferrer'; }
+    document.body.append(detailHost);
+    const rect = badge.getBoundingClientRect(); detailHost.style.left = `${Math.max(8,Math.min(rect.left,innerWidth-356))}px`; detailHost.style.top = `${Math.max(8,Math.min(rect.bottom+6,innerHeight-detailHost.offsetHeight-8))}px`;
+    detailHost.addEventListener('mouseenter',()=>clearTimeout(detailTimer));
+    detailHost.addEventListener('mouseleave',()=>{detailTimer=setTimeout(closeDetails,250);});
+  }
+  const detailBadge = node => node?.closest?.('.air-badge, .air-cart-badge');
+  document.addEventListener?.('mouseover', e => { const badge=detailBadge(e.target); if (badge) {clearTimeout(detailTimer); void showDetails(badge);} });
+  document.addEventListener?.('mouseout', e => { if (detailBadge(e.target)) detailTimer=setTimeout(closeDetails,250); });
+  document.addEventListener?.('focusin', e => { const badge=detailBadge(e.target); if (badge) void showDetails(badge); });
+  document.addEventListener?.('keydown', e => { if (e.key === 'Escape') closeDetails(); });
+  if (typeof addEventListener === 'function') addEventListener('scroll',closeDetails,true);
 
   // The popup's "This page" card.
   chrome.runtime.onMessage.addListener((msg, sender, reply) => {
