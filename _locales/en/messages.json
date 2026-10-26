@@ -1849,5 +1849,11 @@
         "content": "$1"
       }
     }
+  },
+  "optSortFollowSearch": {
+    "message": "Follow new searches in the side panel"
+  },
+  "optSortFollowSearchD": {
+    "message": "On by default. An open comparison follows new Amazon searches in its source tab. Turn off to keep the previous results."
   }
 }

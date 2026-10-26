@@ -184,7 +184,7 @@ const EXPECTED_KEYS = ['accent', 'allergens', 'autoScoreSearch', 'avoidList', 'b
   'diets', 'foodOnly', 'goalImportance', 'goals', 'googleAutoSave', 'hoverBreakdown', 'hoverScore', 'ocrLabels', 'orderBadgePlacement',
   'palette', 'panelOpen', 'pointsEnabled', 'ratePace', 'scoreHoverDelayMs', 'sendDiagnostics', 'settingsBackup', 'settingsLevel',
   'shareContributions', 'sharedCache', 'sharedProducts', 'sortCount', 'sortLoadMore', 'sortMissing',
-  'sortPriorities', 'sortRemember', 'sortTimeLimit', 'speedMode', 'theme', 'unitMissing', 'unitPrice', 'useOpenFoodFacts', 'weights'];
+  'sortPriorities', 'sortRemember', 'sortFollowSearch', 'sortTimeLimit', 'speedMode', 'theme', 'unitMissing', 'unitPrice', 'useOpenFoodFacts', 'weights'];
 
 // What a saved copy must hold for `key` after VARIANTS[key] was set, judged against the test value
 // itself rather than against the code under test. A key missing from the copy fails here.

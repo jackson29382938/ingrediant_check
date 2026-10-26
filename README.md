@@ -166,6 +166,14 @@ This lightweight view hides health scores and health priorities and skips ingred
 and certification lookups. Missing or incompatible package sizes remain unknown rather than being
 guessed. Loading extra results pages still follows your existing sort settings.
 
+### Keep the comparison on your current search
+
+An open side panel or comparison tab follows new Amazon searches in its original source tab by
+default. It updates the results without requiring another sort-menu selection. Other Amazon tabs
+cannot replace that comparison, and closing the comparison stops automatic collection.
+Turn off **Settings → Sort by score or unit price → Follow new searches in the side panel** to keep
+the previous results instead. Non-food searches continue to use price-only comparisons.
+
 ### Explore your purchase trends
 
 Opt into **Amazon purchase history** in setup or Purchase history’s own settings. Import an opened

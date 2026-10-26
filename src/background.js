@@ -1,3 +1,4 @@
+/* global extensionPagePath */
 // Service worker.
 //
 // Scoring is local. This worker holds the only network paths, and never fetches Amazon pages:
@@ -275,6 +276,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (msg && msg.type === 'ping') { reply({ ok: true }); return false; }
   // Amazon's sort menu (src/content/sort.js). openSortedPanel must reach sidePanel.open before any
   // await, so it is not wrapped in a promise chain here.
+  if (msg && msg.type === 'followSortedSearch') { followSortedSearch(msg, sender).then(reply, () => reply({ok:false})); return true; }
   if (msg && msg.type === 'openSortedPanel') { openSortedPanel(msg, sender, reply); return true; }
   if (msg && msg.type === 'updateSortedResults') {
     updateSortedResults(msg, sender).then(reply, e => reply({ ok: false, reason: String((e && e.message) || e) }));
@@ -308,6 +310,35 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
 //
 // Chrome opens the side panel only in response to a user action. The click in Amazon's menu counts
 // only while this listener runs, so sidePanel.open is the first thing called, before any await.
+// View ports are live only while a panel/comparison tab exists. Never open a panel or
+// collect new searches just because an old comparison remains in session storage.
+const sortedViews = new Set();
+chrome.runtime.onConnect?.addListener(port => {
+  if (port.name !== 'sorted-view' || !['/src/options/sidepanel.html','/src/options/sorted.html'].includes(extensionPagePath(port.sender))) return;
+  sortedViews.add(port); port.onDisconnect.addListener(() => sortedViews.delete(port));
+  chrome.storage.session.get('sortedResults').then(({sortedResults:list}) => {
+    if (list?.sourceTabId !== undefined) chrome.tabs.sendMessage(list.sourceTabId,{type:'sortFollow'}).catch(()=>{});
+  }).catch(()=>{});
+});
+let sortedFollowChain = Promise.resolve();
+function followSortedSearch(msg, sender) {
+  const task = sortedFollowChain.catch(() => {}).then(() => followSortedSearchOnce(msg, sender));
+  sortedFollowChain = task; return task;
+}
+async function followSortedSearchOnce(msg, sender) {
+  const conf = await chrome.storage.local.get(['enabled','sortFollowSearch']);
+  if (!sortedViews.size || conf.enabled === false || conf.sortFollowSearch === false) return {ok:false};
+  const url = self.AIR.db.sortedResults.sanitizeSourceUrl(msg.sourceUrl);
+  const tab = chrome.tabs?.get ? await chrome.tabs.get(sender.tab?.id) : sender.tab;
+  if (!url || !isAmazonSearchUrl(url) || tab?.id !== sender.tab?.id || tab.url !== url || sender.url !== url || sender.frameId !== 0) return {ok:false};
+  const {sortedResults:list} = await chrome.storage.session.get('sortedResults');
+  if (!sortedViews.size || !list || list.sourceTabId !== tab.id || (list.sourceUrl === url && !!list.priceOnly === (msg.priceOnly === true))) return {ok:false};
+  const runId = crypto.randomUUID();
+  const mode = msg.priceOnly === true ? 'unitPrice' : list.mode;
+  await chrome.storage.session.set({sortedResults:{...list,runId,mode,sourceUrl:url,priceOnly:msg.priceOnly===true,unitEnabled:msg.unitEnabled!==false,unit:'',items:[],loading:true,status:'',t:Date.now()},sortUnit:'auto'});
+  return {ok:true,runId,mode};
+}
+
 function openSortedPanel(msg, sender, reply) {
   const R = self.AIR.db.sortedResults;
   const tab = (sender && sender.tab) || {};

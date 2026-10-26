@@ -644,6 +644,7 @@
 
   // The panel's Stop button (sorted.js) asks this tab directly.
   function onPanelMessage(msg, sender, respond) {
+    if (msg?.type === 'sortFollow') { if (sender?.id === chrome.runtime.id && !sender.tab) followSearch(true); return false; }
     if (msg && msg.type === 'sortStart') {
       // From this extension's worker only, for a page this extension is sorting.
       const own = sender && sender.id === chrome.runtime.id && !sender.tab;
@@ -670,9 +671,18 @@
   // Called by main.js on a food results page while Ingredient Check is on. Idempotent.
   // Only on stores whose menus and listings the tests cover (storefronts.js `sort`).
   const storeSupported = () => !SF() || SF().sortEnabled(location.hostname);
+  let followedURL = '';
+  function followSearch(force = false) {
+    if (!mounted || (!force && followedURL === location.href)) return;
+    const url = location.href, generation = run;
+    followedURL = url;
+    send({type:'followSortedSearch',sourceUrl:url,priceOnly,unitEnabled:P().state.unitPrice!==false}).then(reply => {
+      if (reply?.ok && typeof reply.runId === 'string' && mounted && location.href === url && run === generation) void startFromCommand(reply);
+    });
+  }
   function mount(options = {}) {
     const nextPriceOnly = options.priceOnly === true;
-    if (mounted && nextPriceOnly !== priceOnly) unmount();
+    if (mounted && nextPriceOnly !== priceOnly) { unmount(); followedURL = ''; }
     priceOnly = nextPriceOnly;
     const { state } = P();
     if (!state.enabled || !isSearchPage() || !storeSupported()) return;
@@ -687,6 +697,7 @@
     }
     mounted = true;
     install();
+    followSearch();
     if (U()) storageGet(Object.keys(U().UNIT_DEFAULTS)).then(got => {
       const next = U().sanitizeUnit(got);
       if (next.unitMissing !== unitSettings.unitMissing) { unitSettings = next; menuUnitHeld = { sig: '', unit: null }; if (mounted) install(); }

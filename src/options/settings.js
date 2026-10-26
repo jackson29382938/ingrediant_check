@@ -896,6 +896,7 @@ function wireLevel() {
 function wirePanelAndHover() {
   bindToggle('panelOpen');
   bindToggle('sortRemember');
+  bindToggle('sortFollowSearch');
   const delay = document.getElementById('scoreHoverDelayMs');
   const val = document.getElementById('scoreHoverDelayVal');
   if (!delay) return;

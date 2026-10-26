@@ -628,6 +628,20 @@
     renderList();
   }
 
+  let viewPort, reconnect, viewClosed = false;
+  function connectView() {
+    if (viewPort || viewClosed || (isPanel && document.visibilityState === 'hidden')) return;
+    try { const port = chrome.runtime.connect({name:'sorted-view'}); viewPort=port; port.onDisconnect.addListener(() => { if (viewPort !== port) return; viewPort=null; if (!viewClosed) reconnect=setTimeout(connectView,1000); }); } catch { /* test environments without ports */ }
+  }
+  function disconnectView() { viewClosed=true; clearTimeout(reconnect); const port=viewPort; viewPort=null; port?.disconnect(); }
+  window.addEventListener('pagehide', disconnectView);
+  window.addEventListener('pageshow', () => { if (viewClosed) { viewClosed=false; connectView(); } });
+  document.addEventListener('visibilitychange', () => {
+    if (!isPanel) return;
+    if (document.visibilityState === 'hidden') disconnectView();
+    else { viewClosed=false; connectView(); }
+  });
+  connectView();
   build();
   // New listings (or a new choice in Amazon's menu) while this page is open.
   try {

@@ -67,6 +67,7 @@ const TOGGLE_DEFAULTS = {
   panelOpen: false,
   // The sorted list reopens with the priorities the reader last set for that menu option.
   sortRemember: true,
+  sortFollowSearch: true,
   // While signed in with Google, keep the Google copy up to date on every change. Only acts once
   // this computer has saved to or restored from that account, so a new computer cannot overwrite
   // the saved copy with its defaults.

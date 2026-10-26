@@ -755,3 +755,19 @@ test('purchase sync uploads only records that differ from the remote copy', asyn
   w.data.purchaseHistory=[{...clean,name:'Updated oats',observedAt:20000}];
   assert.equal((await w.call("self.AIR.historyWorker.sync('a'.repeat(30),true)")).ok,true);assert.equal(puts,1);
 });
+
+test('search following requires an open view, enabled preference and the original source tab', async () => {
+  const url='https://www.amazon.com/s?k=milk',old='https://www.amazon.com/s?k=oats';
+  const w=worker({});
+  w.call(`self.__session={sortedResults:{runId:'old',sourceTabId:3,sourceUrl:'${old}',mode:'health',items:[{score:90}],loading:false}};chrome.storage.session={get:async()=>self.__session,set:async v=>Object.assign(self.__session,v)}`);
+  const sender={id:'ext',frameId:0,url,tab:{id:3,url}};
+  assert.equal((await w.call(`followSortedSearch({sourceUrl:'${url}'},${JSON.stringify(sender)})`)).ok,false);
+  w.call('sortedViews.add({})');
+  assert.equal((await w.call(`followSortedSearch({sourceUrl:'${url}'},${JSON.stringify({...sender,tab:{id:8,url}})})`)).ok,false);
+  w.data.sortFollowSearch=false;
+  assert.equal((await w.call(`followSortedSearch({sourceUrl:'${url}'},${JSON.stringify(sender)})`)).ok,false);
+  w.data.sortFollowSearch=true;
+  const replies=await w.call(`Promise.all([followSortedSearch({sourceUrl:'${url}',priceOnly:true},${JSON.stringify(sender)}),followSortedSearch({sourceUrl:'${url}',priceOnly:true},${JSON.stringify(sender)})])`);
+  assert.equal(replies.filter(r=>r.ok).length,1);
+  const list=w.call('self.__session.sortedResults');assert.equal(list.sourceUrl,url);assert.equal(list.items.length,0);assert.equal(list.mode,'unitPrice');assert.equal(list.priceOnly,true);
+});

@@ -411,7 +411,7 @@ async function run() {
       }
       // productsLookup is the badge pass asking the worker (it answers from the shared database only when that is
       // on); logAction is a line for "Report a problem"'s recent actions.
-      if (run.types.some(t => !['openSortedPanel', 'updateSortedResults', 'productsLookup', 'logAction'].includes(t))) throw new Error(`messages: ${run.types}`);
+      if (run.types.some(t => !['openSortedPanel', 'updateSortedResults', 'productsLookup', 'logAction', 'followSortedSearch'].includes(t))) throw new Error(`messages: ${run.types}`);
       sentResults = items;
 
       // The score option, from the keyboard (a change on the <select> itself).

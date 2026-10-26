@@ -1849,5 +1849,11 @@
         "content": "$1"
       }
     }
+  },
+  "optSortFollowSearch": {
+    "message": "Neue Suchen in der Seitenleiste verfolgen"
+  },
+  "optSortFollowSearchD": {
+    "message": "Standardmäßig aktiviert. Ein offener Vergleich folgt neuen Amazon-Suchen im ursprünglichen Tab. Ausschalten, um die bisherigen Ergebnisse zu behalten."
   }
 }
