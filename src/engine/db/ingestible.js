@@ -212,7 +212,7 @@ function looksNonFoodFromTitle(title) {
 // broken. Only clear negative evidence stops it.
 
 // Amazon search-alias values (the `i=` parameter).
-const FOOD_ALIASES = /^(grocery|amazonfresh|fresh|wholefoods|gourmet-food|natural-foods|specialty-foods|beverages|nutrition)$/i;
+const FOOD_ALIASES = /^(grocery|same-day-grocery|amazonfresh|fresh|wholefoods|gourmet-food|natural-foods|specialty-foods|beverages|nutrition)$/i;
 const NONFOOD_ALIASES = /^(fashion(-\w+)?|apparel|shoes|watches|jewelry|handbags|luggage|electronics|computers|mobile|photo|videogames|software|instant-video|movies-tv|dvd|music|popular|classical|stripbooks|digital-text|audible|audiobooks|toys-and-games|baby-toys|tools|hi|garden|lawngarden|appliances|automotive|industrial|mi|office-products|arts-crafts|sporting|outdoor|pets|beauty|luxury-beauty|premium-beauty|gift-cards|collectibles|handmade|vehicles|financial|localservices|smart-home|furniture|kitchen)$/i;
 
 const STUB_DOC = { querySelector: () => null };

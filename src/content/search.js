@@ -23,7 +23,8 @@
   // with no title; arming those fetched product pages for badges that could never be shown, and on
   // a kefir search 37 of them spent the auto-score budget before the last real results. A card that
   // renders its title later is picked up by the next pass, since nothing marks it until then.
-  const TITLE_SEL = 'h2, [data-cy="title-recipe"]';
+  // Grocery storefronts can use linked text or h3 instead of the standard h2 title.
+  const TITLE_SEL = 'h2, h3, [data-cy="title-recipe"], [data-testid="product-title"], [data-test-id="product-title"], a[href*="/dp/"] .a-text-normal, a[href*="/gp/product/"] .a-text-normal, a[href*="/dp/"] .a-size-base-plus';
   const badgeable = tile => !!tile.querySelector(TITLE_SEL);
 
   const searchGate = { url: null, decision: null };
@@ -409,8 +410,8 @@
   }
 
   function tileTitle(tile) {
-    const el = tile.querySelector('h2 a, h2, [data-cy="title-recipe"]');
-    return ((el && el.innerText) || '').replace(/\s+/g, ' ').trim();
+    const el = tile.querySelector(TITLE_SEL);
+    return ((el && (el.innerText || el.textContent)) || '').replace(/\s+/g, ' ').trim();
   }
 
   function enqueue(tile, asin, { front = false } = {}) {

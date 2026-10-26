@@ -284,7 +284,8 @@
   // not inside another such element. This used to also demand an `h2 a` link or Amazon's image
   // link; current Amazon cards put the h2 INSIDE the link (and grocery / Whole Foods cards may have
   // neither), so on those pages no card qualified and the side panel stayed empty.
-  const TITLE_SEL = 'h2, [data-cy="title-recipe"]';
+  // Grocery storefronts can use linked text or h3 instead of the standard h2 title.
+  const TITLE_SEL = 'h2, h3, [data-cy="title-recipe"], [data-testid="product-title"], [data-test-id="product-title"], a[href*="/dp/"] .a-text-normal, a[href*="/gp/product/"] .a-text-normal, a[href*="/dp/"] .a-size-base-plus';
   const ASIN = /^[A-Z0-9]{10}$/;
   const isCard = card => !!(card.dataset && ASIN.test(card.dataset.asin || '') && card.querySelector(TITLE_SEL));
   function productCardsIn(doc) {
@@ -337,7 +338,7 @@
     const badge = (card.querySelector('.air-badge')?.textContent || '').trim();
     const withoutBadge = s => (badge && s.startsWith(badge) ? s.slice(badge.length) : s).trim();
     const titleNode = card.querySelector('h2 a.a-text-normal') || card.querySelector('h2 a') || card.querySelector('h2')
-      || card.querySelector('[data-cy="title-recipe"]');
+      || card.querySelector(TITLE_SEL);
     const linkNode = card.querySelector('h2 a')
       || [...card.querySelectorAll('a[href]')].find(a => /\/(?:dp|gp\/product)\/[A-Z0-9]{10}/.test(a.getAttribute('href') || ''))
       || card.querySelector('a.a-link-normal.s-no-outline');

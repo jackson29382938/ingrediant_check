@@ -24,3 +24,12 @@ the store location are removed. TCINs are real, because they are public product 
 
 Layout changes that were not captured are written inline in `tests/target.test.js` and marked
 synthetic.
+
+## Same-day Amazon grocery layout regression
+
+`amazon-same-day-grocery.html` is a synthetic fixture for the reported
+`/s?k=cottage+cheese&i=same-day-grocery&srs=219444219011` route. It exercises linked title spans,
+`/gp/product/` links and `h3` headings without standard `h2` result titles. The real browser harness
+checks cold label requests, three visible score badges and three scored comparison results.
+This is not a capture or a claim of live delivery-area verification: the cloud's public request
+returned Amazon's “Sorry! Something went wrong!” page.

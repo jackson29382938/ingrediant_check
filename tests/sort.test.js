@@ -472,3 +472,10 @@ test('price-only priorities cannot retain health weights or fall back to health 
   const unit=R.sanitizeWeights({health:10},{healthEnabled:false});assert.equal(unit.health,0);assert.equal(unit.unitPrice,10);
   const price=R.sanitizeWeights({health:10},{healthEnabled:false,unitEnabled:false});assert.equal(price.health,0);assert.equal(price.price,10);
 });
+
+test('same-day grocery is an explicit food department without weakening other department checks', () => {
+  const gate=require('../src/engine/db/ingestible.js');
+  assert.equal(gate.assessSearch({alias:'same-day-grocery',query:'organic'}).signal,'department');
+  assert.equal(gate.assessSearch({alias:'beauty',query:'cottage cheese'}).ok,false);
+  assert.equal(gate.assessSearch({alias:'same-day-grocery-other',query:'running shoes'}).ok,false);
+});
