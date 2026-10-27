@@ -21,7 +21,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // 2026-10-27.4: personal-care and supplement indices read real labels and titles. Drug Facts blocks and
   // INCI joins are read as lists, ingredient names are recognized by shape, supplement servings above an
   // adult upper limit and documented cautions are charged, and more titles are claimed (fewer wrongly).
-  // Food rules are untouched. See docs/releases/1.17.2.md and docs/PERSONAL-CARE.md.
+  // Food rules are untouched. See docs/releases/1.18.0.md and docs/PERSONAL-CARE.md.
   const RULES_REVISION = '2026-10-27.4';
   const RULES_HASH = '11f8902d-351301';
   const _exports = AIRmodule('revision', { RULES_REVISION, RULES_HASH });
