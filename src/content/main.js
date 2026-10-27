@@ -224,7 +224,7 @@
   }
 
   chrome.storage.local.get(['enabled', 'badges', 'hoverScore', 'autoScoreSearch', 'hoverBreakdown',
-    'breakdownDetail', 'breakdownDelayMs', 'scoreHoverDelayMs', 'panelOpen', 'foodOnly', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList', 'useOpenFoodFacts', 'sharedCache', 'sharedProducts', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'ratePace', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'unitPrice', 'theme', 'palette', 'accent'], o => {
+    'breakdownDetail', 'breakdownDelayMs', 'scoreHoverDelayMs', 'panelOpen', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList', 'useOpenFoodFacts', 'sharedCache', 'sharedProducts', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'ratePace', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'unitPrice', 'theme', 'palette', 'accent'], o => {
     const toggles = AIR.db.prefs.sanitizeToggles(o);
     state.cacheOptions = { ...o, ...toggles };
     state.enabled = toggles.enabled;
@@ -252,18 +252,20 @@
       allergens: clean.allergens,
       diets: clean.diets,
       avoidList: clean.avoidList,
+      ratingStyle: clean.ratingStyle, personalCareEnabled: clean.personalCareEnabled,
     };
   }
 
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area && area !== 'local') return;
-    for (const key of ['cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sharedCache', 'sharedProducts', 'sheetIndexRev', 'producerIndexRev']) {
+    for (const key of ['cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'weights', 'avoidList', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'ocrLabels', 'useOpenFoodFacts', 'sharedCache', 'sharedProducts', 'sheetIndexRev', 'producerIndexRev']) {
       if (changes[key]) state.cacheOptions[key] = Object.hasOwn(AIR.db.prefs.TOGGLE_DEFAULTS, key)
         ? AIR.db.prefs.sanitizeToggles({ [key]: changes[key].newValue })[key] : changes[key].newValue;
     }
-    if (changes.weights || changes.allergens || changes.diets || changes.avoidList) {
-      chrome.storage.local.get(['weights', 'allergens', 'diets', 'avoidList'], o => {
+    if (changes.weights || changes.allergens || changes.diets || changes.avoidList || changes.ratingStyle || changes.personalCareEnabled) {
+      chrome.storage.local.get(['weights', 'allergens', 'diets', 'avoidList', 'ratingStyle', 'personalCareEnabled'], o => {
         readPrefs(o);
+        resetSearchGate();
         resetListState();
         removePanel();
         state.lastKey = null;

@@ -30,6 +30,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
       rules: (AIR.db.revision && AIR.db.revision.RULES_REVISION) || '',
       weights: Object.keys(weights).sort().map(k => [k, weights[k]]),
       foodOnly: raw.foodOnly !== false,
+      ratingStyle: AIR.db.prefs.sanitizeScoring(raw).ratingStyle,
+      personalCareEnabled: raw.personalCareEnabled !== false,
+      avoidList: AIR.db.prefs.sanitizeScoring(raw).ratingStyle === 'preferences' ? AIR.db.prefs.sanitizeScoring(raw).avoidList : [],
       sheetRevision: raw.sheetIndexRev || '', producerRevision: raw.producerIndexRev || '',
     };
     // Toggling OCR / OFF must not retire DOM-extracted chips. Only entries produced by those
@@ -69,7 +72,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
       out.push({
         key: cacheKey, store: hit.store, asin: hit.asin,
         name: hit.name || '', score: hit.score, verdict: hit.verdict || '',
-        nova: hit.nova, source: hit.source, t: hit.t,
+        nova: hit.nova, source: hit.source, t: hit.t, category: hit.category || 'food', ratingStyle: hit.ratingStyle || 'food',
         provenanceSource: hit.provenanceSource || '',
       });
     }

@@ -17,8 +17,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // 2026-10-18.1: declared shares and "contains 2% or less of" blocks set an ingredient's weight, the
   // label's own allergen line is no longer scored as ingredients, and text written with full-width,
   // bullet or HTML separators is read as the list it is. See docs/releases/1.16.0.md.
-  const RULES_REVISION = '2026-10-18.1';
-  const RULES_HASH = '2718bb60-291892';
+  const RULES_REVISION = '2026-10-27.3';
+  const RULES_HASH = '1d759120-326680';
   const _exports = AIRmodule('revision', { RULES_REVISION, RULES_HASH });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 })();

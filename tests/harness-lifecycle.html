@@ -30,7 +30,7 @@ window.MutationObserver = function (cb) {
 };
 // Minimal chrome surface. Settings are whatever the query string says.
 const params = new URLSearchParams(location.search);
-const SETTINGS = { enabled: params.get('enabled') !== '0', badges: true, foodOnly: true,
+const SETTINGS = { enabled: params.get('enabled') !== '0', badges: true, foodOnly: true, personalCareEnabled: false,
   hoverScore: false, autoScoreSearch: false, ocrLabels: false, sendDiagnostics: false,
   useOpenFoodFacts: false, weights: {}, allergens: [], diets: [], avoidList: [] };
 window.chrome = {
@@ -71,7 +71,7 @@ history.replaceState({}, '', '/dp/B00TESTTEST' + location.search);
 <script src="/src/engine/db/unit-price.js"></script>
 <script src="/src/engine/db/speed.js"></script>
 <script src="/src/engine/db/points.js"></script>
-<script src="/src/engine/score.js"></script>
+<script src="/src/engine/db/product-ratings.js"></script><script src="/src/engine/score.js"></script>
 <script src="/src/content/extract.js"></script>
 <script src="/vendor/dompurify/purify.js"></script>
 <script src="/src/content/panel.js"></script>

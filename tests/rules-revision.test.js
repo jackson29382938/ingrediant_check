@@ -20,7 +20,7 @@ const revision = require(src('engine/db/revision.js'));
 const RULE_SOURCES = [
   'engine/score.js', 'engine/categories.js',
   'engine/db/oils.js', 'engine/db/sugars.js', 'engine/db/additives.js', 'engine/db/labels.js',
-  'engine/db/allergens.js', 'engine/db/provenance.js',
+  'engine/db/allergens.js', 'engine/db/provenance.js', 'engine/db/ingestible.js', 'engine/db/product-ratings.js',
 ];
 
 // FNV-1a over the concatenated sources, line endings normalised so a checkout on Windows agrees.

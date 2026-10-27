@@ -285,7 +285,7 @@ function productOnPage(url) {
 function paintStoreCard(card, live, adapter) {
   let version = '';
   try { version = chrome.runtime.getManifest().version; } catch (e) { /* ignore */ }
-  chrome.storage.local.get(['weights', 'foodOnly', 'sheetIndexRev', 'producerIndexRev', 'speedMode'], obj => {
+  chrome.storage.local.get(['weights', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'avoidList', 'sheetIndexRev', 'producerIndexRev', 'speedMode'], obj => {
     if (!CACHE.valid(live, { store: live.store, asin: live.asin, version, prefs: obj, allowManual: true, maxAgeMs: maxAgeFor(obj.speedMode) })) {
       card.hidden = true;
       return;
@@ -313,7 +313,7 @@ function paintStoreCard(card, live, adapter) {
     verdict.textContent = live.verdict || '';
     const sub = document.createElement('div');
     sub.className = 'ps-sub';
-    sub.textContent = [NOVA_SHORT[live.nova], live.name].filter(Boolean).join(' · ');
+    sub.textContent = [live.category && live.category !== 'food' ? `${live.category} · ${live.ratingStyle}` : NOVA_SHORT[live.nova], live.name].filter(Boolean).join(' · ');
     meta.append(verdict, sub);
     row.append(num, meta);
     card.append(kicker, row);
@@ -358,7 +358,7 @@ function paintPageScore() {
     }
     const store = new URL(url).hostname;
     const key = CACHE.key(store, asin);
-    chrome.storage.local.get([key, 'weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sheetIndexRev', 'producerIndexRev', 'speedMode'], async obj => {
+    chrome.storage.local.get([key, 'weights', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'avoidList', 'ocrLabels', 'useOpenFoodFacts', 'sheetIndexRev', 'producerIndexRev', 'speedMode'], async obj => {
       let live = null;
       try { live = await chrome.tabs.sendMessage(tab.id, { type: 'currentPageScore' }); } catch { /* tab has no active content script */ }
       const context = { store, asin, version, prefs: obj, maxAgeMs: maxAgeFor(obj.speedMode) };
@@ -397,7 +397,7 @@ function paintPageScore() {
         : hit.source === 'food-override' ? msg('srcShortOverride', 'Food filter overridden (this tab)')
         : hit.source === 'label-ocr' ? msg('srcShortOcr', 'Label photo')
         : hit.source === 'open-food-facts' ? msg('srcShortBarcode', 'Open Food Facts') : msg('srcShortPage', 'Product page');
-      sub.textContent = [NOVA_SHORT[hit.nova], hit.name, source, hit.provenanceSource].filter(Boolean).join(' · ');
+      sub.textContent = [hit.category && hit.category !== 'food' ? `${hit.category} · ${hit.ratingStyle}` : NOVA_SHORT[hit.nova], hit.name, source, hit.provenanceSource].filter(Boolean).join(' · ');
       meta.append(verdict, sub);
       row.append(num, meta);
       card.append(kicker, row);
@@ -433,7 +433,7 @@ function paintCompareCard(hit) {
   verdict.textContent = hit.verdict || '';
   const sub = document.createElement('div');
   sub.className = 'ps-sub';
-  sub.textContent = [NOVA_SHORT[hit.nova], hit.name, hit.asin].filter(Boolean).join(' · ');
+  sub.textContent = [hit.category && hit.category !== 'food' ? `${hit.category} · ${hit.ratingStyle}` : NOVA_SHORT[hit.nova], hit.name, hit.asin].filter(Boolean).join(' · ');
   card.append(num, verdict, sub);
   const store = AIR.stores.storeForHost(hit.store);
   if (store) {
@@ -475,10 +475,10 @@ function paintCompare() {
   // Only the saved scores and the settings they are checked against, not the product readings.
   (async () => {
     const scoreKeys = (await CACHE.storedKeys(chrome.storage.local)).filter(k => k.startsWith('s:'));
-    const all = await chrome.storage.local.get([...scoreKeys, 'weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts',
+    const all = await chrome.storage.local.get([...scoreKeys, 'weights', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'avoidList', 'ocrLabels', 'useOpenFoodFacts',
       'sheetIndexRev', 'producerIndexRev', 'compareA', 'compareB', 'speedMode']);
     const prefs = {
-      weights: all.weights, foodOnly: all.foodOnly, ocrLabels: all.ocrLabels,
+      weights: all.weights, foodOnly: all.foodOnly, ratingStyle: all.ratingStyle, personalCareEnabled: all.personalCareEnabled, avoidList: all.avoidList, ocrLabels: all.ocrLabels,
       useOpenFoodFacts: all.useOpenFoodFacts,
       sheetIndexRev: all.sheetIndexRev, producerIndexRev: all.producerIndexRev,
     };
@@ -506,6 +506,9 @@ function paintCompare() {
     const hitB = listed.find(h => h.key === bKey);
     grid.textContent = '';
     grid.append(paintCompareCard(hitA), paintCompareCard(hitB));
+    if (hitA.category !== hitB.category || hitA.ratingStyle !== hitB.ratingStyle) {
+      const note = document.createElement('p'); note.textContent = 'Different categories or rating styles: these scores are not directly comparable.'; grid.append(note);
+    }
     if (aKey !== all.compareA || bKey !== all.compareB) persist({ compareA: aKey, compareB: bKey });
   })().catch(() => { block.hidden = true; });
 }
@@ -561,7 +564,7 @@ chrome.storage.onChanged.addListener(changes => {
     renderPresets(o.weights, o.goals);
   });
   if (changes.popupShowWhy) paintWhy(changes.popupShowWhy.newValue === true);
-  if (Object.keys(changes).some(k => /^(s|p|off):/.test(k) || ['weights', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sheetIndexRev', 'producerIndexRev', 'compareA', 'compareB'].includes(k))) {
+  if (Object.keys(changes).some(k => /^(s|p|off):/.test(k) || ['weights', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'avoidList', 'ocrLabels', 'useOpenFoodFacts', 'sheetIndexRev', 'producerIndexRev', 'compareA', 'compareB'].includes(k))) {
     paintCacheCount();
     paintPageScore();
     paintCompare();

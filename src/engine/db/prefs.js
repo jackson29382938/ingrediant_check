@@ -39,6 +39,7 @@ const TOGGLE_DEFAULTS = {
   enabled: true,
   badges: true,
   foodOnly: true,
+  personalCareEnabled: true,
   // When enabled, product pages are fetched from Amazon a few at a
   // time (at most 60 per page); scores saved on this computer, and shared readings when the reader
   // turned them on, answer the rest without a fetch.
@@ -179,6 +180,8 @@ function sanitizeScoring(raw) {
     allergens: uniqueKnown(src.allergens, allergenIds),
     diets: uniqueKnown(src.diets, dietIds),
     avoidList: sanitizeAvoidList(src.avoidList),
+    ratingStyle: ['evidence', 'minimal', 'preferences'].includes(src.ratingStyle) ? src.ratingStyle : 'evidence',
+    personalCareEnabled: asBool(src.personalCareEnabled, true),
     foodOnly: asBool(src.foodOnly, true),
   };
 }
@@ -227,6 +230,8 @@ function exportPayload(prefs) {
     allergens: clean.allergens,
     diets: clean.diets,
     avoidList: clean.avoidList,
+    ratingStyle: clean.ratingStyle,
+    personalCareEnabled: clean.personalCareEnabled,
     foodOnly: clean.foodOnly,
   };
 }
@@ -288,7 +293,7 @@ function diffSettings(stored, copyValues) {
 }
 
 // Every key a settings file or backup can carry; the worker watches these to refresh its backup.
-const SETTING_KEYS = [...new Set(['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly',
+const SETTING_KEYS = [...new Set(['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'ratingStyle', 'foodOnly',
   ...WORKFLOW_KEYS, ...Object.keys(TOGGLE_DEFAULTS), ...Object.keys(DISPLAY_DEFAULTS)])];
 
 // Two banks keep the previous backup readable if staging a new one fails. Only the final

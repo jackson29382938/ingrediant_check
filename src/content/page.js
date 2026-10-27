@@ -122,7 +122,7 @@
     const entry = {
       schema: CACHE.SCHEMA, cacheRevision: CACHE.CACHE_REVISION, v: ENGINE_VERSION, t,
       store: storeHost(), asin, prefs: CACHE.fingerprint(cachePrefs(), source || 'page'),
-      score: result.score, verdict: result.verdict, nova: result.nova,
+      score: result.score, verdict: result.verdict, nova: result.nova, category: result.category || 'food', ratingStyle: result.ratingStyle || 'food',
       source: source || 'page',
       provenanceSource: provenanceSource || '',
       name: String(name || '').replace(/\s+/g, ' ').trim().slice(0, 120),

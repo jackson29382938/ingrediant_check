@@ -47,6 +47,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
 
   // Best score first. Missing scores keep their relative order at the end; equal scores keep Amazon's.
   function sortByScore(products) {
+    if (new Set((products || []).filter(p => Number.isFinite(p.score)).map(p => `${p.category || 'food'}:${p.ratingStyle || 'food'}`)).size > 1) return products.slice();
     return (Array.isArray(products) ? products : []).map((product, index) => ({ product, index }))
       .sort((left, right) => {
         const a = finiteScore(left.product && left.product.score);
@@ -138,6 +139,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
       unitPrices: prices,
       unitSources: sources,
       servings: Number.isFinite(servings) && servings >= 1 && servings <= 1000 ? Math.round(servings * 10) / 10 : null,
+      category: /^(?:food|toothpaste|mouthwash|deodorant|shampoo|conditioner|body-wash|moisturizer|supplement)$/.test(raw.category) ? raw.category : 'food',
+      ratingStyle: /^(?:food|evidence|minimal|preferences)$/.test(raw.ratingStyle) ? raw.ratingStyle : 'food',
       score: finiteScore(raw.score),
       verdict: str(raw.verdict, 20),
       source: SOURCES.has(raw.source) ? raw.source : 'unrated',
@@ -227,8 +230,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
     const price = lowIsBetter(logs('listingPrice'));
     const counts = items.map(p => (p && Number.isFinite(p.reviewCount) && p.reviewCount >= 0 ? Math.log10(p.reviewCount + 1) : null));
     const maxCount = Math.max(0, ...counts.filter(v => v != null));
+    const mixed = new Set(items.filter(p => Number.isFinite(p.score)).map(p => `${p.category || 'food'}:${p.ratingStyle || 'food'}`)).size > 1;
     return items.map((p, i) => ({
-      health: finiteScore(p && p.score) == null ? null : p.score / 100,
+      health: mixed ? null : finiteScore(p && p.score) == null ? null : p.score / 100,
       unitPrice: unit[i],
       price: price[i],
       rating: p && Number.isFinite(p.ratingValue) ? Math.min(1, Math.max(0, p.ratingValue / 5)) : null,

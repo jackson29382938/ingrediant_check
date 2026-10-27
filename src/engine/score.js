@@ -15,7 +15,7 @@
     ? { oils: req('./db/oils.js'), sugars: req('./db/sugars.js'),
         additives: req('./db/additives.js'), labels: req('./db/labels.js'),
         allergens: req('./db/allergens.js'), categories: req('./categories.js'),
-        provenance: req('./db/provenance.js') }
+        provenance: req('./db/provenance.js'), ingestible: req('./db/ingestible.js'), productRatings: req('./db/product-ratings.js') }
     : root.AIR.db;
   const api = factory(db);
   if (req) module.exports = api;
@@ -904,6 +904,8 @@ function cleanText(value) {
 // ---------------------------------------------------------------- scoring
 // options: { weights, allergens, diets, avoidList }
 function score(product, options = {}) {
+  const rating = db.productRatings?.rate(product, options, parseEntries);
+  if (rating) { rating.readable = isReadable(rating); return rating; }
   const W = db.categories ? db.categories.resolveWeights(options.weights) : {};
   const nutritionInfo = normaliseNutrition(product.nutrition);
   const w_ = id => (id in W ? W[id] : 1);

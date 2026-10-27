@@ -305,6 +305,11 @@
 
   <section id="sec-rate" data-level="1">
     <h2 data-i18n="optRateH">What to rate</h2>
+    <div class="opt"><label class="sw"><input type="checkbox" id="personalCareEnabled" role="switch" checked><span class="sw-title" data-i18n="optPersonalCare">Rate personal care and supplements</span></label>
+      <p class="sw-hint" data-i18n="optCareHelp">Uses category-specific label indices. Missing evidence stays unavailable. Food ratings retain their own rules.</p></div>
+    <div class="opt"><label for="ratingStyle" data-i18n="optRatingStyle">Personal-care and supplement rating style</label>
+      <select id="ratingStyle"><option value="evidence" data-i18n="styleEvidence">Evidence-based</option><option value="minimal" data-i18n="styleMinimal">Minimal ingredients</option><option value="preferences" data-i18n="stylePreferences">Preference-focused</option></select>
+      <p class="sw-hint" data-i18n="optStyleHelp">Evidence-based uses disclosed category functions or Supplement Facts. Minimal favors fewer ingredients. Preference-focused uses your avoid list. These indices do not establish safety or effectiveness.</p></div>
     <p class="note"><a href="history.html#historySettings">Order badge placement and purchase import</a></p>
     <p class="sec-lede" data-i18n="optNoteRateSame">The same switches as in the toolbar popup.</p>
     <div class="opt">

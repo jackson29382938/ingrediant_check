@@ -26,7 +26,7 @@
   // The toolbar icon shows the cart's average on a cart tab, as it shows a product's score on a product page.
   let badged;
   function publishBadge(s) {
-    const score = s && s.rated ? s.average : undefined;
+    const score = s && s.rated && s.average != null ? s.average : undefined;
     if (score === badged) return;
     badged = score;
     try {
@@ -51,11 +51,11 @@
       place.parent.insertBefore(summary, place.before);
     }
     const q = sel => summary.shadowRoot.querySelector(sel);
-    q('.num').textContent = String(s.average);
-    q('.t').textContent = `${t('cartAverage', 'Cart average')} · ${s.verdict}`;
+    q('.num').textContent = s.average == null ? '—' : String(s.average);
+    q('.t').textContent = s.groups ? s.groups.map(g => `${g.category}: ${g.average}`).join(' · ') : `${t('cartAverage', 'Cart average')} · ${s.verdict}`;
     q('.s').textContent = [t('cartRated', '$1 of $2 items rated', s.rated, s.total), s.pending ? t('cartChecking', 'checking…') : '',
       earnedHere ? t('cartXpGained', '+$1 XP', earnedHere) : '', lv ? t('cartLevel', 'Level $1 · $2/$3 XP', lv.level, lv.into, lv.need) : ''].filter(Boolean).join(' · ');
-    const c = A.db.theme.band(s.average);
+    const c = A.db.theme.band(s.average == null ? 50 : s.average);
     for (const k of ['fg', 'bg', 'ring']) summary.style.setProperty('--' + k, c[k]);
     summary.dataset.airSig = sig;
   }
@@ -63,7 +63,7 @@
   // stored object is read and written only when there is something new). Never touches a score.
   async function award(items) {
     if (!settings.pointsEnabled) return;
-    const fresh = items.filter(i => Number.isFinite(i.score) && !awarded.has(i.id)), turn = generation;
+    const fresh = items.filter(i => Number.isFinite(i.score) && (!i.category || i.category === 'food') && !awarded.has(i.id)), turn = generation;
     if (!fresh.length) return;
     for (const i of fresh) awarded.add(i.id);
     const stored = (await chrome.storage.local.get('xp')).xp;
@@ -85,7 +85,7 @@
       }
       tile.anchor.insertBefore(b, tile.anchor.firstChild);
     }
-    const label = hit ? `${hit.score}${saved ? ' · saved' : ''}` : status === 'checking' ? 'Checking label…' : status === 'not-food' ? 'Not a food' : status === 'unavailable' ? 'Label unavailable' : 'Open to rate';
+    const label = hit ? `${hit.score}${hit.category && hit.category !== 'food' ? ` · ${hit.category}` : ''}${saved ? ' · saved' : ''}` : status === 'checking' ? 'Checking label…' : status === 'not-food' ? 'Not a food' : status === 'unavailable' ? 'Label unavailable' : 'Open to rate';
     if (b.textContent !== label) b.textContent = label;
     b.dataset.airProduct = tile.id; b.dataset.airStatus = hit ? 'scored' : status || 'limited';
     // As on a results page: where this page has the breakdown card (Amazon, hover-card.js) a score opens it from the
@@ -93,7 +93,7 @@
     const card = !!(hit && settings.hoverBreakdown && A.hoverCard), air = hit ? `${hit.score}:${hit.verdict}` : '', sig = `${air}|${card}`;
     if (b.dataset.airSig !== sig) {   // not on every pass: the card sets aria-expanded while it is open
       b.dataset.airSig = sig;
-      const name = hit ? `Ingredient Check: ${hit.score}/100 — ${hit.verdict}` : 'Ingredient Check: open this product to read or paste its ingredient label.';
+      const name = hit ? `Ingredient Check: ${hit.score}/100 — ${hit.verdict}${hit.category && hit.category !== 'food' ? ` · ${hit.category} · ${hit.ratingStyle}` : ''}` : 'Ingredient Check: open this product to read or paste its ingredient label.';
       if (air) b.dataset.air = air; else delete b.dataset.air;
       for (const a of ['title', 'tabindex', 'aria-haspopup', 'aria-expanded']) b.removeAttribute(a);
       b.setAttribute('aria-label', name); b.setAttribute('role', card ? 'link' : 'img');
@@ -122,13 +122,14 @@
       if (turn !== generation || control.signal.aborted || location.href !== url || !C.allowed(location)) return;
       if (/robot or human|verify you are human|access denied|press.*hold|just a moment|security verification/i.test([doc.title, doc.querySelector('h1')?.textContent].join(' '))) { blocked = true; throw new Error('blocked'); }
       const data = a.readProduct(doc, final);
+      data.supplementFacts = data.supplementFacts || A.retailerLabels?.supplementFacts?.(doc) || '';
       if (data.real === false) { blocked = true; throw new Error('blocked'); }   // a robot check, not the product page
       if (data.id !== job.id || !data.ingredients) throw new Error('label');
       // The page's own food check when the adapter has one (Amazon: department and breadcrumbs), else the title's.
       const food = data.food || A.db.ingestible.assess({ querySelector: () => null }, { title: data.title, text: [data.title, ...(data.crumbs || []), data.labelText || ''].join('\n') });
-      if (settings.foodOnly && !food.ok && (food.negatives || []).length) { job.status = 'not-food'; return; }
+      if (settings.foodOnly && !food.ok && (food.negatives || []).length && !A.db.ingestible?.allowsProduct?.(data.title, prefs)) { job.status = 'not-food'; return; }
       // Scored from what a product page scores from, so the same product reads the same number everywhere.
-      const input = { name: data.title, labels: data.labels, certifications: data.certifications, ingredients_text: data.ingredients, advisory_text: data.advisoryText, nutrition: data.nutrition };
+      const input = { name: data.title, labels: data.labels, certifications: data.certifications, ingredients_text: data.ingredients, advisory_text: data.advisoryText, category: data.supplementFacts ? 'supplement' : undefined, supplement_facts: data.supplementFacts, nutrition: data.nutrition };
       const result = A.engine.score(input, prefs);
       if (!A.engine.isReadable(result)) throw new Error('coverage');
       if (turn !== generation || control.signal.aborted || location.href !== url || !C.allowed(location)) return;
@@ -136,7 +137,7 @@
       // can say why. Amazon only (A.page), and never shared.
       A.page?.rememberProduct(job.id, { input, via: data.via, confidence: data.confidence, food: food.ok !== false }, { share: false });
       job.hit = { schema: cache.SCHEMA, cacheRevision: cache.CACHE_REVISION, v: version, t: Date.now(), store: cache.normalizeStore(location.hostname), asin: job.id,
-        prefs: cache.fingerprint(raw, 'page'), source: 'page', input, score: result.score, verdict: result.verdict, nova: result.nova, name: data.title.slice(0, 120) };
+        prefs: cache.fingerprint(raw, 'page'), source: 'page', input, score: result.score, verdict: result.verdict, nova: result.nova, category: result.category || 'food', ratingStyle: result.ratingStyle || 'food', name: data.title.slice(0, 120) };
       await chrome.storage.local.set({ [cache.key(location.hostname, job.id)]: job.hit });
     } catch { if (turn === generation) job.status = 'unavailable'; }
     finally { clearTimeout(timeout); controllers.delete(control); if (turn === generation) { active--; schedule(); } }
@@ -153,19 +154,19 @@
       if (!tile.anchor.isConnected) continue;
       const saved = scores[cache.key(location.hostname, tile.id)];
       const recalled = cache.recall(saved, { store: location.hostname, asin: tile.id, version, prefs: raw, maxAgeMs: speed.maxAgeMs });
-      if (recalled && !recalled.refresh) { paint(tile, saved, undefined, recalled.stale); done.push({ id: tile.id, score: saved.score, status: 'scored' }); continue; }
+      if (recalled && !recalled.refresh) { paint(tile, saved, undefined, recalled.stale); done.push({ id: tile.id, score: saved.score, category: saved.category || 'food', status: 'scored' }); continue; }
       let job = jobs.get(tile.id);
       if (!job && settings.autoScoreSearch && !blocked && used < speed.autoFetches && active < 2) {
         job = { ...tile, status: 'checking' }; jobs.set(tile.id, job); used++; active++; void read(job, turn);
       }
       const status = job?.status || (blocked ? 'unavailable' : 'limited');
       paint(tile, job?.hit || recalled?.hit, status, recalled?.stale && !job?.hit);
-      done.push({ id: tile.id, score: job?.hit?.score ?? recalled?.hit.score, status: job?.hit || recalled ? 'scored' : status });
+      done.push({ id: tile.id, score: job?.hit?.score ?? recalled?.hit.score, category: job?.hit?.category || recalled?.hit.category || 'food', status: job?.hit || recalled ? 'scored' : status });
     }
     renderSummary(done, tiles);
     void award(done);
   }
-  const keys = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'pointsEnabled', 'hoverBreakdown', 'weights', 'allergens', 'diets', 'avoidList', 'speedMode', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'sheetIndexRev', 'producerIndexRev', 'theme', 'palette'];
+  const keys = ['enabled', 'badges', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'autoScoreSearch', 'pointsEnabled', 'hoverBreakdown', 'weights', 'allergens', 'diets', 'avoidList', 'speedMode', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'sheetIndexRev', 'producerIndexRev', 'theme', 'palette'];
   function load() { chrome.storage.local.get([...keys, 'xp'], o => { raw = o || {}; settings = A.db.prefs.sanitizeToggles(raw); prefs = A.db.prefs.sanitizeScoring(raw); xp = P.sanitize(raw.xp); A.db.theme.use(raw); reset(); }); }
   const observer = new MutationObserver(schedule); observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['href', 'hidden', 'aria-hidden'] });
   setInterval(() => { if (url !== location.href) reset(); }, 1000);

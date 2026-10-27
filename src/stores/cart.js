@@ -49,7 +49,7 @@
         // certifications, and the page's own food check (department and breadcrumbs, not just the title). `real`
         // is false for a robot-check page, which has no product title and is not an answer about the product.
         return { id: data.asin || id, title: data.title || '', ingredients: data.ok ? data.text || data.ingredients || '' : '',
-          nutrition: data.nutrition, advisoryText: data.advisoryText, labels: data.labels, certifications: data.certifications,
+          nutrition: data.nutrition, supplementFacts: data.supplementFacts, advisoryText: data.advisoryText, labels: data.labels, certifications: data.certifications,
           via: data.via, confidence: data.confidence, food: data.ingestible, real: !!doc.querySelector('#productTitle'), crumbs: [] };
       } };
   }
@@ -112,10 +112,14 @@
   }
   // The cart as a whole: the plain mean of the lines that have a score (quantities are never read).
   function summarize(items) {
-    const scores = items.filter(i => Number.isFinite(i.score)).map(i => i.score);
-    const average = scores.length ? Math.round(scores.reduce((sum, n) => sum + n, 0) / scores.length) : null;
+    const rated = items.filter(i => Number.isFinite(i.score));
+    const categories = [...new Set(rated.map(i => i.category || 'food'))];
+    const mean = rows => Math.round(rows.reduce((sum, i) => sum + i.score, 0) / rows.length);
+    const groups = categories.map(category => ({ category, average: mean(rated.filter(i => (i.category || 'food') === category)) }));
+    const average = rated.length && categories.length <= 1 ? mean(rated) : null;
     const band = average == null ? null : (A.engine?.BANDS || []).find(b => average >= b[0]);
-    return { total: items.length, rated: scores.length, average, verdict: band ? band[1] : '', pending: items.filter(i => i.status === 'checking').length };
+    const out = { total: items.length, rated: rated.length, average, verdict: band ? band[1] : '', pending: items.filter(i => i.status === 'checking').length };
+    return categories.length > 1 ? { ...out, groups } : out;
   }
   // Where the summary goes: under Amazon's "Shopping Cart" heading; elsewhere in front of the list the first line sits in.
   function summaryPlace(doc, loc, first) {

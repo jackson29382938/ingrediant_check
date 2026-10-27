@@ -162,7 +162,7 @@ check('foodOnly on: shampoo does not parse ingredients', () => {
   const doc = stubDoc('Head & Shoulders Classic Clean Shampoo', {
     '#nic-ingredients-content': { innerText: 'Water, Sodium Laureth Sulfate, Cocamidopropyl Betaine, Fragrance' },
   });
-  const out = extract.extract(doc, { foodOnly: true });
+  const out = extract.extract(doc, { foodOnly: true, personalCareEnabled: false });
   assert.strictEqual(out.reason, 'not-ingestible');
   assert.ok(!out.ok);
   assert.ok(!out.text);
@@ -183,7 +183,7 @@ check('food product still extracts when foodOnly is on', () => {
     '#nutritionalInfoAndIngredients_feature_div': { innerText: 'Nutrition Facts Serving size 40g Calories 150' },
     '#wayfinding-breadcrumbs_feature_div': { innerText: 'Grocery & Gourmet Food' },
   });
-  const out = extract.extract(doc, { foodOnly: true });
+  const out = extract.extract(doc, { foodOnly: true, personalCareEnabled: false });
   assert.ok(out.ok, JSON.stringify({ ok: out.ok, reason: out.reason, ingestible: out.ingestible }));
   assert.ok(/rolled oats/i.test(out.text));
 });
@@ -260,7 +260,7 @@ check('inline Ingredients: lists extract from detail bullets', () => {
       return [];
     },
   };
-  const out = extract.extract(doc, { foodOnly: true });
+  const out = extract.extract(doc, { foodOnly: true, personalCareEnabled: false });
   assert.ok(out.ok, JSON.stringify(out));
   assert.ok(/sea salt/i.test(out.text), out.text);
   assert.ok(/line-inline|line-sweep/i.test(out.via), out.via);
@@ -273,7 +273,7 @@ check('short whole-food text extracts from the nutrition card', () => {
     '#nutritionalInfoAndIngredients_feature_div': { innerText: 'Nutrition Facts Serving size 240ml Calories 150' },
     '#wayfinding-breadcrumbs_feature_div': { innerText: 'Grocery & Gourmet Food' },
   });
-  const out = extract.extract(doc, { foodOnly: true });
+  const out = extract.extract(doc, { foodOnly: true, personalCareEnabled: false });
   assert.ok(out.ok, JSON.stringify({ ok: out.ok, reason: out.reason, text: out.text }));
   assert.ok(/whole milk/i.test(out.text));
 });

@@ -435,7 +435,7 @@
       chip.addEventListener('focus', () => showWhy(chip, product));
       chip.addEventListener('mouseleave', leaveSoon);
       chip.addEventListener('blur', hideWhy);
-      score.append(chip, node('span', 'score-verdict', product.verdict || ''));
+      score.append(chip, node('span', 'score-verdict', [product.verdict, product.category !== 'food' ? product.category : ''].filter(Boolean).join(' · ')));
     } else {
       score.append(node('span', 'score-chip none', '–'), node('span', 'score-verdict none', t('sortedNoScore', 'No score')));
     }

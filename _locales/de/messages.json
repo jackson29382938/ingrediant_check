@@ -191,7 +191,7 @@
     "message": "Bewertungen für Suchergebnisse und Warenkorbartikel mit lesbaren Zutatenlisten."
   },
   "popupFoodOnly": {
-    "message": "Nur Lebensmittel & Nahrungsergänzung"
+    "message": "Nicht unterstützte Waren überspringen"
   },
   "popupAutoScore": {
     "message": "Suchergebnisse und Warenkorbartikel bewerten"
@@ -220,7 +220,7 @@
     "message": "Eine Orientierung, keine Gesundheits- oder Allergieberatung. Lies das Etikett."
   },
   "popupFoodOnlyD": {
-    "message": "Überspringt Schuhe, Spielzeug, Kosmetik und Reinigungsmittel und nennt den Grund. Eine Bewertung für Shampoo würde nahelegen, es sei als Essbares beurteilt worden."
+    "message": "Überspringt nicht unterstützte Waren. Körperpflege und Ergänzungsmittel haben eigene Einstellungen und Regeln."
   },
   "popupAutoScoreD": {
     "message": "Bewertet Suchergebnisse und Warenkorbartikel automatisch. Gespeicherte Bewertungen werden zuerst verwendet; die Geschwindigkeitseinstellung begrenzt Anfragen. Warenkorbbewertungen rufen öffentliche Produktseiten ohne Cookies oder Warenkorb-URL ab. Fehlende Zutatenlisten bleiben unbekannt. Aus: nur gespeicherte Bewertungen anzeigen."
@@ -459,7 +459,7 @@
     "message": "Settings file"
   },
   "optFoodOnly": {
-    "message": "Only rate food and supplements"
+    "message": "Nicht unterstützte Waren überspringen"
   },
   "optFilterPh": {
     "message": "Filter categories"
@@ -561,10 +561,10 @@
     "message": "Dieselben Schalter wie im Symbolleisten-Popup."
   },
   "optNoteFoodOnly": {
-    "message": "Skips shoes, toys, cosmetics, medicine and cleaning products. A score on shampoo would imply it was judged as something you could eat. When this is on, a non-food page shows why it was skipped instead of a silent blank."
+    "message": "Lebensmittel verwenden Lebensmittelregeln. Unterstützte Körperpflege und Ergänzungsmittel verwenden eigene Indizes, wenn oben aktiviert. Andere Waren werden übersprungen."
   },
   "optHintFoodOnly": {
-    "message": "Überspringt Schuhe, Spielzeug, Kosmetik und Reinigungsmittel."
+    "message": "Überspringt Schuhe, Spielzeug und andere nicht unterstützte Produkte."
   },
   "optNoteWeights": {
     "message": "Each category has its own default. A weight of 1.0 applies the listed rule normally; 0 switches its score effect off, and 2.0 doubles its deduction or credit before score limits. Some categories start at 0 or 0.5. Negative weights, available for selected categories, turn a deduction into a preference credit. Goal presets change these weights. Press / to jump to the filter."
@@ -1855,5 +1855,26 @@
   },
   "optSortFollowSearchD": {
     "message": "Standardmäßig aktiviert. Ein offener Vergleich folgt neuen Amazon-Suchen im ursprünglichen Tab. Ausschalten, um die bisherigen Ergebnisse zu behalten."
+  },
+  "optPersonalCare": {
+    "message": "Körperpflege und Nahrungsergänzungsmittel bewerten"
+  },
+  "optCareHelp": {
+    "message": "Verwendet kategoriespezifische Etikettenindizes. Fehlende Nachweise bleiben unbewertet. Lebensmittel behalten eigene Regeln."
+  },
+  "optRatingStyle": {
+    "message": "Bewertungsstil für Körperpflege und Nahrungsergänzung"
+  },
+  "styleEvidence": {
+    "message": "Evidenzbasiert"
+  },
+  "styleMinimal": {
+    "message": "Wenige Inhaltsstoffe"
+  },
+  "stylePreferences": {
+    "message": "Nach Vorlieben"
+  },
+  "optStyleHelp": {
+    "message": "Evidenzbasiert nutzt angegebene Inhaltsstofffunktionen oder Supplement Facts. Wenige Inhaltsstoffe bevorzugt kürzere Listen. Nach Vorlieben nutzt Ihre Vermeidungsliste. Diese Indizes belegen weder Sicherheit noch Wirksamkeit."
   }
 }

@@ -29,7 +29,7 @@ presets live in `categories.js`.
 Rules that are easy to break:
 
 - **Bump the revision when a score can move.** Editing `score.js`, `categories.js` or
-  `db/{oils,sugars,additives,labels,allergens,provenance}.js` fails `tests/rules-revision.test.js`
+  `db/{oils,sugars,additives,labels,allergens,provenance,ingestible,product-ratings}.js` fails `tests/rules-revision.test.js`
   until `RULES_REVISION` and `RULES_HASH` in `src/engine/db/revision.js` are updated (the failing
   test prints the hash). That retires every cached score. Then run `node scripts/scoring-audit.mjs`
   to regenerate `docs/SCORING-FACTOR-INVENTORY-2026-10-01.md`, and add or update `docs/releases/<version>.md`
@@ -44,7 +44,7 @@ Rules that are easy to break:
   asking `readable` first. Anything that wraps `engine.score()` must pass `readable` through.
 - **Panel arithmetic must add up.** Every row shown is part of the score the user sees
   (`tests/arithmetic.test.js`). A clamp pushes its own row rather than moving the score silently.
-- **Allergen, diet and avoid-list flags never move a score.**
+- **Food allergen, diet and avoid-list flags never move a score.** Personal-care/supplement indices are separate: the explicitly selected Preference-focused style counts avoid-list matches, as requested by the product specification. Allergy and diet warnings remain separate in every style. See docs/PERSONAL-CARE.md.
 - **Calibration is pinned to bands, not numbers** (`tests/corpus.json`). Moving a corpus product out of
   its band needs a reason written in the release notes.
 

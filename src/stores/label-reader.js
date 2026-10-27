@@ -75,6 +75,14 @@
     return Array.from(new Set(statements)).join('. ');
   }
 
+  function supplementFacts(doc) {
+    for (const heading of doc.querySelectorAll('h2, h3, h4, b, strong, caption')) {
+      if (excluded(heading) || !/^supplement facts\s*:?$/i.test(text(heading))) continue;
+      const value = text(heading.parentNode);
+      if (value.length <= 2000 && /\bserving size\b/i.test(value) && /\d/.test(value)) return value;
+    }
+    return '';
+  }
   function readLabel(doc) {
     let ingredients = '';
     const warnings = [];
@@ -108,7 +116,7 @@
     const nutritionSection = doc.querySelector('[data-testid="nutrition-facts"], [data-test="nutrition-facts"], #nutrition-facts');
     const nutrition = nutritionSection && !excluded(nutritionSection) && root.AIR.storeAdapters?.target?.nutritionFacts(nutritionSection);
     const open = toggle && (toggle.getAttribute('aria-expanded') === 'true' || toggle.closest('details')?.hasAttribute('open'));
-    return { ingredients, advisoryText: Array.from(new Set(warnings)).join('. '), labelText: ingredients, nutrition: nutrition || null,
+    return { ingredients, supplementFacts: supplementFacts(doc), advisoryText: Array.from(new Set(warnings)).join('. '), labelText: ingredients, nutrition: nutrition || null,
       label: ingredients ? 'open' : toggle && !open ? 'collapsed' : 'missing' };
   }
   function department(crumbs) {
@@ -137,6 +145,6 @@
     return out;
   }
   root.AIR = root.AIR || {};
-  root.AIR.retailerLabels = { clean, text, warningText, readLabel, labelToggle, sameCanonical, searchTiles, department, hiddenFromSight };
+  root.AIR.retailerLabels = { clean, text, warningText, readLabel, supplementFacts, labelToggle, sameCanonical, searchTiles, department, hiddenFromSight };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.AIR.retailerLabels;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

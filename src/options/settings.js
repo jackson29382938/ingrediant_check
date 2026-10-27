@@ -102,6 +102,8 @@ function applyScoring(next) {
   state.allergens = clean.allergens;
   state.diets = clean.diets;
   state.avoidList = clean.avoidList;
+  state.ratingStyle = clean.ratingStyle;
+  state.personalCareEnabled = clean.personalCareEnabled;
   state.foodOnly = clean.foodOnly;
 }
 
@@ -644,6 +646,10 @@ function renderAll() {
   paintAvoidHints();
   const fo = document.getElementById('foodOnly');
   if (fo) fo.checked = state.foodOnly;
+  const style = document.getElementById('ratingStyle');
+  if (style) style.value = state.ratingStyle;
+  const care = document.getElementById('personalCareEnabled');
+  if (care) care.checked = state.personalCareEnabled;
   markPresetDirty();
 }
 
@@ -1001,7 +1007,7 @@ function wireShortcuts() {
 // Called from settings-database.js, the options page's second classic script, once it has loaded.
 /* exported startSettingsPage */
 function startSettingsPage() {
-  chrome.storage.local.get(['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly'], o => {
+  chrome.storage.local.get(['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly', 'ratingStyle', 'personalCareEnabled'], o => {
     if (chrome.runtime.lastError) {
       document.getElementById('status').textContent = 'Could not load your settings. Reload this page before making changes.';
       document.getElementById('status').className = 'status toast error';
@@ -1039,6 +1045,12 @@ function startSettingsPage() {
       save({ immediate: true });
     });
 
+    document.getElementById('ratingStyle')?.addEventListener('change', e => {
+      state.ratingStyle = e.target.value; save({ immediate: true });
+    });
+    document.getElementById('personalCareEnabled')?.addEventListener('change', e => {
+      state.personalCareEnabled = e.target.checked; save({ immediate: true });
+    });
     const fo = document.getElementById('foodOnly');
     if (fo) {
       fo.addEventListener('change', () => {
@@ -1063,8 +1075,8 @@ chrome.storage.onChanged.addListener(changes => {
     const fo = document.getElementById('foodOnly');
     if (fo) fo.checked = state.foodOnly;
   }
-  if (changes.weights || changes.goals || changes.goalImportance || changes.allergens || changes.diets || changes.avoidList) {
-    chrome.storage.local.get(['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly'], o => {
+  if (changes.weights || changes.goals || changes.goalImportance || changes.allergens || changes.diets || changes.avoidList || changes.ratingStyle || changes.personalCareEnabled) {
+    chrome.storage.local.get(['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly', 'ratingStyle', 'personalCareEnabled'], o => {
       applyScoring(o);
       renderAll();
     });

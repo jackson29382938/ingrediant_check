@@ -4,6 +4,16 @@ const assert = require('node:assert/strict');
 const { createDocument } = require('./pages/load.js');
 const extract = require('../src/content/extract.js');
 
+test('supplement facts preserve serving information only from the facts area', () => {
+  const label = createDocument(`<h1 id="productTitle">Multivitamin</h1>
+    <div id="nic-ingredients-content">Gelatin, cellulose</div>
+    <div id="nic-nutrition-facts-content">Supplement Facts Serving Size 1 capsule Vitamin C 90 mg</div>`);
+  assert.match(extract.extract(label, { foodOnly: false }).supplementFacts, /Serving Size 1 capsule/);
+  const missing = createDocument(`<h1 id="productTitle">Multivitamin</h1>
+    <div id="nic-ingredients-content">Gelatin, cellulose</div><div id="feature-bullets">Supplement Facts Serving Size 1 capsule</div>`);
+  assert.equal(extract.extract(missing, { foodOnly: false }).supplementFacts, '');
+});
+
 // Sanitized structural excerpt of the public B0005Z6FYA page, fetched 2026-10-04.
 // The live summary omits the fat rows that are present in the expanded Facts table.
 const card = `<section id="nutritionalInfoAndIngredients_feature_div">

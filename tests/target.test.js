@@ -104,7 +104,7 @@ test('layout changes (synthetic): other heading tags still read; a renamed secti
 });
 
 // ------------------------------------------------------------------ runner
-function runner(file, url, stored = {}) {
+function runner(file, url, stored = {}, productOverride = null) {
   const page = loadPage(file);
   const loc = new URL(url);
   const writes = [], messages = [], fetches = [], timers = [];
@@ -153,12 +153,13 @@ function runner(file, url, stored = {}) {
       }, onChanged: { addListener() {} } },
     },
     AIR: {
-      engine, storeAdapters: { target: T },
+      engine, storeAdapters: { target: productOverride ? { ...T, readProduct: () => productOverride } : T },
       db: { scoreCache, prefs, ingestible, speed: require('../src/engine/db/speed.js') },
       panel: {
         BAND_COLOR: () => ({ fg: '#000', bg: '#fff', ring: '#0f0' }),
         render: (r, meta) => `render:${r.score}:${meta.via}:report=${meta.report}`,
         renderNotFood: () => 'not-food anyway',
+        renderPersonalCare: r => `personal-care:${r.category}:${r.ingredients}`,
         renderNotice: meta => `notice notice-action ${meta.title}`,
         renderFailure: meta => `fail:${JSON.stringify(meta)}`,
         mount: (h, html, onReport, onPaste) => { h.html = html; h.onReport = onReport; h.onPaste = onPaste; return shadow(html); },
@@ -172,6 +173,16 @@ function runner(file, url, stored = {}) {
   return { get host() { return host; }, writes, messages, fetches, timers, clicks, shadow, data, page,
     pass: () => sandbox.module.exports.pass(), sandbox };
 }
+
+test('runner: personal-care labels use the ingredient review, not food scoring or score cache', () => {
+  const data = { id: '75570641', title: 'Gentle shampoo', ingredients: 'Water, Fragrance',
+    label: 'open', labelText: 'Ingredients: Water, Fragrance', crumbs: ['Beauty & Personal Care'] };
+  const w = runner('target-p-shampoo.html', 'https://www.target.com/p/x/-/A-75570641', { foodOnly: false }, data);
+  assert.equal(w.host.dataset.airState, 'personal-care');
+  assert.match(w.host.html, /personal-care:shampoo:Water, Fragrance/);
+  assert.equal(w.writes.length, 0);
+  assert.equal(w.messages.some(m => typeof m.score === 'number'), false);
+});
 
 test('runner: a Target product page is scored locally, cached for this computer, and never fetched', () => {
   const w = runner('target-p-chips.html', CHIPS_URL, { enabled: true });
@@ -189,7 +200,7 @@ test('runner: a Target product page is scored locally, cached for this computer,
 });
 
 test('runner: shampoo is refused as non-food; "Score anyway" then asks for the collapsed label', () => {
-  const w = runner('target-p-shampoo.html', 'https://www.target.com/p/x/-/A-75570641', {});
+  const w = runner('target-p-shampoo.html', 'https://www.target.com/p/x/-/A-75570641', { personalCareEnabled: false });
   assert.equal(w.host.dataset.airState, 'not-food');
   assert.deepEqual(JSON.parse(JSON.stringify(w.messages.at(-1))), { type: 'pageScore', status: 'not-food' });
   w.shadow.handlers.anyway();
@@ -243,7 +254,7 @@ test('runner: search badges come only from this computer\'s cache; nothing is re
   await new Promise(setImmediate);
   assert.equal(rewrites, 0, 'an unchanged badge is left alone');
 
-  const shampoo = runner('target-s-oats.html', 'https://www.target.com/s?searchTerm=shampoo', { 's:target.com:79364857': entry });
+  const shampoo = runner('target-s-oats.html', 'https://www.target.com/s?searchTerm=shampoo', { 's:target.com:79364857': entry, personalCareEnabled: false });
   assert.equal([...shampoo.page.querySelectorAll('h3')].filter(h => h.inserted).length, 0, 'a non-food search stands down');
 });
 

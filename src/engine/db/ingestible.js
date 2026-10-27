@@ -131,6 +131,83 @@ const AMBIGUOUS_PAIRS = /\b(collagen|protein|vitamin|biotin|keratin|caffeine|cha
 
 const THRESHOLD = 4;
 
+// Classification is deliberately separate from the food gate: identifying a product does not
+// establish that its label is complete or that there are sufficient criteria to rate it.
+const PRODUCT_CATEGORIES = [
+  ['toothpaste', /\b(?:toothpaste|tooth ?gel|dentifrice)\b/i],
+  ['mouthwash', /\b(?:mouthwash|mouth rinse|oral rinse)\b/i],
+  ['deodorant', /\b(?:deodorant|antiperspirant|anti-perspirant)\b/i],
+  ['shampoo', /\bshampoo\b/i],
+  ['conditioner', /\b(?:hair conditioner|conditioner)\b/i],
+  ['body-wash', /\b(?:body wash|shower gel|body soap|bar soap|hand soap|hand wash)\b/i],
+  ['moisturizer', /\b(?:moisturi[sz]er|body lotion|body cream|face lotion|facial lotion|face cream|facial cream)\b/i],
+];
+
+function classifyProduct(title, { supplementFacts = false } = {}) {
+  const name = String(title || '').replace(/\s+/g, ' ').trim().slice(0, 500);
+  if (/\b(?:fabric|water|air|leather|dough) conditioner\b/i.test(name))
+    return { category: 'unknown', status: 'unknown' };
+  if (/\b(?:sunscreen|sunblock|spf\s*\d+)\b/i.test(name)) return { category: 'personal-care', status: 'unsupported' };
+  const matches = PRODUCT_CATEGORIES.filter(([, pattern]) => pattern.test(name)).map(([id]) => id);
+  // Accessories and bundles cannot be represented by a single product's ingredient label.
+  if (/\b(?:toothbrush|dispenser|empty bottle|replacement head|gift set|variety pack|bundle)\b/i.test(name))
+    return { category: matches.length ? 'personal-care' : 'unknown', status: 'ambiguous' };
+  if (matches.length > 1) return { category: 'personal-care', status: 'ambiguous' };
+  if (matches.length === 1) return { category: matches[0], status: 'recognized' };
+  if (/\b(?:sunscreen|sunblock|makeup|mascara|lipstick|perfume|fragrance|face serum|hair dye|skincare|skin care)\b/i.test(name))
+    return { category: 'personal-care', status: 'unsupported' };
+  // A vitamin in a food or cosmetic name is not by itself evidence of a supplement.
+  if (supplementFacts || /\b(?:dietary supplement|food supplement|vitamin supplements?|multivitamins?)\b/i.test(name)
+    || /\b(?:vitamin\s+[a-z](?:\d+)?|omega[- ]?3|fish oil)\b[^.]{0,50}\b(?:capsules?|tablets?|softgels?)\b/i.test(name))
+    return { category: 'supplement', status: 'recognized' };
+  return { category: 'unknown', status: 'unknown' };
+}
+
+// Supported categories use their own index even when the merchandise filter is enabled.
+function allowsProduct(title, prefs = {}) {
+  return prefs.personalCareEnabled !== false && classifyProduct(title).status === 'recognized';
+}
+function allowsSearch(context, titles = [], prefs = {}) {
+  if (prefs.personalCareEnabled === false) return false;
+  if (allowsProduct(context.query, prefs)) return true;
+  if (/beauty|personal care|oral care|hair care|skin care/i.test(context.label || '')) return true;
+  return titles.length > 0 && titles.filter(t => allowsProduct(t, prefs)).length / titles.length >= 0.7;
+}
+
+function personalCareReview(title, text, prefs = {}, advisory = '', supplementFacts = '') {
+  const classification = classifyProduct(title, { supplementFacts: /\bsupplement facts\b/i.test(String(supplementFacts || '')) });
+  if (classification.status !== 'recognized') return null;
+  const raw = String(text || '').trim().slice(0, 12000);
+  if (!raw || !/[a-z]{3}/i.test(raw)) return null;
+  const entries = raw.split(/[,;\n]+/).map(x => x.trim().toLowerCase())
+    .filter(x => x && !/^(?:free (?:of|from)|without|no\s|contains no\s)/i.test(x) && !/\b(?:free|free from)\s*$/i.test(x));
+  if (!entries.length) return null;
+  const allergens = AIR.db && AIR.db.allergens;
+  const flags = allergens ? [
+    ...allergens.detect([...entries, String(advisory || '').toLowerCase()], prefs.allergens || [], prefs.diets || []),
+    ...allergens.matchAvoidList(entries, prefs.avoidList || []),
+  ] : [];
+  const notes = [];
+  const sources = [];
+  const listed = entries.join(', ');
+  if (classification.category === 'toothpaste' && /\b(?:sodium fluoride|stannous fluoride|sodium monofluorophosphate)\b/i.test(listed))
+    notes.push('A fluoride ingredient is listed. The label alone may not show its concentration or establish effectiveness.');
+  if (classification.category === 'deodorant' && /\balumini?um\s+(?:chlorohydrate|chloride|zirconium)\b/i.test(listed))
+    notes.push('An aluminum ingredient commonly used in antiperspirants is listed.');
+  if (/\b(?:fragrance|parfum|perfume)\b/i.test(listed))
+    notes.push('Fragrance is listed; the individual components may not be disclosed.');
+  if (classification.category === 'moisturizer' && /\b(?:glycerin|glycerol|petrolatum|ceramide|hyaluronic acid|sodium hyaluronate)\b/i.test(listed)) {
+    notes.push('A commonly used moisturizing ingredient is listed. The formulation and concentration still matter.');
+    sources.push({ label: 'AAD: choosing a moisturizer', url: 'https://www.aad.org/public/everyday-care/skin-care-basics/dry/pick-moisturizer' });
+  }
+  if (classification.category === 'toothpaste') sources.push({ label: 'ADA: toothpastes', url: 'https://www.ada.org/resources/ada-library/oral-health-topics/toothpastes' });
+  if (classification.category === 'mouthwash') sources.push({ label: 'ADA: mouthrinse', url: 'https://www.ada.org/resources/ada-library/oral-health-topics/mouthrinse-mouthwash' });
+  if (classification.category === 'supplement') sources.push({ label: 'NIH: supplement labels', url: 'https://ods.od.nih.gov/factsheets/WYNTK-Consumer/' });
+  else sources.push({ label: 'FDA: cosmetic allergens and labels', url: 'https://www.fda.gov/cosmetics/cosmetic-ingredients/allergens-cosmetics' });
+  return { category: classification.category, flags, notes, sources, ingredients: raw,
+    supplementFacts: classification.category === 'supplement' ? String(supplementFacts || '').slice(0, 2000) : '' };
+}
+
 // `doc` is a Document; `title`/`text` are pulled from it when not supplied.
 function assess(doc, opts = {}) {
   const clean = t => (t || '').replace(/\s+/g, ' ').trim();
@@ -170,6 +247,7 @@ function assess(doc, opts = {}) {
   return {
     ok,
     score,
+    productCategory: classifyProduct(title, { supplementFacts: positives.some(p => p.id === 'supplementPanel') }),
     kind: negatives.length ? negatives[0].id : (positives[0] ? positives[0].id : 'unknown'),
     reason: ok
       ? (positives[0] ? positives[0].why : 'Food evidence present')
@@ -282,7 +360,7 @@ function isOpenFoodFactsFood(product) {
 }
 
 const _exports = AIRmodule('ingestible', {
-  assess, assessTitle, looksNonFoodFromTitle, isOpenFoodFactsFood,
+  assess, assessTitle, looksNonFoodFromTitle, isOpenFoodFactsFood, classifyProduct, personalCareReview, allowsProduct, allowsSearch,
   assessSearch, looksNonFoodFromResults,
   STRONG_POSITIVE, WEAK_POSITIVE, HARD_NEGATIVE, THRESHOLD,
   FOOD_ALIASES, NONFOOD_ALIASES, RESULT_SAMPLE_MIN, RESULT_NONFOOD_SHARE,

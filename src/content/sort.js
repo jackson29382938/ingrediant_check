@@ -410,16 +410,16 @@
       if (usableCache(hit, asin)) {
         // The saved score keeps no reasons; the product reading behind it does.
         const why = okRow ? whyOf(root.AIR.engine.score(C.toInput(row), state.prefs)) : null;
-        out.set(asin, { score: hit.score, verdict: hit.verdict, source: 'scored', why, servings: okRow ? servingsFor(C.toInput(row)) : null });
+        out.set(asin, { score: hit.score, category: hit.category || 'food', ratingStyle: hit.ratingStyle || 'food', verdict: hit.verdict, source: 'scored', why, servings: okRow ? servingsFor(C.toInput(row)) : null });
         continue;
       }
       if (!row || !freshLocal(row)) continue;
-      if (row.status === 'not-food' || row.data.food === false) { out.set(asin, { score: null, source: 'not-food' }); continue; }
+      if (row.status === 'not-food' || (row.data.food === false && !root.AIR.db.ingestible?.allowsProduct?.(row.data.title, state.prefs))) { out.set(asin, { score: null, source: 'not-food' }); continue; }
       if (row.status === 'unreadable') { out.set(asin, { score: null, source: 'unreadable' }); continue; }
       const result = root.AIR.engine.score(C.toInput(row), state.prefs);
       if (unreadable(result)) { out.set(asin, { score: null, source: 'unreadable' }); continue; }
       cacheScore(asin, result, row.data.title, row.data.via || 'search-tile', '', Date.parse(row.scanned_at));
-      out.set(asin, { score: result.score, verdict: result.verdict, source: 'scored', why: whyOf(result), servings: servingsFor(C.toInput(row)) });
+      out.set(asin, { score: result.score, category: result.category || 'food', ratingStyle: result.ratingStyle || 'food', verdict: result.verdict, source: 'scored', why: whyOf(result), servings: servingsFor(C.toInput(row)) });
     }
     return out;
   }
@@ -444,12 +444,12 @@
         if (!row || !asins.includes(asin) || !sharedOk(row)) continue;
         rememberProduct(asin, row, { share: false });
         pulls.push({ key: row.key, scanned_at: row.scanned_at });
-        if (row.status === 'not-food' || row.data.food === false) { out.set(asin, { score: null, source: 'not-food' }); continue; }
+        if (row.status === 'not-food' || (row.data.food === false && !root.AIR.db.ingestible?.allowsProduct?.(row.data.title, state.prefs))) { out.set(asin, { score: null, source: 'not-food' }); continue; }
         if (row.status === 'unreadable') { out.set(asin, { score: null, source: 'unreadable' }); continue; }
         const result = root.AIR.engine.score(C.toInput(row), state.prefs);
         if (unreadable(result)) { out.set(asin, { score: null, source: 'unreadable' }); continue; }
         cacheScore(asin, result, row.data.title, row.data.via || 'search-tile', '', Date.parse(row.scanned_at));
-        out.set(asin, { score: result.score, verdict: result.verdict, source: 'scored', why: whyOf(result), servings: servingsFor(C.toInput(row)) });
+        out.set(asin, { score: result.score, category: result.category || 'food', ratingStyle: result.ratingStyle || 'food', verdict: result.verdict, source: 'scored', why: whyOf(result), servings: servingsFor(C.toInput(row)) });
       }
     }
     if (pulls.length) send({ type: 'productsQueue', pulls });
@@ -485,7 +485,7 @@
           const reading = await search.readProductPage(asin, 'sort-list');
           if (token !== run) return;
           out.set(asin, reading.outcome === 'scored'
-            ? { score: reading.result.score, verdict: reading.result.verdict, source: 'scored', why: whyOf(reading.result), servings: servingsFor(reading.input) }
+            ? { score: reading.result.score, category: reading.result.category || 'food', ratingStyle: reading.result.ratingStyle || 'food', verdict: reading.result.verdict, source: 'scored', why: whyOf(reading.result), servings: servingsFor(reading.input) }
             : { score: null, source: reading.outcome === 'not-food' ? 'not-food' : 'unreadable' });
         } catch (e) {
           // Refused, offline, or aborted: the listing stays without a score. Refusals count toward the
@@ -532,6 +532,7 @@
       if (token !== run) return false;
       // The unit most of these listings are priced in; the panel uses it until the reader picks another.
       const likely = U() && SF() ? U().likelyUnit(items, SF().storefront(location.hostname).units) : null;
+      if (new Set(items.filter(p => Number.isFinite(p.score)).map(p => p.category || 'food')).size > 1) status = 'Mixed categories: score ranking is disabled; other priorities still apply. ' + status;
       const reply = await send({ type: 'updateSortedResults', runId: id, items, loading, status, priceOnly, unit: likely ? likely.unit : '' });
       // A newer sort (in this tab or another) took the panel over: stop working for this one.
       if (reply && reply.stale) { if (token === run) run++; return false; }

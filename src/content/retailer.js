@@ -37,9 +37,9 @@
     state.panelOpen = toggles.panelOpen;
     if (root.AIR.db.theme) root.AIR.db.theme.use(o);   // the reader's score palette and light/dark
     const scoring = PREFS.sanitizeScoring(o);
-    state.prefs = { weights: scoring.weights, allergens: scoring.allergens, diets: scoring.diets, avoidList: scoring.avoidList };
+    state.prefs = { weights: scoring.weights, allergens: scoring.allergens, diets: scoring.diets, avoidList: scoring.avoidList, ratingStyle: scoring.ratingStyle, personalCareEnabled: scoring.personalCareEnabled };
     // The same fingerprint inputs the popup validates with, so its "This page" card accepts these.
-    state.raw = { ...root.AIR.db.speed?.sanitizeRecall(o), weights: o.weights, foodOnly: toggles.foodOnly,
+    state.raw = { ...root.AIR.db.speed?.sanitizeRecall(o), weights: o.weights, foodOnly: toggles.foodOnly, ratingStyle: scoring.ratingStyle, personalCareEnabled: scoring.personalCareEnabled, avoidList: scoring.avoidList,
       sheetIndexRev: o.sheetIndexRev, producerIndexRev: o.producerIndexRev };
     // How old a saved score may be: the speed setting's age (1 to 90 days), as on Amazon.
     state.fetchLimit = root.AIR.db.speed ? root.AIR.db.speed.profile(o.speedMode).autoFetches : 60;
@@ -69,7 +69,7 @@
     return {
       schema: CACHE.SCHEMA, cacheRevision: CACHE.CACHE_REVISION, v: VERSION, t: Date.now(), store: STORE, asin: id,
       prefs: CACHE.fingerprint(state.raw, source), score: result.score, verdict: result.verdict,
-      nova: result.nova, ...(input ? { input } : {}), source, provenanceSource: '', name: String(name || '').slice(0, 120),
+      nova: result.nova, category: result.category || 'food', ratingStyle: result.ratingStyle || 'food', ...(input ? { input } : {}), source, provenanceSource: '', name: String(name || '').slice(0, 120),
     };
   }
 
@@ -82,8 +82,12 @@
   }
 
   function scoreText(host, data, text, via) {
-    const input = { name: data.title, ingredients_text: text, advisory_text: data.advisoryText, nutrition: data.nutrition };
-    const result = root.AIR.engine.score(input, state.prefs);
+    const input = { name: data.title, category: data.supplementFacts ? 'supplement' : undefined, supplement_facts: data.supplementFacts, ingredients_text: text, advisory_text: data.advisoryText, nutrition: data.nutrition };
+    const result = root.AIR.engine.score(input, via === 'food-override' ? { ...state.prefs, personalCareEnabled: true } : state.prefs);
+    if (result.category && !root.AIR.engine.isReadable(result)) {
+      show(host, P.renderPersonalCare({ ...root.AIR.db.ingestible.personalCareReview(data.title, text, state.prefs, data.advisoryText, data.supplementFacts), category: result.category, reason: result.reason, flags: result.flags }), 'personal-care');
+      badge({ status: 'fail' }); return;
+    }
     if (!root.AIR.engine.isReadable(result)) {
       show(host, P.renderFailure({ lowCoverage: true, storeName: adapter.name }), 'fail', { paste: onPaste(host, data) });
       badge({ status: 'fail' });
@@ -105,6 +109,7 @@
 
   function productPass() {
     const data = adapter.readProduct(document, location);
+    if (data && !data.supplementFacts) data.supplementFacts = root.AIR.retailerLabels?.supplementFacts?.(document) || '';
     if (!data.id) return true;
     const signature = JSON.stringify([data.id, data.title, data.crumbs, data.ingredients, data.labelText, data.advisoryText, data.department, data.nutrition, data.label]);
     // Grocery page hydration may discard an injected sibling without changing the label.
@@ -128,7 +133,7 @@
     if (state.foodOnly && !state.override) {
       const verdict = root.AIR.db.ingestible.assess({ querySelector: () => null },
         { title: data.title, text: [data.department || root.AIR.retailerLabels?.department(data.crumbs), data.crumbs.join(' › '), data.title, data.labelText].join(' \n ') });
-      if (!verdict.ok && verdict.negatives.length) {
+      if (!verdict.ok && verdict.negatives.length && !root.AIR.db.ingestible?.allowsProduct?.(data.title, state.prefs)) {
         show(host(), P.renderNotFood({ title: data.title, ingestible: verdict }), 'not-food', {
           after: shadow => shadow.querySelector('button.anyway')?.addEventListener('click', () => {
             state.override = true; state.done = false; productPass();
@@ -194,10 +199,10 @@
           + '<span><slot></slot></span>';
       }
     }
-    const text = hit ? String(hit.score) + (saved ? ' · saved' : '') : status === 'checking' ? 'Checking label…'
+    const text = hit ? String(hit.score) + (hit.category && hit.category !== 'food' ? ` · ${hit.category}` : '') + (saved ? ' · saved' : '') : status === 'checking' ? 'Checking label…'
       : status === 'unavailable' ? 'Label unavailable' : status === 'not-food' ? 'Not a food'
       : status === 'limited' ? 'Open to rate' : 'Open to rate';
-    const title = hit ? `Ingredient Check: ${hit.score}/100 — ${hit.verdict}`
+    const title = hit ? `Ingredient Check: ${hit.score}/100 — ${hit.verdict}${hit.category && hit.category !== 'food' ? ` · ${hit.category} · ${hit.ratingStyle}` : ''}`
       : status === 'unavailable' ? 'Ingredient Check: no readable ingredient label was returned. Open the product to expand its label or paste ingredients.'
       : status === 'checking' ? 'Ingredient Check: reading the public product label.'
       : status === 'not-food' ? 'Ingredient Check: this product appears to be outside food scoring.'
@@ -272,17 +277,18 @@
         const doc = await publicDocument(response, controller.signal);
         if (generation !== state.generation || location.href !== state.url || controller.signal.aborted) return;
         const data = adapter.readProduct(doc, final);
+        data.supplementFacts = data.supplementFacts || root.AIR.retailerLabels?.supplementFacts?.(doc) || '';
         if (data.id !== job.id || !data.ingredients) throw new Error('unavailable');
         const context = { title: data.title, text: [data.department || root.AIR.retailerLabels?.department(data.crumbs || []),
           (data.crumbs || []).join(' › '), data.title, data.labelText].join(' \n ') };
         const food = root.AIR.db.ingestible.assess({ querySelector: () => null }, context);
-        if (state.foodOnly && !food.ok && food.negatives.length) {
+        if (state.foodOnly && !food.ok && food.negatives.length && !root.AIR.db.ingestible?.allowsProduct?.(data.title, state.prefs)) {
           state.requests.set(job.id, { status: 'not-food' }); return;
         }
         const result = root.AIR.engine.score({ name: data.title, ingredients_text: data.ingredients,
-          advisory_text: data.advisoryText, nutrition: data.nutrition }, state.prefs);
+          advisory_text: data.advisoryText, category: data.supplementFacts ? 'supplement' : undefined, supplement_facts: data.supplementFacts, nutrition: data.nutrition }, state.prefs);
         if (!root.AIR.engine.isReadable(result)) throw new Error('unavailable');
-        const entry = cacheEntry(job.id, result, data.title, 'page', { name: data.title, ingredients_text: data.ingredients, advisory_text: data.advisoryText, nutrition: data.nutrition });
+        const entry = cacheEntry(job.id, result, data.title, 'page', { name: data.title, ingredients_text: data.ingredients, advisory_text: data.advisoryText, category: data.supplementFacts ? 'supplement' : undefined, supplement_facts: data.supplementFacts, nutrition: data.nutrition });
         state.requests.set(job.id, { hit: entry });
         try { await chrome.storage.local.set({ [CACHE.key(STORE, job.id)]: entry }); }
         catch (e) { /* The score can still be displayed on this tab if persistence fails. */ }
@@ -310,7 +316,7 @@
       const gate = root.AIR.db.ingestible;
       const verdict = gate.assessSearch({ query: adapter.searchQuery(location), alias: '', label: '' });
       const titles = tiles.map(x => x.title);
-      if (!verdict.ok || (titles.length >= gate.RESULT_SAMPLE_MIN && gate.looksNonFoodFromResults(titles))) {
+      if ((!verdict.ok || (titles.length >= gate.RESULT_SAMPLE_MIN && gate.looksNonFoodFromResults(titles))) && !gate.allowsSearch?.({ query: adapter.searchQuery(location) }, titles, state.prefs)) {
         state.searchAllowed = false; state.queue = [];
         for (const controller of state.controllers) controller.abort();
         clearBadges();
@@ -396,7 +402,7 @@
   // Target is a single-page app: moving from results to a product does not reload the page.
   setInterval(() => { if (location.href !== state.url) { state.manual = null; reset(); } }, 1000);
 
-  const KEYS = ['enabled', 'badges', 'foodOnly', 'weights', 'allergens', 'diets', 'avoidList',
+  const KEYS = ['enabled', 'badges', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'weights', 'allergens', 'diets', 'avoidList',
     'sheetIndexRev', 'producerIndexRev', 'speedMode', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'autoScoreSearch', 'panelOpen', 'theme', 'palette'];
   chrome.storage.local.get(KEYS, o => { readSettings(o || {}); reset(); });
   chrome.storage.onChanged.addListener((changes, area) => {

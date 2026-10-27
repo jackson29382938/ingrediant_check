@@ -138,7 +138,7 @@ function paintDiag() {
 // and with the old values still in it, it wrote them straight back over the restore.
 function reloadWithStored() {
   return new Promise(resolve => {
-    chrome.storage.local.get(['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly'], o => {
+    chrome.storage.local.get(['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly', 'ratingStyle', 'personalCareEnabled'], o => {
       // A committed restore must never leave an old scoring state ready to write on pagehide.
       // Reload immediately while the restore guard still suppresses that old write.
       if (chrome.runtime.lastError) { location.reload(); resolve(); return; }

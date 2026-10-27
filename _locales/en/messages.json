@@ -188,7 +188,7 @@
     "message": "Score badges on search results and cart items with readable labels."
   },
   "popupFoodOnly": {
-    "message": "Food & supplements only"
+    "message": "Skip unsupported merchandise"
   },
   "popupAutoScore": {
     "message": "Rate search results and cart items"
@@ -217,7 +217,7 @@
     "message": "A guide, not health or allergy advice. Read the label."
   },
   "popupFoodOnlyD": {
-    "message": "Skips shoes, toys, cosmetics and cleaning products and says why. A score on shampoo would imply it was judged as something you could eat."
+    "message": "Skips unsupported merchandise. Personal care and supplements have their own setting and rating rules."
   },
   "popupAutoScoreD": {
     "message": "Rates search results and cart items automatically, using saved scores first and the speed setting to limit requests. Cart ratings fetch public product pages without cookies or the cart-page address. Missing labels stay unavailable. Off: show saved scores only."
@@ -480,7 +480,7 @@
     "message": "Settings file"
   },
   "optFoodOnly": {
-    "message": "Only rate food and supplements"
+    "message": "Skip unsupported merchandise"
   },
   "optFilterPh": {
     "message": "Filter categories"
@@ -579,10 +579,10 @@
     "message": "The same switches as in the toolbar popup."
   },
   "optNoteFoodOnly": {
-    "message": "Skips shoes, toys, cosmetics, medicine and cleaning products. A score on shampoo would imply it was judged as something you could eat. When this is on, a non-food page shows why it was skipped instead of a silent blank."
+    "message": "Food uses food rules. Supported personal care and supplements use separate label indices when enabled above. Other merchandise is skipped."
   },
   "optHintFoodOnly": {
-    "message": "Skips shoes, toys, cosmetics and cleaning products."
+    "message": "Skips shoes, toys and other unsupported products."
   },
   "optNoteWeights": {
     "message": "Each category has its own default. A weight of 1.0 applies the listed rule normally; 0 switches its score effect off, and 2.0 doubles its deduction or credit before score limits. Some categories start at 0 or 0.5. Negative weights, available for selected categories, turn a deduction into a preference credit. Goal presets change these weights. Press / to jump to the filter."
@@ -1855,5 +1855,26 @@
   },
   "optSortFollowSearchD": {
     "message": "On by default. An open comparison follows new Amazon searches in its source tab. Turn off to keep the previous results."
+  },
+  "optPersonalCare": {
+    "message": "Rate personal care and supplements"
+  },
+  "optCareHelp": {
+    "message": "Uses category-specific label indices. Missing evidence stays unavailable. Food ratings retain their own rules."
+  },
+  "optRatingStyle": {
+    "message": "Personal-care and supplement rating style"
+  },
+  "styleEvidence": {
+    "message": "Evidence-based"
+  },
+  "styleMinimal": {
+    "message": "Minimal ingredients"
+  },
+  "stylePreferences": {
+    "message": "Preference-focused"
+  },
+  "optStyleHelp": {
+    "message": "Evidence-based uses disclosed category functions or Supplement Facts. Minimal favors fewer ingredients. Preference-focused uses your avoid list. These indices do not establish safety or effectiveness."
   }
 }

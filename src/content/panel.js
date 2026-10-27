@@ -239,19 +239,20 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
 
   // `result` is the engine output; `meta` carries title/confidence/source.
   function render(result, meta) {
-    const c = BAND_COLOR(result.score);
+    const c = result.category ? BAND_COLOR(50) : BAND_COLOR(result.score);
+    const caption = result.category ? `${result.category.replace(/-/g, ' ')} · ${result.ratingStyle}` : NOVA_TEXT[result.nova];
     const { caps, minus, plus, neutral } = sections(result);
-    const copyLine = [result.score, verdictText(result.verdict), NOVA_TEXT[result.nova], meta.title || '']
+    const copyLine = [result.score, verdictText(result.verdict), caption, meta.title || '']
       .filter(Boolean).join(' · ');
 
     return `
     <style>${CSS}</style>
     <div class="card" style="--fg:${c.fg};--bg:${c.bg};--ring:${c.ring};--dfg:${c.dfg};--dring:${c.dring}" role="status" aria-live="polite">
       <button class="head" part="head" type="button" aria-expanded="false" aria-controls="air-panel-details">
-        <span class="score" title="${esc(verdictText(result.verdict))} · ${esc(NOVA_TEXT[result.nova])}">${result.score}</span>
+        <span class="score" title="${esc(verdictText(result.verdict))} · ${esc(caption)}">${result.score}</span>
         <span class="meta">
           <span class="verdict">${esc(verdictText(result.verdict).toUpperCase())}</span>
-          <span class="sub">${esc(NOVA_TEXT[result.nova])} · ${esc(meta.title || '')}</span>
+          <span class="sub">${esc(caption)} · ${esc(meta.title || '')}</span>
         </span>
         <span class="chev">▾</span>
       </button>
@@ -264,14 +265,17 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
           Math.round(result.coverage * 100)))}</p>`
         : ''}
       ${flagsHTML(result.flags, !!result.selectedAllergens?.length)}
+      ${result.category ? '<p class="disclaim" style="padding:6px 16px">Limited label index using the selected rubric. It does not establish safety, effectiveness, dose suitability or absence of allergens. Compare within the same category and style.</p>' : ''}
       ${provenanceHTML(result.provenance, meta)}
+      ${sourceLinks(result.sources)}
+      ${result.supplementFacts ? `<p class="disclaim" style="padding:4px 16px">${esc(result.supplementFacts)}</p>` : ''}
       <div class="body" id="air-panel-details">
         ${caps.length ? `<h4>${esc(t('headDisqualifying', 'Score limits'))}</h4>${rowsHTML(caps, 'minus')}` : ''}
         ${plus.length ? `<h4>${esc(t('headGood', "What's good"))}</h4>${rowsHTML(plus, 'plus')}` : ''}
         ${minus.length ? `<h4>${esc(t('headHurt', 'What hurt'))}</h4>${rowsHTML(minus, 'minus')}` : ''}
         ${neutral.length ? `<h4>${esc(t('headNeutral', 'Not counted against it'))}</h4>${rowsHTML(neutral, 'plus')}` : ''}
         <div class="foot">
-          <span>${esc(NOVA_TEXT[result.nova])} · ${esc(t('footBase', 'base $1', result.base))}${
+          <span>${esc(caption)} · ${esc(t('footBase', 'base $1', result.base))}${
             result.ruleCount ? ' · ' + esc(t('footRules', '$1 rules', result.ruleCount)) : ''}${
             typeof result.coverage === 'number' && result.coverage < 1
               ? ' · ' + esc(t('footCoverage', '$1% of the list recognised', Math.round(result.coverage * 100))) : ''}</span>
@@ -318,7 +322,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
     const head = `<div class="top">
         <span class="score">${shown.score}</span>
         <span class="meta"><span class="verdict">${esc(verdictText(shown.verdict).toUpperCase())}</span>
-          <span class="sub">${esc(NOVA_TEXT[shown.nova] || '')}</span></span>
+          <span class="sub">${esc(shown.category ? `${shown.category} · ${shown.ratingStyle}` : NOVA_TEXT[shown.nova] || '')}</span></span>
       </div>`;
     let body;
     if (!result) {
@@ -327,7 +331,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
       const compact = meta.detail === 'compact';
       const { caps, minus, plus, neutral } = sections(result);
       const top = (rows, n) => (compact ? rows.slice().sort((a, b) => Math.abs(b.c) - Math.abs(a.c)).slice(0, n) : rows);
-      body = `${flagsHTML(result.flags, !!result.selectedAllergens?.length)}
+      body = `${result.category ? '<p class="note">Limited label index; compare within the same category and style.</p>' : ''}${sourceLinks(result.sources)}${flagsHTML(result.flags, !!result.selectedAllergens?.length)}
         ${compact ? '' : provenanceHTML(result.provenance, meta)}
         ${caps.length ? `<h4>${esc(t('headDisqualifying', 'Score limits'))}</h4>${rowsHTML(caps, 'minus')}` : ''}
         ${plus.length ? `<h4>${esc(t('headGood', "What's good"))}</h4>${rowsHTML(top(plus, 3), 'plus')}` : ''}
@@ -381,6 +385,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
     const reason = (meta && meta.ingestible && meta.ingestible.reason)
       || 'No evidence this is food, a supplement, or otherwise ingestible';
     const title = meta && meta.title ? meta.title : '';
+    const category = root.AIR.db.ingestible?.classifyProduct?.(title);
+    const personal = category?.status === 'recognized' && category.category !== 'supplement';
+    if (category?.category === 'personal-care') return renderNotice({ title: 'Category not supported', body: 'This product or combination needs category-specific rules that are not available yet.' });
     return `
     <style>${CSS}</style>
     <div class="card" style="--fg:#565959;--bg:#f7f8f8;--ring:#d5d9d9;--dfg:#aeaeae;--dring:#5a5c5c">
@@ -389,12 +396,34 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
         ${esc(reason)}. ${esc(t('notFoodBody', 'A score here would treat it as something you eat.'))}
         ${title ? `<div class="sub" style="white-space:normal;margin-top:6px">${esc(title)}</div>` : ''}
         <div class="paste">
-          <button class="go anyway" type="button">${esc(t('notFoodButton', 'Score anyway'))}</button>
+          <button class="go anyway" type="button">${esc(personal ? 'Review ingredients' : t('notFoodButton', 'Score anyway'))}</button>
         </div>
         <p style="margin-top:10px;font-size:12px;color:#565959">${esc(t('notFoodWhy',
           'This is on because “Only rate food & supplements” is enabled in settings.'))}</p>
       </div>
     </div>`;
+  }
+
+  function sourceLinks(sources) {
+    return (sources || []).filter(source => /^https:\/\/(?:www\.)?(?:fda\.gov|ada\.org|aad\.org|ods\.od\.nih\.gov|ec\.europa\.eu)\//.test(source.url)).map(source => `<p class="disclaim" style="padding:4px 16px"><a href="${esc(source.url)}" target="_blank" rel="noopener noreferrer">${esc(source.label)}</a></p>`).join('');
+  }
+
+  function renderPersonalCare(review) {
+    const label = String(review.category || 'personal care').replace(/-/g, ' ');
+    return `<style>${CSS}</style>
+      <div class="card" style="--fg:#565959;--bg:#f7f8f8;--ring:#d5d9d9;--dfg:#aeaeae;--dring:#5a5c5c">
+        <div class="fail" role="status" aria-live="polite">
+          <b>Ingredient review · ${esc(label)}</b>
+          ${esc(review.reason || 'The available label is insufficient for the selected rating style.')} This review does not establish safety or effectiveness.
+          ${review.category === 'supplement' ? '<p style="margin-top:8px">Supplement Facts, serving size, dose and interactions may be missing from this ingredient list. Check the package.</p>' : ''}
+          ${review.supplementFacts ? `<p style="margin-top:8px"><b>Published Supplement Facts</b>${esc(review.supplementFacts)}</p>` : ''}
+          ${flagsHTML(review.flags)}
+          ${(review.notes || []).map(note => `<p style="margin-top:8px">${esc(note)}</p>`).join('')}
+          ${(review.sources || []).filter(source => /^https:\/\/(?:www\.)?(?:fda\.gov|ada\.org|aad\.org|ods\.od\.nih\.gov)\//.test(source.url)).map(source => `<p style="margin-top:8px"><a href="${esc(source.url)}" target="_blank" rel="noopener noreferrer">${esc(source.label)}</a></p>`).join('')}
+          <p style="margin-top:8px"><b>Published ingredients</b>${esc(review.ingredients)}</p>
+          <p class="disclaim">Labels can be incomplete or change. Check the package and directions before use.</p>
+        </div>
+      </div>`;
   }
 
   // A neutral message with one optional action, for a store page that needs something from the
@@ -576,6 +605,6 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
     head.setAttribute('aria-expanded', 'true');
   }
 
-  root.AIR.panel = { openCard, render, renderBreakdown, renderLoading, renderFailure, renderNotFood, renderNotice, mount, shadowOf, BAND_COLOR, NOVA_TEXT, pasteLooksValid, t, sections };
+  root.AIR.panel = { openCard, render, renderBreakdown, renderLoading, renderFailure, renderNotFood, renderPersonalCare, renderNotice, mount, shadowOf, BAND_COLOR, NOVA_TEXT, pasteLooksValid, t, sections };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.AIR.panel;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

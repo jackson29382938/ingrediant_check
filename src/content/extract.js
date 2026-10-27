@@ -492,6 +492,14 @@
     return [...new Set(warnings)].join(' ');
   }
 
+  function supplementFacts(doc) {
+    for (const selector of ['#nic-nutrition-facts-content', '#productFactsDesktop_feature_div']) {
+      const text = norm(doc.querySelector(selector)?.innerText || '');
+      if (/\bsupplement facts\b/i.test(text) && /\bserving size\b/i.test(text) && text.length <= 2000) return text;
+    }
+    return '';
+  }
+
   function productIdentity(doc, asinHint) {
     const bullets = doc.querySelector('#detailBullets_feature_div, #productDetails_detailBullets_sections1');
     const bulletText = bullets ? bullets.innerText : '';
@@ -526,7 +534,7 @@
     const bulletClaims = [...doc.querySelectorAll('#feature-bullets li')]
       .map(e => clean(e.innerText)).join(' ');
     return { asin, upc, title, brand, certifications, labels: bulletClaims, nutrition: nutritionFacts(doc),
-      advisoryText: publishedAdvisory(doc) };
+      advisoryText: publishedAdvisory(doc), supplementFacts: supplementFacts(doc) };
   }
 
   // ---- helpers ----------------------------------------------------------------------------
@@ -591,7 +599,7 @@
       ? root.AIR.db.ingestible.assess(doc, { title: identity.title })
       : { ok: true, reason: 'gate unavailable' };
     identity.ingestible = gate;
-    if (!gate.ok && opts.foodOnly !== false) return { ok: false, ...identity, reason: 'not-ingestible' };
+    if (!gate.ok && opts.foodOnly !== false && !root.AIR.db.ingestible?.allowsProduct?.(identity.title, opts)) return { ok: false, ...identity, reason: 'not-ingestible' };
     for (const tier of [tier1, tier2, tier3]) {
       let hit = null;
       // The title is passed in so a tier can tell a real list from the product name echoed back.

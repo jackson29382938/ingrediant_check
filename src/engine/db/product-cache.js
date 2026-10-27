@@ -47,11 +47,13 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
       via: str(src.via, 60),
       confidence: Math.min(1, Math.max(0, Number(src.confidence) || 0)),
       food: src.food !== false,
+      ...(typeof src.category === 'string' && /^(?:toothpaste|mouthwash|deodorant|shampoo|conditioner|body-wash|moisturizer|supplement)$/.test(src.category) ? { category: src.category } : {}),
     };
     if (Object.hasOwn(src, 'advisory_text')) {
       if (typeof src.advisory_text !== 'string' || src.advisory_text.length > 6000) return null;
       out.advisory_text = str(src.advisory_text, 6000);
     }
+    if (typeof src.supplement_facts === 'string' && src.supplement_facts.length <= 2000) out.supplement_facts = str(src.supplement_facts, 2000);
     const n = src.nutrition;
     if (n && typeof n === 'object' && !Array.isArray(n)) {
       const nut = {};
@@ -94,8 +96,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   function toInput(row) {
     const d = row.data;
     return {
-      name: d.title, labels: d.labels, certifications: d.certifications,
-      nutrition: d.nutrition ? { ...d.nutrition } : undefined, ingredients_text: d.text, advisory_text: d.advisory_text,
+      name: d.title, category: d.category, labels: d.labels, certifications: d.certifications,
+      nutrition: d.nutrition ? { ...d.nutrition } : undefined, ingredients_text: d.text, supplement_facts: d.supplement_facts, advisory_text: d.advisory_text,
     };
   }
 
@@ -103,8 +105,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   function fromScan({ store, asin, status = 'ok', input = {}, via = '', confidence = 0, food = true, t = Date.now() }, now = Date.now()) {
     return sanitize({
       store, asin, status, scanned_at: t, pulls: 0,
-      data: { title: input.name, text: input.ingredients_text, labels: input.labels,
-        certifications: input.certifications, nutrition: input.nutrition, advisory_text: typeof input.advisory_text === 'string' ? input.advisory_text : '', via, confidence, food },
+      data: { title: input.name, category: input.category || AIR.db.ingestible?.classifyProduct?.(input.name).category, text: input.ingredients_text, labels: input.labels,
+        certifications: input.certifications, supplement_facts: input.supplement_facts, nutrition: input.nutrition, advisory_text: typeof input.advisory_text === 'string' ? input.advisory_text : '', via, confidence, food },
     }, now);
   }
 

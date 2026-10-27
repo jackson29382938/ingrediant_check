@@ -5,6 +5,7 @@ import { createServer } from 'node:http';
 import { createServer as createHttpsServer } from 'node:https';
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
+import { personalCareEndToEnd } from './personal-care-harness.mjs';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -783,14 +784,23 @@ async function run() {
       const afterHuge = await settingsPage.evaluate(() => ({ sugar: window.__stored.weights.sugar, cleared: document.getElementById('importFile').value === '' }));
       if (afterHuge.sugar !== 1.7 || !afterHuge.cleared) throw new Error(`oversized import: ${JSON.stringify(afterHuge)}`);
       console.log('  ok  settings → import applies an export; an oversized file is refused and the picker cleared');
+      await settingsPage.selectOption('#ratingStyle', 'minimal');
+      await settingsPage.waitForFunction(() => window.__stored.ratingStyle === 'minimal');
+      await settingsPage.uncheck('#personalCareEnabled');
+      await settingsPage.waitForFunction(() => window.__stored.personalCareEnabled === false);
+      await settingsPage.reload({ waitUntil: 'domcontentloaded' });
+      await settingsPage.waitForFunction(() => document.getElementById('ratingStyle').value === 'minimal' && !document.getElementById('personalCareEnabled').checked);
+      console.log('  ok  settings → category opt-out and rating style persist after reload');
     } finally {
       await settingsPage.close();
     }
+    await personalCareEndToEnd(browser, root);
   } finally {
     await browser.close();
     await new Promise(r => server.close(r));
   }
-  await extensionSmoke(pw, executablePath, pageErrors);
+  if (process.env.HARNESS_CONTENT_ONLY === '1') console.log('  skipped unpacked-extension installation smoke (HARNESS_CONTENT_ONLY=1); content-script browser checks ran');
+  else await extensionSmoke(pw, executablePath, pageErrors);
   if (pageErrors.length) {
     throw new Error(`pages logged errors:\n  ${[...new Set(pageErrors)].join('\n  ')}`);
   }

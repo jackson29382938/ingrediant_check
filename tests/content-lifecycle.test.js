@@ -330,7 +330,7 @@ test('local misses go to the shared cache in one lookup, count a pull, and are k
 });
 test('with the food gate on, a not-food row paints nothing and fetches nothing', () => {
   const w = cacheSetup({ shared: { B000000004: cachedRow('B000000004', { status: 'not-food', input: { name: 'Shampoo' }, food: false }) } });
-  w.h.state.foodOnly = true;
+  w.h.state.foodOnly = true; w.h.state.prefs.personalCareEnabled = false;
   const missed = [];
   w.context.AIR.search.resolveTiles([{ tile: tileFor(w, 'B000000004'), asin: 'B000000004' }], it => missed.push(it));
   assert.equal(w.badges.length, 0);

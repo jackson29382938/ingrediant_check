@@ -173,6 +173,8 @@ const VARIANTS = {
 };
 // Turning these off changes what is saved, so each has its own test below.
 const OWN_TEST = new Set(['settingsBackup', 'googleAutoSave']);
+VARIANTS.ratingStyle = 'minimal';
+VARIANTS.personalCareEnabled = false;
 const SETTINGS = prefs.SETTING_KEYS.filter(k => k !== 'enabled');
 const LOOP_KEYS = SETTINGS.filter(k => !OWN_TEST.has(k));
 // foodOnly is a toggle and a scoring key; its flip comes from TOGGLE_FLIPS.
@@ -181,7 +183,7 @@ const LOOP_KEYS = SETTINGS.filter(k => !OWN_TEST.has(k));
 // builds backups, it would also vanish from every list derived from that code and nothing would
 // notice. Adding a setting means adding it here, with a test value above.
 const EXPECTED_KEYS = ['accent', 'allergens', 'autoScoreSearch', 'avoidList', 'badges', 'breakdownDelayMs', 'breakdownDetail', 'cacheBackgroundRefresh', 'cacheFirst', 'cacheGraceDays', 'cacheMemory',
-  'diets', 'foodOnly', 'goalImportance', 'goals', 'googleAutoSave', 'hoverBreakdown', 'hoverScore', 'ocrLabels', 'orderBadgePlacement',
+  'diets', 'ratingStyle', 'personalCareEnabled', 'foodOnly', 'goalImportance', 'goals', 'googleAutoSave', 'hoverBreakdown', 'hoverScore', 'ocrLabels', 'orderBadgePlacement',
   'palette', 'panelOpen', 'pointsEnabled', 'ratePace', 'scoreHoverDelayMs', 'sendDiagnostics', 'settingsBackup', 'settingsLevel',
   'shareContributions', 'sharedCache', 'sharedProducts', 'sortCount', 'sortLoadMore', 'sortMissing',
   'sortPriorities', 'sortRemember', 'sortFollowSearch', 'sortTimeLimit', 'speedMode', 'theme', 'unitMissing', 'unitPrice', 'useOpenFoodFacts', 'weights'];

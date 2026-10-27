@@ -63,6 +63,7 @@
 
     const verdict = gate.assessSearch(searchContext());
     let ok = verdict.ok;
+    if (gate.allowsSearch?.(searchContext(), [...document.querySelectorAll('[data-asin]')].slice(0, 24).map(tileTitle).filter(Boolean), state.prefs)) return true;
 
     if (ok && verdict.signal === 'none') {
       const titles = [...document.querySelectorAll('[data-asin]')].slice(0, 24)
@@ -86,7 +87,7 @@
   // this reader: a not-food row carries no text, so with the food gate off it must be read live.
   function applyRow(tile, asin, row) {
     const { state, unreadable, cacheScore } = P();
-    if (state.foodOnly && (row.status === 'not-food' || row.data.food === false)) {
+    if (state.foodOnly && (row.status === 'not-food' || row.data.food === false) && !root.AIR.db.ingestible?.allowsProduct?.(row.data.title, state.prefs)) {
       tile.querySelector('.air-badge')?.remove();
       return true;
     }
@@ -119,7 +120,8 @@
         if (saved) {
           const badge = paintBadge(it.tile, hit);
           if (saved.stale && badge) {
-            badge.dataset.saved = 'true'; if (badge.textContent !== `${hit.score} · saved`) badge.textContent = `${hit.score} · saved`;
+            const savedLabel = `${hit.score}${hit.category && hit.category !== 'food' ? ` · ${hit.category}` : ''} · saved`;
+            badge.dataset.saved = 'true'; if (badge.textContent !== savedLabel) badge.textContent = savedLabel;
             badge.setAttribute('aria-label', `Ingredient Check: ${hit.score}/100, saved ${new Date(hit.t).toLocaleDateString()}, ${saved.refresh && state.autoScoreSearch ? 'label refresh pending' : 'older label reading'}.`);
           }
           if (saved.refresh) enqueue(it.tile, it.asin); else queue.seen.add(it.asin);
@@ -174,7 +176,7 @@
       if (!asin || asin.length !== 10 || !badgeable(tile)) return;
       tile.setAttribute(BADGE_ATTR, '1');
       tileIdentities.set(tile, asin);
-      if (state.foodOnly && root.AIR.db.ingestible && root.AIR.db.ingestible.looksNonFoodFromTitle(tileTitle(tile))) {
+      if (state.foodOnly && root.AIR.db.ingestible && root.AIR.db.ingestible.looksNonFoodFromTitle(tileTitle(tile)) && !root.AIR.db.ingestible?.allowsProduct?.(tileTitle(tile), state.prefs)) {
         return;
       }
       pending.push({ tile, asin });
@@ -222,7 +224,7 @@
       titleEl.insertBefore(b, titleEl.firstChild);
     }
     const breakdown = hit !== 'pending' && hit !== 'unreadable' && P().state.hoverBreakdown;
-    const sig = hit === 'pending' ? 'p' : hit === 'unreadable' ? '?' : `${hit.score}:${hit.verdict}`;
+    const sig = hit === 'pending' ? 'p' : hit === 'unreadable' ? '?' : `${hit.score}:${hit.verdict}:${hit.category || 'food'}`;
     if (typeof b.getAttribute === 'function' && b.getAttribute('data-air') === sig && (!b.dataset.saved || b.dataset.cacheTime === String(hit.t))) return b;
     if (typeof b.setAttribute === 'function') b.setAttribute('data-air', sig);
     // A numbered badge opens the breakdown card (hover-card.js) when that setting is on, so it is a
@@ -253,13 +255,13 @@
     b.dataset.cacheTime = String(hit.t);
     delete b.dataset.saved;
     const c = root.AIR.panel.BAND_COLOR(hit.score);
-    b.textContent = hit.score;
+    b.textContent = hit.category && hit.category !== 'food' ? `${hit.score} · ${hit.category}` : hit.score;
     const verdictKey = ({
       Excellent: 'verdictExcellent', Good: 'verdictGood', Mediocre: 'verdictMediocre',
       Poor: 'verdictPoor', Avoid: 'verdictAvoid',
     })[hit.verdict];
     const verdict = verdictKey ? throttleCopy(verdictKey, hit.verdict) : hit.verdict;
-    b.title = `Ingredient Check: ${hit.score}/100 — ${verdict}`;
+    b.title = `Ingredient Check: ${hit.score}/100 — ${verdict}${hit.category && hit.category !== 'food' ? ` · ${hit.category} · ${hit.ratingStyle}` : ''}`;
     b.setAttribute('aria-label', b.title);
     b.setAttribute('role', 'img');
     b.style.cssText = `color:${c.fg};background:${c.bg};border:2px solid ${c.ring};cursor:pointer;`;
@@ -426,7 +428,7 @@
       return;
     }
     if (!front && queue.fetches >= autoFetchCap()) return;
-    if (state.foodOnly && root.AIR.db.ingestible && root.AIR.db.ingestible.looksNonFoodFromTitle(tileTitle(tile))) {
+    if (state.foodOnly && root.AIR.db.ingestible && root.AIR.db.ingestible.looksNonFoodFromTitle(tileTitle(tile)) && !root.AIR.db.ingestible?.allowsProduct?.(tileTitle(tile), state.prefs)) {
       queue.seen.add(asin);
       return;
     }
@@ -542,16 +544,16 @@
   function readProductHtml(asin, html) {
     const { state, unreadable } = P();
     const doc = new DOMParser().parseFromString(html, 'text/html');
-    const data = root.AIR.extract.extract(doc, { asin, foodOnly: state.foodOnly });
+    const data = root.AIR.extract.extract(doc, { asin, foodOnly: state.foodOnly, personalCareEnabled: state.prefs.personalCareEnabled });
     // A robot check or an error page is not an answer about the product; never record it.
     const real = !!doc.querySelector('#productTitle') && data.reason !== 'product-identity-mismatch';
     if (!real) return { outcome: 'unreadable', real: false, food: false, data };
     const food = !(data.ingestible && data.ingestible.ok === false);
-    if (state.foodOnly && !food) return { outcome: 'not-food', real, food, data };
+    if (state.foodOnly && !food && !root.AIR.db.ingestible?.allowsProduct?.(data.title, state.prefs)) return { outcome: 'not-food', real, food, data };
     if (!data.ok) return { outcome: 'unreadable', real, food, data };
     const input = {
       name: data.title, labels: data.labels, certifications: data.certifications,
-      nutrition: data.nutrition, ingredients_text: data.text, advisory_text: data.advisoryText,
+      category: data.supplementFacts ? 'supplement' : undefined, supplement_facts: data.supplementFacts, nutrition: data.nutrition, ingredients_text: data.text, advisory_text: data.advisoryText,
     };
     const result = root.AIR.engine.score(input, state.prefs);
     return { outcome: unreadable(result) ? 'low-coverage' : 'scored', real, food, data, input, result };

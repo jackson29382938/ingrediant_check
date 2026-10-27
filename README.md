@@ -40,6 +40,12 @@ Scoring runs on your computer.
 > allergy advice. Always check the package. Missing labels are shown as unavailable, not given a
 > guessed score.
 
+Personal care and supplements use separate **label indices**. Supported categories are toothpaste,
+mouthwash, deodorant/antiperspirant, shampoo, conditioner, body wash/soap, basic moisturizers, and
+vitamins/supplements. Settings offers **Evidence-based** (default), **Minimal ingredients**, and
+**Preference-focused** styles, plus an independent switch for these categories. Food scores keep
+their existing rules. Missing label evidence stays unavailable. See [the rubric and sources](docs/PERSONAL-CARE.md).
+
 ## At a glance
 
 |   | Feature | What you get |

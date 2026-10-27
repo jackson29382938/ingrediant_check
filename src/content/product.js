@@ -13,7 +13,7 @@
     return {
       name: data.title, labels: data.labels, certifications: data.certifications,
       nutrition: data.nutrition ? { ...data.nutrition } : undefined,
-      advisory_text: data.advisoryText,
+      advisory_text: data.advisoryText, category: data.supplementFacts ? 'supplement' : undefined, supplement_facts: data.supplementFacts,
       ...over,
     };
   }
@@ -37,7 +37,7 @@
     const title = el && (el.innerText || '').replace(/\s+/g, ' ').trim();
     if (!title) return null;
     const verdict = gate.assessTitle(title);
-    if (verdict.ok || !verdict.negatives.length) return null;
+    if (verdict.ok || !verdict.negatives.length || gate.allowsProduct?.(title, state.prefs)) return null;
     return { title, verdict };
   }
 
@@ -63,6 +63,14 @@
 
   function presentResult(host, data, key, result, meta) {
     const { state, unreadable, cacheScore, publishActionBadge, sendDiagnostic, ingredientSig } = P();
+    if (result.category && unreadable(result)) {
+      host.dataset.airState = 'personal-care';
+      state.lastTextSig = ingredientSig() || data.text || '';
+      publishActionBadge(null);
+      const review = root.AIR.db.ingestible.personalCareReview(data.title, meta.text || data.text, state.prefs, data.advisoryText, data.supplementFacts);
+      root.AIR.panel.mount(host, root.AIR.panel.renderPersonalCare({ ...review, category: result.category, reason: result.reason, flags: result.flags }));
+      return false;
+    }
     if (unreadable(result) && meta && meta.checkCoverage !== false) {
       if (host.dataset.airState !== 'fail') P().sendDiagnostic(data, result, meta.via, meta.text || data.text, { outcome: 'low-coverage' });
       showFailure(host, { ...data, lowCoverage: true, ocrAttempted: !!meta.ocrAttempted }, key);
@@ -106,7 +114,7 @@
     const sig = ingredientSig();
 
     // Scored + unchanged ingredient text → idle. Changed text → rescore.
-    if (earlyKey === state.lastKey && existingState === 'scored') {
+    if (earlyKey === state.lastKey && (existingState === 'scored' || existingState === 'personal-care')) {
       if (sig && sig === state.lastTextSig) return;
       if (!sig && state.lastTextSig) return;
     }
@@ -141,7 +149,7 @@
       state.failedExtracts = 0;
     }
 
-    const data = root.AIR.extract.extract(document, { asin: urlAsin, foodOnly: state.foodOnly });
+    const data = root.AIR.extract.extract(document, { asin: urlAsin, foodOnly: state.foodOnly, personalCareEnabled: state.prefs.personalCareEnabled });
     if (data.reason === 'product-identity-mismatch') {
       existing?.remove();
       state.lastKey = null;
@@ -154,7 +162,7 @@
       state.failedExtracts++;
       state.lastFailSig = sig;
     }
-    if (state.foodOnly && data.ingestible && !data.ingestible.ok) {
+    if (state.foodOnly && data.ingestible && !data.ingestible.ok && !root.AIR.db.ingestible?.allowsProduct?.(data.title, state.prefs)) {
       const key = data.asin || earlyKey;
       if (existingState === 'not-food' && key === state.lastKey) return;
       showNotFood(data, key);
@@ -186,6 +194,11 @@
       if (host.dataset.airState === 'loading'
           && (!data.upc || host.dataset.airCheck || host.dataset.airBarcode === String(data.upc))) return;
       cache(key, null);
+      const category = root.AIR.db.ingestible?.classifyProduct?.(data.title);
+      if (category?.status === 'recognized') {
+        showFailure(host, data, key);
+        return;
+      }
       // Someone may already have read this product — on this computer, or on another one through
       // the shared cache (a label photo read by OCR, a barcode match). Ask before spending a network
       // lookup or seconds of OCR on it. Once per panel: a new panel (navigation, a weight change)
@@ -205,8 +218,9 @@
     const requestId = ++state.requestId;
     const input = {
       name: data.title, labels: data.labels, certifications: data.certifications,
-      nutrition: data.nutrition, ingredients_text: data.text, advisory_text: data.advisoryText,
+      category: data.supplementFacts ? 'supplement' : undefined, supplement_facts: data.supplementFacts, nutrition: data.nutrition, ingredients_text: data.text, advisory_text: data.advisoryText,
     };
+
     const result = root.AIR.engine.score(input, state.prefs);
     if (!presentResult(host, data, key, result, {
       input,   // sanitize() keeps only known reading and nutrition fields
@@ -393,7 +407,7 @@
         if (err || !record) { maybeContribute(data, first); return; }
         const better = root.AIR.engine.score({
           name: data.title, labels: data.labels, certifications: data.certifications,
-          nutrition: data.nutrition, ingredients_text: data.text, advisory_text: data.advisoryText, provenanceRecord: record,
+          category: data.supplementFacts ? 'supplement' : undefined, supplement_facts: data.supplementFacts, nutrition: data.nutrition, ingredients_text: data.text, advisory_text: data.advisoryText, provenanceRecord: record,
         }, state.prefs);
         presentResult(host, data, key, better, {
           title: data.title, confidence: data.confidence, via: data.via,
@@ -464,6 +478,7 @@
         const best = res && res.ok && root.AIR.db.ocrText.bestBlock(res.results,
           t => root.AIR.extract.looksLikeIngredients(t, data.title));
         if (!best) { giveUp({ ocrOutcome: res && res.ok ? 'no-match' : 'error' }); return; }
+
         const input = pageInput(data, { ingredients_text: best.text });
         const result = root.AIR.engine.score(input, state.prefs);
         presentResult(host, data, key, result, {
@@ -504,9 +519,10 @@
 
   function renderManual(host, data, key, text) {
     const { state } = P();
+
     const result = root.AIR.engine.score({
       name: data.title, labels: data.labels, certifications: data.certifications,
-      nutrition: data.nutrition, ingredients_text: text,
+      category: data.supplementFacts ? 'supplement' : undefined, supplement_facts: data.supplementFacts, nutrition: data.nutrition, ingredients_text: text,
     }, state.prefs);
     if (!presentResult(host, data, key, result, {
       title: data.title, confidence: 1, via: 'manual-paste',
@@ -523,10 +539,11 @@
       const { state } = P();
       const data2 = root.AIR.extract.extract(document, { asin: data.asin, foodOnly: false });
       if (!data2.ok) { showFailure(host, data2, key); return; }
+
       const result = root.AIR.engine.score({
         name: data2.title, labels: data2.labels, certifications: data2.certifications,
         nutrition: data2.nutrition, ingredients_text: data2.text,
-      }, state.prefs);
+      }, { ...state.prefs, personalCareEnabled: true });
       presentResult(host, data2, key, result, {
         title: data2.title, confidence: data2.confidence, via: 'food-override',
         text: data2.text, textSig: (data2.text || '').slice(0, 320),
