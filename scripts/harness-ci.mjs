@@ -1176,7 +1176,14 @@ async function amazonEndToEnd(context, worker, pageErrors) {
 
   const shampoo = await open(`https://www.amazon.com/dp/${SHAMPOO}`);
   const shampooState = await panelState(shampoo);
-  if (shampooState !== 'not-food') throw new Error(`real content script on the shampoo page: ${shampooState}`);
+  if (shampooState !== 'scored') throw new Error(`real content script on the shampoo page: ${shampooState}`);
+  // A shampoo is a supported category: rated as an index and gray on the toolbar. (Its panel is closed-shadow in the
+  // content script's world, so its caption is checked in the personal-care scenario and tests/personal-care-ui.test.js.)
+  const shampooBadge = await worker.evaluate(async () => {
+    const [tab] = await chrome.tabs.query({ url: '*://www.amazon.com/dp/B00SHAMPOO' });
+    return { text: await chrome.action.getBadgeText({ tabId: tab.id }), color: await chrome.action.getBadgeBackgroundColor({ tabId: tab.id }) };
+  });
+  if (shampooBadge.text !== '70' || shampooBadge.color.slice(0, 3).join() !== '86,89,89') throw new Error(`shampoo toolbar badge: ${JSON.stringify(shampooBadge)}`);
   await shampoo.close();
 
   // "Rate every search result" is off by default (storefront audit, 2026-09-27), so it is turned on
@@ -1213,7 +1220,7 @@ async function amazonEndToEnd(context, worker, pageErrors) {
   }
   await numbersOpenTheProduct(context, worker, search);
   await search.close();
-  console.log(`  ok  extension on saved Amazon pages → oats scored (toolbar ${badge}), shampoo not food, ${badges} results rated through the badge queue, a click on a number opens the product`);
+  console.log(`  ok  extension on saved Amazon pages → oats scored (toolbar ${badge}), shampoo rated as a gray label index, ${badges} results rated through the badge queue, a click on a number opens the product`);
 }
 
 run().catch(err => {

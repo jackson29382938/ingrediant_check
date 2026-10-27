@@ -532,7 +532,7 @@
       if (token !== run) return false;
       // The unit most of these listings are priced in; the panel uses it until the reader picks another.
       const likely = U() && SF() ? U().likelyUnit(items, SF().storefront(location.hostname).units) : null;
-      if (new Set(items.filter(p => Number.isFinite(p.score)).map(p => p.category || 'food')).size > 1) status = 'Mixed categories: score ranking is disabled; other priorities still apply. ' + status;
+      if (new Set(items.filter(p => Number.isFinite(p.score)).map(p => p.category || 'food')).size > 1) status = t('sortMixed', 'Mixed categories: score ranking is disabled; other priorities still apply.') + ' ' + status;
       const reply = await send({ type: 'updateSortedResults', runId: id, items, loading, status, priceOnly, unit: likely ? likely.unit : '' });
       // A newer sort (in this tab or another) took the panel over: stop working for this one.
       if (reply && reply.stale) { if (token === run) run++; return false; }

@@ -12,7 +12,7 @@ engine runs unchanged in Node (tests) and in a content script.
 | Lint (installs pinned ESLint for this run only) | `npm run lint` |
 | Manifest, scripts and locale checks | `npm run preflight` |
 | Build Chrome and Firefox packages | `npm run pack` |
-| Real-Chromium harness (no network) | `npm install --no-save --no-package-lock playwright@1.63.0`, then `HARNESS_CHROME=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run harness:ci` |
+| Real-Chromium harness (no network) | `npm install --no-save --no-package-lock playwright@1.63.0`, then `HARNESS_CHROME=/opt/pw-browsers/chromium npm run harness:ci` |
 | Firefox package lint | `npm install --no-save --no-package-lock web-ext@10.0.0`, then `npm run firefox:lint` |
 
 In a cloud session Playwright's pinned browser is not installed and must not be downloaded; set
@@ -47,6 +47,15 @@ Rules that are easy to break:
 - **Food allergen, diet and avoid-list flags never move a score.** Personal-care/supplement indices are separate: the explicitly selected Preference-focused style counts avoid-list matches, as requested by the product specification. Allergy and diet warnings remain separate in every style. See docs/PERSONAL-CARE.md.
 - **Calibration is pinned to bands, not numbers** (`tests/corpus.json`). Moving a corpus product out of
   its band needs a reason written in the release notes.
+- **Personal care and supplements (`product-ratings.js`, `ingestible.js`).** Test them on real titles and
+  labels, not one-line fixtures: `tests/product-classification.test.js` (precision first: a missed title
+  falls back to the old behaviour, a wrong one rates dog shampoo), `tests/personal-care-label.test.js`
+  (Drug Facts and INCI, which the food parser reads wrongly, so `prepareLabel` rewrites them for these
+  categories only). A new upper limit or caution goes in `docs/PERSONAL-CARE.md` too; a test fails if the
+  limit table drifts. An index is never drawn in a quality-band colour (`theme.neutral()`), and a saved
+  score carries its `category` so `score-cache.fingerprint` retires it by its own settings only.
+  The harness's `extensionSmoke` half installs the extension; `HARNESS_CONTENT_ONLY=1` skips it, which hid
+  stale "shampoo is not food" fixtures once. Run the whole harness when you can.
 
 ## Layout
 

@@ -82,12 +82,12 @@
       if (mine !== token || !badge.isConnected || !on()) return;
       const row = C.sanitize(obj && obj[key]);
       const result = row && row.status === 'ok' ? root.AIR.engine.score(C.toInput(row), state.prefs) : null;
-      const [score, verdict] = String(badge.getAttribute('data-air') || '').split(':');
+      const [score, verdict, category] = String(badge.getAttribute('data-air') || '').split(':');
       if (openFor && openFor !== badge) openFor.setAttribute('aria-expanded', 'false');
       openFor = badge;
       badge.setAttribute('aria-expanded', 'true');
       root.AIR.panel.mount(ensureHost(), root.AIR.panel.renderBreakdown(result, {
-        asin, score: Number(score), verdict: verdict || '', detail: state.breakdownDetail,
+        asin, score: Number(score), verdict: verdict || '', category, detail: state.breakdownDetail,
       }));
       place(badge);
     });

@@ -54,6 +54,12 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
     return { fg, bg, ring, dfg, dring };
   }
 
+  // A personal-care or supplement index is not a quality band. Coloring an 80 green says "good" about a number
+  // the rubric itself calls a label index, so these are drawn in gray in every palette. (The color-vision
+  // palette already spends blue on its best band, so a blue "neutral" would read as one.)
+  const NEUTRAL = { fg: '#444a4a', bg: '#f1f3f3', ring: '#8b9494', dfg: '#b8c0c0', dring: '#6a7373' };
+  const neutral = () => ({ ...NEUTRAL });
+
   // Chrome owns the toolbar badge surface, so use the band's readable solid colour as its fill.
   // Numeric labels remain available in every palette; choose the strongest text contrast.
   function toolbar(score, palette = state.palette) {
@@ -169,7 +175,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
     window.addEventListener('load', () => force(document));
   }
 
-  const api = { DEFAULT_ACCENT, PALETTES, state, use, band, toolbar, accentFor, vars, force, applyVars, page, boot, contrast, mix };
+  const api = { DEFAULT_ACCENT, PALETTES, state, use, band, neutral, toolbar, accentFor, vars, force, applyVars, page, boot, contrast, mix };
   const out = AIRmodule('theme', api);
   if (typeof module !== 'undefined' && module.exports) module.exports = out;
 })();

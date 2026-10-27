@@ -137,12 +137,34 @@ test('retailer warning-only hydration refreshes flags without changing the ingre
   const input = T.readProduct(w.page, { href: 'https://www.target.com/p/oats/-/A-79364857' });
   assert.match(input.advisoryText, /milk and peanuts/);
 });
-test('published retailer beauty department prevents scoring edible-sounding body butter', () => {
+test('published retailer beauty department prevents scoring edible-sounding hair butter', () => {
   const w = runner('target-p-shampoo.html', 'https://www.target.com/p/x/-/A-75570641');
-  w.page.querySelector('h1[data-test="product-title"]').textContent = 'Body Butter';
+  w.page.querySelector('h1[data-test="product-title"]').textContent = 'Hair Butter';
   w.pass();
   assert.equal(w.host.dataset.airState, 'not-food');
   assert.equal(w.writes.length, 0);
+});
+// A body butter is a moisturizer, which has its own index: the beauty department no longer turns it away
+// (its label is collapsed here, so it waits for it to be opened), and what is scored is never a food score.
+test('a body butter in the beauty department waits for its label instead of being turned away', () => {
+  const w = runner('target-p-shampoo.html', 'https://www.target.com/p/x/-/A-75570641');
+  w.page.querySelector('h1[data-test="product-title"]').textContent = 'Body Butter';
+  w.pass();
+  assert.equal(w.host.dataset.airState, 'waiting');
+  assert.equal(w.writes.length, 0);
+});
+test('a body butter with an open label is rated as a moisturizer, never as food', () => {
+  const w = runner('target-p-chips.html', CHIPS_URL);
+  w.page.querySelector('h1[data-test="product-title"]').textContent = 'Shea Body Butter';
+  const heading = [...w.page.querySelectorAll('h4')].find(el => /^Ingredients:/i.test(el.textContent));
+  const kids = [...heading.parentNode.children];
+  kids[kids.indexOf(heading) + 1].textContent = 'Water, Glycerin, Shea Butter, Petrolatum, Dimethicone, Phenoxyethanol';
+  const before = w.writes.length;   // the page was scored as the chips it was, before it was edited
+  w.pass();
+  assert.equal(w.host.dataset.airState, 'scored');
+  const saved = w.writes.slice(before).flatMap(write => Object.values(write)).filter(value => value && typeof value === 'object' && 'score' in value);
+  assert.ok(saved.length > 0, 'a score was saved after the edit');
+  for (const value of saved) { assert.equal(value.category, 'moisturizer'); assert.equal(value.ratingStyle, 'evidence'); }
 });
 
 test('"Open the score panel" opens a retailer product panel too, only when asked and only for a score', () => {

@@ -79,7 +79,7 @@
     for (const heading of doc.querySelectorAll('h2, h3, h4, b, strong, caption')) {
       if (excluded(heading) || !/^supplement facts\s*:?$/i.test(text(heading))) continue;
       const value = text(heading.parentNode);
-      if (value.length <= 2000 && /\bserving size\b/i.test(value) && /\d/.test(value)) return value;
+      if (value.length <= 4000 && /\bserving size\b/i.test(value) && /\d/.test(value)) return value;
     }
     return '';
   }

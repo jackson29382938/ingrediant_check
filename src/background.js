@@ -196,10 +196,10 @@ function badgeAction(method, options) {
 function badgeText(tabId, color = '#ffffff') {
   badgeAction('setBadgeTextColor', { tabId, color });
 }
-function paintActionBadge(tabId, score, status) {
+function paintActionBadge(tabId, score, status, index = false) {
   if (!chrome.action || typeof tabId !== 'number') return;
   actionRevisions.set(tabId, (actionRevisions.get(tabId) || 0) + 1);
-  actionStates.set(tabId, { score, status });
+  actionStates.set(tabId, { score, status, index });
   if (status === 'fail' || status === 'not-food') {
     badgeAction('setBadgeText', { tabId, text: status === 'fail' ? '?' : '–' });
     badgeAction('setBadgeBackgroundColor', { tabId, color: status === 'fail' ? '#767676' : '#565959' });
@@ -210,14 +210,15 @@ function paintActionBadge(tabId, score, status) {
     badgeAction('setBadgeText', { tabId, text: '' });
     return;
   }
-  const colors = self.AIR.db.theme.toolbar(score, badgePalette);
+  // A personal-care or supplement index is not a quality band: gray, as the not-food badge is.
+  const colors = index ? { bg: '#565959', fg: '#ffffff' } : self.AIR.db.theme.toolbar(score, badgePalette);
   badgeAction('setBadgeText', { tabId, text: String(Math.round(score)) });
   badgeAction('setBadgeBackgroundColor', { tabId, color: colors.bg });
   badgeText(tabId, colors.fg);
 }
 
 async function refreshActionBadges() {
-  for (const [tabId, value] of actionStates) paintActionBadge(tabId, value.score, value.status);
+  for (const [tabId, value] of actionStates) paintActionBadge(tabId, value.score, value.status, value.index);
   if (!chrome.tabs?.query || !chrome.action?.getBadgeText) return;
   const paletteRevision = badgePaletteRevision;
   try {
@@ -257,7 +258,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (self.AIR.scanWorker?.handle(msg, sender, reply)) return true;
   if (self.AIR.historyWorker?.handle(msg, sender, reply)) return true;
   if (msg && msg.type === 'pageScore') {
-    paintActionBadge(sender && sender.tab && sender.tab.id, msg.score, msg.status);
+    paintActionBadge(sender && sender.tab && sender.tab.id, msg.score, msg.status, msg.index === true);
     return false;
   }
   if (msg && msg.type === 'ocrLabels') {

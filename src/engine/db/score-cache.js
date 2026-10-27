@@ -24,17 +24,25 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
     return `s:${normalizeStore(store)}:${asin}`;
   }
 
-  function fingerprint(raw = {}, source) {
-    const weights = AIR.db.categories.resolveWeights(raw.weights);
-    const out = {
-      rules: (AIR.db.revision && AIR.db.revision.RULES_REVISION) || '',
-      weights: Object.keys(weights).sort().map(k => [k, weights[k]]),
-      foodOnly: raw.foodOnly !== false,
-      ratingStyle: AIR.db.prefs.sanitizeScoring(raw).ratingStyle,
-      personalCareEnabled: raw.personalCareEnabled !== false,
-      avoidList: AIR.db.prefs.sanitizeScoring(raw).ratingStyle === 'preferences' ? AIR.db.prefs.sanitizeScoring(raw).avoidList : [],
-      sheetRevision: raw.sheetIndexRev || '', producerRevision: raw.producerIndexRev || '',
-    };
+  // What a saved score was computed from. A food score reads the food weights, the food-only switch and
+  // the provenance indexes. A personal-care or supplement index reads none of those: it reads the
+  // rating style, the category switch and, for the preference-focused style only, the avoid list.
+  // `category` is the saved result's own ('food' or absent for food), so each kind is retired by its
+  // own settings and by the rules revision, never by the other's.
+  function fingerprint(raw = {}, source, category) {
+    const out = { rules: (AIR.db.revision && AIR.db.revision.RULES_REVISION) || '' };
+    if (category && category !== 'food') {
+      const scoring = AIR.db.prefs.sanitizeScoring(raw);
+      out.ratingStyle = scoring.ratingStyle;
+      out.personalCareEnabled = raw.personalCareEnabled !== false;
+      out.avoidList = scoring.ratingStyle === 'preferences' ? scoring.avoidList : [];
+    } else {
+      const weights = AIR.db.categories.resolveWeights(raw.weights);
+      out.weights = Object.keys(weights).sort().map(k => [k, weights[k]]);
+      out.foodOnly = raw.foodOnly !== false;
+      out.sheetRevision = raw.sheetIndexRev || '';
+      out.producerRevision = raw.producerIndexRev || '';
+    }
     // Toggling OCR / OFF must not retire DOM-extracted chips. Only entries produced by those
     // paths include the matching flag in the fingerprint.
     if (source === 'label-ocr' || source === 'ocr') out.ocrLabels = AIR.db.prefs.sanitizeToggles(raw).ocrLabels;
@@ -48,13 +56,16 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
     if (Object.hasOwn(hit, 'cacheRevision') ? hit.cacheRevision !== CACHE_REVISION
       : hit.v !== version && !(CACHE_REVISION === 1 && LEGACY_COMPATIBLE.has(hit.v))) return false;
     if (normalizeStore(hit.store) !== normalizeStore(store) || hit.asin !== asin) return false;
-    if (hit.prefs !== fingerprint(prefs, hit.source)) return false;
+    if (hit.prefs !== fingerprint(prefs, hit.source, hit.category)) return false;
     if (!Number.isFinite(hit.score) || hit.score < 0 || hit.score > 100) return false;
     if (!Number.isFinite(hit.t) || hit.t > now || now - hit.t >= maxAgeMs) return false;
     if (typeof hit.source !== 'string' || !hit.source) return false;
     if (!allowManual && ['manual-paste', 'food-override'].includes(hit.source)) return false;
     return true;
   }
+
+  // A saved score is a food score unless it says otherwise; entries written before categories existed have no field.
+  const isFood = hit => !hit || !hit.category || hit.category === 'food';
 
   function parseKey(raw) {
     const m = String(raw || '').match(/^s:([^:]+):([A-Z0-9]{5,15})$/i);
@@ -152,7 +163,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
   }
 
   const api = AIRmodule('scoreCache', {
-    key, fingerprint, valid, recall, createReader, readLocal, parseKey, listScores, SCHEMA, CACHE_REVISION, TTL_MS, normalizeStore, storedKeys, isCacheKey,
+    key, fingerprint, valid, isFood, recall, createReader, readLocal, parseKey, listScores, SCHEMA, CACHE_REVISION, TTL_MS, normalizeStore, storedKeys, isCacheKey,
   });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();

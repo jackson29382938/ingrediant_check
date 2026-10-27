@@ -26,12 +26,16 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
     return subs.reduce((acc, v, i) => acc.split('$' + (i + 1)).join(String(v)), out);
   }
 
+  // A personal-care or supplement index names its category and style where a food score names its NOVA class.
+  const indexCaption = result => root.AIR.db.productRatings?.caption?.(result, t) || '';
+
   function verdictText(v) {
     if (v === 'Excellent') return t('verdictExcellent', 'Excellent');
     if (v === 'Good') return t('verdictGood', 'Good');
     if (v === 'Mediocre') return t('verdictMediocre', 'Mediocre');
     if (v === 'Poor') return t('verdictPoor', 'Poor');
     if (v === 'Avoid') return t('verdictAvoid', 'Avoid');
+    if (v === 'Label index') return t('verdictLabelIndex', 'Label index');
     return v;
   }
 
@@ -239,8 +243,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
 
   // `result` is the engine output; `meta` carries title/confidence/source.
   function render(result, meta) {
-    const c = result.category ? BAND_COLOR(50) : BAND_COLOR(result.score);
-    const caption = result.category ? `${result.category.replace(/-/g, ' ')} · ${result.ratingStyle}` : NOVA_TEXT[result.nova];
+    // An index is not a quality band: it is drawn in the theme's neutral gray, whatever its number.
+    const c = result.category ? root.AIR.db.theme.neutral() : BAND_COLOR(result.score);
+    const caption = indexCaption(result) || NOVA_TEXT[result.nova];
     const { caps, minus, plus, neutral } = sections(result);
     const copyLine = [result.score, verdictText(result.verdict), caption, meta.title || '']
       .filter(Boolean).join(' · ');
@@ -265,15 +270,16 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
           Math.round(result.coverage * 100)))}</p>`
         : ''}
       ${flagsHTML(result.flags, !!result.selectedAllergens?.length)}
-      ${result.category ? '<p class="disclaim" style="padding:6px 16px">Limited label index using the selected rubric. It does not establish safety, effectiveness, dose suitability or absence of allergens. Compare within the same category and style.</p>' : ''}
+      ${result.category ? `<p class="disclaim" style="padding:6px 16px">${esc(t('indexNote',
+        'Limited label index using the selected rubric. It does not establish safety, effectiveness, dose suitability or absence of allergens. Compare within the same category and style.'))}</p>` : ''}
       ${provenanceHTML(result.provenance, meta)}
       ${sourceLinks(result.sources)}
-      ${result.supplementFacts ? `<p class="disclaim" style="padding:4px 16px">${esc(result.supplementFacts)}</p>` : ''}
       <div class="body" id="air-panel-details">
         ${caps.length ? `<h4>${esc(t('headDisqualifying', 'Score limits'))}</h4>${rowsHTML(caps, 'minus')}` : ''}
         ${plus.length ? `<h4>${esc(t('headGood', "What's good"))}</h4>${rowsHTML(plus, 'plus')}` : ''}
         ${minus.length ? `<h4>${esc(t('headHurt', 'What hurt'))}</h4>${rowsHTML(minus, 'minus')}` : ''}
         ${neutral.length ? `<h4>${esc(t('headNeutral', 'Not counted against it'))}</h4>${rowsHTML(neutral, 'plus')}` : ''}
+        ${result.supplementFacts ? `<h4>${esc(t('reviewFacts', 'Published Supplement Facts'))}</h4><p class="disclaim">${esc(result.supplementFacts)}</p>` : ''}
         <div class="foot">
           <span>${esc(caption)} · ${esc(t('footBase', 'base $1', result.base))}${
             result.ruleCount ? ' · ' + esc(t('footRules', '$1 rules', result.ruleCount)) : ''}${
@@ -316,13 +322,14 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
   // own score and verdict, the ASIN, and `detail`: 'full' (every row, as on the product page) or
   // 'compact' (disqualifiers, the top five minuses and top three pluses).
   function renderBreakdown(result, meta) {
-    const shown = result || { score: meta.score, verdict: meta.verdict, nova: meta.nova, good: [], bad: [] };
-    const c = BAND_COLOR(shown.score);
+    const shown = result || { score: meta.score, verdict: meta.verdict, nova: meta.nova, good: [], bad: [],
+      ...(meta.category && meta.category !== 'food' ? { category: meta.category, ratingStyle: meta.ratingStyle } : {}) };
+    const c = shown.category ? root.AIR.db.theme.neutral() : BAND_COLOR(shown.score);
     const more = `<a class="more" href="/dp/${esc(meta.asin)}">${esc(t('breakdownMore', 'Open product for full detail'))} →</a>`;
     const head = `<div class="top">
         <span class="score">${shown.score}</span>
         <span class="meta"><span class="verdict">${esc(verdictText(shown.verdict).toUpperCase())}</span>
-          <span class="sub">${esc(shown.category ? `${shown.category} · ${shown.ratingStyle}` : NOVA_TEXT[shown.nova] || '')}</span></span>
+          <span class="sub">${esc(indexCaption(shown) || NOVA_TEXT[shown.nova] || '')}</span></span>
       </div>`;
     let body;
     if (!result) {
@@ -331,7 +338,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
       const compact = meta.detail === 'compact';
       const { caps, minus, plus, neutral } = sections(result);
       const top = (rows, n) => (compact ? rows.slice().sort((a, b) => Math.abs(b.c) - Math.abs(a.c)).slice(0, n) : rows);
-      body = `${result.category ? '<p class="note">Limited label index; compare within the same category and style.</p>' : ''}${sourceLinks(result.sources)}${flagsHTML(result.flags, !!result.selectedAllergens?.length)}
+      body = `${result.category ? `<p class="note">${esc(t('indexNoteShort', 'Limited label index; compare within the same category and style.'))}</p>` : ''}${sourceLinks(result.sources)}${flagsHTML(result.flags, !!result.selectedAllergens?.length)}
         ${compact ? '' : provenanceHTML(result.provenance, meta)}
         ${caps.length ? `<h4>${esc(t('headDisqualifying', 'Score limits'))}</h4>${rowsHTML(caps, 'minus')}` : ''}
         ${plus.length ? `<h4>${esc(t('headGood', "What's good"))}</h4>${rowsHTML(top(plus, 3), 'plus')}` : ''}
@@ -387,7 +394,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
     const title = meta && meta.title ? meta.title : '';
     const category = root.AIR.db.ingestible?.classifyProduct?.(title);
     const personal = category?.status === 'recognized' && category.category !== 'supplement';
-    if (category?.category === 'personal-care') return renderNotice({ title: 'Category not supported', body: 'This product or combination needs category-specific rules that are not available yet.' });
+    if (category?.category === 'personal-care') return renderNotice({ title: t('careUnsupportedTitle', 'Category not supported'),
+      body: t('careUnsupportedBody', 'This product or combination needs category-specific rules that are not available yet.') });
     return `
     <style>${CSS}</style>
     <div class="card" style="--fg:#565959;--bg:#f7f8f8;--ring:#d5d9d9;--dfg:#aeaeae;--dring:#5a5c5c">
@@ -396,10 +404,10 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
         ${esc(reason)}. ${esc(t('notFoodBody', 'A score here would treat it as something you eat.'))}
         ${title ? `<div class="sub" style="white-space:normal;margin-top:6px">${esc(title)}</div>` : ''}
         <div class="paste">
-          <button class="go anyway" type="button">${esc(personal ? 'Review ingredients' : t('notFoodButton', 'Score anyway'))}</button>
+          <button class="go anyway" type="button">${esc(personal ? t('careReviewButton', 'Review ingredients') : t('notFoodButton', 'Score anyway'))}</button>
         </div>
         <p style="margin-top:10px;font-size:12px;color:#565959">${esc(t('notFoodWhy',
-          'This is on because “Only rate food & supplements” is enabled in settings.'))}</p>
+          'This is on because “Skip unsupported merchandise” is enabled in settings.'))}</p>
       </div>
     </div>`;
   }
@@ -409,19 +417,19 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
   }
 
   function renderPersonalCare(review) {
-    const label = String(review.category || 'personal care').replace(/-/g, ' ');
+    const label = root.AIR.db.productRatings?.categoryLabel?.(review.category, t) || String(review.category || 'personal care').replace(/-/g, ' ');
     return `<style>${CSS}</style>
       <div class="card" style="--fg:#565959;--bg:#f7f8f8;--ring:#d5d9d9;--dfg:#aeaeae;--dring:#5a5c5c">
         <div class="fail" role="status" aria-live="polite">
-          <b>Ingredient review · ${esc(label)}</b>
-          ${esc(review.reason || 'The available label is insufficient for the selected rating style.')} This review does not establish safety or effectiveness.
-          ${review.category === 'supplement' ? '<p style="margin-top:8px">Supplement Facts, serving size, dose and interactions may be missing from this ingredient list. Check the package.</p>' : ''}
-          ${review.supplementFacts ? `<p style="margin-top:8px"><b>Published Supplement Facts</b>${esc(review.supplementFacts)}</p>` : ''}
+          <b>${esc(t('reviewTitle', 'Ingredient review · $1', label))}</b>
+          ${esc(review.reason || t('reviewDefaultReason', 'The available label is insufficient for the selected rating style.'))} ${esc(t('reviewNoClaim', 'This review does not establish safety or effectiveness.'))}
+          ${review.category === 'supplement' ? `<p style="margin-top:8px">${esc(t('reviewSupplementNote', 'Supplement Facts, serving size, dose and interactions may be missing from this ingredient list. Check the package.'))}</p>` : ''}
+          ${review.supplementFacts ? `<p style="margin-top:8px"><b>${esc(t('reviewFacts', 'Published Supplement Facts'))}</b> ${esc(review.supplementFacts)}</p>` : ''}
           ${flagsHTML(review.flags)}
           ${(review.notes || []).map(note => `<p style="margin-top:8px">${esc(note)}</p>`).join('')}
           ${(review.sources || []).filter(source => /^https:\/\/(?:www\.)?(?:fda\.gov|ada\.org|aad\.org|ods\.od\.nih\.gov)\//.test(source.url)).map(source => `<p style="margin-top:8px"><a href="${esc(source.url)}" target="_blank" rel="noopener noreferrer">${esc(source.label)}</a></p>`).join('')}
-          <p style="margin-top:8px"><b>Published ingredients</b>${esc(review.ingredients)}</p>
-          <p class="disclaim">Labels can be incomplete or change. Check the package and directions before use.</p>
+          <p style="margin-top:8px"><b>${esc(t('reviewIngredients', 'Published ingredients'))}</b> ${esc(review.ingredients)}</p>
+          <p class="disclaim">${esc(t('reviewDisclaimer', 'Labels can be incomplete or change. Check the package and directions before use.'))}</p>
         </div>
       </div>`;
   }

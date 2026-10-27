@@ -495,7 +495,8 @@
   function supplementFacts(doc) {
     for (const selector of ['#nic-nutrition-facts-content', '#productFactsDesktop_feature_div']) {
       const text = norm(doc.querySelector(selector)?.innerText || '');
-      if (/\bsupplement facts\b/i.test(text) && /\bserving size\b/i.test(text) && text.length <= 2000) return text;
+      // Bounded at 4000 (the same limit as the product cache): a thirty-nutrient multivitamin panel passes 2000.
+      if (/\bsupplement facts\b/i.test(text) && /\bserving size\b/i.test(text) && text.length <= 4000) return text;
     }
     return '';
   }
@@ -593,7 +594,7 @@
     const identity = productIdentity(doc, opts.asin || null);
     // Decided before any ingredient parsing: shampoo has an ingredient list and parses cleanly,
     // and a score on a bottle of shampoo implies it was assessed as something you could eat.
-    // When the user turns "Only rate food & supplements" off, we still assess so the panel can
+    // When the user turns "Skip unsupported merchandise" off, we still assess so the panel can
     // say why, but we go on to parse and score.
     const gate = (root.AIR.db && root.AIR.db.ingestible)
       ? root.AIR.db.ingestible.assess(doc, { title: identity.title })

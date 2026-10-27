@@ -52,10 +52,13 @@
     }
     const q = sel => summary.shadowRoot.querySelector(sel);
     q('.num').textContent = s.average == null ? '—' : String(s.average);
-    q('.t').textContent = s.groups ? s.groups.map(g => `${g.category}: ${g.average}`).join(' · ') : `${t('cartAverage', 'Cart average')} · ${s.verdict}`;
+    const named = category => category === 'food' ? t('catFood', 'Food') : A.db.productRatings.categoryLabel(category, t);
+    q('.t').textContent = s.groups ? s.groups.map(g => `${named(g.category)}: ${g.average}`).join(' · ')
+      : s.category ? t('cartAverageCare', '$1 average', named(s.category)) : `${t('cartAverage', 'Cart average')} · ${s.verdict}`;
     q('.s').textContent = [t('cartRated', '$1 of $2 items rated', s.rated, s.total), s.pending ? t('cartChecking', 'checking…') : '',
       earnedHere ? t('cartXpGained', '+$1 XP', earnedHere) : '', lv ? t('cartLevel', 'Level $1 · $2/$3 XP', lv.level, lv.into, lv.need) : ''].filter(Boolean).join(' · ');
-    const c = A.db.theme.band(s.average == null ? 50 : s.average);
+    // An index, or a cart of several kinds, has no quality band.
+    const c = s.average == null || s.category ? A.db.theme.neutral() : A.db.theme.band(s.average);
     for (const k of ['fg', 'bg', 'ring']) summary.style.setProperty('--' + k, c[k]);
     summary.dataset.airSig = sig;
   }
@@ -85,21 +88,22 @@
       }
       tile.anchor.insertBefore(b, tile.anchor.firstChild);
     }
-    const label = hit ? `${hit.score}${hit.category && hit.category !== 'food' ? ` · ${hit.category}` : ''}${saved ? ' · saved' : ''}` : status === 'checking' ? 'Checking label…' : status === 'not-food' ? 'Not a food' : status === 'unavailable' ? 'Label unavailable' : 'Open to rate';
+    const care = !!hit && !!hit.category && hit.category !== 'food';
+    const label = hit ? `${hit.score}${care ? ` · ${A.db.productRatings.categoryLabel(hit.category, t)}` : ''}${saved ? ' · saved' : ''}` : status === 'checking' ? 'Checking label…' : status === 'not-food' ? 'Not a food' : status === 'unavailable' ? 'Label unavailable' : 'Open to rate';
     if (b.textContent !== label) b.textContent = label;
     b.dataset.airProduct = tile.id; b.dataset.airStatus = hit ? 'scored' : status || 'limited';
     // As on a results page: where this page has the breakdown card (Amazon, hover-card.js) a score opens it from the
     // keyboard too, so it is a focusable link and the card stands in for the tooltip. Any badge goes to its product when clicked.
-    const card = !!(hit && settings.hoverBreakdown && A.hoverCard), air = hit ? `${hit.score}:${hit.verdict}` : '', sig = `${air}|${card}`;
+    const card = !!(hit && settings.hoverBreakdown && A.hoverCard), air = hit ? `${hit.score}:${hit.verdict}${care ? ':' + hit.category : ''}` : '', sig = `${air}|${card}`;
     if (b.dataset.airSig !== sig) {   // not on every pass: the card sets aria-expanded while it is open
       b.dataset.airSig = sig;
-      const name = hit ? `Ingredient Check: ${hit.score}/100 — ${hit.verdict}${hit.category && hit.category !== 'food' ? ` · ${hit.category} · ${hit.ratingStyle}` : ''}` : 'Ingredient Check: open this product to read or paste its ingredient label.';
+      const name = hit ? `Ingredient Check: ${hit.score}/100 — ${hit.verdict}${care ? ` · ${A.db.productRatings.caption(hit, t)}` : ''}` : 'Ingredient Check: open this product to read or paste its ingredient label.';
       if (air) b.dataset.air = air; else delete b.dataset.air;
       for (const a of ['title', 'tabindex', 'aria-haspopup', 'aria-expanded']) b.removeAttribute(a);
       b.setAttribute('aria-label', name); b.setAttribute('role', card ? 'link' : 'img');
       if (card) { b.setAttribute('tabindex', '0'); b.setAttribute('aria-haspopup', 'dialog'); b.setAttribute('aria-expanded', 'false'); } else b.title = name;
     }
-    const color = hit ? A.db.theme.band(hit.score) : { fg: '#374151', bg: '#f3f4f6', ring: '#9ca3af' };
+    const color = hit ? (care ? A.db.theme.neutral() : A.db.theme.band(hit.score)) : { fg: '#374151', bg: '#f3f4f6', ring: '#9ca3af' };
     for (const k of ['fg', 'bg', 'ring']) b.style.setProperty('--' + k, color[k]);
   }
   async function read(job, turn) {
@@ -137,7 +141,7 @@
       // can say why. Amazon only (A.page), and never shared.
       A.page?.rememberProduct(job.id, { input, via: data.via, confidence: data.confidence, food: food.ok !== false }, { share: false });
       job.hit = { schema: cache.SCHEMA, cacheRevision: cache.CACHE_REVISION, v: version, t: Date.now(), store: cache.normalizeStore(location.hostname), asin: job.id,
-        prefs: cache.fingerprint(raw, 'page'), source: 'page', input, score: result.score, verdict: result.verdict, nova: result.nova, category: result.category || 'food', ratingStyle: result.ratingStyle || 'food', name: data.title.slice(0, 120) };
+        prefs: cache.fingerprint(raw, 'page', result.category), source: 'page', input, score: result.score, verdict: result.verdict, nova: result.nova, category: result.category || 'food', ratingStyle: result.ratingStyle || 'food', name: data.title.slice(0, 120) };
       await chrome.storage.local.set({ [cache.key(location.hostname, job.id)]: job.hit });
     } catch { if (turn === generation) job.status = 'unavailable'; }
     finally { clearTimeout(timeout); controllers.delete(control); if (turn === generation) { active--; schedule(); } }

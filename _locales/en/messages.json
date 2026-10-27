@@ -176,7 +176,7 @@
     "message": "Score anyway"
   },
   "notFoodWhy": {
-    "message": "This is on because “Only rate food & supplements” is enabled in settings."
+    "message": "This is on because “Skip unsupported merchandise” is enabled in settings."
   },
   "notFoodNothing": {
     "message": "Nothing disclosed about how this was produced"
@@ -1875,6 +1875,91 @@
     "message": "Preference-focused"
   },
   "optStyleHelp": {
-    "message": "Evidence-based uses disclosed category functions or Supplement Facts. Minimal favors fewer ingredients. Preference-focused uses your avoid list. These indices do not establish safety or effectiveness."
+    "message": "Evidence-based looks for a function the category needs, documented cautions, and for supplements a complete Supplement Facts panel with no serving above an adult upper limit. Minimal favors fewer ingredients. Preference-focused uses your avoid list. These indices do not establish safety or effectiveness."
+  },
+  "catToothpaste": {
+    "message": "Toothpaste"
+  },
+  "catMouthwash": {
+    "message": "Mouthwash"
+  },
+  "catDeodorant": {
+    "message": "Deodorant"
+  },
+  "catShampoo": {
+    "message": "Shampoo"
+  },
+  "catConditioner": {
+    "message": "Conditioner"
+  },
+  "catBodyWash": {
+    "message": "Body wash"
+  },
+  "catMoisturizer": {
+    "message": "Moisturizer"
+  },
+  "catSupplement": {
+    "message": "Supplement"
+  },
+  "catFood": {
+    "message": "Food"
+  },
+  "verdictLabelIndex": {
+    "message": "Label index"
+  },
+  "indexNote": {
+    "message": "Limited label index using the selected rubric. It does not establish safety, effectiveness, dose suitability or absence of allergens. Compare within the same category and style."
+  },
+  "indexNoteShort": {
+    "message": "Limited label index; compare within the same category and style."
+  },
+  "careUnsupportedTitle": {
+    "message": "Category not supported"
+  },
+  "careUnsupportedBody": {
+    "message": "This product or combination needs category-specific rules that are not available yet."
+  },
+  "careReviewButton": {
+    "message": "Review ingredients"
+  },
+  "reviewTitle": {
+    "message": "Ingredient review · $LABEL$",
+    "placeholders": {
+      "label": {
+        "content": "$1"
+      }
+    }
+  },
+  "reviewDefaultReason": {
+    "message": "The available label is insufficient for the selected rating style."
+  },
+  "reviewNoClaim": {
+    "message": "This review does not establish safety or effectiveness."
+  },
+  "reviewSupplementNote": {
+    "message": "Supplement Facts, serving size, dose and interactions may be missing from this ingredient list. Check the package."
+  },
+  "reviewFacts": {
+    "message": "Published Supplement Facts"
+  },
+  "reviewIngredients": {
+    "message": "Published ingredients"
+  },
+  "reviewDisclaimer": {
+    "message": "Labels can be incomplete or change. Check the package and directions before use."
+  },
+  "cartAverageCare": {
+    "message": "$LABEL$ average",
+    "placeholders": {
+      "label": {
+        "content": "$1"
+      }
+    }
+  },
+  "compareMixed": {
+    "message": "Different categories or rating styles: these scores are not directly comparable."
+  },
+  "sortMixed": {
+    "message": "Mixed categories: score ranking is disabled; other priorities still apply."
   }
 }

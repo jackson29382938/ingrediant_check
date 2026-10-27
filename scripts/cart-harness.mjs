@@ -19,7 +19,7 @@ export async function cartEndToEnd(context, worker, pageErrors, root) {
       const req = r.request(), u = new URL(req.url()), product = productIds.find(id => u.pathname.includes(id));
       if (product) {
         if (req.resourceType() !== 'document') requests.push({ url: u.href, cookie: req.headers().cookie, referer: req.headers().referer });
-        const title = product === productIds[2] ? 'Hair shampoo' : 'Whole grain oats';
+        const title = product === productIds[2] ? 'Hair spray' : 'Whole grain oats';
         const label = product === productIds[1] ? 'whole grain oats, sugar, red 40, salt' : 'whole grain rolled oats';
         const declaration = host.includes('amazon.') ? `<input id="ASIN" value="${product}"><div id="nic-ingredients-content">${label}</div>` : host.includes('target.') ? `<section data-test="@web/site-top-of-funnel/ProductDetailCollapsible-LabelInfo"><button aria-expanded="true">Label info</button><h4>Ingredients:</h4><div>${label}</div></section>` : `<section><h3>Ingredients</h3><p>${label}</p></section>`;
         return r.fulfill({ contentType: 'text/html', body: `<h1 id="productTitle" data-test="product-title">${title}</h1>${missing ? '' : declaration}` });
@@ -50,8 +50,8 @@ export async function cartEndToEnd(context, worker, pageErrors, root) {
     const count = requests.length;
     await page.waitForTimeout(500);
     if (requests.length !== count || await page.locator('main input[aria-label="Quantity"]').inputValue() !== '7' || await page.locator('#total').innerText() !== '$10.00') throw new Error(`cart changed or repeated request: ${host}`);
-    // Mixed carts must still rate food, while declining shampoo.
-    await page.evaluate(html => document.querySelector('main').insertAdjacentHTML('beforeend', html), card(productIds[2], 'Hair shampoo'));
+    // Mixed carts must still rate food, while declining unsupported merchandise (shampoo is supported now and has its own index).
+    await page.evaluate(html => document.querySelector('main').insertAdjacentHTML('beforeend', html), card(productIds[2], 'Hair spray'));
     await page.waitForFunction(id => document.querySelector(`[data-product-id="${id}"] .air-cart-badge`)?.dataset.airStatus === 'not-food', productIds[2], { timeout: 15000 });
     await worker.evaluate(() => chrome.storage.local.set({ autoScoreSearch: false }));
     await page.reload();

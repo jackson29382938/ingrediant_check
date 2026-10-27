@@ -16,6 +16,7 @@ const allergens = require('../src/engine/db/allergens.js');
 const ocr = require('../src/engine/db/ocr-text.js');
 const U = require('../src/engine/db/unit-price.js');
 const R = require('../src/engine/db/sorted-results.js');
+const ratings = require('../src/engine/db/product-ratings.js');
 
 const LENGTH = 6000;   // extract.js MAX_LEN, the longest list anything is handed
 const PIECES = ['1', '1,', '1.', ' ', ',', 'a', 'oil ', '(', 'ingredients\n', 'Ingredients: ', 'contains ',
@@ -50,6 +51,13 @@ const PATHS = {
   'ocrText.ingredientsFromOcr': t => ocr.ingredientsFromOcr(t),
   'unitPrice.unitPriceFor': t => U.unitPriceFor({ title: t.slice(0, 400), text: t, listingPrice: 5 }, { unitMissing: 'infer-more' }, 'www.amazon.de'),
   'sortedResults.parseMoney': t => R.parseMoney(t, 'www.amazon.com.br'),
+  // Personal care and supplements: a title, a Drug Facts label and a Supplement Facts panel are all page text.
+  'ingestible.classifyProduct': t => ingestible.classifyProduct(t.slice(0, 500), { supplementFacts: true }),
+  'ingestible.prepareLabel': t => ingestible.prepareLabel(t),
+  'ingestible.personalCareReview': t => ingestible.personalCareReview('Shampoo', t, { allergens: ['milk'], avoidList: ['red 40'] }, t, t),
+  'productRatings.declaredAmounts': t => ratings.declaredAmounts('Supplement Facts Serving Size 1 ' + t),
+  'engine.score (personal care)': t => engine.score({ name: 'Shampoo', ingredients_text: t }, { ratingStyle: 'preferences', avoidList: ['red 40'] }),
+  'engine.score (supplement)': t => engine.score({ name: 'Vitamin C capsules', ingredients_text: 'Vitamin C, cellulose', supplement_facts: 'Supplement Facts Serving Size 1 Vitamin C ' + t.slice(0, 4000) }, {}),
 };
 
 for (const [name, run] of Object.entries(PATHS)) {

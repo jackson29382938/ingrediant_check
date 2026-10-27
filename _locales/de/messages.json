@@ -179,7 +179,7 @@
     "message": "Trotzdem bewerten"
   },
   "notFoodWhy": {
-    "message": "This is on because “Only rate food & supplements” is enabled in settings."
+    "message": "Das ist aktiv, weil „Nicht unterstützte Waren überspringen“ in den Einstellungen eingeschaltet ist."
   },
   "notFoodNothing": {
     "message": "Nothing disclosed about how this was produced"
@@ -1875,6 +1875,91 @@
     "message": "Nach Vorlieben"
   },
   "optStyleHelp": {
-    "message": "Evidenzbasiert nutzt angegebene Inhaltsstofffunktionen oder Supplement Facts. Wenige Inhaltsstoffe bevorzugt kürzere Listen. Nach Vorlieben nutzt Ihre Vermeidungsliste. Diese Indizes belegen weder Sicherheit noch Wirksamkeit."
+    "message": "Evidenzbasiert sucht nach einer Funktion, die die Kategorie braucht, nach dokumentierten Warnhinweisen und bei Ergänzungsmitteln nach vollständigen Supplement Facts ohne Portion über der Verzehrhöchstmenge für Erwachsene. Wenige Inhaltsstoffe bevorzugt kürzere Listen. Nach Vorlieben nutzt die Vermeidungsliste. Diese Indizes belegen weder Sicherheit noch Wirksamkeit."
+  },
+  "catToothpaste": {
+    "message": "Zahnpasta"
+  },
+  "catMouthwash": {
+    "message": "Mundspülung"
+  },
+  "catDeodorant": {
+    "message": "Deodorant"
+  },
+  "catShampoo": {
+    "message": "Shampoo"
+  },
+  "catConditioner": {
+    "message": "Haarspülung"
+  },
+  "catBodyWash": {
+    "message": "Duschgel und Seife"
+  },
+  "catMoisturizer": {
+    "message": "Feuchtigkeitspflege"
+  },
+  "catSupplement": {
+    "message": "Nahrungsergänzung"
+  },
+  "catFood": {
+    "message": "Lebensmittel"
+  },
+  "verdictLabelIndex": {
+    "message": "Etikettenindex"
+  },
+  "indexNote": {
+    "message": "Begrenzter Etikettenindex nach dem gewählten Raster. Er belegt weder Sicherheit, Wirksamkeit oder Eignung der Dosis noch die Abwesenheit von Allergenen. Nur innerhalb derselben Kategorie und desselben Stils vergleichen."
+  },
+  "indexNoteShort": {
+    "message": "Begrenzter Etikettenindex; nur innerhalb derselben Kategorie und desselben Stils vergleichen."
+  },
+  "careUnsupportedTitle": {
+    "message": "Kategorie nicht unterstützt"
+  },
+  "careUnsupportedBody": {
+    "message": "Dieses Produkt oder diese Kombination braucht kategoriespezifische Regeln, die noch nicht verfügbar sind."
+  },
+  "careReviewButton": {
+    "message": "Inhaltsstoffe ansehen"
+  },
+  "reviewTitle": {
+    "message": "Inhaltsstoff-Überprüfung · $LABEL$",
+    "placeholders": {
+      "label": {
+        "content": "$1"
+      }
+    }
+  },
+  "reviewDefaultReason": {
+    "message": "Das verfügbare Etikett reicht für den gewählten Bewertungsstil nicht aus."
+  },
+  "reviewNoClaim": {
+    "message": "Diese Überprüfung belegt weder Sicherheit noch Wirksamkeit."
+  },
+  "reviewSupplementNote": {
+    "message": "Supplement Facts, Portionsgröße, Dosis und Wechselwirkungen können in dieser Zutatenliste fehlen. Prüfe die Verpackung."
+  },
+  "reviewFacts": {
+    "message": "Veröffentlichte Supplement Facts"
+  },
+  "reviewIngredients": {
+    "message": "Veröffentlichte Zutaten"
+  },
+  "reviewDisclaimer": {
+    "message": "Etiketten können unvollständig sein oder sich ändern. Prüfe vor der Anwendung Verpackung und Gebrauchshinweise."
+  },
+  "cartAverageCare": {
+    "message": "Durchschnitt: $LABEL$",
+    "placeholders": {
+      "label": {
+        "content": "$1"
+      }
+    }
+  },
+  "compareMixed": {
+    "message": "Unterschiedliche Kategorien oder Bewertungsstile: Diese Werte sind nicht direkt vergleichbar."
+  },
+  "sortMixed": {
+    "message": "Gemischte Kategorien: Die Sortierung nach Wert ist deaktiviert; andere Prioritäten gelten weiter."
   }
 }

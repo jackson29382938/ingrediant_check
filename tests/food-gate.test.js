@@ -300,7 +300,7 @@ check('not-food card uses the settings explanation', () => {
     title: 'Shampoo',
     ingestible: { ok: false, reason: 'cosmetic' },
   });
-  assert.ok(/Only rate food/.test(html));
+  assert.ok(/Skip unsupported merchandise/.test(html), 'names the setting as the settings page does');
   assert.ok(/does not look like food/.test(html));
 });
 

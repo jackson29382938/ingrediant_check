@@ -190,6 +190,17 @@ test('pageScore paints and clears the toolbar badge for a tab', () => {
   assert.equal(w.badges.filter(b => b.kind === 'text' && b.tabId === 7).at(-1).text, '');
 });
 
+test('a personal-care index paints the toolbar badge gray, not a quality color', () => {
+  const w = worker();
+  w.call('paintActionBadge(7, 86, undefined, true)');
+  assert.equal(w.badges.find(b => b.kind === 'color' && b.tabId === 7).color, '#565959');
+  w.call('paintActionBadge(8, 86)');
+  assert.notEqual(w.badges.find(b => b.kind === 'color' && b.tabId === 8).color, '#565959', 'a food score keeps its band color');
+  // The gray survives a palette refresh: the state remembers it is an index.
+  w.call('refreshActionBadges()');
+  assert.equal(w.badges.filter(b => b.kind === 'color' && b.tabId === 7).at(-1).color, '#565959');
+});
+
 test('master pause blocks every passive background entry point', async () => {
   let requests = 0;
   const w = worker({ enabled: false, ocrLabels: true, useOpenFoodFacts: true, shareContributions: true },

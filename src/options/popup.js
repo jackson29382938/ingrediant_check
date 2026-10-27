@@ -259,6 +259,10 @@ function msg(key, fallback, sub) {
 // One palette and one set of NOVA labels, owned by the panel. The copies that used to live here
 // had already drifted from it once.
 const { NOVA_TEXT: NOVA_SHORT, BAND_COLOR: bandColor } = AIR.panel;
+// A personal-care or supplement index is drawn in neutral gray and captioned with its category and style; a food score is a color band.
+const isIndex = hit => !!hit && !!hit.category && hit.category !== 'food';
+const cardColor = hit => isIndex(hit) ? AIR.db.theme.neutral() : bandColor(hit.score);
+const cardLead = hit => isIndex(hit) ? AIR.db.productRatings.caption(hit, msg) : NOVA_SHORT[hit.nova];
 
 function asinFromUrl(url) {
   try { return (new URL(url).pathname.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/) || [])[1] || ''; }
@@ -290,7 +294,7 @@ function paintStoreCard(card, live, adapter) {
       card.hidden = true;
       return;
     }
-    const c = bandColor(live.score);
+    const c = cardColor(live);
     card.hidden = false;
     card.textContent = '';
     card.className = 'page-score';
@@ -313,7 +317,7 @@ function paintStoreCard(card, live, adapter) {
     verdict.textContent = live.verdict || '';
     const sub = document.createElement('div');
     sub.className = 'ps-sub';
-    sub.textContent = [live.category && live.category !== 'food' ? `${live.category} · ${live.ratingStyle}` : NOVA_SHORT[live.nova], live.name].filter(Boolean).join(' · ');
+    sub.textContent = [cardLead(live), live.name].filter(Boolean).join(' · ');
     meta.append(verdict, sub);
     row.append(num, meta);
     card.append(kicker, row);
@@ -372,7 +376,7 @@ function paintPageScore() {
         card.appendChild(p);
         return;
       }
-      const c = bandColor(hit.score);
+      const c = cardColor(hit);
       card.className = 'page-score';
       card.style.setProperty('--fg', c.fg);
       card.style.setProperty('--bg', c.bg);
@@ -397,7 +401,7 @@ function paintPageScore() {
         : hit.source === 'food-override' ? msg('srcShortOverride', 'Food filter overridden (this tab)')
         : hit.source === 'label-ocr' ? msg('srcShortOcr', 'Label photo')
         : hit.source === 'open-food-facts' ? msg('srcShortBarcode', 'Open Food Facts') : msg('srcShortPage', 'Product page');
-      sub.textContent = [hit.category && hit.category !== 'food' ? `${hit.category} · ${hit.ratingStyle}` : NOVA_SHORT[hit.nova], hit.name, source, hit.provenanceSource].filter(Boolean).join(' · ');
+      sub.textContent = [cardLead(hit), hit.name, source, hit.provenanceSource].filter(Boolean).join(' · ');
       meta.append(verdict, sub);
       row.append(num, meta);
       card.append(kicker, row);
@@ -419,7 +423,7 @@ function paintCompareCard(hit) {
   const card = document.createElement('div');
   card.className = 'compare-card';
   if (!hit) return card;
-  const c = bandColor(hit.score);
+  const c = cardColor(hit);
   card.style.setProperty('--fg', c.fg);
   card.style.setProperty('--bg', c.bg);
   card.style.setProperty('--ring', c.ring);
@@ -433,7 +437,7 @@ function paintCompareCard(hit) {
   verdict.textContent = hit.verdict || '';
   const sub = document.createElement('div');
   sub.className = 'ps-sub';
-  sub.textContent = [hit.category && hit.category !== 'food' ? `${hit.category} · ${hit.ratingStyle}` : NOVA_SHORT[hit.nova], hit.name, hit.asin].filter(Boolean).join(' · ');
+  sub.textContent = [cardLead(hit), hit.name, hit.asin].filter(Boolean).join(' · ');
   card.append(num, verdict, sub);
   const store = AIR.stores.storeForHost(hit.store);
   if (store) {
@@ -507,7 +511,7 @@ function paintCompare() {
     grid.textContent = '';
     grid.append(paintCompareCard(hitA), paintCompareCard(hitB));
     if (hitA.category !== hitB.category || hitA.ratingStyle !== hitB.ratingStyle) {
-      const note = document.createElement('p'); note.textContent = 'Different categories or rating styles: these scores are not directly comparable.'; grid.append(note);
+      const note = document.createElement('p'); note.textContent = msg('compareMixed', 'Different categories or rating styles: these scores are not directly comparable.'); grid.append(note);
     }
     if (aKey !== all.compareA || bKey !== all.compareB) persist({ compareA: aKey, compareB: bKey });
   })().catch(() => { block.hidden = true; });

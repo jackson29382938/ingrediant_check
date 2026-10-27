@@ -53,6 +53,23 @@ check('food gate refuses shampoo even though a list is published', () => {
     JSON.stringify(data.ingestible)
   );
 });
+// The checks above run with personal care off (the food gate's own behavior). With it on, which is the
+// default, the same saved page is a supported product and must be rated as one, never as food.
+check('with personal care on, the saved shampoo page is read and rated as a shampoo', () => {
+  const data = extract.extract(shampoo, { asin: 'B00TESTSHAM', foodOnly: true });
+  assert.ok(data.ok, JSON.stringify({ ok: data.ok, reason: data.reason }));
+  assert.deepStrictEqual(data.ingestible.productCategory, { category: 'shampoo', status: 'recognized' });
+  const engine = require(src('engine/score.js'));
+  const result = engine.score({ name: data.title, ingredients_text: data.text }, {});
+  assert.strictEqual(result.category, 'shampoo');
+  assert.strictEqual(result.readable, true);
+  assert.strictEqual(result.nova, undefined, 'no food class');
+  assert.strictEqual(result.score, 70, 'a functional ingredient, less fragrance');
+});
+check('with the category switch off, the saved shampoo page is skipped as before', () => {
+  const data = extract.extract(shampoo, { asin: 'B00TESTSHAM', foodOnly: true, personalCareEnabled: false });
+  assert.strictEqual(data.reason, 'not-ingestible');
+});
 check('with the food gate off, extract still finds the shampoo list', () => {
   const data = extract.extract(shampoo, { asin: 'B00TESTSHAM', foodOnly: false });
   assert.ok(data.ok, JSON.stringify({ ok: data.ok, reason: data.reason }));

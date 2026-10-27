@@ -53,7 +53,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
       if (typeof src.advisory_text !== 'string' || src.advisory_text.length > 6000) return null;
       out.advisory_text = str(src.advisory_text, 6000);
     }
-    if (typeof src.supplement_facts === 'string' && src.supplement_facts.length <= 2000) out.supplement_facts = str(src.supplement_facts, 2000);
+    // 4000 matches extract.js and label-reader.js: a multivitamin panel with thirty nutrients runs past
+    // 2000 characters, and a panel dropped here would make a cached reading unrated that a live one is not.
+    if (typeof src.supplement_facts === 'string' && src.supplement_facts.length <= 4000) out.supplement_facts = str(src.supplement_facts, 4000);
     const n = src.nutrition;
     if (n && typeof n === 'object' && !Array.isArray(n)) {
       const nut = {};

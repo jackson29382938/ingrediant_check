@@ -122,6 +122,8 @@
       if (!result.category && A.engine.isReadable(result)) return { rulesRevision: A.db.revision.RULES_REVISION, breakdown: H.fromResult(result), score: result.score, scoredAt: Date.now(), ingredients: row.data.text, input: P.toInput(row), flags: (result.flags || []).map(f => f.label || f.name || f.id || '').filter(Boolean) };
     }
     const hit = saved[scoreKey];
+    // Purchase history is a record of food. A saved shampoo or supplement index shares the key but is not a food rating.
+    if (hit && !cache.isFood(hit)) return { nonfood: true };
     return cache.valid(hit, { store: location.hostname, asin: line.asin, version, prefs: conf, maxAgeMs: age }) ? { score: hit.score, scoredAt: hit.t, ingredients: '', flags: [] } : null;
   }
   let lastURL = location.href, signature = '';

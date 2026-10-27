@@ -424,7 +424,8 @@
   function chipFor(product) {
     const score = node('div', 'score');
     if (!saved?.priceOnly && typeof product.score === 'number') {
-      const c = BAND_COLOR(product.score);
+      const care = !!product.category && product.category !== 'food';
+      const c = care ? AIR.db.theme.neutral() : BAND_COLOR(product.score);
       const chip = node('span', 'score-chip', String(product.score));
       chip.style.color = c.fg;
       chip.style.background = c.bg;
@@ -435,7 +436,7 @@
       chip.addEventListener('focus', () => showWhy(chip, product));
       chip.addEventListener('mouseleave', leaveSoon);
       chip.addEventListener('blur', hideWhy);
-      score.append(chip, node('span', 'score-verdict', [product.verdict, product.category !== 'food' ? product.category : ''].filter(Boolean).join(' · ')));
+      score.append(chip, node('span', 'score-verdict', [product.verdict, care ? AIR.db.productRatings.caption(product, t) : ''].filter(Boolean).join(' · ')));
     } else {
       score.append(node('span', 'score-chip none', '–'), node('span', 'score-verdict none', t('sortedNoScore', 'No score')));
     }

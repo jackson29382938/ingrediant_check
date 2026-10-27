@@ -31,8 +31,11 @@ test('evidence and missing-data states do not reward unknown labels or guess sup
  { name:'Multivitamin',ingredients_text:'cellulose, vitamin C' }, {name:'Sunscreen moisturizer',ingredients_text:'water, glycerin'},
  { name:'Shampoo and conditioner',ingredients_text:'water, glycerin' }]) assert.equal(engine.isReadable(engine.score(p)),false);
  assert.equal(engine.isReadable(engine.score(input(fixtures[0]),{ratingStyle:'preferences'})),false);
- const p=input(fixtures[7]); const low=engine.score(p); const high=engine.score({...p,supplement_facts:p.supplement_facts.replace('90 mg','9000 mg')});
- assert.equal(low.score,high.score,'higher dose is not rewarded');
+ // A higher dose earns nothing, but a serving above the adult upper limit (2,000 mg for vitamin C) is charged.
+ const p=input(fixtures[7]); const low=engine.score(p); const more=engine.score({...p,supplement_facts:p.supplement_facts.replace('90 mg','900 mg')});
+ const over=engine.score({...p,supplement_facts:p.supplement_facts.replace('90 mg','9000 mg')});
+ assert.equal(low.score,more.score,'a higher dose within the limit is not rewarded');
+ assert.ok(over.score<low.score,'a serving above the upper limit is charged');
  assert.equal(engine.isReadable(engine.score({...p,supplement_facts:p.supplement_facts+' Proprietary Blend'})),false);
 });
 test('minimal index changes with disclosed list length, preferences with explicit avoid terms only', () => {
@@ -44,8 +47,9 @@ test('minimal index changes with disclosed list length, preferences with explici
  assert.equal(engine.score(p,{ratingStyle:'evidence',avoidList:['glycerin']}).score,engine.score(p,{ratingStyle:'evidence'}).score);
 });
 test('rating changes retire cached scores and survive settings and product-reading round trips', () => {
- assert.notEqual(cache.fingerprint({}),cache.fingerprint({ratingStyle:'minimal'}));
- assert.notEqual(cache.fingerprint({ratingStyle:'preferences',avoidList:['glycerin']}),cache.fingerprint({ratingStyle:'preferences',avoidList:['fragrance']}));
+ // A new style retires personal-care indices; the food scores it does not touch are kept (tests/score-cache.test.js).
+ assert.notEqual(cache.fingerprint({},'page','shampoo'),cache.fingerprint({ratingStyle:'minimal'},'page','shampoo'));
+ assert.notEqual(cache.fingerprint({ratingStyle:'preferences',avoidList:['glycerin']},'page','shampoo'),cache.fingerprint({ratingStyle:'preferences',avoidList:['fragrance']},'page','shampoo'));
  const settings=prefs.parseImport(JSON.stringify(prefs.exportPayload({ratingStyle:'minimal',personalCareEnabled:false})));
  assert.equal(settings.prefs.ratingStyle,'minimal'); assert.equal(settings.prefs.personalCareEnabled,false);
  const p=input(fixtures[7]); const row=products.fromScan({store:'amazon.com',asin:'B000000001',input:p});

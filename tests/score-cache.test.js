@@ -188,3 +188,43 @@ test('an invalidation during disk read does not repopulate memory with an old re
   const first = read([key]); notify({ [key]: {} }, 'local'); finish({ [key]: entry }); await first;
   const second = read([key]); assert.equal(calls, 2); finish({}); await second;
 });
+
+// A saved score is retired when something it was computed from changes. A food score is computed from
+// the food weights and the provenance indexes; a personal-care or supplement index from the rating
+// style, the switch and (for the preference-focused style) the avoid list. Changing one of those used
+// to retire every saved score of both kinds, so choosing a different shampoo style sent the cart,
+// the search page and the popup back to the network for every food they had already rated.
+test('a saved food score and a saved personal-care index are retired only by their own settings', () => {
+  const food = raw => cache.fingerprint(raw, 'page');
+  const care = raw => cache.fingerprint(raw, 'page', 'shampoo');
+  for (const patch of [{ ratingStyle: 'minimal' }, { personalCareEnabled: false }, { ratingStyle: 'preferences', avoidList: ['fragrance'] }]) {
+    assert.equal(food(patch), food({}), `food ignores ${JSON.stringify(patch)}`);
+    assert.notEqual(care(patch), care({}), `care reads ${JSON.stringify(patch)}`);
+  }
+  assert.notEqual(food({ weights: { sugar: 2 } }), food({}));
+  assert.notEqual(food({ foodOnly: false }), food({}));
+  assert.notEqual(food({ sheetIndexRev: 'x' }), food({}));
+  for (const patch of [{ weights: { sugar: 2 } }, { foodOnly: false }, { sheetIndexRev: 'x' }, { producerIndexRev: 'y' }]) {
+    assert.equal(care(patch), care({}), `care ignores ${JSON.stringify(patch)}`);
+  }
+  // The avoid list is part of the preference-focused index only.
+  assert.equal(care({ avoidList: ['fragrance'] }), care({}));
+  assert.notEqual(care({ ratingStyle: 'preferences', avoidList: ['fragrance'] }), care({ ratingStyle: 'preferences', avoidList: ['sulfate'] }));
+  assert.equal(cache.fingerprint({}, 'page', 'food'), food({}));
+});
+
+test('a saved entry is checked against the fingerprint of its own kind', () => {
+  const care = { ...entry, category: 'shampoo', ratingStyle: 'evidence', prefs: cache.fingerprint({}, 'page', 'shampoo') };
+  assert.equal(cache.valid(care, context, now), true);
+  assert.equal(cache.valid(care, { ...context, prefs: { ratingStyle: 'minimal' } }, now), false, 'a new style retires the index');
+  assert.equal(cache.valid(care, { ...context, prefs: { weights: { sugar: 2 } } }, now), true, 'a food weight does not');
+  assert.equal(cache.valid(entry, { ...context, prefs: { ratingStyle: 'minimal', personalCareEnabled: false } }, now), true, 'a care setting does not retire a food score');
+  assert.equal(cache.valid(entry, { ...context, prefs: { weights: { sugar: 2 } } }, now), false);
+});
+
+test('a saved personal-care index is not a food rating', () => {
+  assert.equal(cache.isFood(entry), true, 'entries written before categories existed');
+  assert.equal(cache.isFood({ ...entry, category: 'food' }), true);
+  assert.equal(cache.isFood({ ...entry, category: 'shampoo' }), false);
+  assert.equal(cache.isFood({ ...entry, category: 'supplement' }), false);
+});

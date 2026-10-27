@@ -131,34 +131,75 @@ const AMBIGUOUS_PAIRS = /\b(collagen|protein|vitamin|biotin|keratin|caffeine|cha
 
 const THRESHOLD = 4;
 
+// ---------------------------------------------------------------- personal care and supplements
 // Classification is deliberately separate from the food gate: identifying a product does not
 // establish that its label is complete or that there are sufficient criteria to rate it.
+//
+// Only the title is read, because the same function has to work on a search tile that has nothing
+// else. Precision is worth more than recall here. A title this misses falls back to the old
+// behaviour (skipped as merchandise); a title it wrongly claims puts a human-care index on a bottle
+// of dog shampoo. Measured on 87 real listing titles, the first version missed 21 ("Tooth Paste",
+// "Moisturizing Lotion", "Vitamin C Gummies") and claimed 6 it should not have (dog shampoo,
+// car-wash shampoo, shoe deodorant).
 const PRODUCT_CATEGORIES = [
-  ['toothpaste', /\b(?:toothpaste|tooth ?gel|dentifrice)\b/i],
-  ['mouthwash', /\b(?:mouthwash|mouth rinse|oral rinse)\b/i],
-  ['deodorant', /\b(?:deodorant|antiperspirant|anti-perspirant)\b/i],
+  ['toothpaste', /\b(?:tooth[- ]?paste|tooth[- ]?gel|tooth[- ]?powder|dentifrice)\b/i],
+  ['mouthwash', /\b(?:mouth[- ]?wash|mouth[- ]?rinse|oral rinse|(?:fluoride|anti-?cavity|breath) rinse)\b/i],
+  ['deodorant', /\b(?:deodorants?|anti-?perspirants?)\b/i],
   ['shampoo', /\bshampoo\b/i],
-  ['conditioner', /\b(?:hair conditioner|conditioner)\b/i],
-  ['body-wash', /\b(?:body wash|shower gel|body soap|bar soap|hand soap|hand wash)\b/i],
-  ['moisturizer', /\b(?:moisturi[sz]er|body lotion|body cream|face lotion|facial lotion|face cream|facial cream)\b/i],
+  ['conditioner', /\bconditioner\b/i],
+  ['body-wash', /\b(?:body[- ]?wash|shower (?:gel|wash|cream)|hand[- ]?wash|beauty bar|soap bar|(?:body|bar|hand|bath|castile|liquid|foaming) soap)\b/i],
+  // A moisturizer is named by its product word or by "<where it goes> + lotion/cream". A bare
+  // "cream" is never enough: it is also whipped cream, ice cream and cream cheese.
+  ['moisturizer', /\b(?:moisturi[sz]er|moisturi[sz]ing (?:lotion|cream|creme|gel)|hydrating (?:lotion|cream|creme)|healing cream|(?:body|hand|foot|face|facial|baby|skin|daily|dry skin|all[- ]over|everyday) (?:moisture |hydrating |moisturi[sz]ing )?(?:lotion|cream|creme|butter))\b/i],
 ];
+
+// Things that carry a personal-care word and are not for people. "Dog Shampoo" and "Car Wash Shampoo"
+// publish ingredient lists too, and a hair-care index on them is a wrong answer, not a missing one.
+const NOT_FOR_PEOPLE = new RegExp('\\b(?:dogs?|puppy|puppies|pets?|canine|kittens?|feline|equine|horses?|livestock|aquarium'  // "Pond's" is a moisturizer brand, so a pond is not excluded
+  + '|cats?(?!\\W?s claw)|car|auto(?:motive)?|vehicle|truck|boat|carpet|rug|upholstery|floors?|dish(?:es|washing|washer)?'
+  + '|laundry|fabric|textiles?|shoes?|sneakers?|footwear|insoles?|fridge|refrigerator|litter|(?:fabric|water|air|leather|dough|soil) conditioner)\\b', 'i');
+
+// Products that name a category and are something else. Sun care and treatment cosmetics have
+// their own rules, so they are "unsupported", which shows a clear notice. Medicated creams are
+// medicine: they stay "unknown" so the food gate's own reason ("over-the-counter medicine") shows.
+const UNSUPPORTED_ANYWHERE = /\b(?:sunscreen|sunblock|spf\s*\d+|after[- ]?sun|self[- ]?tann(?:er|ing)|tanning|dry shampoo|hair (?:dye|colou?r)|serum|retinol|anti-?aging|wrinkle)\b/i;
+const MEDICATED = /\b(?:hydrocortisone|anti-?itch|diaper rash|antifungal|athlete'?s foot|medicated|acne|eczema|psoriasis|first aid|ointment|insect repellent|drug facts)\b/i;
+const UNSUPPORTED_ALONE = /\b(?:makeup|make-?up|mascara|lipstick|lip (?:balm|gloss|care)|chapstick|foundation|concealer|blush|eyeliner|eye ?shadow|nail polish|perfume|cologne|fragrance|face (?:wash|scrub|mask)|facial (?:cleanser|wash)|cleanser|toner|skin ?care|hair (?:spray|gel|wax|styling))\b/i;
+const COMBINED = /\b(?:[2-5][- ]?in[- ]?[1-5]|two[- ]in[- ]one|all[- ]in[- ]one)\b/i;
+// Accessories and bundles cannot be represented by one product's ingredient label.
+const ACCESSORY = /\b(?:toothbrush(?:es)?|dispenser|empty bottle|replacement heads?|gift sets?|variety pack|bundle|kit|sampler|duo|trio|combo)\b/i;
+
+// A supplement is a nutrient or botanical in a dosage form. Either half alone is not enough: a
+// "ginger chew" is candy and "vitamin D milk" is milk. The nutrient list is the strict one, so
+// foods that merely borrow a word ("vitamin water", "calcium fortified") never reach it.
+// A dose in the title ("Biotin 10000 mcg") is as good a sign of a supplement as a dosage form.
+const SUPPLEMENT_FORM = /\b(?:capsules?|vcaps|softgels?|soft gels?|gel caps?|tablets?|caplets?|gummy|gummies|chewables?|lozenges?|sublingual|tincture|drops|stick packs?|effervescent)\b|\b\d[\d,.]*\s?(?:mcg|µg|iu|mg)\b/i;
+// "Turmeric powder" and "spirulina powder" are spices and greens. A powder is a supplement only when
+// it is one of the sports amino acids that are sold as nothing else.
+const SPORTS_POWDER = /\b(?:creatine|glutamine|citrulline|l-?arginine|taurine|beta-?alanine|bcaas?)\b/i;
+const SUPPLEMENT_ACTIVE = new RegExp('\\b(?:vitamins?\\s+[a-ek]\\d*|b[- ]?(?:complex|1|2|3|5|6|7|9|12)|multi-?vitamins?|prenatal|folate|folic acid|biotin|niacin(?:amide)?|choline|inositol'
+  + '|calcium|magnesium|zinc|iron|potassium|selenium|iodine|copper|manganese|chromium|boron|molybdenum'
+  + '|omega[- ]?3|fish oil|krill oil|cod liver oil|flax(?:seed)? oil|dha|epa|probiotics?|digestive enzymes?'
+  + '|creatine|l-?theanine|taurine|glutamine|l-?arginine|citrulline|carnitine|5-?htp|melatonin|coq-?10|ubiquinol|nac|n-acetyl|alpha[- ]lipoic'
+  + '|sam-?e|glucosamine|chondroitin|msm|lutein|zeaxanthin|resveratrol|quercetin|curcumin|turmeric|ashwagandha|ginseng|ginkgo|echinacea'
+  + '|elderberry|milk thistle|saw palmetto|valerian|st\\.? john\'?s wort|berberine|black cohosh|moringa|spirulina|chlorella|lion\'?s mane|reishi|cordyceps'
+  + '|astaxanthin|lycopene|beta[- ]carotene|bromelain|boswellia|bacopa|rhodiola|d-mannose|nmn|pqq)\\b', 'i');
+// Something sold to be eaten as food, or a medicine, is not rated as a supplement on a keyword alone.
+const NOT_A_SUPPLEMENT = /\b(?:candy|candies|chocolate|snacks?|fruit snacks?|bars?|tea|coffee|drink|juice|soda|water|cereal|bread|cookies?|crackers?|jerky|sauce|syrup|honey|yogh?urt|cheese|milk|soup|antacid|pain relie(?:f|ver)|cough|cold (?:and|&) flu|allergy relief|laxative)\b/i;
 
 function classifyProduct(title, { supplementFacts = false } = {}) {
   const name = String(title || '').replace(/\s+/g, ' ').trim().slice(0, 500);
-  if (/\b(?:fabric|water|air|leather|dough) conditioner\b/i.test(name))
-    return { category: 'unknown', status: 'unknown' };
-  if (/\b(?:sunscreen|sunblock|spf\s*\d+)\b/i.test(name)) return { category: 'personal-care', status: 'unsupported' };
+  if (NOT_FOR_PEOPLE.test(name) || MEDICATED.test(name)) return { category: 'unknown', status: 'unknown' };
+  if (UNSUPPORTED_ANYWHERE.test(name)) return { category: 'personal-care', status: 'unsupported' };
   const matches = PRODUCT_CATEGORIES.filter(([, pattern]) => pattern.test(name)).map(([id]) => id);
-  // Accessories and bundles cannot be represented by a single product's ingredient label.
-  if (/\b(?:toothbrush|dispenser|empty bottle|replacement head|gift set|variety pack|bundle)\b/i.test(name))
-    return { category: matches.length ? 'personal-care' : 'unknown', status: 'ambiguous' };
-  if (matches.length > 1) return { category: 'personal-care', status: 'ambiguous' };
+  if (ACCESSORY.test(name)) return { category: matches.length ? 'personal-care' : 'unknown', status: 'ambiguous' };
+  if (matches.length > 1 || (matches.length && COMBINED.test(name))) return { category: 'personal-care', status: 'ambiguous' };
   if (matches.length === 1) return { category: matches[0], status: 'recognized' };
-  if (/\b(?:sunscreen|sunblock|makeup|mascara|lipstick|perfume|fragrance|face serum|hair dye|skincare|skin care)\b/i.test(name))
-    return { category: 'personal-care', status: 'unsupported' };
+  if (UNSUPPORTED_ALONE.test(name)) return { category: 'personal-care', status: 'unsupported' };
   // A vitamin in a food or cosmetic name is not by itself evidence of a supplement.
-  if (supplementFacts || /\b(?:dietary supplement|food supplement|vitamin supplements?|multivitamins?)\b/i.test(name)
-    || /\b(?:vitamin\s+[a-z](?:\d+)?|omega[- ]?3|fish oil)\b[^.]{0,50}\b(?:capsules?|tablets?|softgels?)\b/i.test(name))
+  if (supplementFacts || /\b(?:dietary supplement|food supplement|vitamin supplements?|multi-?vitamins?)\b/i.test(name)
+    || (!NOT_A_SUPPLEMENT.test(name) && ((SUPPLEMENT_FORM.test(name) && SUPPLEMENT_ACTIVE.test(name))
+      || (SPORTS_POWDER.test(name) && /\bpowder\b/i.test(name)))))
     return { category: 'supplement', status: 'recognized' };
   return { category: 'unknown', status: 'unknown' };
 }
@@ -174,12 +215,60 @@ function allowsSearch(context, titles = [], prefs = {}) {
   return titles.length > 0 && titles.filter(t => allowsProduct(t, prefs)).length / titles.length >= 0.7;
 }
 
+// ---------------------------------------------------------------- reading a personal-care label
+// The shared food parser reads a list of comma-separated names. Two conventions of these labels
+// break that, and a broken read here is silent: the ingredient is not charged, so the product looks
+// cleaner than it is.
+//
+//  1. US over-the-counter products (fluoride toothpaste, antiperspirant, anti-dandruff shampoo,
+//     anticavity rinse) print a Drug Facts block: "Active ingredient: X 0.24% Purpose: Y. Inactive
+//     ingredients: A, B, C". Read as food, the active ingredient came back glued to the heading
+//     ("active ingredient: sodium fluoride 0.24% purpose: anticavity") or, on the antiperspirant
+//     sampled, was dropped altogether, so its aluminum salt was never found.
+//  2. INCI lists join and translate names in ways a food list never does: "Sodium Laureth Sulfate
+//     (and) Cocamidopropyl Betaine", "Water (Aqua)", "Aqua/Water/Eau".
+//
+// This rewrites both into the plain list the parser already handles. It is applied only to these
+// categories, so no food reads differently.
+const STRENGTH = /\s*\d+(?:[.,]\d+)?\s*(?:%|(?:mg|mcg|g|ml)\b)(?:\s*(?:w\/[vw]|v\/v)\b)?|\s*\((?:[^()]*\bw\/[vw]\b[^()]*|[^()]*\bfluoride ion\b[^()]*)\)/gi;
+// A purpose printed beside its active ingredient in the Drug Facts table ("... 0.24% Anticavity").
+const PURPOSE = /\b(?:anti-?(?:cavity|perspirant|plaque|gingivitis|dandruff|septic)|antiseptic|cavity protection)\b/gi;
+function prepareLabel(text) {
+  let raw = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 12000);
+  let actives = [];
+  let partial = false;
+  const heading = /\bactive ingredients?\b\s*(?:\([^)]*\))?\s*[:\-–]?\s*/i.exec(raw);
+  if (heading) {
+    const rest = raw.slice(heading.index + heading[0].length);
+    const split = /\b(?:inactive|other) ingredients?\b\s*[:\-–]?\s*/i.exec(rest);
+    // The printed table puts "Active ingredient" and "Purpose" in one header row and the values below, so flattened
+    // text can start with the word "Purpose" and carry its Uses, Warnings and Directions with no colons.
+    const activePart = (split ? rest.slice(0, split.index) : rest).replace(/^\s*purposes?\b\s*/i, '')
+      .split(/\bpurposes?\b|\buses?\b|\bwarnings?\b|\bdirections?\b|\bkeep out\b/i)[0];
+    actives = activePart.replace(STRENGTH, ' ').replace(PURPOSE, ' ').split(/\s*(?:,|;|\band\b|&)\s*/i)
+      .map(s => s.replace(/[.:()]/g, ' ').replace(/\s+/g, ' ').trim()).filter(s => /[a-z]{3}/i.test(s));
+    // The label names an active ingredient but not what else is in the product.
+    partial = !split;
+    raw = [...actives, split ? rest.slice(split.index + split[0].length) : ''].filter(Boolean).join(', ');
+  }
+  raw = raw
+    // A heading left in the text would be glued to the first name after it; so would a trailing
+    // "Questions? Call ..." or "Distributed by ..." line.
+    .split(/\b(?:questions\?|comments\?|distributed by|manufactured (?:by|for)|dist\. by)/i)[0]
+    .replace(/\b(?:inactive|other) ingredients?\s*[:\-–]\s*/gi, ', ')
+    .replace(/^[\s,]+/, '').replace(/,(?:\s*,)+/g, ',')
+    .replace(/\s*\(\s*and\s*\)\s*/gi, ', ')
+    .replace(/\s*\(\s*(?:aqua|water|eau|agua)\s*\)/gi, '')
+    .replace(/\b(?:aqua|eau|agua)\s*\/\s*water(?:\s*\/\s*(?:aqua|eau|agua))?|\bwater\s*\/\s*(?:aqua|eau|agua)(?:\s*\/\s*(?:aqua|eau|agua))?/gi, 'water');
+  return { text: raw, actives, partial };
+}
+
 function personalCareReview(title, text, prefs = {}, advisory = '', supplementFacts = '') {
   const classification = classifyProduct(title, { supplementFacts: /\bsupplement facts\b/i.test(String(supplementFacts || '')) });
   if (classification.status !== 'recognized') return null;
   const raw = String(text || '').trim().slice(0, 12000);
   if (!raw || !/[a-z]{3}/i.test(raw)) return null;
-  const entries = raw.split(/[,;\n]+/).map(x => x.trim().toLowerCase())
+  const entries = prepareLabel(raw).text.split(/[,;\n]+/).map(x => x.trim().toLowerCase())
     .filter(x => x && !/^(?:free (?:of|from)|without|no\s|contains no\s)/i.test(x) && !/\b(?:free|free from)\s*$/i.test(x));
   if (!entries.length) return null;
   const allergens = AIR.db && AIR.db.allergens;
@@ -205,7 +294,7 @@ function personalCareReview(title, text, prefs = {}, advisory = '', supplementFa
   if (classification.category === 'supplement') sources.push({ label: 'NIH: supplement labels', url: 'https://ods.od.nih.gov/factsheets/WYNTK-Consumer/' });
   else sources.push({ label: 'FDA: cosmetic allergens and labels', url: 'https://www.fda.gov/cosmetics/cosmetic-ingredients/allergens-cosmetics' });
   return { category: classification.category, flags, notes, sources, ingredients: raw,
-    supplementFacts: classification.category === 'supplement' ? String(supplementFacts || '').slice(0, 2000) : '' };
+    supplementFacts: classification.category === 'supplement' ? String(supplementFacts || '').slice(0, 4000) : '' };
 }
 
 // `doc` is a Document; `title`/`text` are pulled from it when not supplied.
@@ -360,7 +449,7 @@ function isOpenFoodFactsFood(product) {
 }
 
 const _exports = AIRmodule('ingestible', {
-  assess, assessTitle, looksNonFoodFromTitle, isOpenFoodFactsFood, classifyProduct, personalCareReview, allowsProduct, allowsSearch,
+  assess, assessTitle, looksNonFoodFromTitle, isOpenFoodFactsFood, classifyProduct, personalCareReview, prepareLabel, allowsProduct, allowsSearch,
   assessSearch, looksNonFoodFromResults,
   STRONG_POSITIVE, WEAK_POSITIVE, HARD_NEGATIVE, THRESHOLD,
   FOOD_ALIASES, NONFOOD_ALIASES, RESULT_SAMPLE_MIN, RESULT_NONFOOD_SHARE,

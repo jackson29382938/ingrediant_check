@@ -61,14 +61,14 @@
   function badge(result) {
     state.pageScore = result;
     send(result && typeof result.score === 'number'
-      ? { type: 'pageScore', score: result.score, verdict: result.verdict }
+      ? { type: 'pageScore', score: result.score, verdict: result.verdict, ...(result.category && result.category !== 'food' ? { index: true } : {}) }
       : { type: 'pageScore', status: result && result.status });
   }
 
   function cacheEntry(id, result, name, source, input) {
     return {
       schema: CACHE.SCHEMA, cacheRevision: CACHE.CACHE_REVISION, v: VERSION, t: Date.now(), store: STORE, asin: id,
-      prefs: CACHE.fingerprint(state.raw, source), score: result.score, verdict: result.verdict,
+      prefs: CACHE.fingerprint(state.raw, source, result.category), score: result.score, verdict: result.verdict,
       nova: result.nova, category: result.category || 'food', ratingStyle: result.ratingStyle || 'food', ...(input ? { input } : {}), source, provenanceSource: '', name: String(name || '').slice(0, 120),
     };
   }
@@ -199,10 +199,11 @@
           + '<span><slot></slot></span>';
       }
     }
-    const text = hit ? String(hit.score) + (hit.category && hit.category !== 'food' ? ` · ${hit.category}` : '') + (saved ? ' · saved' : '') : status === 'checking' ? 'Checking label…'
+    const care = !!hit && !!hit.category && hit.category !== 'food';
+    const text = hit ? String(hit.score) + (care ? ` · ${root.AIR.db.productRatings.categoryLabel(hit.category, t)}` : '') + (saved ? ' · saved' : '') : status === 'checking' ? 'Checking label…'
       : status === 'unavailable' ? 'Label unavailable' : status === 'not-food' ? 'Not a food'
       : status === 'limited' ? 'Open to rate' : 'Open to rate';
-    const title = hit ? `Ingredient Check: ${hit.score}/100 — ${hit.verdict}${hit.category && hit.category !== 'food' ? ` · ${hit.category} · ${hit.ratingStyle}` : ''}`
+    const title = hit ? `Ingredient Check: ${hit.score}/100 — ${hit.verdict}${care ? ` · ${root.AIR.db.productRatings.caption(hit, t)}` : ''}`
       : status === 'unavailable' ? 'Ingredient Check: no readable ingredient label was returned. Open the product to expand its label or paste ingredients.'
       : status === 'checking' ? 'Ingredient Check: reading the public product label.'
       : status === 'not-food' ? 'Ingredient Check: this product appears to be outside food scoring.'
@@ -215,7 +216,7 @@
     b.setAttribute('aria-label', title);
     b.setAttribute('role', 'img');
     if (hit?.input) b.setAttribute('tabindex', '0');
-    const c = hit ? P.BAND_COLOR(hit.score) : { fg: '#374151', bg: '#f3f4f6', ring: '#9ca3af' };
+    const c = hit ? (care ? root.AIR.db.theme.neutral() : P.BAND_COLOR(hit.score)) : { fg: '#374151', bg: '#f3f4f6', ring: '#9ca3af' };
     if (b.style.setProperty) {
       b.style.setProperty('--air-fg', c.fg);
       b.style.setProperty('--air-bg', c.bg);
@@ -428,7 +429,7 @@
     if (!root.AIR.engine.isReadable(result)) return;
     detailHost?.remove(); detailHost = document.createElement('div');
     detailHost.id = 'air-retailer-details'; detailHost.style.cssText = 'position:fixed;z-index:2147483000;max-height:70vh;overflow:auto';
-    const shadow = P.mount(detailHost, P.renderBreakdown(result, {asin:id, score:hit.score, verdict:hit.verdict, detail:display.breakdownDetail}));
+    const shadow = P.mount(detailHost, P.renderBreakdown(result, {asin:id, score:hit.score, verdict:hit.verdict, category:hit.category, ratingStyle:hit.ratingStyle, detail:display.breakdownDetail}));
     for (const link of shadow.querySelectorAll('a')) { link.href = adapter.productUrl(id, location); link.target = '_blank'; link.rel = 'noopener noreferrer'; }
     document.body.append(detailHost);
     const rect = badge.getBoundingClientRect(); detailHost.style.left = `${Math.max(8,Math.min(rect.left,innerWidth-356))}px`; detailHost.style.top = `${Math.max(8,Math.min(rect.bottom+6,innerHeight-detailHost.offsetHeight-8))}px`;

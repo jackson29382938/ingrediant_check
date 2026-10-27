@@ -100,13 +100,14 @@
     const score = result && typeof result.score === 'number' ? result.score : null;
     const status = result && result.status;
     if (score == null && !status) state.pageScore = null;
-    const badgeKey = status || score;
+    const index = !!result && !!result.category && result.category !== 'food';
+    const badgeKey = status || (index ? `${score}:index` : score);
     if (badgeKey === state.lastBadgeScore) return;
     state.lastBadgeScore = badgeKey;
     try {
       chrome.runtime.sendMessage(
         score != null
-          ? { type: 'pageScore', score, verdict: result.verdict }
+          ? { type: 'pageScore', score, verdict: result.verdict, ...(index ? { index: true } : {}) }
           : status
             ? { type: 'pageScore', status }
             : { type: 'pageScore' },
@@ -121,7 +122,7 @@
     if (!asin || !result) return;
     const entry = {
       schema: CACHE.SCHEMA, cacheRevision: CACHE.CACHE_REVISION, v: ENGINE_VERSION, t,
-      store: storeHost(), asin, prefs: CACHE.fingerprint(cachePrefs(), source || 'page'),
+      store: storeHost(), asin, prefs: CACHE.fingerprint(cachePrefs(), source || 'page', result.category),
       score: result.score, verdict: result.verdict, nova: result.nova, category: result.category || 'food', ratingStyle: result.ratingStyle || 'food',
       source: source || 'page',
       provenanceSource: provenanceSource || '',

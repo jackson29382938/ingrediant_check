@@ -25,7 +25,7 @@ export async function sameDayGroceryEndToEnd(context, worker, errors) {
     await page.goto('https://www.amazon.com/s?k=milk&i=same-day-grocery');
     await worker.evaluate(async old=>{const until=Date.now()+10000;while(Date.now()<until){const s=(await chrome.storage.session.get('sortedResults')).sortedResults;if(s?.runId!==old&&!s.loading&&s.items.length===3&&new URL(s.sourceUrl).searchParams.get('k')==='milk')return;await new Promise(r=>setTimeout(r,50));}throw new Error('Open comparison did not follow the new query');},original);
     let followed=await worker.evaluate(async()=> (await chrome.storage.session.get('sortedResults')).sortedResults.runId);
-    await page.goto('https://www.amazon.com/s?k=shampoo&i=beauty');
+    await page.goto('https://www.amazon.com/s?k=sunscreen&i=beauty');
     await worker.evaluate(async()=>{const until=Date.now()+10000;while(Date.now()<until){const s=(await chrome.storage.session.get('sortedResults')).sortedResults;if(s?.priceOnly&&!s.loading&&s.items.length===3&&s.items.every(p=>p.score===null))return;await new Promise(r=>setTimeout(r,50));}throw new Error('Following a non-food query did not switch to price-only');});
     followed=await worker.evaluate(async()=> (await chrome.storage.session.get('sortedResults')).sortedResults.runId);
     await worker.evaluate(()=>chrome.storage.local.set({sortFollowSearch:false}));

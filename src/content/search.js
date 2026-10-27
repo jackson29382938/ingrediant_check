@@ -120,7 +120,7 @@
         if (saved) {
           const badge = paintBadge(it.tile, hit);
           if (saved.stale && badge) {
-            const savedLabel = `${hit.score}${hit.category && hit.category !== 'food' ? ` · ${hit.category}` : ''} · saved`;
+            const savedLabel = `${hit.score}${hit.category && hit.category !== 'food' ? ` · ${root.AIR.db.productRatings.categoryLabel(hit.category, throttleCopy)}` : ''} · saved`;
             badge.dataset.saved = 'true'; if (badge.textContent !== savedLabel) badge.textContent = savedLabel;
             badge.setAttribute('aria-label', `Ingredient Check: ${hit.score}/100, saved ${new Date(hit.t).toLocaleDateString()}, ${saved.refresh && state.autoScoreSearch ? 'label refresh pending' : 'older label reading'}.`);
           }
@@ -224,7 +224,8 @@
       titleEl.insertBefore(b, titleEl.firstChild);
     }
     const breakdown = hit !== 'pending' && hit !== 'unreadable' && P().state.hoverBreakdown;
-    const sig = hit === 'pending' ? 'p' : hit === 'unreadable' ? '?' : `${hit.score}:${hit.verdict}:${hit.category || 'food'}`;
+    // The category is part of the attribute only for an index, so a food badge keeps the form `score:verdict`.
+    const sig = hit === 'pending' ? 'p' : hit === 'unreadable' ? '?' : `${hit.score}:${hit.verdict}${hit.category && hit.category !== 'food' ? ':' + hit.category : ''}`;
     if (typeof b.getAttribute === 'function' && b.getAttribute('data-air') === sig && (!b.dataset.saved || b.dataset.cacheTime === String(hit.t))) return b;
     if (typeof b.setAttribute === 'function') b.setAttribute('data-air', sig);
     // A numbered badge opens the breakdown card (hover-card.js) when that setting is on, so it is a
@@ -254,14 +255,17 @@
     }
     b.dataset.cacheTime = String(hit.t);
     delete b.dataset.saved;
-    const c = root.AIR.panel.BAND_COLOR(hit.score);
-    b.textContent = hit.category && hit.category !== 'food' ? `${hit.score} · ${hit.category}` : hit.score;
+    // A personal-care or supplement index is drawn in neutral gray and names its category; a food score is a color band.
+    const care = !!hit.category && hit.category !== 'food';
+    const ratings = root.AIR.db.productRatings;
+    const c = care ? root.AIR.db.theme.neutral() : root.AIR.panel.BAND_COLOR(hit.score);
+    b.textContent = care ? `${hit.score} · ${ratings.categoryLabel(hit.category, throttleCopy)}` : hit.score;
     const verdictKey = ({
       Excellent: 'verdictExcellent', Good: 'verdictGood', Mediocre: 'verdictMediocre',
-      Poor: 'verdictPoor', Avoid: 'verdictAvoid',
+      Poor: 'verdictPoor', Avoid: 'verdictAvoid', 'Label index': 'verdictLabelIndex',
     })[hit.verdict];
     const verdict = verdictKey ? throttleCopy(verdictKey, hit.verdict) : hit.verdict;
-    b.title = `Ingredient Check: ${hit.score}/100 — ${verdict}${hit.category && hit.category !== 'food' ? ` · ${hit.category} · ${hit.ratingStyle}` : ''}`;
+    b.title = `Ingredient Check: ${hit.score}/100 — ${verdict}${care ? ` · ${ratings.caption(hit, throttleCopy)}` : ''}`;
     b.setAttribute('aria-label', b.title);
     b.setAttribute('role', 'img');
     b.style.cssText = `color:${c.fg};background:${c.bg};border:2px solid ${c.ring};cursor:pointer;`;
