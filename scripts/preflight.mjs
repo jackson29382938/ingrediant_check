@@ -235,6 +235,7 @@ const SAME_AS_ENGLISH = {
     'sortedPerUnit',     // "$FIRST$/$SECOND$": a price and a unit
     'unitName_100g', 'unitName_floz', 'unitName_100ml', 'unitName_ml',   // unit symbols
     'optLevelMinimal',   // "Minimal" is German too
+    'catDeodorant', 'catShampoo',   // "Deodorant" and "Shampoo" are the German words
   ],
 };
 check('a translation is not the English text', () => {

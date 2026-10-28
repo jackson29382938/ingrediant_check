@@ -27,7 +27,9 @@ export async function personalCareEndToEnd(browser, root) {
         permissions:{contains:(_p,cb)=>{if(cb)cb(false);return Promise.resolve(false);}},tabs:{},extension:{}};
     }, manifest);
     const group=manifest.content_scripts.find(g=>g.js.includes(type));
-    for(const file of group.js) await page.addScriptTag({path:path.join(root,file)});
+    // One batch, as the browser runs a content-script list: injected a file at a time, the page's event loop turns between
+    // files, and a search tile's fetch can finish before a later file (src/stores/cart.js, which search.js reads pages with) exists.
+    await page.addScriptTag({content: group.js.map(file => fs.readFileSync(path.join(root,file),'utf8')).join('\n;\n')});
     return page;
   }
   const p=await open('https://www.amazon.com/dp/B000CARE01',tooth);

@@ -1,27 +1,23 @@
 # Current validation
 
-The working patch is **1.16.1 (unreleased)**, based on published **1.16.0**, commit `fef8828`.
+The current source is **1.18.1**, built on published **1.18.0** (commit `7deb375`). It combines three pieces of work that were waiting after 1.18.0: the scoring review (complete readings, sourcing, nutrition basis), the audit of ingredients that hide from the rules (words broken at a line end, lists written one to a line) with the worker, page-reader and shared-database fixes, and the new icon. See [what changed](releases/1.18.1.md), [scoring sensitivity](SCORING-SENSITIVITY.md), [personal-care and supplement indices](PERSONAL-CARE.md) and [accuracy evidence](ACCURACY.md). Older dated audits describe the source at the time of that review.
 
-See [patch behavior and compatibility](releases/1.16.1.md), [scoring sensitivity](SCORING-SENSITIVITY.md), and [accuracy evidence](ACCURACY.md). Older dated audits describe the source at the time of that review, not the current defect status or defaults.
-
-The implementation preserves the 1.16.0 shared readability gate, ingredient-share weighting and allergen-line handling. It corrects the remaining parser, nutrition, sourcing/persistence and settings-read issues from the October review. The verification script at `docs/review-verification-2026-10-18.cjs` now checks the corrected contracts.
-
-Executed on the final patch source:
+Executed on the final 1.18.1 source:
 
 | Check | Result |
 | --- | --- |
-| `npm test` | 1,137 passed; zero failed or skipped |
+| `npm test` | 1,236 passed (1,207 in parallel, 29 timing-sensitive tests run alone); zero failed or skipped |
 | ESLint with `--max-warnings 0` | Passed |
-| `npm run preflight` | Passed |
-| Chromium 153 extension harness | Passed, including extension pages, settings, Amazon + 15 retailer previews, cart, recall, history and appearance |
-| Firefox 157.0.1 extension harness | Passed, including startup, OCR lifecycle, Settings, Compare, Amazon + 15 retailer product/search/cart flows |
-| Targeted Chromium review checks | Passed: incomplete readings declined, nested-code scores agree, enriched display/input replay both 99 |
-| Website responsive/theme/header checks | Passed on local production-header fixtures |
-| Chrome and Firefox ZIP packaging | Both 1.16.1 packages built, approximately 3.9 MB each |
+| `npm run preflight` | Passed (manifest, scripts, 573 locale keys in English and German) |
+| Chromium extension harness (`npm run harness:ci`) | Passed: 44 checks against the preinstalled Chromium with no Amazon network and no page errors, including the real unpacked extension on saved Amazon pages |
+| Website responsive/theme/header checks (`npm run website:check`) | Passed (pages, navigation, privacy, light and dark at 390 and 1280 px, production headers) |
+| Chrome and Firefox ZIP packaging | Both 1.18.1 packages built, about 3.9 MB each |
 | Mozilla `web-ext` 10 package validation | Zero errors, warnings or notices |
 
-The one Firefox inactive-page lifecycle diagnostic was classified by the existing verified 1.16.0 allowlist; no new diagnostic was broadly suppressed. The previously reported OCR click timeout did not occur in these runs. A distinct delayed-read checkbox race is now covered by a deterministic regression test and fixed; its relationship to that earlier CI timeout is unproven.
+The Firefox extension harness runs in CI (it needs Firefox and geckodriver downloads) and was not run in the environment that prepared this release.
 
-Browser retailer pages, OCR labels, certification replies and account/backend responses in the harness are controlled fixtures. Real Google consent, live retailer freshness, signed Mozilla publication, backend deployment and independent health-score calibration remain separate evidence requirements. No release, store publication or backend deployment was performed.
+Calibration: the default score of every one of the 61 corpus products was compared with 1.18.0. Five move (kefir 91 to 89, bone broth 88 to 74, deli turkey 40 to 29, uncured bacon 38 to 24, Medjool dates 95 to 98), each for the stated reason in the release notes, and two calibration bands widen (bone broth 80–100 to 70–100, uncured bacon 30–65 to 20–65). The other 56 are unchanged. Twenty-nine real personal-care and supplement label formats (antiperspirant, deodorant, toothpaste, mouthwash, shampoo, conditioner, soap, moisturizer, supplements) score identically in both styles on 1.18.0 and 1.18.1.
+
+Browser retailer pages, OCR labels, certification replies and account/backend responses in the harness are controlled fixtures. Real Google consent, live retailer freshness, signed Mozilla publication, backend deployment, native-speaker review of the German catalog, independent health-score calibration and a live re-check of the supplement upper limits and cautions against the National Academies, NIH and FDA pages remain separate evidence requirements. The shared-database script (`docs/apps-script.gs`) is deployed by hand and was not deployed by this release.
 
 For backend load decisions, use request `ms`, `lockWaitMs`, `lockHeldMs`, busy rates and sheet sizes. The template retains Sheets storage and atomic history deletion/merging; migrate to indexed storage only when measured load warrants it.

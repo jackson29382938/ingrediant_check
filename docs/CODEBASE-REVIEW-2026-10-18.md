@@ -1,4 +1,4 @@
-> Historical findings from the pre-1.16.0 source. The remaining fixes are integrated in the unreleased 1.16.1 patch; see [current validation](CURRENT-VALIDATION.md). The linked verification script now asserts corrected behavior.
+> Historical findings from the pre-1.16.0 source. The remaining fixes shipped in [1.18.1](releases/1.18.1.md); see [current validation](CURRENT-VALIDATION.md). The linked verification script now asserts corrected behavior.
 
 # Codebase and scoring review — October 18, 2026
 

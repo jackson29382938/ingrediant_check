@@ -258,6 +258,7 @@ Read the [full privacy policy](docs/PRIVACY.md) for exactly what is stored, fetc
 | 🎯 [Scoring accuracy and limitations](docs/ACCURACY.md) | Evidence by language and reading method |
 | 🌐 [Browser installation and signing](docs/BROWSERS.md) | Chrome, Firefox and Google sign-in |
 | 🧪 [Developer setup and tests](docs/VERIFY.md) | Harnesses and live checks |
+| ✅ [Current validation](docs/CURRENT-VALIDATION.md) | What was run for this release, and what it does not establish |
 | 🚀 [Website source](website/) and [deployment steps](website/README.md) | Static site on Vercel |
 
 Building from source is optional: with **Node 20+ and Python 3**, run `npm run pack` in the repository
