@@ -619,7 +619,7 @@
   }
 
   async function load() {
-    let got = {};
+    let got;
     try { got = await chrome.storage.session.get(['sortedResults', 'sortWeights', 'sortUnit']); } catch (e) { got = {}; }
     saved = got.sortedResults || null;
     unitChoice = R.sanitizeUnitChoice(got.sortUnit);

@@ -9,7 +9,8 @@ const vm = require('node:vm');
 function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true, propertyClientId = null } = {}) {
   const tabs = new Map();
   const order = [];
-  let locked = false, failFlush = false, legacy = '{}';
+  let locked = false, failFlush = false, legacy = '{}', tokenChecks = 0;
+  const cache = new Map();
   function newSheet() {
     const data = [];
     let maxColumns = 26;
@@ -57,9 +58,15 @@ function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true, pro
     }), flush() { if (failFlush) { failFlush = false; throw new Error('lost acknowledgement'); } } },
     // Google's tokeninfo: `tokens` maps an access token to what Google would say about it.
     UrlFetchApp: { fetch(url) {
+      tokenChecks++;
       const info = tokens[decodeURIComponent(url.split('access_token=')[1])];
       return { getResponseCode: () => (info ? 200 : 400), getContentText: () => JSON.stringify(info || {}) };
     } },
+    // The script cache: values with the lifetime they were given, so a test can let them lapse.
+    CacheService: { getScriptCache: () => ({
+      get: key => (cache.has(key) ? cache.get(key).value : null),
+      put(key, value, seconds) { cache.set(key, { value, seconds }); },
+    }) },
     Utilities: { DigestAlgorithm: { SHA_256: 'sha256' },
       computeDigest: (_alg, text) => [...require('node:crypto').createHash('sha256').update(text).digest()].map(b => (b << 24) >> 24) },
     PropertiesService: { getScriptProperties: () => ({
@@ -75,7 +82,8 @@ function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true, pro
     get: parameter => c.doGet({ parameter }),
     sheet: name => { const sh = newSheet(); tabs.set(name, sh); order.push(name); return sh; },
     failNext: () => { failFlush = true; }, setLocked: v => { locked = v; },
-    setLegacy: v => { legacy = JSON.stringify(v); } };
+    setLegacy: v => { legacy = JSON.stringify(v); },
+    tokenChecks: () => tokenChecks, cache, expireCache: () => cache.clear() };
 }
 
 module.exports = { receiver };

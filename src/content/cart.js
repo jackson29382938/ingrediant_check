@@ -116,15 +116,11 @@
       if (!response.ok) throw new Error('unavailable');
       const a = C.adapter(location), final = new URL(response.url || job.url);
       if (final.origin !== location.origin || a.productId(final.href) !== job.id) throw new Error('identity');
-      if (!/text\/html|application\/xhtml\+xml/i.test(response.headers.get('content-type') || '') || Number(response.headers.get('content-length')) > 8 * 1024 * 1024) throw new Error('type');
-      const reader = response.body.getReader(), chunks = []; let size = 0;
-      try {
-        while (true) { const p = await reader.read(); if (p.done) break; size += p.value.byteLength; if (size > 8 * 1024 * 1024 || control.signal.aborted) throw new Error('size'); chunks.push(p.value); }
-      } finally { await reader.cancel().catch(() => {}); }
-      const bytes = new Uint8Array(size); let offset = 0; for (const part of chunks) { bytes.set(part, offset); offset += part.byteLength; }
-      const doc = new DOMParser().parseFromString(new TextDecoder().decode(bytes), 'text/html');
+      // The same reader every page fetch uses (stores/cart.js): capped, aborts with the signal, and says when the page is a block page.
+      let doc;
+      try { doc = await C.publicDocument(response, control.signal); }
+      catch (error) { if (error.blocked && turn === generation) blocked = true; throw error; }
       if (turn !== generation || control.signal.aborted || location.href !== url || !C.allowed(location)) return;
-      if (/robot or human|verify you are human|access denied|press.*hold|just a moment|security verification/i.test([doc.title, doc.querySelector('h1')?.textContent].join(' '))) { blocked = true; throw new Error('blocked'); }
       const data = a.readProduct(doc, final);
       data.supplementFacts = data.supplementFacts || A.retailerLabels?.supplementFacts?.(doc) || '';
       if (data.real === false) { blocked = true; throw new Error('blocked'); }   // a robot check, not the product page

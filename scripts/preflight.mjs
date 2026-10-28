@@ -222,6 +222,38 @@ check('every locale has every English key, with the same $1 substitutions', () =
   return `${locales.join(', ')} match ${Object.keys(en).length} English keys`;
 });
 
+// Key parity only proves a key exists. A German file whose text is the English text passes it and shows the
+// reader English, which is what 273 of 535 German messages did until 2026-10-25, including the whole settings
+// page and the product panel's failure messages. A message that equals its English source must be listed here,
+// with the reason it should: a brand, a unit, or a word that is the same in that language.
+const SAME_AS_ENGLISH = {
+  de: [
+    'cartXpGained',      // "+$XP$ XP": a symbol and a game term used as is
+    'srcShortBarcode',   // "Open Food Facts": a name
+    'popupCompareA', 'popupCompareB',   // the labels "A" and "B"
+    'autoNoticeOk',      // "OK"
+    'sortedPerUnit',     // "$FIRST$/$SECOND$": a price and a unit
+    'unitName_100g', 'unitName_floz', 'unitName_100ml', 'unitName_ml',   // unit symbols
+    'optLevelMinimal',   // "Minimal" is German too
+  ],
+};
+check('a translation is not the English text', () => {
+  const en = JSON.parse(read('_locales/en/messages.json'));
+  const locales = fs.readdirSync(path.join(root, '_locales')).filter(l => l !== 'en');
+  const problems = [];
+  for (const locale of locales) {
+    const other = JSON.parse(read(`_locales/${locale}/messages.json`));
+    const allowed = new Set(SAME_AS_ENGLISH[locale] || []);
+    const untranslated = Object.keys(en).filter(k => k in other && other[k].message === en[k].message
+      && /[A-Za-z]{2,}/.test(en[k].message.replace(/\$[A-Za-z0-9_]+\$/g, '')) && !allowed.has(k));
+    const stale = [...allowed].filter(k => !(k in other) || other[k].message !== en[k].message);
+    if (untranslated.length) problems.push(`${locale} still shows English for ${untranslated.length}: ${untranslated.slice(0, 12).join(', ')}${untranslated.length > 12 ? ', ...' : ''}`);
+    if (stale.length) problems.push(`${locale} lists ${stale.join(', ')} as the same as English, but they are translated: remove them from SAME_AS_ENGLISH`);
+  }
+  if (problems.length) throw new Error(problems.join('; '));
+  return `${locales.map(l => `${l}: ${(SAME_AS_ENGLISH[l] || []).length} kept as English on purpose`).join(', ')}`;
+});
+
 console.log(bad ? `\n\x1b[31m${bad} problem(s) — do not load yet\x1b[0m\n`
                 : '\n\x1b[32mReady to load unpacked.\x1b[0m\n');
 process.exit(bad ? 1 : 0);

@@ -4,7 +4,7 @@
   function redirectToken(raw, expectedRedirect, state) {
     let url, expected;
     try { url = new URL(raw); expected = new URL(expectedRedirect); }
-    catch (e) { throw new Error('invalid-redirect'); }
+    catch (e) { throw new Error('invalid-redirect', { cause: e }); }
     if (url.origin !== expected.origin || url.pathname !== expected.pathname || url.search !== expected.search || url.username || url.password) {
       throw new Error('invalid-redirect');
     }

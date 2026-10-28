@@ -188,6 +188,109 @@ test('a line wrapped inside one ingredient is not split into two', () => {
   assert.equal(score('Oats, High Fructose\nCorn Syrup').score, score('Oats, High Fructose Corn Syrup').score);
 });
 
+// OCR prints a label's own line breaks, and a narrow panel breaks long words with a hyphen:
+// "Partially Hydro-\ngenated Soybean Oil" reached the rules as "hydro- genated" and cost nothing, where the
+// whole word caps the score at 5. Measured on a four-ingredient list: 63 against 5, 67 against 40 for
+// carrageenan, 67 against 36 for sodium benzoate. `readable` stayed true, so nothing declined it.
+test('a word broken across two lines by a hyphen is charged as the word', () => {
+  const words = ['Partially Hydrogenated Soybean Oil', 'Carrageenan', 'Sodium Benzoate', 'Polysorbate 80',
+    'Monosodium Glutamate', 'Artificial Flavors', 'Aspartame', 'Potassium Sorbate', 'Titanium Dioxide'];
+  for (const word of words) {
+    // Every place a word can break, not only the one a person would pick.
+    for (let at = 3; at < word.length - 3; at++) {
+      if (/[\s\d-]/.test(word[at - 1] + word[at])) continue;
+      const wrapped = `${word.slice(0, at)}-\n${word.slice(at)}`;
+      // Typesetters never leave a single letter on either side of a break.
+      if (!/[a-z]{2,}-\n[a-z]{2,}/i.test(wrapped)) continue;
+      const whole = score(`Water, Wheat Flour, ${word}, Salt`);
+      const broken = score(`Water, Wheat Flour, ${wrapped}, Salt`);
+      assert.equal(broken.score, whole.score, `${JSON.stringify(wrapped)} scores ${broken.score}, the whole word ${whole.score}`);
+      assert.deepEqual(reasons(broken), reasons(whole), JSON.stringify(wrapped));
+    }
+  }
+  assert.deepEqual(engine.parse('Water, Partially Hydro-\ngenated Soybean Oil'), ['water', 'partially hydrogenated soybean oil']);
+  // As a label prints it, and as a photo of it comes back from the OCR pass.
+  assert.equal(score('WATER, FLOUR, PARTIALLY HYDRO-\nGENATED SOYBEAN OIL, SALT').score, score('Water, Flour, Partially Hydrogenated Soybean Oil, Salt').score);
+  const ocr = require('../src/engine/db/ocr-text.js');
+  const read = ocr.ingredientsFromOcr('INGREDIENTS: Enriched Wheat Flour, Water, Sugar,\nPartially Hydro-\ngenated Soybean Oil, Salt, Natural\nFlavors, Soy Lecithin.');
+  assert.match(read, /hydro- genated/i, 'the OCR pass only tidies whitespace; the engine has to rejoin the word');
+  assert.equal(score(read).score, score('Enriched Wheat Flour, Water, Sugar, Partially Hydrogenated Soybean Oil, Salt, Natural Flavors, Soy Lecithin').score);
+});
+
+test('a hyphen that belongs to the text is left where it is', () => {
+  // Hanging prefixes and ordinary compounds read exactly as they did before wraps were rejoined:
+  // pinned to the scores they had, so a rejoin that only ever ADDS a charge cannot move them.
+  const pinned = {
+    'Water, Mono- and Diglycerides, Salt': 47, 'Water, Mono-and Diglycerides, Salt': 47, 'Oats, Non- GMO Soybeans': 90,
+    'Water, Cold- pressed Olive Oil, Salt': 94, 'Oats, Whole- grain Wheat Flour': 67, 'Water, Di- and Triglycerides, Salt': 90,
+    'Oats, Sugar- free Syrup': 90,
+  };
+  for (const [text, expected] of Object.entries(pinned)) assert.equal(score(text).score, expected, text);
+  assert.deepEqual(engine.parse('Water, Mono- and Diglycerides, Salt'), ['water', 'mono- and diglycerides', 'salt']);
+  assert.deepEqual(engine.parse('Oats, Non- GMO Soybeans'), ['oats', 'non- gmo soybeans']);
+});
+
+test('a compound broken at a hyphen reads as the compound', () => {
+  // "High-\nfructose" is two words, not one: the hyphen reads as the space it replaced.
+  const whole = score('Water, Sodium Benzoate, High Fructose Corn Syrup');
+  assert.equal(score('Water, Corn-\nstarch').score, score('Water, Corn Starch').score, 'a compound written with a hyphen at the break');
+  assert.equal(score('Water, Soya- lecithin, Salt').score, score('Water, Soya Lecithin, Salt').score);
+  for (const wrapped of ['High-\nFructose Corn Syrup', 'High Fructose-\nCorn Syrup', 'High Fructose Corn-\nSyrup', 'HIGH FRUCTOSE CORN-\nSYRUP']) {
+    const read = score(`Water, Sodium Benzoate, ${wrapped}`);
+    assert.equal(read.score, whole.score, JSON.stringify(wrapped));
+    // "High Fructose-\nCorn Syrup" already tripped the plain corn-syrup cap, which is the same ceiling.
+    if (!/Fructose-/.test(wrapped)) assert.deepEqual(reasons(read), reasons(whole), JSON.stringify(wrapped));
+  }
+});
+
+// A list with one ingredient per line and no commas (pasted from a notes app or a bulleted web page, or
+// markup that separates items with <br>) was one long entry: the anchored rules never saw the sugar in
+// "water oats rice flour salt yeast vinegar sugar" (82 against 62), and a longer list was over the length
+// limit and read as nothing at all.
+test('a list with one ingredient per line is read as a list', () => {
+  const items = ['Water', 'Enriched Wheat Flour', 'Sugar', 'Soybean Oil', 'Natural Flavors', 'Soy Lecithin', 'Salt'];
+  const plain = score(items.join(', '));
+  assert.ok(plain.score < 70, 'the fixture has to cost something for the comparison to mean anything');
+  for (const sep of ['\n', '\r\n', '\n\n', ' \n ', '<br>', '<br/>', '<br />\n', '</li><li>']) {
+    const text = sep.includes('li') ? `<ul><li>${items.join(sep)}</li></ul>` : items.join(sep);
+    const read = score(text);
+    assert.equal(read.score, plain.score, `${JSON.stringify(sep)} scores ${read.score}, the comma list ${plain.score}`);
+    assert.equal(read.parsed, plain.parsed, JSON.stringify(sep));
+    assert.deepEqual(engine.parse(text), items.map(item => item.toLowerCase()), JSON.stringify(sep));
+  }
+  // Which is more than the old reading did, with sugar last in a short list.
+  const late = ['Water', 'Oats', 'Rice Flour', 'Salt', 'Yeast', 'Vinegar', 'Sugar'];
+  assert.equal(score(late.join('\n')).score, score(late.join(', ')).score);
+  assert.equal(score(late.join('\n')).parsed, late.length);
+});
+
+test('the paste box accepts a vertical list as it accepts a comma list', () => {
+  // Before the list was read as a list, fourteen short lines were "a single phrase of more than twelve
+  // words" and the Score button stayed disabled.
+  require('../src/engine/db/ingestible.js');
+  const extract = require('../src/content/extract.js');
+  const vertical = 'Water\nOats\nRice\nSalt\nYeast\nVinegar\nSugar\nMilk\nEggs\nButter\nHoney\nGarlic\nOnion\nPepper';
+  const saved = AIR.engine;
+  try {
+    delete AIR.engine;
+    assert.equal(extract.looksLikeIngredients(vertical), false, 'without the engine the old reading stands');
+    AIR.engine = engine;
+    assert.equal(extract.looksLikeIngredients(vertical), true);
+    assert.equal(extract.looksLikeIngredients(vertical.replace(/\n/g, ', ')), true);
+    assert.equal(extract.looksLikeIngredients('Shipping is free\nReturns within 30 days\nCustomer reviews\nClick here'), false, 'boilerplate lines are not ingredients');
+  } finally { if (saved) AIR.engine = saved; else delete AIR.engine; }
+});
+
+test('line breaks stay line wraps when the text is not a vertical list', () => {
+  // Commas anywhere mean the lines are wrapping a comma list.
+  assert.deepEqual(engine.parse('Oats, Organic\nExtra Virgin\nOlive Oil'), engine.parse('Oats, Organic Extra Virgin Olive Oil'));
+  // Two lines are a wrapped phrase, not two ingredients.
+  assert.deepEqual(engine.parse('High Fructose\nCorn Syrup'), ['high fructose corn syrup']);
+  // Long lines are prose.
+  const prose = 'Made from the finest whole grains we could find on the farm and rolled flat\nthen toasted slowly in small batches until they turn golden brown and crisp\nready for your morning bowl with milk or fruit or anything else you like';
+  assert.equal(engine.parse(prose).length, engine.parse(prose.replace(/\n/g, ' ')).length);
+});
+
 test('entities and tags cannot smuggle in an ingredient or a marker', () => {
   assert.ok(engine.parse('Oats, <script>alert(1)</script>Sugar').every(e => !/[<>]/.test(e)), 'markup must not survive into an entry');
   assert.equal(score('Oats, &#0; Sugar').score, score('Oats, Sugar').score);
@@ -288,4 +391,21 @@ test('reasons never carry an internal marker', () => {
   const r = score('Water, Sugar, Contains 2% or less of: Natural Flavors, Red 40');
   for (const row of [...r.good, ...r.bad]) assert.ok(!JSON.stringify(row).includes('\u0001'), JSON.stringify(row));
   assert.ok(reasons(r).length > 0);
+});
+
+// The first score() compiles the engine's patterns (about 200 ms). warmUp() does that in idle time, once, and
+// must change nothing a caller can see.
+test('warming the engine up is idle, once, and invisible', async () => {
+  const before = score('Oats, Sugar, Natural Flavors');
+  const scheduled = [];
+  const saved = globalThis.requestIdleCallback;
+  globalThis.requestIdleCallback = (fn, options) => { scheduled.push({ fn, options }); return scheduled.length; };
+  try {
+    engine.warmUp(); engine.warmUp(); engine.warmUp();
+    assert.equal(scheduled.length, 1, 'once however often it is called');
+    assert.equal(scheduled[0].options.timeout, 3000, 'it runs even on a page that never goes idle');
+    scheduled[0].fn();
+  } finally { if (saved) globalThis.requestIdleCallback = saved; else delete globalThis.requestIdleCallback; }
+  assert.deepEqual(score('Oats, Sugar, Natural Flavors'), before, 'scoring after the warm-up is unchanged');
+  assert.deepEqual(engine.parse('Oats, Sugar'), ['oats', 'sugar']);
 });

@@ -616,7 +616,7 @@
             throw new Error('Product redirect does not match the requested product');
           }
         }
-        const html = await res.text();
+        const html = await root.AIR.cart.readHtml(res, signal);
         if (stale()) throw abortError();
         const reading = readProductHtml(asin, html);
         recordReading(asin, reading, source);

@@ -23,9 +23,18 @@
     if (!conf.historyEnabled || conf.enabled === false || conf.historyDeletePending) return { ok: false, reason: 'off' };
     if (conf.historyOwner && email(conf.googleProfile) && conf.historyOwner !== email(conf.googleProfile)) return { ok: false, reason: 'account-changed' };
     if (!Array.isArray(msg.records) || msg.records.length > 100) return { ok: false, reason: 'invalid-records' };
+    // Only a record that arrived can change, and only the stored record with the same key can differ from
+    // it, so those are compared first. Re-cleaning the whole history to find out that nothing changed
+    // cost about 0.4 s of worker time per message at the 10,000-record limit (0.1 s at 3,000), and the
+    // order page sends one after every label it reads. The full merge, which can also refuse a record
+    // ('history-full', 'invalid-history-identity'), runs only when a record is new or different.
+    const arrivedKeys = new Set(msg.records.map(r => r && r.key));
+    const stored = Array.isArray(conf.purchaseHistory) ? conf.purchaseHistory : [];
+    const touched = stored.filter(r => r && arrivedKeys.has(r.key));
+    const arrived = H.merge(touched, msg.records);
+    const canonical = list => JSON.stringify(list.map(r => ({ ...H.clean(r), observedAt: 0 })));   // when it was seen is not a change
+    if (canonical(H.merge(touched, [])) === canonical(arrived)) return { ok: true, count: stored.length, records: arrived };
     const records = H.merge(conf.purchaseHistory, msg.records);
-    const comparable = values => JSON.stringify(H.merge([], values).map(({ observedAt: _observedAt, ...r }) => r));
-    if (comparable(conf.purchaseHistory) === comparable(records)) return { ok: true, count: records.length, records: records.filter(r => msg.records.some(x => x.key === r.key)) };
     await chrome.storage.local.set({ purchaseHistory: records, historySyncStatus: { ok: false, reason: conf.historyAutoSync !== false ? 'pending' : 'local-only', at: Date.now() } });
     if (conf.historyAutoSync !== false) retry();
     return { ok: true, count: records.length, records: records.filter(r => msg.records.some(x => x.key === r.key)) };

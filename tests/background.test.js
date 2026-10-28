@@ -5,8 +5,9 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const { loadWorker } = require('./worker-scripts.js');
 const ENDPOINT = 'https://script.google.com/macros/s/abcdefghijklmnopqrstuvwxyz1234567890/exec';
-function worker(initial = {}, fetcher, { alarms, endpoint = ENDPOINT, productsAllowed = true, offPermission = true, badgeTexts, badgeReader, paletteRead } = {}) {
+function worker(initial = {}, fetcher, { alarms, endpoint = ENDPOINT, productsAllowed = true, offPermission = true, badgeTexts, badgeReader, paletteRead, getKeys } = {}) {
   const data = structuredClone(initial);
+  const reads = [];
   const synced = {};
   const event = { addListener() {} };
   let created = 0;
@@ -34,7 +35,9 @@ function worker(initial = {}, fetcher, { alarms, endpoint = ENDPOINT, productsAl
       },
       tabs: badgeTexts ? { query: async () => Object.keys(badgeTexts).map(id => ({ id: Number(id) })), onRemoved: event } : undefined,
       storage: { onChanged: { addListener(fn) { changed = fn; } }, local: {
+        ...(getKeys ? { async getKeys() { return Object.keys(data); } } : {}),
         async get(keys) {
+          reads.push(keys);
           if (keys === 'palette' && paletteRead) return paletteRead();
           const result = keys == null ? data : Object.fromEntries(
             (Array.isArray(keys) ? keys : [keys]).map(k => [k, data[k]]));
@@ -55,7 +58,7 @@ function worker(initial = {}, fetcher, { alarms, endpoint = ENDPOINT, productsAl
   loadWorker(vm, context, { before: () => { if (context.AIR?.db?.prefs) { context.AIR.db.prefs.ENDPOINT = endpoint; context.AIR.db.prefs.SHARED_PRODUCTS_ALLOWED = productsAllowed; } } });
   return {
     failSync: value => { syncFailure = value; },
-    data, synced, call: (expression) => vm.runInContext(expression, context), created: () => created, badges,
+    data, synced, reads, call: (expression) => vm.runInContext(expression, context), created: () => created, badges,
     send(msg, sender) {
       return new Promise(resolve => {
         const async = onMessage(msg, sender, resolve);
@@ -781,4 +784,130 @@ test('search following requires an open view, enabled preference and the origina
   const replies=await w.call(`Promise.all([followSortedSearch({sourceUrl:'${url}',priceOnly:true},${JSON.stringify(sender)}),followSortedSearch({sourceUrl:'${url}',priceOnly:true},${JSON.stringify(sender)})])`);
   assert.equal(replies.filter(r=>r.ok).length,1);
   const list=w.call('self.__session.sortedResults');assert.equal(list.sourceUrl,url);assert.equal(list.items.length,0);assert.equal(list.mode,'unitPrice');assert.equal(list.priceOnly,true);
+});
+
+// ---------------------------------------------------------------- replies, trail, sweep, history import
+
+// Values built inside the worker's VM carry its prototypes; compare them as data.
+const plain = value => JSON.parse(JSON.stringify(value === undefined ? null : value));
+const within = (ms, promise, what) => Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error(`no reply to ${what} within ${ms} ms`)), ms))]);
+
+// A handler that returns true owes its sender a reply. `work().then(reply)` answered nobody when the work
+// rejected (a storage error outside a try block), and the sender waited until Chrome stopped the worker.
+test('a handler whose work fails still answers its sender, and leaves a trace', async () => {
+  const w = worker({ useOpenFoodFacts: true, ocrLabels: true, shareContributions: true, sendDiagnostics: true, contributeUrl: ENDPOINT });
+  w.call('chrome.storage.local.get = async () => { throw new Error("storage unavailable"); }');
+  const warned = [], warn = console.warn;
+  console.warn = (...args) => warned.push(args.join(' '));
+  try {
+    const cases = [
+      [{ type: 'lookupBarcode', code: '0012345678905' }, null],
+      [{ type: 'ocrLabels', urls: [label] }, { ok: false, reason: 'worker-error' }],
+      [{ type: 'provenanceLookup', key: { asin: 'B00LOAW7U6' } }, null],
+      [{ type: 'contribute', payload: {} }, { ok: false, reason: 'worker-error' }],
+      [{ type: 'diagnostic', record: { id: 1 } }, { ok: false, reason: 'worker-error' }],
+      [{ type: 'productsLookup', store: 'amazon.com', asins: ['B000000001'] }, { rows: {} }],
+      [{ type: 'productsQueue', upserts: [] }, { ok: false }],
+    ];
+    for (const [msg, expected] of cases) {
+      assert.deepEqual(plain(await within(2000, w.send(msg, amazonTab), msg.type)), expected, msg.type);
+    }
+    assert.deepEqual(plain(await within(2000, w.send({ type: 'flushDiagnostics' }, settingsSender), 'flushDiagnostics')), { ok: false, reason: 'worker-error' });
+    assert.deepEqual(plain(await within(2000, w.send({ type: 'refreshSheet' }, settingsSender), 'refreshSheet')), { ok: false, count: 0, producers: 0 });
+  } finally { console.warn = warn; }
+  assert.ok(warned.some(line => /lookupBarcode: storage unavailable/.test(line)), `the failure is logged: ${warned.join(' | ')}`);
+});
+
+// get(null) read the purchase history too: up to 10,000 records, copied into the worker at every start
+// and every twelve hours, to delete cache entries that are a few hundred bytes each.
+test('the housekeeping sweep reads the cache keys, not the purchase history, where the browser can list keys', async () => {
+  const DAY = 24 * 60 * 60 * 1000, now = Date.now();
+  const initial = {
+    speedMode: 'balanced', purchaseHistory: [{ key: 'x' }], sendDiagnostics: false, diagQueue: [{ big: 'x'.repeat(100) }],
+    's:amazon.com:B000000001': { t: now }, 'p:amazon.com:B000000001': { t: now - 45 * DAY }, 'off:0000000000017': { t: now },
+  };
+  const w = worker(initial, undefined, { getKeys: true });
+  const result = await w.call(`sweepCache(${now})`);
+  assert.deepEqual(plain(result), { removed: 1, kept: 2 });
+  assert.deepEqual(Object.keys(w.data).sort(), ['diagQueue', 'off:0000000000017', 's:amazon.com:B000000001', 'purchaseHistory', 'sendDiagnostics', 'speedMode'].sort());
+  const asked = w.reads.flat().filter(k => typeof k === 'string');
+  assert.ok(!w.reads.includes(null), 'get(null) reads everything');
+  assert.ok(!asked.includes('purchaseHistory') && !asked.includes('diagQueue'), `read: ${asked.join(', ')}`);
+  // Without getKeys (Firefox, older Chrome) the sweep still works the old way.
+  const withoutKeys = worker(initial);
+  assert.deepEqual(plain(await withoutKeys.call(`sweepCache(${now})`)), { removed: 1, kept: 2 });
+});
+
+// The import path re-cleaned the whole history three times to learn that nothing changed. It now compares
+// the stored records that share a key with the arriving ones, and must still behave as the full comparison
+// did: the same write or no write, the same reply, the same refusals.
+function purchase(n, extra = {}) {
+  return { key: n.toString(16).padStart(64, '0'), orderKey: 'b'.repeat(64), store: 'amazon.com', asin: `B${String(n).padStart(9, '0')}`,
+    name: 'Rolled oats', date: `2026-0${1 + n % 9}-1${n % 9}`, state: 'purchased', score: 80, profile: 'c'.repeat(64), version: '1.0.0',
+    scoredAt: 5, observedAt: 10, flags: [], ingredients: 'oats', ...extra };
+}
+const fullComparison = (stored, incoming) => {
+  const H = require('../src/engine/db/purchase-history.js');
+  const records = H.merge(stored, incoming);
+  const comparable = values => JSON.stringify(H.merge([], values).map(({ observedAt: _o, ...r }) => r));
+  return { unchanged: comparable(stored) === comparable(records), records: records.filter(r => incoming.some(x => x.key === r.key)), all: records };
+};
+const importer = history => {
+  const w = worker({ historyEnabled: true, historyAutoSync: false, purchaseHistory: history });
+  w.call('(() => { const set = chrome.storage.local.set; globalThis.historyWrites = 0; chrome.storage.local.set = v => { if (v.purchaseHistory) historyWrites++; return set(v); }; })()');
+  return w;
+};
+const ingest = (w, records) => w.call(`AIR.historyWorker.ingest(${JSON.stringify({ records })})`);
+
+test('importing what is already stored writes nothing; a changed or new purchase is written', async () => {
+  const history = Array.from({ length: 40 }, (_, n) => purchase(n));
+  const w = importer(history);
+  // Seen again later: only observedAt moves, which was never a change.
+  let reply = await ingest(w, [purchase(3, { observedAt: 99 }), purchase(4, { observedAt: 99 })]);
+  assert.equal(reply.ok, true);
+  assert.equal(await w.call('historyWrites'), 0, 'nothing changed');
+  assert.deepEqual(plain(reply.records.map(r => r.key).sort()), [purchase(3).key, purchase(4).key].sort(), 'the arriving records come back');
+  // A return is a change.
+  reply = await ingest(w, [purchase(3, { state: 'returned', observedAt: 120 })]);
+  assert.equal(await w.call('historyWrites'), 1);
+  assert.equal(w.data.purchaseHistory.find(r => r.key === purchase(3).key).state, 'returned');
+  assert.equal(reply.records[0].state, 'returned');
+  // A new purchase is a change.
+  await ingest(w, [purchase(77)]);
+  assert.equal(await w.call('historyWrites'), 2);
+  assert.equal(w.data.purchaseHistory.length, 41);
+  // The first usable score is kept: a later, different score is not a change.
+  await ingest(w, [purchase(5, { score: 12, scoredAt: 500, observedAt: 300 })]);
+  assert.equal(await w.call('historyWrites'), 2);
+  assert.equal(w.data.purchaseHistory.find(r => r.key === purchase(5).key).score, 80);
+});
+
+test('the import behaves as the full comparison did, over many histories and batches', async () => {
+  let seed = 20261025;
+  const next = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+  const pick = list => list[Math.floor(next() * list.length)];
+  for (let round = 0; round < 120; round++) {
+    const stored = [];
+    for (let n = 0; n < Math.floor(next() * 12); n++) stored.push(purchase(n, next() < 0.3 ? { score: null, scoredAt: 0 } : {}));
+    if (next() < 0.2 && stored.length) stored.push({ ...stored[0], observedAt: 50, state: 'cancelled' });   // a duplicate key in storage
+    if (next() < 0.15) stored.push({ key: 'not-a-record' });                                                 // junk that cleaning drops
+    const incoming = [];
+    for (let i = 0; i < 1 + Math.floor(next() * 4); i++) {
+      const n = Math.floor(next() * 16);
+      incoming.push(purchase(n, pick([{}, {}, { observedAt: 99 }, { state: 'returned', observedAt: 99 }, { score: 33, scoredAt: 9, observedAt: 99 },
+        { name: 'Renamed', observedAt: 99 }, { score: null, scoredAt: 0 }, next() < 0.1 ? { date: '2025-12-31' } : {}])));
+    }
+    let expected, thrown;
+    try { expected = fullComparison(stored, incoming); } catch (e) { thrown = e.message; }
+    const w = importer(stored);
+    let reply, failure;
+    try { reply = await ingest(w, incoming); } catch (e) { failure = e.message; }
+    const label = `round ${round}`;
+    assert.equal(failure, thrown, label);
+    if (thrown) { assert.equal(await w.call('historyWrites'), 0, `${label}: nothing written on a refusal`); continue; }
+    assert.equal(reply.ok, true, label);
+    assert.equal(await w.call('historyWrites'), expected.unchanged ? 0 : 1, `${label}: ${expected.unchanged ? 'no write' : 'one write'}`);
+    assert.deepEqual(w.data.purchaseHistory, expected.unchanged ? stored : expected.all, `${label}: stored history`);
+    assert.deepEqual(JSON.parse(JSON.stringify(reply.records)), JSON.parse(JSON.stringify(expected.records)), `${label}: reply`);
+  }
 });

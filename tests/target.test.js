@@ -6,6 +6,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { loadPageReader } = require('./page-reader.js');
 
 require('../src/engine/db/_module.js');
 require('../src/engine/categories.js');
@@ -170,6 +171,7 @@ function runner(file, url, stored = {}, productOverride = null) {
   sandbox.module = { exports: {} };
   vm.createContext(sandbox);
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'src', 'content', 'retailer.js'), 'utf8'), sandbox);
+  loadPageReader(vm, sandbox);   // the shared page reader
   return { get host() { return host; }, writes, messages, fetches, timers, clicks, shadow, data, page,
     pass: () => sandbox.module.exports.pass(), sandbox };
 }

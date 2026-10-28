@@ -585,11 +585,11 @@
           const signal = AbortSignal.any ? AbortSignal.any([controller.signal, AbortSignal.timeout(LOAD_MORE_TIMEOUT_MS)]) : controller.signal;
           try { response = await fetch(nextUrl, { credentials: 'same-origin', headers: { Accept: 'text/html' }, signal }); }
           catch (error) {
-            if (error && error.name === 'TimeoutError') throw new Error(t('sortPageTimeout', 'Amazon took too long to send the next results page'));
+            if (error && error.name === 'TimeoutError') throw new Error(t('sortPageTimeout', 'Amazon took too long to send the next results page'), { cause: error });
             throw error;
           } finally { controllers.delete(controller); }
           if (!response.ok) throw new Error(`Amazon returned ${response.status}`);
-          const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
+          const doc = new DOMParser().parseFromString(await root.AIR.cart.readHtml(response, signal), 'text/html');
           const cards = productCardsIn(doc);
           if (!cards.length) throw new Error('no product cards on the next page');
           pagesInList = pageNumber;
@@ -655,7 +655,7 @@
       return false;
     }
     if (!msg || msg.type !== 'sortStop') return false;
-    let fromList = false;
+    let fromList;
     try {
       fromList = sender && sender.id === chrome.runtime.id && !sender.tab
         && /\/src\/options\/(sorted|sidepanel)\.html(?:[?#]|$)/.test(new URL(sender.url || '').pathname + '#');

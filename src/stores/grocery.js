@@ -80,7 +80,7 @@
     const items = data && typeof data === 'object' ? data.ItemDetailData : null;
     if (!items || typeof items !== 'object') return null;
     for (const [key, entry] of Object.entries(items)) {
-      let itemId = '';
+      let itemId;
       try { itemId = String(JSON.parse(key).id || ''); } catch { continue; }
       if (!new RegExp(`^items_\\d+-${currentId}$`).test(itemId)) continue;
       const sections = entry && entry.itemDetail && entry.itemDetail.viewSection && entry.itemDetail.viewSection.detailSections;

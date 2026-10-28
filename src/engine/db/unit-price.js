@@ -52,9 +52,14 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
   const MISSING = ['calculate-clear', 'displayed-only', 'infer-more'];
   const UNIT_DEFAULTS = { unitMissing: 'calculate-clear' };
 
+  // The UK and Ireland measure pints, quarts, gallons and fluid ounces in imperial sizes. A store is given as its
+  // host ("www.amazon.co.uk") or its key ("co.uk"); parsing a size and pricing a unit must read both the same way.
+  const IMPERIAL_STORE = /^(?:(?:www\.)?amazon\.)?(?:co\.uk|ie)$/i;
+  const isImperialStore = store => IMPERIAL_STORE.test(String(store || ''));
+
   function unitInfo(unit, store) {
     const u = String(unit).toLowerCase().replace(/\./g, '').replace(/\s+/g, ' ').trim();
-    const imperial = /^(?:www\.)?amazon\.(?:co\.uk|ie)$/i.test(String(store || ''));
+    const imperial = isImperialStore(store);
     const hit = UNITS.find(([re]) => re.test(u) || re.test(u.replace(/ /g, '')));
     if (!hit) return null;
     const imperialMl = /^(?:pt|pints?)$/.test(u) ? 568.26125
@@ -124,8 +129,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
   function unitSize(id, store) {
     const u = choice(id);
     if (!u) return null;
-    // Accepts the host ("www.amazon.co.uk") or a storefront key ("co.uk").
-    const imperial = /^(?:(?:www\.)?amazon\.)?(?:co\.uk|ie)$/i.test(String(store || ''));
+    const imperial = isImperialStore(store);
     return imperial && IMPERIAL_ML[id] ? IMPERIAL_ML[id] * FL_OZ_PER_ML : u.size;
   }
   // A price per base unit -> the price per `id`. null when the unit or the price is not usable.
@@ -173,7 +177,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
     for (const m of source.matchAll(new RegExp(`(?<![\\d.])(\\d{1,4})[\\s-]*(?:${COUNT_WORDS})(?![a-z])`, 'g'))) items.push(Number(m[1]));
     const agreed = list => (list.length && list.every(n => n === list[0]) ? list[0] : list.length ? NaN : null);
     const pack = agreed(packs), item = agreed(items);
-    let n = null;
+    let n;
     if (Number.isNaN(pack) || Number.isNaN(item)) n = null;
     else if (pack != null && item != null) n = pack === 1 ? item : pack === item ? pack : null;
     else n = pack != null ? pack : item;
