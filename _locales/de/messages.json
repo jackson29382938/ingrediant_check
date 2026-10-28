@@ -1961,5 +1961,14 @@
   },
   "sortMixed": {
     "message": "Gemischte Kategorien: Die Sortierung nach Wert ist deaktiviert; andere Prioritäten gelten weiter."
+  },
+  "assessmentUnavailable": {
+    "message": "Nicht bewertet: $1. Eine fehlende Mengenangabe bedeutet nicht null."
+  },
+  "assessmentAvailable": {
+    "message": "Bewertet: $1."
+  },
+  "scoreDimensions": {
+    "message": "Verarbeitungsbasis $1 · Zutatenpräferenzen $2 · Nährwerte $3 · Herkunft $4"
   }
 }

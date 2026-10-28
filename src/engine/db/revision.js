@@ -18,12 +18,15 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // label's own allergen line is no longer scored as ingredients, and text written with full-width,
   // bullet or HTML separators is read as the list it is. See docs/releases/1.16.0.md.
   //
+  // 2026-10-18.2: nested lists, incomplete readings, nutrition basis, multilingual qualifiers
+  // and dominant-food sourcing. See docs/releases/1.18.1.md. Retains 1.16.0 share weighting.
+  //
   // 2026-10-27.4: personal-care and supplement indices read real labels and titles. Drug Facts blocks and
   // INCI joins are read as lists, ingredient names are recognized by shape, supplement servings above an
   // adult upper limit and documented cautions are charged, and more titles are claimed (fewer wrongly).
   // Food rules are untouched. See docs/releases/1.18.0.md and docs/PERSONAL-CARE.md.
-  const RULES_REVISION = '2026-10-27.4';
-  const RULES_HASH = '11f8902d-351301';
+  const RULES_REVISION = '2026-10-28.1';
+  const RULES_HASH = '367dc9aa-355043';
   const _exports = AIRmodule('revision', { RULES_REVISION, RULES_HASH });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 })();

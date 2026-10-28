@@ -659,11 +659,17 @@ function renderAll() {
 function bindToggle(id, onPaint) {
   const box = document.getElementById(id);
   if (!box) return null;
+  let revision = 0;
   const show = on => { box.checked = on; if (onPaint) onPaint(on); };
-  const read = () => chrome.storage.local.get(id, o => show(PREFS.sanitizeToggles(o)[id]));
+  const read = () => {
+    const turn = ++revision;
+    chrome.storage.local.get(id, o => { if (turn === revision) show(PREFS.sanitizeToggles(o)[id]); });
+  };
   read();
   chrome.storage.onChanged.addListener(changes => { if (changes[id]) read(); });
   box.addEventListener('change', () => {
+    // A slow startup/storage read must not undo a checkbox the reader just changed.
+    revision++;
     if (onPaint) onPaint(box.checked);
     persist({ [id]: box.checked }, ok => { if (ok) flash(msg('optSaved', 'Saved')); });
   });

@@ -58,6 +58,17 @@ function page(options = {}, settings = false) {
     flushTimers() { const pending = [...timers.values()]; timers.clear(); pending.forEach(fn => fn()); } };
 }
 
+test('a delayed toggle read cannot undo a newer OCR checkbox change', () => {
+  const p = page({}, true), reads = [];
+  p.context.chrome.storage.local.get = (_key, cb) => { reads.push(cb); };
+  p.get('ocrLabels').checked = true;
+  p.run("bindToggle('ocrLabels')");
+  p.get('ocrLabels').checked = false;
+  p.get('ocrLabels').change();
+  reads[0]({ ocrLabels: true });
+  assert.equal(p.get('ocrLabels').checked, false);
+});
+
 test('Google account operation locks Chrome restore and client configuration until request completes', async () => {
   let release;
   const requestPending = new Promise(resolve => { release = resolve; });

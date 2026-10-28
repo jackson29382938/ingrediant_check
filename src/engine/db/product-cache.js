@@ -20,6 +20,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   const MAX_PULLS = 100;
   const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
   const QUEUE_MAX = 300;
+  const INPUT_SCHEMA = 1;
   // ok: data carries ingredient text. unreadable: the page published none. not-food: the food gate
   // refused it before reading, so there is no text; readers with the gate off treat it as a miss.
   const STATUSES = new Set(['ok', 'unreadable', 'not-food']);
@@ -32,6 +33,26 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   const normalizeStore = s => str(s, 60).toLowerCase().replace(/^www\./, '');
   const key = (store, asin) => `${normalizeStore(store)}:${String(asin || '').toUpperCase()}`;
   const localKey = (store, asin) => `p:${key(store, asin)}`;
+  function cleanProvenance(raw) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    const out = { certifications: str(raw.certifications, 500), source: str(raw.source, 120) };
+    if (raw.producerRegistry && typeof raw.producerRegistry === 'object') {
+      out.producerRegistry = { certifications: str(raw.producerRegistry.certifications, 500) };
+    }
+    return out;
+  }
+  function nutritionFromOff(product) {
+    const basis = product?.nutrition_data_per;
+    if (!['100g', '100ml'].includes(basis) || !product.nutriments || typeof product.nutriments !== 'object') return null;
+    const out = { [basis === '100ml' ? 'servingMl' : 'servingGrams']: 100 };
+    const fields = { sodium: 'sodium', saturatedFat: 'saturated-fat', sugar: 'sugars', addedSugar: 'added-sugars',
+      fibre: 'fiber', protein: 'proteins', carbs: 'carbohydrates', fat: 'fat' };
+    for (const [field, off] of Object.entries(fields)) {
+      const value = product.nutriments[off + '_100g'];
+      if (Number.isFinite(value) && value >= 0) out[field] = value * (field === 'sodium' ? 1000 : 1);
+    }
+    return Object.keys(out).length > 1 ? out : null;
+  }
 
   // Field bounds match what extract.js can produce (6000 is its MAX_LEN), so a live read and a
   // cached read feed the engine the same input. Unknown fields are dropped.
@@ -49,6 +70,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
       food: src.food !== false,
       ...(typeof src.category === 'string' && /^(?:toothpaste|mouthwash|deodorant|shampoo|conditioner|body-wash|moisturizer|supplement)$/.test(src.category) ? { category: src.category } : {}),
     };
+    if (src.inputSchema === INPUT_SCHEMA) out.inputSchema = INPUT_SCHEMA;
+    const provenance = cleanProvenance(src.provenanceRecord);
+    if (provenance) out.provenanceRecord = provenance;
     if (Object.hasOwn(src, 'advisory_text')) {
       if (typeof src.advisory_text !== 'string' || src.advisory_text.length > 6000) return null;
       out.advisory_text = str(src.advisory_text, 6000);
@@ -87,6 +111,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
 
   // maxAgeMs: the speed setting's age limit (AIR.db.speed); MAX_AGE_MS when not given.
   function stale(row, now = Date.now(), maxAgeMs = MAX_AGE_MS) {
+    if (row?.status === 'ok' && row.data?.inputSchema !== INPUT_SCHEMA) return true;
     // Older readings dropped separately published cross-contact warnings. Read them again.
     if (row?.status === 'ok' && !Object.hasOwn(row.data || {}, 'advisory_text')) return true;
     const t = Date.parse(row && row.scanned_at);
@@ -100,6 +125,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     return {
       name: d.title, category: d.category, labels: d.labels, certifications: d.certifications,
       nutrition: d.nutrition ? { ...d.nutrition } : undefined, ingredients_text: d.text, supplement_facts: d.supplement_facts, advisory_text: d.advisory_text,
+      ...(d.inputSchema === INPUT_SCHEMA ? { inputSchema: INPUT_SCHEMA } : {}),
+      ...(d.provenanceRecord ? { provenanceRecord: cleanProvenance(d.provenanceRecord) } : {}),
     };
   }
 
@@ -107,7 +134,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   function fromScan({ store, asin, status = 'ok', input = {}, via = '', confidence = 0, food = true, t = Date.now() }, now = Date.now()) {
     return sanitize({
       store, asin, status, scanned_at: t, pulls: 0,
-      data: { title: input.name, category: input.category || AIR.db.ingestible?.classifyProduct?.(input.name).category, text: input.ingredients_text, labels: input.labels,
+      data: { inputSchema: INPUT_SCHEMA, provenanceRecord: input.provenanceRecord, title: input.name, category: input.category || AIR.db.ingestible?.classifyProduct?.(input.name).category, text: input.ingredients_text, labels: input.labels,
         certifications: input.certifications, supplement_facts: input.supplement_facts, nutrition: input.nutrition, advisory_text: typeof input.advisory_text === 'string' ? input.advisory_text : '', via, confidence, food },
     }, now);
   }
@@ -145,8 +172,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   const queueSize = q => Object.keys((q && q.upserts) || {}).length + Object.keys((q && q.pulls) || {}).length;
 
   const api = AIRmodule('productCache', {
-    TAB, COLUMNS, MAX_PULLS, MAX_AGE_MS, QUEUE_MAX,
-    key, localKey, sanitize, sanitizeData, stale, toInput, fromScan, mergeQueue, queueSize,
+    TAB, COLUMNS, MAX_PULLS, MAX_AGE_MS, QUEUE_MAX, INPUT_SCHEMA, cleanProvenance,
+    key, localKey, sanitize, sanitizeData, stale, toInput, fromScan, mergeQueue, queueSize, nutritionFromOff,
   });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();

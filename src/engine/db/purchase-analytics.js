@@ -4,7 +4,7 @@
     let current = null, partial = false;
     if (mode === 'current') {
       const input = record.input || (record.ingredients ? { name: record.name, ingredients_text: record.ingredients } : null);
-      partial = !record.input;
+      partial = !record.input || record.input.inputSchema !== 1;
       if (input) { const result = score(input); if (result?.readable && Number.isFinite(result.score)) current = result.score; }
     }
     return { record, score: mode === 'current' ? current : record.score, recorded: record.score, current,

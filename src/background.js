@@ -18,7 +18,7 @@ if (typeof importScripts === 'function') {
 }
 
 const OFF_ENDPOINT = 'https://world.openfoodfacts.org/api/v2/product/';
-const OFF_FIELDS = 'product_name,brands,ingredients_text,ingredients_text_en,labels_tags,nova_group,additives_tags,product_type,categories_tags,pnns_groups_1,categories';
+const OFF_FIELDS = 'product_name,brands,ingredients_text,ingredients_text_en,labels_tags,nova_group,additives_tags,product_type,categories_tags,pnns_groups_1,categories,nutriments,nutrition_data_per';
 const VERSION = chrome.runtime.getManifest().version;
 
 // Open Food Facts asks read clients to identify themselves via User-Agent. Chrome will NOT let an
@@ -125,6 +125,7 @@ async function fetchOpenFoodFacts(code, key) {
       categories_tags: p.categories_tags || [],
       categories: p.categories || '',
       pnns_groups_1: p.pnns_groups_1 || '',
+      ...(AIR.db.productCache.nutritionFromOff(p) ? { nutrition: AIR.db.productCache.nutritionFromOff(p) } : {}),
     };
     const food = isOpenFoodFactsFood(p);
     await chrome.storage.local.set({

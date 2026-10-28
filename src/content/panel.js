@@ -178,6 +178,21 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
       : ''}`;
   }
 
+  function assessmentHTML(result) {
+    const factors = result.nutritionAssessment || [];
+    const missing = factors.filter(f => f.status !== 'assessed');
+    const assessed = factors.filter(f => f.status === 'assessed');
+    const unavailable = missing.length ? `<p class="disclaim" style="padding:6px 16px 0">${esc(t('assessmentUnavailable',
+      'Not assessed: $1. A missing amount does not mean zero.', missing.map(f => f.label).join(', ')))}${
+      assessed.length ? ' ' + esc(t('assessmentAvailable', 'Assessed: $1.', assessed.map(f => f.label).join(', '))) : ''}</p>` : '';
+    const d = result.dimensions;
+    const signed = n => n > 0 ? `+${n}` : String(n);
+    const dimensions = d ? `<p class="disclaim" style="padding:6px 16px 0">${esc(t('scoreDimensions',
+      'Processing base $1 · Ingredient preferences $2 · Nutrition $3 · Sourcing $4',
+      d.processing, signed(d.ingredients), signed(d.nutrition), signed(d.sourcing)))}</p>` : '';
+    return unavailable + dimensions;
+  }
+
   // For a whole food this is the section that carries the actual information. A certification is
   // shown with what it guarantees, because "AGA certified" means nothing to someone who has not
   // looked it up, and a hollow claim is shown with why it is hollow.
@@ -272,6 +287,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
       ${flagsHTML(result.flags, !!result.selectedAllergens?.length)}
       ${result.category ? `<p class="disclaim" style="padding:6px 16px">${esc(t('indexNote',
         'Limited label index using the selected rubric. It does not establish safety, effectiveness, dose suitability or absence of allergens. Compare within the same category and style.'))}</p>` : ''}
+      ${assessmentHTML(result)}
       ${provenanceHTML(result.provenance, meta)}
       ${sourceLinks(result.sources)}
       <div class="body" id="air-panel-details">
@@ -338,7 +354,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
       const compact = meta.detail === 'compact';
       const { caps, minus, plus, neutral } = sections(result);
       const top = (rows, n) => (compact ? rows.slice().sort((a, b) => Math.abs(b.c) - Math.abs(a.c)).slice(0, n) : rows);
-      body = `${result.category ? `<p class="note">${esc(t('indexNoteShort', 'Limited label index; compare within the same category and style.'))}</p>` : ''}${sourceLinks(result.sources)}${flagsHTML(result.flags, !!result.selectedAllergens?.length)}
+      body = `${result.category ? `<p class="note">${esc(t('indexNoteShort', 'Limited label index; compare within the same category and style.'))}</p>` : ''}${sourceLinks(result.sources)}${flagsHTML(result.flags, !!result.selectedAllergens?.length)}${assessmentHTML(result)}
         ${compact ? '' : provenanceHTML(result.provenance, meta)}
         ${caps.length ? `<h4>${esc(t('headDisqualifying', 'Score limits'))}</h4>${rowsHTML(caps, 'minus')}` : ''}
         ${plus.length ? `<h4>${esc(t('headGood', "What's good"))}</h4>${rowsHTML(top(plus, 3), 'plus')}` : ''}

@@ -1961,5 +1961,14 @@
   },
   "sortMixed": {
     "message": "Mixed categories: score ranking is disabled; other priorities still apply."
+  },
+  "assessmentUnavailable": {
+    "message": "Not assessed: $1. A missing amount does not mean zero."
+  },
+  "assessmentAvailable": {
+    "message": "Assessed: $1."
+  },
+  "scoreDimensions": {
+    "message": "Processing base $1 · Ingredient preferences $2 · Nutrition $3 · Sourcing $4"
   }
 }

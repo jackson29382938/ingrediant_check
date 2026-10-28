@@ -95,7 +95,7 @@
     cacheScore(key, result, meta.cacheName || data.title, meta.via, meta.provenanceSource, meta.t);
     if (meta.input && meta.via !== 'manual-paste' && meta.via !== 'food-override') {
       P().rememberProduct(key, { input: meta.input, via: meta.via, confidence: meta.confidence,
-        food: !(data.ingestible && data.ingestible.ok === false) });
+        food: !(data.ingestible && data.ingestible.ok === false) }, { share: meta.share !== false });
     }
     publishActionBadge(result);
     P().logAction?.('product page', `${key}: ${result.score} ${result.verdict} (read from ${meta.via || 'page'})`);
@@ -267,6 +267,7 @@
           name: fallback.name || data.title,
           labels: `${data.labels || ''} ${fallback.labels || ''}`,
           ingredients_text: fallback.ingredients_text,
+          nutrition: data.nutrition || fallback.nutrition,
         });
         const result = root.AIR.engine.score(input, state.prefs);
         presentResult(host, data, key, result, {
@@ -387,7 +388,7 @@
       chrome.runtime.sendMessage({ type: 'lookupBarcode', code: data.upc, foodOnly: state.foodOnly }, fallback => {
         void chrome.runtime.lastError;
         const text = fallback && fallback.ingredients_text;
-        const used = text && offer(pageInput(data, { name: fallback.name || data.title, labels: `${data.labels || ''} ${fallback.labels || ''}`, ingredients_text: text }),
+        const used = text && offer(pageInput(data, { name: fallback.name || data.title, labels: `${data.labels || ''} ${fallback.labels || ''}`, ingredients_text: text, nutrition: data.nutrition || fallback.nutrition }),
           { title: data.title || fallback.name, confidence: 0.55, via: 'open-food-facts', text, textSig: text.slice(0, 320), cacheName: data.title || fallback.name });
         if (!used) photo();
       });
@@ -405,11 +406,13 @@
         const err = chrome.runtime.lastError;
         if (requestId !== state.requestId || !host.isConnected || !state.enabled) return;
         if (err || !record) { maybeContribute(data, first); return; }
-        const better = root.AIR.engine.score({
+        const input = {
           name: data.title, labels: data.labels, certifications: data.certifications,
           category: data.supplementFacts ? 'supplement' : undefined, supplement_facts: data.supplementFacts, nutrition: data.nutrition, ingredients_text: data.text, advisory_text: data.advisoryText, provenanceRecord: record,
-        }, state.prefs);
+        };
+        const better = root.AIR.engine.score(input, state.prefs);
         presentResult(host, data, key, better, {
+          input, share: false,
           title: data.title, confidence: data.confidence, via: data.via,
           provenanceSource: record.source || 'shared database',
           text: data.text, textSig: data.text || '',

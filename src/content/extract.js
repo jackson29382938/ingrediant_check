@@ -277,25 +277,27 @@
   // A group of exactly three digits after the separator is thousands, whichever mark: "1,200mg" of
   // sodium on a US label is 1200, not 1.2, and "1.580 kJ" is 1580. Otherwise a comma is a decimal
   // mark ("12,5 g").
-  const toNumber = v => {
+  const toNumber = (v, unit = '') => {
     const s = String(v == null ? '' : v);
-    if (/^\d{1,3}(?:[.,]\d{3})+$/.test(s)) return Number(s.replace(/[.,]/g, ''));
+    // Tiny nutrient amounts such as 0.125g are decimals, not 125g. Treat grouped triples as
+    // thousands only for energy or mg, where label conventions use them; grams stay decimal.
+    if (!/^0[.,]/.test(s) && /^(?:mg|kcal|kj)$/i.test(unit) && /^\d{1,3}(?:[.,]\d{3})+$/.test(s)) return Number(s.replace(/[.,]/g, ''));
     return parseFloat(s.replace(',', '.'));
   };
   const NUTRIENTS = [
-    ['sodium',       new RegExp('\\b(?:sodium|natrium|sodio|s[oó]dio|s[oó]d|sodyum)\\b[^0-9]{0,20}' + NUM + '\\s*mg', 'i')],
-    ['saturatedFat', new RegExp('\\b(?:saturated fat|ges[äa]ttigte fetts[äa]uren|acides gras satur[eé]s|grasas saturadas|grassi saturi|gorduras saturadas|verzadigde vetzuren|m[äa]ttat fett|m[äa]ttade fettsyror|nasycone kwasy t[łl]uszczowe|kwasy t[łl]uszczowe nasycone|doymu[şs] ya[ğg])[^0-9]{0,20}' + NUM + '\\s*g', 'i')],
-    ['transFat',     new RegExp('\\btrans fat\\b[^0-9]{0,20}' + NUM + '\\s*g', 'i')],
-    ['sugar',        new RegExp('\\b(?:total sugars?|sugars?|zucker|az[uú]cares?|a[çc][uú]cares|sucres?|zuccheri|suikers?|socker(?:arter)?|cukry)\\b[^0-9]{0,20}' + NUM + '\\s*g', 'i')],
+    ['sodium',       new RegExp('\\b(?:sodium|natrium|sodio|s[oó]dio|s[oó]d|sodyum)\\b[^0-9a-zà-ÿ\\u0100-\\u017f\\n]{0,20}' + NUM + '\\s*mg', 'i')],
+    ['saturatedFat', new RegExp('\\b(?:saturated fat|ges[äa]ttigte fetts[äa]uren|acides gras satur[eé]s|grasas saturadas|grassi saturi|gorduras saturadas|verzadigde vetzuren|m[äa]ttat fett|m[äa]ttade fettsyror|nasycone kwasy t[łl]uszczowe|kwasy t[łl]uszczowe nasycone|doymu[şs] ya[ğg])[^0-9a-zà-ÿ\\u0100-\\u017f\\n]{0,20}' + NUM + '\\s*g', 'i')],
+    ['transFat',     new RegExp('\\btrans fat\\b[^0-9a-zà-ÿ\\u0100-\\u017f\\n]{0,20}' + NUM + '\\s*g', 'i')],
+    ['sugar',        new RegExp('(?<!added )\\b(?:total sugars?|sugars?|zucker|az[uú]cares?|a[çc][uú]cares|sucres?|zuccheri|suikers?|socker(?:arter)?|cukry)\\b[^0-9a-zà-ÿ\\u0100-\\u017f\\n]{0,20}' + NUM + '\\s*g', 'i')],
     // Turkish "Şekerler" starts with a letter `\b` cannot see.
-    ['sugar',        new RegExp('(?<![a-zà-ÿ\\u0100-\\u017f])[şs]ekerler?[^0-9]{0,20}' + NUM + '\\s*g', 'i')],
+    ['sugar',        new RegExp('(?<![a-zà-ÿ\\u0100-\\u017f])[şs]ekerler?[^0-9a-zà-ÿ\\u0100-\\u017f\\n]{0,20}' + NUM + '\\s*g', 'i')],
     // "Includes 10g Added Sugars" puts the number first; the label-first form must not run past the
     // end of the line, or it reads the next row's protein grams as added sugar.
-    ['addedSugar',   new RegExp('\\badded sugars?\\b[^0-9\\n]{0,20}' + NUM + '\\s*g|\\bincludes\\s+' + NUM + '\\s*g\\s+added sugars?', 'i')],
-    ['fibre',        new RegExp('\\b(?:dietary fib(?:er|re)|fib(?:er|re)|ballaststoffe|fibra(?:s)?(?: alimentaria| alimentar)?|fibres? alimentaires?|(?:voedings)?vezels?|kostfiber|b[łl]onnik|lif)\\b[^0-9]{0,20}' + NUM + '\\s*g', 'i')],
-    ['carbs', new RegExp('\\b(?:total carbohydrate|carbohydrates?|kohlenhydrate|glucides|hidratos de carbono|carboidrati|koolhydraten|kolhydrater|w[ęe]glowodany|karbonhidrat)\\b[^0-9]{0,20}' + NUM + '\\s*g', 'i')],
-    ['protein',      new RegExp('\\b(?:protein|eiweiss|prot[eé]ines?|prote[ií]nas?|eiwitten|bia[łl]ko)\\b[^0-9]{0,20}' + NUM + '\\s*g|eiwei[sß][^0-9a-z]{0,20}' + NUM + '\\s*g', 'i')],
-    ['calories',     new RegExp('\\b(?:calories|energie|energ[ií]a|énergie)\\b[^0-9]{0,20}' + NUM, 'i')],
+    ['addedSugar',   new RegExp('\\badded sugars?\\b[^0-9a-zà-ÿ\\u0100-\\u017f\\n]{0,20}' + NUM + '\\s*g|\\bincludes\\s+' + NUM + '\\s*g\\s+added sugars?', 'i')],
+    ['fibre',        new RegExp('\\b(?:dietary fib(?:er|re)|fib(?:er|re)|ballaststoffe|fibra(?:s)?(?: alimentaria| alimentar)?|fibres? alimentaires?|(?:voedings)?vezels?|kostfiber|b[łl]onnik|lif)\\b[^0-9a-zà-ÿ\\u0100-\\u017f\\n]{0,20}' + NUM + '\\s*g', 'i')],
+    ['carbs', new RegExp('\\b(?:total carbohydrate|carbohydrates?|kohlenhydrate|glucides|hidratos de carbono|carboidrati|koolhydraten|kolhydrater|w[ęe]glowodany|karbonhidrat)\\b[^0-9a-zà-ÿ\\u0100-\\u017f\\n]{0,20}' + NUM + '\\s*g', 'i')],
+    ['protein',      new RegExp('\\b(?:protein|eiweiss|prot[eé]ines?|prote[ií]nas?|eiwitten|bia[łl]ko)\\b[^0-9a-zà-ÿ\\u0100-\\u017f\\n]{0,20}' + NUM + '\\s*g|eiwei[sß][^0-9a-z]{0,20}' + NUM + '\\s*g', 'i')],
+    ['calories',     new RegExp('\\b(?:calories|energie|energ[ií]a|énergie)\\b[^0-9a-zà-ÿ\\u0100-\\u017f\\n]{0,20}' + NUM, 'i')],
   ];
 
   // Amazon's grocery card renders its nutrition summary as a table with the VALUES row above the
@@ -321,7 +323,7 @@
     // Read each table on its own basis. A per-serving summary cannot fill missing fields in a
     // per-100g Facts table: mixing those amounts invents a nutritional composition.
     const readValue = (key, match) => {
-      const value = match && toNumber(match[1]);
+      const value = match && toNumber(match[1], match[2] || (key === 'calories' ? 'kcal' : ''));
       if (!Number.isFinite(value)) return null;
       const unit = (match[2] || '').toLowerCase();
       if (key === 'calories') return !unit || unit === 'kcal' ? value : null;
@@ -423,7 +425,7 @@
       for (const [key, re] of NUTRIENTS) {
         const m = text.match(re);
         if (!m) continue;
-        const v = toNumber(m.slice(1).find(g => g != null && g !== ''));
+        const v = toNumber(m.slice(1).find(g => g != null && g !== ''), key === 'sodium' ? 'mg' : key === 'calories' ? 'kcal' : 'g');
         if (Number.isFinite(v)) out[key] = v;
       }
       // EU panels give energy as "1580 kJ / 377 kcal": the kilocalories are the calories, not the
