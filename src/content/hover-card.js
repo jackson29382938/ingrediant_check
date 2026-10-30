@@ -17,10 +17,12 @@
   let host = null, openFor = null, showTimer = null, hideTimer = null, token = 0;
 
   const on = () => { const s = P().state; return s.enabled && s.badges && s.hoverBreakdown; };
-  // Only a numbered badge has a breakdown; "…", "?" and the cart's status words keep their plain tooltip.
+  // Only a numbered badge has a breakdown; "…", "?" and the cart's status words keep their plain tooltip. A
+  // personal-care badge is the number, its category and "saved" in any order of the three ("80 · Deodorant",
+  // "80 · Deodorant · saved"); the bare-number pattern left every one of them without a card.
   const scoreBadge = el => {
     const b = el && el.closest && el.closest('.air-badge, .air-cart-badge');
-    return b && /^\d+(?: · saved)?$/.test((b.textContent || '').trim()) ? b : null;
+    return b && /^\d+(?: · .+)?$/.test((b.textContent || '').trim()) ? b : null;
   };
   // Events from inside the closed shadow root are retargeted to the host.
   const inCard = el => !!(host && el && (el === host || host.contains(el)));

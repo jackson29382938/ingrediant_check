@@ -117,10 +117,10 @@
     const mean = rows => Math.round(rows.reduce((sum, i) => sum + i.score, 0) / rows.length);
     const groups = categories.map(category => ({ category, average: mean(rated.filter(i => (i.category || 'food') === category)) }));
     const average = rated.length && categories.length <= 1 ? mean(rated) : null;
-    // A band name ("Good") describes a food score. An index of one personal-care category is averaged and
-    // named for its category instead.
+    // One kind of product is averaged and worded in the same bands as a single score; an index of one
+    // personal-care category is also named for its category.
     const care = categories.length === 1 && categories[0] !== 'food' ? categories[0] : '';
-    const band = average == null || care ? null : (A.engine?.BANDS || []).find(b => average >= b[0]);
+    const band = average == null ? null : (A.engine?.BANDS || []).find(b => average >= b[0]);
     const out = { total: items.length, rated: rated.length, average, verdict: band ? band[1] : '', pending: items.filter(i => i.status === 'checking').length };
     return categories.length > 1 ? { ...out, groups } : care ? { ...out, category: care } : out;
   }

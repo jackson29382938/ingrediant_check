@@ -258,8 +258,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
 
   // `result` is the engine output; `meta` carries title/confidence/source.
   function render(result, meta) {
-    // An index is not a quality band: it is drawn in the theme's neutral gray, whatever its number.
-    const c = result.category ? root.AIR.db.theme.neutral() : BAND_COLOR(result.score);
+    // A personal-care or supplement index is drawn in its score's band, as a food score is; the caption names its
+    // category and style where a food names its NOVA class, and the note below says what the number can claim.
+    const c = BAND_COLOR(result.score);
     const caption = indexCaption(result) || NOVA_TEXT[result.nova];
     const { caps, minus, plus, neutral } = sections(result);
     const copyLine = [result.score, verdictText(result.verdict), caption, meta.title || '']
@@ -340,7 +341,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
   function renderBreakdown(result, meta) {
     const shown = result || { score: meta.score, verdict: meta.verdict, nova: meta.nova, good: [], bad: [],
       ...(meta.category && meta.category !== 'food' ? { category: meta.category, ratingStyle: meta.ratingStyle } : {}) };
-    const c = shown.category ? root.AIR.db.theme.neutral() : BAND_COLOR(shown.score);
+    const c = BAND_COLOR(shown.score);
     const more = `<a class="more" href="/dp/${esc(meta.asin)}">${esc(t('breakdownMore', 'Open product for full detail'))} →</a>`;
     const head = `<div class="top">
         <span class="score">${shown.score}</span>

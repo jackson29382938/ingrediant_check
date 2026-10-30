@@ -269,6 +269,58 @@
     return null;
   }
 
+  // ---- Tier 4: a personal-care label printed as Drug Facts -----------------------------------
+  // Deodorants, antiperspirants, fluoride toothpaste and dandruff shampoo are over-the-counter drugs, and a
+  // page for one often prints "Active ingredient" and "Inactive ingredients" with no heading called just
+  // "Ingredients". Tiers 1-3 look for that heading, so such a product read as having no list at all and
+  // showed a "?" on its search tile. The active ingredient also sits apart from the inactive list on some
+  // pages, so a list that lacked it was scored as an antiperspirant with no active ingredient.
+  const CARE_SCOPES = ['#important-information', '#importantInformation_feature_div', '#productDescription', '#aplus',
+    '#feature-bullets', '#productDetails_feature_div', '#detailBullets_feature_div'];
+  const ACTIVE_OR_INACTIVE = /\bactive\s+ingredients?\b|\binactive\s+ingredients?\b/i;
+  const INACTIVE_HEADING = /\binactive\s+ingredients?\b|\bother\s+ingredients?\b/i;
+  const AFTER_LABEL = /\n[ \t]*(?:questions|comments|distributed by|manufactured|package label|principal display|other information|how supplied|storage)\b/i;
+  function drugFacts(doc) {
+    const prepare = root.AIR.db && root.AIR.db.ingestible && root.AIR.db.ingestible.prepareLabel;
+    if (!prepare) return null;
+    for (const sel of CARE_SCOPES) {
+      const el = doc.querySelector(sel);
+      if (!el) continue;
+      const text = String(el.innerText || '').replace(/\u00a0/g, ' ');
+      const start = text.search(ACTIVE_OR_INACTIVE);
+      if (start < 0) continue;
+      let block = text.slice(start, start + 6000);
+      const inactive = block.search(INACTIVE_HEADING);
+      const tail = inactive >= 0 ? block.slice(inactive) : '';
+      const stop = tail.search(AFTER_LABEL);
+      if (inactive >= 0 && stop > 0) block = block.slice(0, inactive + stop);
+      block = norm(block);
+      const prepared = prepare(block);
+      if (/[a-z]{3}/i.test(prepared.text) && looksLikeIngredients(prepared.text)) return { text: block, prepared };
+    }
+    return null;
+  }
+  function tier4(doc) {
+    const found = drugFacts(doc);
+    return found ? { text: found.text, advisoryText: '', via: 'drug-facts', confidence: 0.75 } : null;
+  }
+  // A list that names no active ingredient, for a product whose page prints one elsewhere: put it in front.
+  function withActive(hit, doc) {
+    if (/\bactive\b/i.test(hit.text)) return hit;
+    const found = drugFacts(doc);
+    const have = String(hit.text).toLowerCase();
+    const fresh = found ? found.prepared.actives.filter(name => !have.includes(name.toLowerCase())) : [];
+    return fresh.length ? { ...hit, text: `Active ingredient: ${fresh.join(', ')}. Inactive ingredients: ${hit.text}` } : hit;
+  }
+  // Only a product the engine rates as personal care (never a supplement, whose "other ingredients" belong to its
+  // Supplement Facts panel, and never a food).
+  function ratedAsCare(title, opts) {
+    const gate = root.AIR.db && root.AIR.db.ingestible;
+    if (!gate || typeof gate.classifyProduct !== 'function' || opts.personalCareEnabled === false) return false;
+    const kind = gate.classifyProduct(title);
+    return kind.status === 'recognized' && kind.category !== 'supplement';
+  }
+
   // ---- Nutrition facts --------------------------------------------------------------------
   // Only used by categories the user has switched on (sodium, saturated fat, total sugar, fibre,
   // protein) — all of which default to off. Returns null rather than zeros when the page publishes
@@ -606,10 +658,12 @@
       : { ok: true, reason: 'gate unavailable' };
     identity.ingestible = gate;
     if (!gate.ok && opts.foodOnly !== false && !root.AIR.db.ingestible?.allowsProduct?.(identity.title, opts)) return { ok: false, ...identity, reason: 'not-ingestible' };
-    for (const tier of [tier1, tier2, tier3]) {
+    const care = ratedAsCare(identity.title, opts);
+    for (const tier of care ? [tier1, tier2, tier3, tier4] : [tier1, tier2, tier3]) {
       let hit = null;
       // The title is passed in so a tier can tell a real list from the product name echoed back.
       try { hit = tier(doc, identity.title); } catch (e) { /* a broken tier must never break the page */ }
+      if (hit && care && tier !== tier4) { try { hit = withActive(hit, doc); } catch (e) { /* keep the list as read */ } }
       if (hit) return { ok: true, ...identity, ...hit,
         advisoryText: [...new Set([identity.advisoryText, hit.advisoryText].filter(Boolean))].join(' ') };
     }

@@ -74,8 +74,10 @@
   // Below this share of the ingredient list matching anything the rulebase knows, the score is not
   // evidence about the product — it is evidence that the rules are in the wrong language.
   // The gate itself lives in the engine (AIR.engine.MIN_COVERAGE), so every pipeline shares one number.
+  // A personal-care or supplement index that declined before it read the list has parsed 0 and no score, which is
+  // not "an empty list" (that a food reads as clean): it is unreadable, and no panel or badge may show its null.
   const unreadable = result =>
-    typeof result.coverage === 'number' && result.parsed > 0 && !root.AIR.engine.isReadable(result);
+    typeof result.coverage === 'number' && (result.parsed > 0 || !!result.category) && !root.AIR.engine.isReadable(result);
 
   // `extra` is { outcome, feedback } for rows that are not a plain score: a scan that produced none,
   // or a reader's "Looks wrong?" click. `result` may be null then.

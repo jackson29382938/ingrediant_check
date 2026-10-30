@@ -425,7 +425,7 @@
     const score = node('div', 'score');
     if (!saved?.priceOnly && typeof product.score === 'number') {
       const care = !!product.category && product.category !== 'food';
-      const c = care ? AIR.db.theme.neutral() : BAND_COLOR(product.score);
+      const c = BAND_COLOR(product.score);
       const chip = node('span', 'score-chip', String(product.score));
       chip.style.color = c.fg;
       chip.style.background = c.bg;

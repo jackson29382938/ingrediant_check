@@ -176,14 +176,27 @@ function runner(file, url, stored = {}, productOverride = null) {
     pass: () => sandbox.module.exports.pass(), sandbox };
 }
 
-test('runner: personal-care labels use the ingredient review, not food scoring or score cache', () => {
+test('runner: a personal-care label the chosen style cannot rate uses the ingredient review, not food scoring or score cache', () => {
   const data = { id: '75570641', title: 'Gentle shampoo', ingredients: 'Water, Fragrance',
     label: 'open', labelText: 'Ingredients: Water, Fragrance', crumbs: ['Beauty & Personal Care'] };
-  const w = runner('target-p-shampoo.html', 'https://www.target.com/p/x/-/A-75570641', { foodOnly: false }, data);
+  // The preference-focused style needs an avoid list; with none it declines, and shows the review of the label.
+  const w = runner('target-p-shampoo.html', 'https://www.target.com/p/x/-/A-75570641', { foodOnly: false, ratingStyle: 'preferences' }, data);
   assert.equal(w.host.dataset.airState, 'personal-care');
   assert.match(w.host.html, /personal-care:shampoo:Water, Fragrance/);
   assert.equal(w.writes.length, 0);
   assert.equal(w.messages.some(m => typeof m.score === 'number'), false);
+});
+
+test('runner: a shampoo that lists no cleansing agent is rated and cached, not declined', () => {
+  // This label was unavailable under the evidence style, so a product the page showed was skipped.
+  const data = { id: '75570641', title: 'Gentle shampoo', ingredients: 'Water, Fragrance',
+    label: 'open', labelText: 'Ingredients: Water, Fragrance', crumbs: ['Beauty & Personal Care'] };
+  const w = runner('target-p-shampoo.html', 'https://www.target.com/p/x/-/A-75570641', { foodOnly: false }, data);
+  assert.equal(w.host.dataset.airState, 'scored');
+  assert.match(w.host.html, /^render:63:page/, '100 less 25 for no cleansing agent and 12 for fragrance');
+  const entry = w.writes.find(x => x['s:target.com:75570641'])['s:target.com:75570641'];
+  assert.equal(entry.category, 'shampoo');
+  assert.equal(entry.verdict, 'Mediocre');
 });
 
 test('runner: a Target product page is scored locally, cached for this computer, and never fetched', () => {

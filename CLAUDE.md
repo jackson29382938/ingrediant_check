@@ -57,8 +57,10 @@ Rules that are easy to break:
   falls back to the old behaviour, a wrong one rates dog shampoo), `tests/personal-care-label.test.js`
   (Drug Facts and INCI, which the food parser reads wrongly, so `prepareLabel` rewrites them for these
   categories only). A new upper limit or caution goes in `docs/PERSONAL-CARE.md` too; a test fails if the
-  limit table drifts. An index is never drawn in a quality-band colour (`theme.neutral()`), and a saved
-  score carries its `category` so `score-cache.fingerprint` retires it by its own settings only.
+  limit table drifts. An index is shown as a food score is: the same bands, words and colours (`theme.band`, the
+  engine's `BANDS` passed into `rate()`), captioned with its category and style. A label that shows none of its
+  category's function is charged, never declined: a decline reads as "?" on a search tile and skips the product.
+  A saved score carries its `category` so `score-cache.fingerprint` retires it by its own settings only.
   The harness's `extensionSmoke` half installs the extension; `HARNESS_CONTENT_ONLY=1` skips it, which hid
   stale "shampoo is not food" fixtures once. Run the whole harness when you can.
 

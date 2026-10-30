@@ -2,9 +2,9 @@
 // effect sizes. Food rules never enter this module; missing functional/dose evidence declines.
 //
 // Three rating styles share one reading of the label:
-//   evidence     what the label can establish: a function the category needs, documented cautions,
-//                and for supplements a complete Supplement Facts panel with no serving above an
-//                adult upper limit
+//   evidence     what the label can establish: starts at 100 and is charged, as a food is, for what the
+//                label shows (no function the category needs, fragrance, documented cautions); for
+//                supplements a complete Supplement Facts panel with no serving above an adult upper limit
 //   minimal      fewer declared ingredients is better, whatever they are
 //   preferences  the reader's own avoid list, and nothing else
 // A style never reads another's inputs, and none of them reads the food rules or the food weights.
@@ -76,20 +76,71 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
     conditioner: 'a conditioning agent',
     moisturizer: 'a humectant, emollient or occlusive ingredient',
   };
+  // What a label that shows no such ingredient costs. Fluoride is the one function with a documented health
+  // effect (cavity prevention), so a toothpaste without it is charged most; a cleanser with no cleansing agent
+  // is almost always a label read wrongly, so it is charged heavily too; a mouthwash, deodorant, conditioner or
+  // moisturizer can be a legitimate cosmetic product, so the label is charged for not establishing its function.
+  // This used to decline the product ("unavailable"), which skipped every natural deodorant.
+  const FUNCTION_COST = { toothpaste: 30, mouthwash: 20, deodorant: 20, shampoo: 25, 'body-wash': 25, conditioner: 20, moisturizer: 20 };
+  // The title promises an active ingredient the Drug Facts panel carries. A page that prints only the inactive
+  // list leaves it out, and charging that as "no function" would punish the page's layout, not the product.
+  const PROMISED_ACTIVE = {
+    toothpaste: /\b(?:fluoride|anti-?cavity|cavity protection)\b/i,
+    mouthwash: /\b(?:fluoride|anti-?cavity|anti-?septic|cetylpyridinium|cpc)\b/i,
+    deodorant: /\banti-?perspirants?\b/i,
+  };
+  // A product that stays on the skin (the fragrance allergy literature names deodorants first) is charged
+  // more for fragrance and for the leave-on irritants than a rinse-off one.
+  const LEAVE_ON = ['deodorant', 'moisturizer'];
+  const ORAL = ['toothpaste', 'mouthwash'];
 
   // ------------------------------------------------------------ cautions the label can establish
   // Only ingredients a regulator or a standard patch-test series has singled out, each charged
   // once however many of its relatives are listed. A claim in the listing's marketing copy
   // ("dermatologist tested", a seal in the title) is not label content and moves nothing here, for
   // the reason the food engine scores seller bullets at half weight.
+  //
+  // `c` is the charge. 15 is an ingredient a regulator has prohibited in cosmetics or classed as a human
+  // carcinogen; 5 is one a state or national toxicology listing names; 3 or 4 is a documented contact allergen
+  // charged only on a product that stays on the skin. `leaveOn` restricts a charge to such a product.
   const CAUTIONS = [
-    { id: 'isothiazolinone', test: /methyl(?:chloro)?isothiazolinone/i,
-      why: 'Methylisothiazolinone preservative: a recognized contact allergen, prohibited in EU leave-on cosmetics' },
-    { id: 'formaldehyde', test: /\b(?:formaldehyde|dmdm hydantoin|quaternium-15|imidazolidinyl urea|diazolidinyl urea|bronopol|2-bromo-2-nitropropane-1,3-diol|sodium hydroxymethylglycinate)\b/i,
+    { id: 'isothiazolinone', c: -15, test: /methyl(?:chloro)?isothiazolinone/i,
+      why: 'Methylisothiazolinone preservative: a recognized contact allergen (Allergen of the Year 2013, American Contact Dermatitis Society), prohibited in EU leave-on cosmetics' },
+    { id: 'formaldehyde', c: -15, test: /\b(?:formaldehyde|dmdm hydantoin|quaternium-15|imidazolidinyl urea|diazolidinyl urea|bronopol|2-bromo-2-nitropropane-1,3-diol|sodium hydroxymethylglycinate)\b/i,
       why: 'Formaldehyde-releasing preservative: formaldehyde is a recognized contact allergen and a classified human carcinogen' },
-    { id: 'triclosan', categories: ['body-wash'], test: /\b(?:triclosan|triclocarban)\b/i,
+    { id: 'triclosan', c: -15, categories: ['body-wash'], test: /\b(?:triclosan|triclocarban)\b/i,
       why: 'Triclosan or triclocarban: in 2016 the FDA ruled that consumer antiseptic washes could not keep these without proof of added benefit' },
+    { id: 'paraben', c: -15, test: /\b(?:isopropyl|isobutyl|phenyl|benzyl|pentyl)\s?paraben\b/i,
+      why: 'A paraben the EU has prohibited in cosmetics (isopropyl-, isobutyl-, phenyl-, benzyl- and pentylparaben, since 2014); methylparaben and ethylparaben are not charged' },
+    { id: 'phthalate', c: -15, test: /\b(?:dibutyl phthalate|diethylhexyl phthalate|bis\(2-ethylhexyl\) phthalate|dehp|dbp)\b/i,
+      why: 'Dibutyl or diethylhexyl phthalate: prohibited in EU cosmetics as a reproductive toxicant' },
+    { id: 'banned-fragrance', c: -15, test: /\bbutylphenyl methylpropional\b|\bhydroxyisohexyl 3-cyclohexene carboxaldehyde\b|\blyral\b|\bhicc\b/i,
+      why: 'A fragrance chemical the EU has prohibited in cosmetics (butylphenyl methylpropional, "lilial", since 2022; HICC, "lyral", since 2021)' },
+    { id: 'diethanolamide', c: -5, test: /\b(?:cocamide|lauramide|oleamide|linoleamide) dea\b|\bcocamide diethanolamine\b|\bdiethanolamine\b/i,
+      why: 'Cocamide DEA or a related diethanolamide: listed under California Proposition 65 (cocamide diethanolamine, 2012) after animal studies found it carcinogenic' },
+    { id: 'bha', c: -5, test: /^(?:bha|butylated hydroxyanisole)$/i,
+      why: 'BHA (butylated hydroxyanisole): listed under California Proposition 65 and by the US National Toxicology Program as reasonably anticipated to be a human carcinogen' },
+    { id: 'charcoal', c: -5, categories: ['toothpaste'], test: /\b(?:activated |bamboo )?charcoal\b/i,
+      why: 'Charcoal: a 2019 review in the Journal of the American Dental Association found too little evidence of safety or effectiveness for charcoal dental products' },
+    { id: 'propylene-glycol', c: -4, leaveOn: true, test: /^propylene glycol$/i,
+      why: 'Propylene glycol: a recognized irritant and contact allergen in leave-on products (Allergen of the Year 2018, American Contact Dermatitis Society)' },
+    { id: 'lanolin', c: -3, leaveOn: true, test: /^(?:hydrogenated |acetylated |hydroxylated )?lanolin(?: alcohol| oil| wax)?$|\bwool (?:wax )?alcohols?\b/i,
+      why: 'Lanolin or wool alcohols: a long-standing patch-test allergen' },
   ];
+
+  // The scent, in three rows that can all apply: the word "fragrance" (what is in it is not disclosed), the
+  // fragrance allergens the EU requires a label to name once they pass a threshold (each is a recognized
+  // contact allergen), and a scent essential oil (which carries the same limonene, linalool and geraniol).
+  const FRAGRANCE = /\b(?:fragrance|parfum|perfume)\b/i;
+  const FRAGRANCE_ALLERGEN = /\b(?:limonene|linalool|citronellol|geraniol|citral|coumarin|eugenol|isoeugenol|farnesol|cinnamal|cinnamyl alcohol|hydroxycitronellal|hexyl cinnamal|amyl cinnamal|amylcinnamyl alcohol|alpha-isomethyl ionone|benzyl salicylate|benzyl benzoate|benzyl cinnamate|anise alcohol|methyl 2-octynoate|evernia prunastri|evernia furfuracea)\b/i;
+  // Only a plant that is grown for its scent, and only as an oil: coconut, shea, sunflower, olive, jojoba and
+  // rose hip oils are carriers, not scents, and a rosemary or green-tea extract is an antioxidant.
+  const SCENT_OIL = /\b(?:lavandula|lavender|melaleuca alternifolia|tea tree|mentha (?:piperita|spicata|arvensis|viridis)|peppermint|spearmint|eucalyptus|citrus (?:aurantium|limon|sinensis|paradisi|bergamia|reticulata|grandis|nobilis|medica|aurantifolia)|bergamot|lemon|orange|grapefruit|lime|pelargonium|geranium|cananga|ylang|rosmarinus|rosemary|cymbopogon|lemongrass|citronella|santalum|sandalwood|cedrus|cedarwood|juniperus|cinnamomum|cinnamon|syzygium aromaticum|clove|pogostemon|patchouli|jasminum|jasmine|rosa damascena|vetiveria|vetiver|salvia sclarea|clary sage|thymus|thyme|origanum|oregano)\b[^,]*\boil\b|\bessential oils?\b/i;
+  const FRAGRANCE_COST = { leaveOn: 15, rinseOff: 12 };
+  const ALLERGEN_COST = 2, ALLERGEN_MAX = 8, SCENT_OIL_COST = 4;
+  // Only the active ingredient was read: the inactive list is most of the formula, and fragrance and cautions
+  // live in it. A label that cannot be checked is not a clean one.
+  const PARTIAL_COST = 25, MISSING_ACTIVE_COST = 15;
 
   // ------------------------------------------------------------ reading the entries
   // Words that mark an entry as an ingredient name rather than a sentence. The shape of an INCI
@@ -196,7 +247,10 @@ const hasActiveAmount = facts => /\b\d[\d,.]*\s*(?:mcg|mg|g|iu|µg|μg)\b/i.test
   };
   const sourceFor = category => SOURCES[category === 'supplement' ? 'supplement' : /toothpaste|mouthwash/.test(category) ? 'oral' : 'cosmetic'];
 
-  function rate(product, options, parseEntries) {
+  // `limits` is the engine's own scale ({ BANDS, SCORE_FLOOR }): an index is worded in the same five bands as a
+  // food score, and stops at the same floor, from one definition rather than a second copy of either.
+  const verdictOf = (score, limits) => (limits?.BANDS?.find(band => score >= band[0]) || [0, 'Label index'])[1];
+  function rate(product, options, parseEntries, limits) {
     const ingestible = AIR.db.ingestible;
     const facts = typeof product.supplement_facts === 'string' ? product.supplement_facts : '';
     const kind = CATEGORIES.includes(product.category) ? { category: product.category, status: 'recognized' }
@@ -212,6 +266,7 @@ const hasActiveAmount = facts => /\b\d[\d,.]*\s*(?:mcg|mg|g|iu|µg|μg)\b/i.test
         ...(category !== 'supplement' ? [{ label: 'EU CosIng: ingredient functions', url: 'https://ec.europa.eu/growth/tools-databases/cosing/' }] : [])],
     };
     const decline = reason => ({ ...out, reason });
+    const floor = Number.isFinite(limits?.SCORE_FLOOR) ? limits.SCORE_FLOOR : 0;
     if (kind.status !== 'recognized') return decline('This product category or combination is not yet supported.');
     if (options.personalCareEnabled === false) return decline('Personal-care and supplement ratings are switched off.');
 
@@ -229,7 +284,6 @@ const hasActiveAmount = facts => /\b\d[\d,.]*\s*(?:mcg|mg|g|iu|µg|μg)\b/i.test
     const isSupplement = category === 'supplement';
     if (isSupplement && (!/\bsupplement facts\b/i.test(facts) || !SERVING.test(facts) || !hasActiveAmount(facts) || /proprietary blend/i.test(facts)))
       return decline('Supplement Facts with serving size and declared amounts are required; proprietary blend amounts cannot establish individual doses.');
-    const list = entries.join(', ');
 
     let base = 0;
     if (ratingStyle === 'minimal') {
@@ -264,23 +318,50 @@ const hasActiveAmount = facts => /\b\d[\d,.]*\s*(?:mcg|mg|g|iu|µg|μg)\b/i.test
         : 'Compared with adult upper limits for the nutrients the panel quantifies; this is one printed serving, not your daily total' });
       if (caffeine >= 200) out.good.push({ c: 0, why: `Caffeine: ${formatAmount(caffeine)} mg in one serving; the FDA cites 400 mg a day as an amount not generally associated with dangerous effects for healthy adults` });
     } else {
-      const functional = (FUNCTIONS[category] || []).filter(pattern => entries.some(e => matches(pattern, e)));
-      if (!functional.length) return decline(`The available label does not list ${NEEDS[category]}, which this rubric needs to rate ${categoryName(category).toLowerCase()}. If the page shows only part of the label, open the full ingredient list.`);
-      base = 50;
-      out.good.push({ c: 30, why: 'A category-specific functional ingredient is disclosed; concentration and finished-product performance are not established' });
-      if (/\b(?:fragrance|parfum|perfume)\b/i.test(list)) out.bad.push({ c: -10, why: 'Fragrance is disclosed; a sensitivity consideration for some users' });
-      for (const caution of CAUTIONS) {
-        if (caution.categories && !caution.categories.includes(category)) continue;
-        const hit = entries.find(e => caution.test.test(e));
-        if (hit) out.bad.push({ c: -10, why: caution.why, ing: hit });
+      // Starts where a food does: at 100, charged for what the label shows. Nothing is charged that no rule
+      // matches, so what could not be read is charged as unread (below), not passed as clean.
+      base = 100;
+      const leaveOn = LEAVE_ON.includes(category);
+      const functionHit = (FUNCTIONS[category] || []).map(pattern => entries.find(e => matches(pattern, e))).find(Boolean);
+      // "Fluoride-Free" and "aluminum free" promise the opposite of an active ingredient.
+      const promised = PROMISED_ACTIVE[category]?.test(String(product.name || '').replace(/\b(?:no|non|without)[- ]fluoride\b|\bfluoride[- ]free\b/gi, ' '));
+      if (functionHit) {
+        out.good.push({ c: 0, ing: functionHit, why: 'A category-specific functional ingredient is disclosed; concentration and finished-product performance are not established' });
+      } else if (promised) {
+        out.bad.push({ c: -MISSING_ACTIVE_COST, why: `The title names an active ingredient, but the available list shows only the inactive ones (the active ingredient is printed in the Drug Facts panel); fragrance and cautions are checked on what is listed` });
+      } else {
+        out.bad.push({ c: -FUNCTION_COST[category], why: `The available label does not list ${NEEDS[category]}, so it does not show how this ${categoryName(category).toLowerCase()} does its job. If the page shows only part of the label, open the full ingredient list` });
       }
-      if (label.partial) out.good.push({ c: 0, why: 'Only the active ingredient is listed on this page, so cautions among the inactive ingredients could not be checked' });
+      if (label.partial) {
+        out.bad.push({ c: -PARTIAL_COST, why: 'Only the active ingredient is listed on this page; the inactive ingredients are most of the formula, so fragrance and cautions could not be checked' });
+      } else {
+        const fragranceHit = entries.find(e => FRAGRANCE.test(e));
+        if (fragranceHit) out.bad.push({ c: -(leaveOn ? FRAGRANCE_COST.leaveOn : FRAGRANCE_COST.rinseOff), ing: fragranceHit,
+          why: leaveOn ? 'Fragrance is disclosed: a leading cause of cosmetic contact allergy, and leave-on products such as deodorants are the ones most often implicated'
+            : 'Fragrance is disclosed; a sensitivity consideration for some users' });
+        const allergens = [...new Set(entries.filter(e => FRAGRANCE_ALLERGEN.test(e)))];
+        if (allergens.length) out.bad.push({ c: -Math.min(ALLERGEN_MAX, allergens.length * ALLERGEN_COST), ing: allergens.join(', '),
+          why: `${allergens.length} fragrance allergen${allergens.length === 1 ? '' : 's'} named on the label (the EU requires these to be named; each is a recognized contact allergen)` });
+        // Peppermint, spearmint and clove oil are what a toothpaste or rinse is flavored with, not scented with.
+        const scentOil = ORAL.includes(category) ? null : entries.find(e => SCENT_OIL.test(e));
+        if (scentOil) out.bad.push({ c: -SCENT_OIL_COST, ing: scentOil,
+          why: 'A scent essential oil is listed; essential oils contain the same fragrance allergens (limonene, linalool, geraniol) as a synthetic fragrance' });
+        for (const caution of CAUTIONS) {
+          if (caution.categories && !caution.categories.includes(category)) continue;
+          if (caution.leaveOn && !leaveOn) continue;
+          const hit = entries.find(e => caution.test.test(e));
+          if (hit) out.bad.push({ c: caution.c, why: caution.why, ing: hit });
+        }
+      }
+      if (!out.bad.length && !label.partial) out.good.push({ c: 0, why: 'No fragrance and none of the documented cautions are on the available list' });
     }
     out.base = base;
-    out.score = base + out.good.reduce((s, r) => s + r.c, 0) + out.bad.reduce((s, r) => s + r.c, 0);
-    // No combination of rows leaves 0..100 (tests/personal-care-label.test.js sweeps them), so there is no
-    // clamp to show; if a rule is ever added that could, it must push its own row.
-    out.verdict = 'Label index'; out.readable = true;
+    const total = () => base + out.good.reduce((s, r) => s + r.c, 0) + out.bad.reduce((s, r) => s + r.c, 0);
+    // Charges can add past 100 (a label with several documented cautions). The floor is a clamp, so it shows
+    // as a row of its own and the panel keeps adding up; it is never applied silently.
+    if (total() < floor) out.good.push({ c: floor - total(), why: `Score floor — the scale stops at ${floor}` });
+    out.score = total();
+    out.verdict = verdictOf(out.score, limits); out.readable = true;
     return out;
   }
   const api = AIRmodule('productRatings', {

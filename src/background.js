@@ -229,8 +229,9 @@ function paintActionBadge(tabId, score, status, index = false) {
     badgeAction('setBadgeText', { tabId, text: '' });
     return;
   }
-  // A personal-care or supplement index is not a quality band: gray, as the not-food badge is.
-  const colors = index ? { bg: '#565959', fg: '#ffffff' } : self.AIR.db.theme.toolbar(score, badgePalette);
+  // A personal-care or supplement index is drawn in its score's band, as a food score is (`index` still travels with
+  // the score so the popup can caption it; it no longer picks a color).
+  const colors = self.AIR.db.theme.toolbar(score, badgePalette);
   badgeAction('setBadgeText', { tabId, text: String(Math.round(score)) });
   badgeAction('setBadgeBackgroundColor', { tabId, color: colors.bg });
   badgeText(tabId, colors.fg);

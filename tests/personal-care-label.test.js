@@ -45,16 +45,21 @@ test('a Drug Facts table flattened to text keeps its active ingredient', () => {
   assert.ok(entries.includes('sodium fluoride'), JSON.stringify(entries));
   assert.ok(entries.includes('water') && entries.includes('sodium lauryl sulfate'), JSON.stringify(entries));
   assert.ok(!entries.some(e => /warnings|directions|keep out/.test(e)), 'the use, warning and direction text is not ingredients');
-  assert.equal(rate('Fluoride toothpaste', table).score, 80);
+  assert.equal(rate('Fluoride toothpaste', table).score, 100, 'fluoride, nothing the rubric charges');
   const antiperspirant = 'Drug Facts Active ingredient Purpose Aluminum zirconium tetrachlorohydrex GLY (20%) Antiperspirant Uses reduces underarm perspiration Inactive ingredients cyclopentasiloxane, stearyl alcohol, talc';
-  assert.equal(rate('Antiperspirant deodorant', antiperspirant).score, 80);
+  assert.equal(rate('Antiperspirant deodorant', antiperspirant).score, 100);
 });
 
 test('a label that names only its active ingredient is flagged partial', () => {
   assert.equal(ingestible.prepareLabel('Active ingredient: Sodium fluoride 0.24% Purpose: Anticavity').partial, true);
   const evidence = rate('Fluoride toothpaste', 'Active ingredient: Sodium fluoride 0.24% (0.14% w/v fluoride ion) Purpose: Anticavity');
   assert.equal(evidence.readable, true, 'the active ingredient is enough for the evidence index');
-  assert.ok(evidence.good.some(row => /inactive ingredient/.test(row.why)), 'and says what it could not check');
+  // Silence is not cleanliness: the inactive list is most of the formula, so a label that shows none of it is
+  // charged for what could not be checked instead of scoring as if fragrance and cautions had been ruled out.
+  const unread = evidence.bad.find(row => /inactive ingredient/.test(row.why));
+  assert.ok(unread && unread.c === -25, 'and says what it could not check, with a charge');
+  assert.equal(evidence.score, 75);
+  assert.ok(evidence.score < rate('Fluoride toothpaste', 'Active ingredient: Sodium fluoride 0.24% Purpose: Anticavity. Inactive ingredients: water, glycerin').score);
   // A one-ingredient list would read as "100: nothing else in it", which the label does not say.
   for (const ratingStyle of ['minimal', 'preferences']) {
     const result = rate('Fluoride toothpaste', 'Active ingredient: Sodium fluoride 0.24% Purpose: Anticavity', { ratingStyle, avoidList: ['sulfate'] });
@@ -73,19 +78,19 @@ test('INCI joins and translations do not hide or merge ingredients', () => {
 // Real label formats, each with the answer a reader would expect. The coverage figure is the share of
 // entries recognized as ingredient names; tests/languages.test.js pins the gate that reads it.
 const LABELS = [
-  ['Colgate Cavity Protection Fluoride Toothpaste', 'Active ingredient: Sodium fluoride 0.24% (0.14% w/v fluoride ion) Purpose: Anticavity. Inactive ingredients: dicalcium phosphate dihydrate, water, glycerin, sodium lauryl sulfate, flavor, tetrasodium pyrophosphate, cellulose gum, sodium saccharin, titanium dioxide', 80],
-  ['Crest Pro-Health Toothpaste', 'Active Ingredient: Stannous Fluoride 0.454% (0.15% w/v Fluoride Ion). Inactive Ingredients: Glycerin, Hydrated Silica, Propylene Glycol, PEG-6, Water, Zinc Lactate, Trisodium Phosphate, Flavor, Sodium Lauryl Sulfate, Sodium Gluconate, Xanthan Gum, Sucralose, Carrageenan, Zinc Oxide, Blue 1', 80],
-  ['Listerine Cool Mint Antiseptic Mouthwash', 'Active Ingredients: Eucalyptol 0.092%, Menthol 0.042%, Methyl Salicylate 0.060%, Thymol 0.064%. Inactive Ingredients: Water, Alcohol (21.6%), Sorbitol Solution, Flavor, Poloxamer 407, Benzoic Acid, Zinc Chloride, Sodium Benzoate, Sodium Saccharin, Green 3', 80],
-  ['Secret Clinical Strength Antiperspirant Deodorant', 'Active Ingredient: Aluminum Zirconium Tetrachlorohydrex GLY (20%) Purpose: Antiperspirant. Inactive Ingredients: Cyclopentasiloxane, Stearyl Alcohol, PPG-14 Butyl Ether, Hydrogenated Castor Oil, Talc, Fragrance, Behenyl Alcohol', 70],
-  ['Head & Shoulders Classic Clean Dandruff Shampoo', 'Active Ingredient: Pyrithione Zinc 1% Purpose: Anti-dandruff. Inactive Ingredients: Water, Sodium Laureth Sulfate, Sodium Lauryl Sulfate, Zinc Carbonate, Glycol Distearate, Cocamide MEA, Dimethicone, Sodium Chloride, Fragrance, Sodium Xylenesulfonate', 70],
-  ['Sulfate-Free Shampoo', 'Aqua, Sodium Cocoyl Isethionate, Cocamidopropyl Betaine, Coco-Glucoside, Glycerin, Panthenol, Citric Acid, Sodium Benzoate', 80],
-  ['Sulfate Free Clarifying Shampoo', 'Water, Sodium C14-16 Olefin Sulfonate, Disodium Cocoamphodiacetate, Sodium Cocoyl Glutamate, Glycerin, Aloe Barbadensis Leaf Juice', 80],
-  ['Ammonium Shampoo', 'Water, Ammonium Laureth Sulfate, Ammonium Lauryl Sulfate, Cocamide DEA, Glycol Distearate, Fragrance', 70],
-  ['Silicone Free Conditioner', 'Aqua, Cetearyl Alcohol, Glycerin, Cetrimonium Chloride, Guar Hydroxypropyltrimonium Chloride, Panthenol, Hydrolyzed Keratin', 80],
-  ['Irish Spring Original Bar Soap', 'Sodium Tallowate, Sodium Cocoate, Water, Fragrance, Sodium Chloride, Glycerin, Titanium Dioxide, Pentasodium Pentetate', 70],
-  ['Pure-Castile Liquid Soap', 'Water, Potassium Cocoate, Potassium Olivate, Glycerin, Citric Acid, Mentha Piperita Oil', 80],
+  ['Colgate Cavity Protection Fluoride Toothpaste', 'Active ingredient: Sodium fluoride 0.24% (0.14% w/v fluoride ion) Purpose: Anticavity. Inactive ingredients: dicalcium phosphate dihydrate, water, glycerin, sodium lauryl sulfate, flavor, tetrasodium pyrophosphate, cellulose gum, sodium saccharin, titanium dioxide', 100],
+  ['Crest Pro-Health Toothpaste', 'Active Ingredient: Stannous Fluoride 0.454% (0.15% w/v Fluoride Ion). Inactive Ingredients: Glycerin, Hydrated Silica, Propylene Glycol, PEG-6, Water, Zinc Lactate, Trisodium Phosphate, Flavor, Sodium Lauryl Sulfate, Sodium Gluconate, Xanthan Gum, Sucralose, Carrageenan, Zinc Oxide, Blue 1', 100],
+  ['Listerine Cool Mint Antiseptic Mouthwash', 'Active Ingredients: Eucalyptol 0.092%, Menthol 0.042%, Methyl Salicylate 0.060%, Thymol 0.064%. Inactive Ingredients: Water, Alcohol (21.6%), Sorbitol Solution, Flavor, Poloxamer 407, Benzoic Acid, Zinc Chloride, Sodium Benzoate, Sodium Saccharin, Green 3', 100],
+  ['Secret Clinical Strength Antiperspirant Deodorant', 'Active Ingredient: Aluminum Zirconium Tetrachlorohydrex GLY (20%) Purpose: Antiperspirant. Inactive Ingredients: Cyclopentasiloxane, Stearyl Alcohol, PPG-14 Butyl Ether, Hydrogenated Castor Oil, Talc, Fragrance, Behenyl Alcohol', 85],
+  ['Head & Shoulders Classic Clean Dandruff Shampoo', 'Active Ingredient: Pyrithione Zinc 1% Purpose: Anti-dandruff. Inactive Ingredients: Water, Sodium Laureth Sulfate, Sodium Lauryl Sulfate, Zinc Carbonate, Glycol Distearate, Cocamide MEA, Dimethicone, Sodium Chloride, Fragrance, Sodium Xylenesulfonate', 88],
+  ['Sulfate-Free Shampoo', 'Aqua, Sodium Cocoyl Isethionate, Cocamidopropyl Betaine, Coco-Glucoside, Glycerin, Panthenol, Citric Acid, Sodium Benzoate', 100],
+  ['Sulfate Free Clarifying Shampoo', 'Water, Sodium C14-16 Olefin Sulfonate, Disodium Cocoamphodiacetate, Sodium Cocoyl Glutamate, Glycerin, Aloe Barbadensis Leaf Juice', 100],
+  ['Ammonium Shampoo', 'Water, Ammonium Laureth Sulfate, Ammonium Lauryl Sulfate, Cocamide DEA, Glycol Distearate, Fragrance', 83],
+  ['Silicone Free Conditioner', 'Aqua, Cetearyl Alcohol, Glycerin, Cetrimonium Chloride, Guar Hydroxypropyltrimonium Chloride, Panthenol, Hydrolyzed Keratin', 100],
+  ['Irish Spring Original Bar Soap', 'Sodium Tallowate, Sodium Cocoate, Water, Fragrance, Sodium Chloride, Glycerin, Titanium Dioxide, Pentasodium Pentetate', 88],
+  ['Pure-Castile Liquid Soap', 'Water, Potassium Cocoate, Potassium Olivate, Glycerin, Citric Acid, Mentha Piperita Oil', 96],
   // 20 names, most of them chemistry. Unreadable at 30% coverage before names were recognized by shape.
-  ['CeraVe Moisturizing Cream', 'Aqua/Water, Glycerin, Cetearyl Alcohol, Caprylic/Capric Triglyceride, Cetyl Alcohol, Ceteareth-20, Petrolatum, Potassium Phosphate, Ceramide NP, Ceramide AP, Ceramide EOP, Carbomer, Dimethicone, Sodium Hyaluronate, Cholesterol, Phenoxyethanol, Disodium EDTA, Tocopherol, Xanthan Gum, Ethylhexylglycerin', 80],
+  ['CeraVe Moisturizing Cream', 'Aqua/Water, Glycerin, Cetearyl Alcohol, Caprylic/Capric Triglyceride, Cetyl Alcohol, Ceteareth-20, Petrolatum, Potassium Phosphate, Ceramide NP, Ceramide AP, Ceramide EOP, Carbomer, Dimethicone, Sodium Hyaluronate, Cholesterol, Phenoxyethanol, Disodium EDTA, Tocopherol, Xanthan Gum, Ethylhexylglycerin', 100],
 ];
 
 test('real label formats are readable and rated', () => {
@@ -96,14 +101,54 @@ test('real label formats are readable and rated', () => {
   }
 });
 
-test('a label without the category function is declined, and says what it needed', () => {
+test('a label without the category function is rated, charged, and says what it needed', () => {
+  // These used to be declined as "unavailable", which skipped every natural deodorant: a deodorant that relies
+  // on scent and absorbent powders is a product people buy, and it is rated like any other.
   const natural = rate('Tom\'s Fluoride-Free Toothpaste', 'Calcium Carbonate, Glycerin, Water, Xylitol, Sodium Lauryl Sulfate, Zinc Citrate');
-  assert.equal(natural.readable, false);
-  assert.match(natural.reason, /fluoride ingredient/);
-  assert.match(natural.reason, /open the full ingredient list/);
-  assert.match(rate('Natural deodorant', 'Shea butter, coconut oil, arrowroot powder, candelilla wax').reason, /antiperspirant salt or a recognized deodorizing/);
-  // ...but the preference and length styles do not need a function, only a readable list.
+  assert.equal(natural.readable, true);
+  assert.equal(natural.score, 70, 'fluoride is the one function with a documented health effect, so it is charged most');
+  const why = natural.bad.find(row => /does not list a fluoride ingredient/.test(row.why));
+  assert.ok(why && why.c === -30, JSON.stringify(natural.bad));
+  assert.match(why.why, /open the full ingredient list/);
+  const bare = rate('Natural deodorant', 'Shea butter, coconut oil, arrowroot powder, candelilla wax');
+  assert.equal(bare.readable, true);
+  assert.equal(bare.score, 80);
+  assert.match(bare.bad[0].why, /antiperspirant salt or a recognized deodorizing/);
+  // The other two styles never read a function.
   assert.equal(rate('Tom\'s Fluoride-Free Toothpaste', 'Calcium Carbonate, Glycerin, Water, Xylitol', { ratingStyle: 'minimal' }).readable, true);
+});
+
+test('an antiperspirant whose page printed only the inactive list is not charged for a missing function', () => {
+  // The Drug Facts panel carries the active ingredient and the page's ingredient list often does not.
+  const inactiveOnly = rate('DOVE Antiperspirant Deodorant Stick, 2.7 oz', 'Cyclopentasiloxane, Stearyl Alcohol, PPG-14 Butyl Ether, Hydrogenated Castor Oil, Dimethicone');
+  assert.equal(inactiveOnly.score, 85, 'a smaller charge, for a list that is known to be incomplete');
+  assert.match(inactiveOnly.bad[0].why, /title names an active ingredient/);
+  // The same list under a title that makes no such promise is a deodorant that shows no function.
+  assert.equal(rate('Deodorant Stick', 'Cyclopentasiloxane, Stearyl Alcohol, Dimethicone').score, 80);
+});
+
+test('the same antiperspirant reads the same however its active ingredient is printed', () => {
+  const inactive = 'Cyclopentasiloxane, Stearyl Alcohol, PPG-14 Butyl Ether, Hydrogenated Castor Oil, Fragrance';
+  const forms = [
+    `Active Ingredient: Aluminum Zirconium Tetrachlorohydrex GLY (20%) Purpose: Antiperspirant. Inactive Ingredients: ${inactive}`,
+    `ACTIVE INGREDIENTS: ALUMINUM ZIRCONIUM TETRACHLOROHYDREX GLY 20%; INACTIVE INGREDIENTS: ${inactive}`,
+    `Active: Aluminum Zirconium Tetrachlorohydrex GLY 20%. Inactive: ${inactive}`,
+    // The active ingredient named in the list and marked there, as some listings print it.
+    `Aluminum Zirconium Tetrachlorohydrex GLY (20%) (Active Ingredient), ${inactive}`,
+    `Aluminum Zirconium Tetrachlorohydrex GLY (Active), ${inactive}`,
+    `Drug Facts Active ingredient Purpose Aluminum Zirconium Tetrachlorohydrex GLY (20%) Antiperspirant Uses reduces underarm perspiration Warnings For external use only Inactive ingredients ${inactive}`,
+  ];
+  for (const text of forms) {
+    const result = rate('Antiperspirant Deodorant Stick', text);
+    assert.equal(result.readable, true, text);
+    assert.equal(result.score, 85, text);
+    assert.ok(result.good.some(row => row.ing === 'aluminum zirconium tetrachlorohydrex gly'), `the active ingredient was found: ${text}`);
+    assert.equal(result.bad.length, 1, `only the fragrance: ${text}`);
+  }
+  // The marker sat in the middle of the old reading: the salt was dropped and everything after it was taken
+  // for "the actives". It must not be partial when the page printed the rest of the list.
+  assert.equal(ingestible.prepareLabel(forms[3]).partial, false);
+  assert.equal(ingestible.prepareLabel('Aluminum Chlorohydrate (Active Ingredient)').partial, true);
 });
 
 test('prose and gibberish in the ingredient box are not recognized as ingredients', () => {
@@ -122,16 +167,76 @@ test('documented cautions are charged once each, and only where they apply', () 
   const caution = (name, text) => rate(name, text).bad.map(row => row.ing).filter(Boolean);
   assert.deepEqual(caution('Conditioner', 'Water, Behentrimonium Chloride, Methylchloroisothiazolinone, Methylisothiazolinone'),
     ['methylchloroisothiazolinone'], 'one charge for the whole family');
-  assert.equal(rate('Conditioner', 'Water, Behentrimonium Chloride, Methylisothiazolinone').score, 70);
-  assert.equal(rate('Conditioner', 'Water, Behentrimonium Chloride, DMDM Hydantoin, Quaternium-15').score, 70, 'two formaldehyde releasers are one charge');
-  assert.equal(rate('Conditioner', 'Water, Behentrimonium Chloride, Polyquaternium-10').score, 80, 'polyquaternium-10 is not quaternium-15');
+  assert.equal(rate('Conditioner', 'Water, Behentrimonium Chloride, Methylisothiazolinone').score, 85);
+  assert.equal(rate('Conditioner', 'Water, Behentrimonium Chloride, DMDM Hydantoin, Quaternium-15').score, 85, 'two formaldehyde releasers are one charge');
+  assert.equal(rate('Conditioner', 'Water, Behentrimonium Chloride, Polyquaternium-10').score, 100, 'polyquaternium-10 is not quaternium-15');
   // Triclosan is charged on a wash or soap, where the FDA acted, and not on a toothpaste.
-  assert.equal(rate('Hand soap', 'Water, Sodium Laureth Sulfate, Triclosan').score, 70);
-  assert.equal(rate('Toothpaste', 'Water, Sodium Fluoride, Triclosan').score, 80);
+  assert.equal(rate('Hand soap', 'Water, Sodium Laureth Sulfate, Triclosan').score, 85);
+  assert.equal(rate('Toothpaste', 'Water, Sodium Fluoride, Triclosan').score, 100);
   // Cautions are an evidence-style rule; the other styles never read them.
   assert.equal(rate('Conditioner', 'Water, Behentrimonium Chloride, Methylisothiazolinone', { ratingStyle: 'minimal' }).bad.every(row => !/isothiazolinone/i.test(row.why)), true);
   // Marketing copy in the title is not label content.
-  assert.equal(rate('Shampoo, dermatologist tested, ADA Accepted', 'Water, Sodium Laureth Sulfate').score, 80);
+  assert.equal(rate('Shampoo, dermatologist tested, ADA Accepted', 'Water, Sodium Laureth Sulfate').score, 100);
+});
+
+test('the cautions a regulator or a toxicology listing has named are charged by how serious they are', () => {
+  const charge = (name, text) => 100 - rate(name, text).score;
+  // Prohibited in EU cosmetics, or a classified human carcinogen: 15.
+  assert.equal(charge('Moisturizing lotion', 'Water, Glycerin, Isopropylparaben'), 15);
+  assert.equal(charge('Moisturizing lotion', 'Water, Glycerin, Dibutyl Phthalate'), 15);
+  assert.equal(charge('Moisturizing lotion', 'Water, Glycerin, Butylphenyl Methylpropional'), 15);
+  // The parabens that are allowed are not charged, and neither is a name that merely contains one.
+  assert.equal(charge('Moisturizing lotion', 'Water, Glycerin, Methylparaben, Propylparaben, Ethylparaben'), 0);
+  // A state or national listing: 5. Charged in the products it is found in.
+  assert.equal(charge('Shampoo', 'Water, Sodium Laureth Sulfate, Cocamide DEA'), 5);
+  assert.equal(charge('Shampoo', 'Water, Sodium Laureth Sulfate, Cocamide MEA'), 0, 'MEA is not DEA');
+  assert.equal(charge('Moisturizing lotion', 'Water, Glycerin, BHA'), 5);
+  assert.equal(charge('Whitening toothpaste', 'Water, Sodium Fluoride, Activated Charcoal'), 5);
+  assert.equal(charge('Shampoo', 'Water, Sodium Laureth Sulfate, Charcoal Powder'), 0, 'the ADA review is about dental products');
+  // A patch-test allergen is charged where the product stays on the skin, and not in a rinse.
+  assert.equal(charge('Deodorant Stick', 'Aluminum Chlorohydrate, Propylene Glycol'), 4);
+  assert.equal(charge('Shampoo', 'Water, Sodium Laureth Sulfate, Propylene Glycol'), 0);
+  assert.equal(charge('Deodorant Stick', 'Aluminum Chlorohydrate, Polypropylene Glycol, Propylene Glycol Dicaprylate'), 0, 'a different ingredient');
+  assert.equal(charge('Moisturizing lotion', 'Water, Glycerin, Lanolin'), 3);
+});
+
+test('fragrance is charged more on the skin than in the shower, and its parts are charged on their own', () => {
+  const charge = (name, text) => 100 - rate(name, text).score;
+  assert.equal(charge('Deodorant Stick', 'Aluminum Chlorohydrate, Fragrance'), 15);
+  assert.equal(charge('Deodorant Stick', 'Aluminum Chlorohydrate, Parfum'), 15);
+  assert.equal(charge('Shampoo', 'Water, Sodium Laureth Sulfate, Fragrance'), 12);
+  assert.equal(charge('Deodorant Stick', 'Aluminum Chlorohydrate, Fragrance-Free'), 0, 'a claim that there is none is not fragrance');
+  // The allergens the EU makes a label name: 2 each, up to 8; more than one product's fragrance names.
+  assert.equal(charge('Deodorant Stick', 'Aluminum Chlorohydrate, Limonene, Linalool'), 4);
+  assert.equal(charge('Deodorant Stick', 'Aluminum Chlorohydrate, Limonene, Linalool, Geraniol, Citronellol, Coumarin, Eugenol'), 8);
+  assert.equal(charge('Deodorant Stick', 'Aluminum Chlorohydrate, D-Limonene'), 2);
+  assert.equal(charge('Deodorant Stick', 'Aluminum Chlorohydrate, Benzyl Alcohol'), 0, 'a preservative as often as a scent');
+  // A scent oil, once; a carrier oil is not a scent.
+  assert.equal(charge('Deodorant Stick', 'Aluminum Chlorohydrate, Lavandula Angustifolia Oil, Mentha Piperita Oil'), 4);
+  assert.equal(charge('Deodorant Stick', 'Aluminum Chlorohydrate, Cocos Nucifera (Coconut) Oil, Helianthus Annuus Seed Oil, Rosa Canina Fruit Oil, Rosmarinus Officinalis Leaf Extract'), 0);
+  assert.equal(charge('Fluoride toothpaste', 'Water, Sodium Fluoride, Mentha Piperita Oil, Syzygium Aromaticum Oil'), 0, 'in a toothpaste an oil is a flavor');
+});
+
+test('a label that scores below the floor stops there and shows the row that says so', () => {
+  const worst = rate('Deodorant Stick', 'Parfum, Limonene, Linalool, Geraniol, Citronellol, Lavandula Angustifolia Oil, Methylisothiazolinone, DMDM Hydantoin, '
+    + 'Isopropylparaben, Dibutyl Phthalate, Butylphenyl Methylpropional, BHA, Lanolin, Propylene Glycol, Cocamide DEA');
+  assert.equal(worst.score, 3, 'the food engine\'s own floor');
+  assert.equal(worst.verdict, 'Avoid');
+  assert.equal(worst.base + [...worst.good, ...worst.bad].reduce((n, row) => n + row.c, 0), worst.score, 'every row is part of the number');
+  assert.ok(worst.good.some(row => /Score floor/.test(row.why) && row.c > 0));
+});
+
+test('an index is worded in the same five bands as a food score', () => {
+  const verdict = (name, text, options) => rate(name, text, options).verdict;
+  assert.equal(verdict('Fluoride toothpaste', 'Water, Sodium Fluoride'), 'Excellent');
+  assert.equal(verdict('Deodorant Stick', 'Aluminum Chlorohydrate, Fragrance'), 'Good');
+  assert.equal(verdict('Natural deodorant', 'Water, Limonene, Linalool, Lavandula Angustifolia Oil, Fragrance'), 'Mediocre');
+  assert.equal(verdict('Shampoo', 'Water, Sodium Laureth Sulfate, Fragrance, Methylisothiazolinone, DMDM Hydantoin, Cocamide DEA, Isopropylparaben'), 'Poor');
+  for (const result of [rate('Shampoo', 'Water, Sodium Laureth Sulfate'), rate('Shampoo', 'Water, Sodium Laureth Sulfate, Fragrance', { ratingStyle: 'minimal' }),
+    rate('Vitamin C Capsules', 'Vitamin C, cellulose', {}, FACTS('Vitamin C 90 mg'))]) {
+    assert.deepEqual(engine.BANDS.find(band => result.score >= band[0])[1], result.verdict);
+    assert.notEqual(result.verdict, 'Label index');
+  }
 });
 
 const FACTS = body => `Supplement Facts Serving Size: 1 Capsule Servings Per Container: 60 Amount Per Serving % Daily Value ${body}`;

@@ -975,7 +975,7 @@ function cleanText(value) {
 // ---------------------------------------------------------------- scoring
 // options: { weights, allergens, diets, avoidList }
 function score(product, options = {}) {
-  const rating = db.productRatings?.rate(product, options, parseEntries);
+  const rating = db.productRatings?.rate(product, options, parseEntries, { BANDS, SCORE_FLOOR });
   if (rating) { rating.readable = isReadable(rating); return rating; }
   const W = db.categories ? db.categories.resolveWeights(options.weights) : {};
   const nutritionInfo = normaliseNutrition(product.nutrition);

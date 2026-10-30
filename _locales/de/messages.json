@@ -1860,7 +1860,7 @@
     "message": "Körperpflege und Nahrungsergänzungsmittel bewerten"
   },
   "optCareHelp": {
-    "message": "Verwendet kategoriespezifische Etikettenindizes. Fehlende Nachweise bleiben unbewertet. Lebensmittel behalten eigene Regeln."
+    "message": "Verwendet kategoriespezifische Etikettenindizes, bewertet und dargestellt wie ein Lebensmittelwert. Ein Etikett, das sich nicht lesen lässt, bleibt unbewertet. Lebensmittel behalten eigene Regeln."
   },
   "optRatingStyle": {
     "message": "Bewertungsstil für Körperpflege und Nahrungsergänzung"
@@ -1875,7 +1875,7 @@
     "message": "Nach Vorlieben"
   },
   "optStyleHelp": {
-    "message": "Evidenzbasiert sucht nach einer Funktion, die die Kategorie braucht, nach dokumentierten Warnhinweisen und bei Ergänzungsmitteln nach vollständigen Supplement Facts ohne Portion über der Verzehrhöchstmenge für Erwachsene. Wenige Inhaltsstoffe bevorzugt kürzere Listen. Nach Vorlieben nutzt die Vermeidungsliste. Diese Indizes belegen weder Sicherheit noch Wirksamkeit."
+    "message": "Evidenzbasiert beginnt bei 100 und zieht Punkte ab, wenn das Etikett keine Funktion zeigt, die die Kategorie braucht, bei Duftstoffen und bei dokumentierten Warnhinweisen; bei Ergänzungsmitteln braucht es vollständige Supplement Facts ohne Portion über der Verzehrhöchstmenge für Erwachsene. Wenige Inhaltsstoffe bevorzugt kürzere Listen. Nach Vorlieben nutzt die Vermeidungsliste. Diese Indizes belegen weder Sicherheit noch Wirksamkeit."
   },
   "catToothpaste": {
     "message": "Zahnpasta"

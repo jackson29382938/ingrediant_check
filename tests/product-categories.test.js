@@ -50,8 +50,17 @@ test('personal-care reviews report disclosed ingredients and preference matches 
 });
 
 test('food rules cannot rate identified personal-care products', () => {
-  for (const name of ['Toothpaste', 'Shampoo', 'Sunscreen', 'Shampoo and conditioner', 'Multivitamin']) {
+  // Unsupported products and a supplement with no panel are not rated at all.
+  for (const name of ['Sunscreen', 'Shampoo and conditioner', 'Multivitamin']) {
     assert.equal(engine.isReadable(engine.score({ name, ingredients_text: 'water, sugar, salt' })), false, name);
+  }
+  // A toothpaste or shampoo is rated by its own rubric (and charged for what the label does not show), never by
+  // the food one: no NOVA class, and the category on the result.
+  for (const [name, category] of [['Toothpaste', 'toothpaste'], ['Shampoo', 'shampoo']]) {
+    const result = engine.score({ name, ingredients_text: 'water, sugar, salt' });
+    assert.equal(result.category, category, name);
+    assert.equal(result.nova, undefined, name);
+    assert.ok(result.bad.some(row => /does not list/.test(row.why)), `${name}: charged for the function it does not show`);
   }
   assert.equal(engine.isReadable(engine.score({ name: 'Oats', ingredients_text: 'oats' })), true);
 });

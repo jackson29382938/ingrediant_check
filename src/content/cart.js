@@ -54,11 +54,11 @@
     q('.num').textContent = s.average == null ? '—' : String(s.average);
     const named = category => category === 'food' ? t('catFood', 'Food') : A.db.productRatings.categoryLabel(category, t);
     q('.t').textContent = s.groups ? s.groups.map(g => `${named(g.category)}: ${g.average}`).join(' · ')
-      : s.category ? t('cartAverageCare', '$1 average', named(s.category)) : `${t('cartAverage', 'Cart average')} · ${s.verdict}`;
+      : s.category ? `${t('cartAverageCare', '$1 average', named(s.category))} · ${s.verdict}` : `${t('cartAverage', 'Cart average')} · ${s.verdict}`;
     q('.s').textContent = [t('cartRated', '$1 of $2 items rated', s.rated, s.total), s.pending ? t('cartChecking', 'checking…') : '',
       earnedHere ? t('cartXpGained', '+$1 XP', earnedHere) : '', lv ? t('cartLevel', 'Level $1 · $2/$3 XP', lv.level, lv.into, lv.need) : ''].filter(Boolean).join(' · ');
-    // An index, or a cart of several kinds, has no quality band.
-    const c = s.average == null || s.category ? A.db.theme.neutral() : A.db.theme.band(s.average);
+    // A cart of several kinds has no one average and so no band; one kind, food or care, is drawn in its average's band.
+    const c = s.average == null ? A.db.theme.neutral() : A.db.theme.band(s.average);
     for (const k of ['fg', 'bg', 'ring']) summary.style.setProperty('--' + k, c[k]);
     summary.dataset.airSig = sig;
   }
@@ -103,7 +103,7 @@
       b.setAttribute('aria-label', name); b.setAttribute('role', card ? 'link' : 'img');
       if (card) { b.setAttribute('tabindex', '0'); b.setAttribute('aria-haspopup', 'dialog'); b.setAttribute('aria-expanded', 'false'); } else b.title = name;
     }
-    const color = hit ? (care ? A.db.theme.neutral() : A.db.theme.band(hit.score)) : { fg: '#374151', bg: '#f3f4f6', ring: '#9ca3af' };
+    const color = hit ? A.db.theme.band(hit.score) : { fg: '#374151', bg: '#f3f4f6', ring: '#9ca3af' };
     for (const k of ['fg', 'bg', 'ring']) b.style.setProperty('--' + k, color[k]);
   }
   async function read(job, turn) {

@@ -64,7 +64,7 @@ check('with personal care on, the saved shampoo page is read and rated as a sham
   assert.strictEqual(result.category, 'shampoo');
   assert.strictEqual(result.readable, true);
   assert.strictEqual(result.nova, undefined, 'no food class');
-  assert.strictEqual(result.score, 70, 'a functional ingredient, less fragrance');
+  assert.strictEqual(result.score, 88, '100, less the 12 a rinse-off fragrance costs');
 });
 check('with the category switch off, the saved shampoo page is skipped as before', () => {
   const data = extract.extract(shampoo, { asin: 'B00TESTSHAM', foodOnly: true, personalCareEnabled: false });
@@ -74,6 +74,58 @@ check('with the food gate off, extract still finds the shampoo list', () => {
   const data = extract.extract(shampoo, { asin: 'B00TESTSHAM', foodOnly: false });
   assert.ok(data.ok, JSON.stringify({ ok: data.ok, reason: data.reason }));
   assert.match(data.text, /sodium laureth sulfate/i);
+});
+
+console.log('\nUS product snapshot — antiperspirant (Drug Facts, no "Ingredients" heading)');
+// Deodorants and antiperspirants are over-the-counter drugs: a page can print "Active ingredient" and "Inactive
+// ingredients" and no heading called plain "Ingredients", so no tier found a list and the search tile said "?".
+const drugPage = (body, extra = '') => createDocument(`<!doctype html><html><body>
+  <h1 id="productTitle">Secret Clinical Strength Antiperspirant Deodorant Stick, 1.6 oz</h1>
+  <div id="wayfinding-breadcrumbs_feature_div">Beauty &amp; Personal Care › Deodorants &amp; Antiperspirants</div>
+  <div id="centerCol"><div id="feature-bullets"><ul><li>Clinical strength protection</li></ul></div>${extra}
+  <div id="important-information">${body}</div></div>
+</body></html>`);
+const care = require(src('engine/score.js'));
+check('a Drug Facts block with no "Ingredients" heading is read, active ingredient first', () => {
+  const doc = drugPage(`<div class="a-section"><h4>Drug Facts</h4>
+    <p>Active ingredient</p><p>Aluminum zirconium tetrachlorohydrex GLY (20%)</p>
+    <p>Purpose</p><p>Antiperspirant</p><p>Uses reduces underarm perspiration</p><p>Warnings For external use only</p>
+    <p>Inactive ingredients cyclopentasiloxane, stearyl alcohol, PPG-14 butyl ether, hydrogenated castor oil, fragrance, talc</p>
+    <p>Questions? Call 1-800-000-0000</p></div>`);
+  const data = extract.extract(doc, { asin: 'B00TESTDEOD', foodOnly: true });
+  assert.ok(data.ok, JSON.stringify({ ok: data.ok, reason: data.reason, via: data.via }));
+  assert.strictEqual(data.via, 'drug-facts');
+  const result = care.score({ name: data.title, ingredients_text: data.text }, {});
+  assert.strictEqual(result.category, 'deodorant');
+  assert.strictEqual(result.readable, true, result.reason);
+  assert.ok(result.good.some(row => /aluminum zirconium/.test(row.ing)), 'the active ingredient was read');
+  assert.ok(result.bad.some(row => /fragrance/i.test(row.why)), 'and so was the inactive list');
+  assert.strictEqual(result.score, 85);
+  assert.doesNotMatch(data.text, /Questions|Call 1-800/, 'a trailing contact line is not an ingredient');
+});
+check('an "Ingredients" list of inactive names gets the active ingredient the page prints beside it', () => {
+  const doc = drugPage(`<div class="a-section"><h4>Ingredients</h4><p>Cyclopentasiloxane, Stearyl Alcohol, PPG-14 Butyl Ether, Hydrogenated Castor Oil, Fragrance</p></div>
+    <div class="a-section"><h4>Drug Facts</h4><p>Active ingredient Aluminum zirconium tetrachlorohydrex GLY (20%) Purpose Antiperspirant</p></div>`);
+  const data = extract.extract(doc, { asin: 'B00TESTDEOD', foodOnly: true });
+  assert.ok(data.ok, JSON.stringify({ ok: data.ok, reason: data.reason }));
+  assert.match(data.text, /^Active ingredient: aluminum zirconium tetrachlorohydrex gly\. Inactive ingredients: cyclopentasiloxane/i);
+  const result = care.score({ name: data.title, ingredients_text: data.text }, {});
+  assert.strictEqual(result.score, 85, 'not charged for a missing active, and not charged twice');
+  assert.strictEqual(result.bad.length, 1);
+});
+check('a list that already names its active ingredient is left as the page wrote it', () => {
+  const doc = drugPage(`<div class="a-section"><h4>Ingredients</h4><p>Aluminum Zirconium Tetrachlorohydrex GLY (Active Ingredient), Cyclopentasiloxane, Stearyl Alcohol</p></div>
+    <div class="a-section"><h4>Drug Facts</h4><p>Active ingredient Aluminum zirconium tetrachlorohydrex GLY Purpose Antiperspirant</p></div>`);
+  const data = extract.extract(doc, { asin: 'B00TESTDEOD', foodOnly: true });
+  assert.ok(data.ok);
+  assert.doesNotMatch(data.text, /^Active ingredient:/);
+});
+check('food and supplements never read an "inactive ingredients" block as a label', () => {
+  const food = createDocument(`<!doctype html><html><body><h1 id="productTitle">Rolled Oats</h1>
+    <div id="important-information"><p>Active ingredient Sodium fluoride</p><p>Inactive ingredients water, sorbitol</p></div></body></html>`);
+  assert.strictEqual(extract.extract(food, { asin: 'B00TESTFOOD', foodOnly: false }).ok, false);
+  const off = extract.extract(drugPage('<p>Active ingredient Aluminum chlorohydrate</p><p>Inactive ingredients water, glycerin</p>'), { asin: 'B00TESTDEOD', foodOnly: false, personalCareEnabled: false });
+  assert.strictEqual(off.ok, false, 'with the category switch off nothing here is read');
 });
 
 console.log('\nSE product snapshot — havregryn');

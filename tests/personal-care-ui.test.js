@@ -82,24 +82,25 @@ test('the neutral color is gray, readable, and the same in every palette', () =>
 
 const shampoo = { name: 'Gentle shampoo', ingredients_text: 'Water, Sodium Laureth Sulfate, Cocamidopropyl Betaine, Fragrance' };
 
-test('the panel draws an index in gray and captions it with its category and style', () => {
+test('the panel draws an index in its score\'s band, worded like a food score, and captions it with its category and style', () => {
   for (const ratingStyle of ratings.STYLES) {
     const result = engine.score(shampoo, { ratingStyle, avoidList: ['fragrance'] });
     const html = panel.render(result, { title: shampoo.name });
-    assert.ok(html.includes(`--fg:${theme.neutral().fg}`), ratingStyle);
-    assert.ok(!html.includes(`--fg:${theme.band(result.score).fg}`) || theme.band(result.score).fg === theme.neutral().fg, ratingStyle);
+    assert.ok(html.includes(`--fg:${theme.band(result.score).fg}`), ratingStyle);
+    assert.ok(html.includes(`>${result.verdict.toUpperCase()}<`), `${ratingStyle}: the band word, not "Label index"`);
+    assert.doesNotMatch(html, /LABEL INDEX/);
     assert.ok(html.includes(`Shampoo · ${ratings.styleLabel(ratingStyle)}`), `${ratingStyle}: ${html.match(/class="sub">[^<]*/)}`);
     assert.doesNotMatch(html, /shampoo · evidence\b/, 'the raw id is not shown');
-    assert.match(html, /Limited label index/);
+    assert.match(html, /Limited label index/, 'the note says what the number can claim');
   }
   const food = panel.render(engine.score({ name: 'Oats', ingredients_text: 'Rolled oats' }), { title: 'Oats' });
   assert.ok(food.includes(`--fg:${theme.band(100).fg}`), 'food keeps its band');
 });
 
 test('the breakdown card for a saved index keeps the category when no reading is kept', () => {
-  const html = panel.renderBreakdown(null, { asin: 'B000000001', score: 80, verdict: 'Label index', category: 'toothpaste' });
+  const html = panel.renderBreakdown(null, { asin: 'B000000001', score: 80, verdict: 'Good', category: 'toothpaste' });
   assert.ok(html.includes('Toothpaste'));
-  assert.ok(html.includes(`--fg:${theme.neutral().fg}`));
+  assert.ok(html.includes(`--fg:${theme.band(80).fg}`));
   assert.doesNotMatch(html, /undefined/);
   const food = panel.renderBreakdown(null, { asin: 'B000000001', score: 80, verdict: 'Good', category: 'food' });
   assert.ok(food.includes(`--fg:${theme.band(80).fg}`));
@@ -112,11 +113,11 @@ test('Supplement Facts are collapsed with the details, not printed above the sco
   assert.ok(html.indexOf(facts) > html.indexOf('id="air-panel-details"'), 'inside the collapsible body');
 });
 
-test('a cart of one personal-care category is averaged and named for it, not banded', () => {
+test('a cart of one personal-care category is averaged, named for it and worded like a food average', () => {
   const care = cart.summarize([{ score: 80, category: 'shampoo' }, { score: 70, category: 'shampoo' }]);
   assert.equal(care.average, 75);
   assert.equal(care.category, 'shampoo');
-  assert.equal(care.verdict, '', 'a band word describes a food score');
+  assert.equal(care.verdict, 'Good');
   const food = cart.summarize([{ score: 80 }, { score: 90, category: 'food' }]);
   assert.equal(food.average, 85);
   assert.equal(food.category, undefined);

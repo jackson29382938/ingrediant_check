@@ -193,15 +193,17 @@ test('pageScore paints and clears the toolbar badge for a tab', () => {
   assert.equal(w.badges.filter(b => b.kind === 'text' && b.tabId === 7).at(-1).text, '');
 });
 
-test('a personal-care index paints the toolbar badge gray, not a quality color', () => {
+test('a personal-care index paints the toolbar badge in its score\'s band, as a food score does', () => {
   const w = worker();
   w.call('paintActionBadge(7, 86, undefined, true)');
-  assert.equal(w.badges.find(b => b.kind === 'color' && b.tabId === 7).color, '#565959');
   w.call('paintActionBadge(8, 86)');
-  assert.notEqual(w.badges.find(b => b.kind === 'color' && b.tabId === 8).color, '#565959', 'a food score keeps its band color');
-  // The gray survives a palette refresh: the state remembers it is an index.
+  const colorOf = tab => w.badges.filter(b => b.kind === 'color' && b.tabId === tab).at(-1).color;
+  assert.notEqual(colorOf(7), '#565959', 'an index is no longer drawn in gray');
+  assert.equal(colorOf(7), colorOf(8), 'the same score is the same color, food or not');
+  w.call('paintActionBadge(9, 40, undefined, true)');
+  assert.notEqual(colorOf(9), colorOf(7), 'and a lower score is a lower band');
   w.call('refreshActionBadges()');
-  assert.equal(w.badges.filter(b => b.kind === 'color' && b.tabId === 7).at(-1).color, '#565959');
+  assert.equal(colorOf(7), colorOf(8));
 });
 
 test('master pause blocks every passive background entry point', async () => {

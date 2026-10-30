@@ -18,8 +18,14 @@
     };
   }
 
-  function mountPoint() {
-    return document.querySelector('#nutritionalInfoAndIngredients_feature_div')
+  // Where the panel goes. A food page has its ingredients card under the buy box, so the panel sits above it. A
+  // personal-care page has no such card, and falling through to "Important information" put the panel below the
+  // product description and the A+ content, where nobody scrolls to look: the page seemed to have no panel at all.
+  // `care` puts it where a food's is, under the price and above the product overview.
+  const NEAR_TOP = '#nutritionalInfoAndIngredients_feature_div, #productOverview_feature_div, #featurebullets_feature_div, #feature-bullets';
+  function mountPoint(care) {
+    return (care && document.querySelector(NEAR_TOP))
+      || document.querySelector('#nutritionalInfoAndIngredients_feature_div')
       || document.querySelector('#nutritionalInfoAndIngredientsEU_feature_div, [id^="nutritionalInfoAndIngredientsEU_feature_div"]')
       || document.querySelector('#importantInformation_feature_div')
       || document.querySelector('#importantInformation_feature_div, #important-information')
@@ -27,6 +33,11 @@
       || document.querySelector('#centerCol')
       || document.querySelector('#dp-container');
   }
+
+  const ratedAsCare = title => {
+    const kind = root.AIR.db.ingestible?.classifyProduct?.(title);
+    return !!kind && kind.status === 'recognized' && kind.category !== 'supplement' && P().state.prefs.personalCareEnabled !== false;
+  };
 
   function quickNonFood() {
     const state = P().state;
@@ -63,7 +74,9 @@
 
   function presentResult(host, data, key, result, meta) {
     const { state, unreadable, cacheScore, publishActionBadge, sendDiagnostic, ingredientSig } = P();
-    if (result.category && unreadable(result)) {
+    // An index that declined carries no score. `parsed` is still 0 when it declined before reading the list, which
+    // `unreadable` takes for an empty list, so ask the engine's own gate: a null must never reach the panel.
+    if (result.category && !root.AIR.engine.isReadable(result)) {
       host.dataset.airState = 'personal-care';
       state.lastTextSig = ingredientSig() || data.text || '';
       publishActionBadge(null);
@@ -172,7 +185,7 @@
     if (key === state.lastKey && existingState === 'scored' && data.ok
         && !sig && data.text && data.text === state.lastTextSig) return;
 
-    const anchor = mountPoint();
+    const anchor = mountPoint(ratedAsCare(data.title));
     if (!anchor) return;
 
     let host = document.getElementById(HOST_ID);

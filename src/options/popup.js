@@ -259,9 +259,9 @@ function msg(key, fallback, sub) {
 // One palette and one set of NOVA labels, owned by the panel. The copies that used to live here
 // had already drifted from it once.
 const { NOVA_TEXT: NOVA_SHORT, BAND_COLOR: bandColor } = AIR.panel;
-// A personal-care or supplement index is drawn in neutral gray and captioned with its category and style; a food score is a color band.
+// A personal-care or supplement index is drawn in its score's band like a food score, and captioned with its category and style.
 const isIndex = hit => !!hit && !!hit.category && hit.category !== 'food';
-const cardColor = hit => isIndex(hit) ? AIR.db.theme.neutral() : bandColor(hit.score);
+const cardColor = hit => bandColor(hit.score);
 const cardLead = hit => isIndex(hit) ? AIR.db.productRatings.caption(hit, msg) : NOVA_SHORT[hit.nova];
 
 function asinFromUrl(url) {

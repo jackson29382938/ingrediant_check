@@ -94,7 +94,7 @@
     if (row.status === 'not-food') return false;
     if (row.status === 'unreadable') { paintBadge(tile, 'unreadable'); return true; }
     const result = root.AIR.engine.score(root.AIR.db.productCache.toInput(row), state.prefs);
-    if (unreadable(result)) { paintBadge(tile, 'unreadable'); return true; }
+    if (unreadable(result)) { paintBadge(tile, 'unreadable', result.reason); return true; }
     paintBadge(tile, result);
     cacheScore(asin, result, row.data.title, row.data.via || 'search-tile', '', Date.parse(row.scanned_at));
     return true;
@@ -212,7 +212,9 @@
     badgeStyleReady = true;
   }
 
-  function paintBadge(tile, hit) {
+  // `why` is what the engine says when it declined to rate a product it recognized (a personal-care index that
+  // needs the full list, a switched-off category): the tooltip of the "?" says so, instead of blaming Amazon.
+  function paintBadge(tile, hit, why) {
     tileIdentities.set(tile, tile.getAttribute('data-asin'));
     ensureBadgeStyle();
     const titleEl = tile.querySelector(TITLE_SEL);
@@ -225,7 +227,7 @@
     }
     const breakdown = hit !== 'pending' && hit !== 'unreadable' && P().state.hoverBreakdown;
     // The category is part of the attribute only for an index, so a food badge keeps the form `score:verdict`.
-    const sig = hit === 'pending' ? 'p' : hit === 'unreadable' ? '?' : `${hit.score}:${hit.verdict}${hit.category && hit.category !== 'food' ? ':' + hit.category : ''}`;
+    const sig = hit === 'pending' ? 'p' : hit === 'unreadable' ? `?${why || ''}` : `${hit.score}:${hit.verdict}${hit.category && hit.category !== 'food' ? ':' + hit.category : ''}`;
     if (typeof b.getAttribute === 'function' && b.getAttribute('data-air') === sig && (!b.dataset.saved || b.dataset.cacheTime === String(hit.t))) return b;
     if (typeof b.setAttribute === 'function') b.setAttribute('data-air', sig);
     // A numbered badge opens the breakdown card (hover-card.js) when that setting is on, so it is a
@@ -247,7 +249,7 @@
     }
     if (hit === 'unreadable') {
       b.textContent = '?';
-      b.title = throttleCopy('badgeNoIngredients', "Amazon doesn't publish readable ingredients for this one");
+      b.title = why || throttleCopy('badgeNoIngredients', "Amazon doesn't publish readable ingredients for this one");
       b.setAttribute('aria-label', b.title);
       b.setAttribute('role', 'img');
       b.style.cssText = 'color:#6a6a6a;background:#f7f8f8;border:2px dashed #d5d9d9;cursor:pointer;';
@@ -255,10 +257,10 @@
     }
     b.dataset.cacheTime = String(hit.t);
     delete b.dataset.saved;
-    // A personal-care or supplement index is drawn in neutral gray and names its category; a food score is a color band.
+    // A personal-care or supplement index is drawn in its score's band, as a food score is, and also names its category.
     const care = !!hit.category && hit.category !== 'food';
     const ratings = root.AIR.db.productRatings;
-    const c = care ? root.AIR.db.theme.neutral() : root.AIR.panel.BAND_COLOR(hit.score);
+    const c = root.AIR.panel.BAND_COLOR(hit.score);
     b.textContent = care ? `${hit.score} · ${ratings.categoryLabel(hit.category, throttleCopy)}` : hit.score;
     const verdictKey = ({
       Excellent: 'verdictExcellent', Good: 'verdictGood', Mediocre: 'verdictMediocre',
@@ -636,7 +638,7 @@
 
   function paintReading(tile, reading) {
     if (reading.outcome === 'not-food') { tile.querySelector('.air-badge')?.remove(); return; }
-    if (reading.outcome !== 'scored') { paintBadge(tile, 'unreadable'); return; }
+    if (reading.outcome !== 'scored') { paintBadge(tile, 'unreadable', reading.result && reading.result.category ? reading.result.reason : ''); return; }
     paintBadge(tile, reading.result);
   }
 

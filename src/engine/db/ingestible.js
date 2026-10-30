@@ -233,14 +233,39 @@ function allowsSearch(context, titles = [], prefs = {}) {
 const STRENGTH = /\s*\d+(?:[.,]\d+)?\s*(?:%|(?:mg|mcg|g|ml)\b)(?:\s*(?:w\/[vw]|v\/v)\b)?|\s*\((?:[^()]*\bw\/[vw]\b[^()]*|[^()]*\bfluoride ion\b[^()]*)\)/gi;
 // A purpose printed beside its active ingredient in the Drug Facts table ("... 0.24% Anticavity").
 const PURPOSE = /\b(?:anti-?(?:cavity|perspirant|plaque|gingivitis|dandruff|septic)|antiseptic|cavity protection)\b/gi;
+// The active ingredient printed after its own name instead of under a heading: "Aluminum Zirconium
+// Tetrachlorohydrex GLY (20%) (Active Ingredient), Cyclopentasiloxane, Stearyl Alcohol". The heading search
+// below found the marker, took everything after it as "the actives" and dropped the salt in front of it, so
+// the antiperspirant read as having no active ingredient at all and was declined.
+const ACTIVE_MARK = /\(\s*active(?:\s+ingredients?)?\s*\)/i;
+const TOP_LEVEL_COMMA = /\s*,\s*(?![^()]*\))/;
+// "Active ingredient:" and the short "Active:" a seller types; the long form needs no colon (a Drug Facts
+// table flattened to text has none), the short form does, because "active" is also a word in a name.
+const ACTIVE_HEADING = /\bactive(?:\s+ingredients?\b\s*(?:\([^)]*\))?\s*[:\-–]?|\s*[:\-–])\s*/i;
+const INACTIVE_HEADING = /\b(?:inactive|other)\s+ingredients?\b\s*[:\-–]?\s*|\binactive\s*[:\-–]\s*/i;
+function markedActives(raw) {
+  if (!ACTIVE_MARK.test(raw)) return null;
+  const parts = raw.split(TOP_LEVEL_COMMA).map(part => part.trim()).filter(Boolean);
+  const marked = parts.filter(part => ACTIVE_MARK.test(part));
+  const actives = marked.map(part => part.replace(ACTIVE_MARK, ' ').replace(STRENGTH, ' ').replace(/[.:()]/g, ' ').replace(/\s+/g, ' ').trim())
+    .filter(name => /[a-z]{3}/i.test(name));
+  const rest = parts.filter(part => !ACTIVE_MARK.test(part));
+  return { actives, rest };
+}
 function prepareLabel(text) {
   let raw = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 12000);
   let actives = [];
   let partial = false;
-  const heading = /\bactive ingredients?\b\s*(?:\([^)]*\))?\s*[:\-–]?\s*/i.exec(raw);
-  if (heading) {
+  const marked = markedActives(raw);
+  const heading = marked && marked.actives.length ? null : ACTIVE_HEADING.exec(raw);
+  if (marked && marked.actives.length) {
+    // The unmarked names are the inactive list; nothing but the marked ones means the page printed nothing else.
+    actives = marked.actives;
+    partial = !marked.rest.length;
+    raw = [...marked.actives, ...marked.rest].join(', ');
+  } else if (heading) {
     const rest = raw.slice(heading.index + heading[0].length);
-    const split = /\b(?:inactive|other) ingredients?\b\s*[:\-–]?\s*/i.exec(rest);
+    const split = INACTIVE_HEADING.exec(rest);
     // The printed table puts "Active ingredient" and "Purpose" in one header row and the values below, so flattened
     // text can start with the word "Purpose" and carry its Uses, Warnings and Directions with no colons.
     const activePart = (split ? rest.slice(0, split.index) : rest).replace(/^\s*purposes?\b\s*/i, '')
@@ -255,7 +280,7 @@ function prepareLabel(text) {
     // A heading left in the text would be glued to the first name after it; so would a trailing
     // "Questions? Call ..." or "Distributed by ..." line.
     .split(/\b(?:questions\?|comments\?|distributed by|manufactured (?:by|for)|dist\. by)/i)[0]
-    .replace(/\b(?:inactive|other) ingredients?\s*[:\-–]\s*/gi, ', ')
+    .replace(/\b(?:inactive|other)\s+ingredients?\s*[:\-–]\s*|\binactive\s*[:\-–]\s*/gi, ', ')
     .replace(/^[\s,]+/, '').replace(/,(?:\s*,)+/g, ',')
     .replace(/\s*\(\s*and\s*\)\s*/gi, ', ')
     .replace(/\s*\(\s*(?:aqua|water|eau|agua)\s*\)/gi, '')

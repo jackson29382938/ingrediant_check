@@ -1860,7 +1860,7 @@
     "message": "Rate personal care and supplements"
   },
   "optCareHelp": {
-    "message": "Uses category-specific label indices. Missing evidence stays unavailable. Food ratings retain their own rules."
+    "message": "Uses category-specific label indices, scored and shown like a food score. A label that cannot be read stays unavailable. Food ratings retain their own rules."
   },
   "optRatingStyle": {
     "message": "Personal-care and supplement rating style"
@@ -1875,7 +1875,7 @@
     "message": "Preference-focused"
   },
   "optStyleHelp": {
-    "message": "Evidence-based looks for a function the category needs, documented cautions, and for supplements a complete Supplement Facts panel with no serving above an adult upper limit. Minimal favors fewer ingredients. Preference-focused uses your avoid list. These indices do not establish safety or effectiveness."
+    "message": "Evidence-based starts at 100 and is charged when the label shows no function the category needs, for fragrance and for documented cautions; for supplements it needs a complete Supplement Facts panel with no serving above an adult upper limit. Minimal favors fewer ingredients. Preference-focused uses your avoid list. These indices do not establish safety or effectiveness."
   },
   "catToothpaste": {
     "message": "Toothpaste"

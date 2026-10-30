@@ -216,7 +216,7 @@
     b.setAttribute('aria-label', title);
     b.setAttribute('role', 'img');
     if (hit?.input) b.setAttribute('tabindex', '0');
-    const c = hit ? (care ? root.AIR.db.theme.neutral() : P.BAND_COLOR(hit.score)) : { fg: '#374151', bg: '#f3f4f6', ring: '#9ca3af' };
+    const c = hit ? P.BAND_COLOR(hit.score) : { fg: '#374151', bg: '#f3f4f6', ring: '#9ca3af' };
     if (b.style.setProperty) {
       b.style.setProperty('--air-fg', c.fg);
       b.style.setProperty('--air-bg', c.bg);

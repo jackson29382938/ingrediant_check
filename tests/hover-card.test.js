@@ -131,3 +131,37 @@ test('keyboard focus opens at once; the setting off leaves badges alone', () => 
   assert.equal(off.mounts.length, 0);
   assert.equal(off.card.isOpen(), false);
 });
+
+const careRow = PC.fromScan({ store: 'amazon.com', asin: 'B000000001', via: 'search-tile',
+  input: { name: 'Native Deodorant Coconut & Vanilla', ingredients_text: 'Tapioca Starch, Sodium Bicarbonate, Magnesium Hydroxide, Stearyl Alcohol, Fragrance' } });
+
+test('a personal-care badge ("80 · Deodorant") opens the breakdown like a food score does', () => {
+  // The badge pattern was a bare number, so a badge that carries its category never opened a card at all.
+  for (const text of ['85 · Deodorant', '85 · Deodorant · saved', '85 · Duschgel und Seife', '85 · saved', '85']) {
+    const w = controller({ stored: { [PC.localKey('amazon.com', 'B000000001')]: careRow } });
+    w.badge.textContent = text;
+    w.badge.attrs['data-air'] = '85:Good:deodorant';
+    w.fire('mouseover', { target: w.badge });
+    w.runTimers();
+    assert.equal(w.mounts.length, 1, text);
+    assert.match(w.mounts[0], /Deodorant/, text);
+    assert.match(w.mounts[0], /Fragrance is disclosed/, `${text}: the reasons, not only the number`);
+  }
+  for (const text of ['?', '…', 'Checking label…', 'Open to rate', 'Not a food', 'Label unavailable']) {
+    const w = controller({ stored: { [PC.localKey('amazon.com', 'B000000001')]: careRow } });
+    w.badge.textContent = text;
+    w.fire('mouseover', { target: w.badge });
+    w.runTimers();
+    assert.equal(w.mounts.length, 0, `${text} keeps its plain tooltip`);
+  }
+});
+
+test('the card for a personal-care score has the band color and the verdict a food score would', () => {
+  const care = engine.score(PC.toInput(careRow), {});
+  const html = panel.renderBreakdown(care, { asin: 'B000000001', score: care.score, verdict: care.verdict, category: care.category, detail: 'full' });
+  assert.match(html, /GOOD/);
+  assert.match(html, /Deodorant · Evidence-based/);
+  assert.ok(html.includes(`--fg:${panel.BAND_COLOR(care.score).fg}`));
+  assert.match(html, /What hurt/);
+  assert.match(html, /Not counted against it/, 'the function the label shows, worth no points of its own');
+});

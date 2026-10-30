@@ -32,8 +32,13 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // wrongly). See docs/releases/1.18.0.md and docs/PERSONAL-CARE.md.
   //
   // 2026-10-28.1 (1.18.1): the three above in one release. See docs/releases/1.18.1.md.
-  const RULES_REVISION = '2026-10-28.1';
-  const RULES_HASH = '55ccd9c4-270403';
+  //
+  // 2026-10-30.1 (1.19.0): the personal-care evidence index starts at 100 and is charged, as a food is, instead of
+  // 50 + 30 - 10 (so almost every label was 80 or 70); a label with no function ingredient is rated, not declined;
+  // an active ingredient printed after its own name is no longer dropped; an index takes the engine's band words.
+  // Food scores do not move. See docs/releases/1.19.0.md and docs/PERSONAL-CARE.md.
+  const RULES_REVISION = '2026-10-30.1';
+  const RULES_HASH = '934b6d08-277608';
   const _exports = AIRmodule('revision', { RULES_REVISION, RULES_HASH });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 })();

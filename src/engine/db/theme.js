@@ -54,9 +54,10 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
     return { fg, bg, ring, dfg, dring };
   }
 
-  // A personal-care or supplement index is not a quality band. Coloring an 80 green says "good" about a number
-  // the rubric itself calls a label index, so these are drawn in gray in every palette. (The color-vision
-  // palette already spends blue on its best band, so a blue "neutral" would read as one.)
+  // The color of something with no score to band: a cart that mixes kinds of product, which has no one average.
+  // (A personal-care or supplement index is drawn in its score's band like a food score; it was gray until the
+  // evidence index could tell a clean label from a fragranced one.) The color-vision palette already spends blue
+  // on its best band, so a blue "neutral" would read as one; gray is the same in every palette.
   const NEUTRAL = { fg: '#444a4a', bg: '#f1f3f3', ring: '#8b9494', dfg: '#b8c0c0', dring: '#6a7373' };
   const neutral = () => ({ ...NEUTRAL });
 

@@ -44,7 +44,9 @@ Personal care and supplements use separate **label indices**. Supported categori
 mouthwash, deodorant/antiperspirant, shampoo, conditioner, body wash/soap, basic moisturizers, and
 vitamins/supplements. Settings offers **Evidence-based** (default), **Minimal ingredients**, and
 **Preference-focused** styles, plus an independent switch for these categories. Food scores keep
-their existing rules. Missing label evidence stays unavailable. See [the rubric and sources](docs/PERSONAL-CARE.md).
+their existing rules. An index is shown like a food score (the same bands and colours, captioned with its
+category and style). A label that cannot be read stays unavailable, not given a guessed score; one that shows
+none of its category's function is rated and charged for it. See [the rubric and sources](docs/PERSONAL-CARE.md).
 
 ## At a glance
 
