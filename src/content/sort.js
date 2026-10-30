@@ -284,10 +284,12 @@
   // not inside another such element. This used to also demand an `h2 a` link or Amazon's image
   // link; current Amazon cards put the h2 INSIDE the link (and grocery / Whole Foods cards may have
   // neither), so on those pages no card qualified and the side panel stayed empty.
-  // Grocery storefronts can use linked text or h3 instead of the standard h2 title.
-  const TITLE_SEL = 'h2, h3, [data-cy="title-recipe"], [data-testid="product-title"], [data-test-id="product-title"], a[href*="/dp/"] .a-text-normal, a[href*="/gp/product/"] .a-text-normal, a[href*="/dp/"] .a-size-base-plus';
+  // Grocery storefronts can use linked text or h3 instead of the standard h2 title. Which element is the
+  // title is decided once, in search.js (listingTitle), so the badge on the page and the name in the side
+  // panel can never come from different elements: the first heading in a grocery tile can be the hidden
+  // "Quantity not updated" alert of its add-to-cart control.
   const ASIN = /^[A-Z0-9]{10}$/;
-  const isCard = card => !!(card.dataset && ASIN.test(card.dataset.asin || '') && card.querySelector(TITLE_SEL));
+  const isCard = card => !!(card.dataset && ASIN.test(card.dataset.asin || '') && S().listingTitle(card));
   function productCardsIn(doc) {
     const slot = doc.querySelector('.s-main-slot, [data-component-type="s-search-results"] .s-result-list') || doc;
     let cards = [...slot.querySelectorAll(CARD + ', [data-asin]')].filter(isCard);
@@ -337,8 +339,7 @@
     // Our own score badge sits at the start of the title (search.js paintBadge); it is not the title.
     const badge = (card.querySelector('.air-badge')?.textContent || '').trim();
     const withoutBadge = s => (badge && s.startsWith(badge) ? s.slice(badge.length) : s).trim();
-    const titleNode = card.querySelector('h2 a.a-text-normal') || card.querySelector('h2 a') || card.querySelector('h2')
-      || card.querySelector(TITLE_SEL);
+    const titleNode = S().listingTitle(card);
     const linkNode = card.querySelector('h2 a')
       || [...card.querySelectorAll('a[href]')].find(a => /\/(?:dp|gp\/product)\/[A-Z0-9]{10}/.test(a.getAttribute('href') || ''))
       || card.querySelector('a.a-link-normal.s-no-outline');
@@ -544,8 +545,41 @@
     return publishing;
   }
 
+  // Amazon can change the address first and show the new search's results later (a soft navigation swaps
+  // the list in a moment after history.pushState; a grocery page can fill its grid after load). Reading
+  // the cards the instant the address changed gave the side panel an empty list ("No Amazon product cards
+  // were found") or the previous search's listings under the new search. So when there is nothing to read,
+  // or what is there is exactly what the last list was made from while the search in the address has changed, wait for
+  // the cards to arrive and stop changing; when the page has what it needs, read it at once. After
+  // READY_TIMEOUT_MS whatever is there is used: a new search can really return the same listings.
+  const READY_POLL_MS = 250;
+  const READY_TIMEOUT_MS = 6000;
+  let lastRead = { search: '', sig: '' };
+  const signature = cards => cards.map(card => card.dataset.asin).join(',');
+  // The parts of the address that decide the results; Amazon appends tracking parameters (crid, sprefix, ref…)
+  // to the same search, and that is not a new search to wait for.
+  const SEARCH_PARAMS = ['k', 'i', 'rh', 'node', 's', 'page', 'srs', 'bbn', 'low-price', 'high-price', 'field-keywords'];
+  const searchOf = href => {
+    try { const u = new URL(href); return [u.pathname, ...SEARCH_PARAMS.map(name => u.searchParams.get(name) || '')].join('|'); } catch (e) { return String(href); }
+  };
+  async function listingsReady(token) {
+    const deadline = Date.now() + READY_TIMEOUT_MS;
+    let waited = false, previous = null;
+    while (token === run) {
+      const sig = signature(productCardsIn(document));
+      const stale = !sig || (!!lastRead.search && lastRead.search !== searchOf(location.href) && sig === lastRead.sig);
+      if (stale) waited = true;
+      else if (!waited || sig === previous) return;
+      else previous = sig;
+      if (Date.now() >= deadline) return;
+      await sleep(READY_POLL_MS);
+    }
+  }
+
   async function collect(token) {
     const settings = await getSettings();
+    await listingsReady(token);
+    if (token !== run) return;
     const pricesOnly = priceOnly;
     const { state } = P();
     const products = new Map();
@@ -555,7 +589,9 @@
     const timeUp = () => settings.sortTimeLimit > 0 && Date.now() - startedAt >= settings.sortTimeLimit * 1000;
     const timeMessage = () => t('sortTimeLimit', 'Stopped after $1 seconds, the time limit for building this list.', settings.sortTimeLimit);
     let stopped = '';
-    for (const card of productCardsIn(document)) add(extractProduct(card, 1, settings));
+    const cards = productCardsIn(document);
+    lastRead = { search: searchOf(location.href), sig: signature(cards) };
+    for (const card of cards) add(extractProduct(card, 1, settings));
     const scores = new Map();
     const list = () => [...products.values()].map(p => ({ ...p, ...(scores.get(p.asin) || { score: null, verdict: '', source: 'unrated' }) }));
     const noScore = () => [...products.values()].map(p => p.asin).filter(a => a && !scores.has(a));

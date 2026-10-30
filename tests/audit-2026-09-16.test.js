@@ -221,11 +221,12 @@ test('the paste box does not take focus when the failure card mounts', () => {
 
 test('hover and auto-score arm only on results pages', () => {
   const arm = (pathname, search) => {
+    const title = { innerText: 'Organic Rolled Oats', textContent: 'Organic Rolled Oats', closest: () => null };
     const tiles = [0, 1, 2].map(i => ({
       _attrs: { 'data-asin': 'B0' + String(i).padStart(8, '0') }, isConnected: true,
       getAttribute(k) { return this._attrs[k] ?? null; }, setAttribute(k, v) { this._attrs[k] = String(v); },
       hasAttribute(k) { return k in this._attrs; }, removeAttribute(k) { delete this._attrs[k]; },
-      addEventListener() {}, querySelector: () => ({ innerText: 'Organic Rolled Oats' }), querySelectorAll: () => [],
+      addEventListener() {}, querySelector: () => title, querySelectorAll: () => [title],
     }));
     const noop = () => {};
     const el = () => ({ appendChild: noop, insertBefore: noop, remove: noop, dataset: {}, isConnected: true, setAttribute: noop, style: {}, querySelector: () => null });

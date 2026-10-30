@@ -340,6 +340,9 @@ chrome.runtime.onConnect?.addListener(port => {
     if (list?.sourceTabId !== undefined) chrome.tabs.sendMessage(list.sourceTabId,{type:'sortFollow'}).catch(()=>{});
   }).catch(()=>{});
 });
+function sameOrigin(a, b) {
+  try { return new URL(String(a || '')).origin === new URL(String(b || '')).origin; } catch (e) { return false; }
+}
 let sortedFollowChain = Promise.resolve();
 function followSortedSearch(msg, sender) {
   const task = sortedFollowChain.catch(() => {}).then(() => followSortedSearchOnce(msg, sender));
@@ -350,7 +353,11 @@ async function followSortedSearchOnce(msg, sender) {
   if (!sortedViews.size || conf.enabled === false || conf.sortFollowSearch === false) return {ok:false};
   const url = self.AIR.db.sortedResults.sanitizeSourceUrl(msg.sourceUrl);
   const tab = chrome.tabs?.get ? await chrome.tabs.get(sender.tab?.id) : sender.tab;
-  if (!url || !isAmazonSearchUrl(url) || tab?.id !== sender.tab?.id || tab.url !== url || sender.url !== url || sender.frameId !== 0) return {ok:false};
+  // `sender.url` is the address the frame loaded with. Amazon starts some searches without a page load
+  // (history.pushState), and then it still names the previous search while the tab and the page itself
+  // name the new one, so every follow was refused. The tab's address is the one to match; the sender
+  // only has to be the top frame of that tab on the same Amazon origin.
+  if (!url || !isAmazonSearchUrl(url) || tab?.id !== sender.tab?.id || tab.url !== url || !sameOrigin(sender.url, url) || sender.frameId !== 0) return {ok:false};
   const {sortedResults:list} = await chrome.storage.session.get('sortedResults');
   if (!sortedViews.size || !list || list.sourceTabId !== tab.id || (list.sourceUrl === url && !!list.priceOnly === (msg.priceOnly === true))) return {ok:false};
   const runId = crypto.randomUUID();

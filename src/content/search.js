@@ -25,7 +25,25 @@
   // renders its title later is picked up by the next pass, since nothing marks it until then.
   // Grocery storefronts can use linked text or h3 instead of the standard h2 title.
   const TITLE_SEL = 'h2, h3, [data-cy="title-recipe"], [data-testid="product-title"], [data-test-id="product-title"], a[href*="/dp/"] .a-text-normal, a[href*="/gp/product/"] .a-text-normal, a[href*="/dp/"] .a-size-base-plus';
-  const badgeable = tile => !!tile.querySelector(TITLE_SEL);
+  // The first heading in a grocery tile is not always its title: the add-to-cart control in the image
+  // carries a hidden error heading ("Quantity not updated") ahead of the title in document order. Taking
+  // the first match painted every badge into that hidden heading (no badge on the page) and named every
+  // listing "Quantity not updated" in the side panel. Controls, alerts and anything Amazon hides are
+  // skipped; on the live page, so is a heading with no box (a stylesheet can hide what no class names).
+  // A page parsed with DOMParser has no layout, so there only the markup decides.
+  const NOT_A_TITLE = '[hidden], [role="alert"], [role="status"], [aria-live], .aok-hidden, .a-hidden, .a-alert, .a-alert-inline, '
+    + '.a-alert-container, [class*="a-alert-"], button, [role="button"], [role="dialog"], [class*="atcb"], [class*="quantity" i]';
+  const NOT_A_TITLE_TEXT = /^(?:quantity\b|qty\b|add(?:ed)? to\b|sponsored$)/i;
+  function listingTitle(tile) {
+    const named = [...tile.querySelectorAll(TITLE_SEL)].filter(el => !NOT_A_TITLE_TEXT.test((el.textContent || '').trim()));
+    // Inside a control or alert that is part of the tile (the tile itself may carry such a class).
+    const plain = named.filter(el => { const control = el.closest(NOT_A_TITLE); return !(control && control !== tile && tile.contains(control)); });
+    const live = !!(tile.ownerDocument && tile.ownerDocument.defaultView);
+    const shown = el => !live || el.getClientRects().length > 0;
+    // A visible plain heading first; failing that, whatever is visible, so an unexpected wrapper never costs the badge.
+    return plain.find(shown) || named.find(shown) || plain[0] || named[0] || null;
+  }
+  const badgeable = tile => !!listingTitle(tile);
 
   const searchGate = { url: null, decision: null };
   // One queue for every Amazon product-page request this tab makes: the badges (below) and the sorted
@@ -215,7 +233,7 @@
   function paintBadge(tile, hit) {
     tileIdentities.set(tile, tile.getAttribute('data-asin'));
     ensureBadgeStyle();
-    const titleEl = tile.querySelector(TITLE_SEL);
+    const titleEl = listingTitle(tile);
     if (!titleEl) return null;
     let b = tile.querySelector('.air-badge');
     if (!b) {
@@ -417,7 +435,7 @@
   }
 
   function tileTitle(tile) {
-    const el = tile.querySelector(TITLE_SEL);
+    const el = listingTitle(tile);
     return ((el && (el.innerText || el.textContent)) || '').replace(/\s+/g, ' ').trim();
   }
 
@@ -681,7 +699,7 @@
     searchAllowed, resetSearchGate, standDown, badgeSearchResults,
     armHoverPass, armAutoScorePass, enqueue, scoreTile, cancelTileWork, resolveTiles,
     pauseForThrottle, clearBadges, paintBadge, AUTO_NOTICE_ID, AUTO_NOTICE_SEEN,
-    readProductHtml, recordReading,
+    readProductHtml, recordReading, TITLE_SEL, listingTitle,
   };
   root.AIR.search = search;
   if (typeof module !== 'undefined' && module.exports) module.exports = search;

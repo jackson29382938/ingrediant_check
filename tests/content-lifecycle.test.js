@@ -12,9 +12,10 @@ function setup() {
   const changed = (...args) => storageListeners.forEach(fn => fn(...args));
   let pasted, failMeta;
   let host = { dataset: {}, isConnected: true, remove() { this.isConnected = false; } };
-  const title = { innerText: 'Organic oats', insertBefore(b) { badges.push(b); } };
+  const title = { innerText: 'Organic oats', textContent: 'Organic oats', closest: () => null, insertBefore(b) { badges.push(b); } };
   const tile = { isConnected: true, getAttribute: () => 'B000000001',
-    querySelector: s => s === '.air-badge' ? badges[0] : title };
+    querySelector: s => s === '.air-badge' ? badges[0] : title,
+    querySelectorAll: s => s === '.air-badge' ? [...badges] : [title] };
   const bodyKids = [];
   const body = {
     tagName: 'BODY',
@@ -197,9 +198,10 @@ test('tile fetch failures stay in seen and pause auto-score after N 403s', async
   const href = w.context.location.href;
   for (let i = 0; i < limit; i++) {
     const asin = `B00000000${i}`;
-    const title = { innerText: 'Oats', insertBefore(b) { w.badges.push(b); } };
+    const title = { innerText: 'Oats', textContent: 'Oats', closest: () => null, insertBefore(b) { w.badges.push(b); } };
     const tile = { isConnected: true, getAttribute: () => asin,
-      querySelector: s => s === '.air-badge' ? w.badges.find(b => b._asin === asin) : title };
+      querySelector: s => s === '.air-badge' ? w.badges.find(b => b._asin === asin) : title,
+      querySelectorAll: s => s === '.air-badge' ? w.badges.filter(b => b._asin === asin) : [title] };
     w.h.queue.seen.add(asin);
     const request = w.h.scoreTile(tile, asin, w.h.queue.epoch, href);
     assert.equal(w.fetches.length, i + 1);
@@ -210,7 +212,7 @@ test('tile fetch failures stay in seen and pause auto-score after N 403s', async
   assert.equal(w.h.queue.throttled, true);
   assert.ok(w.notices.some(n => n.id === 'air-throttle-notice' && n.isConnected));
   const extra = { isConnected: true, getAttribute: () => 'B000000099',
-    querySelector: () => null };
+    querySelector: () => null, querySelectorAll: () => [] };
   w.h.enqueue(extra, 'B000000099');
   assert.equal(w.h.queue.pending.length, 0);
   assert.equal(w.fetches.length, limit);
@@ -300,8 +302,9 @@ const cachedRow = (asin, over = {}) => PC.fromScan({ store: 'amazon.com', asin, 
   via: 'nic-ingredients-content', t: Date.now() - 1000, ...over });
 const tileFor = (w, asin) => {
   const own = [];
-  const title = { innerText: 'Oats', insertBefore(b) { own.push(b); w.badges.push(b); } };
-  return { isConnected: true, getAttribute: () => asin, querySelector: s => (s === '.air-badge' ? own[0] : title) };
+  const title = { innerText: 'Oats', textContent: 'Oats', closest: () => null, insertBefore(b) { own.push(b); w.badges.push(b); } };
+  return { isConnected: true, getAttribute: () => asin, querySelector: s => (s === '.air-badge' ? own[0] : title),
+    querySelectorAll: s => (s === '.air-badge' ? own.slice(0, 1) : [title]) };
 };
 
 test('a tile answered by product data on this computer needs no lookup and no Amazon fetch', () => {
@@ -485,8 +488,9 @@ test('carousel cards with no title are never armed for auto-score', () => {
   const observed = [];
   c.IntersectionObserver = class { observe(t) { observed.push(t.getAttribute('data-asin')); } disconnect() {} unobserve() {} };
   const attrs = () => { const a = {}; return { getAttribute: k => (k === 'data-asin' ? a.asin : a[k] ?? null), setAttribute: (k, v) => { a[k] = v; }, a }; };
-  const titled = attrs(); titled.a.asin = 'B000000010'; titled.querySelector = s => (/h2/.test(s) ? {} : null);
-  const card = attrs(); card.a.asin = 'B000000011'; card.querySelector = () => null;
+  const heading = { textContent: '', closest: () => null };
+  const titled = attrs(); titled.a.asin = 'B000000010'; titled.querySelector = s => (/h2/.test(s) ? heading : null); titled.querySelectorAll = s => (/h2/.test(s) ? [heading] : []);
+  const card = attrs(); card.a.asin = 'B000000011'; card.querySelector = () => null; card.querySelectorAll = () => [];
   c.document.querySelectorAll = sel => (/data-air-auto/.test(sel) ? [titled, card] : []);
   c.AIR.search.armAutoScorePass();
   assert.deepEqual(observed, ['B000000010']);

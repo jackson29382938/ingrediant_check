@@ -786,6 +786,23 @@ test('search following requires an open view, enabled preference and the origina
   const list=w.call('self.__session.sortedResults');assert.equal(list.sourceUrl,url);assert.equal(list.items.length,0);assert.equal(list.mode,'unitPrice');assert.equal(list.priceOnly,true);
 });
 
+// Amazon starts some searches with history.pushState. The sender's url is then still the address the page loaded
+// with, while the tab and the page itself name the new search; refusing on that mismatch left the panel on the old search.
+test('search following works after a search that did not load a page, and still refuses another origin or frame', async () => {
+  const loaded='https://www.amazon.com/s?k=watermelon&i=grocery',next='https://www.amazon.com/s?k=cantaloupe&i=grocery';
+  const w=worker({});
+  w.call(`self.__session={sortedResults:{runId:'old',sourceTabId:3,sourceUrl:'${loaded}',mode:'health',items:[{score:90}],loading:false}};chrome.storage.session={get:async()=>self.__session,set:async v=>Object.assign(self.__session,v)};sortedViews.add({})`);
+  const follow=sender=>w.call(`followSortedSearch({sourceUrl:'${next}'},${JSON.stringify(sender)})`);
+  const soft={id:'ext',frameId:0,url:loaded,tab:{id:3,url:next}};
+  assert.equal((await follow({...soft,url:'https://evil.example/s?k=cantaloupe',tab:{id:3,url:next}})).ok,false,'another origin');
+  assert.equal((await follow({...soft,frameId:2})).ok,false,'a sub-frame');
+  assert.equal((await follow({...soft,tab:{id:3,url:loaded}})).ok,false,'the tab is not on the new search');
+  const reply=await follow(soft);
+  assert.equal(reply.ok,true,'the sender url is the address the page loaded with');
+  assert.equal(w.call('self.__session.sortedResults.sourceUrl'),next);
+  assert.equal(w.call('self.__session.sortedResults.items.length'),0);
+});
+
 // ---------------------------------------------------------------- replies, trail, sweep, history import
 
 // Values built inside the worker's VM carry its prototypes; compare them as data.

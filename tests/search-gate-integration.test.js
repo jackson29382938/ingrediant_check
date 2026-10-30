@@ -10,6 +10,7 @@ const assert = require('assert');
 const { loadAmazonContentScripts } = require('./content-scripts.js');
 
 function makeEl(tag, attrs = {}, text = '') {
+  const title = { innerText: text, textContent: text, closest: () => null };
   const el = {
     tagName: tag, _attrs: { ...attrs }, _kids: [], innerText: text, textContent: text,
     isConnected: true, style: {}, classList: { add() {}, toggle() { return true; }, remove() {} },
@@ -21,8 +22,8 @@ function makeEl(tag, attrs = {}, text = '') {
     insertBefore(n) { el._kids.push(n); return n; },
     appendChild(n) { el._kids.push(n); return n; },
     get firstChild() { return el._kids[0] || null; },
-    querySelector: sel => (/h2/.test(sel) ? { innerText: text } : null),
-    querySelectorAll: () => [], closest: () => null, ownerDocument: null,
+    querySelector: sel => (/h2/.test(sel) ? title : null),
+    querySelectorAll: sel => (/h2/.test(sel) ? [title] : []), closest: () => null, ownerDocument: null,
   };
   return el;
 }
