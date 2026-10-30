@@ -2222,5 +2222,14 @@
   },
   "compareSourcing": {
     "message": "Herkunftsbeiträge"
+  },
+  "cartReadingPhoto": {
+    "message": "Etikettenfoto wird gelesen…"
+  },
+  "cartReadingBarcode": {
+    "message": "Barcode wird gesucht…"
+  },
+  "cartLabelBlocked": {
+    "message": "Der Händler hat die öffentliche Etikettenanfrage blockiert. Öffne das Produkt, um das Etikett zu lesen."
   }
 }

@@ -18,6 +18,7 @@ import { ordersEndToEnd } from './orders-harness.mjs';
 import { shoppingEndToEnd } from './shopping-harness.mjs';
 import { bottomFiveEndToEnd } from './bottom-five-harness.mjs';
 import { cartEndToEnd, amazonCartEndToEnd } from './cart-harness.mjs';
+import { cartLabelRecoveryEndToEnd } from './cart-label-recovery-harness.mjs';
 import { numbersOpenTheProduct, ratingBesideTheLink } from './badge-harness.mjs';
 
 const require = createRequire(import.meta.url);
@@ -396,7 +397,7 @@ async function run() {
       const items = run.final.items;
       const by = Object.fromEntries(items.map(r => [r.asin, r]));
       const near = (a, b) => a != null && Math.abs(a - b) < 0.001;
-      if (items.length !== 8 || by.B0SORT0003.title !== 'Organic rolled oats, 32 oz' || by.B0SORT0003.score !== 90
+      if (items.length !== 8 || by.B0SORT0003.title !== 'Organic rolled oats, 32 oz' || by.B0SORT0003.score !== 98
         || !near(by.B0SORT0003.unitPrice, 0.18) || by.B0SORT0003.unitSource !== 'amazon' || by.B0SORT0003.ratingValue !== 4.7
         || by.B0SORT0003.reviewCount !== 12345 || !/1K\+ bought/.test(by.B0SORT0003.bought) || by.B0SORT0003.listingPrice !== 6.29
         || !near(by.B0SORT0008.unitPrice, 7.99 / 88) || !near(by.B0SORT0006.unitPrice, 5.49 / 32) || by.B0SORT0004.unitPrice !== null
@@ -488,7 +489,7 @@ async function run() {
           sendMessage: (id, m) => { window.__calls.push(['tabs.sendMessage', id, m.type]); },
         },
         sidePanel: { open: o => { window.__calls.push(['sidePanel.open', o.windowId]); return Promise.resolve(); } },
-        storage: { onChanged: { addListener() {} }, session: {
+        storage: { onChanged: { addListener() {} }, local: { get: () => Promise.resolve({}) }, session: {
           get: () => Promise.resolve(JSON.parse(JSON.stringify(sessionData))),
           set: v => { window.__calls.push(['session.set', Object.keys(v).join()]); return Promise.resolve(); },
         } },
@@ -534,12 +535,12 @@ async function run() {
       await listPage.waitForTimeout(300);
       const popGone = await listPage.evaluate(() => !document.querySelector('.why-pop'));
       if (shape) await listPage.setViewportSize(shape);
-      if (whyView.summary !== 'Why it scored 90' || !whyView.rows.some(r => /^\+\d+.*organic/i.test(r)) || !/not kept/.test(whyView.bare)
-        || whyView.listingDetails || !/Why it scored 90/.test(popText) || !/organic/i.test(popText) || !popStays || !popGone) {
+      if (whyView.summary !== 'Why it scored 98' || !whyView.rows.some(r => /^\+\d+.*organic/i.test(r)) || !/not kept/.test(whyView.bare)
+        || whyView.listingDetails || !/Why it scored 98/.test(popText) || !/organic/i.test(popText) || !popStays || !popGone) {
         throw new Error(`why it scored: ${JSON.stringify({ ...whyView, popText, popStays, popGone })}`);
       }
       const health = await read();
-      if (health.chips.join() !== '99,95,90,72,40,40,–,–,–' || health.unsafe || health.evilImg || health.title !== 'Healthiest first'
+      if (health.chips.join() !== '99,98,95,72,40,40,–,–,–' || health.unsafe || health.evilImg || health.title !== 'Healthiest first'
         || health.buttons.join('|') !== 'Back to Amazon search|Open side panel|Settings') {
         throw new Error(`list (health): ${JSON.stringify(health)}`);
       }
@@ -1027,6 +1028,7 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
     await retailerEndToEnd(context, worker, pageErrors);
     await cartEndToEnd(context, worker, pageErrors, root);
     await amazonCartEndToEnd(context, worker, pageErrors, root);
+    await cartLabelRecoveryEndToEnd(context, worker, pageErrors);
     await recallEndToEnd(context, worker, pageErrors, root);
     await historyScanEndToEnd(context, worker, pageErrors, id);
     await ordersEndToEnd(context, worker, pageErrors);

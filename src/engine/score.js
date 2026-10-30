@@ -94,7 +94,7 @@ const DENIAL_SUFFIX_ENTRY = /^[a-z][a-z0-9 '&-]{0,28}[- ]free$/i;
 const LOCAL_DENIAL_HEAD = /^(?:sans|sin|senza|ohne|zonder|utan|bez|sem|geen|ingen|kein(?:e[nr]?)?|aucun(?:e|s)?|ne contient (?:pas|aucun)(?: de| d['’])?|enth[äa]lt kein(?:e[nr]?)?|no contiene|non contiene|n[ãa]o cont[ée]m|bevat geen|inneh[åa]ller (?:inga|ej|inte)|nie zawiera)(?![a-zß-ÿ\u0100-\u017f])/i;
 const LOCAL_DENIAL_SUFFIX = /^[a-zß-ÿ\u0100-\u017f][a-zß-ÿ\u0100-\u017f '-]{0,40}\s(?:i[çc]ermez|yoktur|kullan[ıi]lmam[ıi][şs]t[ıi]r|eklenmemi[şs]tir)$|^[a-zäöüßåæø]{3,28}(?:frei|vrij|fri)$/i;
 // "(non hydrogenated)" is a claim about the oil beside it, in any language.
-const CLAIM_ENTRY = /^(?:non[- ]?gmo|gmo[- ]free|all[- ]natural|kosher|halal|certified [a-z ]+|(?:first )?cold[- ]press(?:ed|ing)?|first press(?:ed|ing)?|extra virgin|unrefined|non[- ]?hydrogenated|unhydrogenated|non[- ]hydrog[ée]n[ée]e?s?|nicht geh[äa]rtet(?:e[snmr]?)?|no hidrogenad[oa]s?|n[ãa]o hidrogenad[oa]s?|non idrogenat[oaie]|niet gehydrogeneerde?|ej h[äa]rdad|oh[äa]rdad|nieuwodorniony|nie uwodorniony|hidrojenize olmayan)$/i;
+const CLAIM_ENTRY = /^(?:non[- ]?gmo|gmo[- ]free|all[- ]natural|kosher|halal|certified (?:(?:usda |eu )?organic|non[- ]?gmo(?: project verified)?|kosher|halal|vegan|gluten[- ]free|fair[- ]trade|biodynamic)|(?:first )?cold[- ]press(?:ed|ing)?|first press(?:ed|ing)?|extra virgin|unrefined|non[- ]?hydrogenated|unhydrogenated|non[- ]hydrog[ée]n[ée]e?s?|nicht geh[äa]rtet(?:e[snmr]?)?|no hidrogenad[oa]s?|n[ãa]o hidrogenad[oa]s?|non idrogenat[oaie]|niet gehydrogeneerde?|ej h[äa]rdad|oh[äa]rdad|nieuwodorniony|nie uwodorniony|hidrojenize olmayan)$/i;
 
 // True when the whole entry is a claim and carries no ingredient worth scoring.
 // CAPS is defined below; this only ever runs from score(), by which point it exists.
@@ -451,6 +451,10 @@ function repeatedAllergenBrackets(entries) {
     const child = list[0];
     if (child.ing.split(' ').length > 3 || kids.has(child.fam)) continue;
     if (child.ing === parent.ing) { out.push(child); continue; }
+    // A published Latin identity is the same ingredient, not a second recipe component.
+    // Only known name pairs collapse; an unfamiliar child still lowers coverage.
+    const botanical = [['punica granatum', /\bpomegranates?\b/], ['ziziphus jujuba', /\b(?:jujubes?|(?:red|chinese) dates?)\b/], ['citrullus lanatus', /\bwatermelons?\b/]];
+    if (botanical.some(([name, food]) => child.ing === name && food.test(parent.ing))) { out.push(child); continue; }
     const mine = ids(child.ing);
     if (!mine.length) continue;
     const theirs = new Set(ids(parent.ing));
@@ -691,7 +695,7 @@ function withoutOrganic(ing) {
   // A claim or a note is read whole ("certified organic", "*ingrédients biologiques").
   if (CLAIM_ENTRY.test(ing) || LABEL_NOTE.test(ing) || MAY_CONTAIN.test(ing)) return null;
   // German and Dutch also fuse it ("Biohafer", "Biomaïs"); words that merely start with "bio" stay.
-  const bare = ing.replace(ORGANIC_EDGE, '').replace(BIO_FUSED, '').trim();
+  const bare = ing.replace(/^certified\s+(?:usda\s+)?(?=organic\s+\S)/i, '').replace(ORGANIC_EDGE, '').replace(BIO_FUSED, '').trim();
   return bare !== ing && bare.length > 1 ? bare : null;
 }
 

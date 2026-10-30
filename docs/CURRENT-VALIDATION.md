@@ -1,6 +1,10 @@
 # Current validation
 
-The current source is **1.19.0**. See [the feature integration and verification record](FEATURE-INTEGRATION-2026-10-30.md)
+The current source is **1.19.1**. See [the cart label recovery record](CART-LABEL-RECOVERY-2026-10-30.md)
+and [1.19.1 release notes](releases/1.19.1.md) for four independently located public Amazon labels,
+parser/dictionary fixes, saved-label recovery and optional cart barcode/photo fallbacks.
+
+The **1.19.0** baseline is documented in [the feature integration and verification record](FEATURE-INTEGRATION-2026-10-30.md)
 and [release notes](releases/1.19.0.md) for Orders scores independent of history saving, the compact
 history overview, evidence summaries, comparisons, filters, standalone label checking and local
 shortlists. Both browser packages are prepared; browser-store publication and Mozilla signing

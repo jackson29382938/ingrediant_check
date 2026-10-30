@@ -54,7 +54,11 @@ read that label. Pasted lists and "Score anyway" overrides never leave the tab.
 
 An Amazon cart line records its reading the same way, on this computer only (never queued for upload), so the
 number in the cart can say why it scored what it did; a line scored before that was kept says to open the
-product instead, as a saved search score does. Other stores keep scores only.
+product instead, as a saved search score does. Other stores keep scores only. Carts recalculate fresh
+saved public label inputs before requesting a product page, respecting cache-first and source settings.
+Saving a usable label in another tab can restore a failed cart badge without reloading. Unreadable
+public Amazon pages can use enabled barcode and local photo readers, with the existing permissions;
+their source is retained. No fallback recipe is inferred from the product title.
 
 ## Trust
 

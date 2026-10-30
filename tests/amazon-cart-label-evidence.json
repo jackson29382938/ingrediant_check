@@ -1,0 +1,41 @@
+{
+  "scope": "Public signed-out Amazon product pages; no cart/account records or title-inferred recipes.",
+  "records": [
+    {
+      "asin": "B083318PX6",
+      "sourceUrl": "https://www.amazon.com/dp/B083318PX6",
+      "captured": "2026-10-30",
+      "evidence": "live-retailer-capture",
+      "responseSha256": "b39b182027eff25609caadd881741da2cfc9d834cdbb5a1d09852cd81dd7a032",
+      "title": "Amazon Grocery, Cut Watermelon, 32 Oz",
+      "ingredients": "Watermelon"
+    },
+    {
+      "asin": "B001TNW23U",
+      "sourceUrl": "https://www.amazon.com/dp/B001TNW23U",
+      "captured": "2026-10-30",
+      "evidence": "live-retailer-capture",
+      "responseSha256": "e06e16fa3e026166f96680ae21fb045ee33dfd4d69aec9433a9566ae38f59b26",
+      "title": "Navitas Organics Pomegranate Powder – Organic Juice Powder - For Smoothies, Desserts, Dips & More – Antioxidant Support - USDA Organic, Non GMO, Kosher, Gluten Free, Vegan (8oz. Bag, 45 Servings)",
+      "ingredients": "CERTIFIED ORGANIC POMEGRANATE POWDER (PUNICA GRANATUM)."
+    },
+    {
+      "asin": "B07X2643L7",
+      "sourceUrl": "https://www.amazon.com/dp/B07X2643L7",
+      "captured": "2026-10-30",
+      "evidence": "live-retailer-capture",
+      "responseSha256": "6e9643344786d6d2ba271155747af088817090284645bfaceeab07243a456558",
+      "title": "Amazon Grocery, Original Sandwich Cookies, 14.3 Oz (Previously Happy Belly, Packaging May Vary)",
+      "ingredients": "ENRICHED WHEAT FLOUR (WHEAT FLOUR, NIACIN, REDUCED IRON, THIAMIN MONONITRATE, RIBOFLAVIN, FOLIC ACID), SUGAR, VEGETABLE OIL (PLAM AND CANOLA OIL), COCOA (PROCESSED WITH ALKALI), HIGH FRUCTOSE CORN SYRUP, CONTAINS 2% OR LESS OF: LEAVENING (BAKING SODA, CALCIUM PHOSPHATE), SALT, CHOCOLATE, SOY LECITHIN, ARTIFICIAL FLAVOR. <br/><br/> CONTAINS: WHEAT, SOY <br/><br/> MAY CONTAIN: PEANUTS"
+    },
+    {
+      "asin": "B0GK1PMRFD",
+      "sourceUrl": "https://www.amazon.com/dp/B0GK1PMRFD",
+      "captured": "2026-10-30",
+      "evidence": "live-retailer-capture",
+      "responseSha256": "07a5efb6e24d71f3793ae4c0c95a5f883b25e2918b0254fdd9bd5f1eebecfefc",
+      "title": "Zorrer Premium Jujube Dates, 16 oz, Red Dates, Sun-Dried, No Added Sugar",
+      "ingredients": "Jujubes"
+    }
+  ]
+}

@@ -31,6 +31,16 @@ Every corpus entry declares `lang` and `evidence`:
 
 Three English live captures include Amazon US kefir, Amazon UK granola and Target oats, with public source URLs in the corpus. Every non-English entry remains `synthetic`.
 
+## Additional Amazon label evidence — October 30, 2026
+
+[Four verbatim public Amazon ingredient fields](../tests/amazon-cart-label-evidence.json) cover
+cut watermelon, Zorrer jujube dates, Navitas pomegranate powder and Original Sandwich Cookies.
+Each records its exact product ID, source URL, capture date and response SHA256. All four pages
+published ingredients despite the reported unavailable cart badges. Parser/dictionary fixes and
+a real extension replay restore their scores, including the cookie allergen warnings. These
+records are separate from the corpus table above. See [causes and verification](CART-LABEL-RECOVERY-2026-10-30.md)
+for the distinction between live public captures and controlled browser replay.
+
 ## Additional public database label evidence — October 18, 2026
 
 `tests/public-label-evidence.json` adds **seven actual public Open Food Facts responses** in English

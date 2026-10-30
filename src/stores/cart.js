@@ -50,7 +50,9 @@
         // is false for a robot-check page, which has no product title and is not an answer about the product.
         return { id: data.asin || id, title: data.title || '', ingredients: data.ok ? data.text || data.ingredients || '' : '',
           nutrition: data.nutrition, supplementFacts: data.supplementFacts, advisoryText: data.advisoryText, labels: data.labels, certifications: data.certifications,
-          via: data.via, confidence: data.confidence, food: data.ingestible, real: !!doc.querySelector('#productTitle'), crumbs: [] };
+          via: data.via, confidence: data.confidence, upc: data.upc,
+          imageUrls: A.db.ocrText?.imageCandidates(doc) || [], identityMatches: data.reason !== 'product-identity-mismatch',
+          food: data.ingestible, real: !!doc.querySelector('#productTitle'), crumbs: [] };
       } };
   }
   // On screen? A real page has layout, so ask the browser; a saved page has none, so read the inline style.

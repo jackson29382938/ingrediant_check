@@ -2222,5 +2222,14 @@
   },
   "compareSourcing": {
     "message": "Sourcing contributions"
+  },
+  "cartReadingPhoto": {
+    "message": "Reading label photo…"
+  },
+  "cartReadingBarcode": {
+    "message": "Looking up barcode…"
+  },
+  "cartLabelBlocked": {
+    "message": "The store blocked the public label request. Open the product to read its label."
   }
 }

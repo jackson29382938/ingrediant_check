@@ -78,7 +78,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     /^(organic |raw )*(honey|maple syrup)$/i,
     /^(organic |raw |dry[- ]roasted |roasted |unsalted |salted |whole |shelled |blanched |sliced |slivered |flaked |chopped |ground |halved )*(almonds?|walnuts?|pecans?|pecan nuts?|macadamias?|macadamia nuts?|pistachios?|pistachio nuts?|pistachio kernels?|cashews?|cashew nuts?|cashew kernels?|hazelnuts?|hazelnut kernels?|peanuts?|peanut kernels?|pine nuts?|brazil nuts?|(?:pumpkin|sunflower|chia|flax|hemp|sesame) ?seeds?|flaxseed)$/i,
     /^(organic |dried |cooked )*(lentils?|chickpeas?|(?:black|kidney|pinto|navy|cannellini|garbanzo|white|red) beans?|split peas|edamame)$/i,
-    /^(organic )?(?:(?:dried|freeze[- ]dried|frozen|fresh|chopped|pitted|sliced) )*(apples?|bananas?|berries|blueberries|strawberries|raspberries|cherries|oranges?|(?:(?:medjool|deglet noor) )?dates?|figs?|raisins?|sultanas|apricots?|prunes?|mangos?|mangoes|cranberries)$/i,
+    /^(organic )?(?:(?:dried|sun[- ]dried|freeze[- ]dried|frozen|fresh|cut|chopped|pitted|sliced) )*(watermelons?|jujubes?(?: (?:dates?|fruits?))?|(?:red |chinese )dates?|apples?|bananas?|berries|blueberries|strawberries|raspberries|cherries|oranges?|(?:(?:medjool|deglet noor) )?dates?|figs?|raisins?|sultanas|apricots?|prunes?|mangos?|mangoes|cranberries)$/i,
     // The same fruit in each label language: "dattes, amandes" scored 80 as NOVA 3 where "dates,
     // almonds" scores 94 as NOVA 1.
     new RegExp('^(?:pommes?|manzanas?|mel[ae]|[äa]pfel|appels?|[äa]pplen?|jab[łl]k[ao]|elma|ma[çc][ãa]s?'

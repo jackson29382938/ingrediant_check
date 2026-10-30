@@ -257,7 +257,7 @@ Read the [full privacy policy](docs/PRIVACY.md) for exactly what is stored, fetc
 | Cannot find the right download | Expand **Assets** on the latest release. Choose the browser ZIP, not **Source code**. |
 | Chrome says the manifest is missing | Extract the ZIP first; select the folder that directly contains `manifest.json`. |
 | No ratings after installation or an update | Refresh the shopping tab, check the extension is enabled, and allow access to that store. |
-| “Label unavailable” | Open the product and expand Ingredients/Nutritional Facts. Check label-photo OCR or paste the ingredients. Some labels cannot be read. |
+| “Label unavailable” | Update to 1.19.1 for watermelon, jujube, certified-organic and encoded-label fixes. Amazon carts reuse saved labels and can use enabled barcode/photo readers. Open the product or paste ingredients if its public label still cannot be read. |
 | Firefox disappears after restart | That is expected for a temporary add-on. Permanent installation requires Mozilla signing. |
 | Google reports a redirect URI mismatch | Local scoring still works. The developer must register the exact redirect URL shown in Google backup settings. See [OAuth setup](docs/BROWSERS.md#google-sign-in-and-optional-data-sharing). |
 | Still stuck | [Open an issue](https://github.com/jackson29382938/ingrediant_check/issues) with your browser, extension version, store URL and a redacted screenshot. Leave out account and order details. |

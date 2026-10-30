@@ -34,8 +34,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // 2026-10-28.1 (1.18.1): the three above in one release. See docs/releases/1.18.1.md.
   // 2026-10-30.1 (1.19.0): allergen explanations retain ingredient/declaration/cross-contact evidence.
   // Numeric scoring rules are unchanged.
-  const RULES_REVISION = '2026-10-30.1';
-  const RULES_HASH = '8ff5ef73-271137';
+  // 2026-10-30.2 (1.19.1): watermelon/jujube names, certified-organic ingredients and known botanical aliases.
+  const RULES_REVISION = '2026-10-30.2';
+  const RULES_HASH = '9af5e9d2-271684';
   const _exports = AIRmodule('revision', { RULES_REVISION, RULES_HASH });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 })();

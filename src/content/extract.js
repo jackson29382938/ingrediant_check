@@ -43,7 +43,10 @@
   const NON_INGREDIENT = /\b(product of|distributed by|manufactured (by|for)|keep (refrigerated|frozen|cool)|best (by|before)|use by|sell by|store in|net wt|serving size|calories|made in|packaged? in|packed (in|by)|questions\??|call \d|www\.|http|may contain|contains traces?|not suitable for|facility that also processes)\b/i;
   const ADVISORY = /\b(may contain|contains traces?|not suitable for|facility that also processes|manufactured in a facility|made in a facility)\b/i;
   const splitAdvisory = text => {
-    const lines = String(text || '').split(/(?<=[.!?])\s+(?=[A-Z(*])|;\s*(?=(?:may contain|contains traces?|not suitable for|facility that also processes|manufactured in a facility|made in a facility)\b)|\n+/i);
+    // Amazon's sandwich-cookie label publishes escaped <br/> tags inside its text. If those
+    // breaks stay literal, "MAY CONTAIN" makes the entire recipe look like an advisory.
+    const lines = String(text || '').replace(/(?:<|&lt;|&#0*60;|&#x0*3c;)\s*br\s*\/?\s*(?:>|&gt;|&#0*62;|&#x0*3e;)/gi, '\n')
+      .split(/(?<=[.!?])\s+(?=[A-Z(*])|;\s*(?=(?:may contain|contains traces?|not suitable for|facility that also processes|manufactured in a facility|made in a facility)\b)|\n+/i);
     return { ingredients: lines.filter(line => !ADVISORY.test(line)).join(' ').trim(), advisory: lines.filter(line => ADVISORY.test(line)).join(' ').trim() };
   };
 

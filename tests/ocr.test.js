@@ -95,7 +95,7 @@ check('text with no INGREDIENTS heading yields nothing', () => {
   assert.strictEqual(ocr.ingredientsFromOcr(null), null);
 });
 check('a heading with nothing usable after it yields nothing', () => {
-  assert.strictEqual(ocr.ingredientsFromOcr('INGREDIENTS: MILK'), null);   // under the 8-char floor
+  assert.strictEqual(ocr.ingredientsFromOcr('INGREDIENTS: NOTE'), null);   // short OCR noise, rather than a known single food
 });
 check('a long additive list keeps its tail', () => {
   const items = Array.from({ length: 90 }, (_, i) => `ingredient number ${i} concentrate`);

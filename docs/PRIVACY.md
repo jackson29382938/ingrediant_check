@@ -52,6 +52,14 @@ These previews do not share readings, call barcode/OCR services, or upload produ
 
 Cart rating on all listed stores uses valid saved local scores first. With **Rate search results and cart items** enabled, uncached cart items can request their ordinary public product pages, two at a time and within the speed setting's 20–60 request budget. All cart-triggered requests, including Amazon, omit cookies and the cart-page referrer (`credentials: omit`, `referrerPolicy: no-referrer`). Only a public product ID and, for Instacart, its public retailer slug are sent; cart URL parameters and account data are not forwarded. Cart drawers on already supported product/search pages, and the page Amazon opens right after Add to Cart (`/cart/smart-wagon`), use the same rules. Only the lines of the active cart are read: not saved-for-later items, recommendations or the rest of the page. Missing, blocked and unreadable labels remain unavailable. On Amazon, what a cart read finds (the public label, not the cart) is kept on this computer as for a search result, so a score can say why it scored on hover; it is never shared. No cart contents are uploaded to Google or shared databases. Turning automatic rating off leaves saved-score display available.
 
+On Amazon carts, a missing readable label may use the existing enabled Open Food Facts barcode
+lookup (after optional browser permission) or public product-label images processed by local OCR.
+Only the barcode is sent to Open Food Facts; cart contents are not sent. Fresh saved public label
+inputs can be recalculated locally before a request and can restore a previously unavailable
+score when another tab saves a reading. Turning automatic rating off uses saved readings only.
+Barcode and photo switches also control reuse of those saved sources. Retailer previews do not
+gain these fallbacks.
+
 ## Access to Amazon
 
 When it is installed, the extension asks Chrome for access to the 21 Amazon stores it supports
