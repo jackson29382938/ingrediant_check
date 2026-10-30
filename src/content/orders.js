@@ -11,13 +11,17 @@
     lastScanReport = { type: 'purchaseScanProgress', nonce: state.nonce, pageURL: location.href, items: O.read(document, location).length, ordersOnPage: new Set(O.read(document, location).map(line => line.order)).size, plan, reason };
     await chrome.runtime.sendMessage(lastScanReport);
   }
-  let currentConf, currentItems = [], currentProfile, currentVersion, currentSummary;
+  let currentConf, currentItems = [], currentProfile, currentVersion, currentSummary, historyRecords = [], overviewSignature = '';
+  const t = (...args) => A.panel.t(...args);
   const hash = async text => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)))].map(x => x.toString(16).padStart(2, '0')).join('');
   function note(text) {
+    const dark = currentConf?.theme === 'dark' || (currentConf?.theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+    const background = dark ? '#1b1c1c' : '#fff', foreground = dark ? '#f3f3f3' : '#111', accent = dark ? '#4db6c8' : '#007185';
     if (!banner) {
       banner = document.createElement('aside'); banner.id = 'air-order-history'; banner.setAttribute('role', 'status');
-      banner.style.cssText = 'padding:12px;margin:12px 0;border:2px solid #007185;border-radius:8px;background:#fff;color:#111;font:14px/1.5 sans-serif;display:flex;flex-wrap:wrap;align-items:center;gap:10px;box-sizing:border-box';
+      banner.style.cssText = 'padding:8px 10px;margin:10px 0;border:1px solid #b7d5d9;border-radius:8px;background:#fff;color:#111;font:12px/1.4 sans-serif;display:flex;flex-wrap:wrap;align-items:center;gap:8px;box-sizing:border-box';
     }
+    banner.style.background = background; banner.style.color = foreground;
     // Stay with the order list, below Amazon's navigation, even when its container arrives late.
     const first = document.querySelector('.order-card, .order, [data-order-id]');
     if (first && first.previousElementSibling !== banner) first.before(banner);
@@ -27,13 +31,36 @@
       else document.querySelector('#yourOrders, #ordersContainer, main')?.prepend(banner);
     }
     if (!banner.isConnected) return;
-    if (banner.dataset.airText === text) return;
+    const overview = A.db.orderOverview.summarize(historyRecords);
+    const sig = `${dark}|${JSON.stringify(overview)}`;
+    if (banner.dataset.airText === text && overviewSignature === sig) return;
+    overviewSignature = sig;
     banner.dataset.airText = text;
-    const message = document.createElement('span'); message.textContent = text;
-    banner.replaceChildren(message);
-    const button = (name, fn) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = name; b.style.cssText = 'padding:6px 10px;border:1px solid #007185;border-radius:6px;background:#fff;color:#007185;cursor:pointer;font:inherit'; b.addEventListener('click', fn); banner.append(b); };
+    banner.title = text;
+    banner.setAttribute('aria-label', t('orderOverviewLabel', 'Ingredient Check purchase overview'));
+    banner.replaceChildren();
+    const button = (name, fn) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = name; b.style.cssText = `padding:5px 8px;border:1px solid ${accent};border-radius:6px;background:${background};color:${accent};cursor:pointer;font:inherit`; b.addEventListener('click', fn); banner.append(b); };
     button('History & sync settings', () => chrome.runtime.sendMessage({ type: 'purchaseOpenHistory' }));
     button('Refresh ratings', () => reset(false));
+    for (const average of overview.averages) {
+      const value = document.createElement('span'); value.className = 'air-order-average';
+      const labels = { day: [t('orderDailyAverage', 'Daily avg'), t('orderToday', 'Today')], week: [t('orderWeeklyAverage', 'Weekly avg'), t('orderThisWeek', 'This week, starting Monday')], month: [t('orderMonthlyAverage', 'Monthly avg'), t('orderThisMonth', 'This calendar month')] };
+      value.textContent = `${labels[average.period][0]} ${Math.round(average.score)}/100`;
+      value.title = `${labels[average.period][1]} · ${average.count} rated purchased product ${average.count === 1 ? 'entry' : 'entries'}`;
+      value.style.cssText = 'white-space:nowrap;font-weight:600;padding:3px 5px'; banner.append(value);
+    }
+    if (overview.points.length) {
+      const ns = 'http://www.w3.org/2000/svg', graph = document.createElementNS(ns, 'svg');
+      graph.classList.add('air-order-history-graph'); graph.setAttribute('viewBox', '0 0 160 38'); graph.setAttribute('width', '160'); graph.setAttribute('height', '38');
+      graph.setAttribute('role', 'img'); graph.setAttribute('aria-label', t('orderGraphLabel', 'Purchase history: daily average ingredient scores, 0 to 100'));
+      graph.style.cssText = 'display:block;width:160px;height:38px;max-width:100%;flex:0 1 160px';
+      const title = document.createElementNS(ns, 'title'); title.textContent = overview.points.map(p => `${p.date}: ${Math.round(p.score)}/100`).join('; '); graph.append(title);
+      const first = Date.parse(overview.points[0].date), span = Date.parse(overview.points.at(-1).date) - first;
+      const coords = overview.points.map(p => [span ? 4 + (Date.parse(p.date) - first) / span * 152 : 80, 34 - p.score / 100 * 30]);
+      const line = document.createElementNS(ns, 'polyline'); line.setAttribute('points', coords.map(p => p.join(',')).join(' ')); line.setAttribute('fill', 'none'); line.setAttribute('stroke', accent); line.setAttribute('stroke-width', '2'); graph.append(line);
+      for (const [x, y] of coords) { const dot = document.createElementNS(ns, 'circle'); dot.setAttribute('cx', x); dot.setAttribute('cy', y); dot.setAttribute('r', '2'); dot.setAttribute('fill', accent); graph.append(dot); }
+      banner.append(graph);
+    }
   }
   function paint(line, record, text) {
     let badge = badges.get(line.anchor);
@@ -131,13 +158,22 @@
     const turn = generation;
     try {
       if (!O.allowed(location) || scanHold) return;
-      const conf = await chrome.storage.local.get(['historyEnabled', 'historyOwner', 'googleProfile', 'enabled', 'weights', 'foodOnly', 'goals', 'allergens', 'diets', 'avoidList', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'ocrLabels', 'useOpenFoodFacts', 'ratePace', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'orderBadgePlacement', 'hoverBreakdown', 'breakdownDelayMs', 'breakdownDetail', 'theme', 'palette']);
+      const conf = await chrome.storage.local.get(['historyEnabled', 'autoScoreSearch', 'historyOwner', 'googleProfile', 'enabled', 'weights', 'foodOnly', 'goals', 'allergens', 'diets', 'avoidList', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'ocrLabels', 'useOpenFoodFacts', 'ratePace', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'orderBadgePlacement', 'hoverBreakdown', 'breakdownDelayMs', 'breakdownDetail', 'theme', 'palette']);
+      if (turn !== generation || !O.allowed(location)) return;
+      currentConf = conf;
       if (conf.enabled === false) { note('Ingredient Check is paused. Resume it in the extension popup to show order ratings.'); return; }
-      if (!conf.historyEnabled) { note('Purchase history is off. Open History & sync settings and enable import to show individual order scores and averages.'); return; }
-      if (conf.historyOwner && conf.googleProfile?.email && conf.historyOwner !== conf.googleProfile.email.toLowerCase()) { note('Purchase import paused: your Google account changed. Manage history before switching accounts.'); return; }
+      const accountMatches = !(conf.historyOwner && conf.googleProfile?.email && conf.historyOwner !== conf.googleProfile.email.toLowerCase());
+      const canImport = conf.historyEnabled === true && accountMatches;
       const lines = O.read(document, location), sig = JSON.stringify(lines.map(x => [x.order, x.asin, x.state, x.date]));
-      if (sig === signature) { if (lastScanReport) await reportScan(stopped ? 'Amazon blocked label lookups. Check the scan tab, then Resume.' : ''); return; }
-      if (!lines.length) { note('No identifiable order items on this page. Open Your Orders; recommendations and order details are not imported.'); await reportScan(/robot|captcha|verification|sign.in/i.test(document.title) ? 'Amazon sign-in or verification is required. Check the scan tab, then Resume.' : ''); return; }
+      if (sig === signature && banner?.isConnected && lines.every(line => badges.get(line.anchor)?.isConnected)) { if (lastScanReport) await reportScan(stopped ? 'Amazon blocked label lookups. Check the scan tab, then Resume.' : ''); return; }
+      if (!lines.length) {
+        const saved = accountMatches ? await chrome.storage.local.get('purchaseHistory') : {};
+        if (turn !== generation || !O.allowed(location)) return;
+        historyRecords = H.merge([], saved.purchaseHistory);
+        note('No identifiable order items on this page. Open Your Orders; recommendations and order details are not imported.');
+        if (banner?.isConnected) signature = sig;
+        await reportScan(/robot|captcha|verification|sign.in/i.test(document.title) ? 'Amazon sign-in or verification is required. Check the scan tab, then Resume.' : ''); return;
+      }
       note('Importing this order page. Only actual order items enter trends; cancelled and returned items are excluded.');
       A.db.theme.use(conf);
       const scoring = A.db.prefs.sanitizeScoring(conf);
@@ -145,9 +181,10 @@
       // The history is read only now, when this page needs importing. It used to come with the settings above, so every
       // quiet moment of a page that was already imported (and every badge the import itself painted) copied up to 10,000
       // records out of storage before the check at the top found nothing to do.
-      const { purchaseHistory } = await chrome.storage.local.get('purchaseHistory');
+      const { purchaseHistory } = accountMatches ? await chrome.storage.local.get('purchaseHistory') : {};
       if (turn !== generation || !O.allowed(location)) return;
       const existing = new Map(H.merge([], purchaseHistory).map(r => [r.key, r]));
+      historyRecords = [...existing.values()];
       const P = A.db.productCache, speed = A.db.speed.profile(conf.speedMode), pace = A.db.speed.pace(conf.ratePace);
       const local = await cache.readLocal([...new Set(lines.flatMap(line => [cache.key(location.hostname, line.asin), P.localKey(location.hostname, line.asin)]))], conf, null, chrome.storage);
       const items = await Promise.all(lines.map(async line => {
@@ -166,14 +203,15 @@
       const summary = done => {
         if (turn !== generation || !O.allowed(location)) return;
         const records = items.filter(i => !i.excluded).map(i => i.record), scored = records.filter(r => r.state === 'purchased' && r.score !== null), rated = scored.length;
+        if (canImport) historyRecords = H.merge(historyRecords, records);
         const average = rated ? `${Math.round(scored.reduce((sum, r) => sum + r.score, 0) / rated)}/100` : 'unavailable (no rated food purchases)';
-        note(`Page average: ${average}. ${new Set(records.map(r => r.orderKey).filter(Boolean)).size} orders with ${records.length} product entries. ${done ? 'This page imported:' : 'Checking missing labels:'} ${rated} rated food purchases of ${records.filter(r => r.state === 'purchased').length} eligible purchases; ${records.filter(r => r.state === 'purchased' && r.score === null).length} labels unavailable; ${items.filter(i => i.excluded).length} non-food items excluded; ${records.filter(r => r.state !== 'purchased').length} cancelled, returned or unconfirmed entries excluded. Open older order pages to extend history. Ratings use available product labels, not the original purchased package.${stopped ? ' Amazon blocked public label lookups; open products to read labels, then refresh ratings.' : ''}`);
+        note(`Page average: ${average}. ${new Set(records.map(r => r.orderKey).filter(Boolean)).size} orders with ${records.length} product entries. ${done ? canImport ? 'This page imported:' : 'Ratings ready (history import is off):' : 'Checking missing labels:'} ${rated} rated food purchases of ${records.filter(r => r.state === 'purchased').length} eligible purchases; ${records.filter(r => r.state === 'purchased' && r.score === null).length} labels unavailable; ${items.filter(i => i.excluded).length} non-food items excluded; ${records.filter(r => r.state !== 'purchased').length} cancelled, returned or unconfirmed entries excluded.${stopped ? ' Amazon blocked public label lookups; open products to read labels, then refresh ratings.' : ''}`);
       };
       currentSummary = () => summary(!running);
       // Paint every saved answer before even the first public lookup, independently of its position.
       items.forEach(draw); summary(false);
       const save = async selected => {
-        if (!selected.length || turn !== generation || !O.allowed(location)) return;
+        if (!canImport || !selected.length || turn !== generation || !O.allowed(location)) return;
         const saved = await chrome.runtime.sendMessage({ type: 'purchaseImport', records: selected.map(i => H.clean(i.record)) });
         if (!saved?.ok) throw new Error(saved?.reason || 'history-not-saved');
         for (const item of selected) { const row = saved.records?.find(r => r.key === item.record.key); if (row) Object.assign(item.record, H.merge([item.record], [row])[0]); }
@@ -212,7 +250,7 @@
         while (at < pending.length && turn === generation && O.allowed(location)) {
           const affected = pending[at++], line = affected[0].line;
           if (affected.every(i => i.record.score !== null)) continue;
-          if (stopped || used >= speed.autoFetches) { await complete(affected, null); continue; }
+          if ((!canImport && conf.autoScoreSearch === false) || stopped || used >= speed.autoFetches) { await complete(affected, null); continue; }
           try {
             let reading = readings.get(line.asin);
             if (!reading) {
@@ -263,6 +301,8 @@
     }
     if (updates.length) {
       currentSummary?.();
+      const canImport = currentConf.historyEnabled === true && !(currentConf.historyOwner && currentConf.googleProfile?.email && currentConf.historyOwner !== currentConf.googleProfile.email.toLowerCase());
+      if (!canImport) return;
       const saved = await chrome.runtime.sendMessage({ type: 'purchaseImport', records: updates });
       if (turn !== generation || !O.allowed(location)) return;
       if (!saved?.ok) throw new Error(saved?.reason || 'history-not-saved');
@@ -272,7 +312,9 @@
   }
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
-    if (['enabled', 'historyEnabled', 'theme', 'palette', 'ocrLabels', 'useOpenFoodFacts', 'ratePace', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'orderBadgePlacement', 'hoverBreakdown', 'breakdownDelayMs', 'breakdownDetail'].some(k => changes[k]) || (changes.googleProfile && changes.googleProfile.oldValue?.email !== changes.googleProfile.newValue?.email)) reset();
+    if (['enabled', 'historyEnabled', 'historyOwner', 'theme', 'palette', 'ocrLabels', 'useOpenFoodFacts', 'ratePace', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'orderBadgePlacement', 'hoverBreakdown', 'breakdownDelayMs', 'breakdownDetail'].some(k => changes[k]) || (changes.googleProfile && changes.googleProfile.oldValue?.email !== changes.googleProfile.newValue?.email)) { historyRecords = []; reset(); }
+    else if (!currentConf?.historyEnabled && ['autoScoreSearch', 'weights', 'goals', 'allergens', 'diets', 'avoidList'].some(k => changes[k])) reset();
+    else if (changes.purchaseHistory && currentConf) { historyRecords = currentConf.historyOwner && currentConf.googleProfile?.email && currentConf.historyOwner !== currentConf.googleProfile.email.toLowerCase() ? [] : H.merge([], changes.purchaseHistory.newValue); if (currentSummary) currentSummary(); else note(banner?.dataset.airText || ''); }
     else if (Object.keys(changes).some(k => /^(s|p):amazon\.com:/.test(k))) void cacheChanged(changes).catch(() => { note('A saved product rating could not be added to history. Open History & sync settings and refresh this page.'); });
   });
   setInterval(() => { if (location.href !== lastURL) { lastURL = location.href; reset(); } }, 1000);

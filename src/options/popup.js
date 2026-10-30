@@ -439,6 +439,7 @@ function paintCompareCard(hit) {
   sub.className = 'ps-sub';
   sub.textContent = [cardLead(hit), hit.name, hit.asin].filter(Boolean).join(' · ');
   card.append(num, verdict, sub);
+  if (hit.evidence && AIR.db.shopping) { const ev = document.createElement('p'); ev.className = 'ps-sub'; ev.textContent = AIR.db.shopping.describe(hit.evidence, (key, fallback) => msg(key, fallback)); card.append(ev); }
   const store = AIR.stores.storeForHost(hit.store);
   if (store) {
     const origin = `https://www.${CACHE.normalizeStore(hit.store)}`;
@@ -510,6 +511,7 @@ function paintCompare() {
     const hitB = listed.find(h => h.key === bKey);
     grid.textContent = '';
     grid.append(paintCompareCard(hitA), paintCompareCard(hitB));
+    const details = document.createElement('a'); details.href = `library.html?a=${encodeURIComponent(aKey)}&b=${encodeURIComponent(bKey)}`; details.target = '_blank'; details.rel = 'noopener noreferrer'; details.textContent = msg('compareDetails', 'Compare products'); grid.append(details);
     if (hitA.category !== hitB.category || hitA.ratingStyle !== hitB.ratingStyle) {
       const note = document.createElement('p'); note.textContent = msg('compareMixed', 'Different categories or rating styles: these scores are not directly comparable.'); grid.append(note);
     }

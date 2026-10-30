@@ -1,6 +1,14 @@
 # Current validation
 
-The current source is **1.18.1**, built on published **1.18.0** (commit `7deb375`). It combines three pieces of work that were waiting after 1.18.0: the scoring review (complete readings, sourcing, nutrition basis), the audit of ingredients that hide from the rules (words broken at a line end, lists written one to a line) with the worker, page-reader and shared-database fixes, and the new icon. See [what changed](releases/1.18.1.md), [scoring sensitivity](SCORING-SENSITIVITY.md), [personal-care and supplement indices](PERSONAL-CARE.md) and [accuracy evidence](ACCURACY.md). Older dated audits describe the source at the time of that review.
+The current source is **1.19.0**. See [the feature integration and verification record](FEATURE-INTEGRATION-2026-10-30.md)
+and [release notes](releases/1.19.0.md) for Orders scores independent of history saving, the compact
+history overview, evidence summaries, comparisons, filters, standalone label checking and local
+shortlists. Both browser packages are prepared; browser-store publication and Mozilla signing
+remain separate publisher actions.
+
+## Previous release baseline — 1.18.1
+
+The previous **1.18.1** baseline was built on published **1.18.0** (commit `7deb375`). It combined the scoring review, parser and shared-database fixes, and the new icon. See [what changed](releases/1.18.1.md), [scoring sensitivity](SCORING-SENSITIVITY.md), [personal-care and supplement indices](PERSONAL-CARE.md) and [accuracy evidence](ACCURACY.md). Older dated audits describe the source at the time of that review.
 
 Executed on the final 1.18.1 source:
 

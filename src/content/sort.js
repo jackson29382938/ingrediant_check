@@ -409,8 +409,11 @@
       const okRow = row && row.status === 'ok' && freshLocal(row);
       if (usableCache(hit, asin)) {
         // The saved score keeps no reasons; the product reading behind it does.
-        const why = okRow ? whyOf(root.AIR.engine.score(C.toInput(row), state.prefs)) : null;
-        out.set(asin, { score: hit.score, category: hit.category || 'food', ratingStyle: hit.ratingStyle || 'food', verdict: hit.verdict, source: 'scored', why, servings: okRow ? servingsFor(C.toInput(row)) : null });
+        const assessed = okRow ? root.AIR.engine.score(C.toInput(row), state.prefs) : null;
+        const sameScore = assessed && !unreadable(assessed) && assessed.score === hit.score;
+        const why = sameScore ? whyOf(assessed) : null;
+        const evidence = sameScore ? root.AIR.db.shopping?.evidence(assessed, { source: row.data.via, capturedAt: Date.parse(row.scanned_at), prefs: state.prefs }) : hit.evidence;
+        out.set(asin, { score: hit.score, category: hit.category || 'food', ratingStyle: hit.ratingStyle || 'food', verdict: hit.verdict, source: 'scored', evidence, why, servings: okRow ? servingsFor(C.toInput(row)) : null });
         continue;
       }
       if (!row || !freshLocal(row)) continue;
@@ -419,7 +422,7 @@
       const result = root.AIR.engine.score(C.toInput(row), state.prefs);
       if (unreadable(result)) { out.set(asin, { score: null, source: 'unreadable' }); continue; }
       cacheScore(asin, result, row.data.title, row.data.via || 'search-tile', '', Date.parse(row.scanned_at));
-      out.set(asin, { score: result.score, category: result.category || 'food', ratingStyle: result.ratingStyle || 'food', verdict: result.verdict, source: 'scored', why: whyOf(result), servings: servingsFor(C.toInput(row)) });
+      out.set(asin, { score: result.score, category: result.category || 'food', ratingStyle: result.ratingStyle || 'food', verdict: result.verdict, source: 'scored', evidence: root.AIR.db.shopping?.evidence(result, { source: row.data.via, capturedAt: Date.parse(row.scanned_at), prefs: state.prefs }), why: whyOf(result), servings: servingsFor(C.toInput(row)) });
     }
     return out;
   }
@@ -449,7 +452,7 @@
         const result = root.AIR.engine.score(C.toInput(row), state.prefs);
         if (unreadable(result)) { out.set(asin, { score: null, source: 'unreadable' }); continue; }
         cacheScore(asin, result, row.data.title, row.data.via || 'search-tile', '', Date.parse(row.scanned_at));
-        out.set(asin, { score: result.score, category: result.category || 'food', ratingStyle: result.ratingStyle || 'food', verdict: result.verdict, source: 'scored', why: whyOf(result), servings: servingsFor(C.toInput(row)) });
+        out.set(asin, { score: result.score, category: result.category || 'food', ratingStyle: result.ratingStyle || 'food', verdict: result.verdict, source: 'scored', evidence: root.AIR.db.shopping?.evidence(result, { source: row.data.via, capturedAt: Date.parse(row.scanned_at), prefs: state.prefs }), why: whyOf(result), servings: servingsFor(C.toInput(row)) });
       }
     }
     if (pulls.length) send({ type: 'productsQueue', pulls });

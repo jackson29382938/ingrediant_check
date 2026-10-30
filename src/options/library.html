@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Labels & saved products — Ingredient Check</title><link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="library.css"></head>
+<body><main>
+<header><h1 data-i18n="libraryTitle">Labels & saved products</h1><nav><a href="options.html" data-i18n="popupSettingsLink">Settings</a> · <a href="history.html" data-i18n="libraryHistory">Purchase history</a></nav></header>
+<section aria-labelledby="checkHeading"><h2 id="checkHeading" data-i18n="checkLabel">Check a label</h2>
+<form id="labelForm">
+<label for="labelName" data-i18n="labelName">Product name</label><input id="labelName" type="text" maxlength="250">
+<label for="labelText" data-i18n="labelIngredients">Ingredients</label><textarea id="labelText" maxlength="6000" rows="4" required></textarea>
+<details><summary data-i18n="labelExtra">Allergen statements & nutrition (optional)</summary>
+<label for="labelAdvisory" data-i18n="labelAdvisory">Contains / may contain statements</label><textarea id="labelAdvisory" rows="2" maxlength="6000"></textarea>
+<div class="fields"><label><span data-i18n="labelBasis">Amounts are per</span><select id="labelBasis"><option value="100g">100 g</option><option value="100ml">100 ml</option></select></label>
+<label><span data-i18n="labelProtein">Protein (g)</span><input type="number" id="protein" min="0" max="100" step="any"></label>
+<label><span data-i18n="labelFibre">Fibre (g)</span><input type="number" id="fibre" min="0" max="100" step="any"></label>
+<label><span data-i18n="labelSugar">Total sugar (g)</span><input type="number" id="sugar" min="0" max="100" step="any"></label>
+<label><span data-i18n="labelAddedSugar">Added sugar (g)</span><input type="number" id="addedSugar" min="0" max="100" step="any"></label>
+<label><span data-i18n="labelSodium">Sodium (mg)</span><input type="number" id="sodium" min="0" max="40000" step="any"></label></div></details>
+<div class="actions"><button type="submit" data-i18n="checkLabel">Check a label</button><label class="file-button"><span data-i18n="readPhoto">Read a photo</span><input type="file" id="labelPhoto" accept="image/png,image/jpeg,image/webp"></label></div>
+</form>
+<details><summary data-i18n="barcodeHeading">Look up a barcode</summary><p class="hint" data-i18n="barcodePrivacy">Sends only the barcode to Open Food Facts with your permission.</p><div class="actions"><input id="barcode" inputmode="numeric" maxlength="14" aria-label="Barcode" data-i18n-aria="barcodeHeading"><button type="button" id="lookupBarcode" data-i18n="barcodeLookup">Look up barcode</button></div></details>
+<p id="checkStatus" role="status" aria-live="polite"></p><div id="checkResult"></div>
+<div id="saveLabelControls" class="actions" hidden><label><span data-i18n="shortlistName">List name</span><input id="shortlistName" maxlength="60" value="Shopping list"></label><button id="saveLabel" data-i18n="saveProduct">Save product</button></div>
+<p class="hint" data-i18n="localLabelNote">Photos and entered labels stay on this computer. Review extracted text before checking. Manual labels do not replace retailer readings.</p>
+</section>
+<section aria-labelledby="savedHeading"><h2 id="savedHeading" data-i18n="savedHeading">Saved products</h2><label for="listFilter" data-i18n="shortlistName">List name</label><select id="listFilter"><option value="" data-i18n="allLists">All lists</option></select><div id="savedProducts"></div><p id="savedStatus" role="status"></p></section>
+<section aria-labelledby="compareHeading"><h2 id="compareHeading" data-i18n="compareDetails">Compare products</h2><p class="hint" data-i18n="compareEvidenceNote">Uses your current goals and saved label evidence. Missing amounts remain unknown; prices need a fresh store check.</p>
+<div class="fields"><label><span data-i18n="popupCompareAAria">First product</span><select id="productA"></select></label><label><span data-i18n="popupCompareBAria">Second product</span><select id="productB"></select></label></div>
+<button id="saveComparison" type="button" data-i18n="saveComparison">Save selected products</button>
+<label for="previewGoal" data-i18n="previewGoal">Preview a goal</label><select id="previewGoal"><option value="" data-i18n="currentGoals">Current goals</option></select>
+<p id="comparisonSummary" role="status"></p><div id="comparison" class="comparison"></div></section>
+</main><script src="../browser-compat.js"></script>
+<script src="../engine/db/_module.js"></script><script src="../engine/db/oils.js"></script><script src="../engine/db/sugars.js"></script><script src="../engine/db/additives.js"></script><script src="../engine/db/labels.js"></script><script src="../engine/db/allergens.js"></script><script src="../engine/db/provenance.js"></script><script src="../engine/db/ingestible.js"></script><script src="../engine/categories.js"></script><script src="../engine/db/prefs.js"></script><script src="../engine/db/theme.js"></script><script src="../engine/db/revision.js"></script><script src="../engine/db/product-ratings.js"></script><script src="../engine/score.js"></script><script src="../engine/db/speed.js"></script><script src="../engine/db/score-cache.js"></script><script src="../engine/db/product-cache.js"></script><script src="../engine/db/ocr-text.js"></script><script src="../engine/db/shopping.js"></script><script src="../stores/registry.js"></script>
+<script src="../engine/db/storefronts.js"></script><script src="../engine/db/unit-price.js"></script><script src="../engine/db/sorted-results.js"></script><script src="../../vendor/dompurify/purify.js"></script><script src="../content/panel.js"></script><script src="library.js"></script></body></html>

@@ -103,6 +103,8 @@
   let windowId = null;
   let saveTimer = 0;
   let lastSaved = '';     // our own write, echoed back by storage.onChanged
+  let currentWarningProfile = '';
+  let warningVersion = 0;
   const ui = {};
 
   try { chrome.windows.getCurrent(w => { void chrome.runtime.lastError; if (w) windowId = w.id; }); } catch (e) { /* no windows API */ }
@@ -205,11 +207,26 @@
 
     root.append(buildUnitPicker());
     root.append(buildPriorities());
+    root.append(buildFilters());
     ui.list = node('section', 'result-list');
     ui.list.setAttribute('aria-label', t('sortedListAria', 'Amazon listings ranked by your priorities'));
     root.append(ui.list);
     ui.empty = node('section', 'empty-state');
     root.append(ui.empty);
+  }
+
+  function buildFilters() {
+    const box = node('details', 'comparison-filters'); box.append(node('summary', '', t('filterHeading', 'Filter products')));
+    const fields = node('div', 'filter-fields'); ui.filters = {};
+    for (const [id, key, label, type] of [['maxPrice', 'filterMaxPrice', 'Maximum price', 'number'], ['minScore', 'filterMinScore', 'Minimum score', 'number'], ['complete', 'filterComplete', 'Require label and selected nutrition data', 'checkbox'], ['noMatches', 'filterNoMatches', 'Hide selected warning matches', 'checkbox'], ['includeUnknown', 'filterUnknown', 'Include unknown warning checks', 'checkbox']]) {
+      const row = node('label'), input = node('input'); input.type = type; input.dataset.filter = id;
+      if (type === 'number') { input.min = '0'; input.step = id === 'maxPrice' ? '0.01' : '1'; if (id === 'minScore') input.max = '100'; }
+      input.addEventListener('input', scheduleRender); ui.filters[id] = { input, row };
+      row.append(node('span', '', t(key, label)), input); fields.append(row);
+    }
+    box.append(fields, node('p', 'priority-note', t('filterWarningNote', 'Unknown labels stay separate. Filtering warning matches does not confirm absence of allergens.')));
+    box.append(button('button tertiary', t('filterReset', 'Clear filters'), () => { for (const { input } of Object.values(ui.filters)) { input.value = ''; input.checked = false; } renderList(); }));
+    ui.filterCount = node('p', 'priority-note'); ui.filterCount.setAttribute('role', 'status'); box.append(ui.filterCount); return box;
   }
 
   // "Price per" sits above the priorities, always in view: the unit is the first thing a reader wants to
@@ -441,6 +458,7 @@
       score.append(node('span', 'score-chip none', '–'), node('span', 'score-verdict none', t('sortedNoScore', 'No score')));
     }
     score.append(node('small', '', (SOURCE_TEXT[product.source] || SOURCE_TEXT.unrated)()));
+    if (product.evidence && AIR.db.shopping) score.append(node('small', 'evidence-note', AIR.db.shopping.describe(product.evidence, t)));
     return score;
   }
 
@@ -590,7 +608,14 @@
       return;
     }
     paintUnit(items);
-    const ranked = R.rank(items, weights, { unitEnabled: unitEnabled(), family: family() });
+    const filters = Object.fromEntries(Object.entries(ui.filters).map(([key, { input }]) => [key, input.type === 'checkbox' ? input.checked : input.value]));
+    filters.unknown = filters.includeUnknown ? 'include' : 'exclude';
+    filters.warningProfile = currentWarningProfile;
+    for (const [key, { row }] of Object.entries(ui.filters)) row.hidden = !!saved?.priceOnly && key !== 'maxPrice';
+    if (saved?.priceOnly) { filters.minScore = ''; filters.complete = false; filters.noMatches = false; }
+    const eligible = AIR.db.shopping ? items.filter(product => AIR.db.shopping.matches(product, filters)) : items;
+    const ranked = R.rank(eligible, weights, { unitEnabled: unitEnabled(), family: family() });
+    ui.filterCount.textContent = eligible.length === items.length ? '' : t('filterCount', '$1 of $2 products match. Clear filters to show all.', eligible.length, items.length);
     const multi = R.FACTORS.filter(f => weights[f] > 0).length > 1;
     ui.subtitle.textContent = saved?.priceOnly ? t('sortedSubtitlePriceOnly', '$1 listings · price comparison only; no ingredient lookups', items.length) : loading
       ? t('sortedSubtitleLoading', '$1 listings so far · still loading', items.length)
@@ -621,6 +646,7 @@
   async function load() {
     let got;
     try { got = await chrome.storage.session.get(['sortedResults', 'sortWeights', 'sortUnit']); } catch (e) { got = {}; }
+    if (AIR.db.shopping) { const version = warningVersion, raw = await chrome.storage.local.get(['allergens', 'diets', 'avoidList', 'weights']); if (version === warningVersion) currentWarningProfile = AIR.db.shopping.warningProfile(raw); }
     saved = got.sortedResults || null;
     unitChoice = R.sanitizeUnitChoice(got.sortUnit);
     paintUnit();
@@ -649,6 +675,11 @@
     // A new score palette while the list is open: the chips are painted again under it.
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === 'local' && changes.palette) { AIR.db.theme.use({ ...AIR.db.theme.state, palette: changes.palette.newValue }); scheduleRender(); }
+      if (area === 'local' && ['allergens', 'diets', 'avoidList', 'weights'].some(k => changes[k]) && AIR.db.shopping) {
+        currentWarningProfile = 'pending'; scheduleRender();
+        const version = ++warningVersion;
+        chrome.storage.local.get(['allergens', 'diets', 'avoidList', 'weights']).then(raw => { if (version === warningVersion) { currentWarningProfile = AIR.db.shopping.warningProfile(raw); scheduleRender(); } }).catch(() => {});
+      }
     });
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area !== 'session') return;

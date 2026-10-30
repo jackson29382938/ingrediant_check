@@ -152,6 +152,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
       sponsored: raw.sponsored === true,
       pageNumber: Number.isFinite(page) && page >= 1 && page <= 100 ? page : 1,
       details: str(raw.details, 2600),
+      ...(raw.evidence && AIR.db.shopping ? { evidence: AIR.db.shopping.cleanEvidence(raw.evidence) } : {}),
       why: typeof finiteScore(raw.score) === 'number' ? sanitizeWhy(raw.why) : null,
     };
   }

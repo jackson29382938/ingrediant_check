@@ -4,18 +4,30 @@ Version 1.11.0 adds opt-in Amazon.com order-page import, purchase-only monthly t
 authenticated account sync. Other Amazon locales and other retailers' orders are not implemented.
 Cart and viewed-product ratings never create purchase records.
 
+In 1.19.0, **showing order scores does not require enabling history import**. Saved scores appear
+on identifiable food items even with import off. Automatic rating can fetch missing public labels;
+with automatic rating off, only saved readings are used. No purchase record is saved or synced
+until history import is enabled.
+
+The compact Orders bar keeps **History & sync settings** and **Refresh ratings**. It shows a small
+inline history graph only when saved rated purchases exist. Daily averages use today, weekly
+averages use the current week starting Monday, and monthly averages use the calendar month, in
+the browser's local time. Each average is omitted independently when there are no eligible ratings.
+The graph uses up to 30 recorded purchase days. Returned/cancelled and unavailable ratings are
+excluded; averages count distinct purchased product entries, not quantities or consumption.
+
 ## First import
 
 Run setup again and select **Include my Amazon purchase history** on the goals step. Finish saves
 your goals and warning choices, enables history with automatic account sync, and opens Amazon's
 normal Orders page. Sign in to Amazon normally. Identifiable items on opened order pages are imported. **Scan all Amazon orders** in History & sync starts a separate ordinary browser tab that visits the available year filters and Next links. Background mode is on by default; Chrome must remain open. It pauses for sign-in, verification, unreadable pages or storage limits. Pause, Resume, Cancel and Open scan tab remain available. Imported purchases are kept and deduplicated on repeat scans. There is no checkout access. The extension never receives your Amazon password.
 
-The page shows individual scores and a page average beside the order list, including image-only
+The page shows individual scores beside the order list, including image-only
 and multi-item shipment tiles. Unscored items never count as zero. Non-food merchandise is
 excluded; previously imported entries recognized as non-food on revisit stop driving trends.
 Scores overlay product images by default; History & sync → Order score display can move them beside titles. Hover or keyboard focus opens saved purchase details. Historical point deductions appear only when the locally saved label and scoring setup still reproduce that snapshot. Clicking badges opens public product pages in a new tab. After reading a missing label there, use
 **Refresh ratings** to reuse newly saved scores. Amazon challenges stop further public lookups;
-refreshing does not bypass them. The summary states its coverage and excluded entries. **History & sync settings** opens the dashboard;
+refreshing does not bypass them. Coverage and import status remain in the compact bar's tooltip. **History & sync settings** opens the dashboard;
 it is also linked from the toolbar and Settings → Backup. Sign in with Google there if needed.
 Google sign-in identifies your sync account, not your Amazon account. Automatic sync starts within
 about a minute after an import; **Sync now** works with automatic sync off. Failed requests keep

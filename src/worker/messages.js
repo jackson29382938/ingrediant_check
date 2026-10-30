@@ -74,6 +74,7 @@ function isOffscreenSender(sender) {
 
 function allowMessage(msg, sender) {
   if (!msg || !isOwnExtension(sender)) return false;
+  if (msg.type === 'lookupBarcode' && extensionPagePath(sender) === '/src/options/library.html') return true;
   if (msg.type === 'purchaseImport' || msg.type === 'purchaseOpenHistory' || msg.type === 'purchaseScanState' || msg.type === 'purchaseScanProgress') {
     try {
       const u = new URL(sender.url || '');

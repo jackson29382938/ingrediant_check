@@ -248,7 +248,8 @@
     if (hit === 'unreadable') {
       b.textContent = '?';
       b.title = throttleCopy('badgeNoIngredients', "Amazon doesn't publish readable ingredients for this one");
-      b.setAttribute('aria-label', b.title);
+      if (hit.evidence && root.AIR.db.shopping) b.title += ' · ' + root.AIR.db.shopping.describe(hit.evidence, throttleCopy);
+    b.setAttribute('aria-label', b.title);
       b.setAttribute('role', 'img');
       b.style.cssText = 'color:#6a6a6a;background:#f7f8f8;border:2px dashed #d5d9d9;cursor:pointer;';
       return b;

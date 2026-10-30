@@ -70,6 +70,7 @@
       schema: CACHE.SCHEMA, cacheRevision: CACHE.CACHE_REVISION, v: VERSION, t: Date.now(), store: STORE, asin: id,
       prefs: CACHE.fingerprint(state.raw, source, result.category), score: result.score, verdict: result.verdict,
       nova: result.nova, category: result.category || 'food', ratingStyle: result.ratingStyle || 'food', ...(input ? { input } : {}), source, provenanceSource: '', name: String(name || '').slice(0, 120),
+      ...(root.AIR.db.shopping ? { evidence: root.AIR.db.shopping.evidence(result, { source, capturedAt: Date.now(), prefs: state.prefs }) } : {}),
     };
   }
 
@@ -94,6 +95,7 @@
       return;
     }
     show(host, P.render(result, { title: data.title, confidence: via === 'manual-paste' ? 1 : 0.95, via, report: false }), 'scored');
+    root.AIR.db.shopping?.offerSave(P.shadowOf(host), { id: `product:${STORE}:${data.id}`, name: data.title, input, source: via, url: location.href, savedScore: result.score, capturedAt: Date.now() });
     const entry = cacheEntry(data.id, result, data.title, via === 'manual-paste' ? 'manual-paste' : (via === 'food-override' ? 'food-override' : 'page'), input);
     badge({ ...entry });
     // Pasted and overridden scores stay on this tab, as on Amazon.
@@ -203,11 +205,12 @@
     const text = hit ? String(hit.score) + (care ? ` · ${root.AIR.db.productRatings.categoryLabel(hit.category, t)}` : '') + (saved ? ' · saved' : '') : status === 'checking' ? 'Checking label…'
       : status === 'unavailable' ? 'Label unavailable' : status === 'not-food' ? 'Not a food'
       : status === 'limited' ? 'Open to rate' : 'Open to rate';
-    const title = hit ? `Ingredient Check: ${hit.score}/100 — ${hit.verdict}${care ? ` · ${root.AIR.db.productRatings.caption(hit, t)}` : ''}`
+    let title = hit ? `Ingredient Check: ${hit.score}/100 — ${hit.verdict}${care ? ` · ${root.AIR.db.productRatings.caption(hit, t)}` : ''}`
       : status === 'unavailable' ? 'Ingredient Check: no readable ingredient label was returned. Open the product to expand its label or paste ingredients.'
       : status === 'checking' ? 'Ingredient Check: reading the public product label.'
       : status === 'not-food' ? 'Ingredient Check: this product appears to be outside food scoring.'
       : 'Ingredient Check: open this product to rate it, or enable Rate every search result in Settings.';
+    if (hit?.evidence && root.AIR.db.shopping) title += ' · ' + root.AIR.db.shopping.describe(hit.evidence, t);
     if (b.textContent === text && b.title === title && b.dataset.airProduct === tile.id) return;
     b.textContent = text;
     b.title = title;

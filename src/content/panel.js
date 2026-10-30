@@ -171,7 +171,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
     // "clear". Say so next to the chips rather than anywhere a user has to go looking.
     const hasAllergen = flags.some(f => f.kind === 'allergen');
     return `<div class="flags" role="status">${flags.map(f =>
-      `<span class="flag${f.kind === 'avoid' ? ' avoid' : ''}" title="${esc(f.ingredient || '')}">${esc(f.label)}</span>`
+      `<span class="flag${f.kind === 'avoid' ? ' avoid' : ''}" title="${esc(f.evidenceText || f.ingredient || '')}">${esc(f.label)}${f.evidence && root.AIR.db.shopping ? ' · ' + esc(root.AIR.db.shopping.warningLabel(f.evidence, t)) : ''}</span>`
     ).join('')}</div>${hasAllergen
       ? `<p class="disclaim" style="padding:6px 16px 0">${esc(t('allergenCaveat',
           'Found in the ingredient text on this page. Absence of a warning is not a safety check — never rely on this for an allergy.'))}</p>`
@@ -288,6 +288,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
       ${result.category ? `<p class="disclaim" style="padding:6px 16px">${esc(t('indexNote',
         'Limited label index using the selected rubric. It does not establish safety, effectiveness, dose suitability or absence of allergens. Compare within the same category and style.'))}</p>` : ''}
       ${assessmentHTML(result)}
+      ${root.AIR.db.shopping ? `<p class="disclaim" style="padding:4px 16px 0">${esc(root.AIR.db.shopping.describe(root.AIR.db.shopping.evidence(result, { source: meta.via, capturedAt: meta.capturedAt || Date.now() }), t))}</p>` : ''}
       ${provenanceHTML(result.provenance, meta)}
       ${sourceLinks(result.sources)}
       <div class="body" id="air-panel-details">

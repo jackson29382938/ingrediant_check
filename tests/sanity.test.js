@@ -57,7 +57,7 @@ check('every engine file is loaded somewhere', () => {
   for (const f of engine) {
     const p = rel(f).split(path.sep).join('/');
     const base = path.basename(p);
-    const loaded = declared.includes(p) || worker.includes(base) || optionsHtml.includes(base);
+    const loaded = manifest.content_scripts.some(entry => entry.js.includes(p)) || worker.includes(base) || optionsHtml.includes(base);
     assert.ok(loaded, `${p} is loaded by nothing — not the manifest, the worker, or an extension page`);
   }
 });

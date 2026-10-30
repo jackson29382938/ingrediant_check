@@ -1411,6 +1411,18 @@ function score(product, options = {}) {
        ...(w_('avoidList') ? db.allergens.matchAvoidList([...list, ...declared], options.avoidList || []) : [])]
     : [];
 
+  // Keep the existing warning matches, but preserve why an allergen was flagged. A facility
+  // advisory is different evidence from a listed ingredient. Mixed advisory blocks are split
+  // before identifying the matching allergen, so "Contains milk. May contain soy" stays distinct.
+  for (const flag of flags.filter(f => f.kind === 'allergen')) {
+    const matches = text => db.allergens.detect([text], [flag.id]).length > 0;
+    const ingredient = list.find(matches), declaration = declared.find(matches);
+    const advisory = mayContain.flatMap(text => text.split(/[.;\n]+|(?=\bmay contain\b)/i)).filter(text => text.trim() && matches(text));
+    const contains = advisory.find(text => !MAY_CONTAIN.test(text) && allergenDeclaration(text.trim()));
+    flag.evidence = ingredient ? 'ingredient' : declaration || contains ? 'contains' : advisory.some(text => MAY_CONTAIN.test(text)) ? 'cross-contact' : 'advisory';
+    flag.evidenceText = ingredient || declaration || contains || advisory[0] || flag.ingredient;
+  }
+
   // How much of this list the rulebase could actually read. Reported, never scored — a low number
   // means "we cannot assess this", which is a different statement from a low score.
   const coverage = recognitionCoverage(entries);

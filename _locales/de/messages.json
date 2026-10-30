@@ -1970,5 +1970,257 @@
   },
   "scoreDimensions": {
     "message": "Verarbeitungsbasis $1 · Zutatenpräferenzen $2 · Nährwerte $3 · Herkunft $4"
+  },
+  "libraryTitle": {
+    "message": "Etiketten und gespeicherte Produkte"
+  },
+  "libraryHistory": {
+    "message": "Kaufverlauf"
+  },
+  "checkLabel": {
+    "message": "Etikett prüfen"
+  },
+  "labelName": {
+    "message": "Produktname"
+  },
+  "labelIngredients": {
+    "message": "Zutaten"
+  },
+  "labelExtra": {
+    "message": "Allergenhinweise und Nährwerte (optional)"
+  },
+  "labelAdvisory": {
+    "message": "Enthält- und Spurenhinweise"
+  },
+  "labelBasis": {
+    "message": "Mengen gelten je"
+  },
+  "labelProtein": {
+    "message": "Eiweiß (g)"
+  },
+  "labelFibre": {
+    "message": "Ballaststoffe (g)"
+  },
+  "labelSugar": {
+    "message": "Gesamtzucker (g)"
+  },
+  "labelAddedSugar": {
+    "message": "Zugesetzter Zucker (g)"
+  },
+  "labelSodium": {
+    "message": "Natrium (mg)"
+  },
+  "readPhoto": {
+    "message": "Foto einlesen"
+  },
+  "barcodeHeading": {
+    "message": "Barcode nachschlagen"
+  },
+  "barcodePrivacy": {
+    "message": "Mit deiner Erlaubnis wird nur der Barcode an Open Food Facts gesendet."
+  },
+  "barcodeLookup": {
+    "message": "Barcode suchen"
+  },
+  "shortlistName": {
+    "message": "Listenname"
+  },
+  "saveProduct": {
+    "message": "Produkt speichern"
+  },
+  "localLabelNote": {
+    "message": "Fotos und eingegebene Etiketten bleiben auf diesem Computer. Prüfe den erkannten Text vor der Bewertung. Manuelle Etiketten ersetzen keine Händlerdaten."
+  },
+  "savedHeading": {
+    "message": "Gespeicherte Produkte"
+  },
+  "allLists": {
+    "message": "Alle Listen"
+  },
+  "compareDetails": {
+    "message": "Produkte vergleichen"
+  },
+  "compareEvidenceNote": {
+    "message": "Verwendet deine aktuellen Ziele und gespeicherte Etikettendaten. Fehlende Mengen bleiben unbekannt; aktuelle Preise findest du beim Händler."
+  },
+  "previewGoal": {
+    "message": "Ziel in der Vorschau"
+  },
+  "currentGoals": {
+    "message": "Aktuelle Ziele"
+  },
+  "recentLabel": {
+    "message": "Zuletzt bewertet"
+  },
+  "labelUnavailable": {
+    "message": "Nicht verfügbar"
+  },
+  "openFreshLabel": {
+    "message": "Produkt öffnen und Angaben prüfen"
+  },
+  "removeSaved": {
+    "message": "Entfernen"
+  },
+  "saveFailed": {
+    "message": "Speichern fehlgeschlagen – erneut versuchen"
+  },
+  "noSavedProducts": {
+    "message": "Speichere Produkte über ihre Bewertungsfelder oder prüfe hier ein Etikett."
+  },
+  "compareDifference": {
+    "message": "Bewertungsunterschied: $1 Punkte. Die Unterschiede der Etiketten stehen unten."
+  },
+  "comparePartial": {
+    "message": "Mindestens ein Etikett kann nicht vollständig bewertet werden."
+  },
+  "compareFactor": {
+    "message": "Merkmal"
+  },
+  "ingredientScore": {
+    "message": "Zutatenbewertung"
+  },
+  "evidenceHeading": {
+    "message": "Etikettendaten"
+  },
+  "warningMatches": {
+    "message": "Gefundene ausgewählte Warnungen"
+  },
+  "noWarningsConfirmed": {
+    "message": "Keine ausgewählten Treffer gefunden; die Abwesenheit ist nicht bestätigt."
+  },
+  "unassessedFactors": {
+    "message": "Nicht bewertet"
+  },
+  "scoreContributors": {
+    "message": "Wichtigste Bewertungsfaktoren"
+  },
+  "savedLabel": {
+    "message": "Gespeichertes Etikett"
+  },
+  "incompleteLabel": {
+    "message": "Dieses Etikett kann nicht bewertet werden. Prüfe den erkannten Text und füge die vollständige Zutatenliste ein."
+  },
+  "savedProduct": {
+    "message": "Gespeichert"
+  },
+  "photoLimit": {
+    "message": "Wähle ein PNG-, JPEG- oder WebP-Foto unter 8 MB."
+  },
+  "photoReading": {
+    "message": "Foto wird lokal eingelesen…"
+  },
+  "reviewPhoto": {
+    "message": "Prüfe den erkannten Text und anschließend das Etikett."
+  },
+  "photoFailed": {
+    "message": "Das Foto konnte nicht gelesen werden. Verwende ein schärferes, kleineres Bild oder füge die Zutaten ein."
+  },
+  "barcodeInvalid": {
+    "message": "Gib einen Barcode mit 8 bis 14 Ziffern ein."
+  },
+  "reviewBarcode": {
+    "message": "Datenbanktreffer geladen. Vergleiche ihn mit der Verpackung und prüfe dann das Etikett."
+  },
+  "barcodeFailed": {
+    "message": "Barcode-Suche nicht verfügbar. Prüfe den Zugriff und versuche es erneut oder füge das Etikett ein."
+  },
+  "filterHeading": {
+    "message": "Produkte filtern"
+  },
+  "filterMaxPrice": {
+    "message": "Höchstpreis"
+  },
+  "filterMinScore": {
+    "message": "Mindestbewertung"
+  },
+  "filterComplete": {
+    "message": "Etikett und ausgewählte Nährwerte verlangen"
+  },
+  "filterNoMatches": {
+    "message": "Ausgewählte Warnungstreffer ausblenden"
+  },
+  "filterUnknown": {
+    "message": "Unbekannte Warnungsprüfungen einschließen"
+  },
+  "filterWarningNote": {
+    "message": "Unbekannte Etiketten bleiben gesondert. Das Filtern von Warnungstreffern bestätigt keine Allergenfreiheit."
+  },
+  "filterReset": {
+    "message": "Filter zurücksetzen"
+  },
+  "filterCount": {
+    "message": "$1 von $2 Produkten passen. Setze die Filter zurück, um alle anzuzeigen."
+  },
+  "evidenceUnknown": {
+    "message": "Keine Etikettendaten gespeichert"
+  },
+  "evidenceEntered": {
+    "message": "Eingegebenes Etikett"
+  },
+  "evidencePartial": {
+    "message": "Teilweise erkannt"
+  },
+  "evidenceMissing": {
+    "message": "Ausgewählte Nährwerte fehlen"
+  },
+  "libraryLink": {
+    "message": "Etikett prüfen · Speichern und vergleichen"
+  },
+  "warningEvidence_ingredient": {
+    "message": "Als Zutat gefunden"
+  },
+  "warningEvidence_contains": {
+    "message": "Enthält-Hinweis"
+  },
+  "warningEvidence_crossContact": {
+    "message": "Spuren / gemeinsame Produktionsanlage"
+  },
+  "warningEvidence_advisory": {
+    "message": "Etikettenhinweis"
+  },
+  "saveComparison": {
+    "message": "Ausgewählte Produkte speichern"
+  },
+  "compareListingPrice": {
+    "message": "Preis im Suchergebnis"
+  },
+  "compareUnitPrice": {
+    "message": "Grundpreis im Suchergebnis"
+  },
+  "orderDailyAverage": {
+    "message": "Tagesdurchschnitt"
+  },
+  "orderWeeklyAverage": {
+    "message": "Wochendurchschnitt"
+  },
+  "orderMonthlyAverage": {
+    "message": "Monatsdurchschnitt"
+  },
+  "orderToday": {
+    "message": "Heute"
+  },
+  "orderThisWeek": {
+    "message": "Diese Woche, ab Montag"
+  },
+  "orderThisMonth": {
+    "message": "Dieser Kalendermonat"
+  },
+  "orderOverviewLabel": {
+    "message": "Ingredient Check Kaufübersicht"
+  },
+  "orderGraphLabel": {
+    "message": "Kaufverlauf: tägliche Zutatenbewertung im Durchschnitt von 0 bis 100"
+  },
+  "compareProcessing": {
+    "message": "Verarbeitungsbasis"
+  },
+  "compareIngredients": {
+    "message": "Zutatenbeiträge"
+  },
+  "compareNutrition": {
+    "message": "Nährwertbeiträge"
+  },
+  "compareSourcing": {
+    "message": "Herkunftsbeiträge"
   }
 }

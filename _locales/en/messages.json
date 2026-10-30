@@ -1970,5 +1970,257 @@
   },
   "scoreDimensions": {
     "message": "Processing base $1 · Ingredient preferences $2 · Nutrition $3 · Sourcing $4"
+  },
+  "libraryTitle": {
+    "message": "Labels & saved products"
+  },
+  "libraryHistory": {
+    "message": "Purchase history"
+  },
+  "checkLabel": {
+    "message": "Check a label"
+  },
+  "labelName": {
+    "message": "Product name"
+  },
+  "labelIngredients": {
+    "message": "Ingredients"
+  },
+  "labelExtra": {
+    "message": "Allergen statements & nutrition (optional)"
+  },
+  "labelAdvisory": {
+    "message": "Contains / may contain statements"
+  },
+  "labelBasis": {
+    "message": "Amounts are per"
+  },
+  "labelProtein": {
+    "message": "Protein (g)"
+  },
+  "labelFibre": {
+    "message": "Fibre (g)"
+  },
+  "labelSugar": {
+    "message": "Total sugar (g)"
+  },
+  "labelAddedSugar": {
+    "message": "Added sugar (g)"
+  },
+  "labelSodium": {
+    "message": "Sodium (mg)"
+  },
+  "readPhoto": {
+    "message": "Read a photo"
+  },
+  "barcodeHeading": {
+    "message": "Look up a barcode"
+  },
+  "barcodePrivacy": {
+    "message": "Sends only the barcode to Open Food Facts with your permission."
+  },
+  "barcodeLookup": {
+    "message": "Look up barcode"
+  },
+  "shortlistName": {
+    "message": "List name"
+  },
+  "saveProduct": {
+    "message": "Save product"
+  },
+  "localLabelNote": {
+    "message": "Photos and entered labels stay on this computer. Review extracted text before checking. Manual labels do not replace retailer readings."
+  },
+  "savedHeading": {
+    "message": "Saved products"
+  },
+  "allLists": {
+    "message": "All lists"
+  },
+  "compareDetails": {
+    "message": "Compare products"
+  },
+  "compareEvidenceNote": {
+    "message": "Uses your current goals and saved label evidence. Missing amounts remain unknown; prices need a fresh store check."
+  },
+  "previewGoal": {
+    "message": "Preview a goal"
+  },
+  "currentGoals": {
+    "message": "Current goals"
+  },
+  "recentLabel": {
+    "message": "Recent"
+  },
+  "labelUnavailable": {
+    "message": "Unavailable"
+  },
+  "openFreshLabel": {
+    "message": "Open product to check freshness"
+  },
+  "removeSaved": {
+    "message": "Remove"
+  },
+  "saveFailed": {
+    "message": "Could not save — try again"
+  },
+  "noSavedProducts": {
+    "message": "Save products from their score panels or check a label here."
+  },
+  "compareDifference": {
+    "message": "Score difference: $1 points. See the label tradeoffs below."
+  },
+  "comparePartial": {
+    "message": "One or both labels cannot be fully assessed."
+  },
+  "compareFactor": {
+    "message": "Factor"
+  },
+  "ingredientScore": {
+    "message": "Ingredient score"
+  },
+  "evidenceHeading": {
+    "message": "Label evidence"
+  },
+  "warningMatches": {
+    "message": "Selected warning matches"
+  },
+  "noWarningsConfirmed": {
+    "message": "No selected matches found; absence is not confirmed."
+  },
+  "unassessedFactors": {
+    "message": "Not assessed"
+  },
+  "scoreContributors": {
+    "message": "Main score contributions"
+  },
+  "savedLabel": {
+    "message": "Saved label"
+  },
+  "incompleteLabel": {
+    "message": "This label cannot be assessed. Check the extracted text and include the complete ingredient list."
+  },
+  "savedProduct": {
+    "message": "Saved"
+  },
+  "photoLimit": {
+    "message": "Choose a PNG, JPEG or WebP photo smaller than 8 MB."
+  },
+  "photoReading": {
+    "message": "Reading photo locally…"
+  },
+  "reviewPhoto": {
+    "message": "Review the extracted text, then check the label."
+  },
+  "photoFailed": {
+    "message": "Could not read this photo. Try a clearer, smaller image or paste the ingredients."
+  },
+  "barcodeInvalid": {
+    "message": "Enter an 8–14 digit barcode."
+  },
+  "reviewBarcode": {
+    "message": "Database match loaded. Check it against the package, then check the label."
+  },
+  "barcodeFailed": {
+    "message": "Barcode lookup unavailable. Check access and try again, or paste the label."
+  },
+  "filterHeading": {
+    "message": "Filter products"
+  },
+  "filterMaxPrice": {
+    "message": "Maximum price"
+  },
+  "filterMinScore": {
+    "message": "Minimum score"
+  },
+  "filterComplete": {
+    "message": "Require label and selected nutrition data"
+  },
+  "filterNoMatches": {
+    "message": "Hide selected warning matches"
+  },
+  "filterUnknown": {
+    "message": "Include unknown warning checks"
+  },
+  "filterWarningNote": {
+    "message": "Unknown labels stay separate. Filtering warning matches does not confirm absence of allergens."
+  },
+  "filterReset": {
+    "message": "Clear filters"
+  },
+  "filterCount": {
+    "message": "$1 of $2 products match. Clear filters to show all."
+  },
+  "evidenceUnknown": {
+    "message": "Evidence not recorded"
+  },
+  "evidenceEntered": {
+    "message": "Entered label"
+  },
+  "evidencePartial": {
+    "message": "Partial reading"
+  },
+  "evidenceMissing": {
+    "message": "Missing selected nutrition data"
+  },
+  "libraryLink": {
+    "message": "Check a label · Saved & compare"
+  },
+  "warningEvidence_ingredient": {
+    "message": "Ingredient detected"
+  },
+  "warningEvidence_contains": {
+    "message": "Contains statement"
+  },
+  "warningEvidence_crossContact": {
+    "message": "May contain / shared facility"
+  },
+  "warningEvidence_advisory": {
+    "message": "Label advisory"
+  },
+  "saveComparison": {
+    "message": "Save selected products"
+  },
+  "compareListingPrice": {
+    "message": "Search listing price"
+  },
+  "compareUnitPrice": {
+    "message": "Search unit price"
+  },
+  "orderDailyAverage": {
+    "message": "Daily avg"
+  },
+  "orderWeeklyAverage": {
+    "message": "Weekly avg"
+  },
+  "orderMonthlyAverage": {
+    "message": "Monthly avg"
+  },
+  "orderToday": {
+    "message": "Today"
+  },
+  "orderThisWeek": {
+    "message": "This week, starting Monday"
+  },
+  "orderThisMonth": {
+    "message": "This calendar month"
+  },
+  "orderOverviewLabel": {
+    "message": "Ingredient Check purchase overview"
+  },
+  "orderGraphLabel": {
+    "message": "Purchase history: daily average ingredient scores, 0 to 100"
+  },
+  "compareProcessing": {
+    "message": "Processing base"
+  },
+  "compareIngredients": {
+    "message": "Ingredient contributions"
+  },
+  "compareNutrition": {
+    "message": "Nutrition contributions"
+  },
+  "compareSourcing": {
+    "message": "Sourcing contributions"
   }
 }

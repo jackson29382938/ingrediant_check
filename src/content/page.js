@@ -125,6 +125,7 @@
       store: storeHost(), asin, prefs: CACHE.fingerprint(cachePrefs(), source || 'page', result.category),
       score: result.score, verdict: result.verdict, nova: result.nova, category: result.category || 'food', ratingStyle: result.ratingStyle || 'food',
       source: source || 'page',
+      ...(root.AIR.db.shopping ? { evidence: root.AIR.db.shopping.evidence(result, { source: source || 'page', capturedAt: t, prefs: state.prefs }) } : {}),
       provenanceSource: provenanceSource || '',
       name: String(name || '').replace(/\s+/g, ' ').trim().slice(0, 120),
     };

@@ -164,6 +164,21 @@ Automatic search/cart scoring, badge placement, hover details, local-cache behav
 appearance and score palettes are adjustable in Settings. Cached readings help repeat visits load
 faster; freshness, changed goals and changed scoring rules can still require a refresh or rescore.
 
+### Check labels and keep a shopping shortlist
+
+Use **Check a label · Saved & compare** in the popup to paste ingredients, read a local photo,
+or explicitly look up a barcode. Review photo text before scoring. **Save product** on a product's
+score panel keeps its label in a local shopping list, independently of expiring caches.
+
+Detailed comparisons show current-goal scores, warning evidence, available nutrients, missing
+factors and score contributions. Goal previews leave your settings unchanged. Amazon's comparison
+panel can filter by maximum price, minimum score, selected warning matches and label evidence.
+Unknown warnings remain a separate choice; filters do not confirm allergen absence.
+
+On Amazon Orders pages, item scores also work with history import off. The compact bar shows its
+two buttons, a small graph only when rated history exists, and available daily, weekly and monthly
+averages. Saving purchase records and account sync remain opt-in.
+
 ### Non-food price comparisons
 
 On Amazon non-food search pages, **Price per …: Low to High** still works when unit-price sorting

@@ -1,6 +1,6 @@
 # Chrome Web Store listing checklist
 
-Code package: `npm run pack` → `dist/ingredient-check-<version>.zip` (preflight first). Do **not** bump `manifest.json` version until you are ready to submit.
+Code package: `npm run pack` → `dist/ingredient-check-<version>.zip` (preflight first). Every new upload requires a higher manifest version. Current submission copy: [1.19.0](1.19.0.md).
 
 Privacy copy to paste / host: [../PRIVACY.md](../PRIVACY.md). Store description source: `_locales/en/messages.json` → `appDescription` (132-character cap). Full name: **Ingredient Check**.
 
@@ -14,7 +14,7 @@ Host permissions cover many Amazon storefronts. Scoring quality does **not**.
 |---|---|
 | **US / UK / CA / AU** (English labels) | Best fit — full rulebase + OCR when needed |
 | **DE / FR / ES / IT / PT / NL** | Ingredient headings extract; a synonym pack maps common additives, oils and flavours onto the English rules, plus E-numbers. **Tested only on synthetic translations**, not on real labels ([ACCURACY.md](../ACCURACY.md)) |
-| **SE / PL / TR** | Headings extract; no synonym pack, so most lists are declined as unreadable. A list the gate lets through is scored on its E-numbers |
+| **SE / PL / TR** | Synonym packs and translated regression fixtures exist; real-label coverage remains under-tested. See [current accuracy evidence](../ACCURACY.md). |
 | **JP / AE / SA** | Declined. Photo OCR is off (English Tesseract misreads those scripts); paste still works |
 
 **Sort by score / price per ounce** is on for amazon.com, .co.uk, .ie, .ca, .com.au, .sg and .in only,
@@ -74,4 +74,4 @@ Open Food Facts, live OCR after WAR removal, and Apps Script diagnostics are **o
 3. Attach screenshots + privacy URL.
 4. Then bump `manifest.json` version for the next upload.
 
-Target, Walmart and Costco are previews. They read only pages the user opens and never request retailer pages in the background; content scripts are scoped to product and search routes, with no retailer host permissions.
+Target, Walmart, Costco and the other grocery adapters remain previews. Automatic rating may fetch bounded public same-origin product pages without cookies for search/cart items; challenges stop requests. Their content scripts are scoped to product, search and narrow cart routes, with no extra retailer host permissions.

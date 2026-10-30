@@ -12,7 +12,7 @@
 if (typeof importScripts === 'function') {
   importScripts('browser-compat.js', 'browser-platform.js', 'engine/db/_module.js', 'engine/db/allergens.js', 'engine/categories.js',
     'engine/db/ingestible.js', 'engine/db/prefs.js', 'engine/db/theme.js',
-    'engine/db/ocr-text.js', 'engine/db/product-cache.js', 'engine/db/storefronts.js', 'engine/db/sorted-results.js',
+    'engine/db/ocr-text.js', 'engine/db/product-cache.js', 'engine/db/shopping.js', 'engine/db/storefronts.js', 'engine/db/sorted-results.js',
     'engine/db/speed.js', 'engine/db/unit-price.js',
     'engine/db/activity.js', 'options/google-auth.js', 'worker/messages.js', 'worker/sheet-store.js', 'engine/db/purchase-history.js', 'worker/purchase-history.js', 'engine/db/history-scan.js', 'worker/history-scan.js');
 }
@@ -88,10 +88,10 @@ const NOT_FOOD_REASON = 'Open Food Facts lists this as a non-food product';
 // answer instead of sending another GET. The live record of 2026-09-25 saw two GETs for one barcode.
 const offInFlight = new Map();
 
-async function lookupBarcode(code, { foodOnly = true } = {}) {
+async function lookupBarcode(code, { foodOnly = true, manual = false } = {}) {
   const conf = await chrome.storage.local.get(['enabled', 'useOpenFoodFacts']);
   const toggles = AIR.db.prefs.sanitizeToggles(conf);
-  if (!toggles.enabled || !toggles.useOpenFoodFacts) return null;
+  if (!toggles.enabled || (!manual && !toggles.useOpenFoodFacts)) return null;
   if (!await chrome.permissions.contains({ origins: ['https://world.openfoodfacts.org/*'] })) return null;
   if (!/^\d{8,14}$/.test(String(code))) return null;
   const key = `off:${code}`;
@@ -290,7 +290,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   }
   if (msg && msg.type === 'lookupBarcode' && msg.code) {
     // lookupBarcode re-reads useOpenFoodFacts (and the pause switch) itself.
-    answer('lookupBarcode', () => lookupBarcode(msg.code, { foodOnly: msg.foodOnly !== false }), reply, null);
+    answer('lookupBarcode', () => lookupBarcode(msg.code, { foodOnly: msg.foodOnly !== false, manual: sender.url?.split('?')[0] === chrome.runtime.getURL('src/options/library.html') }), reply, null);
     return true;   // async reply
   }
   if (msg && msg.type === 'ping') { reply({ ok: true }); return false; }

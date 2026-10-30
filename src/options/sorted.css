@@ -137,3 +137,5 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px soli
   .why-pop { background: #1f2020; border-color: #3a3c3c; }
   .why-details > summary { color: var(--u-link-d, #5cc3d6); }
 }
+
+.comparison-filters{margin:10px 0;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:12px}.comparison-filters summary{cursor:pointer;font-weight:600}.filter-fields{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0}.filter-fields label{display:flex;gap:6px;align-items:center}.filter-fields input[type=number]{width:90px;padding:5px;border:1px solid var(--line);border-radius:5px;background:var(--card);color:var(--text)}.evidence-note{font-size:11px;color:var(--muted)}

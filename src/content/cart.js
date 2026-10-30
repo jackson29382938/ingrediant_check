@@ -97,7 +97,8 @@
     const card = !!(hit && settings.hoverBreakdown && A.hoverCard), air = hit ? `${hit.score}:${hit.verdict}${care ? ':' + hit.category : ''}` : '', sig = `${air}|${card}`;
     if (b.dataset.airSig !== sig) {   // not on every pass: the card sets aria-expanded while it is open
       b.dataset.airSig = sig;
-      const name = hit ? `Ingredient Check: ${hit.score}/100 — ${hit.verdict}${care ? ` · ${A.db.productRatings.caption(hit, t)}` : ''}` : 'Ingredient Check: open this product to read or paste its ingredient label.';
+      let name = hit ? `Ingredient Check: ${hit.score}/100 — ${hit.verdict}${care ? ` · ${A.db.productRatings.caption(hit, t)}` : ''}` : 'Ingredient Check: open this product to read or paste its ingredient label.';
+      if (hit?.evidence && A.db.shopping) name += ' · ' + A.db.shopping.describe(hit.evidence, t);
       if (air) b.dataset.air = air; else delete b.dataset.air;
       for (const a of ['title', 'tabindex', 'aria-haspopup', 'aria-expanded']) b.removeAttribute(a);
       b.setAttribute('aria-label', name); b.setAttribute('role', card ? 'link' : 'img');
@@ -137,7 +138,7 @@
       // can say why. Amazon only (A.page), and never shared.
       A.page?.rememberProduct(job.id, { input, via: data.via, confidence: data.confidence, food: food.ok !== false }, { share: false });
       job.hit = { schema: cache.SCHEMA, cacheRevision: cache.CACHE_REVISION, v: version, t: Date.now(), store: cache.normalizeStore(location.hostname), asin: job.id,
-        prefs: cache.fingerprint(raw, 'page', result.category), source: 'page', input, score: result.score, verdict: result.verdict, nova: result.nova, category: result.category || 'food', ratingStyle: result.ratingStyle || 'food', name: data.title.slice(0, 120) };
+        prefs: cache.fingerprint(raw, 'page', result.category), source: 'page', input, ...(A.db.shopping ? { evidence: A.db.shopping.evidence(result, { source: 'page', capturedAt: Date.now(), prefs: raw }) } : {}), score: result.score, verdict: result.verdict, nova: result.nova, category: result.category || 'food', ratingStyle: result.ratingStyle || 'food', name: data.title.slice(0, 120) };
       await chrome.storage.local.set({ [cache.key(location.hostname, job.id)]: job.hit });
     } catch { if (turn === generation) job.status = 'unavailable'; }
     finally { clearTimeout(timeout); controllers.delete(control); if (turn === generation) { active--; schedule(); } }

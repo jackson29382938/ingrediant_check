@@ -85,6 +85,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
         name: hit.name || '', score: hit.score, verdict: hit.verdict || '',
         nova: hit.nova, source: hit.source, t: hit.t, category: hit.category || 'food', ratingStyle: hit.ratingStyle || 'food',
         provenanceSource: hit.provenanceSource || '',
+        ...(hit.evidence && AIR.db.shopping ? { evidence: AIR.db.shopping.cleanEvidence(hit.evidence) } : {}),
       });
     }
     out.sort((a, b) => (b.t || 0) - (a.t || 0));

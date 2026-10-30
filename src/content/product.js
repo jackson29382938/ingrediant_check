@@ -85,15 +85,17 @@
     state.lastTextSig = ingredientSig() || ((meta && meta.textSig != null) ? meta.textSig : (data.text || ''));
     state.failedExtracts = 0;
     // Do not settle('scored') — keep watching for late ingredient hydration.
-    root.AIR.panel.mount(host, root.AIR.panel.render(result, {
+    const shadow = root.AIR.panel.mount(host, root.AIR.panel.render(result, {
       title: meta.title || data.title,
       confidence: meta.confidence,
       via: meta.via,
       provenanceSource: meta.provenanceSource,
+      capturedAt: meta.t || Date.now(),
     }), meta.report === false ? null : reporter(data, result, meta));
+    if (meta.input) root.AIR.db.shopping?.offerSave(shadow, { id: `product:${location.hostname.replace(/^www\./, '')}:${key}`, name: meta.title || data.title, input: meta.input, source: meta.via, url: location.href, savedScore: result.score, capturedAt: meta.t || Date.now() });
     if (state.panelOpen) root.AIR.panel.openCard(host);
     cacheScore(key, result, meta.cacheName || data.title, meta.via, meta.provenanceSource, meta.t);
-    if (meta.input && meta.via !== 'manual-paste' && meta.via !== 'food-override') {
+    if (meta.input && meta.remember !== false && meta.via !== 'manual-paste' && meta.via !== 'food-override') {
       P().rememberProduct(key, { input: meta.input, via: meta.via, confidence: meta.confidence,
         food: !(data.ingestible && data.ingestible.ok === false) }, { share: meta.share !== false });
     }
@@ -309,6 +311,7 @@
       } };
       const result = root.AIR.engine.score(C.toInput(updated), state.prefs);
       if (!presentResult(host, data, key, result, {
+        input: C.toInput(updated), remember: false,
         title: data.title || row.data.title, confidence: row.data.confidence, via: row.data.via,
         text: row.data.text, textSig: row.data.text.slice(0, 320), t: Date.parse(row.scanned_at),
       })) return;

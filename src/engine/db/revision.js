@@ -32,8 +32,10 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // wrongly). See docs/releases/1.18.0.md and docs/PERSONAL-CARE.md.
   //
   // 2026-10-28.1 (1.18.1): the three above in one release. See docs/releases/1.18.1.md.
-  const RULES_REVISION = '2026-10-28.1';
-  const RULES_HASH = '55ccd9c4-270403';
+  // 2026-10-30.1 (1.19.0): allergen explanations retain ingredient/declaration/cross-contact evidence.
+  // Numeric scoring rules are unchanged.
+  const RULES_REVISION = '2026-10-30.1';
+  const RULES_HASH = '8ff5ef73-271137';
   const _exports = AIRmodule('revision', { RULES_REVISION, RULES_HASH });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 })();
