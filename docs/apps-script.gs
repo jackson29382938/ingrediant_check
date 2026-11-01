@@ -55,6 +55,18 @@ var DEDUP_WINDOW = 20000;
 // How long a Google token that checked out is remembered: a settings save or a history sync is several
 // requests, each of which used to cost a call to Google (the day's UrlFetch quota is shared by everyone).
 var TOKEN_CACHE_SECONDS = 60;
+// The URL ships inside the extension, so anyone can post to it. Two limits keep an abuser from filling the
+// spreadsheet (Google Sheets stops at 10 million cells for the whole file, and accounts and purchase history
+// live in the same file) or from keeping the script lock busy:
+//   - the anonymous kinds (diagnostics, reports, contributions, product rows) share a per-minute allowance of
+//     posts and of rows, kept in the script cache; over it the answer is "busy; retry later", which the
+//     extension already treats as "keep the rows and try again";
+//   - the tabs those kinds write to hold a rolling window: past the cap the oldest rows are deleted first.
+// Both can be changed in Project Settings > Script Properties (ANON_WRITES_PER_MINUTE, ANON_ROWS_PER_MINUTE).
+// Signed-in kinds (account*, history*) are not counted: Google has vouched for who sends them.
+var ANON_WRITES_PER_MINUTE = 120;
+var ANON_ROWS_PER_MINUTE = 3000;
+var TAB_ROW_CAPS = { diagnostics: 20000, reports: 5000, contributions: 5000 };
 
 // Script Properties, not code, so opening product rows needs no redeploy and no code edit.
 function productsOpen() {
@@ -186,6 +198,10 @@ function handlePost(e, seen) {
   } catch (err) {
     return json({ ok: false, error: String(err) });
   }
+  // Counted before the lock is taken, so a flood of posts never waits for it.
+  if (isAnonymousWrite(body.kind) && !anonymousWriteAllowed(itemsOf(body))) {
+    return json({ ok: false, error: 'busy; retry later', rateLimited: true });
+  }
   var lock = LockService.getScriptLock();
   var acquired = false;
   var waitingAt = Date.now(), acquiredAt = 0;
@@ -238,7 +254,7 @@ function handleGet(e) {
   // by opening the /exec URL: `"accounts":true` means this version is live and configured.
   var clientId = PropertiesService.getScriptProperties().getProperty('OAUTH_CLIENT_ID') || OAUTH_CLIENT_ID;
   return json({ ok: true, service: 'ingredient-check', diagnosticsSchema: 2, accounts: !!clientId, history: !!clientId, historySchema: 1, historyCapacity: AIR.db.purchaseHistory.MAX,
-    accepts: ['lookup', 'products', 'diagnostics', 'report', 'account', 'accountGet', 'historyGet', 'historyPut', 'historyClear', 'contribution'] });
+    accepts: ['lookup', 'usda', 'products', 'diagnostics', 'report', 'account', 'accountGet', 'historyGet', 'historyPut', 'historyClear', 'contribution'] });
 }
 
 // Strings only, so a date or an all-digit UPC reaches the extension exactly as typed.
@@ -552,6 +568,7 @@ function writeRows(tabName, columns, rows, existingSheet) {
       return v === undefined || v === null ? '' : v;
     });
   });
+  trimToCap(sheet, TAB_ROW_CAPS[tabName], values.length);
   sheet.getRange(sheet.getLastRow() + 1, 1, values.length, columns.length).setValues(values);
   SpreadsheetApp.flush();
   return json({ ok: true, wrote: values.length, tab: tabName });
@@ -580,6 +597,120 @@ function json(obj) {
   lastReply = obj;
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ---------------------------------------------------------------- abuse limits
+
+var SIGNED_IN_KINDS = ['account', 'accountGet', 'historyGet', 'historyPut', 'historyClear'];
+// Anything that is neither a read nor a signed-in kind writes a row anyone could have sent. The USDA lookup is a read
+// (it has its own hourly budget against the key, usdaLookup above).
+function isAnonymousWrite(kind) {
+  return kind !== 'lookup' && kind !== 'usda' && SIGNED_IN_KINDS.indexOf(kind) === -1;
+}
+
+function propertyNumber(name, fallback) {
+  var raw = PropertiesService.getScriptProperties().getProperty(name);
+  var n = Number(raw);
+  return raw !== null && raw !== undefined && raw !== '' && isFinite(n) && n > 0 ? n : fallback;
+}
+
+// A counter per minute in the script cache. Not atomic, so a burst can overshoot by a few posts, which is
+// fine for a limit whose job is to stop thousands. Without a cache the limit is off rather than the script.
+function anonymousWriteAllowed(rows) {
+  var cache = typeof CacheService !== 'undefined' ? CacheService.getScriptCache() : null;
+  if (!cache) return true;
+  var key = 'anon:' + Math.floor(Date.now() / 60000);
+  var raw = cache.get(key), seen = { w: 0, r: 0 };
+  try { if (raw) seen = JSON.parse(raw); } catch (err) { /* start the minute over */ }
+  var maxWrites = propertyNumber('ANON_WRITES_PER_MINUTE', ANON_WRITES_PER_MINUTE);
+  var maxRows = propertyNumber('ANON_ROWS_PER_MINUTE', ANON_ROWS_PER_MINUTE);
+  if (seen.w + 1 > maxWrites || seen.r + (Number(rows) || 1) > maxRows) return false;
+  cache.put(key, JSON.stringify({ w: seen.w + 1, r: seen.r + (Number(rows) || 1) }), 120);
+  return true;
+}
+
+// Keep at most `cap` data rows (the header is row 1) after `incoming` more are added: the oldest go first.
+function trimToCap(sheet, cap, incoming) {
+  if (!cap) return;
+  var rows = Math.max(0, sheet.getLastRow() - 1);
+  var excess = rows + incoming - cap;
+  if (excess > 0) sheet.deleteRows(2, Math.min(rows, excess));
+}
+
+// ---------------------------------------------------------------- drift report
+//
+// Amazon changes its pages without notice, and the first sign is usually a pile of "no readable ingredients"
+// from people who did nothing different. The diagnostics tab already records, per scored product, the
+// version, the store and an outcome ('unreadable', 'low-coverage', 'not-food', 'wrong-score' or blank for a
+// score). Once a week this compares the share of unreadable and low-coverage rows in the last seven days with
+// the seven before, overall and per store, and emails the owner when it jumped. Run installDriftTrigger() once
+// from the editor to schedule it (it asks for permission to send mail the first time).
+
+var DRIFT_DAYS = 7;
+var DRIFT_MIN_ROWS = 50;
+var DRIFT_STORE_MIN_ROWS = 30;
+var DRIFT_RISE = 0.10;
+var DRIFT_STORE_RISE = 0.20;
+
+function driftBucket() { return { n: 0, bad: 0 }; }
+function driftRate(b) { return b.n ? b.bad / b.n : null; }
+
+// table: the diagnostics tab with its header row. -> overall and per-store counts for the last two windows.
+function driftSummary(table, now) {
+  var head = {};
+  (table[0] || []).forEach(function (h, i) { head[String(h)] = i; });
+  var windowMs = DRIFT_DAYS * 86400000;
+  var out = { recent: driftBucket(), before: driftBucket(), stores: {} };
+  for (var i = 1; i < table.length; i++) {
+    var row = table[i];
+    var t = Date.parse(unquote(row[head.ts]));
+    var age = now - t;
+    if (!isFinite(t) || age < 0 || age >= 2 * windowMs) continue;
+    var period = age < windowMs ? 'recent' : 'before';
+    var bad = /^(unreadable|low-coverage)$/.test(String(row[head.outcome] || '')) ? 1 : 0;
+    var store = String(row[head.store] || 'unknown');
+    out.stores[store] = out.stores[store] || { recent: driftBucket(), before: driftBucket() };
+    [out[period], out.stores[store][period]].forEach(function (b) { b.n++; b.bad += bad; });
+  }
+  return out;
+}
+
+// -> lines describing what jumped, or [] when nothing did.
+function driftAlerts(summary) {
+  var lines = [];
+  var pct = function (r) { return r === null ? 'n/a' : Math.round(r * 100) + '%'; };
+  var now = driftRate(summary.recent), then = driftRate(summary.before);
+  if (summary.recent.n >= DRIFT_MIN_ROWS && summary.before.n >= DRIFT_MIN_ROWS && now - then >= DRIFT_RISE) {
+    lines.push('Overall: ' + pct(then) + ' -> ' + pct(now) + ' unreadable or low-coverage (' + summary.recent.n + ' rows this week, ' + summary.before.n + ' last week).');
+  }
+  Object.keys(summary.stores).sort().forEach(function (store) {
+    var s = summary.stores[store], a = driftRate(s.recent), b = driftRate(s.before);
+    if (s.recent.n >= DRIFT_STORE_MIN_ROWS && s.before.n >= DRIFT_STORE_MIN_ROWS && a - b >= DRIFT_STORE_RISE) {
+      lines.push(store + ': ' + pct(b) + ' -> ' + pct(a) + ' (' + s.recent.n + ' rows this week).');
+    }
+  });
+  return lines;
+}
+
+function weeklyDriftReport() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('diagnostics');
+  if (!sheet || sheet.getLastRow() < 2) return { skipped: 'no diagnostics yet' };
+  var last = sheet.getLastRow(), from = Math.max(2, last - DEDUP_WINDOW + 1);
+  var table = [sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]]
+    .concat(sheet.getRange(from, 1, last - from + 1, sheet.getLastColumn()).getValues());
+  var summary = driftSummary(table, Date.now());
+  var lines = driftAlerts(summary);
+  if (lines.length && typeof MailApp !== 'undefined') {
+    MailApp.sendEmail(Session.getEffectiveUser().getEmail(), 'Ingredient Check: more unreadable pages than last week',
+      lines.join('\n') + '\n\nAmazon or a store may have changed its page. Open the diagnostics tab and filter by outcome.');
+  }
+  return { alerts: lines, summary: summary };
+}
+
+// Run once from the Apps Script editor.
+function installDriftTrigger() {
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'weeklyDriftReport') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('weeklyDriftReport').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(9).create();
 }
 
 // Purchase history schema: generated from src/engine/db/purchase-history.js.

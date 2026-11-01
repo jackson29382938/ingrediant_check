@@ -311,3 +311,80 @@ test('a verified token is not verified again within a minute, and the cache neve
   short.post({ kind: 'accountGet', token: 'ya29.a-nearly-expired-token-xxx' });
   assert.ok([...short.cache.values()].every(entry => entry.seconds <= 20));
 });
+
+// ---------------------------------------------------------------- abuse limits and the drift report
+
+const vm = require('node:vm');
+const clock = (r, ms) => vm.runInContext(`Date.now = () => ${ms}`, r.context);
+const report = (n, over = {}) => ({ kind: 'report', asin: 'B000000001', product_name: `Oats ${n}`, ...over });
+
+test('anonymous posts share a per-minute allowance, and over it they are told to retry without touching the sheet', () => {
+  const r = receiver({ anonLimits: { writes: 5, rows: 1e9 } });
+  clock(r, 1_700_000_000_000);
+  for (let i = 0; i < 5; i++) assert.equal(r.post(report(i)).ok, true, `post ${i}`);
+  const refused = r.post(report(5));
+  assert.deepEqual([refused.ok, refused.rateLimited, refused.error], [false, true, 'busy; retry later']);
+  assert.equal(r.tabs.get('reports').data.length, 6, 'header plus the five that were allowed');
+  clock(r, 1_700_000_000_000 + 61_000);
+  assert.equal(r.post(report(6)).ok, true, 'a new minute starts a fresh allowance');
+});
+
+test('the row allowance counts diagnostics rows, not only posts', () => {
+  const r = receiver({ anonLimits: { writes: 1e9, rows: 30 } });
+  clock(r, 1_700_000_000_000);
+  assert.equal(r.post(batch(0, 12)).ok, true);
+  assert.equal(r.post(batch(12, 12)).ok, true);
+  assert.equal(r.post(batch(24, 12)).rateLimited, true, 'a third batch would take it past 30 rows');
+});
+
+test('signed-in kinds and product lookups are not counted against the anonymous allowance', () => {
+  const token = 'a'.repeat(30), r = receiver({ anonLimits: { writes: 1, rows: 1 }, tokens: { [token]: { aud: 'client-1', sub: 'alice', expires_in: '3600' } } });
+  clock(r, 1_700_000_000_000);
+  assert.equal(r.post(report(0)).ok, true);
+  assert.equal(r.post(report(1)).rateLimited, true);
+  for (let i = 0; i < 5; i++) assert.equal(r.post({ kind: 'accountGet', token }).ok, true);
+  assert.equal(r.post({ kind: 'lookup', keys: ['amazon.com:B000000001'] }).rateLimited, undefined);
+});
+
+test('reports, contributions and diagnostics keep a rolling window: the oldest rows go first', () => {
+  const r = receiver();
+  const keep = r.context.TAB_ROW_CAPS.reports;
+  assert.equal(typeof keep, 'number');
+  r.context.TAB_ROW_CAPS.reports = 4;
+  for (let i = 0; i < 7; i++) r.post(report(i, { product_name: `Oats ${i}` }));
+  const rows = r.tabs.get('reports').data;
+  assert.equal(rows.length, 5, 'header plus four');
+  assert.deepEqual(rows.slice(1).map(row => row[4]), ['Oats 3', 'Oats 4', 'Oats 5', 'Oats 6']);
+  assert.equal(rows[0][0], 'ts', 'the header is never trimmed');
+});
+
+test('the account and history tabs have no cap: they belong to signed-in users', () => {
+  const r = receiver();
+  assert.deepEqual(Object.keys(plainCaps(r)), ['diagnostics', 'reports', 'contributions']);
+});
+function plainCaps(r) { return JSON.parse(JSON.stringify(r.context.TAB_ROW_CAPS)); }
+
+const diagnosticsTable = (rows, now) => [['ts', 'store', 'outcome'], ...rows.map(([age, store, outcome]) => [new Date(now - age * 86400000).toISOString(), store, outcome])];
+const many = (n, age, store, outcome) => Array.from({ length: n }, () => [age, store, outcome]);
+
+test('the drift report flags a jump in unreadable pages overall and per store, and stays quiet otherwise', () => {
+  const r = receiver(), now = Date.UTC(2026, 10, 1);
+  const quiet = r.context.driftSummary(diagnosticsTable([...many(60, 2, 'amazon.com', ''), ...many(6, 2, 'amazon.com', 'unreadable'),
+    ...many(60, 9, 'amazon.com', ''), ...many(6, 9, 'amazon.com', 'unreadable')], now), now);
+  assert.equal(r.context.driftAlerts(quiet).length, 0);
+  const drift = r.context.driftSummary(diagnosticsTable([...many(40, 2, 'amazon.com', ''), ...many(40, 2, 'amazon.com', 'unreadable'),
+    ...many(70, 9, 'amazon.com', ''), ...many(7, 9, 'amazon.com', 'low-coverage'),
+    ...many(35, 2, 'amazon.de', 'low-coverage'), ...many(35, 9, 'amazon.de', 'low-coverage')], now), now);
+  const alerts = r.context.driftAlerts(drift);
+  assert.ok(alerts.some(line => /^Overall: \d+% -> \d+%/.test(line)), alerts.join('\n'));
+  assert.ok(alerts.some(line => /^amazon\.com: 9% -> 50%/.test(line)), alerts.join('\n'));
+  assert.ok(!alerts.some(line => /amazon\.de/.test(line)), 'a store that was already bad last week is not news');
+});
+
+test('the drift report ignores rows too old to compare and thin samples', () => {
+  const r = receiver(), now = Date.UTC(2026, 10, 1);
+  const thin = r.context.driftSummary(diagnosticsTable([...many(10, 2, 'amazon.com', 'unreadable'), ...many(10, 9, 'amazon.com', ''), ...many(500, 40, 'amazon.com', 'unreadable')], now), now);
+  assert.equal(thin.recent.n, 10);
+  assert.equal(thin.before.n, 10, 'six-week-old rows are not in either window');
+  assert.equal(r.context.driftAlerts(thin).length, 0);
+});

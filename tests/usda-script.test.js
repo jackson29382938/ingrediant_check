@@ -83,3 +83,10 @@ test('no other request kind can read the property: a contribution cannot be coax
   }
   assert.ok(!JSON.stringify(r.get({ kind: 'tables' })).includes(KEY));
 });
+
+test('the lookup is a read: it does not spend the per-minute allowance that anonymous writes share, and is listed as accepted', () => {
+  const r = receiver({ usdaKey: KEY, usdaFetch: () => ok([food()]), anonLimits: { writes: 1, rows: 1 } });
+  for (let i = 0; i < 5; i++) assert.equal(ask(r, String(2000000000000 + i)).ok, true);
+  assert.equal(r.post({ kind: 'report', product_name: 'x' }).ok !== undefined, true);
+  assert.ok(r.get({}).accepts.includes('usda'));
+});
