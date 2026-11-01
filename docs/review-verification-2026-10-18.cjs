@@ -95,7 +95,7 @@ const ctx = vm.createContext({
     // Orders stamps each record with the rules revision, which this stub did not carry when the script was written.
     db: { scoreCache: SC, productCache: PC, prefs, speed, revision: { RULES_REVISION: 'review-verification' } }, engine,
     extract: { extract: () => ({ ok: true, title: 'Ground beef', asin: 'B000000001', text: 'beef', via: 'nic-ingredients-content', confidence: 1 }) },
-    panel: { render: result => { rendered.push(result); return ''; }, mount() {} },
+    panel: { ...require('../tests/panel-state-fakes.js'), render: result => { rendered.push(result); return ''; }, mount() {} },
   },
 });
 for (const file of ['page.js', 'product.js']) vm.runInContext(fs.readFileSync(path.join(root, 'src/content', file), 'utf8'), ctx);

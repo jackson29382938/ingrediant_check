@@ -93,7 +93,7 @@ function setup() {
         ocrReadyForHost: host => !/(?:^|\.)amazon\.(?:co\.jp|ae|sa)$/i.test(String(host || '').replace(/^www\./, '')),
       },
       engine: { score: (input, prefs) => ({ score: 90, verdict: 'Excellent', nova: 1, input, prefs }), isReadable: require('../src/engine/score.js').isReadable },
-      panel: { BAND_COLOR: () => ({ fg: '', bg: '', ring: '' }),
+      panel: { ...require('./panel-state-fakes.js'), BAND_COLOR: () => ({ fg: '', bg: '', ring: '' }),
         renderFailure: m => { failMeta = m; return 'failure'; },
         renderLoading: () => 'loading',
         render: r => { rendered.push(r); return r; },

@@ -567,6 +567,34 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
     });
   }
 
+  // ---- panel state
+  //
+  // What the panel on this page is doing, kept on the host element (host.dataset.airState) because the page
+  // and our scripts both outlive any one render. Writes used to be scattered assignments across product.js
+  // and retailer.js, so a typo ("personal_care") was a silent new state that nothing handled. Every change now
+  // goes through setPanelState, which knows the vocabulary, tells "Report a problem" when it changes
+  // (page.js logAction), and keeps the last few changes for the harness and the tests.
+  //   ''             nothing yet, or a check that found nothing and ended (a cache or label-photo attempt)
+  //   loading        a saved reading, a barcode lookup or a label photo is being read
+  //   scored         a score is showing
+  //   personal-care  a personal-care or supplement label review is showing
+  //   not-food       declined as not food (Score anyway is offered)
+  //   fail           no readable ingredients (paste box)
+  //   waiting        a retailer label is collapsed: nothing to read until the visitor opens it
+  const PANEL_STATES = Object.freeze(['', 'loading', 'scored', 'personal-care', 'not-food', 'fail', 'waiting']);
+  const stateTrace = [];
+  const panelState = host => (host && host.dataset && host.dataset.airState) || '';
+  function setPanelState(host, next, why = '') {
+    const previous = panelState(host);
+    if (!PANEL_STATES.includes(next)) console.debug('[AIR]', new Error(`unknown panel state "${next}"`));
+    host.dataset.airState = next;
+    if (previous === next) return previous;
+    stateTrace.push({ from: previous, to: next, why, t: Date.now() });
+    if (stateTrace.length > 30) stateTrace.shift();
+    try { root.AIR.page?.logAction?.('panel', `${previous || 'new'} to ${next || 'idle'}${why ? ` (${why})` : ''}`); } catch (e) { /* no worker */ }
+    return previous;
+  }
+
   // host.shadowRoot is always null when mode is 'closed'. Keep our own handle.
   const shadows = new WeakMap();
 
@@ -632,6 +660,6 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
     head.setAttribute('aria-expanded', 'true');
   }
 
-  root.AIR.panel = { openCard, render, renderBreakdown, renderLoading, renderFailure, renderNotFood, renderPersonalCare, renderNotice, mount, shadowOf, BAND_COLOR, NOVA_TEXT, pasteLooksValid, t, sections };
+  root.AIR.panel = { panelState, setPanelState, PANEL_STATES, stateTrace, openCard, render, renderBreakdown, renderLoading, renderFailure, renderNotFood, renderPersonalCare, renderNotice, mount, shadowOf, BAND_COLOR, NOVA_TEXT, pasteLooksValid, t, sections };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.AIR.panel;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

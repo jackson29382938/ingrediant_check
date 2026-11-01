@@ -53,8 +53,8 @@
     }
     state.lastKey = key;
     // This runs on every re-read while Amazon hydrates; log the decline once per product.
-    if (host.dataset.airState !== 'not-food') P().sendDiagnostic(data, null, data.via, data.text, { outcome: 'not-food' });
-    host.dataset.airState = 'not-food';
+    if (root.AIR.panel.panelState(host) !== 'not-food') P().sendDiagnostic(data, null, data.via, data.text, { outcome: 'not-food' });
+    root.AIR.panel.setPanelState(host, 'not-food', 'title or page says not food');
     publishActionBadge({ status: 'not-food' });
     const shadow = root.AIR.panel.mount(host, root.AIR.panel.renderNotFood(data));
     wireScoreAnyway(shadow, host, data, key);
@@ -64,7 +64,7 @@
   function presentResult(host, data, key, result, meta) {
     const { state, unreadable, cacheScore, publishActionBadge, sendDiagnostic, ingredientSig } = P();
     if (result.category && unreadable(result)) {
-      host.dataset.airState = 'personal-care';
+      root.AIR.panel.setPanelState(host, 'personal-care', 'personal-care or supplement label');
       state.lastTextSig = ingredientSig() || data.text || '';
       publishActionBadge(null);
       const review = root.AIR.db.ingestible.personalCareReview(data.title, meta.text || data.text, state.prefs, data.advisoryText, data.supplementFacts);
@@ -72,11 +72,11 @@
       return false;
     }
     if (unreadable(result) && meta && meta.checkCoverage !== false) {
-      if (host.dataset.airState !== 'fail') P().sendDiagnostic(data, result, meta.via, meta.text || data.text, { outcome: 'low-coverage' });
+      if (root.AIR.panel.panelState(host) !== 'fail') P().sendDiagnostic(data, result, meta.via, meta.text || data.text, { outcome: 'low-coverage' });
       showFailure(host, { ...data, lowCoverage: true, ocrAttempted: !!meta.ocrAttempted }, key);
       return false;
     }
-    host.dataset.airState = 'scored';
+    root.AIR.panel.setPanelState(host, 'scored', meta.via || 'page');
     delete host.dataset.airCheck;
     // The page's own ingredient text as it stands now, so the next tick compares page to page. A
     // score from a label photo, a barcode or a saved reading used to record ITS text here; the page
@@ -112,7 +112,7 @@
     const urlAsin = (location.pathname.match(/\/(?:dp|gp\/product|gp\/aw\/d)\/([A-Z0-9]{10})/) || [])[1];
     const earlyKey = urlAsin || location.pathname;
     const existing = document.getElementById(HOST_ID);
-    const existingState = existing && existing.dataset.airState;
+    const existingState = existing && root.AIR.panel.panelState(existing);
     const sig = ingredientSig();
 
     // Scored + unchanged ingredient text → idle. Changed text → rescore.
@@ -188,12 +188,12 @@
     if (!data.ok) {
       // A failed re-read never replaces a score: it came from a label photo, a barcode, a saved
       // reading, or text that has since gone. A new product gets a new panel via navigation.
-      if (host.dataset.airState === 'fail' || host.dataset.airState === 'scored') return;
+      if (['fail', 'scored'].includes(root.AIR.panel.panelState(host))) return;
       // A cache check in flight holds 'loading' too; a barcode must not start Open Food Facts under it.
       // Nor may the same barcode start it twice: this panel already asked (airBarcode), whether the
       // answer is still coming or the label photo is being read after it. Each Amazon page update used
       // to send a second lookup for one page view, and drop the first answer.
-      if (host.dataset.airState === 'loading'
+      if (root.AIR.panel.panelState(host) === 'loading'
           && (!data.upc || host.dataset.airCheck || host.dataset.airBarcode === String(data.upc))) return;
       cache(key, null);
       const category = root.AIR.db.ingestible?.classifyProduct?.(data.title);
@@ -244,14 +244,14 @@
         return;
       }
       const requestId = ++state.requestId;
-      host.dataset.airState = 'loading';
+      root.AIR.panel.setPanelState(host, 'loading', 'barcode lookup');
       host.dataset.airBarcode = String(data.upc);
       root.AIR.panel.mount(host, root.AIR.panel.renderLoading(data));
       chrome.runtime.sendMessage({ type: 'lookupBarcode', code: data.upc, foodOnly: state.foodOnly }, fallback => {
         const messageError = chrome.runtime.lastError;
         if (requestId !== state.requestId || state.lastKey !== key || !host.isConnected) return;
         if (fallback && fallback.rejected === 'not-food') {
-          host.dataset.airState = 'not-food';
+          root.AIR.panel.setPanelState(host, 'not-food', 'Open Food Facts lists it as non-food');
           P().sendDiagnostic(data, null, 'open-food-facts', data.text, { outcome: 'not-food' });
           P().publishActionBadge({ status: 'not-food' });
           const shadow = root.AIR.panel.mount(host, root.AIR.panel.renderNotFood({
@@ -294,8 +294,8 @@
     const C = root.AIR.db.productCache;
     const requestId = ++state.requestId;
     const live = () => requestId === state.requestId && state.lastKey === key && host.isConnected;
-    const done = () => { delete host.dataset.airCheck; host.dataset.airState = ''; };
-    host.dataset.airState = 'loading';
+    const done = () => { delete host.dataset.airCheck; root.AIR.panel.setPanelState(host, '', 'saved reading not used'); };
+    root.AIR.panel.setPanelState(host, 'loading', 'saved reading');
     host.dataset.airCheck = '1';
     root.AIR.panel.mount(host, root.AIR.panel.renderLoading({ ...data, cache: true }));
     const use = (row, shared) => {
@@ -361,7 +361,7 @@
     if (!byBarcode && !byPhoto) return;
     const requestId = state.requestId;
     const live = () => requestId === state.requestId && state.lastKey === key && host.isConnected
-      && host.dataset.airState === 'scored';
+      && root.AIR.panel.panelState(host) === 'scored';
     const norm = t => String(t || '').toLowerCase().replace(/\s+/g, ' ').trim();
     const offer = (input, meta) => {
       if (!live()) return false;
@@ -465,15 +465,15 @@
     const urls = (root.AIR.db.ocrText && root.AIR.db.ocrText.imageCandidates(document)) || [];
     if (!urls.length) { showFailure(host, { ...data, ocrAttempted: true, ocrOutcome: 'no-images' }, key); return; }
     const requestId = ++state.requestId;
-    host.dataset.airState = 'loading';
+    root.AIR.panel.setPanelState(host, 'loading', 'label photo');
     root.AIR.panel.mount(host, root.AIR.panel.renderLoading({ ...data, ocr: true }));
     const started = Date.now();
     const giveUp = extra => {
-      host.dataset.airState = '';
+      root.AIR.panel.setPanelState(host, '', 'label photo gave up');
       showFailure(host, { ...data, ocrAttempted: true, ...extra }, key);
     };
     const stillReading = setTimeout(() => {
-      if (requestId !== state.requestId || !host.isConnected || host.dataset.airState !== 'loading') return;
+      if (requestId !== state.requestId || !host.isConnected || root.AIR.panel.panelState(host) !== 'loading') return;
       root.AIR.panel.mount(host, root.AIR.panel.renderLoading({ ...data, ocr: true, slow: true }));
     }, 8000);
     try {
@@ -501,7 +501,7 @@
   function showFailure(host, data, key) {
     const { state, publishActionBadge } = P();
     if (state.lastKey !== key || !host.isConnected) return;
-    if (host.dataset.airState === 'fail') return;
+    if (root.AIR.panel.panelState(host) === 'fail') return;
     if (state.ocrLabels && !data.ocrAttempted) {
       if (root.AIR.extract.ocrReadyForHost && !root.AIR.extract.ocrReadyForHost(location.hostname)) {
         data = { ...data, ocrAttempted: true, localeDeclined: true };
@@ -510,7 +510,7 @@
         return;
       }
     }
-    host.dataset.airState = 'fail';
+    root.AIR.panel.setPanelState(host, 'fail', 'no readable ingredients');
     // A low-coverage decline was already logged, with its score evidence, by presentResult.
     if (!data.lowCoverage) {
       P().sendDiagnostic(data, null, data.via, data.text,

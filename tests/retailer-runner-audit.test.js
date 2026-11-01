@@ -63,6 +63,7 @@ function runner(file, url, stored = {}, adapter = T) {
       engine, storeAdapters: { target: adapter },
       db: { scoreCache, prefs, ingestible, speed: require('../src/engine/db/speed.js') },
       panel: {
+        ...require('./panel-state-fakes.js'),
         BAND_COLOR: () => ({ fg: '#000', bg: '#fff', ring: '#0f0' }),
         render: (r, meta) => `render:${r.score}:${meta.via}:report=${meta.report}`,
         renderNotFood: () => 'not-food anyway',

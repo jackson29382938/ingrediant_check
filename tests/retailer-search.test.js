@@ -86,7 +86,7 @@ function runner({ ids = ['79364857'], stored = {}, query = 'oats' } = {}) {
       ingestible: { RESULT_SAMPLE_MIN: 4, assessSearch: () => ({ ok: true }), looksNonFoodFromResults: () => false,
         assess: () => ({ ok: true, negatives: [] }), looksNonFoodFromTitle: () => false } },
       engine: { score: input => ({ score: input.ingredients_text.includes('sugar') ? 40 : 93, verdict: 'Excellent', nova: 1, parsed: 2, coverage: 1 }), isReadable: require('../src/engine/score.js').isReadable },
-      panel: { BAND_COLOR: () => ({ fg: '#000', bg: '#fff', ring: '#080' }), mount() {}, render() {}, renderFailure() {}, renderNotFood() {} } },
+      panel: { ...require('./panel-state-fakes.js'), BAND_COLOR: () => ({ fg: '#000', bg: '#fff', ring: '#080' }), mount() {}, render() {}, renderFailure() {}, renderNotFood() {} } },
     module: { exports: {} },
   };
   sandbox.self = sandbox;

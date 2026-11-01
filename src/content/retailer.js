@@ -75,7 +75,7 @@
   }
 
   function show(host, html, state_, wire) {
-    host.dataset.airState = state_;
+    P.setPanelState(host, state_, adapter.name);
     const shadow = P.mount(host, html, null, wire && wire.paste);
     // "Open the score panel on product pages" applies here too, for a score (not a failure card).
     if (state_ === 'scored' && state.panelOpen && typeof P.openCard === 'function') P.openCard(host);
@@ -149,7 +149,7 @@
     if (data.ingredients) { scoreText(host(), data, data.ingredients, state.override ? 'food-override' : 'page'); return true; }
 
     if (data.label === 'collapsed') {
-      if (host().dataset.airState === 'waiting') return 'watch';
+      if (P.panelState(host()) === 'waiting') return 'watch';
       show(host(), P.renderNotice({
         title: adapter.labelName ? `Open “${adapter.labelName}” to score this product.` : t('labelClosedTitle', 'Open “Label info” to score this product.'),
         body: t('labelClosedBody', 'This store only shows the ingredient list once that section is open. Ingredient Check reads it from this page on your computer; nothing is sent anywhere.'),

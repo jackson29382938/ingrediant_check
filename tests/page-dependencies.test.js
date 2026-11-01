@@ -105,3 +105,34 @@ test('the harness pages that run the Amazon content scripts list them in manifes
     assert.deepEqual(listed.filter(file => amazon.includes(file)), amazon.filter(file => listed.includes(file)), `${page} loads scripts out of manifest order`);
   }
 });
+
+// ---------------------------------------------------------------- panel state vocabulary
+
+test('every panel state a script sets is one panel.js knows', () => {
+  const { PANEL_STATES } = require('../src/content/panel.js');
+  const set = [];
+  for (const file of sources) {
+    for (const m of read(file).matchAll(/setPanelState\([^,]+,\s*'([^']*)'/g)) set.push([file, m[1]]);
+  }
+  assert.ok(set.length >= 10, `found only ${set.length} setPanelState calls; the scan is broken`);
+  for (const [file, state] of set) assert.ok(PANEL_STATES.includes(state), `${file} sets unknown panel state "${state}"`);
+  // Nothing writes the attribute directly any more.
+  for (const file of sources.filter(f => f !== 'src/content/panel.js')) {
+    assert.doesNotMatch(read(file), /dataset\.airState\s*=[^=]/, `${file} assigns airState directly; use AIR.panel.setPanelState`);
+  }
+});
+
+test('setPanelState records changes, ignores repeats, and flags a state it does not know', () => {
+  const { setPanelState, panelState, stateTrace } = require('../src/content/panel.js');
+  const host = { dataset: {} };
+  const before = stateTrace.length;
+  assert.equal(setPanelState(host, 'loading', 'saved reading'), '');
+  assert.equal(setPanelState(host, 'loading', 'again'), 'loading');
+  assert.equal(setPanelState(host, 'scored', 'page'), 'loading');
+  assert.equal(panelState(host), 'scored');
+  assert.deepEqual(stateTrace.slice(before).map(t => `${t.from || 'new'}>${t.to}`), ['new>loading', 'loading>scored']);
+  const seen = [], debug = console.debug;
+  console.debug = (...args) => seen.push(args.map(String).join(' '));
+  try { setPanelState(host, 'personal_care'); } finally { console.debug = debug; }
+  assert.match(seen.join('\n'), /unknown panel state "personal_care"/);
+});

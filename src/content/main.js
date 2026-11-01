@@ -29,7 +29,7 @@
   }
 
   function settleIfDone() {
-    const st = document.getElementById(HOST_ID)?.dataset.airState;
+    const st = AIR.panel.panelState(document.getElementById(HOST_ID));
     // not-food is stable. scored stays observed for a while so late NIC hydration can replace a wrong first
     // blurb (see the idle window below). fail never settles for good: Amazon often publishes the list after
     // expanders load, and a click or a scroll starts watching again.
@@ -44,7 +44,7 @@
   const IDLE_SETTLE_MS = 60000;
   let idleTimer = null, idleProgress = '', wakeOnActivity = null;
 
-  const productProgress = () => [state.lastKey, state.lastTextSig, document.getElementById(HOST_ID)?.dataset.airState].join('|');
+  const productProgress = () => [state.lastKey, state.lastTextSig, AIR.panel.panelState(document.getElementById(HOST_ID))].join('|');
 
   function armIdle() {
     clearTimeout(idleTimer);
