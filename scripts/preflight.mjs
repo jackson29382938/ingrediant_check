@@ -10,6 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildContentMatches, buildCartMatches, AMAZON_HOSTS } from './content-matches.mjs';
+import { listFor } from './script-lists.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = p => fs.readFileSync(path.join(root, p), 'utf8');
@@ -57,6 +58,14 @@ check('permissions and CSP match the features', () => {
   if (!/wasm-unsafe-eval/.test(csp)) throw new Error('wasm-unsafe-eval missing (OCR will not compile)');
   if (!manifest.default_locale) throw new Error('default_locale missing but __MSG_ is used');
   return `offscreen + wasm-unsafe-eval + locale "${manifest.default_locale}"`;
+});
+check('content script lists come from scripts/script-lists.mjs', () => {
+  const drifted = manifest.content_scripts.flatMap((entry, i) => {
+    const want = listFor(entry);
+    return want.length === entry.js.length && want.every((file, at) => file === entry.js[at]) ? [] : [`content_scripts[${i}]`];
+  });
+  if (drifted.length) throw new Error(`${drifted.join(', ')} differ from scripts/script-lists.mjs — run: node scripts/script-lists.mjs --write`);
+  return `${manifest.content_scripts.length} script lists match`;
 });
 check('stores covered', () => {
   const matches = manifest.content_scripts[0].matches || [];

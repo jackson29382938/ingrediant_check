@@ -92,3 +92,16 @@ test('the side panel loads what the sorted tab loads for rendering rows', () => 
   const panel = modules('sidepanel.html'), tab = modules('sorted.html');
   assert.deepEqual([...tab].filter(name => !panel.has(name)), [], 'sorted.html loads modules the side panel does not');
 });
+
+test('every content-script group runs the same scripts as scripts/script-lists.mjs', async () => {
+  const { listFor } = await import('../scripts/script-lists.mjs');
+  manifest.content_scripts.forEach((group, i) => assert.deepEqual(group.js, listFor(group), `content_scripts[${i}] differs from scripts/script-lists.mjs`));
+});
+
+test('the harness pages that run the Amazon content scripts list them in manifest order', () => {
+  const amazon = manifest.content_scripts[0].js.filter(file => file.startsWith('src/') || file.startsWith('vendor/'));
+  for (const page of ['tests/harness-lifecycle.html', 'tests/harness-sort.html']) {
+    const listed = [...read(page).matchAll(/<script src="\/((?:src|vendor)\/[^"]+)"/g)].map(m => m[1]);
+    assert.deepEqual(listed.filter(file => amazon.includes(file)), amazon.filter(file => listed.includes(file)), `${page} loads scripts out of manifest order`);
+  }
+});
