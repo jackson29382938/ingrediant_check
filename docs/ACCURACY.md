@@ -31,6 +31,11 @@ Every corpus entry declares `lang` and `evidence`:
 
 Three English live captures include Amazon US kefir, Amazon UK granola and Target oats, with public source URLs in the corpus. Every non-English entry remains `synthetic`.
 
+The corpus is a regression/calibration set, not an independent nutrition gold standard. It has no
+packaging-verified held-out judgments and no nutrition facts in its 54 entries. A passing corpus test
+means the engine remains within its declared bands; it does not establish that the point values
+measure health effects or that one product is objectively healthier than another.
+
 ## Additional Amazon label evidence — October 30, 2026
 
 [Four verbatim public Amazon ingredient fields](../tests/amazon-cart-label-evidence.json) cover
@@ -56,6 +61,21 @@ excluded that note from ingredients but incorrectly included it in the allergen 
 The regression now excludes absence notes while retaining actual wheat ingredients, cross-contact
 warnings and the positive Turkish declaration **gluten içerir**. This is a development regression,
 not an out-of-sample accuracy percentage or a clinically validated health rating.
+
+## Independent validation remains outstanding — October 31, 2026
+
+The October 30–31 project audit reran the software checks and attempted public retailer smoke
+journeys, but did not independently score labels or obtain qualified nutrition review. Accessible
+store pages and successful parser replays are evidence about extraction, not a validation set for
+the scoring model. The live smoke outcomes and blocked stores are recorded in
+[current validation](CURRENT-VALIDATION.md).
+
+To establish score validity, assemble packaging-verified labels with nutrition panels where
+available, keep products and variants held out from rule development, and have an independent
+qualified reviewer set expected judgments before seeing engine scores. Compare warning matches,
+readability/abstention, ordering and broad score bands separately; report disagreements and
+uncertainty rather than treating a single average error as clinical evidence. Do not tune against
+the held-out set and then report it as independent validation.
 
 Capture fresh candidates with TLS verification and no account access:
 
