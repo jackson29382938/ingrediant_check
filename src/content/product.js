@@ -323,7 +323,7 @@
           input,
           title: data.title || fallback.name,
           confidence: 0.55,
-          via: 'open-food-facts',
+          via: root.AIR.db.productCache.barcodeVia(fallback),
           text: fallback.ingredients_text,
           cacheName: data.title || fallback.name,
           textSig: fallback.ingredients_text.slice(0, 320),
@@ -349,7 +349,7 @@
       if (ocrReadingBlocked(row.data.via)) { miss(); return; }
       if ((row.data.via === 'label-ocr' || row.data.via === 'ocr') && !state.ocrLabels) { miss(); return; }
       if (row.data.via === 'label-ai' && !aiLabelsOn()) { miss(); return; }
-      if (row.data.via === 'open-food-facts' && (state.cacheOptions || {}).useOpenFoodFacts !== true) { miss(); return; }
+      if (!root.AIR.db.prefs.barcodeReadingAllowed(row.data.via, state.cacheOptions || {})) { miss(); return; }
       done();
       // The saved list can answer missing ingredients, while this open page supplies newer label
       // nutrition and cross-contact warnings. Preserve the ingredient reading's original age.
@@ -440,7 +440,7 @@
         void chrome.runtime.lastError;
         const text = fallback && fallback.ingredients_text;
         const used = text && offer(pageInput(data, { name: fallback.name || data.title, labels: `${data.labels || ''} ${fallback.labels || ''}`, ingredients_text: text, nutrition: data.nutrition || fallback.nutrition }),
-          { title: data.title || fallback.name, confidence: 0.55, via: 'open-food-facts', text, textSig: text.slice(0, 320), cacheName: data.title || fallback.name });
+          { title: data.title || fallback.name, confidence: 0.55, via: root.AIR.db.productCache.barcodeVia(fallback), text, textSig: text.slice(0, 320), cacheName: data.title || fallback.name });
         if (!used) photo();
       });
     } catch (e) { photo(); }

@@ -40,7 +40,8 @@
   ],
   "optional_host_permissions": [
     "https://world.openfoodfacts.org/*",
-    "https://openrouter.ai/*"
+    "https://openrouter.ai/*",
+    "https://api.nal.usda.gov/*"
   ],
   "commands": {
     "sort-health": {

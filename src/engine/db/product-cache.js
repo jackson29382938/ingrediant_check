@@ -184,9 +184,12 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
 
   const queueSize = q => Object.keys((q && q.upserts) || {}).length + Object.keys((q && q.pulls) || {}).length;
 
+  // The `via` of a reading that came from a barcode lookup: the database that answered it.
+  const barcodeVia = found => (found && found.source === 'usda-fdc' ? 'usda-fdc' : 'open-food-facts');
+
   const api = AIRmodule('productCache', {
     TAB, COLUMNS, MAX_PULLS, MAX_AGE_MS, QUEUE_MAX, INPUT_SCHEMA, cleanProvenance,
-    key, localKey, sanitize, sanitizeLocal, sanitizeData, stale, toInput, fromScan, mergeQueue, queueSize, nutritionFromOff,
+    key, localKey, barcodeVia, sanitize, sanitizeLocal, sanitizeData, stale, toInput, fromScan, mergeQueue, queueSize, nutritionFromOff,
   });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();

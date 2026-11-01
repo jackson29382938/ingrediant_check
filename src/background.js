@@ -14,7 +14,7 @@ if (typeof importScripts === 'function') {
     'engine/db/ingestible.js', 'engine/db/prefs.js', 'engine/db/theme.js',
     'engine/db/ocr-text.js', 'engine/db/ai-ratings.js', 'engine/db/product-cache.js', 'engine/db/shopping.js', 'engine/db/storefronts.js', 'engine/db/sorted-results.js',
     'engine/db/speed.js', 'engine/db/unit-price.js',
-    'engine/db/activity.js', 'options/google-auth.js', 'worker/messages.js', 'worker/ai.js', 'worker/sheet-store.js', 'engine/db/purchase-history.js', 'worker/purchase-history.js', 'engine/db/history-scan.js', 'worker/history-scan.js');
+    'engine/db/activity.js', 'options/google-auth.js', 'worker/messages.js', 'worker/ai.js', 'worker/usda.js', 'worker/sheet-store.js', 'engine/db/purchase-history.js', 'worker/purchase-history.js', 'engine/db/history-scan.js', 'worker/history-scan.js');
 }
 
 const OFF_ENDPOINT = 'https://world.openfoodfacts.org/api/v2/product/';
@@ -88,7 +88,20 @@ const NOT_FOOD_REASON = 'Open Food Facts lists this as a non-food product';
 // answer instead of sending another GET. The live record of 2026-09-25 saw two GETs for one barcode.
 const offInFlight = new Map();
 
-async function lookupBarcode(code, { foodOnly = true, manual = false } = {}) {
+// A barcode, looked up in Open Food Facts first and, when that has no ingredient list, in USDA FoodData Central
+// (worker/usda.js; needs the reader's own key and permission). The USDA step runs under the same barcode switch,
+// because the pages only ask for a barcode while it is on. Open Food Facts' "this is not food" is final.
+async function lookupBarcode(code, options = {}) {
+  const found = await lookupOpenFoodFacts(code, options);
+  if (found && (found.ingredients_text || found.rejected)) return found;
+  const { foodOnly = true, manual = false } = options;
+  const conf = await chrome.storage.local.get(['enabled', 'useOpenFoodFacts']);
+  const toggles = AIR.db.prefs.sanitizeToggles(conf);
+  if (!toggles.enabled || (!manual && !toggles.useOpenFoodFacts) || !self.AIR.usdaWorker) return found;
+  return (await self.AIR.usdaWorker.lookup(code, { manual, foodOnly, networkRequest })) || found;
+}
+
+async function lookupOpenFoodFacts(code, { foodOnly = true, manual = false } = {}) {
   const conf = await chrome.storage.local.get(['enabled', 'useOpenFoodFacts']);
   const toggles = AIR.db.prefs.sanitizeToggles(conf);
   if (!toggles.enabled || (!manual && !toggles.useOpenFoodFacts)) return null;
@@ -277,6 +290,10 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (self.AIR.scanWorker?.handle(msg, sender, reply)) return true;
   if (self.AIR.historyWorker?.handle(msg, sender, reply)) return true;
   if (self.AIR.aiWorker?.handle(msg, sender, reply)) return true;
+  if (msg && msg.type === 'usdaTest') {
+    answer('usdaTest', () => self.AIR.usdaWorker.test(networkRequest), reply, { ok: false, reason: 'unavailable' });
+    return true;
+  }
   if (msg && msg.type === 'aiTest') {
     answer('aiTest', () => self.AIR.aiWorker.test(), reply, { ok: false, reason: 'unavailable' });
     return true;

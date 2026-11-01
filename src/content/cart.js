@@ -138,7 +138,7 @@
       try {
         const found = await chrome.runtime.sendMessage({ type: 'lookupBarcode', code: data.upc, foodOnly: settings.foodOnly });
         if (!live(turn)) return;
-        if (found?.ingredients_text && !found.rejected) hit = rate({ ...input, ingredients_text: found.ingredients_text, nutrition: input.nutrition || found.nutrition }, 'open-food-facts');
+        if (found?.ingredients_text && !found.rejected) hit = rate({ ...input, ingredients_text: found.ingredients_text, nutrition: input.nutrition || found.nutrition }, A.db.productCache.barcodeVia(found));
       } catch { /* an optional source must not stop photo fallback */ }
     }
     if (!live(turn)) return;
@@ -168,7 +168,7 @@
     if (!P || !A.db.speed.sanitizeRecall(raw).cacheFirst) return null;
     const row = P.sanitize(value);
     if (!row || row.store !== cache.normalizeStore(location.hostname) || row.asin !== tile.id || row.status !== 'ok' || P.stale(row, Date.now(), maxAge)) return null;
-    if ((/ocr/i.test(row.data.via) && !settings.ocrLabels) || (row.data.via === 'open-food-facts' && !settings.useOpenFoodFacts) || ['manual-paste', 'food-override'].includes(row.data.via)) return null;
+    if ((/ocr/i.test(row.data.via) && !settings.ocrLabels) || !A.db.prefs.barcodeReadingAllowed(row.data.via, settings) || ['manual-paste', 'food-override'].includes(row.data.via)) return null;
     if (row.data.food === false && !A.db.ingestible?.allowsProduct?.(row.data.title, prefs)) return null;
     return rate(P.toInput(row), row.data.via || 'page', Date.parse(row.scanned_at));
   }
@@ -236,7 +236,7 @@
     renderSummary(done, tiles);
     void award(done);
   }
-  const keys = ['enabled', 'badges', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'autoScoreSearch', 'pointsEnabled', 'hoverBreakdown', 'weights', 'allergens', 'diets', 'avoidList', 'ocrLabels', 'useOpenFoodFacts', 'speedMode', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'sheetIndexRev', 'producerIndexRev', 'theme', 'palette'];
+  const keys = ['enabled', 'badges', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'autoScoreSearch', 'pointsEnabled', 'hoverBreakdown', 'weights', 'allergens', 'diets', 'avoidList', 'ocrLabels', 'useOpenFoodFacts', 'useUsda', 'speedMode', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'sheetIndexRev', 'producerIndexRev', 'theme', 'palette'];
   function load() { chrome.storage.local.get([...keys, 'xp'], o => { raw = o || {}; settings = A.db.prefs.sanitizeToggles(raw); prefs = A.db.prefs.sanitizeScoring(raw); xp = P.sanitize(raw.xp); A.db.theme.use(raw); reset(); }); }
   const observer = new MutationObserver(schedule); observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['href', 'hidden', 'aria-hidden'] });
   setInterval(() => { if (url !== location.href) reset(); }, 1000);

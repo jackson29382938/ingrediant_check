@@ -50,6 +50,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
     if (source === 'label-ocr' || source === 'ocr') out.ocrLabels = AIR.db.prefs.sanitizeToggles(raw).ocrLabels;
     if (source === 'label-ai') out.aiLabels = AIR.db.prefs.sanitizeToggles(raw).aiLabels;
     if (source === 'open-food-facts') out.useOpenFoodFacts = AIR.db.prefs.sanitizeToggles(raw).useOpenFoodFacts;
+    if (source === 'usda-fdc') { const t = AIR.db.prefs.sanitizeToggles(raw); out.useOpenFoodFacts = t.useOpenFoodFacts; out.useUsda = t.useUsda; }
     if (ai) out.aiRatings = AIR.db.prefs.sanitizeToggles(raw).aiRatings;
     return JSON.stringify(out);
   }

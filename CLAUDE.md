@@ -44,7 +44,8 @@ Rules that are easy to break:
   points or set a cap), only reaches entries `recognised()` rejects, is limited per product, is labelled `ai: true` /
   "AI estimate", and travels with the local `p:` row only (`sanitizeLocal`; the shared tab never carries or accepts
   it, nor `label-ai` readings). Flags never read it. The OpenRouter key is `openrouterKey`: keep it out of
-  `TOGGLE_DEFAULTS`/`SETTING_KEYS` so no backup, export or report carries it. Only the worker may touch the network.
+  `TOGGLE_DEFAULTS`/`SETTING_KEYS` so no backup, export or report carries it; the same holds for `usdaKey`
+  (`worker/usda.js`, a second barcode database behind `lookupBarcode`). Only the worker may touch the network.
 - **Nothing is charged that no rule matches.** (Except an AI estimate, above, which is opt-in and labelled.) Silence reads as cleanliness, so an ingredient hidden
   by punctuation the parser does not understand quietly scores better. When you find a format that hides
   one, fix the parser (`cleanText`, `tidy`, `splitTopLevel`, `rejoinWrapped`) and add the format to

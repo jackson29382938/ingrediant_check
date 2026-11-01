@@ -116,6 +116,9 @@
   "srcBarcode": {
     "message": "Per Barcode über Open Food Facts gefunden — nicht von dieser Seite"
   },
+  "srcUsda": {
+    "message": "Per Barcode über USDA FoodData Central gefunden — nicht von dieser Seite"
+  },
   "srcPage": {
     "message": "Zutaten von der Seite gelesen"
   },
@@ -367,6 +370,9 @@
   },
   "srcShortBarcode": {
     "message": "Open Food Facts"
+  },
+  "srcShortUsda": {
+    "message": "USDA FoodData Central"
   },
   "srcShortPage": {
     "message": "Produktseite"

@@ -123,7 +123,7 @@
       const found = await chrome.runtime.sendMessage({ type: 'lookupBarcode', code: data.upc, foodOnly: true });
       if (turn !== generation || !O.allowed(location)) return null;
       if (found?.rejected === 'not-food') return { nonfood: true };
-      const rating = rate({ ...input, name: data.title || found?.name, labels: `${input.labels || ''} ${found?.labels || ''}`, ingredients_text: found?.ingredients_text, nutrition: input.nutrition || found?.nutrition }, 'open-food-facts', conf);
+      const rating = rate({ ...input, name: data.title || found?.name, labels: `${input.labels || ''} ${found?.labels || ''}`, ingredients_text: found?.ingredients_text, nutrition: input.nutrition || found?.nutrition }, A.db.productCache.barcodeVia(found), conf);
       if (rating) return rating;
     }
     if (toggles.ocrLabels && urls.length) {
@@ -142,7 +142,7 @@
     const age = A.db.speed.profile(conf.speedMode).maxAgeMs, toggles = A.db.prefs.sanitizeToggles(conf);
     if (row && row.store === 'amazon.com' && row.asin === line.asin && row.data.food === false && !P.stale(row, Date.now(), age)) return { nonfood: true };
     if (row && row.store === 'amazon.com' && row.asin === line.asin && row.status === 'ok' && row.data.food !== false && !P.stale(row, Date.now(), age)
-      && (!/ocr/i.test(row.data.via) || toggles.ocrLabels) && (row.data.via !== 'open-food-facts' || toggles.useOpenFoodFacts)) {
+      && (!/ocr/i.test(row.data.via) || toggles.ocrLabels) && A.db.prefs.barcodeReadingAllowed(row.data.via, toggles)) {
       const result = A.engine.score(P.toInput(row), A.db.prefs.sanitizeScoring(conf));
       if (!result.category && A.engine.isReadable(result)) return { rulesRevision: A.db.revision.RULES_REVISION, breakdown: H.fromResult(result), score: result.score, scoredAt: Date.now(), ingredients: row.data.text, input: P.toInput(row), flags: (result.flags || []).map(f => f.label || f.name || f.id || '').filter(Boolean) };
     }
@@ -158,7 +158,7 @@
     const turn = generation;
     try {
       if (!O.allowed(location) || scanHold) return;
-      const conf = await chrome.storage.local.get(['historyEnabled', 'autoScoreSearch', 'historyOwner', 'googleProfile', 'enabled', 'weights', 'foodOnly', 'goals', 'allergens', 'diets', 'avoidList', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'ocrLabels', 'useOpenFoodFacts', 'ratePace', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'orderBadgePlacement', 'hoverBreakdown', 'breakdownDelayMs', 'breakdownDetail', 'theme', 'palette']);
+      const conf = await chrome.storage.local.get(['historyEnabled', 'autoScoreSearch', 'historyOwner', 'googleProfile', 'enabled', 'weights', 'foodOnly', 'goals', 'allergens', 'diets', 'avoidList', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'ocrLabels', 'useOpenFoodFacts', 'useUsda', 'ratePace', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'orderBadgePlacement', 'hoverBreakdown', 'breakdownDelayMs', 'breakdownDetail', 'theme', 'palette']);
       if (turn !== generation || !O.allowed(location)) return;
       currentConf = conf;
       if (conf.enabled === false) { note('Ingredient Check is paused. Resume it in the extension popup to show order ratings.'); return; }
@@ -220,7 +220,7 @@
       if (turn !== generation || !O.allowed(location)) return;
       const persistReading = async (line, rating) => {
         if (!rating?.input || turn !== generation || !O.allowed(location)) return;
-        const row = P.fromScan({ store: 'amazon.com', asin: line.asin, input: rating.input, via: rating.source, confidence: rating.source === 'label-ocr' ? 0.7 : rating.source === 'open-food-facts' ? 0.55 : 1 });
+        const row = P.fromScan({ store: 'amazon.com', asin: line.asin, input: rating.input, via: rating.source, confidence: rating.source === 'label-ocr' ? 0.7 : ['open-food-facts', 'usda-fdc'].includes(rating.source) ? 0.55 : 1 });
         if (row) await chrome.storage.local.set({ [P.localKey(location.hostname, line.asin)]: row });
       };
       const complete = async (affected, rating) => {
@@ -312,7 +312,7 @@
   }
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
-    if (['enabled', 'historyEnabled', 'historyOwner', 'theme', 'palette', 'ocrLabels', 'useOpenFoodFacts', 'ratePace', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'orderBadgePlacement', 'hoverBreakdown', 'breakdownDelayMs', 'breakdownDetail'].some(k => changes[k]) || (changes.googleProfile && changes.googleProfile.oldValue?.email !== changes.googleProfile.newValue?.email)) { historyRecords = []; reset(); }
+    if (['enabled', 'historyEnabled', 'historyOwner', 'theme', 'palette', 'ocrLabels', 'useOpenFoodFacts', 'useUsda', 'ratePace', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'orderBadgePlacement', 'hoverBreakdown', 'breakdownDelayMs', 'breakdownDetail'].some(k => changes[k]) || (changes.googleProfile && changes.googleProfile.oldValue?.email !== changes.googleProfile.newValue?.email)) { historyRecords = []; reset(); }
     else if (!currentConf?.historyEnabled && ['autoScoreSearch', 'weights', 'goals', 'allergens', 'diets', 'avoidList'].some(k => changes[k])) reset();
     else if (changes.purchaseHistory && currentConf) { historyRecords = currentConf.historyOwner && currentConf.googleProfile?.email && currentConf.historyOwner !== currentConf.googleProfile.email.toLowerCase() ? [] : H.merge([], changes.purchaseHistory.newValue); if (currentSummary) currentSummary(); else note(banner?.dataset.airText || ''); }
     else if (Object.keys(changes).some(k => /^(s|p):amazon\.com:/.test(k))) void cacheChanged(changes).catch(() => { note('A saved product rating could not be added to history. Open History & sync settings and refresh this page.'); });

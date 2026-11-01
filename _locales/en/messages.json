@@ -116,6 +116,9 @@
   "srcBarcode": {
     "message": "Matched by barcode via Open Food Facts — not from this page"
   },
+  "srcUsda": {
+    "message": "Matched by barcode via USDA FoodData Central — not from this page"
+  },
   "srcPage": {
     "message": "Ingredients read from page"
   },
@@ -367,6 +370,9 @@
   },
   "srcShortBarcode": {
     "message": "Open Food Facts"
+  },
+  "srcShortUsda": {
+    "message": "USDA FoodData Central"
   },
   "srcShortPage": {
     "message": "Product page"

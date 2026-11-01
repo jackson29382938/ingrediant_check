@@ -42,11 +42,11 @@
     ] }, raw);
   }
   function sourceLabel(source) {
-    return /ocr/.test(source) ? 'Label photo' : source === 'open-food-facts' ? 'Barcode database' : /manual|paste/.test(source) ? 'Entered label' : source ? 'Product page' : 'Source not recorded';
+    return /ocr/.test(source) ? 'Label photo' : /^(?:open-food-facts|usda-fdc)$/.test(source) ? 'Barcode database' : /manual|paste/.test(source) ? 'Entered label' : source ? 'Product page' : 'Source not recorded';
   }
   function describe(raw, t = (_key, fallback) => fallback) {
     const ev = cleanEvidence(raw); if (!ev) return t('evidenceUnknown', 'Evidence not recorded');
-    const source = /ocr/.test(ev.source) ? t('srcShortOcr', 'Label photo') : ev.source === 'open-food-facts' ? t('srcShortBarcode', 'Open Food Facts') : /manual|paste/.test(ev.source) ? t('evidenceEntered', 'Entered label') : ev.source ? t('srcShortPage', 'Product page') : t('evidenceUnknown', 'Evidence not recorded');
+    const source = /ocr/.test(ev.source) ? t('srcShortOcr', 'Label photo') : ev.source === 'usda-fdc' ? t('srcShortUsda', 'USDA FoodData Central') : ev.source === 'open-food-facts' ? t('srcShortBarcode', 'Open Food Facts') : /manual|paste/.test(ev.source) ? t('evidenceEntered', 'Entered label') : ev.source ? t('srcShortPage', 'Product page') : t('evidenceUnknown', 'Evidence not recorded');
     return [source, ev.coverage !== null && ev.coverage < 0.7 ? t('evidencePartial', 'Partial reading') : '', ev.missing.length ? t('evidenceMissing', 'Missing selected nutrition data') : '', ev.capturedAt ? new Date(ev.capturedAt).toLocaleDateString() : ''].filter(Boolean).join(' · ');
   }
   function warningLabel(type, t = (_key, fallback) => fallback) {

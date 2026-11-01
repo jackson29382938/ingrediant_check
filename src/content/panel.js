@@ -234,6 +234,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
   function sourceLabel(meta) {
     if (meta.via === 'manual-paste') return t('srcPasted', 'Ingredients you pasted');
     if (meta.via === 'label-ocr') return t('srcOcr', 'Read from the label photo on this page');
+    if (meta.via === 'usda-fdc') return t('srcUsda', 'Matched by barcode via USDA FoodData Central — not from this page');
     if (meta.via === 'open-food-facts') return t('srcBarcode', 'Matched by barcode via Open Food Facts — not from this page');
     if (meta.confidence >= 0.9) return t('srcPage', 'Ingredients read from page');
     return t('srcPageConf', 'Ingredients read from page ($1% confidence)', Math.round((meta.confidence || 0) * 100));

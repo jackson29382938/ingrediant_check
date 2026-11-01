@@ -1031,6 +1031,7 @@ function startSettingsPage() {
     wireSearchScoring();
     wireLabelReading();
     wireAi();
+    wireUsda();
     wireSort();
     wireSpeed();
     wireBreakdown();

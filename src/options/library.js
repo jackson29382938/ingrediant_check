@@ -142,7 +142,7 @@
       if (!await chrome.permissions.request(origins)) throw new Error('permission');
       const found = await chrome.runtime.sendMessage({ type: 'lookupBarcode', code, foodOnly: true });
       if (!found?.ingredients_text || found.ingredients_text.length > 6000 || found.rejected) throw new Error('unavailable');
-      $('labelName').value = found.name || ''; $('labelText').value = found.ingredients_text; $('labelAdvisory').value = ''; currentSource = 'open-food-facts'; currentLabel = null; $('saveLabelControls').hidden = true; $('checkResult').replaceChildren();
+      $('labelName').value = found.name || ''; $('labelText').value = found.ingredients_text; $('labelAdvisory').value = ''; currentSource = AIR.db.productCache.barcodeVia(found); currentLabel = null; $('saveLabelControls').hidden = true; $('checkResult').replaceChildren();
       for (const field of ['protein', 'fibre', 'sugar', 'addedSugar', 'sodium']) $(field).value = '';
       const nutrition = AIR.engine.normaliseNutrition(found.nutrition);
       if (['per 100g', 'per 100ml'].includes(nutrition.basis)) { $('labelBasis').value = nutrition.basis.replace('per ', ''); for (const field of ['protein', 'fibre', 'sugar', 'addedSugar', 'sodium']) if (nutrition.values[field] != null) $(field).value = nutrition.values[field]; }

@@ -494,3 +494,62 @@ function wireAi() {
     });
   }
 }
+
+// USDA FoodData Central (src/worker/usda.js): the reader's own api.data.gov key under `usdaKey`, which no backup,
+// export or sync carries and which is never shown again once saved, and a switch that needs the optional
+// api.nal.usda.gov permission, requested from the click.
+/* exported wireUsda */
+function wireUsda() {
+  const keyBox = document.getElementById('usdaKey');
+  if (!keyBox) return;
+  const KEY = 'usdaKey', permission = { origins: ['https://api.nal.usda.gov/*'] };
+  const paintKey = () => chrome.storage.local.get(KEY, o => {
+    const saved = typeof o[KEY] === 'string' && o[KEY].length > 0;
+    say('usdaKeyStatus', saved ? 'A key is saved.' : 'No key saved.', 'ok');
+    keyBox.placeholder = saved ? 'Saved — paste a new key to replace it' : '';
+    const forget = document.getElementById('usdaForget');
+    if (forget) forget.disabled = !saved;
+  });
+  paintKey();
+  keyBox.addEventListener('change', () => {
+    const value = keyBox.value.trim();
+    keyBox.value = '';
+    if (!value) return;
+    if (!/^[A-Za-z0-9]{16,64}$/.test(value)) { say('usdaKeyStatus', 'That does not look like a FoodData Central key.', 'error'); return; }
+    persist({ [KEY]: value }, ok => { if (ok) { flash(msg('optSaved', 'Saved')); paintKey(); } });
+  });
+  document.getElementById('usdaForget')?.addEventListener('click', () => {
+    chrome.storage.local.remove(KEY, () => { void chrome.runtime.lastError; paintKey(); say('usdaTestStatus', ''); });
+  });
+  document.getElementById('usdaTest')?.addEventListener('click', () => {
+    say('usdaTestStatus', 'Testing…');
+    const reasons = { 'no-key': 'Save a key first.', 'no-permission': 'Allow access to api.nal.usda.gov by turning the switch below on.',
+      'bad-key': 'FoodData Central rejected the key.', 'rate-limited': 'The key is over its hourly limit. Try again later.', paused: 'Ingredient Check is paused.' };
+    chrome.runtime.sendMessage({ type: 'usdaTest' }, res => {
+      void chrome.runtime.lastError;
+      say('usdaTestStatus', res && res.ok ? 'The key works.' : (res && reasons[res.reason]) || 'FoodData Central could not be reached.', res && res.ok ? 'ok' : 'error');
+    });
+  });
+  const box = document.getElementById('useUsda');
+  if (!box) return;
+  const read = () => chrome.storage.local.get('useUsda', raw => {
+    chrome.permissions.contains(permission, granted => { box.checked = PREFS.sanitizeToggles(raw).useUsda && granted; });
+  });
+  read();
+  chrome.storage.onChanged.addListener(changes => { if (changes.useUsda) read(); });
+  box.addEventListener('change', () => {
+    const enabled = box.checked;
+    box.disabled = true;
+    const save = value => persist({ useUsda: value }, ok => {
+      box.checked = value; box.disabled = false;
+      if (ok) flash(value ? msg('optSaved', 'Saved') : enabled ? 'Chrome did not grant access to api.nal.usda.gov.' : msg('optSaved', 'Saved'));
+      if (!value) chrome.permissions.remove(permission, () => { void chrome.runtime.lastError; });
+    });
+    if (!enabled) { save(false); return; }
+    chrome.permissions.request(permission, granted => {
+      const error = chrome.runtime.lastError;
+      if (error || !granted) { save(false); return; }
+      chrome.permissions.contains(permission, confirmed => save(!!confirmed));
+    });
+  });
+}

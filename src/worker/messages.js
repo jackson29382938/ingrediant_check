@@ -25,7 +25,7 @@ var PAGE_MESSAGE_TYPES = new Set([
 // message, so neither is affected. tests/sanity.test.js fails if another page starts sending one.
 var SETTINGS_MESSAGE_TYPES = new Set([
   'flushDiagnostics', 'diagnosticsStatus', 'refreshSheet',
-  'accountSave', 'accountLoad', 'accountFetch', 'aiTest',
+  'accountSave', 'accountLoad', 'accountFetch', 'aiTest', 'usdaTest',
 ]);
 var HISTORY_MESSAGE_TYPES = new Set(['purchaseScanStart', 'purchaseScanResume', 'purchaseScanPause', 'purchaseScanCancel', 'purchaseScanState', 'purchaseScanProgress', 'purchaseImport', 'purchaseOpenHistory', 'purchaseSync', 'purchaseConfigure', 'purchaseDelete']);
 var OFFSCREEN_MESSAGE_TYPES = new Set(['ocrIdle']);
