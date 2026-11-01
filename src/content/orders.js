@@ -322,5 +322,6 @@
     else if (Object.keys(changes).some(k => /^(s|p):amazon\.com:/.test(k))) void cacheChanged(changes).catch(() => { note('A saved product rating could not be added to history. Open History & sync settings and refresh this page.'); });
   });
   A.nav.onChange(() => { if (location.href !== lastURL) { lastURL = location.href; reset(); } });
+  A.engine?.warmUp?.();   // compile the engine's patterns in idle time, before the first order line needs them
   void run();
 })(typeof globalThis !== 'undefined' ? globalThis : self);

@@ -12,3 +12,4 @@ build/
 *.pem
 credentials
 credentials.json
+coverage/

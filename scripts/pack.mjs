@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readBrowserManifest } from './browser-manifest.mjs';
+import { zipFolder } from './zip.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const targets = process.argv.slice(2);
@@ -61,16 +62,6 @@ for (const browser of browsers) {
   fs.writeFileSync(path.join(folder, 'manifest.json'), JSON.stringify(readBrowserManifest(root, browser), null, 2) + '\n');
   const zipName = `ingredient-check-${manifest.version}${browser === 'firefox' ? '-firefox' : ''}.zip`, outFile = path.join(outDir, zipName);
   fs.rmSync(outFile, { force: true });
-  const result = spawnSync('python3', ['-c', `
-import zipfile, os, sys
-folder, out = sys.argv[1:]
-with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
-    for dirpath, dirs, files in os.walk(folder):
-        dirs.sort()
-        for name in sorted(files):
-            full = os.path.join(dirpath, name)
-            z.write(full, os.path.relpath(full, folder))
-`, folder, outFile], { stdio: 'inherit' });
-  if (result.status !== 0) process.exit(result.status || 1);
+  zipFolder(folder, outFile);
   console.log(`packed ${browser}: ${zipName} (${(fs.statSync(outFile).size / 1048576).toFixed(1)} MB), folder ${path.relative(root, folder)}`);
 }

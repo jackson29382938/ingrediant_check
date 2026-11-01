@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   validate:
@@ -17,6 +17,9 @@ jobs:
   release:
     needs: validate
     runs-on: ubuntu-24.04
+    # Only publishing needs write access; the validation job above runs with read-only.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -33,7 +36,7 @@ jobs:
           echo "VERSION=$version" >> "$GITHUB_ENV"
           echo "TAG=$tag" >> "$GITHUB_ENV"
       - run: npm run pack
-      - run: npm install --no-save --no-package-lock web-ext@10.0.0
+      - run: npm install --no-save --no-package-lock --ignore-scripts web-ext@10.0.0
       - run: npm run firefox:lint
       - name: Hash browser packages
         run: cd dist && sha256sum ingredient-check-*.zip > SHA256SUMS

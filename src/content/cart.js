@@ -14,6 +14,8 @@
   let fallbackActive = 0, fallbackQueue = [];
   const version = chrome.runtime.getManifest().version;
   let url = location.href;
+  // Compile the engine's patterns in idle time, before the first cart line needs them (about 200 ms on the first score).
+  if (C.isCartPage(location)) A.engine?.warmUp?.();
   function reset() {
     generation++; used = 0; blocked = false; active = 0; jobs.clear();
     fallbackActive = 0; fallbackQueue = [];

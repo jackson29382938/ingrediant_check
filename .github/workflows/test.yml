@@ -57,7 +57,7 @@ jobs:
           node-version: '22'
       # Playwright is CI-only and pinned, so the browser it downloads matches. The extension itself
       # stays dependency-free.
-      - run: npm install --no-save --no-package-lock playwright@1.63.0
+      - run: npm install --no-save --no-package-lock --ignore-scripts playwright@1.63.0
       - run: npx playwright install --with-deps chromium
       - run: npm run harness:ci
       - run: npm run website:check
@@ -75,7 +75,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
-      - run: npm install --no-save --no-package-lock web-ext@10.0.0
+      - run: npm install --no-save --no-package-lock --ignore-scripts web-ext@10.0.0
       - run: npm run pack:firefox
       - run: npm run firefox:lint
       - run: npm run firefox:setup

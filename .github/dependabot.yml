@@ -1,0 +1,11 @@
+# Keeps the pinned versions this repository relies on from going stale unnoticed. The extension itself has no
+# package dependencies; the tools it is checked with (ESLint, Playwright, web-ext) are installed for one run with
+# pinned versions in package.json and the workflows, which Dependabot cannot see, so only the actions are listed here.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
