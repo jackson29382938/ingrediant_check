@@ -23,7 +23,9 @@ const food = (over = {}) => ({
 const res = (json, status = 200) => ({ ok: status >= 200 && status < 300, status, headers: { get: () => null }, json: async () => json });
 const OFF_MISSING = res({ status: 0 });
 
-function worker(initial, route, { granted = ['https://world.openfoodfacts.org/*', 'https://api.nal.usda.gov/*'] } = {}) {
+const SCRIPT = 'https://script.google.com/macros/s/abcdefghijklmnopqrstuvwxyz1234567890/exec';
+
+function worker(initial, route, { granted = ['https://world.openfoodfacts.org/*', 'https://api.nal.usda.gov/*'], endpoint = SCRIPT } = {}) {
   const data = structuredClone(initial);
   const calls = [];
   const event = { addListener() {} };
@@ -47,16 +49,18 @@ function worker(initial, route, { granted = ['https://world.openfoodfacts.org/*'
   };
   sandbox.self = sandbox;
   const context = vm.createContext(sandbox);
-  loadWorker(vm, context);
+  loadWorker(vm, context, { before: () => { if (context.AIR?.db?.prefs) context.AIR.db.prefs.ENDPOINT = endpoint; } });
   context.AIR.usdaWorker.resetBackoff();
   return {
     data, calls, context,
     usda: () => calls.filter(c => c.url.includes('api.nal.usda.gov')),
+    script: () => calls.filter(c => c.url.startsWith('https://script.google.com/')),
     send: (msg, sender = amazonTab) => new Promise(resolve => { if (onMessage(msg, sender, v => resolve(v === undefined ? v : JSON.parse(JSON.stringify(v)))) !== true) resolve(undefined); }),
   };
 }
 const on = { useOpenFoodFacts: true, useUsda: true, usdaKey: KEY };
 const routeOnly = usda => (url) => url.includes('api.nal.usda.gov') ? usda(url) : OFF_MISSING;
+const viaScript = answer => (url, options) => url.startsWith('https://script.google.com/') ? answer(JSON.parse(options.body)) : OFF_MISSING;
 const lookup = (w, code = UPC, extra = {}) => w.send({ type: 'lookupBarcode', code, foodOnly: true, ...extra });
 
 test('parseSearch: a record counts only for its own barcode, and carries its ingredients and per-100 g numbers', () => {
@@ -142,25 +146,74 @@ test('a rate limit pauses USDA until it clears, and offline is only a miss', asy
   assert.equal(await lookup(offline), null);
 });
 
-test('nothing is sent unless the switch, the key, the permission and barcode lookup are all on', async () => {
-  const route = routeOnly(() => res({ foods: [food()] }));
+test('nothing is sent unless the switch and barcode lookup are on, and the reader has a way to ask', async () => {
+  const route = url => (url.includes('api.nal.usda.gov') ? res({ foods: [food()] }) : url.startsWith(SCRIPT) ? res({ ok: true, foods: [food()] }) : OFF_MISSING);
   const cases = [
     ['switch off', { ...on, useUsda: false }, undefined],
-    ['no key', { ...on, usdaKey: undefined }, undefined],
-    ['bad key', { ...on, usdaKey: 'short key!' }, undefined],
-    ['no permission', on, { granted: ['https://world.openfoodfacts.org/*'] }],
     ['barcode lookup off', { ...on, useOpenFoodFacts: false }, undefined],
     ['paused', { ...on, enabled: false }, undefined],
+    ['no key, shared database off', { ...on, usdaKey: undefined, sharedCache: false }, undefined],
+    ['no key, build without a script', { ...on, usdaKey: undefined }, { endpoint: '' }],
+    ['key but no permission, shared database off', { ...on, sharedCache: false }, { granted: ['https://world.openfoodfacts.org/*'] }],
   ];
   for (const [label, conf, opts] of cases) {
     const w = worker(conf, route, opts);
     assert.equal(await lookup(w), null, label);
-    assert.equal(w.usda().length, 0, `${label}: no request`);
+    assert.equal(w.usda().length + w.script().length, 0, `${label}: no request`);
   }
-  // The library's explicit Look up does not ask the switch, as for Open Food Facts, but still needs a key and the host.
+  // The library's explicit Look up does not ask the switch, as for Open Food Facts.
   const library = worker({ ...on, useUsda: false }, route);
   const got = await library.send({ type: 'lookupBarcode', code: UPC, foodOnly: true }, { id: 'ext', url: 'chrome-extension://ext/src/options/library.html' });
   assert.equal(got.source, 'usda-fdc');
+});
+
+test('with the reader\'s own key and permission the barcode goes straight to USDA, and the script is not used', async () => {
+  const w = worker(on, routeOnly(() => res({ foods: [food()] })));
+  assert.equal((await lookup(w)).source, 'usda-fdc');
+  assert.equal(w.usda().length, 1);
+  assert.equal(w.script().length, 0);
+});
+
+test('without a key the barcode goes through Ingredient Check\'s script, which holds the project key: nothing secret is in the request', async () => {
+  const asked = [];
+  const w = worker({ ...on, usdaKey: undefined }, viaScript(body => { asked.push(body); return res({ ok: true, foods: [food()] }); }));
+  const got = await lookup(w);
+  assert.equal(got.source, 'usda-fdc');
+  assert.match(got.ingredients_text, /^POTATOES/);
+  assert.equal(w.usda().length, 0, 'the extension never contacts USDA itself on this route');
+  assert.deepEqual(asked, [{ kind: 'usda', code: '28400064057' }], 'the barcode and nothing else');
+  const call = w.script()[0];
+  assert.equal(call.options.method, 'POST');
+  assert.equal(call.options.credentials, 'omit');
+  assert.equal(call.options.referrerPolicy, 'no-referrer');
+  assert.deepEqual(Object.keys(call.options.headers), ['Content-Type'], 'no key header: the script holds the key');
+  assert.equal(w.data.usdaKey, undefined);
+  await lookup(w);
+  assert.equal(w.script().length, 1, 'kept on this computer');
+});
+
+test('a saved key without its host permission falls back to the script instead of failing', async () => {
+  const w = worker(on, viaScript(() => res({ ok: true, foods: [food()] })), { granted: ['https://world.openfoodfacts.org/*'] });
+  assert.equal((await lookup(w)).source, 'usda-fdc');
+  assert.equal(w.usda().length, 0);
+  assert.equal(w.script().length, 1);
+});
+
+test('the script is a courier, not a source of truth: a record for another barcode is refused, errors and a busy script are only a miss', async () => {
+  const wrong = worker({ ...on, usdaKey: undefined }, viaScript(() => res({ ok: true, foods: [food({ gtinUpc: '999999999999' })] })));
+  assert.equal(await lookup(wrong), null);
+  assert.equal(await lookup(wrong), null);
+  assert.equal(wrong.script().length, 1, 'a wrong answer is a miss, kept briefly');
+  for (const answer of [res({ ok: false, error: 'usda not configured' }), res({}, 500), res('nonsense'), res({ ok: true, foods: 'x' })]) {
+    const w = worker({ ...on, usdaKey: undefined }, viaScript(() => answer));
+    assert.equal(await lookup(w), null);
+    assert.equal(await lookup(w), null);
+    assert.equal(w.script().length, 2, 'a failure is not remembered as "no such product"');
+  }
+  const busy = worker({ ...on, usdaKey: undefined }, viaScript(() => res({ ok: false, error: 'busy; retry later' })));
+  assert.equal(await lookup(busy), null);
+  assert.equal(await lookup(busy, '012000001611'), null);
+  assert.equal(busy.script().length, 1, 'a busy script pauses lookups');
 });
 
 test('Open Food Facts calling a product not food is final, and a pet product is refused for a food-only caller', async () => {
@@ -176,12 +229,13 @@ test('Open Food Facts calling a product not food is final, and a pet product is 
 
 test('the key check: settings page only, names why it failed, and the key lives in a key no backup reads', async () => {
   const ok = worker(on, routeOnly(() => res({ foods: [] })));
-  assert.deepEqual(await ok.send({ type: 'usdaTest' }, settingsPage), { ok: true });
   assert.equal(await ok.send({ type: 'usdaTest' }, amazonTab), undefined);
   assert.equal(await ok.send({ type: 'usdaTest' }, popupPage), undefined);
   assert.equal((await worker(on, routeOnly(() => res({}, 403))).send({ type: 'usdaTest' }, settingsPage)).reason, 'bad-key');
   assert.equal((await worker(on, routeOnly(() => res({}, 429))).send({ type: 'usdaTest' }, settingsPage)).reason, 'rate-limited');
-  assert.equal((await worker({ ...on, usdaKey: undefined }, routeOnly(() => res({}))).send({ type: 'usdaTest' }, settingsPage)).reason, 'no-key');
+  assert.equal((await worker({ ...on, usdaKey: undefined }, routeOnly(() => res({})), { endpoint: '' }).send({ type: 'usdaTest' }, settingsPage)).reason, 'no-key');
+  assert.deepEqual(await worker({ ...on, usdaKey: undefined }, viaScript(() => res({ ok: true, foods: [] }))).send({ type: 'usdaTest' }, settingsPage), { ok: true, mode: 'script' });
+  assert.deepEqual(await ok.send({ type: 'usdaTest' }, settingsPage), { ok: true, mode: 'direct' });
   const P = require('../src/engine/db/prefs.js');
   assert.ok(!P.SETTING_KEYS.includes('usdaKey'));
   assert.ok(!JSON.stringify(P.backupPayload({ ...on })).includes(KEY));

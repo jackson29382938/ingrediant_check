@@ -465,7 +465,7 @@ function wireAi() {
       'rate-limited': 'The free models are rate limited right now. Try again in a minute.', paused: 'Ingredient Check is paused.' };
     chrome.runtime.sendMessage({ type: 'aiTest' }, res => {
       void chrome.runtime.lastError;
-      say('aiTestStatus', res && res.ok ? 'The key works.' : (res && reasons[res.reason]) || 'OpenRouter could not be reached.', res && res.ok ? 'ok' : 'error');
+      say('aiTestStatus', res && res.ok ? (res.mode === 'script' ? 'Ingredient Check\'s lookup service works.' : 'The key works.') : (res && reasons[res.reason]) || 'OpenRouter could not be reached.', res && res.ok ? 'ok' : 'error');
     });
   });
   for (const id of ids) {
@@ -523,17 +523,19 @@ function wireUsda() {
   });
   document.getElementById('usdaTest')?.addEventListener('click', () => {
     say('usdaTestStatus', 'Testing…');
-    const reasons = { 'no-key': 'Save a key first.', 'no-permission': 'Allow access to api.nal.usda.gov by turning the switch below on.',
+    const reasons = { 'no-key': 'Lookups need your own key, or the shared online database turned on.', 'no-permission': 'Allow access to api.nal.usda.gov by turning the switch below on.',
       'bad-key': 'FoodData Central rejected the key.', 'rate-limited': 'The key is over its hourly limit. Try again later.', paused: 'Ingredient Check is paused.' };
     chrome.runtime.sendMessage({ type: 'usdaTest' }, res => {
       void chrome.runtime.lastError;
-      say('usdaTestStatus', res && res.ok ? 'The key works.' : (res && reasons[res.reason]) || 'FoodData Central could not be reached.', res && res.ok ? 'ok' : 'error');
+      say('usdaTestStatus', res && res.ok ? (res.mode === 'script' ? 'Ingredient Check\'s lookup service works.' : 'The key works.') : (res && reasons[res.reason]) || 'FoodData Central could not be reached.', res && res.ok ? 'ok' : 'error');
     });
   });
   const box = document.getElementById('useUsda');
   if (!box) return;
-  const read = () => chrome.storage.local.get('useUsda', raw => {
-    chrome.permissions.contains(permission, granted => { box.checked = PREFS.sanitizeToggles(raw).useUsda && granted; });
+  // On means the switch is on and, if the reader saved their own key, that Chrome still grants the host.
+  const read = () => chrome.storage.local.get(['useUsda', KEY], raw => {
+    const own = typeof raw[KEY] === 'string' && raw[KEY].length > 0;
+    chrome.permissions.contains(permission, granted => { box.checked = PREFS.sanitizeToggles(raw).useUsda && (!own || granted); });
   });
   read();
   chrome.storage.onChanged.addListener(changes => { if (changes.useUsda) read(); });
@@ -546,10 +548,14 @@ function wireUsda() {
       if (!value) chrome.permissions.remove(permission, () => { void chrome.runtime.lastError; });
     });
     if (!enabled) { save(false); return; }
-    chrome.permissions.request(permission, granted => {
-      const error = chrome.runtime.lastError;
-      if (error || !granted) { save(false); return; }
-      chrome.permissions.contains(permission, confirmed => save(!!confirmed));
+    // The host permission is only for the reader's own key; without one, lookups go through the project's script.
+    chrome.storage.local.get(KEY, o => {
+      if (!(typeof o[KEY] === 'string' && o[KEY].length > 0)) { save(true); return; }
+      chrome.permissions.request(permission, granted => {
+        const error = chrome.runtime.lastError;
+        if (error || !granted) { save(false); return; }
+        chrome.permissions.contains(permission, confirmed => save(!!confirmed));
+      });
     });
   });
 }

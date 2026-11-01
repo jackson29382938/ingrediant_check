@@ -1,17 +1,22 @@
 // USDA FoodData Central: a second barcode database for US packaged foods, tried after Open Food Facts has
 // nothing usable. FoodData Central is public-domain US government data (branded foods come from the
-// manufacturers' label submissions), free to use with an api.data.gov key the reader gets themselves at
-// https://fdc.nal.usda.gov/api-key-signup. Off until the reader pastes that key, turns the switch on and grants
-// the optional api.nal.usda.gov host permission (Settings -> Label reading).
+// manufacturers' label submissions). It is asked one of two ways, never both:
 //
-// What is sent: the barcode, as a search term, with the reader's key in a header. Nothing about the product page,
-// the store, the reader or their purchases. The key is stored under `usdaKey`, which no backup, export, sync or
-// report carries, and only this worker reads it. (The shared DEMO_KEY is not used: it is limited to a handful of
-// requests an hour for everyone, which measured out at "over the limit" before the first call in testing.)
+//   direct   the reader's own free api.data.gov key (https://fdc.nal.usda.gov/api-key-signup), pasted in Settings,
+//            straight to api.nal.usda.gov under the optional host permission. Needs the key and the permission.
+//   script   Ingredient Check's own lookup script (docs/apps-script.gs, kind 'usda'), which holds the project's key as
+//            a Script Property. This is the default, because an extension cannot hold a secret: its files are plain
+//            text to anyone who installs it, and USDA deactivates any key it finds in a public repository. The
+//            barcode passes through the script, which the shared-database switch can turn off.
 //
-// A record is accepted only when its own barcode is the one asked for, so a text match on another product's
-// description can never supply a label. An answer is kept 30 days, "no record" 3 days, because a key allows
-// 1,000 requests an hour and most barcodes are asked about once.
+// Off until the reader turns the switch on (Settings -> Label reading). What is sent: the barcode, as a search term;
+// with a personal key, the key in a header. Nothing about the page, the store, the reader or their purchases. The
+// personal key is stored under `usdaKey`, which no backup, export, sync or report carries, and only this worker
+// reads it. (The shared DEMO_KEY is not used: it measured as "over the limit" before the first call in testing.)
+//
+// A record is accepted only when its own barcode is the one asked for, whichever way it came, so a text match on
+// another product's description, or a wrong answer from the script, can never supply a label. An answer is kept 30
+// days, "no record" 3 days, because a key allows 1,000 requests an hour and most barcodes are asked about once.
 //
 // Called from background.js lookupBarcode, which passes networkRequest (the worker's one fetch helper, which stops
 // on the pause switch). The result has the shape of the Open Food Facts one plus `source: 'usda-fdc'`, so the pages
@@ -73,15 +78,19 @@
     };
   }
 
+  // How to ask: the reader's own key and permission (direct), else Ingredient Check's script unless the reader
+  // switched the shared database off or this build has no script (script).
   async function config(toggle) {
-    const conf = await chrome.storage.local.get(['enabled', 'useUsda', KEY]);
+    const conf = await chrome.storage.local.get(['enabled', 'useUsda', 'sharedCache', KEY]);
     const toggles = root.AIR.db.prefs.sanitizeToggles(conf);
     if (!toggles.enabled) return { ok: false, reason: 'paused' };
     if (toggle && !toggles.useUsda) return { ok: false, reason: 'not-enabled' };
     const key = typeof conf[KEY] === 'string' ? conf[KEY].trim() : '';
-    if (!KEY_FORMAT.test(key)) return { ok: false, reason: 'no-key' };
-    if (!await chrome.permissions.contains(PERMISSION)) return { ok: false, reason: 'no-permission' };
-    return { ok: true, key };
+    const hasKey = KEY_FORMAT.test(key);
+    if (hasKey && await chrome.permissions.contains(PERMISSION)) return { ok: true, mode: 'direct', key };
+    const url = toggles.sharedCache ? root.AIR.db.prefs.endpoint() : '';
+    if (url) return { ok: true, mode: 'script', url };
+    return { ok: false, reason: hasKey ? 'no-permission' : 'no-key' };
   }
 
   function failure(status) {
@@ -90,12 +99,20 @@
     return 'unavailable';
   }
 
-  // -> { ok: true, json } | { ok: false, reason }
-  async function search(key, query, networkRequest) {
+  // -> { ok: true, json: { foods } } | { ok: false, reason }
+  async function search(cfg, query, networkRequest) {
     if (Date.now() < backoffUntil) return { ok: false, reason: 'rate-limited' };
-    const url = `${ENDPOINT}?query=${encodeURIComponent(query)}&dataType=Branded&pageSize=10`;
     try {
-      const res = await networkRequest(url, { credentials: 'omit', referrerPolicy: 'no-referrer', headers: { 'X-Api-Key': key } },
+      if (cfg.mode === 'script') {
+        const body = await networkRequest(cfg.url, {
+          method: 'POST', credentials: 'omit', referrerPolicy: 'no-referrer',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ kind: 'usda', code: query }),
+        }, res => (res.ok ? res.json() : null));
+        if (body && body.ok === true && Array.isArray(body.foods)) return { ok: true, json: { foods: body.foods } };
+        return { ok: false, reason: body && /busy/.test(String(body.error)) ? failure(429) : 'unavailable' };
+      }
+      const url = `${ENDPOINT}?query=${encodeURIComponent(query)}&dataType=Branded&pageSize=10`;
+      const res = await networkRequest(url, { credentials: 'omit', referrerPolicy: 'no-referrer', headers: { 'X-Api-Key': cfg.key } },
         async r => ({ status: r.status, json: r.ok ? await r.json() : null }));
       return res.json ? { ok: true, json: res.json } : { ok: false, reason: failure(res.status) };
     } catch (e) {
@@ -117,7 +134,7 @@
     }
     if (!inFlight.has(cacheKey)) {
       inFlight.set(cacheKey, (async () => {
-        const reply = await search(cfg.key, want, networkRequest);
+        const reply = await search(cfg, want, networkRequest);
         if (!reply.ok) return null;                       // not cached: a refusal says nothing about the barcode
         const data = parseSearch(reply.json, want, { foodOnly: false });
         await chrome.storage.local.set({ [cacheKey]: data ? { t: Date.now(), data } : { t: Date.now() } }).catch(() => {});
@@ -140,8 +157,9 @@
   async function test(networkRequest) {
     const cfg = await config(null);
     if (!cfg.ok) return cfg;
-    const reply = await search(cfg.key, 'cheddar cheese', networkRequest);
-    return reply.ok ? { ok: true } : { ok: false, reason: reply.reason };
+    // Any valid barcode will do: an answer with no record still proves the key, permission or script works.
+    const reply = await search(cfg, '012345678905', networkRequest);
+    return reply.ok ? { ok: true, mode: cfg.mode } : { ok: false, reason: reply.reason };
   }
 
   root.AIR = root.AIR || {};

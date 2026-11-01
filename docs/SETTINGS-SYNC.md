@@ -46,6 +46,19 @@ true ([CACHE.md](CACHE.md), *Trust*). To open them anyway, **Project Settings �
 Add** `PRODUCTS_OPEN` = `true`; delete the property to close them again. No redeploy is needed.
 Readers still have to turn on *Share product readings with other computers* in their own settings.
 
+### USDA FoodData Central key (optional)
+
+The barcode lookup in USDA FoodData Central (`kind: 'usda'`) works without any key in the extension, because an
+extension cannot keep a secret: its files are plain text to anyone who installs it, and USDA **deactivates any api.data.gov
+key it finds in a public repository**. The key belongs to the script instead. Get a free key at
+`fdc.nal.usda.gov/api-key-signup`, then **Project Settings → Script Properties → Add** `USDA_API_KEY` = *the key*, and
+deploy a new version (below). Never paste the key into `apps-script.gs`, `prefs.js` or any file in this repository.
+Without the property the script answers `usda not configured` and readers fall back to their own key, if they saved one.
+The script sends the key to USDA in a header, never returns it or an upstream error body, caches an answer for six
+hours and spends at most 600 upstream requests an hour (the key allows 3,600 at the time of writing), so a flood of
+lookups can use up the budget but cannot exhaust or expose the key. A reader can switch it off with *Shared online
+database*, and a build with `ENDPOINT` empty never asks.
+
 After changing the script, **Deploy → Manage deployments → Edit → New version**. That keeps the
 same `/exec` URL; a *new deployment* would change it and every installed copy would lose the
 database until the next release.

@@ -107,6 +107,55 @@ function itemsOf(body) {
   return (Array.isArray(body.upserts) ? body.upserts.length : 0) + (Array.isArray(body.pulls) ? body.pulls.length : 0) || 1;
 }
 
+// ---------------------------------------------------------------- USDA FoodData Central lookup
+// A barcode -> the FoodData Central branded records that carry exactly that barcode. The api.data.gov key lives
+// in the script property USDA_API_KEY (Project Settings -> Script properties), never in this file or in the
+// extension, which anyone can unzip and read, and a key found in a public repository is deactivated by USDA.
+// It is sent to USDA in a header, never echoed to a caller, and an upstream error body is never passed on.
+// The extension re-checks every record's barcode itself, so this script is a courier, not a source of truth.
+// Answers are cached for six hours, and the script spends at most USDA_HOURLY_BUDGET upstream requests an hour
+// (the key allows 1,000), so a flood of lookups can use up the budget but cannot reach the owner's key.
+var USDA_SEARCH = 'https://api.nal.usda.gov/fdc/v1/foods/search';
+var USDA_HOURLY_BUDGET = 600;
+var USDA_CACHE_SECONDS = 21600;
+var USDA_NUTRIENT_IDS = [1003, 1004, 1005, 1079, 1093, 1235, 1258, 2000];
+function usdaDigits(code) {
+  return String(code == null ? '' : code).replace(/\D/g, '').replace(/^0+/, '');
+}
+function usdaLookup(code) {
+  var digits = usdaDigits(code);
+  if (digits.length < 7 || digits.length > 14) return json({ ok: false, error: 'invalid barcode' });
+  var key = PropertiesService.getScriptProperties().getProperty('USDA_API_KEY');
+  if (!key) return json({ ok: false, error: 'usda not configured' });
+  var cache = CacheService.getScriptCache();
+  var held = cache.get('usda:' + digits);
+  if (held) return json({ ok: true, foods: JSON.parse(held) });
+  var hour = 'usdaBudget:' + Math.floor(Date.now() / 3600000);
+  var used = Number(cache.get(hour) || 0);
+  if (used >= USDA_HOURLY_BUDGET) return json({ ok: false, error: 'busy; retry later' });
+  cache.put(hour, String(used + 1), 7200);
+  var res = UrlFetchApp.fetch(USDA_SEARCH + '?query=' + encodeURIComponent(digits) + '&dataType=Branded&pageSize=10',
+    { method: 'get', headers: { 'X-Api-Key': key }, muteHttpExceptions: true });
+  var status = res.getResponseCode();
+  if (status !== 200) return json({ ok: false, error: status === 429 ? 'busy; retry later' : 'upstream ' + status });
+  var found = JSON.parse(res.getContentText()).foods;
+  var foods = [];
+  (Array.isArray(found) ? found : []).forEach(function (f) {
+    if (!f || typeof f !== 'object' || usdaDigits(f.gtinUpc) !== digits || typeof f.ingredients !== 'string') return;
+    foods.push({
+      gtinUpc: String(f.gtinUpc), ingredients: f.ingredients.slice(0, 6000), description: String(f.description || '').slice(0, 200),
+      brandName: String(f.brandName || '').slice(0, 100), brandOwner: String(f.brandOwner || '').slice(0, 100),
+      foodCategory: String(f.foodCategory || '').slice(0, 120), servingSizeUnit: String(f.servingSizeUnit || '').slice(0, 12),
+      modifiedDate: String(f.modifiedDate || f.publishedDate || '').slice(0, 20),
+      foodNutrients: (Array.isArray(f.foodNutrients) ? f.foodNutrients : []).filter(function (n) {
+        return n && USDA_NUTRIENT_IDS.indexOf(Number(n.nutrientId)) !== -1 && isFinite(Number(n.value));
+      }).map(function (n) { return { nutrientId: Number(n.nutrientId), value: Number(n.value) }; }),
+    });
+  });
+  cache.put('usda:' + digits, JSON.stringify(foods), USDA_CACHE_SECONDS);
+  return json({ ok: true, foods: foods });
+}
+
 function doPost(e) {
   var started = Date.now();
   var body = null;
@@ -132,6 +181,7 @@ function handlePost(e, seen) {
   // alongside history deletion, to avoid exposing a partly cleared account.
   try {
     if (body.kind === 'lookup') return lookupProducts(body.keys);
+    if (body.kind === 'usda') return usdaLookup(body.code);
     if (body.kind === 'accountGet') return readAccount(body.token, identity);
   } catch (err) {
     return json({ ok: false, error: String(err) });

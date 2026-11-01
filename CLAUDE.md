@@ -45,7 +45,9 @@ Rules that are easy to break:
   "AI estimate", and travels with the local `p:` row only (`sanitizeLocal`; the shared tab never carries or accepts
   it, nor `label-ai` readings). Flags never read it. The OpenRouter key is `openrouterKey`: keep it out of
   `TOGGLE_DEFAULTS`/`SETTING_KEYS` so no backup, export or report carries it; the same holds for `usdaKey`
-  (`worker/usda.js`, a second barcode database behind `lookupBarcode`). Only the worker may touch the network.
+  (`worker/usda.js`, a second barcode database behind `lookupBarcode`). **Never put a project API key in this repository** or
+  the extension (it is public and readable; USDA deactivates keys found in repositories): `docs/apps-script.gs` reads
+  `USDA_API_KEY` from Script Properties and the extension asks the script. Only the worker may touch the network.
 - **Nothing is charged that no rule matches.** (Except an AI estimate, above, which is opt-in and labelled.) Silence reads as cleanliness, so an ingredient hidden
   by punctuation the parser does not understand quietly scores better. When you find a format that hides
   one, fix the parser (`cleanText`, `tidy`, `splitTopLevel`, `rejoinWrapped`) and add the format to
