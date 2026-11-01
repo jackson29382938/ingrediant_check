@@ -16,7 +16,7 @@ const ML = 1 / 29.5735295625;     // fluid ounces per millilitre
 
 test('every Amazon store the manifest serves has a storefront', () => {
   const manifest = JSON.parse(fs.readFileSync(require.resolve('../manifest.json'), 'utf8'));
-  const hosts = new Set(manifest.host_permissions.map(h => h.replace(/^\*:\/\/\*\./, '').replace(/\/\*$/, '')));
+  const hosts = new Set(manifest.host_permissions.map(h => h.replace(/^https:\/\/\*\./, '').replace(/\/\*$/, '')));
   for (const host of hosts) assert.equal(SF.storefront(`www.${host}`).known, true, host);
   assert.equal(Object.keys(SF.STORES).length, hosts.size, 'no storefront without a host permission');
 });

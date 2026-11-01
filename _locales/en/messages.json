@@ -107,8 +107,8 @@
   "reportThanks": {
     "message": "Thanks — logged"
   },
-  "reportNoUrl": {
-    "message": "Set a contribution URL in settings"
+  "reportFailed": {
+    "message": "Could not send that. Click to try again."
   },
   "srcPasted": {
     "message": "Ingredients you pasted"

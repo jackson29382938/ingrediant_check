@@ -22,7 +22,7 @@ export async function personalCareEndToEnd(browser, root) {
       window.__messages=[];
       const get=(keys,cb)=>{ const source=window.__stored; const names=keys==null?Object.keys(source):typeof keys==='string'?[keys]:Array.isArray(keys)?keys:Object.keys(keys); const result=Object.fromEntries(names.filter(k=>k in source).map(k=>[k,source[k]])); if(cb)cb(result); return Promise.resolve(result); };
       const set=(values,cb)=>{const changes={}; for(const [k,v]of Object.entries(values)){changes[k]={oldValue:window.__stored[k],newValue:v};window.__stored[k]=v;} if(cb)cb(); setTimeout(()=>listeners.forEach(fn=>fn(changes,'local')),0); return Promise.resolve();};
-      window.chrome={runtime:{id:'care-test',getManifest:()=>manifest,getURL:s=>'https://www.amazon.com/'+s,onMessage:{addListener(){}},sendMessage:(message,cb)=>{window.__messages.push(message);if(cb)cb({});return Promise.resolve({});}},
+      window.chrome={runtime:{id:'care-test',getManifest:()=>manifest,getURL:s=>'https://www.amazon.com/'+s,onMessage:{addListener(){}},sendMessage:(message,cb)=>{window.__messages.push(message);if(cb)cb(message.type==='fetchBudget'?{granted:message.want}:{});return Promise.resolve({});}},
         i18n:{getMessage:()=>''},storage:{local:{get,set,remove:(keys,cb)=>{for(const k of [].concat(keys))delete window.__stored[k];if(cb)cb();return Promise.resolve();},getKeys:()=>Promise.resolve(Object.keys(window.__stored))},onChanged:{addListener:fn=>listeners.push(fn)}},
         permissions:{contains:(_p,cb)=>{if(cb)cb(false);return Promise.resolve(false);}},tabs:{},extension:{}};
     }, manifest);

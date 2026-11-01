@@ -1130,7 +1130,9 @@ async function accountLoad(token) {
 
 function handleSharedDbMessage(msg, reply) {
   if (msg.type === 'diagnostic') {
-    answer('diagnostic', () => queueDiagnostic(msg.record), reply, { ok: false, reason: 'worker-error' });
+    const record = boundedRecord(msg.record);
+    if (!record) { reply({ ok: false, reason: 'no-record' }); return false; }
+    answer('diagnostic', () => queueDiagnostic(record), reply, { ok: false, reason: 'worker-error' });
     return true;
   }
   if (msg.type === 'flushDiagnostics') {
@@ -1138,12 +1140,10 @@ function handleSharedDbMessage(msg, reply) {
     return true;
   }
   if (msg.type === 'diagnosticsStatus') {
-    chrome.storage.local.get([DIAG_KEY, 'sendDiagnostics', 'diagLastError'], o => reply({
-      reason: o.diagLastError || '',
-      queued: (o[DIAG_KEY] || []).length,
-      enabled: o.sendDiagnostics === true,
-      configured: !!self.AIR.db.prefs.endpoint(),
-    }));
+    answer('diagnosticsStatus', async () => {
+      const o = await chrome.storage.local.get([DIAG_KEY, 'sendDiagnostics', 'diagLastError']);
+      return { reason: o.diagLastError || '', queued: (o[DIAG_KEY] || []).length, enabled: o.sendDiagnostics === true, configured: !!self.AIR.db.prefs.endpoint() };
+    }, reply, { reason: 'worker-error', queued: 0, enabled: false, configured: false });
     return true;
   }
   if (msg.type === 'provenanceLookup') {
@@ -1151,8 +1151,9 @@ function handleSharedDbMessage(msg, reply) {
       const value = await loadProvenance();
       const index = value && value.index;
       const producers = value && value.producers;
-      const record = lookupRecord(index, msg.key || {});
-      const brand = (msg.key && msg.key.brand || '').toLowerCase();
+      const key = { asin: cleanText(msg.key && msg.key.asin, 10), upc: cleanText(msg.key && msg.key.upc, 14), brand: cleanText(msg.key && msg.key.brand, 120) };
+      const record = lookupRecord(index, key);
+      const brand = key.brand.toLowerCase();
       const producer = producers && brand && Object.hasOwn(producers, brand) ? producers[brand] : null;
       return record || producer ? { ...(producer || {}), ...(record || {}), producerRegistry: producer || null } : null;
     }, reply, null);
@@ -1163,7 +1164,10 @@ function handleSharedDbMessage(msg, reply) {
   if (msg.type === 'report') {
     const url = self.AIR.db.prefs.endpoint();
     if (!url) { reply({ ok: false, reason: 'no-endpoint' }); return false; }
-    answer('report', () => postRecord(url, { ...msg.payload, kind: 'report' }), reply, { ok: false, reason: 'worker-error' });
+    const payload = cleanProductPost(msg.payload);
+    if (!payload) { reply({ ok: false, reason: 'invalid' }); return false; }
+    // `kind` on a report is the request type; the product's own kind only means something on a contribution.
+    answer('report', () => postRecord(url, { ...payload, kind: 'report' }), reply, { ok: false, reason: 'worker-error' });
     return true;
   }
   if (msg.type === 'refreshSheet') {
@@ -1174,7 +1178,9 @@ function handleSharedDbMessage(msg, reply) {
     return true;
   }
   if (msg.type === 'contribute') {
-    answer('contribute', () => contribute(msg.payload), reply, { ok: false, reason: 'worker-error' });
+    const payload = cleanProductPost(msg.payload);
+    if (!payload) { reply({ ok: false, reason: 'invalid' }); return false; }
+    answer('contribute', () => contribute(payload), reply, { ok: false, reason: 'worker-error' });
     return true;
   }
   if (msg.type === 'productsLookup') {

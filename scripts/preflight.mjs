@@ -72,8 +72,9 @@ check('stores covered', () => {
   if (!matches.some(m => m.includes('/*/dp/')) || !matches.some(m => m.includes('/*/gp/product/'))) {
     throw new Error('slug product matches (/*/dp/*, /*/gp/product/*) missing');
   }
-  if (!matches.some(m => m.startsWith('*://amazon.'))) {
-    throw new Error('apex amazon.* matches missing');
+  // One `https://*.amazon.<tld>/…` pattern covers the bare domain, www and any subdomain (probed in Chromium).
+  if (!matches.every(m => m.startsWith('https://*.amazon.'))) {
+    throw new Error('every Amazon content-script match must be an https://*.amazon.<tld>/ pattern');
   }
   if (!matches.some(m => m.includes('/gp/aw/d/'))) {
     throw new Error('mobile /gp/aw/d/ matches missing');

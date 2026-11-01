@@ -199,7 +199,10 @@ check('content scripts are limited to product and search paths', () => {
     'a host-wide /* match would inject on cart and account pages');
   assert.ok(cs.matches.some(m => m.includes('/dp/')), 'product /dp/ matches missing');
   assert.ok(cs.matches.some(m => m.includes('/*/dp/')), 'slug /*/dp/ matches missing — cold loads of /Title/dp/ASIN would not inject');
-  assert.ok(cs.matches.some(m => m.startsWith('*://amazon.')), 'apex amazon.* matches missing');
+  // `https://*.amazon.com/...` matches amazon.com itself too (probed in Chromium), so one wildcard pattern per
+  // host covers the bare domain, www and any storefront subdomain; there is no separate apex pattern to forget.
+  assert.ok(cs.matches.every(m => m.startsWith('https://*.amazon.')), 'every Amazon match is an https wildcard-subdomain pattern');
+  assert.ok(cs.matches.some(m => m.startsWith('https://*.amazon.com/dp/')), 'amazon.com product match missing');
   assert.ok(cs.matches.some(m => m.includes('/gp/aw/d/')), 'mobile /gp/aw/d/ matches missing');
   assert.ok((cs.exclude_globs || []).some(g => g.includes('/ap/')), 'login /ap/ is not excluded');
   assert.ok((cs.exclude_globs || []).some(g => g.includes('/gp/cart')), 'cart is not excluded');
@@ -367,7 +370,7 @@ check('Amazon access and the actual auto-rating default are disclosed where user
   // settings page without the switch beside its explanation, under-states what the extension can do.
   const hosts = JSON.parse(read('manifest.json')).host_permissions;
   const privacy = read('docs/PRIVACY.md');
-  const stores = hosts.map(h => (h.match(/^\*:\/\/\*\.amazon(\.[a-z.]+)\/\*$/) || [])[1]);
+  const stores = hosts.map(h => (h.match(/^https:\/\/\*\.amazon(\.[a-z.]+)\/\*$/) || [])[1]);
   assert.ok(stores.every(Boolean), `unexpected host permission: ${hosts.join(', ')}`);
   // Named as "amazon.com" or, further along the list, as ".co.uk," / ".com.br and" / ".co.jp)".
   const named = tld => {
@@ -388,6 +391,30 @@ check('Amazon access and the actual auto-rating default are disclosed where user
     assert.match(popup, new RegExp(`data-i18n="${key}"`), `popup lost ${key}`);
   }
   assert.match(popup, /\.net\{display:block/, 'the popup network line must not hide behind "Why these matter"');
+});
+
+check('extension pages and the worker may connect only to the hosts the code talks to', () => {
+  // connect-src is defence in depth: a bug or a compromised dependency in a page that holds a Google token or
+  // the purchase history still cannot send it anywhere else. Every host the non-content code fetches must be here.
+  const csp = (manifest.content_security_policy || {}).extension_pages || '';
+  const connect = (csp.match(/connect-src([^;]*)/) || [])[1];
+  assert.ok(connect, 'connect-src is missing');
+  const allowed = connect.trim().split(/\s+/);
+  assert.ok(allowed.includes("'self'"));
+  const origin = url => new URL(url).origin;
+  const wanted = new Set([
+    origin(require('../src/engine/db/prefs.js').toScriptUrl(require('../src/engine/db/prefs.js').ENDPOINT)),   // Apps Script
+    'https://script.googleusercontent.com',                                                                     // where Apps Script answers from
+    origin(read('src/background.js').match(/const OFF_ENDPOINT = '([^']+)'/)[1]),                               // Open Food Facts
+    origin(read('src/options/google-auth.js').match(/const PROFILE_URL = '([^']+)'/)[1]),                       // Google profile
+    'https://m.media-amazon.com',                                                                              // label photos for OCR
+  ]);
+  for (const host of wanted) assert.ok(allowed.includes(host), `connect-src lacks ${host}`);
+  for (const host of allowed.filter(h => h !== "'self'")) assert.ok(wanted.has(host), `connect-src allows ${host}, which nothing here fetches`);
+  // And nothing outside the content scripts fetches a host we did not list.
+  for (const file of ['src/background.js', 'src/offscreen/ocr.js', 'src/options/google-auth.js', 'src/worker/purchase-history.js', 'src/worker/history-scan.js']) {
+    for (const [, url] of read(file).matchAll(/fetch\(\s*'(https:\/\/[^']+)'/g)) assert.ok(allowed.includes(origin(url)), `${file} fetches ${url}`);
+  }
 });
 
 if (failed) { console.error('\n' + failed + ' failed'); process.exit(1); }

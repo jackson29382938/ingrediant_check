@@ -696,10 +696,10 @@ function wireLabelReading() {
 }
 
 // "Amazon access" names the stores from the manifest, so the list cannot drift from what Chrome
-// actually granted. "*://*.amazon.co.uk/*" -> "amazon.co.uk".
+// actually granted. "https://*.amazon.co.uk/*" -> "amazon.co.uk".
 function amazonStores(manifest) {
   return ((manifest && manifest.host_permissions) || [])
-    .map(p => (String(p).match(/^\*:\/\/\*\.(amazon\.[a-z.]+)\/\*$/) || [])[1])
+    .map(p => (String(p).match(/^https:\/\/\*\.(amazon\.[a-z.]+)\/\*$/) || [])[1])
     .filter(Boolean);
 }
 

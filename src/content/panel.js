@@ -597,7 +597,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
         report.textContent = t('reportSending', 'Sending…');
         const done = ok => {
           report.textContent = ok ? t('reportThanks', 'Thanks — logged')
-            : t('reportNoUrl', 'Set a contribution URL in settings');
+            : t('reportFailed', 'Could not send that. Click to try again.');
+          // A failed send leaves the link usable: the network may be back in a minute.
+          report.disabled = ok;
         };
         if (typeof onReport === 'function') onReport(done); else done(false);
       });

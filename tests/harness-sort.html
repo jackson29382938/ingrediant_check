@@ -94,6 +94,7 @@ window.chrome = {
     sendMessage: (m, cb) => {
       window.__messages.push(JSON.parse(JSON.stringify(m)));
       const reply = m.type === 'productsLookup' ? { rows: {} }
+        : m.type === 'fetchBudget' ? { granted: m.want }
         : m.type === 'openSortedPanel' ? { ok: true, runId: `run-${++run}` }
         : m.type === 'updateSortedResults' ? { ok: true, count: m.items.length } : { ok: true };
       if (cb) setTimeout(() => cb(reply), 0);

@@ -8,8 +8,7 @@ export const AMAZON_HOSTS = [
 ];
 
 // Path shapes Chrome matches from the left. The path includes the query string,
-// so '/s' alone never matches '/s?k=…' — the '?*' forms cover real search URLs. Slug PDPs need /*/dp/*; apex hosts need
-// a second origin without the *. subdomain wildcard.
+// so '/s' alone never matches '/s?k=…' — the '?*' forms cover real search URLs. Slug PDPs need /*/dp/*.
 export const PATH_PATTERNS = [
   '/dp/*',
   '/*/dp/*',
@@ -39,15 +38,11 @@ export function buildCartMatches(hosts = AMAZON_HOSTS, paths = CART_PATH_PATTERN
   return hosts.flatMap(host => [host, `www.${host}`].flatMap(h => paths.map(path => `https://${h}${path}`)));
 }
 
+// `https://*.amazon.com/...` matches amazon.com itself as well as every subdomain (probed in Chromium: the apex
+// and www both inject, evil-amazon.com does not), so one pattern per path covers what two used to. Amazon is
+// served over https only; an http address redirects before a page worth scoring exists.
 export function buildContentMatches(hosts = AMAZON_HOSTS, paths = PATH_PATTERNS) {
-  const out = [];
-  for (const host of hosts) {
-    for (const path of paths) {
-      out.push(`*://*.${host}${path}`);
-      out.push(`*://${host}${path}`);
-    }
-  }
-  return out;
+  return hosts.flatMap(host => paths.map(path => `https://*.${host}${path}`));
 }
 
 // `node scripts/content-matches.mjs --write` puts the generated list into every Amazon

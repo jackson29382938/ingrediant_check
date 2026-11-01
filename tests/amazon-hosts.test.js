@@ -30,7 +30,7 @@ test('every place that lists the Amazon storefronts lists the same ones', async 
   assert.deepEqual(table, expected, 'db/storefronts.js (currency, decimal mark and units per store)');
 
   const manifest = JSON.parse(read('manifest.json'));
-  const granted = manifest.host_permissions.map(p => p.match(/^\*:\/\/\*\.(amazon\.[a-z.]+)\/\*$/)?.[1]);
+  const granted = manifest.host_permissions.map(p => p.match(/^https:\/\/\*\.(amazon\.[a-z.]+)\/\*$/)?.[1]);
   assert.ok(granted.every(Boolean), 'every host permission is an *.amazon.<tld> pattern');
   assert.deepEqual(suffixes(granted), expected, 'manifest host_permissions');
 });

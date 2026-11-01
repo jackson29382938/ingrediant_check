@@ -17,7 +17,7 @@ const scripted = (domain) => manifest.content_scripts.some(cs => cs.matches.some
 
 test('a supported store is exactly the hosts the manifest grants', () => {
   const amazon = stores.STORES.find(s => s.id === 'amazon');
-  assert.deepEqual(amazon.domains.map(d => `*://*.${d}/*`), manifest.host_permissions);
+  assert.deepEqual(amazon.domains.map(d => `https://*.${d}/*`), manifest.host_permissions);
 });
 
 test('a preview store runs through a content script only, with no host permission', () => {

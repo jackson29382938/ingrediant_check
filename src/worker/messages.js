@@ -34,6 +34,54 @@ var AMAZON_HOST = /(^|\.)amazon\.(com|co\.uk|ca|com\.au|ie|in|sg|ae|sa|de|fr|es|
 var RETAILER_MESSAGE_TYPES = new Set(['pageScore']);
 var RETAILER_HOST = /^(?:www\.)?(?:target\.com|walmart\.com|costco\.com|instacart\.com|kroger\.com|frysfood\.com|ralphs\.com|kingsoopers\.com|smithsfoodanddrug\.com|fredmeyer\.com|qfc\.com|harristeeter\.com|dillons\.com|safeway\.com|albertsons\.com)$/i;
 
+// What a page's content script may hand the worker to forward to the shared endpoint. The sorted list and the
+// product queue were already re-checked here (sanitizeResults, productCache.sanitize); the three free-form
+// payloads were relayed as they came. A content script is our code, but what it puts in a payload is page text
+// (a product title, an ingredient list), so the worker bounds it before it is stored or posted.
+// eslint-disable-next-line no-control-regex
+const CONTROL_CHARS = /[\u0000-\u001f\u007f]/g;
+function cleanText(value, max) {
+  return typeof value === 'string' ? value.replace(CONTROL_CHARS, ' ').replace(/ {2,}/g, ' ').trim().slice(0, max) : '';
+}
+
+// A report or a contribution about one product: the fields apps-script.gs reads, each bounded, nothing else.
+// null when it names no product, which the receiver would refuse anyway.
+function cleanProductPost(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const out = {
+    asin: cleanText(raw.asin, 10).toUpperCase(),
+    upc: cleanText(raw.upc, 14),
+    brand: cleanText(raw.brand, 120),
+    product_name: cleanText(raw.product_name, 300),
+    kind: cleanText(raw.kind, 40),
+    certifications: cleanText(raw.certifications, 600),
+    verified_by: cleanText(raw.verified_by, 80),
+    notes: cleanText(raw.notes, 1200),
+  };
+  if (out.asin && !/^[A-Z0-9]{10}$/.test(out.asin)) out.asin = '';
+  if (out.upc && !/^\d{8,14}$/.test(out.upc)) out.upc = '';
+  return out.asin || out.upc || out.product_name || out.brand ? out : null;
+}
+
+// A diagnostics row: plain data, bounded in size and depth. The receiver picks its own columns, so unknown
+// keys are harmless there; this keeps a runaway object out of storage and out of the POST.
+function boundedRecord(raw, { maxKeys = 48, maxString = 6500, maxItems = 60, depth = 3 } = {}) {
+  const walk = (value, level) => {
+    if (typeof value === 'string') return value.replace(CONTROL_CHARS, ' ').slice(0, maxString);
+    if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+    if (typeof value === 'boolean' || value === null) return value;
+    if (level >= depth) return null;
+    if (Array.isArray(value)) return value.slice(0, maxItems).map(item => walk(item, level + 1));
+    if (value && typeof value === 'object') {
+      const out = {};
+      for (const key of Object.keys(value).slice(0, maxKeys)) out[String(key).slice(0, 60)] = walk(value[key], level + 1);
+      return out;
+    }
+    return null;
+  };
+  return raw && typeof raw === 'object' && !Array.isArray(raw) ? walk(raw, 0) : null;
+}
+
 function isOwnExtension(sender) {
   const id = chrome.runtime && chrome.runtime.id;
   if (!id || !sender) return false;

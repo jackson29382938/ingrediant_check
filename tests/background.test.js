@@ -821,7 +821,7 @@ test('a handler whose work fails still answers its sender, and leaves a trace', 
       [{ type: 'lookupBarcode', code: '0012345678905' }, null],
       [{ type: 'ocrLabels', urls: [label] }, { ok: false, reason: 'worker-error' }],
       [{ type: 'provenanceLookup', key: { asin: 'B00LOAW7U6' } }, null],
-      [{ type: 'contribute', payload: {} }, { ok: false, reason: 'worker-error' }],
+      [{ type: 'contribute', payload: { asin: 'B00LOAW7U6', product_name: 'Oats' } }, { ok: false, reason: 'worker-error' }],
       [{ type: 'diagnostic', record: { id: 1 } }, { ok: false, reason: 'worker-error' }],
       [{ type: 'productsLookup', store: 'amazon.com', asins: ['B000000001'] }, { rows: {} }],
       [{ type: 'productsQueue', upserts: [] }, { ok: false }],
@@ -970,5 +970,52 @@ test('the budget messages are accepted from Amazon tabs only, and answer even wh
   w.call('chrome.storage.session.get = async () => { throw new Error("session storage unavailable"); }');
   const warn = console.warn; console.warn = () => {};
   try { assert.deepEqual(plain(await within(2000, w.send({ type: 'fetchBudget', want: 3 }, amazonTab), 'fetchBudget')), { granted: 0, retryMs: 60000, reason: 'unavailable' }); }
+  finally { console.warn = warn; }
+});
+
+// ---------------------------------------------------------------- payloads a content script hands the worker
+
+test('a report or contribution is cut down to the fields the receiver reads, and refused when it names no product', async () => {
+  const w = worker({ shareContributions: true });
+  const clean = payload => plain(w.call(`cleanProductPost(${JSON.stringify(payload)})`));
+  const post = clean({ asin: 'b00loaw7u6', upc: '0012345678905', brand: 'Brand', product_name: 'x'.repeat(900), notes: 'a\u0000b\n  c', kind: 'beef',
+    certifications: 'Organic', verified_by: 'user report', token: 'secret', __proto__x: 1, extra: { deep: true } });
+  assert.deepEqual(Object.keys(post).sort(), ['asin', 'brand', 'certifications', 'kind', 'notes', 'product_name', 'upc', 'verified_by']);
+  assert.equal(post.asin, 'B00LOAW7U6');
+  assert.equal(post.product_name.length, 300);
+  assert.equal(post.notes, 'a b c', 'control characters and runs of spaces collapse');
+  assert.equal(clean({ asin: 'not an asin', upc: 'abc', product_name: 'Oats' }).asin, '');
+  assert.equal(clean({ asin: 'not an asin', upc: 'abc' }), null, 'nothing names a product');
+  assert.equal(clean(null), null);
+  assert.equal(clean([1, 2]), null);
+});
+
+test('worker replies to an unusable report, contribution or diagnostic row without storing or posting anything', async () => {
+  const posted = [];
+  const w = worker({ shareContributions: true, sendDiagnostics: true }, async (url, options) => { posted.push(options?.body); return { ok: true, json: async () => ({ ok: true, wrote: 1 }) }; });
+  assert.deepEqual(plain(await w.send({ type: 'report', payload: { notes: 'no product' } }, amazonTab)), { ok: false, reason: 'invalid' });
+  assert.deepEqual(plain(await w.send({ type: 'contribute', payload: 'oops' }, amazonTab)), { ok: false, reason: 'invalid' });
+  assert.deepEqual(plain(await w.send({ type: 'diagnostic', record: [1] }, amazonTab)), { ok: false, reason: 'no-record' });
+  assert.equal(posted.length, 0);
+  assert.equal(w.data.diagQueue, undefined);
+});
+
+test('a diagnostics row is bounded before it is queued', async () => {
+  const w = worker({ sendDiagnostics: true });
+  const deep = { a: { b: { c: { d: 'too deep' } } }, big: 'x'.repeat(20000), list: Array.from({ length: 500 }, (_, i) => i), ctl: 'a\u0001b' };
+  const row = plain(w.call(`boundedRecord(${JSON.stringify(deep)})`));
+  assert.equal(row.big.length, 6500);
+  assert.equal(row.list.length, 60);
+  assert.equal(plain(w.call('boundedRecord({ n: NaN, i: Infinity })')).n, null, 'a non-finite number is not a number');
+  assert.equal(row.ctl, 'a b');
+  assert.equal(row.a.b.c, null, 'nesting stops at three levels');
+});
+
+test('diagnosticsStatus answers from the options page even when storage fails', async () => {
+  const w = worker({ sendDiagnostics: true });
+  assert.equal(plain(await w.send({ type: 'diagnosticsStatus' }, settingsSender)).enabled, true);
+  w.call('chrome.storage.local.get = async () => { throw new Error("storage unavailable"); }');
+  const warn = console.warn; console.warn = () => {};
+  try { assert.deepEqual(plain(await within(2000, w.send({ type: 'diagnosticsStatus' }, settingsSender), 'diagnosticsStatus')), { reason: 'worker-error', queued: 0, enabled: false, configured: false }); }
   finally { console.warn = warn; }
 });
