@@ -127,6 +127,12 @@ test('keyOf and sanitize heal anything a stored map can hold', () => {
   assert.equal(Object.keys(A.sanitize(big)).length, A.MAX_PER_READING);
   assert.deepEqual(A.sanitize('nonsense'), {});
   assert.deepEqual(A.sanitize(JSON.parse('{"__proto__":{"c":"sugar","k":1}}')), {});
+  assert.equal(Object.getPrototypeOf(A.sanitize(JSON.parse('{"__proto__":{"c":"sugar","k":1}}'))), Object.prototype, 'the result is still an ordinary object');
+  assert.equal(A.keyOf('__proto__'), '');
+  assert.equal(A.keyOf('constructor'), 'constructor', 'only __proto__ is special to assignment; lookups use Object.hasOwn');
+  assert.deepEqual(A.parseReply(JSON.stringify({ ratings: [{ name: '__proto__', class: 'sugar', confidence: 1 }] }), ['__proto__']), {});
+  assert.deepEqual(A.toAsk(['__proto__', 'zorbex'], null), ['zorbex']);
+  assert.equal(engine.score({ name: 'x', ingredients_text: 'rice, __proto__', aiRatings: JSON.parse('{"__proto__":{"c":"sugar","k":1}}') }).ai, undefined);
 });
 
 test('parseReply reads a class id and a number for the names asked about, and nothing else', () => {
