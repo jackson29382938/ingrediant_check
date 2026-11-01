@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 
 // productsOpen: the PRODUCTS_OPEN script property. The product tests below model an opened receiver.
-function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true, propertyClientId = null } = {}) {
+function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true, propertyClientId = null, anonLimits = { writes: 1e9, rows: 1e9 } } = {}) {
   const tabs = new Map();
   const order = [];
   let locked = false, failFlush = false, legacy = '{}', tokenChecks = 0;
@@ -70,7 +70,8 @@ function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true, pro
     Utilities: { DigestAlgorithm: { SHA_256: 'sha256' },
       computeDigest: (_alg, text) => [...require('node:crypto').createHash('sha256').update(text).digest()].map(b => (b << 24) >> 24) },
     PropertiesService: { getScriptProperties: () => ({
-      getProperty: key => (key === 'PRODUCTS_OPEN' ? (productsOpen ? 'true' : null) : key === 'OAUTH_CLIENT_ID' ? propertyClientId : legacy),
+      getProperty: key => (key === 'PRODUCTS_OPEN' ? (productsOpen ? 'true' : null) : key === 'OAUTH_CLIENT_ID' ? propertyClientId
+        : key === 'ANON_WRITES_PER_MINUTE' ? String(anonLimits.writes) : key === 'ANON_ROWS_PER_MINUTE' ? String(anonLimits.rows) : legacy),
       deleteProperty(key) { if (key === 'PRODUCTS_OPEN') productsOpen = false; },
       setProperty() { throw new Error('dedup must not depend on property writes'); } }) },
     ContentService: { MimeType: { JSON: 'json' },

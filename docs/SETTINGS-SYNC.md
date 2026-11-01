@@ -100,6 +100,30 @@ no future timestamps, no pasted lists), settings by `parseBackup()` (unknown ids
 clamped to the slider range). A hand-edited cell or a crafted POST cannot widen what the extension
 will trust.
 
+## Abuse limits
+
+The `/exec` URL ships in the extension, so anyone can post to it. Google Sheets stops at 10 million cells for
+the whole file, and `accounts` and `purchase-history` live in the same file as the anonymous tabs, so two limits
+protect the signed-in data from the anonymous kinds (`diagnostics`, `report`, `products`, contributions):
+
+- **Per-minute allowance**, kept in the script cache and checked before the lock is taken: 120 posts and 3,000
+  rows a minute across all anonymous kinds. Over it the answer is `{"ok":false,"error":"busy; retry later",
+  "rateLimited":true}`, which the extension already treats as "keep the rows, try again later". Change them
+  with the Script Properties `ANON_WRITES_PER_MINUTE` and `ANON_ROWS_PER_MINUTE`.
+- **Rolling window** on `diagnostics` (20,000 rows), `reports` and `contributions` (5,000 each): past the cap the
+  oldest rows are deleted first. Edit `TAB_ROW_CAPS` to change them.
+
+Signed-in kinds (`account*`, `history*`) are not counted: Google has vouched for who sends them. Redeploy the
+script by hand after pulling this change (Deploy > Manage deployments > Edit > New version).
+
+## Drift report
+
+Amazon changes pages without notice. `weeklyDriftReport()` compares the share of `unreadable` and
+`low-coverage` outcomes on the `diagnostics` tab in the last seven days with the seven before, overall (a rise
+of ten points on at least 50 rows each week) and per store (twenty points on at least 30 rows), and emails the
+owner a line per jump. Run `installDriftTrigger()` once from the editor to schedule it for Monday mornings; the
+first run asks for permission to send mail. It only reports what opted-in diagnostics already collect.
+
 ## Measuring load
 
 The script takes the lock and reads (and, for product batches, rewrites) the whole tab on every
