@@ -101,7 +101,7 @@ function setup() {
     },
   });
   // Load the split content modules in manifest order. Hooks live on AIR.page — no IIFE rewrite.
-  for (const file of ['page.js', 'product.js', 'search.js', 'main.js']) {
+  for (const file of ['nav.js', 'page.js', 'product.js', 'search.js', 'main.js']) {
     vm.runInContext(fs.readFileSync(require.resolve('../src/content/' + file), 'utf8'), context);
   }
   loadPageReader(vm, context);   // the shared page reader, which the manifest loads after these and they call at run time
@@ -803,6 +803,37 @@ test('the status line counts scored results, names the best, and pauses the requ
   w.h.pump?.();
   assert.equal(w.timers.length, before);
 });
+
+test('a product page stops being observed once its reading has been quiet for a minute, and a click or scroll starts it again', () => {
+  const w = setup();
+  const activity = [];
+  w.context.addEventListener = (type, fn, options) => activity.push({ type, fn, options });
+  w.h.wake();
+  assert.equal(w.observations.length, 1, 'observing from the start');
+  assert.equal(w.h.state.settled, null);
+  // The quiet minute and the scoring pass are both queued; they run in the order they were set.
+  while (w.timers.length) w.timers.shift()();
+  assert.equal(w.h.state.settled, 'idle', 'nothing about the reading changed for the idle window');
+  assert.deepEqual(activity.map(a => a.type).sort(), ['click', 'scroll']);
+  assert.ok(activity.every(a => a.options.passive && a.options.capture && a.options.once), 'passive, capturing, one shot');
+  activity.find(a => a.type === 'scroll').fn();
+  assert.equal(w.h.state.settled, null, 'a scroll reveals sections Amazon builds lazily');
+  assert.equal(w.observations.length, 2, 'observing again');
+});
+
+test('on a results page the observer is never time-boxed: infinite scroll keeps adding tiles', () => {
+  const w = sandbox_list();
+  w.h.wake();
+  while (w.timers.length) w.timers.shift()();
+  assert.notEqual(w.h.state.settled, 'idle');
+});
+function sandbox_list() {
+  const w = setup();
+  w.context.location.pathname = '/s';
+  w.context.location.search = '?k=oats';
+  w.context.location.href = 'https://www.amazon.com/s?k=oats';
+  return w;
+}
 
 test('a robot check answered with HTTP 200 pauses the queue and is never recorded or read as "no ingredients"', async () => {
   const w = sortSetup();

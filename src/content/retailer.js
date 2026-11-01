@@ -374,7 +374,7 @@
   }
 
   // Target is a single-page app: moving from results to a product does not reload the page.
-  setInterval(() => { if (location.href !== state.url) { state.manual = null; reset(); } }, 1000);
+  root.AIR.nav.onChange(() => { if (location.href !== state.url) { state.manual = null; reset(); } });
 
   const KEYS = ['enabled', 'badges', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'weights', 'allergens', 'diets', 'avoidList',
     'sheetIndexRev', 'producerIndexRev', 'speedMode', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'autoScoreSearch', 'panelOpen', 'theme', 'palette'];

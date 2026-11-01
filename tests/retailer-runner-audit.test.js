@@ -76,6 +76,7 @@ function runner(file, url, stored = {}, adapter = T) {
   sandbox.self = sandbox;
   sandbox.module = { exports: {} };
   vm.createContext(sandbox);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'src', 'content', 'nav.js'), 'utf8'), sandbox);
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'src', 'content', 'retailer.js'), 'utf8'), sandbox);
   loadPageReader(vm, sandbox);   // the shared page reader
   return { get host() { return host; }, writes, messages, fetches, timers, clicks, shadow, data, page,

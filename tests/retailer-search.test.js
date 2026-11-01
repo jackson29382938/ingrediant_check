@@ -90,6 +90,7 @@ function runner({ ids = ['79364857'], stored = {}, query = 'oats' } = {}) {
     module: { exports: {} },
   };
   sandbox.self = sandbox;
+  vm.runInNewContext(fs.readFileSync(require.resolve('../src/content/nav.js'), 'utf8'), sandbox);
   vm.runInNewContext(fs.readFileSync(require.resolve('../src/content/retailer.js'), 'utf8'), sandbox);
   loadPageReader(vm, sandbox);   // the shared page reader, loaded after retailer.js as in the manifest
   const api = sandbox.module.exports;

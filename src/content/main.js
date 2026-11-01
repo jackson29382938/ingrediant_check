@@ -30,9 +30,41 @@
 
   function settleIfDone() {
     const st = document.getElementById(HOST_ID)?.dataset.airState;
-    // not-food is stable. scored stays observed so late NIC hydration can replace a wrong first
-    // blurb. fail never settles permanently — Amazon often publishes the list after expanders load.
+    // not-food is stable. scored stays observed for a while so late NIC hydration can replace a wrong first
+    // blurb (see the idle window below). fail never settles for good: Amazon often publishes the list after
+    // expanders load, and a click or a scroll starts watching again.
     if (st === 'not-food') settle(st);
+  }
+
+  // A product page used to be observed for as long as the tab lived: every text change anywhere on it (a
+  // carousel, a countdown, a price) restarted a pass that reads the label sections' rendered text, which forces
+  // layout. Now the observer stops once nothing about the product's reading has changed for IDLE_SETTLE_MS, and
+  // starts again when the reader does something that can reveal more of the page: a click (an expander), a
+  // scroll (Amazon builds the sections below the fold as they come into view), or a navigation.
+  const IDLE_SETTLE_MS = 60000;
+  let idleTimer = null, idleProgress = '', wakeOnActivity = null;
+
+  const productProgress = () => [state.lastKey, state.lastTextSig, document.getElementById(HOST_ID)?.dataset.airState].join('|');
+
+  function armIdle() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(settleIdle, IDLE_SETTLE_MS);
+  }
+
+  function settleIdle() {
+    idleTimer = null;
+    if (!state.enabled || !isProductPage()) return;
+    settle('idle');
+    const ac = new AbortController();
+    wakeOnActivity = ac;
+    const wakeUp = () => {
+      ac.abort();
+      if (wakeOnActivity === ac) wakeOnActivity = null;
+      if (state.enabled && isProductPage() && state.settled === 'idle') wake();
+    };
+    const options = { capture: true, passive: true, once: true, signal: ac.signal };
+    addEventListener('click', wakeUp, options);
+    addEventListener('scroll', wakeUp, options);
   }
 
   const DEBOUNCE_MS = 400;
@@ -48,9 +80,6 @@
 
   let observer = null;
   let observerRoot = null;
-  let urlTimer = null;
-  let navWired = false;
-  let lastUrl = location.href;
 
   function observeRoot(narrow) {
     if (!narrow) return document.documentElement;
@@ -69,9 +98,15 @@
       attributes: true, attributeFilter: ['data-asin', 'value'] });
     observerRoot = root;
     state.settled = null;
+    idleProgress = '';
+    if (isProductPage()) armIdle();
   }
 
   function stopObserving() {
+    clearTimeout(idleTimer);
+    idleTimer = null;
+    wakeOnActivity?.abort();
+    wakeOnActivity = null;
     if (!observer) return;
     observer.disconnect();
     observer = null;
@@ -88,7 +123,13 @@
   function tick() {
     if (!state.enabled) return;
     try {
-      if (isProductPage()) { scoreCurrentPage(); settleIfDone(); }
+      if (isProductPage()) {
+        scoreCurrentPage();
+        settleIfDone();
+        // The idle window runs from the last change to the reading, not the last change anywhere on the page.
+        const progress = productProgress();
+        if (progress !== idleProgress) { idleProgress = progress; if (observer) armIdle(); }
+      }
       else if (isListPage()) {
         removePanel();
         if (state.lastBadgeScore != null) {
@@ -127,10 +168,10 @@
     schedule();
   }
 
-  const URL_POLL_MS = 500;
+  // The address changed without a page load: AIR.nav (nav.js) tells us, with no timer between navigations.
+  let unwatchNav = null;
 
   function onNavigated() {
-    lastUrl = location.href;
     removePanel();
     state.manual = null;
     state.lastBadgeScore = undefined;
@@ -152,31 +193,13 @@
   }
 
   function watchNavigation() {
-    if (!navWired) {
-      addEventListener('popstate', onNavigated);
-      // Prefer the Navigation API when present; keep the poll as a fallback for Amazon soft nav.
-      try {
-        if (typeof navigation !== 'undefined' && navigation
-            && typeof navigation.addEventListener === 'function') {
-          navigation.addEventListener('navigate', () => {
-            queueMicrotask(() => {
-              if (location.href !== lastUrl) onNavigated();
-            });
-          });
-        }
-      } catch (e) { /* Navigation API unavailable */ }
-      navWired = true;
-    }
-    if (urlTimer) return;
-    urlTimer = setInterval(() => {
-      if (location.href !== lastUrl) onNavigated();
-    }, URL_POLL_MS);
+    if (!unwatchNav) unwatchNav = AIR.nav.onChange(() => onNavigated());
   }
 
   function stopNavigation() {
-    if (!urlTimer) return;
-    clearInterval(urlTimer);
-    urlTimer = null;
+    if (!unwatchNav) return;
+    unwatchNav();
+    unwatchNav = null;
   }
 
   function suspend() {
@@ -195,7 +218,7 @@
     state.failedExtracts = 0;
     state.settled = null;
     resetSearchGate();
-    lastUrl = location.href;
+    AIR.nav.sync();
     watchNavigation();
     if (isRelevantPage()) {
       AIR.engine?.warmUp?.();   // compile the engine's patterns in idle time, before the first label needs them

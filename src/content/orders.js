@@ -317,6 +317,6 @@
     else if (changes.purchaseHistory && currentConf) { historyRecords = currentConf.historyOwner && currentConf.googleProfile?.email && currentConf.historyOwner !== currentConf.googleProfile.email.toLowerCase() ? [] : H.merge([], changes.purchaseHistory.newValue); if (currentSummary) currentSummary(); else note(banner?.dataset.airText || ''); }
     else if (Object.keys(changes).some(k => /^(s|p):amazon\.com:/.test(k))) void cacheChanged(changes).catch(() => { note('A saved product rating could not be added to history. Open History & sync settings and refresh this page.'); });
   });
-  setInterval(() => { if (location.href !== lastURL) { lastURL = location.href; reset(); } }, 1000);
+  A.nav.onChange(() => { if (location.href !== lastURL) { lastURL = location.href; reset(); } });
   void run();
 })(typeof globalThis !== 'undefined' ? globalThis : self);
