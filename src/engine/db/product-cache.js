@@ -10,7 +10,7 @@
 // shape again because it cannot load this file; the field bounds live here only, and are applied
 // every time a row is read back.
 
-if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./_module.js');
+if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('./_module.js'); require('./ai-ratings.js'); }
 
 (function () {
   const TAB = 'products';
@@ -56,7 +56,10 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
 
   // Field bounds match what extract.js can produce (6000 is its MAX_LEN), so a live read and a
   // cached read feed the engine the same input. Unknown fields are dropped.
-  function sanitizeData(raw) {
+  // `local`: the row was written by this computer and is read from its own storage. Only then are AI ratings
+  // (db/ai-ratings.js) kept; a row from the shared database, or on its way to it, carries none, because a rating
+  // is a third party's opinion of an ingredient and the shared tab is unchecked (docs/CACHE.md, "Trust").
+  function sanitizeData(raw, { local = false } = {}) {
     let src = raw;
     if (typeof src === 'string') { try { src = JSON.parse(src.replace(/^'/, '')); } catch (e) { return null; } }
     if (!src || typeof src !== 'object' || Array.isArray(src)) return null;
@@ -73,6 +76,10 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     if (src.inputSchema === INPUT_SCHEMA) out.inputSchema = INPUT_SCHEMA;
     const provenance = cleanProvenance(src.provenanceRecord);
     if (provenance) out.provenanceRecord = provenance;
+    if (local && AIR.db.aiRatings) {
+      const rated = AIR.db.aiRatings.sanitize(src.aiRatings);
+      if (Object.keys(rated).length) out.aiRatings = rated;
+    }
     if (Object.hasOwn(src, 'advisory_text')) {
       if (typeof src.advisory_text !== 'string' || src.advisory_text.length > 6000) return null;
       out.advisory_text = str(src.advisory_text, 6000);
@@ -91,7 +98,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   }
 
   // Row-shaped input from any side: a fresh scan, a local entry, or a sheet row anyone could write.
-  function sanitize(raw, now = Date.now()) {
+  function sanitize(raw, now = Date.now(), { local = false } = {}) {
     if (!raw || typeof raw !== 'object') return null;
     const store = normalizeStore(raw.store);
     const asin = str(raw.asin, 10).toUpperCase();
@@ -99,8 +106,10 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     const t = typeof raw.scanned_at === 'number' ? raw.scanned_at : Date.parse(str(raw.scanned_at, 40));
     if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(store) || !/^[A-Z0-9]{10}$/.test(asin)) return null;
     if (!STATUSES.has(status) || !Number.isFinite(t) || t > now + 5 * 60 * 1000) return null;
-    const data = sanitizeData(raw.data);
+    const data = sanitizeData(raw.data, { local });
     if (!data || PRIVATE_VIA.has(data.via)) return null;
+    // A label a model transcribed stays on this computer: the shared tab is unchecked, and so is a model's reading.
+    if (!local && data.via === 'label-ai') return null;
     if (status === 'ok' && !data.text) return null;
     return {
       key: key(store, asin), store, asin, status, data,
@@ -108,6 +117,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
       pulls: Math.max(0, Math.floor(Number(raw.pulls) || 0)),
     };
   }
+
+  // A row read back from this computer's own storage (p:<store>:<asin>), which may carry AI ratings.
+  const sanitizeLocal = raw => sanitize(raw, Date.now(), { local: true });
 
   // maxAgeMs: the speed setting's age limit (AIR.db.speed); MAX_AGE_MS when not given.
   function stale(row, now = Date.now(), maxAgeMs = MAX_AGE_MS) {
@@ -127,6 +139,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
       nutrition: d.nutrition ? { ...d.nutrition } : undefined, ingredients_text: d.text, supplement_facts: d.supplement_facts, advisory_text: d.advisory_text,
       ...(d.inputSchema === INPUT_SCHEMA ? { inputSchema: INPUT_SCHEMA } : {}),
       ...(d.provenanceRecord ? { provenanceRecord: cleanProvenance(d.provenanceRecord) } : {}),
+      ...(d.aiRatings ? { aiRatings: { ...d.aiRatings } } : {}),
     };
   }
 
@@ -135,8 +148,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     return sanitize({
       store, asin, status, scanned_at: t, pulls: 0,
       data: { inputSchema: INPUT_SCHEMA, provenanceRecord: input.provenanceRecord, title: input.name, category: input.category || AIR.db.ingestible?.classifyProduct?.(input.name).category, text: input.ingredients_text, labels: input.labels,
-        certifications: input.certifications, supplement_facts: input.supplement_facts, nutrition: input.nutrition, advisory_text: typeof input.advisory_text === 'string' ? input.advisory_text : '', via, confidence, food },
-    }, now);
+        certifications: input.certifications, supplement_facts: input.supplement_facts, nutrition: input.nutrition, advisory_text: typeof input.advisory_text === 'string' ? input.advisory_text : '', aiRatings: input.aiRatings, via, confidence, food },
+    }, now, { local: true });
   }
 
   // Fold { upserts: [rows], pulls: [{ key, scanned_at }] } into the pending write queue. The newest
@@ -173,7 +186,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
 
   const api = AIRmodule('productCache', {
     TAB, COLUMNS, MAX_PULLS, MAX_AGE_MS, QUEUE_MAX, INPUT_SCHEMA, cleanProvenance,
-    key, localKey, sanitize, sanitizeData, stale, toInput, fromScan, mergeQueue, queueSize, nutritionFromOff,
+    key, localKey, sanitize, sanitizeLocal, sanitizeData, stale, toInput, fromScan, mergeQueue, queueSize, nutritionFromOff,
   });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();

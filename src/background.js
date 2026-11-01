@@ -12,9 +12,9 @@
 if (typeof importScripts === 'function') {
   importScripts('browser-compat.js', 'browser-platform.js', 'engine/db/_module.js', 'engine/db/allergens.js', 'engine/categories.js',
     'engine/db/ingestible.js', 'engine/db/prefs.js', 'engine/db/theme.js',
-    'engine/db/ocr-text.js', 'engine/db/product-cache.js', 'engine/db/shopping.js', 'engine/db/storefronts.js', 'engine/db/sorted-results.js',
+    'engine/db/ocr-text.js', 'engine/db/ai-ratings.js', 'engine/db/product-cache.js', 'engine/db/shopping.js', 'engine/db/storefronts.js', 'engine/db/sorted-results.js',
     'engine/db/speed.js', 'engine/db/unit-price.js',
-    'engine/db/activity.js', 'options/google-auth.js', 'worker/messages.js', 'worker/sheet-store.js', 'engine/db/purchase-history.js', 'worker/purchase-history.js', 'engine/db/history-scan.js', 'worker/history-scan.js');
+    'engine/db/activity.js', 'options/google-auth.js', 'worker/messages.js', 'worker/ai.js', 'worker/sheet-store.js', 'engine/db/purchase-history.js', 'worker/purchase-history.js', 'engine/db/history-scan.js', 'worker/history-scan.js');
 }
 
 const OFF_ENDPOINT = 'https://world.openfoodfacts.org/api/v2/product/';
@@ -276,6 +276,11 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (!allowMessage(msg, sender)) return false;
   if (self.AIR.scanWorker?.handle(msg, sender, reply)) return true;
   if (self.AIR.historyWorker?.handle(msg, sender, reply)) return true;
+  if (self.AIR.aiWorker?.handle(msg, sender, reply)) return true;
+  if (msg && msg.type === 'aiTest') {
+    answer('aiTest', () => self.AIR.aiWorker.test(), reply, { ok: false, reason: 'unavailable' });
+    return true;
+  }
   if (msg && msg.type === 'pageScore') {
     paintActionBadge(sender && sender.tab && sender.tab.id, msg.score, msg.status, msg.index === true);
     return false;

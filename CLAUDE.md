@@ -31,14 +31,21 @@ presets live in `categories.js`.
 Rules that are easy to break:
 
 - **Bump the revision when a score can move.** Editing `score.js`, `categories.js` or
-  `db/{oils,sugars,additives,labels,allergens,provenance,ingestible,product-ratings}.js` fails `tests/rules-revision.test.js`
+  `db/{oils,sugars,additives,labels,allergens,provenance,ingestible,product-ratings,ai-ratings}.js` fails `tests/rules-revision.test.js`
   until `RULES_REVISION` and `RULES_HASH` in `src/engine/db/revision.js` are updated (the failing
   test prints the hash). That retires every cached score. The hash covers code only: whole-line comments, blank
   lines and trailing spaces are not hashed, so prose can be edited freely; a renamed variable or a comment
   trailing code still counts. Then run `node scripts/scoring-audit.mjs`
   to regenerate `docs/SCORING-FACTOR-INVENTORY-2026-10-01.md`, and add or update `docs/releases/<version>.md`
   (the release workflow requires one for the manifest version).
-- **Nothing is charged that no rule matches.** Silence reads as cleanliness, so an ingredient hidden
+- **AI help is an input, never a judge** (`db/ai-ratings.js`, `worker/ai.js`, OpenRouter, off by default). A model picks
+  a class from a closed list for an ingredient no rule recognises; the class's points, category and NOVA vote are
+  fixed in code, so a score stays a pure function of (label, settings, ratings). A rating can only charge (never add
+  points or set a cap), only reaches entries `recognised()` rejects, is limited per product, is labelled `ai: true` /
+  "AI estimate", and travels with the local `p:` row only (`sanitizeLocal`; the shared tab never carries or accepts
+  it, nor `label-ai` readings). Flags never read it. The OpenRouter key is `openrouterKey`: keep it out of
+  `TOGGLE_DEFAULTS`/`SETTING_KEYS` so no backup, export or report carries it. Only the worker may touch the network.
+- **Nothing is charged that no rule matches.** (Except an AI estimate, above, which is opt-in and labelled.) Silence reads as cleanliness, so an ingredient hidden
   by punctuation the parser does not understand quietly scores better. When you find a format that hides
   one, fix the parser (`cleanText`, `tidy`, `splitTopLevel`, `rejoinWrapped`) and add the format to
   `tests/invariants.test.js`. Formats already covered there: separators and invisible characters, HTML,

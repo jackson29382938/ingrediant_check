@@ -145,7 +145,7 @@
           if (saved.refresh) enqueue(it.tile, it.asin); else queue.seen.add(it.asin);
           continue;
         }
-        const local = C.sanitize(obj[localKey(it.asin)]);
+        const local = C.sanitizeLocal(obj[localKey(it.asin)]);
         if (local && freshLocal(local) && applyRow(it.tile, it.asin, local)) { queue.seen.add(it.asin); continue; }
         misses.push(it);
       }

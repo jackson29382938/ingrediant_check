@@ -80,7 +80,7 @@
     const key = C.localKey(storeHost(), asin);
     chrome.storage.local.get(key, obj => {
       if (mine !== token || !badge.isConnected || !on()) return;
-      const row = C.sanitize(obj && obj[key]);
+      const row = C.sanitizeLocal(obj && obj[key]);
       const result = row && row.status === 'ok' ? root.AIR.engine.score(C.toInput(row), state.prefs) : null;
       const [score, verdict, category] = String(badge.getAttribute('data-air') || '').split(':');
       if (openFor && openFor !== badge) openFor.setAttribute('aria-expanded', 'false');

@@ -15,7 +15,8 @@
     ? { oils: req('./db/oils.js'), sugars: req('./db/sugars.js'),
         additives: req('./db/additives.js'), labels: req('./db/labels.js'),
         allergens: req('./db/allergens.js'), categories: req('./categories.js'),
-        provenance: req('./db/provenance.js'), ingestible: req('./db/ingestible.js'), productRatings: req('./db/product-ratings.js') }
+        provenance: req('./db/provenance.js'), ingestible: req('./db/ingestible.js'), productRatings: req('./db/product-ratings.js'),
+        aiRatings: req('./db/ai-ratings.js') }
     : root.AIR.db;
   const api = factory(db);
   if (req) module.exports = api;
@@ -465,10 +466,19 @@ function repeatedAllergenBrackets(entries) {
   return out;
 }
 
-function recognitionCoverage(entries) {
+// `ai` is the product's usable AI ratings (db/ai-ratings.js), or null. A rating makes an entry the rules do
+// not know count as read, which is the point of asking; it is never consulted for an entry a rule recognises.
+// `info` collects what the caller may want to ask a model about (missed) and what a model answered (rated).
+function recognitionCoverage(entries, ai, info) {
   if (!entries.length) return 0;
   let seen = 0;
-  for (const e of entries) if (e.ing.length < 80 && recognised(e.ing)) seen++;
+  for (const e of entries) {
+    if (e.ing.length >= 80) continue;
+    if (recognised(e.ing)) { seen++; continue; }
+    if (info) info.missed.push(e.ing);
+    const rated = ai && ai.rate(e.ing);
+    if (rated) { seen++; if (info) info.rated.push({ ing: e.ing, id: rated.id }); }
+  }
   return seen / entries.length;
 }
 
@@ -982,6 +992,8 @@ function score(product, options = {}) {
   const rating = db.productRatings?.rate(product, options, parseEntries);
   if (rating) { rating.readable = isReadable(rating); return rating; }
   const W = db.categories ? db.categories.resolveWeights(options.weights) : {};
+  // Ratings a model gave to ingredients no rule knows, kept with the saved reading (db/ai-ratings.js).
+  const ai = db.aiRatings && product.aiRatings ? db.aiRatings.forProduct(product.aiRatings) : null;
   const nutritionInfo = normaliseNutrition(product.nutrition);
   const w_ = id => (id in W ? W[id] : 1);
   // Open Food Facts marks allergens as _WHEAT_ / _SOJA_. An underscore is a word character, so every
@@ -1070,6 +1082,8 @@ function score(product, options = {}) {
   const good = [], bad = [], seen = new Set();
   const hits = [], rewards = [];
   let hardHits = 0, softHits = 0;
+  const aiSeen = new Set();
+  let aiCharged = 0, aiRaw = 0;
   const tradPrep = add.TRADITIONAL_PREP.test(txt);
 
   // A function word is an undisclosed additive only when nothing names the additive. EU labels
@@ -1083,7 +1097,7 @@ function score(product, options = {}) {
   // COMMON_PANEL so they contribute to coverage; without this guard a standalone "conservante"
   // or "emulgator" was recognised there and incorrectly suppressed its own unnamed charge.
   const bare = e => add.UNNAMED.some(r => r.m.test(e.ing));
-  const names = e => !bare(e) && recognised(e.ing, { unnamed: false });
+  const names = e => !bare(e) && (recognised(e.ing, { unnamed: false }) || (ai?.rate(e.ing)?.pts > 0));
   const byFam = new Map(entries.map(e => [e.fam, e]));
   const childrenOf = new Map();
   for (const e of entries) if (e.parent) childrenOf.set(e.parent, [...(childrenOf.get(e.parent) || []), e]);
@@ -1165,6 +1179,25 @@ function score(product, options = {}) {
       if (scaled < 0.5) continue;                       // category switched off by the user
       hits.push({ off: Math.round(scaled), why: r.why, ing, group: r.group, cat: category, refined: !!r.refined });
     }
+
+    // An entry no rule recognises, which a model rated at the reader's request (db/ai-ratings.js). A rule
+    // always wins, so this is reached only for words the rulebase has never seen. The charge is the class's
+    // fixed points through the same position weight and the reader's own weight for its category, limited
+    // per product, and it can only charge: a class that costs nothing just makes the entry count as read.
+    if (ai && !aiSeen.has(ing) && !recognised(ing)) {
+      const r = ai.rate(ing);
+      if (r && r.pts > 0) {
+        aiSeen.add(ing);
+        // Processing describes the label, independent of the reader's weights, as for a rule.
+        if (r.upf === 'hard') hardHits++; else if (r.upf === 'soft') softHits++;
+        const cw = w_(r.cat), scaled = r.pts * w * cw;
+        if (cw > 0 && scaled >= 0.5 && aiCharged < db.aiRatings.MAX_CHARGED && aiRaw < db.aiRatings.MAX_RAW) {
+          const off = Math.min(Math.round(scaled), db.aiRatings.MAX_RAW - aiRaw);
+          aiRaw += off; aiCharged++;
+          hits.push({ off, why: `${r.label} — AI estimate`, ing, group: r.cat, cat: r.cat, ai: true });
+        }
+      }
+    }
   });
 
   const { kept, total: rawPenalty } = collapse(hits);
@@ -1180,7 +1213,7 @@ function score(product, options = {}) {
   // The panel shows a line per problem. Those lines must add up to the score the user is looking
   // at, so the saturation discount is distributed back across them proportionally rather than
   // applied invisibly at the end. Largest remainder gets the rounding slack.
-  const shown = kept.map(h => ({ raw: h.scaled, why: h.why, ing: h.ing, cat: h.cat, refined: h.refined }));
+  const shown = kept.map(h => ({ raw: h.scaled, why: h.why, ing: h.ing, cat: h.cat, refined: h.refined, ai: h.ai }));
   if (rawPenalty > 0 && shown.length) {
     // Largest-remainder allocation. Every row gets at least 1 point when there is room for it,
     // and the leftover is corrected against the biggest rows in whichever direction it lands, so
@@ -1202,6 +1235,7 @@ function score(product, options = {}) {
     const row = { c: h.c, why: h.why, ing: h.ing };
     if (h.cat) row.cat = h.cat;
     if (h.refined) row.refined = true;
+    if (h.ai) row.ai = true;
     bad.push(row);
   }
 
@@ -1429,7 +1463,8 @@ function score(product, options = {}) {
 
   // How much of this list the rulebase could actually read. Reported, never scored — a low number
   // means "we cannot assess this", which is a different statement from a low score.
-  const coverage = recognitionCoverage(entries);
+  const coverageInfo = { missed: [], rated: [] };
+  const coverage = recognitionCoverage(entries, ai, coverageInfo);
   const parseWarnings = [];
   if (entries.some(e => e.ing.length >= 80)) parseWarnings.push('long-ingredient-entry');
   if (entries.some(e => e.unassessed)) parseWarnings.push('nested-ingredient-limit');
@@ -1517,6 +1552,9 @@ function score(product, options = {}) {
     good, bad,
     parsed: list.length,
     coverage, nutritionBasis:nutritionInfo.basis,
+    // Entries no rule recognises, for a caller that may ask a model about them; ai: what a model's ratings changed.
+    unrecognised: [...new Set(coverageInfo.missed)].filter(i => /[a-zß-ÿœ\u0100-\u017f]/i.test(i)).slice(0, 24),
+    ...(coverageInfo.rated.length ? { ai: { rated: coverageInfo.rated } } : {}),
     readable: list.length > 0 && coverage >= MIN_COVERAGE && !parseWarnings.length,
     parseWarnings, nutritionAssessment, dimensions,
     ruleCount: PENALTIES.length + CAPS.length + labels.BONUSES.length,

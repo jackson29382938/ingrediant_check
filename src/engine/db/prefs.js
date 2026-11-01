@@ -51,6 +51,11 @@ const TOGGLE_DEFAULTS = {
   useOpenFoodFacts: true,
   shareContributions: false,
   sendDiagnostics: false,
+  // AI help through OpenRouter (worker/ai.js), both off until the reader turns them on and gives a key.
+  // aiRatings: ingredient names no rule recognises are rated by a model and charged (db/ai-ratings.js).
+  // aiLabels: a label photo the on-device OCR could not read is read by a vision model instead.
+  aiRatings: false,
+  aiLabels: false,
   // Owner-kept certification tables are enabled by default. Switching this off
   // keeps certification lookups on this computer.
   sharedCache: true,
@@ -276,7 +281,7 @@ function parseBackup(obj) {
 // Switches that send data off this computer. A settings file never turns these on: a file is
 // something a reader may have been handed, and each of these is a decision the reader makes on this
 // computer (a Chrome or Google restore of the reader's own copy still carries them, after a confirm).
-const SHARING_KEYS = ['sharedProducts', 'shareContributions', 'sendDiagnostics', 'googleAutoSave', 'settingsBackup'];
+const SHARING_KEYS = ['sharedProducts', 'shareContributions', 'sendDiagnostics', 'googleAutoSave', 'settingsBackup', 'aiRatings', 'aiLabels'];
 
 // The settings as a backup would carry them: one sanitized value per key, defaults filled in.
 function settingsSnapshot(stored) { return parseBackup(backupPayload(stored)).values; }

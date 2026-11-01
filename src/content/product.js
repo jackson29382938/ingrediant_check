@@ -61,8 +61,43 @@
     // Keep watching: Amazon may hydrate food evidence after the title/crumbs arrive.
   }
 
+  // AI help (worker/ai.js, engine/db/ai-ratings.js). The names no rule recognises are rated once per
+  // reading, when the reader switched that on. A list under the coverage gate is held (loading) while the
+  // model answers, since its answer may be what makes it readable; a list that already scores is shown at
+  // once and shown again only if the ratings move the score. aiTried marks the second pass, so a failed
+  // or empty answer is not asked for again by the same reading.
+  function aiNames(result, meta) {
+    const { state } = P();
+    const A = root.AIR.db.aiRatings;
+    if (!A || !meta || !meta.input || meta.aiTried || result.category || state.cacheOptions.aiRatings !== true) return [];
+    return A.toAsk(result.unrecognised, meta.input.aiRatings);
+  }
+
+  function askAi(host, data, key, meta, names, then) {
+    const { state } = P();
+    const requestId = state.requestId;
+    try {
+      chrome.runtime.sendMessage({ type: 'aiRateIngredients', names }, res => {
+        void chrome.runtime.lastError;
+        if (requestId !== state.requestId || state.lastKey !== key || !host.isConnected) return;
+        const rated = res && res.ok && res.ratings && Object.keys(res.ratings).length ? res.ratings : null;
+        const input = rated ? { ...meta.input, aiRatings: { ...(meta.input.aiRatings || {}), ...rated } } : meta.input;
+        then(input, rated ? root.AIR.engine.score(input, state.prefs) : null);
+      });
+    } catch (e) { /* messaging unavailable in some frames: the score stands as it is */ }
+  }
+
   function presentResult(host, data, key, result, meta) {
     const { state, unreadable, cacheScore, publishActionBadge, sendDiagnostic, ingredientSig } = P();
+    const aiAsk = aiNames(result, meta);
+    if (aiAsk.length && unreadable(result) && !result.category) {
+      host.dataset.airState = 'loading';
+      root.AIR.panel.mount(host, root.AIR.panel.renderLoading(data));
+      askAi(host, data, key, meta, aiAsk, (input, again) => {
+        presentResult(host, data, key, again || result, { ...meta, input, aiTried: true });
+      });
+      return false;
+    }
     if (result.category && unreadable(result)) {
       host.dataset.airState = 'personal-care';
       state.lastTextSig = ingredientSig() || data.text || '';
@@ -103,6 +138,18 @@
     P().logAction?.('product page', `${key}: ${result.score} ${result.verdict} (read from ${meta.via || 'page'})`);
     if (meta.sendDiag !== false) {
       sendDiagnostic(data, result, meta.via, meta.text || data.text);
+    }
+    if (aiAsk.length) {
+      askAi(host, data, key, meta, aiAsk, (input, again) => {
+        if (!again) return;
+        // Same score: keep the ratings with the saved reading so the next page of it, and the list it is in,
+        // use them, and leave the panel alone.
+        if (again.score === result.score) {
+          if (meta.remember !== false) P().rememberProduct(key, { input, via: meta.via, confidence: meta.confidence, food: !(data.ingestible && data.ingestible.ok === false) }, { share: false });
+          return;
+        }
+        presentResult(host, data, key, again, { ...meta, input, aiTried: true, sendDiag: false, share: false });
+      });
     }
     return true;
   }
@@ -301,6 +348,7 @@
     const use = (row, shared) => {
       if (ocrReadingBlocked(row.data.via)) { miss(); return; }
       if ((row.data.via === 'label-ocr' || row.data.via === 'ocr') && !state.ocrLabels) { miss(); return; }
+      if (row.data.via === 'label-ai' && !aiLabelsOn()) { miss(); return; }
       if (row.data.via === 'open-food-facts' && (state.cacheOptions || {}).useOpenFoodFacts !== true) { miss(); return; }
       done();
       // The saved list can answer missing ingredients, while this open page supplies newer label
@@ -327,7 +375,7 @@
     const localKey = C.localKey(storeHost(), key);
     root.AIR.db.scoreCache.readLocal([localKey], state.cacheOptions, obj => {
       if (!live()) return;
-      const local = C.sanitize(obj && obj[localKey]);
+      const local = C.sanitizeLocal(obj && obj[localKey]);
       if (local && local.status === 'ok' && freshLocal(local)) { use(local, false); return; }
       if (!speed().sharedDays || !sharedProductsOn()) { miss(); return; }
       try {
@@ -456,13 +504,43 @@
     };
   }
 
+  const aiLabelsOn = () => P().state.cacheOptions.aiLabels === true;
+
+  // The label photo, read by a vision model (worker/ai.js) because the on-device OCR could not read it or is
+  // off. What comes back is only used if the OCR extraction finds an ingredient list in it, exactly as for OCR
+  // text, and the reading is kept on this computer alone (via 'label-ai' is never shared or accepted shared).
+  function tryAiLabel(host, data, key, urls) {
+    const { state } = P();
+    const none = extra => showFailure(host, { ...data, ocrAttempted: true, aiAttempted: true, ...extra }, key);
+    if (!urls.length) { none({ ocrOutcome: 'no-images' }); return; }
+    const requestId = ++state.requestId;
+    host.dataset.airState = 'loading';
+    root.AIR.panel.mount(host, root.AIR.panel.renderLoading({ ...data, ocr: true }));
+    try {
+      chrome.runtime.sendMessage({ type: 'aiReadLabels', urls }, res => {
+        void chrome.runtime.lastError;
+        if (requestId !== state.requestId || state.lastKey !== key || !host.isConnected) return;
+        const best = res && res.ok && root.AIR.db.ocrText.bestBlock(res.results,
+          t => root.AIR.extract.looksLikeIngredients(t, data.title));
+        if (!best) { host.dataset.airState = ''; none({ ocrOutcome: res && res.ok ? 'no-match' : 'error' }); return; }
+        const input = pageInput(data, { ingredients_text: best.text });
+        presentResult(host, data, key, root.AIR.engine.score(input, state.prefs), {
+          input, title: data.title, confidence: 0.5, via: 'label-ai',
+          text: best.text, textSig: best.text.slice(0, 320), ocrAttempted: true, aiAttempted: true, share: false,
+        });
+      });
+    } catch (e) { host.dataset.airState = ''; none({}); }
+  }
+
   function tryOcr(host, data, key) {
     const { state } = P();
+    const urls = (root.AIR.db.ocrText && root.AIR.db.ocrText.imageCandidates(document)) || [];
     if (root.AIR.extract.ocrReadyForHost && !root.AIR.extract.ocrReadyForHost(location.hostname)) {
+      if (aiLabelsOn() && !data.aiAttempted) { tryAiLabel(host, { ...data, ocrAttempted: true, localeDeclined: true }, key, urls); return; }
       showFailure(host, { ...data, ocrAttempted: true, localeDeclined: true }, key);
       return;
     }
-    const urls = (root.AIR.db.ocrText && root.AIR.db.ocrText.imageCandidates(document)) || [];
+    if (!state.ocrLabels && aiLabelsOn() && !data.aiAttempted) { tryAiLabel(host, { ...data, ocrAttempted: true }, key, urls); return; }
     if (!urls.length) { showFailure(host, { ...data, ocrAttempted: true, ocrOutcome: 'no-images' }, key); return; }
     const requestId = ++state.requestId;
     host.dataset.airState = 'loading';
@@ -470,6 +548,7 @@
     const started = Date.now();
     const giveUp = extra => {
       host.dataset.airState = '';
+      if (aiLabelsOn() && !data.aiAttempted) { tryAiLabel(host, { ...data, ocrAttempted: true, ...extra }, key, urls); return; }
       showFailure(host, { ...data, ocrAttempted: true, ...extra }, key);
     };
     const stillReading = setTimeout(() => {
@@ -502,8 +581,9 @@
     const { state, publishActionBadge } = P();
     if (state.lastKey !== key || !host.isConnected) return;
     if (host.dataset.airState === 'fail') return;
-    if (state.ocrLabels && !data.ocrAttempted) {
-      if (root.AIR.extract.ocrReadyForHost && !root.AIR.extract.ocrReadyForHost(location.hostname)) {
+    if ((state.ocrLabels || aiLabelsOn()) && !data.ocrAttempted) {
+      if (!state.ocrLabels) { tryOcr(host, data, key); return; }
+      if (root.AIR.extract.ocrReadyForHost && !root.AIR.extract.ocrReadyForHost(location.hostname) && !(aiLabelsOn() && !data.aiAttempted)) {
         data = { ...data, ocrAttempted: true, localeDeclined: true };
       } else {
         tryOcr(host, data, key);

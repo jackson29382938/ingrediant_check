@@ -225,7 +225,7 @@
   }
 
   chrome.storage.local.get(['enabled', 'badges', 'hoverScore', 'autoScoreSearch', 'hoverBreakdown',
-    'breakdownDetail', 'breakdownDelayMs', 'scoreHoverDelayMs', 'panelOpen', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList', 'useOpenFoodFacts', 'sharedCache', 'sharedProducts', 'sheetIndexRev', 'producerIndexRev', 'speedMode', 'ratePace', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'unitPrice', 'theme', 'palette', 'accent'], o => {
+    'breakdownDetail', 'breakdownDelayMs', 'scoreHoverDelayMs', 'panelOpen', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'ocrLabels', 'sendDiagnostics', 'weights', 'allergens', 'diets', 'avoidList', 'useOpenFoodFacts', 'sharedCache', 'sharedProducts', 'sheetIndexRev', 'producerIndexRev', 'aiRatings', 'aiLabels', 'speedMode', 'ratePace', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'unitPrice', 'theme', 'palette', 'accent'], o => {
     const toggles = AIR.db.prefs.sanitizeToggles(o);
     state.cacheOptions = { ...o, ...toggles };
     state.enabled = toggles.enabled;
@@ -259,7 +259,7 @@
 
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area && area !== 'local') return;
-    for (const key of ['cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'weights', 'avoidList', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'ocrLabels', 'useOpenFoodFacts', 'sharedCache', 'sharedProducts', 'sheetIndexRev', 'producerIndexRev']) {
+    for (const key of ['cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'weights', 'avoidList', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'ocrLabels', 'useOpenFoodFacts', 'sharedCache', 'sharedProducts', 'sheetIndexRev', 'producerIndexRev', 'aiRatings', 'aiLabels']) {
       if (changes[key]) state.cacheOptions[key] = Object.hasOwn(AIR.db.prefs.TOGGLE_DEFAULTS, key)
         ? AIR.db.prefs.sanitizeToggles({ [key]: changes[key].newValue })[key] : changes[key].newValue;
     }

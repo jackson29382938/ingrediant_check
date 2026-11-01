@@ -430,3 +430,67 @@ function wireAccount() {
 }
 
 if (typeof startSettingsPage === 'function') startSettingsPage();
+
+// AI help (src/worker/ai.js). The key is stored under `openrouterKey`, which no backup, export or sync
+// carries and which is never shown again once saved. Each switch needs the optional openrouter.ai
+// permission, requested here from the click, and the permission is dropped when both are off.
+/* exported wireAi */
+function wireAi() {
+  const keyBox = document.getElementById('openrouterKey');
+  if (!keyBox) return;
+  const KEY = 'openrouterKey', permission = { origins: ['https://openrouter.ai/*'] };
+  const ids = ['aiRatings', 'aiLabels'];
+  const paintKey = () => chrome.storage.local.get(KEY, o => {
+    const saved = typeof o[KEY] === 'string' && o[KEY].length > 0;
+    say('aiKeyStatus', saved ? 'A key is saved.' : 'No key saved.', 'ok');
+    keyBox.placeholder = saved ? 'Saved — paste a new key to replace it' : 'sk-or-…';
+    const forget = document.getElementById('aiForget');
+    if (forget) forget.disabled = !saved;
+  });
+  paintKey();
+  keyBox.addEventListener('change', () => {
+    const value = keyBox.value.trim();
+    keyBox.value = '';
+    if (!value) return;
+    if (!/^[\x21-\x7e]{16,256}$/.test(value)) { say('aiKeyStatus', 'That does not look like an OpenRouter key.', 'error'); return; }
+    persist({ [KEY]: value }, ok => { if (ok) { flash(msg('optSaved', 'Saved')); paintKey(); } });
+  });
+  document.getElementById('aiForget')?.addEventListener('click', () => {
+    chrome.storage.local.remove(KEY, () => { void chrome.runtime.lastError; paintKey(); say('aiTestStatus', ''); });
+  });
+  document.getElementById('aiTest')?.addEventListener('click', () => {
+    say('aiTestStatus', 'Testing…');
+    const reasons = { 'no-key': 'Save a key first.', 'no-permission': 'Allow access to openrouter.ai by turning a switch below on.',
+      'bad-key': 'OpenRouter rejected the key.', 'no-credits': 'OpenRouter reports no credits for this key.',
+      'rate-limited': 'The free models are rate limited right now. Try again in a minute.', paused: 'Ingredient Check is paused.' };
+    chrome.runtime.sendMessage({ type: 'aiTest' }, res => {
+      void chrome.runtime.lastError;
+      say('aiTestStatus', res && res.ok ? 'The key works.' : (res && reasons[res.reason]) || 'OpenRouter could not be reached.', res && res.ok ? 'ok' : 'error');
+    });
+  });
+  for (const id of ids) {
+    const box = document.getElementById(id);
+    if (!box) continue;
+    const other = () => document.getElementById(ids.find(x => x !== id));
+    const read = () => chrome.storage.local.get(id, raw => {
+      chrome.permissions.contains(permission, granted => { box.checked = PREFS.sanitizeToggles(raw)[id] && granted; });
+    });
+    read();
+    chrome.storage.onChanged.addListener(changes => { if (changes[id]) read(); });
+    box.addEventListener('change', () => {
+      const enabled = box.checked;
+      box.disabled = true;
+      const save = value => persist({ [id]: value }, ok => {
+        box.checked = value; box.disabled = false;
+        if (ok) flash(value ? msg('optSaved', 'Saved') : enabled ? 'Chrome did not grant access to openrouter.ai.' : msg('optSaved', 'Saved'));
+        if (!value && !(other() && other().checked)) chrome.permissions.remove(permission, () => { void chrome.runtime.lastError; });
+      });
+      if (!enabled) { save(false); return; }
+      chrome.permissions.request(permission, granted => {
+        const error = chrome.runtime.lastError;
+        if (error || !granted) { save(false); return; }
+        chrome.permissions.contains(permission, confirmed => save(!!confirmed));
+      });
+    });
+  }
+}

@@ -122,9 +122,10 @@
     if (!asin || !result) return;
     const entry = {
       schema: CACHE.SCHEMA, cacheRevision: CACHE.CACHE_REVISION, v: ENGINE_VERSION, t,
-      store: storeHost(), asin, prefs: CACHE.fingerprint(cachePrefs(), source || 'page', result.category),
+      store: storeHost(), asin, prefs: CACHE.fingerprint(cachePrefs(), source || 'page', result.category, !!result.ai),
       score: result.score, verdict: result.verdict, nova: result.nova, category: result.category || 'food', ratingStyle: result.ratingStyle || 'food',
       source: source || 'page',
+      ...(result.ai ? { ai: true } : {}),
       ...(root.AIR.db.shopping ? { evidence: root.AIR.db.shopping.evidence(result, { source: source || 'page', capturedAt: t, prefs: state.prefs }) } : {}),
       provenanceSource: provenanceSource || '',
       name: String(name || '').replace(/\s+/g, ' ').trim().slice(0, 120),
@@ -140,7 +141,7 @@
   // worker drops the upload when the shared database is off. Pasted lists never get here.
   function rememberProduct(asin, scan, { share = true } = {}) {
     const C = root.AIR.db.productCache;
-    const row = scan && scan.key ? C.sanitize(scan) : C.fromScan({ store: storeHost(), asin, ...scan });
+    const row = scan && scan.key ? C.sanitizeLocal(scan) : C.fromScan({ store: storeHost(), asin, ...scan });
     if (!row) return null;
     try {
       // Pulls are the shared tab's business; on this computer only age decides a rescan.

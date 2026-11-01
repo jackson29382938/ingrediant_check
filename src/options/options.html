@@ -303,6 +303,17 @@
     <p class="note"><a href="history.html#historySettings">Purchase import and order display settings</a> · <a href="history.html#driversHeading">Purchase score drivers</a></p>
   </section>
 
+  <section id="sec-ai" data-level="3">
+    <h2>AI help (optional)</h2>
+    <p class="sec-lede">Uses a free model through OpenRouter, with your own key. Scores work without it, and it is off until you add a key and allow access to openrouter.ai.</p>
+    <div class="opt"><label for="openrouterKey">OpenRouter API key</label>
+      <input type="password" id="openrouterKey" autocomplete="off" spellcheck="false">
+      <p class="sw-hint">Create a free key at openrouter.ai/keys. It stays in this browser, and is not part of a backup, a settings file, Chrome sync or a problem report. <span id="aiKeyStatus" class="status"></span></p>
+      <p><button type="button" id="aiTest">Test key and access</button> <button type="button" id="aiForget">Remove key</button> <span id="aiTestStatus" class="status"></span></p></div>
+    <div class="opt"><label class="sw"><input type="checkbox" id="aiRatings" role="switch"><span class="sw-title">Rate ingredients the rules do not recognise</span></label><p class="sw-hint">Sends only those ingredient names (not the product, store, page or you) to OpenRouter. The answer is used in the score and shown as an “AI estimate”. It can only lower a score, never raise it or set a hard cap, it is smaller than a built-in rule, and it applies on product pages you open. Free models are rate limited, so each name is asked about once and kept on this computer.</p></div>
+    <div class="opt"><label class="sw"><input type="checkbox" id="aiLabels" role="switch"><span class="sw-title">Read label photos with AI when OCR cannot</span></label><p class="sw-hint">When on-device OCR finds no ingredient list in the product photos, the public address of up to three photos on m.media-amazon.com is sent to OpenRouter so a vision model can read the list. It is used only if it looks like an ingredient list, is kept on this computer, and is never shared.</p></div>
+  </section>
+
   <section id="sec-rate" data-level="1">
     <h2 data-i18n="optRateH">What to rate</h2>
     <div class="opt"><label class="sw"><input type="checkbox" id="personalCareEnabled" role="switch" checked><span class="sw-title" data-i18n="optPersonalCare">Rate personal care and supplements</span></label>
