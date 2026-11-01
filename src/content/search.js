@@ -567,6 +567,9 @@
   function readProductHtml(asin, html) {
     const { state, unreadable } = P();
     const doc = new DOMParser().parseFromString(html, 'text/html');
+    // A robot check answered with HTTP 200 is a block, not a product that publishes nothing. It used to read as
+    // "no readable ingredients" and reset the failure count, so the queue went on asking for the whole budget.
+    if (root.AIR.cart.isChallenge(doc)) return { outcome: 'blocked', real: false, food: false, data: {} };
     const data = root.AIR.extract.extract(doc, { asin, foodOnly: state.foodOnly, personalCareEnabled: state.prefs.personalCareEnabled });
     // A robot check or an error page is not an answer about the product; never record it.
     const real = !!doc.querySelector('#productTitle') && data.reason !== 'product-identity-mismatch';
@@ -638,6 +641,11 @@
         const html = await root.AIR.cart.readHtml(res, signal);
         if (stale()) throw abortError();
         const reading = readProductHtml(asin, html);
+        if (reading.outcome === 'blocked') {
+          // Recorded nowhere, and nothing more is requested for this results page.
+          pauseForThrottle();
+          throw Object.assign(new Error('blocked'), { blocked: true });
+        }
         recordReading(asin, reading, source);
         queue.failStreak = 0;
         queue.readings.set(asin, reading);

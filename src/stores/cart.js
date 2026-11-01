@@ -148,7 +148,7 @@
   // challenge, Cloudflare's "Just a moment..."); a bare "robot" is not one, since it is also a word in a product's name.
   const CHALLENGE = /\brobot check\b|robot or human|not a robot|(?:enter|type) the characters you see|verify you are human|access denied|press (?:and|&) hold|just a moment|security verification/i;
   function isChallenge(doc) {
-    return CHALLENGE.test([doc.title, doc.querySelector('h1')?.textContent].join(' '));
+    return CHALLENGE.test([doc?.title, doc?.querySelector?.('h1')?.textContent].join(' '));
   }
   // The body of a response as text, refusing what is not a page worth reading: an error status, another content
   // type, or more than `limit` bytes (checked on the way in, so a body with no length cannot be buffered whole).

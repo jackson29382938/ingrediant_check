@@ -711,6 +711,19 @@ test('a failed product-page request is not held: the next caller asks again', as
   assert.equal((await second).outcome, 'scored');
 });
 
+test('a robot check answered with HTTP 200 pauses the queue and is never recorded or read as "no ingredients"', async () => {
+  const w = sortSetup();
+  w.context.DOMParser = class { parseFromString() { return { title: 'Robot Check', querySelector: sel => (sel === 'h1' ? { textContent: '' } : null) }; } };
+  const first = w.S.readProductPage('B000000001', 'search-tile');
+  w.fetches[0].resolve({ ok: true, text: async () => '<title>Robot Check</title>' });
+  await assert.rejects(first, error => error.blocked === true);
+  assert.equal(w.S.queue.throttled, true, 'one challenge page is enough to stop');
+  assert.equal(w.S.knownRead('B000000001'), null, 'not remembered as a reading');
+  assert.equal(w.writes.filter(x => Object.keys(x).some(k => /^[sp]:/.test(k))).length, 0, 'nothing saved for the product');
+  await assert.rejects(w.S.readProductPage('B000000002', 'search-tile'), error => error.name === 'AbortError');
+  assert.equal(w.fetches.length, 1, 'no further product pages are requested');
+});
+
 test('a list read from the label photo keeps the nutrition numbers the page published', () => {
   const w = cacheSetup({ sharing: false });
   w.h.state.ocrLabels = true;

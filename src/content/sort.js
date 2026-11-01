@@ -629,6 +629,10 @@
           } finally { controllers.delete(controller); }
           if (!response.ok) throw new Error(`Amazon returned ${response.status}`);
           const doc = new DOMParser().parseFromString(await root.AIR.cart.readHtml(response, signal), 'text/html');
+          if (root.AIR.cart.isChallenge(doc)) {
+            S().pauseForThrottle();
+            throw new Error(t('sortPageBlocked', 'Amazon asked for a robot check, so no more pages were requested'));
+          }
           const cards = productCardsIn(doc);
           if (!cards.length) throw new Error('no product cards on the next page');
           pagesInList = pageNumber;
