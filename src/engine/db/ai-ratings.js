@@ -61,7 +61,9 @@ function keyOf(name) {
   if (name === '__proto__' || name === 'constructor' || name === 'prototype') return '';
   const key = name.normalize('NFKC').toLowerCase().replace(/[\p{Cc}\p{Cf}]/gu, '')
     .replace(/\s+/g, ' ').replace(/^[\s*•\-–:,.;]+|[\s*•\-–:,.;]+$/g, '');
-  if (!key || key.length > MAX_KEY || !/\p{L}/u.test(key)) return '';
+  // "__proto__" is the one name that is not a key: assigned to a plain object it replaces the object's prototype
+  // instead of adding an entry. A label is attacker-written text, so a product listing it must not reach that.
+  if (!key || key === '__proto__' || key.length > MAX_KEY || !/\p{L}/u.test(key)) return '';
   return key;
 }
 
