@@ -61,7 +61,10 @@ function keyOf(name) {
   if (name === '__proto__' || name === 'constructor' || name === 'prototype') return '';
   const key = name.normalize('NFKC').toLowerCase().replace(/[\p{Cc}\p{Cf}]/gu, '')
     .replace(/\s+/g, ' ').replace(/^[\s*•\-–:,.;]+|[\s*•\-–:,.;]+$/g, '');
-  if (!key || key.length > MAX_KEY || !/\p{L}/u.test(key)) return '';
+  // These names are not keys: assigned to a plain object "__proto__" replaces the object's prototype instead of adding
+  // an entry. A label is attacker-written text, so a listing must not reach that, and normalising can produce one of
+  // them from another spelling ("__PROTO__", " Constructor "), which the check on the raw name above cannot see.
+  if (!key || key === '__proto__' || key === 'constructor' || key === 'prototype' || key.length > MAX_KEY || !/\p{L}/u.test(key)) return '';
   return key;
 }
 
