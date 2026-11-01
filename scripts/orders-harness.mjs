@@ -24,7 +24,7 @@ export async function ordersEndToEnd(context, worker, errors) {
   if (requests.length || (await worker.evaluate(async () => (await chrome.storage.local.get('purchaseHistory')).purchaseHistory)).length) throw new Error('disabled history import saved purchases or disabled automatic scoring fetched labels');
   if (await page.locator('.air-order-history-graph, .air-order-average').count()) throw new Error('empty history rendered a graph or averages');
   if (await page.locator('#air-order-history').innerText().then(t => /Purchase history is off|Page average|product entries/.test(t))) throw new Error('verbose order summary is still visible');
-  await worker.evaluate(() => chrome.storage.local.set({ historyEnabled: true, autoScoreSearch: true }));
+  await worker.evaluate(() => chrome.storage.local.set({ historyEnabled: true, autoScoreSearch: true, autoScoreNoticeSeen: true }));
   await page.waitForFunction(() => [...document.querySelectorAll('.air-order-badge')].some(b => b.textContent.includes('88/100')));
   if (await page.locator('#air-order-history').getAttribute('data-air-text').then(t => t.includes('This page imported'))) throw new Error('slow cold fixture unexpectedly completed before saved score');
   holdSlow = false; releaseSlow();

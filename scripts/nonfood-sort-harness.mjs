@@ -11,7 +11,7 @@ export async function nonfoodSortEndToEnd(context, worker, errors) {
   });
   let panel;
   try {
-    await worker.evaluate(() => chrome.storage.local.set({enabled:true,foodOnly:true,unitPrice:true,autoScoreSearch:true,sortMissing:'rate-first',sortLoadMore:false,sharedCache:true}));
+    await worker.evaluate(() => chrome.storage.local.set({enabled:true,foodOnly:true,unitPrice:true,autoScoreSearch:true,autoScoreNoticeSeen:true,sortMissing:'rate-first',sortLoadMore:false,sharedCache:true}));
     await page.goto('https://www.amazon.com/s?k=sunscreen');
     await page.waitForSelector('option[value="ingredient-check-price-per-ounce"]', {state:'attached'});
     if (await page.locator('option[value="ingredient-check-score"]').count()) throw new Error('Non-food search offers health sorting');

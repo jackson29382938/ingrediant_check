@@ -13,6 +13,8 @@ var PAGE_MESSAGE_TYPES = new Set([
   'openSortedPanel', 'updateSortedResults', 'openSortedTab', 'followSortedSearch',
   // A line for "Report a problem"'s recent actions (engine/db/activity.js).
   'logAction',
+  // The install-wide request budget for automatic rating and the cool-down after a robot check (background.js).
+  'fetchBudget', 'fetchBlocked',
 ]);
 // Sent only by the settings page (settings-database.js, loaded by options.html alone), so only the
 // settings page may send them, with accountSave also allowed from onboarding:

@@ -24,7 +24,7 @@ export async function cartLabelRecoveryEndToEnd(context, worker, errors) {
     return route.fulfill({ contentType: 'text/html', body: `<main><h1 id="sc-active-items-header">Shopping Cart</h1><div id="sc-active-cart">${items.map(card).join('')}</div></main>` });
   });
   try {
-    await worker.evaluate(async keys => { await chrome.storage.local.remove(keys.filter(k => /^(s|p):/.test(k))); await chrome.storage.local.set({ enabled: true, badges: true, autoScoreSearch: true, cacheFirst: true, cacheGraceDays: 0, ocrLabels: false, useOpenFoodFacts: false, weights: {}, allergens: ['wheat', 'soy', 'peanut'], diets: [], avoidList: [], pointsEnabled: false }); }, keys);
+    await worker.evaluate(async keys => { await chrome.storage.local.remove(keys.filter(k => /^(s|p):/.test(k))); await chrome.storage.local.set({ enabled: true, badges: true, autoScoreSearch: true, autoScoreNoticeSeen: true, cacheFirst: true, cacheGraceDays: 0, ocrLabels: false, useOpenFoodFacts: false, weights: {}, allergens: ['wheat', 'soy', 'peanut'], diets: [], avoidList: [], pointsEnabled: false }); }, keys);
     await context.addCookies([{ name: 'cart_label_private_test', value: 'do-not-send', domain: 'www.amazon.com', path: '/', secure: true }]);
     await page.goto('https://www.amazon.com/gp/cart/view.html');
     await page.waitForFunction(() => document.querySelectorAll('.air-cart-badge[data-air-status="scored"]').length === 4, null, { timeout: 20000 });
@@ -38,7 +38,7 @@ export async function cartLabelRecoveryEndToEnd(context, worker, errors) {
     if (requests.length !== count) throw new Error('Saved public ingredient readings were not reused with automatic rating off');
     // A temporarily unavailable item can heal when another tab saves its real reading, without reload.
     emptyCookies = true;
-    await worker.evaluate(async key => { await chrome.storage.local.remove(['s:amazon.com:B07X2643L7', key]); await chrome.storage.local.set({ autoScoreSearch: true }); }, cookieKey);
+    await worker.evaluate(async key => { await chrome.storage.local.remove(['s:amazon.com:B07X2643L7', key]); await chrome.storage.local.set({ autoScoreSearch: true, autoScoreNoticeSeen: true }); }, cookieKey);
     await page.reload(); await page.waitForFunction(() => document.querySelector('[data-air-product="B07X2643L7"]')?.dataset.airStatus === 'unavailable');
     const failedCount = requests.length;
     await worker.evaluate(({ key, value }) => chrome.storage.local.set({ [key]: value }), { key: cookieKey, value: cookieLabel });

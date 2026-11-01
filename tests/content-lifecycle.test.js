@@ -108,6 +108,10 @@ function setup() {
   const h = context.AIR.page;
   h.state.enabled = true; h.state.badges = true; h.state.foodOnly = false;
   h.state.autoScoreSearch = true;
+  // Most tests are about what happens after the reader said yes and the install-wide budget lent requests;
+  // the tests for those two gates start from a fresh page (consentSetup below).
+  context.AIR.search.budget.left = 1e9;
+  context.AIR.search.setConsent('granted');
   return { h, context, tile, observations, get host() { return host; }, timers, fetches, badges, writes, rendered,
     messages, notices, get failMeta() { return failMeta; },
     change: values => changed(values), paste: text => pasted(text) };
@@ -497,33 +501,55 @@ test('carousel cards with no title are never armed for auto-score', () => {
   assert.equal(card.getAttribute('data-air-auto'), null, 'left unmarked, so a card that renders a title later is armed then');
 });
 
-test('the first automatic fetch explains itself once, and its button turns auto-rating off', () => {
+// Run the collected timers (the status line's refresh is one) and report how many product pages were requested.
+const requestsAfterTimers = w => { while (w.timers.length) w.timers.shift()(); return w.fetches.length; };
+
+// A fresh results page: nothing answered yet, so the first automatic request has to ask.
+function freshSetup() {
   const w = setup();
+  w.context.AIR.search.setConsent('unknown');
+  return w;
+}
+
+test('the first automatic fetch asks first, and no request is made until the reader says yes', () => {
+  const w = freshSetup();
   w.h.enqueue(w.tile, 'B000000001');
   const notice = w.notices.find(n => n.id === 'air-auto-notice');
   assert.ok(notice && notice.isConnected, 'no notice before the first automatic Amazon request');
-  // Informational only: the request is scheduled whether or not anyone answers the notice.
-  assert.equal(w.h.queue.fetches, 1);
-  assert.ok(w.timers.length > 0, 'scoring waited on the notice');
+  assert.equal(requestsAfterTimers(w), 0, 'nothing is requested while the question is open');
   w.h.enqueue({ ...w.tile, getAttribute: () => 'B000000002' }, 'B000000002');
   assert.equal(w.notices.filter(n => n.id === 'air-auto-notice').length, 1, 'shown once per page, not per tile');
+  assert.equal(requestsAfterTimers(w), 0, 'a second tile does not get ahead of the answer');
   const [off, ok] = notice.children.filter(c => c.tag === 'button');
-  assert.ok(off && ok, 'the notice needs a turn-off button and an OK button');
+  assert.ok(off && ok, 'the notice needs a turn-off button and a rate-these-results button');
+  ok.on();
+  assert.equal(notice.isConnected, false);
+  assert.deepEqual(JSON.parse(JSON.stringify(w.writes.at(-1))), { autoScoreNoticeSeen: true });
+  assert.equal(requestsAfterTimers(w), 2, 'both waiting tiles start once the answer is yes');
+});
+
+test('"Turn off automatic rating" ends the question without a single request', () => {
+  const w = freshSetup();
+  w.h.enqueue(w.tile, 'B000000001');
+  const notice = w.notices.find(n => n.id === 'air-auto-notice');
+  const [off] = notice.children.filter(c => c.tag === 'button');
   off.on();
   assert.equal(notice.isConnected, false);
   assert.deepEqual(JSON.parse(JSON.stringify(w.writes.at(-1))), { autoScoreSearch: false, autoScoreNoticeSeen: true });
+  assert.equal(requestsAfterTimers(w), 0);
+  assert.equal(w.context.AIR.search.getConsent(), 'unknown', 'a later page asks again only if the setting is turned back on');
 });
 
-test('OK dismisses the notice for good without touching the setting', () => {
-  const w = setup();
-  w.h.enqueue(w.tile, 'B000000001');
-  const notice = w.notices.find(n => n.id === 'air-auto-notice');
-  notice.children.filter(c => c.tag === 'button')[1].on();
-  assert.deepEqual(JSON.parse(JSON.stringify(w.writes.at(-1))), { autoScoreNoticeSeen: true });
+test('a hover is the reader\'s own request and does not wait for the notice', () => {
+  const w = freshSetup();
+  w.h.state.hoverScore = true;
+  w.h.enqueue(w.tile, 'B000000001', { front: true });
+  assert.equal(w.notices.filter(n => n.id === 'air-auto-notice').length, 0);
+  assert.equal(requestsAfterTimers(w), 1);
 });
 
 test('no notice once seen, for hover scoring, or while paused', () => {
-  const seen = setup();
+  const seen = freshSetup();
   seen.context.chrome.storage.local.get = (keys, cb) => cb({ autoScoreNoticeSeen: true });
   seen.h.enqueue(seen.tile, 'B000000001');
   assert.equal(seen.h.queue.fetches, 1);
@@ -535,7 +561,7 @@ test('no notice once seen, for hover scoring, or while paused', () => {
   assert.equal(hover.notices.filter(n => n.id === 'air-auto-notice').length, 0,
     'hover asks for one product the reader pointed at; the popup already says so');
 
-  const paused = setup();
+  const paused = freshSetup();
   paused.h.state.enabled = false;
   paused.h.enqueue(paused.tile, 'B000000001');
   assert.equal(paused.notices.filter(n => n.id === 'air-auto-notice').length, 0);
@@ -709,6 +735,73 @@ test('a failed product-page request is not held: the next caller asks again', as
   assert.equal(w.fetches.length, 2);
   w.fetches[1].resolve(ok);
   assert.equal((await second).outcome, 'scored');
+});
+
+test('when the install-wide budget says not now, nothing automatic is requested and the tiles are asked for again later', async () => {
+  const w = sortSetup();
+  w.context.AIR.search.budget.left = 0;
+  w.context.chrome.runtime.sendMessage = (m, cb) => { w.messages.push(m); if (m.type === 'fetchBudget') cb({ granted: 0, retryMs: 120000, reason: 'limit' }); };
+  w.h.enqueue(w.tile, 'B000000001');
+  while (w.timers.length) w.timers.shift()();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(w.fetches.length, 0, 'no product page was requested');
+  assert.equal(w.S.budgetHeld(), true);
+  assert.equal(w.S.queue.seen.has('B000000001'), false, 'the tile is not written off: it is asked for again when the wait is over');
+  assert.equal(w.S.queue.fetches, 0);
+  w.h.enqueue({ ...w.tile, getAttribute: () => 'B000000002' }, 'B000000002');
+  assert.equal(w.S.queue.pending.length, 0, 'later tiles wait too');
+  // A hover is the reader's own request, and it is not counted against the limit.
+  w.h.state.hoverScore = true;
+  w.h.enqueue(w.tile, 'B000000001', { front: true });
+  while (w.timers.length) w.timers.shift()();
+  assert.equal(w.fetches.length, 1, 'the reader pointed at this one');
+  assert.equal(w.messages.filter(m => m.type === 'fetchBudget').length, 1, 'and it asked the worker for nothing');
+});
+
+test('a leased request costs no message, and a lease is asked for in batches', async () => {
+  const w = sortSetup();
+  w.context.AIR.search.budget.left = 0;
+  w.context.chrome.runtime.sendMessage = (m, cb) => { w.messages.push(m); if (m.type === 'fetchBudget') cb({ granted: m.want }); };
+  const B = w.S.budget;
+  assert.notEqual(B.take(), true, 'the first request has to ask');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(w.messages.filter(m => m.type === 'fetchBudget').length, 1);
+  assert.equal(B.left, 9, 'ten were lent and the first is spent');
+  for (let i = 0; i < 9; i++) assert.equal(B.take(), true);
+  assert.equal(w.messages.filter(m => m.type === 'fetchBudget').length, 1, 'ten requests, one message');
+  assert.notEqual(B.take(), true, 'then it asks again');
+});
+
+test('pausing for a robot check or repeated refusals tells the worker, so other tabs wait too', () => {
+  const w = sortSetup();
+  w.S.pauseForThrottle();
+  assert.equal(w.messages.filter(m => m.type === 'fetchBlocked').length, 1);
+});
+
+test('the status line counts scored results, names the best, and pauses the requests still waiting', () => {
+  const w = sortSetup();
+  const scored = [92, 41, 77].map(n => ({ getAttribute: k => (k === 'data-air' ? `${n}:Good` : null), closest: () => null, remove() {} }));
+  w.badges.push(...scored, { getAttribute: k => (k === 'data-air' ? '55:Mediocre:shampoo' : null) }, { getAttribute: k => (k === 'data-air' ? 'p' : null) });
+  w.S.queue.pending.push({ tile: w.tile, asin: 'B000000009', front: false });
+  w.S.renderStatus();
+  const bar = w.notices.find(n => n.id === 'air-status');
+  assert.ok(bar && bar.isConnected, 'shown once three results are scored');
+  const text = bar.children[0].textContent;
+  assert.match(text, /4 scored/);
+  assert.match(text, /best 92/, 'a personal-care index never counts as the best');
+  assert.match(text, /1 more in progress/);
+  const labels = () => bar.children.filter(c => c.tag === 'button').map(c => c.textContent);
+  assert.deepEqual(labels(), ['Show best', 'Pause', 'Hide']);
+  bar.children.find(c => c.textContent === 'Pause').on();
+  assert.equal(w.S.queue.userPaused, true);
+  w.S.queue.pending.length = 0;
+  // A paused queue starts nothing automatic, a hover still goes, and Resume picks the rest up.
+  w.S.queue.pending.push({ tile: w.tile, asin: 'B000000009', front: false });
+  w.S.queue.userPaused = true;
+  const before = w.timers.length;
+  w.S.queue.active = 0;
+  w.h.pump?.();
+  assert.equal(w.timers.length, before);
 });
 
 test('a robot check answered with HTTP 200 pauses the queue and is never recorded or read as "no ingredients"', async () => {

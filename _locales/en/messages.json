@@ -703,16 +703,16 @@
     "message": "Off by default. Requests that product page from Amazon, signed in as you."
   },
   "autoNoticeTitle": {
-    "message": "Ingredient Check is rating these results"
+    "message": "Rate these results with Ingredient Check?"
   },
   "autoNoticeBody": {
-    "message": "To score a result, it requests that product's page from this Amazon store in the background, signed in as you: a few at a time, at most 60 per results page. Amazon sees each request much as if you had opened the product. You can change this at any time in the Ingredient Check toolbar popup."
+    "message": "To score a result, it requests that product's page from this Amazon store in the background, signed in as you: a few at a time, at most 60 per results page. Amazon sees each request much as if you had opened the product. Saved scores show either way, and nothing is requested until you choose. You can change this at any time in the Ingredient Check toolbar popup."
   },
   "autoNoticeOff": {
     "message": "Turn off automatic rating"
   },
   "autoNoticeOk": {
-    "message": "OK"
+    "message": "Rate these results"
   },
   "popupGoalsCombined": {
     "message": "Goals combined: where two set the same dial, they are averaged."
@@ -2234,5 +2234,44 @@
   },
   "cartLabelBlocked": {
     "message": "The store blocked the public label request. Open the product to read its label."
+  },
+  "statusName": {
+    "message": "Ingredient Check"
+  },
+  "statusScored": {
+    "message": "$1 scored"
+  },
+  "statusBest": {
+    "message": "best $1"
+  },
+  "statusWaiting": {
+    "message": "$1 more in progress"
+  },
+  "statusPaused": {
+    "message": "paused"
+  },
+  "statusPause": {
+    "message": "Pause"
+  },
+  "statusResume": {
+    "message": "Resume"
+  },
+  "statusShowBest": {
+    "message": "Show best"
+  },
+  "statusHide": {
+    "message": "Hide"
+  },
+  "statusLimit": {
+    "message": "request limit reached, resuming in about $1 min"
+  },
+  "statusCooldown": {
+    "message": "waiting $1 min after a robot check"
+  },
+  "sortBudgetHeld": {
+    "message": "Rating paused: Ingredient Check has made many Amazon requests in the last few minutes. Try again shortly."
+  },
+  "welAutoScoreD": {
+    "message": "Shows saved scores first. For a result without one, it requests that product's public page from Amazon in the background, signed in as you: a few at a time, at most 60 per results page. Change this any time in Settings."
   }
 }

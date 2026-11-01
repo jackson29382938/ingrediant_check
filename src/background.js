@@ -294,6 +294,14 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     return true;   // async reply
   }
   if (msg && msg.type === 'ping') { reply({ ok: true }); return false; }
+  if (msg && msg.type === 'fetchBudget') {
+    answer('fetchBudget', () => fetchBudget(msg.want), reply, { granted: 0, retryMs: 60000, reason: 'unavailable' });
+    return true;
+  }
+  if (msg && msg.type === 'fetchBlocked') {
+    answer('fetchBlocked', () => fetchBlocked(), reply, { ok: false });
+    return true;
+  }
   // Amazon's sort menu (src/content/sort.js). openSortedPanel must reach sidePanel.open before any
   // await, so it is not wrapped in a promise chain here.
   if (msg && msg.type === 'followSortedSearch') { followSortedSearch(msg, sender).then(reply, () => reply({ok:false})); return true; }
@@ -318,6 +326,60 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (msg && typeof handleSharedDbMessage === 'function') return handleSharedDbMessage(msg, reply);
   return false;
 });
+
+// ---------------------------------------------------------------- install-wide request budget
+//
+// Automatic rating asks Amazon for product pages as the signed-in reader. Each tab caps itself per results
+// page, which ten open tabs multiply by ten, and a tab that met a robot check could not tell the others. The
+// worker keeps one rolling budget for the whole browser and one cool-down, in session storage (in memory,
+// gone when the browser closes), and tabs lease requests from it a few at a time (content/search.js budget).
+//   FETCH_CAP requests per FETCH_WINDOW_MS;
+//   a robot check or five refusals in a row: nothing automatic for 15 minutes, then 30, 60 ... up to 4 hours
+//   when it keeps happening within a day.
+const FETCH_KEY = 'fetchBudget';
+const FETCH_WINDOW_MS = 10 * 60 * 1000;
+const FETCH_CAP = 300;
+const FETCH_LEASE_MAX = 20;
+const BLOCK_BASE_MS = 15 * 60 * 1000;
+const BLOCK_MAX_MS = 4 * 60 * 60 * 1000;
+const BLOCK_MEMORY_MS = 24 * 60 * 60 * 1000;
+let fetchWork = Promise.resolve();
+function serializeFetch(work) {
+  const result = fetchWork.then(work);
+  fetchWork = result.catch(() => {});
+  return result;
+}
+async function readFetchState() {
+  const stored = (await chrome.storage.session.get(FETCH_KEY))[FETCH_KEY];
+  return stored && typeof stored === 'object'
+    ? { start: Number(stored.start) || 0, used: Number(stored.used) || 0, blockedUntil: Number(stored.blockedUntil) || 0,
+        blocks: Number(stored.blocks) || 0, lastBlock: Number(stored.lastBlock) || 0 }
+    : { start: 0, used: 0, blockedUntil: 0, blocks: 0, lastBlock: 0 };
+}
+function fetchBudget(want, now = Date.now()) {
+  return serializeFetch(async () => {
+    const conf = await chrome.storage.local.get('enabled');
+    if (conf.enabled === false) return { granted: 0, retryMs: 60000, reason: 'paused' };
+    const state = await readFetchState();
+    if (now < state.blockedUntil) return { granted: 0, retryMs: state.blockedUntil - now, reason: 'cooldown' };
+    if (now - state.start >= FETCH_WINDOW_MS) { state.start = now; state.used = 0; }
+    const granted = Math.max(0, Math.min(Math.floor(Number(want) || 1), FETCH_LEASE_MAX, FETCH_CAP - state.used));
+    if (!granted) return { granted: 0, retryMs: Math.max(1000, state.start + FETCH_WINDOW_MS - now), reason: 'limit' };
+    state.used += granted;
+    await chrome.storage.session.set({ [FETCH_KEY]: state });
+    return { granted };
+  });
+}
+function fetchBlocked(now = Date.now()) {
+  return serializeFetch(async () => {
+    const state = await readFetchState();
+    state.blocks = now - state.lastBlock > BLOCK_MEMORY_MS ? 1 : state.blocks + 1;
+    state.lastBlock = now;
+    state.blockedUntil = now + Math.min(BLOCK_MAX_MS, BLOCK_BASE_MS * 2 ** (state.blocks - 1));
+    await chrome.storage.session.set({ [FETCH_KEY]: state });
+    return { ok: true, until: state.blockedUntil };
+  });
+}
 
 // ---------------------------------------------------------------- sorted results
 //
@@ -1139,5 +1201,5 @@ function handleSharedDbMessage(msg, reply) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { sortFromCommand, googleAutoSave, accountFetch, indexRows, lookupRecord, sweepCache, sweepAges, isOpenFoodFactsFood, batchIdFor, revisionOf, ensureHousekeepingAlarm, allowMessage, isOwnExtension, isAmazonTabSender, isRetailerTabSender, isOptionsPageSender, isOffscreenSender, allowedOcrUrls, openSortedPanel, updateSortedResults, MAX_SHEET_BYTES, MAX_SHEET_ROWS };
+  module.exports = { fetchBudget, fetchBlocked, FETCH_CAP, FETCH_WINDOW_MS, sortFromCommand, googleAutoSave, accountFetch, indexRows, lookupRecord, sweepCache, sweepAges, isOpenFoodFactsFood, batchIdFor, revisionOf, ensureHousekeepingAlarm, allowMessage, isOwnExtension, isAmazonTabSender, isRetailerTabSender, isOptionsPageSender, isOffscreenSender, allowedOcrUrls, openSortedPanel, updateSortedResults, MAX_SHEET_BYTES, MAX_SHEET_ROWS };
 }

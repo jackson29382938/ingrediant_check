@@ -13,7 +13,7 @@ export async function sameDayGroceryEndToEnd(context, worker, errors) {
   });
   try{
     await worker.evaluate(async()=>{
-      await chrome.storage.local.set({enabled:true,foodOnly:true,badges:true,unitPrice:true,autoScoreSearch:true,sharedCache:false,sharedProducts:false,ocrLabels:false,useOpenFoodFacts:false,sortLoadMore:false});
+      await chrome.storage.local.set({enabled:true,foodOnly:true,badges:true,unitPrice:true,autoScoreSearch:true,autoScoreNoticeSeen:true,sharedCache:false,sharedProducts:false,ocrLabels:false,useOpenFoodFacts:false,sortLoadMore:false});
       await chrome.storage.local.remove(['B000000001','B000000002','B000000003'].flatMap(id=>[`s:amazon.com:${id}`,`p:amazon.com:${id}`]));
     });
     await page.goto('https://www.amazon.com/s?k=cottage+cheese&i=same-day-grocery&srs=219444219011&crid=1H2Z2V3KUY2X7');

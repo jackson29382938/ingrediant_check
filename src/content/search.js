@@ -45,13 +45,79 @@
   }
   const badgeable = tile => !!listingTitle(tile);
 
+  // ---- install-wide request budget
+  //
+  // Each tab keeps its own cap per results page (MAX_AUTO_FETCHES), and ten tabs would make ten of them.
+  // The worker keeps one rolling budget for the whole browser, and one cool-down after Amazon asks for a
+  // robot check (background.js fetchBudget / fetchBlocked). A tab leases a few requests at a time, so most
+  // requests cost no message. take() is `true` when a leased request is free right now, else a promise of
+  // `true` or { ok: false, retryMs, reason }. A reader's own hover never comes here.
+  const LEASE = 10;
+  const budget = {
+    left: 0,
+    asking: null,
+    fill() {
+      if (!this.asking) {
+        const asking = new Promise(resolve => {
+          try {
+            chrome.runtime.sendMessage({ type: 'fetchBudget', want: LEASE }, reply => {
+              void chrome.runtime.lastError;
+              const granted = Math.max(0, Math.min(LEASE, Number(reply && reply.granted) || 0));
+              if (granted > 0) { this.left += granted; resolve({ ok: true }); return; }
+              resolve({ ok: false, retryMs: Math.max(1000, Number(reply && reply.retryMs) || 60000), reason: (reply && reply.reason) || 'limit' });
+            });
+          } catch (e) { resolve({ ok: false, retryMs: 60000, reason: 'unavailable' }); }
+        });
+        this.asking = asking;
+        // Attached before any caller's own then(), so a caller that asks again finds the slot free.
+        asking.then(() => { if (this.asking === asking) this.asking = null; });
+      }
+      return this.asking;
+    },
+    take() {
+      if (this.left > 0) { this.left--; return true; }
+      return this.fill().then(result => (result.ok ? this.take() : result));
+    },
+    release() { this.left = 0; },
+    // Amazon asked for a robot check or refused five in a row: every tab waits, not just this one.
+    blocked() { try { chrome.runtime.sendMessage({ type: 'fetchBlocked' }, () => void chrome.runtime.lastError); } catch (e) { /* worker gone */ } },
+  };
+  let heldTimer = null;
+  function budgetHeld() {
+    if (queue.held && Date.now() >= queue.held.until) queue.held = null;
+    return !!queue.held;
+  }
+  // The limit answered "not now": drop what is waiting (it is asked for again when the wait is over) and say so.
+  function holdForBudget(grant) {
+    queue.held = { until: Date.now() + grant.retryMs, reason: grant.reason };
+    const kept = [];
+    for (const job of queue.pending) {
+      if (job.front) { kept.push(job); continue; }
+      queue.seen.delete(job.asin);
+      queue.fetches = Math.max(0, queue.fetches - 1);
+    }
+    queue.pending.length = 0;
+    queue.pending.push(...kept);
+    const epoch = queue.epoch;
+    clearTimeout(heldTimer);
+    heldTimer = setTimeout(() => {
+      if (epoch !== queue.epoch) return;
+      queue.held = null;
+      document.querySelectorAll('[data-air-auto]').forEach(t => { if (!t.querySelector('.air-badge')) t.removeAttribute('data-air-auto'); });
+      armAutoScorePass();
+      scheduleStatus();
+    }, grant.retryMs);
+    scheduleStatus();
+  }
+
   const searchGate = { url: null, decision: null };
   // One queue for every Amazon product-page request this tab makes: the badges (below) and the sorted
   // list (sort.js readByProductPage) share its slots, its gap between starts, its failure count and
   // throttle pause, and its per-results-page budget (`fetches`). `reads` holds requests in flight and
   // `readings` finished ones, by ASIN, so a product is requested once per results page whoever asks.
   const queue = { pending: [], active: 0, seen: new Set(), lastStart: 0, epoch: 0, controllers: new Set(),
-    failStreak: 0, throttled: false, fetches: 0, reads: new Map(), readings: new Map() };
+    failStreak: 0, throttled: false, fetches: 0, reads: new Map(), readings: new Map(),
+    userPaused: false, held: null };
   let tileObserver = null;
   let badgeStyleReady = false;
   const hoverAborts = new Set();
@@ -274,6 +340,7 @@
     }
     b.dataset.cacheTime = String(hit.t);
     delete b.dataset.saved;
+    scheduleStatus();
     // A personal-care or supplement index is drawn in neutral gray and names its category; a food score is a color band.
     const care = !!hit.category && hit.category !== 'food';
     const ratings = root.AIR.db.productRatings;
@@ -330,12 +397,15 @@
 
   // Automatic rating is on by default, and what it does is not visible from the tiles: each result
   // it scores is a product-page request to this Amazon store, made with the reader's own Amazon
-  // sign-in. So the first time it is about to make one, the page says so once, next to the
-  // results, with the switch right there. It never waits on an answer: scoring carries on
-  // underneath, exactly as before, until the reader turns it off here or in the popup.
+  // sign-in. So the first time it is about to make one, the page says so, next to the results, and
+  // the requests wait for the answer: "Rate these results" starts them, "Turn off automatic rating"
+  // switches the setting off. Saved scores and cached badges show either way. The answer is kept
+  // (autoScoreNoticeSeen), so the question is asked once; finishing setup with the option ticked
+  // counts as the answer too (welcome.js).
   const AUTO_NOTICE_ID = 'air-auto-notice';
   const AUTO_NOTICE_SEEN = 'autoScoreNoticeSeen';
-  let autoNoticeChecked = false;
+  // 'unknown' -> 'asking' (notice on the page) -> 'granted'. Hover scoring never waits: the reader pointed at it.
+  let consent = 'unknown';
 
   function noticeButton(text, onClick) {
     const b = document.createElement('button');
@@ -347,6 +417,16 @@
     return b;
   }
 
+  // Where this extension's notices and status line go: in front of the results, not above Amazon's header.
+  function placeAboveResults(el) {
+    // In priority order: one selector list would return <body> first, since it precedes the results
+    // in the document, and the notice would land above Amazon's header instead of beside the results.
+    const results = document.querySelector('#search') || document.querySelector('.s-main-slot');
+    if (results && results.parentNode) results.parentNode.insertBefore(el, results);
+    else if (document.body) document.body.insertBefore(el, document.body.firstChild);
+    else document.documentElement.appendChild(el);
+  }
+
   function showAutoScoreNotice() {
     if (document.getElementById(AUTO_NOTICE_ID)) return;
     const el = document.createElement('div');
@@ -356,46 +436,48 @@
       + 'background:#eef5fb;color:#0f1111;font:13px/1.45 "Amazon Ember",sans-serif;';
     const title = document.createElement('b');
     title.style.display = 'block';
-    title.textContent = throttleCopy('autoNoticeTitle', 'Ingredient Check is rating these results');
+    title.textContent = throttleCopy('autoNoticeTitle', 'Rate these results with Ingredient Check?');
     const body = document.createElement('span');
     body.textContent = throttleCopy('autoNoticeBody',
       'To score a result, it requests that product\'s page from this Amazon store in the background, '
       + 'signed in as you: a few at a time, at most 60 per results page. Amazon sees each request much as '
-      + 'if you had opened the product. You can change this at any time in the Ingredient Check toolbar popup.');
-    const done = values => {
+      + 'if you had opened the product. Saved scores show either way, and nothing is requested until you choose. '
+      + 'You can change this at any time in the Ingredient Check toolbar popup.');
+    const done = (values, granted) => {
       el.remove();
+      consent = granted ? 'granted' : 'unknown';
       try { chrome.storage.local.set(values); } catch (e) { /* extension reloaded */ }
+      scheduleStatus();
+      if (granted) pump();
     };
     el.appendChild(title);
     el.appendChild(body);
     el.appendChild(document.createElement('br'));
     el.appendChild(noticeButton(throttleCopy('autoNoticeOff', 'Turn off automatic rating'),
-      () => done({ autoScoreSearch: false, [AUTO_NOTICE_SEEN]: true })));
-    el.appendChild(noticeButton(throttleCopy('autoNoticeOk', 'OK'), () => done({ [AUTO_NOTICE_SEEN]: true })));
-    // In priority order: one selector list would return <body> first, since it precedes the results
-    // in the document, and the notice would land above Amazon's header instead of beside the results.
-    const results = document.querySelector('#search') || document.querySelector('.s-main-slot');
-    if (results && results.parentNode) results.parentNode.insertBefore(el, results);
-    else if (document.body) document.body.insertBefore(el, document.body.firstChild);
-    else document.documentElement.appendChild(el);
+      () => done({ autoScoreSearch: false, [AUTO_NOTICE_SEEN]: true }, false)));
+    el.appendChild(noticeButton(throttleCopy('autoNoticeOk', 'Rate these results'), () => done({ [AUTO_NOTICE_SEEN]: true }, true)));
+    placeAboveResults(el);
   }
 
-  // Asked once per page (and again after the notice is cleared), not once per tile.
-  function noteAutoFetch() {
-    if (autoNoticeChecked) return;
-    autoNoticeChecked = true;
+  // Asked once per page (and again after the notice is cleared), not once per tile. Until the answer is
+  // 'granted', pump() starts no automatic request.
+  function askConsent() {
+    if (consent !== 'unknown') return;
+    consent = 'asking';
     try {
       chrome.storage.local.get(AUTO_NOTICE_SEEN, o => {
         void chrome.runtime.lastError;
         const { state } = P();
-        if ((o && o[AUTO_NOTICE_SEEN]) || !state.enabled || !state.autoScoreSearch || queue.throttled) return;
+        if (o && o[AUTO_NOTICE_SEEN]) { consent = 'granted'; pump(); return; }
+        if (!state.enabled || !state.autoScoreSearch || queue.throttled) { consent = 'unknown'; return; }
         showAutoScoreNotice();
+        scheduleStatus();
       });
-    } catch (e) { /* extension reloaded under the page */ }
+    } catch (e) { consent = 'unknown'; /* extension reloaded under the page */ }
   }
 
   function clearAutoScoreNotice() {
-    autoNoticeChecked = false;
+    if (consent !== 'granted') consent = 'unknown';
     document.getElementById(AUTO_NOTICE_ID)?.remove();
   }
 
@@ -407,6 +489,8 @@
     queue.controllers.clear();
     if (tileObserver) { tileObserver.disconnect(); tileObserver = null; }
     showThrottleNotice();
+    budget.blocked();
+    scheduleStatus();
   }
 
   function noteTileFailure() {
@@ -422,9 +506,14 @@
     queue.failStreak = 0;
     queue.throttled = false;
     queue.fetches = 0;
+    queue.userPaused = false;
+    queue.held = null;
+    budget.release();
+    clearTimeout(heldTimer);
     queue.reads.clear();
     queue.readings.clear();
     clearThrottleNotice();
+    removeStatus();
     for (const controller of queue.controllers) controller.abort();
     queue.controllers.clear();
     if (tileObserver) { tileObserver.disconnect(); tileObserver = null; }
@@ -444,6 +533,9 @@
     if (queue.throttled) return;
     if (!state.enabled || !state.badges || !searchAllowed()) return;
     if (front ? !state.hoverScore : !state.autoScoreSearch) return;
+    // The install-wide request limit was reached (or Amazon recently asked for a robot check): automatic
+    // requests wait it out. A reader's own hover is a request they made.
+    if (!front && budgetHeld()) return;
     if (queue.seen.has(asin)) {
       const done = queue.readings.get(asin);
       if (done) paintReading(tile, done);
@@ -456,8 +548,8 @@
       return;
     }
     queue.seen.add(asin);
-    if (!front) { queue.fetches++; noteAutoFetch(); }
-    const job = { tile, asin, epoch: queue.epoch, url: location.href };
+    if (!front) { queue.fetches++; askConsent(); }
+    const job = { tile, asin, epoch: queue.epoch, url: location.href, front };
     if (front) queue.pending.unshift(job); else queue.pending.push(job);
     pump();
   }
@@ -485,16 +577,22 @@
   // The request for this product, if one is in flight or done on this results page.
   const knownRead = asin => queue.readings.get(asin) || queue.reads.get(asin) || null;
 
+  // Automatic requests start only once the reader has answered the first-use notice, are not paused by the
+  // reader, and are not held by the install-wide limit. A hover (`front`) job is the reader's own request.
+  const mayStart = job => job.front || (consent === 'granted' && !queue.userPaused && !budgetHeld());
+
   function pump() {
     if (queue.throttled) return;
     const { concurrent, gapMs } = pace();
     while (queue.active < concurrent && queue.pending.length) {
-      const job = queue.pending.shift();
+      const at = queue.pending.findIndex(mayStart);
+      if (at < 0) break;
+      const [job] = queue.pending.splice(at, 1);
       if (!job.tile.isConnected) continue;
       queue.active++;
       const wait = Math.max(0, queue.lastStart + gapMs - Date.now());
       queue.lastStart = Date.now() + wait;
-      setTimeout(() => scoreTile(job.tile, job.asin, job.epoch, job.url).finally(() => { queue.active--; pump(); }), wait);
+      setTimeout(() => scoreTile(job.tile, job.asin, job.epoch, job.url, { explicit: job.front === true }).finally(() => { queue.active--; pump(); scheduleStatus(); }), wait);
     }
   }
 
@@ -610,7 +708,7 @@
   // second caller joins the request in flight or gets the finished reading. Any caller's HTTP refusal
   // counts toward the one throttle pause. Nothing is recorded once the search was reset (epoch), the
   // master switch went off, or the request was aborted. -> the reading (readProductHtml).
-  function readProductPage(asin, source) {
+  function readProductPage(asin, source, { explicit = false } = {}) {
     const { state } = P();
     const known = knownRead(asin);
     if (known) return Promise.resolve(known);
@@ -624,6 +722,15 @@
     const stale = () => controller.signal.aborted || epoch !== queue.epoch || !state.enabled;
     const work = (async () => {
       try {
+        if (!explicit) {
+          let granted = budget.take();
+          if (granted !== true) granted = await granted;
+          if (stale()) throw abortError();
+          if (granted !== true) {
+            holdForBudget(granted);
+            throw Object.assign(new Error('request limit'), { budget: true });
+          }
+        }
         const res = await fetch(`/dp/${asin}`, { credentials: 'same-origin', signal });
         if (stale()) throw abortError();
         // Only Amazon HTTP blocks count toward the throttle pause — offline / DNS is not a 403.
@@ -667,7 +774,7 @@
     paintBadge(tile, reading.result);
   }
 
-  async function scoreTile(tile, asin, epoch, url) {
+  async function scoreTile(tile, asin, epoch, url, { explicit = false } = {}) {
     const { state } = P();
     const current = () => epoch === queue.epoch && url === location.href && state.enabled
       && state.badges && tile.isConnected && tile.getAttribute('data-asin') === asin && searchAllowed();
@@ -676,18 +783,107 @@
     if (done) { paintReading(tile, done); return; }
     if (!tile.querySelector('.air-badge')?.dataset.saved) paintBadge(tile, 'pending');
     try {
-      const reading = await readProductPage(asin, 'search-tile');
+      const reading = await readProductPage(asin, 'search-tile', { explicit });
       if (!current()) return;
       for (const target of new Set([tile, ...document.querySelectorAll('[data-asin]')])) {
         if (!target.isConnected || target.getAttribute('data-asin') !== asin || !badgeable(target)) continue;
         if (reading.outcome === 'scored' || reading.outcome === 'not-food' || !target.querySelector('.air-badge')?.dataset.saved) paintReading(target, reading);
       }
     } catch (e) {
+      // Held back by the request limit: it is asked for again when the wait is over.
+      if (e && e.budget && epoch === queue.epoch) { queue.seen.delete(asin); queue.fetches = Math.max(0, queue.fetches - 1); }
       if (!current()) return;
       // Refused, offline, or a request the sorted list started and then stopped.
       const b = tile.querySelector('.air-badge');
       if (b && b.textContent === '…') b.remove();
     }
+  }
+
+  // ---- status line
+  //
+  // One quiet line above the results: how many are scored, the best of them, and a Pause for the requests
+  // still waiting. It is the visible half of automatic rating, and it shows why a request is not going out
+  // (paused, or the install-wide limit).
+  const STATUS_ID = 'air-status';
+  let statusEl = null, statusSig = '', statusTimer = null, statusHidden = false;
+
+  function copy(key, fallback, ...subs) {
+    let out = fallback;
+    try { out = (chrome.i18n && chrome.i18n.getMessage(key, subs.map(String))) || fallback; } catch (e) { /* no locale */ }
+    return subs.reduce((acc, v, i) => acc.split('$' + (i + 1)).join(String(v)), out);
+  }
+
+  // Food scores only count toward "best": a personal-care index is not a quality band.
+  function pageSummary() {
+    const { BADGE_ATTR } = P();
+    let scored = 0, best = null;
+    for (const badge of document.querySelectorAll('.air-badge')) {
+      const sig = (badge.getAttribute && badge.getAttribute('data-air')) || '';
+      const m = /^(\d{1,3}):[^:]*(:[a-z-]+)?$/.exec(sig);
+      if (!m) continue;
+      scored++;
+      if (!m[2] && (!best || Number(m[1]) > best.score)) best = { score: Number(m[1]), badge };
+    }
+    return { scored, best, waiting: queue.pending.length + queue.active, total: document.querySelectorAll('[' + BADGE_ATTR + ']').length };
+  }
+
+  function removeStatus() {
+    clearTimeout(statusTimer);
+    statusTimer = null;
+    statusHidden = false;
+    statusSig = '';
+    if (statusEl) statusEl.remove();
+    statusEl = null;
+  }
+
+  function showBest(best) {
+    const tile = best.badge.closest && best.badge.closest('[data-asin]');
+    const target = tile || best.badge;
+    const calm = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    try { target.scrollIntoView({ block: 'center', behavior: calm ? 'auto' : 'smooth' }); } catch (e) { /* no layout */ }
+    try { if (best.badge.tabIndex >= 0) best.badge.focus({ preventScroll: true }); } catch (e) { /* not focusable */ }
+  }
+
+  function renderStatus() {
+    const { state, isListPage } = P();
+    if (!state.enabled || !state.badges || statusHidden || queue.throttled || consent === 'asking' || !isListPage()) { removeStatusElement(); return; }
+    const sum = pageSummary();
+    const paused = queue.userPaused, held = budgetHeld();
+    if (!(sum.scored >= 3 || paused || held)) { removeStatusElement(); return; }
+    const parts = [copy('statusScored', '$1 scored', sum.scored)];
+    if (sum.best) parts.push(copy('statusBest', 'best $1', sum.best.score));
+    if (sum.waiting && !paused && !held) parts.push(copy('statusWaiting', '$1 more in progress', sum.waiting));
+    if (paused) parts.push(copy('statusPaused', 'paused'));
+    if (held) {
+      const minutes = Math.max(1, Math.ceil((queue.held.until - Date.now()) / 60000));
+      parts.push(copy(queue.held.reason === 'cooldown' ? 'statusCooldown' : 'statusLimit',
+        queue.held.reason === 'cooldown' ? 'waiting $1 min after a robot check' : 'request limit reached, resuming in about $1 min', minutes));
+    }
+    const sig = [parts.join(' · '), !!sum.best, sum.waiting > 0, paused].join('|');
+    if (statusEl && statusEl.isConnected && sig === statusSig) return;
+    if (statusEl) statusEl.remove();
+    statusSig = sig;
+    const el = document.createElement('div');
+    el.id = STATUS_ID;
+    el.setAttribute('role', 'status');
+    el.style.cssText = 'margin:8px 0;padding:6px 12px;border:1px solid #d5d9d9;border-radius:8px;background:#f7fafa;color:#0f1111;'
+      + 'font:12px/1.5 "Amazon Ember",sans-serif;display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;';
+    const text = document.createElement('span');
+    text.textContent = `${copy('statusName', 'Ingredient Check')}: ${parts.join(' · ')}`;
+    el.appendChild(text);
+    const small = (label, fn) => { const b = noticeButton(label, fn); b.style.margin = '0'; b.style.padding = '2px 8px'; el.appendChild(b); };
+    if (sum.best) small(copy('statusShowBest', 'Show best'), () => showBest(sum.best));
+    if (paused) small(copy('statusResume', 'Resume'), () => { queue.userPaused = false; pump(); scheduleStatus(); });
+    else if (sum.waiting && !held) small(copy('statusPause', 'Pause'), () => { queue.userPaused = true; scheduleStatus(); });
+    small(copy('statusHide', 'Hide'), () => { statusHidden = true; removeStatusElement(); });
+    statusEl = el;
+    placeAboveResults(el);
+  }
+  function removeStatusElement() { if (statusEl) statusEl.remove(); statusEl = null; statusSig = ''; }
+
+  function scheduleStatus() {
+    if (statusTimer) return;
+    statusTimer = setTimeout(() => { statusTimer = null; try { renderStatus(); } catch (e) { /* the status line must never break scoring */ } }, 250);
   }
 
   function clearBadges() {
@@ -708,6 +904,9 @@
     armHoverPass, armAutoScorePass, enqueue, scoreTile, cancelTileWork, resolveTiles,
     pauseForThrottle, clearBadges, paintBadge, AUTO_NOTICE_ID, AUTO_NOTICE_SEEN,
     readProductHtml, recordReading, TITLE_SEL, listingTitle,
+    budget, budgetHeld, renderStatus, scheduleStatus, askConsent, pageSummary, STATUS_ID,
+    // For tests and the harness: where the first-use question stands.
+    getConsent: () => consent, setConsent: value => { consent = value; },
   };
   root.AIR.search = search;
   if (typeof module !== 'undefined' && module.exports) module.exports = search;

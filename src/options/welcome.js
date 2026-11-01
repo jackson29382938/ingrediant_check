@@ -214,6 +214,9 @@ async function finish() {
     const values = { weights: scoring.weights, goals: scoring.goals, goalImportance: scoring.goalImportance, allergens: scoring.allergens,
       diets: scoring.diets, avoidList: scoring.avoidList, onboarded: true, settingsLevel: picked.level };
     if (asked('options')) for (const id of OPTIONS) values[id] = document.getElementById(id).checked;
+    // Leaving automatic rating ticked on the page that says what it requests is the answer the first-use notice
+    // on a results page would otherwise ask for (content/search.js askConsent).
+    if (asked('options') && values.autoScoreSearch === true) values.autoScoreNoticeSeen = true;
     await saveChoices(values);
     const historyBox = document.getElementById('setupPurchaseHistory');
     if (historyBox && historyBox.checked !== startHistoryEnabled) {

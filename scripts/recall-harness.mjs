@@ -54,7 +54,7 @@ export async function recallEndToEnd(context, worker, errors, root) {
     await worker.evaluate(key => chrome.storage.local.remove([key, key.replace(/^s:/, 'p:')]), key);
   }
   await worker.evaluate(async () => {
-    await chrome.storage.local.set({ autoScoreSearch: true, cacheFirst: true, cacheMemory: true, cacheBackgroundRefresh: true, cacheGraceDays: 7 });
+    await chrome.storage.local.set({ autoScoreSearch: true, autoScoreNoticeSeen: true, cacheFirst: true, cacheMemory: true, cacheBackgroundRefresh: true, cacheGraceDays: 7 });
   });
   console.log('  ok  instant recall → search/cart saved scores during held refresh, one request for repeated products, refresh switches, fresh-only grace and updated scores');
 }

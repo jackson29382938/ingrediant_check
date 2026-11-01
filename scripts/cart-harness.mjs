@@ -5,7 +5,7 @@ export async function cartEndToEnd(context, worker, pageErrors, root) {
   const stores = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'))).content_scripts[3].matches
     .filter(m => m.endsWith('/cart') && m.includes('www.')).map(m => new URL(m).hostname);
   const cases = [...new Set(stores)];   // Amazon's cart has its own markup and its own check (amazonCartEndToEnd)
-  await worker.evaluate(() => chrome.storage.local.set({ enabled: true, badges: true, foodOnly: true, autoScoreSearch: true, speedMode: 'balanced' }));
+  await worker.evaluate(() => chrome.storage.local.set({ enabled: true, badges: true, foodOnly: true, autoScoreSearch: true, autoScoreNoticeSeen: true, speedMode: 'balanced' }));
   const ids = host => host.includes('amazon.') ? ['B000000001', 'B000000002', 'B000000003'] : host.includes('target.') ? ['79364857', '16600402', '11111111'] : host.includes('walmart.') ? ['10314926', '10314927', '10314928'] : host.includes('costco.') ? ['100423971', '100493931', '100493932'] : host.includes('instacart.') ? ['2695935', '22117950', '22117951'] : /safeway|albertsons/.test(host) ? ['111050071', '960543057', '960543058'] : ['0003000001020', '0002840051646', '0002840051647'];
   const route = (host, id) => host.includes('amazon.') ? `/dp/${id}` : host.includes('target.') ? `/p/oats/-/A-${id}` : host.includes('walmart.') ? `/ip/oats/${id}` : host.includes('costco.') ? `/p/-/oats/${id}` : host.includes('instacart.') ? `/products/${id}-oats` : /safeway|albertsons/.test(host) ? `/shop/pd/product/${id}` : `/p/oats/${id}`;
   for (const host of cases) {
@@ -58,7 +58,7 @@ export async function cartEndToEnd(context, worker, pageErrors, root) {
     await page.waitForFunction(() => document.querySelector('.air-cart-badge')?.dataset.airStatus === 'scored');
     if (requests.length !== count + 1) throw new Error(`cart did not reuse saved scores with automatic rating off: ${host}`);
     missing = true;
-    await worker.evaluate(() => chrome.storage.local.set({ autoScoreSearch: true }));
+    await worker.evaluate(() => chrome.storage.local.set({ autoScoreSearch: true, autoScoreNoticeSeen: true }));
     await worker.evaluate(({ host, id }) => chrome.storage.local.remove(`s:${host.replace('www.', '')}:${id}`), { host, id: productIds[0] });
     await page.waitForFunction(() => document.querySelector('.air-cart-badge')?.dataset.airStatus === 'unavailable', null, { timeout: 15000 });
     // Account/checkout SPA transitions remove ratings rather than extending cart reading.
@@ -73,7 +73,7 @@ export async function cartEndToEnd(context, worker, pageErrors, root) {
       await page.evaluate(() => { document.querySelector('main').hidden = false; });
       await page.waitForFunction(() => document.querySelector('main .air-cart-badge')?.dataset.airStatus === 'scored');
     }
-    await worker.evaluate(() => chrome.storage.local.set({ autoScoreSearch: true }));
+    await worker.evaluate(() => chrome.storage.local.set({ autoScoreSearch: true, autoScoreNoticeSeen: true }));
     await context.clearCookies({ name: 'private_cart_test' });
     await page.close();
   }
@@ -88,7 +88,7 @@ export async function amazonCartEndToEnd(context, worker, pageErrors, root) {
   const cartHtml = read('amazon-cart.html'), wagonHtml = read('amazon-smart-wagon.html');
   const labels = { B0CARTOAT1: 'organic whole grain rolled oats', B0CARTLONG: 'whole grain oats, sugar, red 40, salt' };
   const requests = [];
-  await worker.evaluate(() => chrome.storage.local.set({ enabled: true, badges: true, foodOnly: true, autoScoreSearch: true, speedMode: 'balanced', pointsEnabled: true, hoverBreakdown: true }));
+  await worker.evaluate(() => chrome.storage.local.set({ enabled: true, badges: true, foodOnly: true, autoScoreSearch: true, autoScoreNoticeSeen: true, speedMode: 'balanced', pointsEnabled: true, hoverBreakdown: true }));
   await worker.evaluate(() => chrome.storage.local.remove(['xp', 's:amazon.com:B0CARTOAT1', 's:amazon.com:B0CARTLONG']));
   await context.addCookies([{ name: 'private_cart_test', value: 'do-not-send', domain: 'www.amazon.com', path: '/', secure: true }]);
   const page = await context.newPage();

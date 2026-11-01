@@ -1194,7 +1194,7 @@ async function amazonEndToEnd(context, worker, pageErrors) {
   // here: the badge queue then requests each tile's product page. The breakdown is switched off so the
   // badges are plain named images, not buttons, and a page observer records any badge that is ever a
   // live region, however briefly.
-  await worker.evaluate(() => chrome.storage.local.set({ autoScoreSearch: true, hoverBreakdown: false }));
+  await worker.evaluate(() => chrome.storage.local.set({ autoScoreSearch: true, autoScoreNoticeSeen: true, hoverBreakdown: false }));
   const search = await context.newPage();
   search.on('pageerror', err => pageErrors.push(`search: uncaught ${err.message}`));
   search.on('console', message => { if (message.text().includes('[AIR]')) pageErrors.push(`search: ${message.text()}`); });
@@ -1233,7 +1233,7 @@ run().catch(err => {
 });
 
 async function retailerEndToEnd(context, worker, pageErrors) {
-  await worker.evaluate(() => chrome.storage.local.set({ enabled: true, autoScoreSearch: true, foodOnly: true }));
+  await worker.evaluate(() => chrome.storage.local.set({ enabled: true, autoScoreSearch: true, autoScoreNoticeSeen: true, foodOnly: true }));
   const walmartData = fs.readFileSync(path.join(root, 'tests/pages/walmart-product.json'), 'utf8');
   const cases = [
     { url: 'https://www.target.com/p/oats/-/A-79364857', search: 'https://www.target.com/s?searchTerm=oats',

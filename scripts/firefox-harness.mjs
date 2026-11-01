@@ -96,7 +96,7 @@ try {
   console.log('  ok Firefox Compare: Instacart/Kroger picker, safe product links, compatible cached scores across app versions');
   await run('await window.chrome.storage.local.remove(["s:instacart.com:2695935", "s:kroger.com:0001111008490"]);');
   await open('history.html');
-  await run(`await window.chrome.storage.local.set({enabled:true,badges:true,autoScoreSearch:true,foodOnly:true,sharedCache:false,useOpenFoodFacts:false,ocrLabels:false,settingsBackup:false});`);
+  await run(`await window.chrome.storage.local.set({enabled:true,badges:true,autoScoreSearch:true,autoScoreNoticeSeen:true,foodOnly:true,sharedCache:false,useOpenFoodFacts:false,ocrLabels:false,settingsBackup:false});`);
   for (const item of fixture.cases) {
     console.log('  checking Firefox store ' + item.host);
     await call(`/session/${session}/url`, { url: 'https://' + item.host + item.search });

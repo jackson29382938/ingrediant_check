@@ -17,7 +17,7 @@ export async function personalCareEndToEnd(browser, root) {
     await page.goto(url);
     await page.evaluate(manifest => {
       const listeners = [];
-      window.__stored = { enabled:true,badges:true,foodOnly:true,personalCareEnabled:true,ratingStyle:'evidence', autoScoreSearch:true,
+      window.__stored = { enabled:true,badges:true,foodOnly:true,personalCareEnabled:true,ratingStyle:'evidence', autoScoreSearch:true, autoScoreNoticeSeen:true,
         ocrLabels:false,useOpenFoodFacts:false,sharedCache:false,sharedProducts:false,sendDiagnostics:false,weights:{},allergens:[],diets:[],avoidList:[],panelOpen:true };
       window.__messages=[];
       const get=(keys,cb)=>{ const source=window.__stored; const names=keys==null?Object.keys(source):typeof keys==='string'?[keys]:Array.isArray(keys)?keys:Object.keys(keys); const result=Object.fromEntries(names.filter(k=>k in source).map(k=>[k,source[k]])); if(cb)cb(result); return Promise.resolve(result); };

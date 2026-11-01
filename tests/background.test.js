@@ -928,3 +928,47 @@ test('the import behaves as the full comparison did, over many histories and bat
     assert.deepEqual(JSON.parse(JSON.stringify(reply.records)), JSON.parse(JSON.stringify(expected.records)), `${label}: reply`);
   }
 });
+
+// ---------------------------------------------------------------- install-wide request budget
+
+// chrome.storage.session in memory, the way the sorted list tests give the worker one.
+const withSession = w => { w.call('self.__fb = undefined; chrome.storage.session = { get: async key => ({ [key]: self.__fb }), set: async v => { self.__fb = v.fetchBudget; } }'); return w; };
+
+test('the install-wide budget lends requests, runs out at the cap, and starts over with the next window', async () => {
+  const w = withSession(worker({}));
+  const cap = w.call('FETCH_CAP'), window = w.call('FETCH_WINDOW_MS');
+  let granted = 0;
+  for (let i = 0; i < cap / 20 + 5; i++) granted += plain(await w.call('fetchBudget(50, 1000)')).granted;   // asking for more than the lease maximum
+  assert.equal(granted, cap, 'never more than the cap in a window, however many tabs ask');
+  const dry = plain(await w.call('fetchBudget(5, 2000)'));
+  assert.deepEqual([dry.granted, dry.reason], [0, 'limit']);
+  assert.ok(dry.retryMs > 0 && dry.retryMs <= window);
+  assert.equal(plain(await w.call(`fetchBudget(5, ${window + 1500})`)).granted, 5, 'a new window starts a fresh budget');
+});
+
+test('a robot check starts a cool-down that every tab sees, and repeated ones last longer', async () => {
+  const w = withSession(worker({}));
+  const now = 10_000_000;
+  const first = plain(await w.call(`fetchBlocked(${now})`));
+  assert.equal(first.until - now, 15 * 60 * 1000);
+  const held = plain(await w.call(`fetchBudget(5, ${now + 60_000})`));
+  assert.deepEqual([held.granted, held.reason], [0, 'cooldown']);
+  assert.ok(held.retryMs > 13 * 60 * 1000);
+  assert.equal(plain(await w.call(`fetchBudget(5, ${first.until + 1})`)).granted, 5, 'and it ends');
+  const second = plain(await w.call(`fetchBlocked(${first.until + 10})`));
+  assert.equal(second.until - (first.until + 10), 30 * 60 * 1000, 'the next one within a day waits twice as long');
+  let last = second.until;
+  for (let i = 0; i < 6; i++) last = plain(await w.call(`fetchBlocked(${last + 1})`)).until - (last + 1);
+  assert.equal(last, 4 * 60 * 60 * 1000, 'capped at four hours');
+});
+
+test('the budget messages are accepted from Amazon tabs only, and answer even when storage fails', async () => {
+  const w = withSession(worker({}));
+  assert.equal(plain(await w.send({ type: 'fetchBudget', want: 3 }, amazonTab)).granted, 3);
+  assert.equal(await w.send({ type: 'fetchBudget', want: 3 }, popupSender), undefined, 'an extension page is not a results page');
+  assert.equal(await w.send({ type: 'fetchBlocked' }, { id: 'ext', tab: { id: 4, url: 'https://www.target.com/s?searchTerm=oats' } }), undefined, 'retailer tabs make no Amazon requests');
+  w.call('chrome.storage.session.get = async () => { throw new Error("session storage unavailable"); }');
+  const warn = console.warn; console.warn = () => {};
+  try { assert.deepEqual(plain(await within(2000, w.send({ type: 'fetchBudget', want: 3 }, amazonTab), 'fetchBudget')), { granted: 0, retryMs: 60000, reason: 'unavailable' }); }
+  finally { console.warn = warn; }
+});

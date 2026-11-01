@@ -7,7 +7,7 @@ export async function bottomFiveEndToEnd(context, worker, pageErrors, root, sele
   const dir = path.join(root, 'tests/pages/bottom-five');
   const flight = response => `<script type="application/x-fixture">self.__next_f.push(${JSON.stringify([1, '14:' + JSON.stringify(['$', '$L2f', null, { isSSR: true, initialPdpResponse: response }]) + '\n']).replace(/</g, '\\u003c')})</script>`;
   const oatLabel = fs.readFileSync(path.join(root, 'tests/pages/kroger-public-oats.html'), 'utf8');
-  await worker.evaluate(() => chrome.storage.local.set({ enabled: true, autoScoreSearch: true, badges: true, foodOnly: true }));
+  await worker.evaluate(() => chrome.storage.local.set({ enabled: true, autoScoreSearch: true, autoScoreNoticeSeen: true, badges: true, foodOnly: true }));
   const pages = [];
   try {
     for (const id of selected) {
