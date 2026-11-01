@@ -1,9 +1,9 @@
 'use strict';
 // How an index is shown. A personal-care or supplement index is a label index, not a quality band, so it
-// is drawn in gray, named for its category and style, and worded in the reader's language. The first
+// is drawn in gray, named for its category and style, and worded from the message catalog. The first
 // version drew the panel in the amber "Mediocre" band for every index and the badges in the band of
 // the number (a green 80 on a shampoo), printed the raw id ("body-wash") on cart lines, and left its
-// own sentences in English in a German browser.
+// own sentences hard-coded instead of in the message catalog.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -20,28 +20,19 @@ const root = path.join(__dirname, '..');
 const messages = locale => JSON.parse(fs.readFileSync(path.join(root, '_locales', locale, 'messages.json'), 'utf8'));
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
 
-test('every name and sentence an index shows is in the English and German catalogs', () => {
+test('every name and sentence an index shows is in the English catalog', () => {
   const keys = [...Object.values(ratings.CATEGORY_KEYS), ...Object.values(ratings.STYLE_KEYS), 'catFood', 'verdictLabelIndex',
     'indexNote', 'indexNoteShort', 'careUnsupportedTitle', 'careUnsupportedBody', 'careReviewButton', 'reviewTitle',
     'reviewDefaultReason', 'reviewNoClaim', 'reviewSupplementNote', 'reviewFacts', 'reviewIngredients', 'reviewDisclaimer',
     'cartAverageCare', 'compareMixed', 'sortMixed', 'notFoodWhy', 'optStyleHelp'];
-  for (const locale of ['en', 'de']) {
-    const catalog = messages(locale);
-    for (const key of keys) assert.ok(catalog[key] && catalog[key].message, `${locale} lacks ${key}`);
-  }
-  const en = messages('en'), de = messages('de');
-  for (const key of ['catToothpaste', 'catBodyWash', 'indexNote', 'reviewTitle', 'sortMixed']) {
-    assert.notEqual(de[key].message, en[key].message, `${key} is still English in German`);
-  }
-  assert.equal(ratings.categoryLabel('body-wash', (key, fallback) => messages('de')[key]?.message ?? fallback), 'Duschgel und Seife');
+  const catalog = messages('en');
+  for (const key of keys) assert.ok(catalog[key] && catalog[key].message, `en lacks ${key}`);
 });
 
 test('the setting a not-food panel points to is named as the settings page names it', () => {
-  for (const locale of ['en', 'de']) {
-    const catalog = messages(locale);
-    const named = catalog.optFoodOnly.message;
-    assert.ok(catalog.notFoodWhy.message.includes(named), `${locale}: "${catalog.notFoodWhy.message}" does not name "${named}"`);
-  }
+  const catalog = messages('en');
+  const named = catalog.optFoodOnly.message;
+  assert.ok(catalog.notFoodWhy.message.includes(named), `"${catalog.notFoodWhy.message}" does not name "${named}"`);
   for (const file of ['src/options/options.html', 'src/content/panel.js']) {
     assert.doesNotMatch(fs.readFileSync(path.join(root, file), 'utf8'), /Only rate food (?:&|and) supplements/, file);
   }

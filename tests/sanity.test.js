@@ -277,9 +277,9 @@ check('every data-i18n key in the settings page exists', () => {
   assert.strictEqual(missing.length, 0, `missing from messages.json: ${missing.join(', ')}`);
 });
 
-check('every extension page translates its aria labels and placeholders, and every locale has the keys', () => {
+check('every extension page names its aria labels and placeholders from the catalog, and the catalog has the keys', () => {
   // The popup's preset tabs and compare pickers kept a hardcoded English aria-label with no
-  // data-i18n-aria, so a German screen reader heard English there; nothing checked for it.
+  // data-i18n-aria, so a screen reader heard the English there regardless of locale; nothing checked for it.
   const fs = require('fs');
   const locales = fs.readdirSync(path.join(__dirname, '..', '_locales'))
     .map(l => [l, new Set(Object.keys(JSON.parse(read(`_locales/${l}/messages.json`))))]);

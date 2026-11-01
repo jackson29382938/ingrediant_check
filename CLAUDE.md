@@ -75,10 +75,9 @@ Rules that are easy to break:
 
 - Match the surrounding comment style: comments explain why and cite the measured failure that
   motivated the rule. Keep that when you change a rule.
-- Locale strings live in `_locales/<lang>/messages.json`; preflight checks that every key resolves, that `de`
-  has the English keys with the same `$TOKEN$`s, and that no `de` message is the English text (a name, a unit
-  or a word that is the same in German goes on `SAME_AS_ENGLISH` in `scripts/preflight.mjs`, with the reason).
-  A new English key needs a real German string.
+- Locale strings live in `_locales/en/messages.json` (English is the only UI language); preflight checks that every key
+  the code uses resolves. Label-language support (reading German, Spanish, French... ingredient lists) is scoring
+  behaviour, not UI translation, and is unaffected.
 - A content script that fetches another page of the store reads it with `AIR.cart.publicDocument` /
   `readHtml` (`src/stores/cart.js`): one cap, one abort rule, one definition of a block page. Do not add a
   fourth way.
