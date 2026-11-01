@@ -1,6 +1,6 @@
 // Real extension pages, local OCR and controlled product/barcode fixtures; no live shopping data.
 export async function shoppingEndToEnd(context, worker, errors) {
-  const keys = ['weights', 'allergens', 'diets', 'avoidList', 'enabled', 'autoScoreSearch', 'sharedCache', 'useOpenFoodFacts', 'theme', 'historyEnabled', 'historyOwner', 'googleProfile', 'purchaseHistory'];
+  const keys = ['weights', 'allergens', 'diets', 'avoidList', 'enabled', 'autoScoreSearch', 'sharedCache', 'useOpenFoodFacts', 'theme', 'historyEnabled', 'historyOwner', 'googleProfile'];
   const before = await worker.evaluate(keys => chrome.storage.local.get(keys), keys);
   const session = await worker.evaluate(() => chrome.storage.session.get(['sortedResults', 'sortWeights']));
   const url = await worker.evaluate(() => chrome.runtime.getURL('src/options/library.html'));

@@ -15,13 +15,13 @@ export async function ordersEndToEnd(context, worker, errors) {
     if (u.searchParams.get('page') === '3') return r.fulfill({ contentType: 'text/html', body: `<main id="yourOrders"><h1>Your Orders</h1><div class="order-card" data-order-id="333-1234567-1234567"><div class="order-header">Order placed October 1, 2026</div>${item('B000000008', '2 percent milk')}${item('B000000010', 'Protein bars')}${u.searchParams.has('freshText') ? item('B000000011', 'Whole grain oats') : ''}</div></main>` });
     return r.fulfill({ contentType: 'text/html', body: html(u.searchParams.get('page') === '2') });
   });
-  await worker.evaluate(() => chrome.storage.local.set({ historyEnabled: false, autoScoreSearch: false, historyAutoSync: false, purchaseHistory: [], historyOwner: '', enabled: true, ocrLabels: false, useOpenFoodFacts: false, settingsLevel: 'expert' }));
+  await worker.evaluate(() => AIR.db.purchaseStore.write(chrome.storage.local, [], { historyEnabled: false, autoScoreSearch: false, historyAutoSync: false, historyOwner: '', enabled: true, ocrLabels: false, useOpenFoodFacts: false, settingsLevel: 'expert' }));
   const raw = await worker.evaluate(() => chrome.storage.local.get(null)), version = await worker.evaluate(() => chrome.runtime.getManifest().version);
   await worker.evaluate(({ key, value }) => chrome.storage.local.set({ [key]: value }), { key: scores.key('amazon.com', ids[4]), value: { schema: scores.SCHEMA, store: 'amazon.com', asin: ids[4], v: version, t: Date.now(), source: 'page', score: 88, verdict: 'Good', prefs: scores.fingerprint(raw, 'page'), name: 'Popcorn' } });
   await context.addCookies([{ name: 'private_order_test', value: 'do-not-send', domain: 'www.amazon.com', path: '/', secure: true }]);
   await page.goto(orders); await page.waitForTimeout(600);
   await page.waitForFunction(() => [...document.querySelectorAll('.air-order-badge')].some(b => b.textContent.includes('88/100')));
-  if (requests.length || (await worker.evaluate(async () => (await chrome.storage.local.get('purchaseHistory')).purchaseHistory)).length) throw new Error('disabled history import saved purchases or disabled automatic scoring fetched labels');
+  if (requests.length || (await worker.evaluate(async () => (await AIR.db.purchaseStore.read(chrome.storage.local)))).length) throw new Error('disabled history import saved purchases or disabled automatic scoring fetched labels');
   if (await page.locator('.air-order-history-graph, .air-order-average').count()) throw new Error('empty history rendered a graph or averages');
   if (await page.locator('#air-order-history').innerText().then(t => /Purchase history is off|Page average|product entries/.test(t))) throw new Error('verbose order summary is still visible');
   await worker.evaluate(() => chrome.storage.local.set({ historyEnabled: true, autoScoreSearch: true, autoScoreNoticeSeen: true }));
@@ -29,7 +29,7 @@ export async function ordersEndToEnd(context, worker, errors) {
   if (await page.locator('#air-order-history').getAttribute('data-air-text').then(t => t.includes('This page imported'))) throw new Error('slow cold fixture unexpectedly completed before saved score');
   holdSlow = false; releaseSlow();
   await page.waitForFunction(() => document.querySelector('#air-order-history')?.dataset.airText?.includes('This page imported'), null, { timeout: 20000 });
-  const records = await worker.evaluate(async () => (await chrome.storage.local.get('purchaseHistory')).purchaseHistory);
+  const records = await worker.evaluate(async () => (await AIR.db.purchaseStore.read(chrome.storage.local)));
   const rated = records.filter(r => r.state === 'purchased' && r.score !== null);
   const average = Math.round(rated.reduce((sum, r) => sum + r.score, 0) / rated.length);
   if (!await page.locator('#air-order-history').getAttribute('data-air-text').then(t => t.includes(`Page average: ${average}/100`))) throw new Error('order page average missing or includes unavailable/cancelled products');
@@ -45,25 +45,25 @@ export async function ordersEndToEnd(context, worker, errors) {
   if (requests.some(r => r.url().includes(ids[4]))) throw new Error('orders did not reuse a valid saved score');
   if (requests.some(r => r.headers().cookie || r.headers().referer || r.url().includes('your-orders'))) throw new Error('order product request leaked cookies/referrer');
   await page.reload(); await page.waitForFunction(() => document.querySelector('#air-order-history')?.dataset.airText?.includes('This page imported'));
-  if ((await worker.evaluate(async () => (await chrome.storage.local.get('purchaseHistory')).purchaseHistory)).length !== 4) throw new Error('revisited order duplicated');
+  if ((await worker.evaluate(async () => (await AIR.db.purchaseStore.read(chrome.storage.local)))).length !== 4) throw new Error('revisited order duplicated');
   // A record misclassified by an older build must stop driving trends when revisited.
   await worker.evaluate(async () => {
-    const old = (await chrome.storage.local.get('purchaseHistory')).purchaseHistory;
+    const old = (await AIR.db.purchaseStore.read(chrome.storage.local));
     const key = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('amazon.com:111-1234567-1234567:B000000006')))].map(n => n.toString(16).padStart(2, '0')).join('');
-    await chrome.storage.local.set({ purchaseHistory: [...old, { ...old[0], key, asin: 'B000000006', name: 'Folding Camping Table', state: 'purchased', score: 44, scoredAt: Date.now(), observedAt: Date.now() }] });
+    await AIR.db.purchaseStore.write(chrome.storage.local, [...old, { ...old[0], key, asin: 'B000000006', name: 'Folding Camping Table', state: 'purchased', score: 44, scoredAt: Date.now(), observedAt: Date.now() }]);
   });
   const refreshed = await worker.evaluate(() => chrome.storage.local.get(null));
   await worker.evaluate(({ key, value }) => chrome.storage.local.set({ [key]: value }), { key: scores.key('amazon.com', ids[3]), value: { schema: scores.SCHEMA, store: 'amazon.com', asin: ids[3], v: version, t: Date.now(), source: 'page', score: 66, verdict: 'Fair', prefs: scores.fingerprint(refreshed, 'page'), name: 'Corn chips' } });
   await page.waitForFunction(() => [...document.querySelectorAll('.air-order-badge')].some(b => b.textContent.includes('66/100')));
   await page.getByRole('button', { name: 'Refresh ratings' }).click();
   await page.waitForFunction(() => document.querySelector('#air-order-history')?.dataset.airText?.includes('This page imported'));
-  const upgraded = await worker.evaluate(async () => (await chrome.storage.local.get('purchaseHistory')).purchaseHistory);
+  const upgraded = await worker.evaluate(async () => (await AIR.db.purchaseStore.read(chrome.storage.local)));
   if (!upgraded.some(r => r.asin === 'B000000006' && r.state === 'unknown') || !upgraded.some(r => r.asin === 'B000000004' && r.score === 66)) throw new Error('refresh did not exclude legacy non-food or reuse a newly saved label');
   if (!await page.locator('.air-order-badge').allTextContents().then(t => t.some(x => x.includes('66/100')) && t.filter(x => x.includes('Not a food')).length === 3)) throw new Error('refresh badges missing or duplicated');
   await page.evaluate(() => { document.querySelector('.delivery-status').textContent = 'Returned'; });
   await page.waitForFunction(() => document.querySelector('.air-order-badge')?.textContent.includes('returned'));
   await page.goto(origin + '/gp/your-account/order-history/ref=ppx_yo_pagination_2?page=2'); await page.waitForFunction(() => document.querySelector('#air-order-history')?.dataset.airText?.includes('This page imported'));
-  const final = await worker.evaluate(async () => (await chrome.storage.local.get('purchaseHistory')).purchaseHistory);
+  const final = await worker.evaluate(async () => (await AIR.db.purchaseStore.read(chrome.storage.local)));
   if (final.length !== 6 || !final.some(r => r.date === '2026-08-01' && r.score !== null)) throw new Error('older order import failed');
   // Exercise the real vendored OCR worker on a generated, legible ingredient label.
   const photo = await page.evaluate(() => {
@@ -100,7 +100,7 @@ export async function ordersEndToEnd(context, worker, errors) {
   if (!await worker.evaluate(() => self.__orderSlowStarted === 2)) throw new Error('fallback queue did not start both bounded jobs');
   await worker.evaluate(() => { self.__orderBarcodeRelease(); self.__orderOcrRelease(); });
   await page.waitForFunction(() => document.querySelector('#air-order-history')?.dataset.airText?.includes('This page imported'));
-  const fallbacks = await worker.evaluate(async () => ({ requests: self.__orderFallbacks, records: (await chrome.storage.local.get('purchaseHistory')).purchaseHistory, rows: await chrome.storage.local.get(['p:amazon.com:B000000008', 'p:amazon.com:B000000010']) }));
+  const fallbacks = await worker.evaluate(async () => ({ requests: self.__orderFallbacks, records: (await AIR.db.purchaseStore.read(chrome.storage.local)), rows: await chrome.storage.local.get(['p:amazon.com:B000000008', 'p:amazon.com:B000000010']) }));
   if (!fallbacks.requests.some(r => r.type === 'barcode' && r.code === '123456789012') || !fallbacks.requests.some(r => r.type === 'ocr' && r.urls.every(u => u.startsWith('https://m.media-amazon.com/images/I/')))) throw new Error('barcode/OCR order fallback missing');
   if (!['B000000008', 'B000000010'].every(id => fallbacks.records.some(r => r.asin === id && r.score !== null && r.ingredients))) throw new Error('fallback labels not scored/saved');
   if (fallbacks.rows['p:amazon.com:B000000008']?.data.via !== 'open-food-facts' || fallbacks.rows['p:amazon.com:B000000010']?.data.via !== 'label-ocr') throw new Error('fallback source not cached truthfully');
@@ -159,31 +159,31 @@ export async function ordersEndToEnd(context, worker, errors) {
   await dashboard.locator('#historyAutoSync').uncheck();
   await worker.evaluate(() => { self.__purchaseOffline = true; });
   await dashboard.locator('#sync').click(); await dashboard.waitForFunction(() => document.querySelector('#status')?.textContent.includes('working connection'));
-  if ((await worker.evaluate(async () => (await chrome.storage.local.get('purchaseHistory')).purchaseHistory)).length !== 9) throw new Error('offline sync lost local purchases');
+  if ((await worker.evaluate(async () => (await AIR.db.purchaseStore.read(chrome.storage.local)))).length !== 9) throw new Error('offline sync lost local purchases');
   await worker.evaluate(() => { self.__purchaseOffline = false; });
   dashboard.on('dialog', dialog => dialog.accept());
   await dashboard.locator('#delete').click(); await dashboard.waitForFunction(() => document.querySelector('#status')?.textContent.includes('History deleted'));
-  if (await worker.evaluate(async () => self.__purchaseRemote.length || (await chrome.storage.local.get('purchaseHistory')).purchaseHistory.length)) throw new Error('history deletion not confirmed');
+  if (await worker.evaluate(async () => self.__purchaseRemote.length || (await AIR.db.purchaseStore.read(chrome.storage.local)).length)) throw new Error('history deletion not confirmed');
   await worker.evaluate(() => { self.fetch = self.__purchaseFetch; AIR.googleAuth.token = self.__purchaseToken; chrome.permissions.contains = self.__purchasePermissions; delete self.__purchaseToken; delete self.__purchasePermissions; delete self.__purchaseFetch; delete self.__purchaseRequests; delete self.__purchaseRemote; delete self.__purchaseOffline; });
   // Display and compact history are independent of import. Use synthetic current-day records
   // so daily/weekly/monthly visibility is exercised regardless of when this harness runs.
   await worker.evaluate(() => {
     const date = new Date(), today = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    return chrome.storage.local.set({ historyEnabled: false, autoScoreSearch: false, historyOwner: '', purchaseHistory: [
+    return AIR.db.purchaseStore.write(chrome.storage.local, [
       { key: 'e'.repeat(64), store: 'amazon.com', asin: 'B000000099', date: today, state: 'purchased', name: 'Synthetic history example', score: 75, observedAt: Date.now(), scoredAt: Date.now() },
-    ] });
+    ], { historyEnabled: false, autoScoreSearch: false, historyOwner: '' });
   });
   await page.waitForFunction(() => document.querySelectorAll('.air-order-average').length === 3 && document.querySelector('.air-order-history-graph'));
   if (!(await page.locator('#air-order-history').innerText()).includes('Daily avg 75/100')) throw new Error('Current-period averages missing or incorrect');
   if (await page.locator('#air-order-history').boundingBox().then(box => box.height > 100)) throw new Error('Compact order overview is too tall');
   await page.locator('#air-order-history').screenshot({ path: '/tmp/ingredient-orders-overview.png' });
-  await worker.evaluate(() => chrome.storage.local.set({ purchaseHistory: [] }));
+  await worker.evaluate(() => AIR.db.purchaseStore.write(chrome.storage.local, []));
   await page.waitForFunction(() => !document.querySelector('.air-order-history-graph, .air-order-average'));
   if (!await page.locator('.air-order-badge').allTextContents().then(values => values.some(text => /\d+\/100/.test(text)))) throw new Error('Item scores disappeared with history import disabled');
   await page.locator('.order-card').evaluate(card => { const replacement = card.cloneNode(true); replacement.querySelectorAll('.air-order-badge').forEach(b => b.remove()); card.replaceWith(replacement); });
   await page.waitForFunction(() => [...document.querySelectorAll('.air-order-badge')].some(b => /\d+\/100/.test(b.textContent)));
   await page.evaluate(() => history.pushState({}, '', '/checkout')); await page.waitForFunction(() => !document.querySelector('.air-order-badge'), null, { timeout: 5000 });
   await dashboard.close(); await page.close(); await context.clearCookies({ name: 'private_order_test' });
-  await worker.evaluate(async () => { await chrome.storage.local.set({ historyEnabled: false, historyAutoSync: false, purchaseHistory: [] }); await chrome.storage.local.set({ ocrLabels: false, useOpenFoodFacts: false, ratePace: 'normal' }); await chrome.storage.local.remove(['s:amazon.com:B000000005', 's:amazon.com:B000000004', 'p:amazon.com:B000000001', 'p:amazon.com:B000000008', 'p:amazon.com:B000000010', 'p:amazon.com:B000000011']); });
+  await worker.evaluate(async () => { await AIR.db.purchaseStore.write(chrome.storage.local, [], { historyEnabled: false, historyAutoSync: false }); await chrome.storage.local.set({ ocrLabels: false, useOpenFoodFacts: false, ratePace: 'normal' }); await chrome.storage.local.remove(['s:amazon.com:B000000005', 's:amazon.com:B000000004', 'p:amazon.com:B000000001', 'p:amazon.com:B000000008', 'p:amazon.com:B000000010', 'p:amazon.com:B000000011']); });
   console.log('  ok orders → scores with import off, compact conditional graph and calendar averages, cached scores before held requests, automatic cache updates, bounded image badges, barcode/OCR controls; opt-in saving, deduplication, returns, older pages, account sync, offline retention and deletion (fixtures)');
 }

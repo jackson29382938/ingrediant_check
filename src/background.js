@@ -14,7 +14,7 @@ if (typeof importScripts === 'function') {
     'engine/db/ingestible.js', 'engine/db/prefs.js', 'engine/db/theme.js',
     'engine/db/ocr-text.js', 'engine/db/product-cache.js', 'engine/db/shopping.js', 'engine/db/storefronts.js', 'engine/db/sorted-results.js',
     'engine/db/speed.js', 'engine/db/unit-price.js',
-    'engine/db/activity.js', 'options/google-auth.js', 'worker/messages.js', 'worker/sheet-store.js', 'engine/db/purchase-history.js', 'worker/purchase-history.js', 'engine/db/history-scan.js', 'worker/history-scan.js');
+    'engine/db/activity.js', 'options/google-auth.js', 'worker/messages.js', 'worker/sheet-store.js', 'engine/db/purchase-history.js', 'engine/db/purchase-store.js', 'worker/purchase-history.js', 'engine/db/history-scan.js', 'worker/history-scan.js');
 }
 
 const OFF_ENDPOINT = 'https://world.openfoodfacts.org/api/v2/product/';

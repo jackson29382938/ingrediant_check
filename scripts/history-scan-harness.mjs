@@ -14,7 +14,7 @@ export async function historyScanEndToEnd(context, worker, errors, extensionId) 
   await context.route('https://www.amazon.com/**', route);
   await worker.evaluate(async ids => {
     await chrome.storage.local.remove(ids.flatMap(id => [`s:amazon.com:${id}`, `p:amazon.com:${id}`]));
-    await chrome.storage.local.set({ enabled: true, historyEnabled: true, historyAutoSync: false, historyOwner: '', historyDeletePending: false, purchaseHistory: [], googleProfile: null,
+    await AIR.db.purchaseStore.write(chrome.storage.local, [], { enabled: true, historyEnabled: true, historyAutoSync: false, historyOwner: '', historyDeletePending: false, googleProfile: null,
       weights: {}, goals: [], allergens: [], diets: [], avoidList: [], orderBadgePlacement: 'image', hoverBreakdown: true, breakdownDelayMs: 20, ocrLabels: false, useOpenFoodFacts: false });
   }, ids);
   const history = await context.newPage(); history.on('pageerror', e => errors.push(`history scan: ${e.message}`));
@@ -26,7 +26,7 @@ export async function historyScanEndToEnd(context, worker, errors, extensionId) 
     await history.waitForFunction(() => document.querySelector('#scanStatus').textContent.includes('Scan complete'), null, { timeout: 30000 });
     const state = await worker.evaluate(async () => (await chrome.storage.local.get('historyScan')).historyScan);
     if (state.pages !== 4 || state.status !== 'complete' || !state.background) throw new Error(`Unexpected scan coverage: ${JSON.stringify(state)}`);
-    const stored = await worker.evaluate(async () => (await chrome.storage.local.get('purchaseHistory')).purchaseHistory);
+    const stored = await worker.evaluate(async () => (await AIR.db.purchaseStore.read(chrome.storage.local)));
     if (stored.length !== 4 || stored.some(r => r.score === null)) throw new Error('All available fixture years/pages were not imported and scored');
     if (!requests.some(u => u.includes('year-2025')) || !requests.some(u => u.includes('startIndex=10'))) throw new Error('Older year or Next page missed');
     const tab = await worker.evaluate(async id => chrome.tabs.get(id), state.tabId);
@@ -56,7 +56,7 @@ export async function historyScanEndToEnd(context, worker, errors, extensionId) 
     await history.click('#scanStart'); await history.waitForFunction(() => document.querySelector('#scanStatus').textContent.includes('Scanning'));
     await history.click('#scanPause'); await history.waitForFunction(() => document.querySelector('#scanStatus').textContent.includes('Scan paused'));
     await history.click('#scanResume'); await history.waitForFunction(() => document.querySelector('#scanStatus').textContent.includes('Scan complete'), null, { timeout: 30000 });
-    const repeated = await worker.evaluate(async () => (await chrome.storage.local.get('purchaseHistory')).purchaseHistory);
+    const repeated = await worker.evaluate(async () => (await AIR.db.purchaseStore.read(chrome.storage.local)));
     if (repeated.length !== 4) throw new Error('Full scan duplicated existing purchases');
     if (new Set(stored.map(r => r.orderKey)).size !== 3) throw new Error('Multiple products in one order were split into different orders');
     if (stored.some(r => !r.orderKey || !r.input)) throw new Error('Order grouping or replay input was not saved');
@@ -69,7 +69,7 @@ export async function historyScanEndToEnd(context, worker, errors, extensionId) 
     if (state?.tabId !== undefined) await worker.evaluate(id => chrome.tabs.remove(id).catch(() => {}), state.tabId);
     if (scanPage && !scanPage.isClosed()) await scanPage.close();
     await history.close(); await context.unroute('https://www.amazon.com/**', route);
-    await worker.evaluate(async ids => { await chrome.storage.local.remove(['historyScan', ...ids.flatMap(id => [`s:amazon.com:${id}`, `p:amazon.com:${id}`])]); await chrome.storage.local.set({ historyEnabled: false, purchaseHistory: [], orderBadgePlacement: 'image', breakdownDelayMs: 200 }); }, ids);
+    await worker.evaluate(async ids => { await chrome.storage.local.remove(['historyScan', ...ids.flatMap(id => [`s:amazon.com:${id}`, `p:amazon.com:${id}`])]); await AIR.db.purchaseStore.write(chrome.storage.local, [], { historyEnabled: false, orderBadgePlacement: 'image', breakdownDelayMs: 200 }); }, ids);
   }
   console.log('  ok full history → background year/pagination scan, progressive ratings, bounded image overlays, hover/focus snapshot details, placement setting, pause/resume and deduplication');
 }

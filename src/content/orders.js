@@ -1,6 +1,6 @@
 // Opt-in reading of opened order pages; an explicit background scan uses ordinary tab navigation.
 (function(root) {
-  const A = root.AIR, O = A.amazonOrders, H = A.db.purchaseHistory, cache = A.db.scoreCache;
+  const A = root.AIR, O = A.amazonOrders, H = A.db.purchaseHistory, S = A.db.purchaseStore, cache = A.db.scoreCache;
   let running = false, dirty = false, stopped = false, generation = 0, banner, badges = new WeakMap();
   const controllers = new Set(), imageWrappers = new Set(), readings = new Map();
   let scanHold = false, lastScanReport = null;
@@ -167,7 +167,7 @@
       const lines = O.read(document, location), sig = JSON.stringify(lines.map(x => [x.order, x.asin, x.state, x.date]));
       if (sig === signature && banner?.isConnected && lines.every(line => badges.get(line.anchor)?.isConnected)) { if (lastScanReport) await reportScan(stopped ? 'Amazon blocked label lookups. Check the scan tab, then Resume.' : ''); return; }
       if (!lines.length) {
-        const saved = accountMatches ? await chrome.storage.local.get('purchaseHistory') : {};
+        const saved = { purchaseHistory: accountMatches ? await S.read(chrome.storage.local) : [] };
         if (turn !== generation || !O.allowed(location)) return;
         historyRecords = H.merge([], saved.purchaseHistory);
         note('No identifiable order items on this page. Open Your Orders; recommendations and order details are not imported.');
@@ -181,7 +181,7 @@
       // The history is read only now, when this page needs importing. It used to come with the settings above, so every
       // quiet moment of a page that was already imported (and every badge the import itself painted) copied up to 10,000
       // records out of storage before the check at the top found nothing to do.
-      const { purchaseHistory } = accountMatches ? await chrome.storage.local.get('purchaseHistory') : {};
+      const purchaseHistory = accountMatches ? await S.read(chrome.storage.local) : [];
       if (turn !== generation || !O.allowed(location)) return;
       const existing = new Map(H.merge([], purchaseHistory).map(r => [r.key, r]));
       historyRecords = [...existing.values()];
@@ -314,7 +314,11 @@
     if (area !== 'local') return;
     if (['enabled', 'historyEnabled', 'historyOwner', 'theme', 'palette', 'ocrLabels', 'useOpenFoodFacts', 'ratePace', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'orderBadgePlacement', 'hoverBreakdown', 'breakdownDelayMs', 'breakdownDetail'].some(k => changes[k]) || (changes.googleProfile && changes.googleProfile.oldValue?.email !== changes.googleProfile.newValue?.email)) { historyRecords = []; reset(); }
     else if (!currentConf?.historyEnabled && ['autoScoreSearch', 'weights', 'goals', 'allergens', 'diets', 'avoidList'].some(k => changes[k])) reset();
-    else if (changes.purchaseHistory && currentConf) { historyRecords = currentConf.historyOwner && currentConf.googleProfile?.email && currentConf.historyOwner !== currentConf.googleProfile.email.toLowerCase() ? [] : H.merge([], changes.purchaseHistory.newValue); if (currentSummary) currentSummary(); else note(banner?.dataset.airText || ''); }
+    else if (S.changed(changes) && currentConf) { void S.read(chrome.storage.local).then(records => {
+      // The history is bucketed (db/purchase-store.js), so the event carries only the index: read what it points at.
+      historyRecords = currentConf.historyOwner && currentConf.googleProfile?.email && currentConf.historyOwner !== currentConf.googleProfile.email.toLowerCase() ? [] : H.merge([], records);
+      if (currentSummary) currentSummary(); else note(banner?.dataset.airText || '');
+    }).catch(() => {}); }
     else if (Object.keys(changes).some(k => /^(s|p):amazon\.com:/.test(k))) void cacheChanged(changes).catch(() => { note('A saved product rating could not be added to history. Open History & sync settings and refresh this page.'); });
   });
   A.nav.onChange(() => { if (location.href !== lastURL) { lastURL = location.href; reset(); } });

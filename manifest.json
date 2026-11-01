@@ -1279,6 +1279,7 @@
         "src/stores/registry.js",
         "src/stores/cart.js",
         "src/engine/db/purchase-history.js",
+        "src/engine/db/purchase-store.js",
         "src/engine/db/order-overview.js",
         "src/stores/amazon-orders.js",
         "src/engine/db/history-scan.js",

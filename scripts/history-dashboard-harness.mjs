@@ -1,12 +1,12 @@
 // Real dashboard behavior with private synthetic records, never a live account.
 export async function historyDashboardEndToEnd(history, worker) {
-  const keys = ['purchaseHistory', 'weights', 'goals', 'goalImportance', 'theme'];
-  const before = await worker.evaluate(async keys => chrome.storage.local.get(keys), keys);
+  const keys = ['weights', 'goals', 'goalImportance', 'theme'];
+  const before = await worker.evaluate(async keys => ({ values: await chrome.storage.local.get(keys), history: await AIR.db.purchaseStore.read(chrome.storage.local) }), keys);
   const records = Array.from({ length: 6 }, (_, i) => ({ key: (i + 10).toString(16).padStart(64, '0'), orderKey: ['a', 'a', 'b', 'c', 'c', 'd'][i].repeat(64), store: 'amazon.com', asin: 'B0DASH000' + i, date: ['2026-09-01', '2026-09-01', '2026-08-01', '2026-05-01', '2026-05-01', '2026-10-01'][i], state: i === 5 ? 'returned' : 'purchased', name: ['Rolled oats', 'Wholegrain cereal', 'Snack bar', 'Plain yogurt', 'Missing label', 'Returned snack'][i], score: [10, 80, 40, 90, null, 0][i], ingredients: i === 4 ? '' : 'sugar, wheat flour, palm oil, salt', input: i === 4 ? undefined : { name: 'Snack', ingredients_text: 'sugar, wheat flour, palm oil, salt' }, flags: i === 2 ? ['Palm oil'] : [], profile: 'f'.repeat(64), version: '1.13.0', observedAt: 10000, scoredAt: i === 4 ? 0 : 10000 }));
   records[0].breakdown = { base: 20, rows: [{ why: 'Saved original deduction', c: -10, kind: 'factor' }] };
   try {
-    await worker.evaluate(records => chrome.storage.local.set({ purchaseHistory: records, weights: {}, goals: [], goalImportance: {} }), records);
-    const initialStored = await worker.evaluate(async () => (await chrome.storage.local.get('purchaseHistory')).purchaseHistory);
+    await worker.evaluate(records => AIR.db.purchaseStore.write(chrome.storage.local, records, { weights: {}, goals: [], goalImportance: {} }), records);
+    const initialStored = await worker.evaluate(async () => (await AIR.db.purchaseStore.read(chrome.storage.local)));
     await history.waitForFunction(() => document.querySelector('#metricItems').textContent === '5');
     await history.waitForFunction(() => document.querySelector('#driversNote').textContent.includes('4/5'));
     if (await history.locator('#minusDrivers li').count() < 1) throw new Error('current-goal deductions missing');
@@ -31,7 +31,7 @@ export async function historyDashboardEndToEnd(history, worker) {
     const average = await history.locator('#metricAverage').textContent();
     await worker.evaluate(() => chrome.storage.local.set({ weights: { processing: 0 } }));
     await history.waitForFunction(old => document.querySelector('#viewNote').textContent.startsWith('Showing current-goal') && document.querySelector('#metricAverage').textContent !== old, average);
-    const stored = await worker.evaluate(async () => (await chrome.storage.local.get('purchaseHistory')).purchaseHistory);
+    const stored = await worker.evaluate(async () => (await AIR.db.purchaseStore.read(chrome.storage.local)));
     if (JSON.stringify(stored) !== JSON.stringify(initialStored)) throw new Error('Comparison rewrote recorded history');
     await history.locator('.statistics').evaluate(d => { d.open = true; });
     await history.selectOption('#errorBars', 'range'); await history.waitForFunction(() => document.querySelector('#trendChart .error'));
@@ -50,12 +50,12 @@ export async function historyDashboardEndToEnd(history, worker) {
     if (await history.evaluate(() => document.documentElement.scrollWidth > innerWidth + 2)) throw new Error('Dashboard overflows a narrow viewport with larger fonts');
     await history.evaluate(() => { document.body.style.removeProperty('font-size'); document.body.style.removeProperty('font-family'); });
     const large = Array.from({ length: 502 }, (_, i) => ({ ...records[0], key: (i + 100).toString(16).padStart(64, '0'), orderKey: (i + 1000).toString(16).padStart(64, '0') }));
-    await worker.evaluate(records => chrome.storage.local.set({ purchaseHistory: records }), large);
+    await worker.evaluate(records => AIR.db.purchaseStore.write(chrome.storage.local, records), large);
     await history.waitForFunction(() => document.querySelector('#metricItems').textContent === '502');
     const totals = await history.locator('#orderTotals').evaluate(body => { const rows = [...body.rows]; return { rows: rows.length, sum: rows.slice(0, -1).reduce((sum, row) => sum + Number(row.cells[2].textContent), 0), total: Number(rows.at(-1).cells[2].textContent) }; });
     if (totals.rows !== 502 || totals.sum !== 502 || totals.total !== 502) throw new Error('Large order table exceeded bounds or its aggregate no longer summed');
   } finally {
-    await worker.evaluate(async ({ before, keys }) => { await chrome.storage.local.remove(keys.filter(k => !(k in before))); await chrome.storage.local.set(before); }, { before, keys });
+    await worker.evaluate(async ({ before, keys }) => { await chrome.storage.local.remove(keys.filter(k => !(k in before.values))); await AIR.db.purchaseStore.write(chrome.storage.local, before.history, before.values); }, { before, keys });
     await history.setViewportSize({ width: 1280, height: 720 });
   }
   console.log('  ok purchase dashboard → order/item totals, charts, progress, equal-order weighting, filters/sorts, current goals without snapshot writes, error bars and mobile dark layout');

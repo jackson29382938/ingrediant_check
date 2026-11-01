@@ -1,10 +1,12 @@
 /* global accountRequest, networkRequest */
 // Private authenticated storage. Never send history to an older endpoint's contribution handler.
 (function(root) {
-  const H = root.AIR.db.purchaseHistory, ALARM = 'ic-purchase-sync';
+  const H = root.AIR.db.purchaseHistory, store = root.AIR.db.purchaseStore, ALARM = 'ic-purchase-sync';
   let chain = Promise.resolve();
   const serial = fn => { const next = chain.catch(() => {}).then(fn); chain = next; return next; };
-  const keys = ['purchaseHistory', 'historyEnabled', 'historyAutoSync', 'historyOwner', 'historyDeletePending', 'historyEpoch', 'historyAccount', 'googleProfile', 'oauthClientId', 'enabled'];
+  const keys = ['historyEnabled', 'historyAutoSync', 'historyOwner', 'historyDeletePending', 'historyEpoch', 'historyAccount', 'googleProfile', 'oauthClientId', 'enabled'];
+  // The settings keys plus the records (db/purchase-store.js keeps those in buckets, not under one key).
+  const load = async () => ({ ...(await chrome.storage.local.get(keys)), purchaseHistory: await store.read(chrome.storage.local) });
   const email = profile => typeof profile?.email === 'string' ? profile.email.toLowerCase() : '';
   function retry(delay = 1) { chrome.alarms.create(ALARM, { delayInMinutes: delay }); }
   async function status(ok, reason = '') { await chrome.storage.local.set({ historySyncStatus: { ok, reason, at: Date.now() } }); }
@@ -13,13 +15,13 @@
     const on = msg.enabled === true;
     if (on && old.historyDeletePending) return { ok: false, reason: 'delete-pending' };
     const values = { historyEnabled: on, historyAutoSync: on && msg.autoSync !== false };
-    if (!old.historyOwner && !old.purchaseHistory?.length) values.historyOwner = email(old.googleProfile);
+    if (!old.historyOwner && !await store.count(chrome.storage.local)) values.historyOwner = email(old.googleProfile);
     await chrome.storage.local.set(values);
     if (on && values.historyAutoSync) retry(); else await chrome.alarms.clear(ALARM);
     return { ok: true };
   }
   async function ingest(msg) {
-    const conf = await chrome.storage.local.get(keys);
+    const conf = await load();
     if (!conf.historyEnabled || conf.enabled === false || conf.historyDeletePending) return { ok: false, reason: 'off' };
     if (conf.historyOwner && email(conf.googleProfile) && conf.historyOwner !== email(conf.googleProfile)) return { ok: false, reason: 'account-changed' };
     if (!Array.isArray(msg.records) || msg.records.length > 100) return { ok: false, reason: 'invalid-records' };
@@ -35,7 +37,7 @@
     const canonical = list => JSON.stringify(list.map(r => ({ ...H.clean(r), observedAt: 0 })));   // when it was seen is not a change
     if (canonical(H.merge(touched, [])) === canonical(arrived)) return { ok: true, count: stored.length, records: arrived };
     const records = H.merge(conf.purchaseHistory, msg.records);
-    await chrome.storage.local.set({ purchaseHistory: records, historySyncStatus: { ok: false, reason: conf.historyAutoSync !== false ? 'pending' : 'local-only', at: Date.now() } });
+    await store.write(chrome.storage.local, records, { historySyncStatus: { ok: false, reason: conf.historyAutoSync !== false ? 'pending' : 'local-only', at: Date.now() } });
     if (conf.historyAutoSync !== false) retry();
     return { ok: true, count: records.length, records: records.filter(r => msg.records.some(x => x.key === r.key)) };
   }
@@ -47,7 +49,7 @@
     if (count > (Number(res.historyCapacity) || 1000)) throw new Error('backend-capacity-update-required');
   }
   async function sync(token, manual = false) {
-    const conf = await chrome.storage.local.get(keys);
+    const conf = await load();
     if (conf.enabled === false || (!conf.historyDeletePending && (!conf.historyEnabled || (!manual && conf.historyAutoSync === false)))) return { ok: false, reason: 'off' };
     try {
       if (!email(conf.googleProfile)) throw new Error('needs-sign-in');
@@ -68,14 +70,14 @@
       if (conf.historyDeletePending) {
         const deleted = await accountRequest('historyClear', token);
         if (deleted.ok !== true || deleted.kind !== 'historyClear') throw new Error('delete-not-confirmed');
-        await chrome.storage.local.set({ historyDeletePending: false, purchaseHistory: [], historyOwner: '', historyEpoch: deleted.clearedAt, historyAccount: '' });
+        await store.write(chrome.storage.local, [], { historyDeletePending: false, historyOwner: '', historyEpoch: deleted.clearedAt, historyAccount: '' });
         await status(true, 'deleted'); await chrome.alarms.clear(ALARM); return { ok: true };
       }
       const epoch = Number(remote.clearedAt) || 0;
       const afterClear = epoch && conf.historyEpoch !== epoch ? [] : conf.purchaseHistory || [];
       const merged = H.merge(afterClear, remote.records);
       // Save the merged local copy before uploads, so interrupted sync retains every record.
-      await chrome.storage.local.set({ purchaseHistory: merged, historyEpoch: epoch });
+      await store.write(chrome.storage.local, merged, { historyEpoch: epoch });
       const remoteByKey = new Map(H.merge([], remote.records).map(r => [r.key, JSON.stringify(r)]));
       const pending = merged.filter(r => remoteByKey.get(r.key) !== JSON.stringify(r));
       for (let i = 0; i < pending.length; i += 100) {
@@ -94,7 +96,7 @@
   }
   async function clear(token) {
     const conf = await chrome.storage.local.get(keys);
-    await chrome.storage.local.set({ purchaseHistory: [], historyEnabled: false, historyAutoSync: false, historyDeletePending: !!conf.historyOwner });
+    await store.write(chrome.storage.local, [], { historyEnabled: false, historyAutoSync: false, historyDeletePending: !!conf.historyOwner });
     if (conf.historyOwner) return sync(token, true);
     await status(true, 'deleted'); return { ok: true };
   }
@@ -107,7 +109,7 @@
   chrome.alarms.onAlarm.addListener(a => { if (a.name === ALARM) serial(() => sync()).catch(() => {}); });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
-    if (changes.purchaseHistory || changes.googleProfile) chrome.storage.local.get(keys).then(c => { if (c.historyDeletePending || (c.historyEnabled && c.historyAutoSync !== false)) retry(); });
+    if (store.changed(changes) || changes.googleProfile) chrome.storage.local.get(keys).then(c => { if (c.historyDeletePending || (c.historyEnabled && c.historyAutoSync !== false)) retry(); });
   });
   root.AIR.historyWorker = { handle, ingest, configure, sync: (token, manual) => serial(() => sync(token, manual)), clear: token => serial(() => clear(token)) };
 })(typeof globalThis !== 'undefined' ? globalThis : self);

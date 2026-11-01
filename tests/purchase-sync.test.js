@@ -4,12 +4,15 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
 const H = require('../src/engine/db/purchase-history.js');
+const S = require('../src/engine/db/purchase-store.js');
+const { withHistoryView } = require('./history-storage.js');
 const { receiver } = require('./receiver-harness.js');
 const r = (key = 'a', more = {}) => ({ key: key.repeat(64), store: 'amazon.com', asin: 'B000000001', date: '2026-09-01', state: 'purchased', name: 'Oats', score: 98, profile: 'f'.repeat(64), version: '1.11.0', ingredients: 'oats', flags: [], observedAt: Date.now(), scoredAt: Date.now(), ...more });
 function client(initial = {}, opts = {}) {
-  const data = { enabled: true, historyEnabled: true, historyAutoSync: true, googleProfile: { email: 'one@example.com' }, ...initial }, calls = [], alarms = [];
-  const c = vm.createContext({ AIR: { db: { purchaseHistory: H, prefs: { endpoint: () => 'https://example.test/exec', oauthClientId: () => 'client', OAUTH_CLIENT_ID: 'client' } }, googleAuth: { token: async () => 'test-token', profile: async () => ({ email: opts.tokenEmail || 'one@example.com' }) } },
-    chrome: { alarms: { create: (_n, v) => alarms.push(v), clear: async () => {}, onAlarm: { addListener() {} } }, permissions: { contains: async () => true }, storage: { onChanged: { addListener() {} }, local: { get: async () => structuredClone(data), set: async v => Object.assign(data, structuredClone(v)) } } },
+  const raw = { enabled: true, historyEnabled: true, historyAutoSync: true, googleProfile: { email: 'one@example.com' }, ...initial }, calls = [], alarms = [];
+  const data = withHistoryView(raw);   // what the tests assert on: `data.purchaseHistory` is the records, wherever they are stored
+  const c = vm.createContext({ AIR: { db: { purchaseHistory: H, purchaseStore: S, prefs: { endpoint: () => 'https://example.test/exec', oauthClientId: () => 'client', OAUTH_CLIENT_ID: 'client' } }, googleAuth: { token: async () => 'test-token', profile: async () => ({ email: opts.tokenEmail || 'one@example.com' }) } },
+    chrome: { alarms: { create: (_n, v) => alarms.push(v), clear: async () => {}, onAlarm: { addListener() {} } }, permissions: { contains: async () => true }, storage: { onChanged: { addListener() {} }, local: { get: async keys => structuredClone(Object.fromEntries((keys == null ? Object.keys(raw) : [].concat(keys)).filter(k => raw[k] !== undefined).map(k => [k, raw[k]]))), set: async v => Object.assign(raw, structuredClone(v)), remove: async keys => { for (const k of [].concat(keys)) delete raw[k]; } } } },
     networkRequest: async () => { if (opts.offline) throw new Error('offline'); return { history: opts.oldBackend ? undefined : true, historySchema: 1, historyCapacity: opts.capacity }; },
     accountRequest: async (kind, token, payload) => { calls.push({ kind, token, payload }); if (opts.request) return opts.request(kind, payload); return kind === 'historyGet' ? { ok: true, kind, account: opts.remoteAccount || 'c'.repeat(64), records: opts.remote || [], clearedAt: opts.clearedAt || 0 } : { ok: true, kind, clearedAt: Date.now() }; },
   }); vm.runInContext(fs.readFileSync('src/worker/purchase-history.js', 'utf8'), c);

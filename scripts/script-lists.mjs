@@ -53,7 +53,7 @@ export const RETAILER_PAGES = [
 export const AMAZON_ORDERS = [
   ...COMPAT, ...RULES, ...RULES_AMAZON, ...RULES_SHARED, ...AMAZON_DIAGNOSTICS, ...CATEGORIES, ...AMAZON_STORAGE, ...ENGINE,
   'src/content/extract.js', 'src/stores/registry.js', 'src/stores/cart.js',
-  'src/engine/db/purchase-history.js', 'src/engine/db/order-overview.js', 'src/stores/amazon-orders.js', 'src/engine/db/history-scan.js',
+  'src/engine/db/purchase-history.js', 'src/engine/db/purchase-store.js', 'src/engine/db/order-overview.js', 'src/stores/amazon-orders.js', 'src/engine/db/history-scan.js',
   ...SANITIZER, ...PANEL, 'src/content/order-hover.js', 'src/content/orders.js',
 ];
 

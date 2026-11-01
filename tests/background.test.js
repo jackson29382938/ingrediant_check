@@ -4,6 +4,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const { loadWorker } = require('./worker-scripts.js');
+const { withHistoryView, byKey } = require('./history-storage.js');
 const ENDPOINT = 'https://script.google.com/macros/s/abcdefghijklmnopqrstuvwxyz1234567890/exec';
 function worker(initial = {}, fetcher, { alarms, endpoint = ENDPOINT, productsAllowed = true, offPermission = true, badgeTexts, badgeReader, paletteRead, getKeys } = {}) {
   const data = structuredClone(initial);
@@ -58,7 +59,7 @@ function worker(initial = {}, fetcher, { alarms, endpoint = ENDPOINT, productsAl
   loadWorker(vm, context, { before: () => { if (context.AIR?.db?.prefs) { context.AIR.db.prefs.ENDPOINT = endpoint; context.AIR.db.prefs.SHARED_PRODUCTS_ALLOWED = productsAllowed; } } });
   return {
     failSync: value => { syncFailure = value; },
-    data, synced, reads, call: (expression) => vm.runInContext(expression, context), created: () => created, badges,
+    data: withHistoryView(data), synced, reads, call: (expression) => vm.runInContext(expression, context), created: () => created, badges,
     send(msg, sender) {
       return new Promise(resolve => {
         const async = onMessage(msg, sender, resolve);
@@ -871,7 +872,7 @@ const fullComparison = (stored, incoming) => {
 };
 const importer = history => {
   const w = worker({ historyEnabled: true, historyAutoSync: false, purchaseHistory: history });
-  w.call('(() => { const set = chrome.storage.local.set; globalThis.historyWrites = 0; chrome.storage.local.set = v => { if (v.purchaseHistory) historyWrites++; return set(v); }; })()');
+  w.call('(() => { const set = chrome.storage.local.set; globalThis.historyWrites = 0; chrome.storage.local.set = v => { if (v.purchaseHistoryIndex) historyWrites++; return set(v); }; })()');
   return w;
 };
 const ingest = (w, records) => w.call(`AIR.historyWorker.ingest(${JSON.stringify({ records })})`);
@@ -924,7 +925,7 @@ test('the import behaves as the full comparison did, over many histories and bat
     if (thrown) { assert.equal(await w.call('historyWrites'), 0, `${label}: nothing written on a refusal`); continue; }
     assert.equal(reply.ok, true, label);
     assert.equal(await w.call('historyWrites'), expected.unchanged ? 0 : 1, `${label}: ${expected.unchanged ? 'no write' : 'one write'}`);
-    assert.deepEqual(w.data.purchaseHistory, expected.unchanged ? stored : expected.all, `${label}: stored history`);
+    assert.deepEqual(expected.unchanged ? w.data.purchaseHistory : byKey(w.data.purchaseHistory), expected.unchanged ? stored : byKey(expected.all), `${label}: stored history`);
     assert.deepEqual(JSON.parse(JSON.stringify(reply.records)), JSON.parse(JSON.stringify(expected.records)), `${label}: reply`);
   }
 });
@@ -1018,4 +1019,21 @@ test('diagnosticsStatus answers from the options page even when storage fails', 
   const warn = console.warn; console.warn = () => {};
   try { assert.deepEqual(plain(await within(2000, w.send({ type: 'diagnosticsStatus' }, settingsSender), 'diagnosticsStatus')), { reason: 'worker-error', queued: 0, enabled: false, configured: false }); }
   finally { console.warn = warn; }
+});
+
+test('the worker saves purchase history in buckets, moves an old single-key history over, and never rewrites the unchanged ones', async () => {
+  const history = Array.from({ length: 200 }, (_, n) => purchase(n));
+  const w = importer(history);
+  assert.deepEqual(Object.keys(w.data).filter(k => /^purchaseHistory/.test(k)), ['purchaseHistory'], 'starts as the old single key');
+  await ingest(w, [purchase(900)]);
+  const keys = Object.keys(w.data).filter(k => /^purchaseHistory/.test(k));
+  assert.ok(!keys.includes('purchaseHistory'), 'the old key was removed');
+  assert.ok(keys.includes('purchaseHistoryIndex') && keys.length > 30, 'index and buckets');
+  assert.equal(w.data.purchaseHistory.length, 201);
+  // From now on a change writes the index and one bucket only.
+  w.call('(() => { const set = chrome.storage.local.set; globalThis.lastSet = null; chrome.storage.local.set = v => { globalThis.lastSet = Object.keys(v); return set(v); }; })()');
+  await ingest(w, [purchase(3, { state: 'returned', observedAt: 500 })]);
+  const written = plain(await w.call('lastSet')).filter(k => /^purchaseHistory/.test(k));
+  assert.equal(written.length, 2, `wrote ${written.join(', ')}`);
+  assert.ok(written.includes('purchaseHistoryIndex'));
 });
