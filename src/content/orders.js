@@ -207,7 +207,11 @@
         const average = rated ? `${Math.round(scored.reduce((sum, r) => sum + r.score, 0) / rated)}/100` : 'unavailable (no rated food purchases)';
         note(`Page average: ${average}. ${new Set(records.map(r => r.orderKey).filter(Boolean)).size} orders with ${records.length} product entries. ${done ? canImport ? 'This page imported:' : 'Ratings ready (history import is off):' : 'Checking missing labels:'} ${rated} rated food purchases of ${records.filter(r => r.state === 'purchased').length} eligible purchases; ${records.filter(r => r.state === 'purchased' && r.score === null).length} labels unavailable; ${items.filter(i => i.excluded).length} non-food items excluded; ${records.filter(r => r.state !== 'purchased').length} cancelled, returned or unconfirmed entries excluded.${stopped ? ' Amazon blocked public label lookups; open products to read labels, then refresh ratings.' : ''}`);
       };
-      currentSummary = () => summary(!running);
+      // "Done" is this import finishing, not `running` going false: the run still reports to the scan tab after its last
+      // summary, and a redraw in that gap (the history now arrives by an asynchronous read after a storage event) used
+      // to put "Checking missing labels" back over "This page imported".
+      let finished = false;
+      currentSummary = () => summary(finished);
       // Paint every saved answer before even the first public lookup, independently of its position.
       items.forEach(draw); summary(false);
       const save = async selected => {
@@ -272,6 +276,7 @@
       await Promise.all(fallbackTasks);
       if (turn !== generation || !O.allowed(location)) return;
       signature = sig;
+      finished = true;
       summary(true);
       await reportScan(stopped ? 'Amazon blocked public label lookups. Check the scan tab, then Resume.' : '');
     } catch (error) { if (turn !== generation) return; await reportScan(error.message === 'history-full' ? 'The history capacity limit was reached. Export your history before proceeding.' : 'Order import failed. Successfully imported purchases are kept; check the scan tab and Resume.').catch(() => {}); note('Order import did not complete. Successfully imported items are kept; check History & sync settings and retry this page.'); }
