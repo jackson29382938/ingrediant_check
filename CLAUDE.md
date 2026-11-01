@@ -21,7 +21,7 @@ In a cloud session Playwright's pinned browser is not installed and must not be 
 `HARNESS_CHROME` to the preinstalled Chromium as above (`/opt/pw-browsers/chromium` is a symlink that survives
 the image's browser build number changing). Installing Playwright with `--no-save` prunes the lint tools from
 `node_modules`, and `npm run lint` prunes Playwright: run one, then reinstall for the other. The harness catches what unit tests cannot,
-such as a wrapper object that drops a field the engine now returns.
+such as a wrapper object that drops a field the engine now returns. A whole run is about ten minutes; `HARNESS_ONLY=orders,amazon npm run harness:ci` runs just the named stages (the names are in `extensionSmoke`, `scripts/harness-ci.mjs`) for a one-minute look at a failure.
 
 ## Scoring engine (`src/engine/`)
 
