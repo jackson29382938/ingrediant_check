@@ -453,7 +453,7 @@
       chip.addEventListener('focus', () => showWhy(chip, product));
       chip.addEventListener('mouseleave', leaveSoon);
       chip.addEventListener('blur', hideWhy);
-      score.append(chip, node('span', 'score-verdict', [product.verdict, care ? AIR.db.productRatings.caption(product, t) : ''].filter(Boolean).join(' · ')));
+      score.append(chip, node('span', 'score-verdict', [product.verdict, care ? (AIR.db.productRatings?.caption?.(product, t) || '') : ''].filter(Boolean).join(' · ')));
     } else {
       score.append(node('span', 'score-chip none', '–'), node('span', 'score-verdict none', t('sortedNoScore', 'No score')));
     }

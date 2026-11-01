@@ -48,7 +48,7 @@ test('a script that names an index loads the module that names it, before it run
     assert.ok(at >= 0 && at < scripts.indexOf(used[0]), `${used[0]} runs without product-ratings.js`);
     assert.ok(scripts.includes('src/engine/db/theme.js') && scripts.indexOf('src/engine/db/theme.js') < scripts.indexOf(used[0]), `${used[0]} runs without theme.js`);
   }
-  for (const page of ['src/options/popup.html', 'src/options/sorted.html']) {
+  for (const page of ['src/options/popup.html', 'src/options/sorted.html', 'src/options/sidepanel.html']) {
     assert.match(fs.readFileSync(path.join(root, page), 'utf8'), /engine\/db\/product-ratings\.js/, page);
   }
   // Every group that scores must be able to rate: score.js reads the module through the same list.
