@@ -58,6 +58,7 @@ const MAX_KEY = 80;
 // trimmed (score.js tidy()); this makes a name typed or returned elsewhere match them.
 function keyOf(name) {
   if (typeof name !== 'string') return '';
+  if (name === '__proto__' || name === 'constructor' || name === 'prototype') return '';
   const key = name.normalize('NFKC').toLowerCase().replace(/[\p{Cc}\p{Cf}]/gu, '')
     .replace(/\s+/g, ' ').replace(/^[\s*•\-–:,.;]+|[\s*•\-–:,.;]+$/g, '');
   if (!key || key.length > MAX_KEY || !/\p{L}/u.test(key)) return '';
@@ -75,10 +76,11 @@ function cleanRating(raw) {
 
 // A stored map of ratings, bounded and healed. Used wherever a saved reading is read back.
 function sanitize(raw, limit = MAX_PER_READING) {
-  const out = {};
+  const out = Object.create(null);
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
   let n = 0;
   for (const [name, value] of Object.entries(raw)) {
+    if (name === '__proto__' || name === 'constructor' || name === 'prototype') continue;
     const key = keyOf(name), rating = key && cleanRating(value);
     if (!rating || Object.hasOwn(out, key)) continue;
     out[key] = rating;
