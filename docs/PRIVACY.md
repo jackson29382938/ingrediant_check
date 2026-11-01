@@ -81,7 +81,7 @@ are told about this in three places:
   scores show either way. Finishing setup with the option ticked counts as the answer, because the setup page says
   the same thing.
 
-While it runs, a status line above the results shows how many are scored and the best score, with **Pause**.
+While it runs, a small status pill in the corner of the window shows how many are scored and the best score, with **Pause**.
 Every tab shares one request allowance (300 requests per ten minutes in the whole browser, kept in memory and cleared
 when the browser closes), and an Amazon robot check, or five refusals in a row, stops automatic requests in every tab
 for 15 minutes, then 30, up to four hours if it keeps happening. A robot-check page is never read as a product.

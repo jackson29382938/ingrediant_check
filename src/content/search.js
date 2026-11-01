@@ -801,7 +801,7 @@
 
   // ---- status line
   //
-  // One quiet line above the results: how many are scored, the best of them, and a Pause for the requests
+  // One quiet line in a corner of the window: how many are scored, the best of them, and a Pause for the requests
   // still waiting. It is the visible half of automatic rating, and it shows why a request is not going out
   // (paused, or the install-wide limit).
   const STATUS_ID = 'air-status';
@@ -866,7 +866,11 @@
     const el = document.createElement('div');
     el.id = STATUS_ID;
     el.setAttribute('role', 'status');
-    el.style.cssText = 'margin:8px 0;padding:6px 12px;border:1px solid #d5d9d9;border-radius:8px;background:#f7fafa;color:#0f1111;'
+    // Fixed to a corner, not inserted above the results: a line that appeared in the page flow after the scores
+    // arrived pushed every result down by its height, so a pointer that was on a score was suddenly on something
+    // else (the real-browser harness caught the breakdown card failing to open for this reason).
+    el.style.cssText = 'position:fixed;left:16px;bottom:16px;z-index:2147482000;box-sizing:border-box;max-width:min(560px,calc(100vw - 32px));'
+      + 'padding:6px 12px;border:1px solid #d5d9d9;border-radius:10px;background:#f7fafa;color:#0f1111;box-shadow:0 2px 8px rgba(0,0,0,.18);'
       + 'font:12px/1.5 "Amazon Ember",sans-serif;display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;';
     const text = document.createElement('span');
     text.textContent = `${copy('statusName', 'Ingredient Check')}: ${parts.join(' · ')}`;
@@ -877,7 +881,7 @@
     else if (sum.waiting && !held) small(copy('statusPause', 'Pause'), () => { queue.userPaused = true; scheduleStatus(); });
     small(copy('statusHide', 'Hide'), () => { statusHidden = true; removeStatusElement(); });
     statusEl = el;
-    placeAboveResults(el);
+    (document.body || document.documentElement).appendChild(el);
   }
   function removeStatusElement() { if (statusEl) statusEl.remove(); statusEl = null; statusSig = ''; }
 

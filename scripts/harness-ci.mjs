@@ -1024,20 +1024,23 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
       await page.close();
     }
     console.log(`  ok  extension → service worker started with every module; ${pages.length} pages open without errors, unnamed controls or low contrast (light and dark); goal tabs work by keyboard; setup saves what was picked`);
-    await appearanceEndToEnd(context, worker, id, pageErrors);
-    await retailerEndToEnd(context, worker, pageErrors);
-    await cartEndToEnd(context, worker, pageErrors, root);
-    await amazonCartEndToEnd(context, worker, pageErrors, root);
-    await cartLabelRecoveryEndToEnd(context, worker, pageErrors);
-    await recallEndToEnd(context, worker, pageErrors, root);
-    await historyScanEndToEnd(context, worker, pageErrors, id);
-    await ordersEndToEnd(context, worker, pageErrors);
-    await shoppingEndToEnd(context, worker, pageErrors);
-    await bottomFiveEndToEnd(context, worker, pageErrors, root);
-    await bottomFiveEndToEnd(context, worker, pageErrors, root, ['kroger', 'frys', 'ralphs', 'kingsoopers', 'smiths', 'fredmeyer']);
-    await amazonEndToEnd(context, worker, pageErrors);
-    await nonfoodSortEndToEnd(context, worker, pageErrors);
-    await sameDayGroceryEndToEnd(context, worker, pageErrors);
+    // HARNESS_ONLY=orders,amazon runs just those stages (names below), for a quick look at one failure.
+    const only = (process.env.HARNESS_ONLY || '').split(',').map(x => x.trim()).filter(Boolean);
+    const stage = (name, run) => (only.length && !only.includes(name) ? undefined : run());
+    await stage('appearance', () => appearanceEndToEnd(context, worker, id, pageErrors));
+    await stage('retailer', () => retailerEndToEnd(context, worker, pageErrors));
+    await stage('cart', () => cartEndToEnd(context, worker, pageErrors, root));
+    await stage('amazon-cart', () => amazonCartEndToEnd(context, worker, pageErrors, root));
+    await stage('cart-label-recovery', () => cartLabelRecoveryEndToEnd(context, worker, pageErrors));
+    await stage('recall', () => recallEndToEnd(context, worker, pageErrors, root));
+    await stage('history-scan', () => historyScanEndToEnd(context, worker, pageErrors, id));
+    await stage('orders', () => ordersEndToEnd(context, worker, pageErrors));
+    await stage('shopping', () => shoppingEndToEnd(context, worker, pageErrors));
+    await stage('bottom-five', () => bottomFiveEndToEnd(context, worker, pageErrors, root));
+    await stage('bottom-five-kroger', () => bottomFiveEndToEnd(context, worker, pageErrors, root, ['kroger', 'frys', 'ralphs', 'kingsoopers', 'smiths', 'fredmeyer']));
+    await stage('amazon', () => amazonEndToEnd(context, worker, pageErrors));
+    await stage('nonfood-sort', () => nonfoodSortEndToEnd(context, worker, pageErrors));
+    await stage('same-day-grocery', () => sameDayGroceryEndToEnd(context, worker, pageErrors));
   } finally {
     await context.close();
     fs.rmSync(profile, { recursive: true, force: true });
