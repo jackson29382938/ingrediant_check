@@ -134,19 +134,32 @@ var USDA_NUTRIENT_IDS = [1003, 1004, 1005, 1079, 1093, 1235, 1258, 2000];
 function usdaDigits(code) {
   return String(code == null ? '' : code).replace(/\D/g, '').replace(/^0+/, '');
 }
+// FoodData Central stores a barcode zero-padded as the manufacturer gave it (a UPC-A as 12 digits) and matches that
+// text exactly: "16000275683" finds nothing where "016000275683" finds the product (measured against the live API).
+// The 12-, 13- and 14-digit forms go in one query, separated by spaces, which matches any of them.
+function usdaQuery(digits) {
+  var forms = [];
+  [12, 13, 14].forEach(function (n) {
+    var form = digits;
+    while (form.length < n) form = '0' + form;
+    if (forms.indexOf(form) === -1) forms.push(form);
+  });
+  return forms.join(' ');
+}
 function usdaLookup(code) {
   var digits = usdaDigits(code);
   if (digits.length < 7 || digits.length > 14) return json({ ok: false, error: 'invalid barcode' });
   var key = PropertiesService.getScriptProperties().getProperty('USDA_API_KEY');
   if (!key) return json({ ok: false, error: 'usda not configured' });
   var cache = CacheService.getScriptCache();
-  var held = cache.get('usda:' + digits);
+  // 'usda2:': answers cached before the zero-padding fix (usdaQuery) were empty for most barcodes.
+  var held = cache.get('usda2:' + digits);
   if (held) return json({ ok: true, foods: JSON.parse(held) });
   var hour = 'usdaBudget:' + Math.floor(Date.now() / 3600000);
   var used = Number(cache.get(hour) || 0);
   if (used >= USDA_HOURLY_BUDGET) return json({ ok: false, error: 'busy; retry later' });
   cache.put(hour, String(used + 1), 7200);
-  var res = UrlFetchApp.fetch(USDA_SEARCH + '?query=' + encodeURIComponent(digits) + '&dataType=Branded&pageSize=10',
+  var res = UrlFetchApp.fetch(USDA_SEARCH + '?query=' + encodeURIComponent(usdaQuery(digits)) + '&dataType=Branded&pageSize=10',
     { method: 'get', headers: { 'X-Api-Key': key }, muteHttpExceptions: true });
   var status = res.getResponseCode();
   if (status !== 200) return json({ ok: false, error: status === 429 ? 'busy; retry later' : 'upstream ' + status });
@@ -164,7 +177,7 @@ function usdaLookup(code) {
       }).map(function (n) { return { nutrientId: Number(n.nutrientId), value: Number(n.value) }; }),
     });
   });
-  cache.put('usda:' + digits, JSON.stringify(foods), USDA_CACHE_SECONDS);
+  cache.put('usda2:' + digits, JSON.stringify(foods), USDA_CACHE_SECONDS);
   return json({ ok: true, foods: foods });
 }
 

@@ -42,6 +42,12 @@
   // A barcode as digits without leading zeros, so a 12-digit UPC-A and its 13-digit EAN form are one number.
   const digits = code => String(code == null ? '' : code).replace(/\D/g, '').replace(/^0+/, '');
 
+  // What to search for. FoodData Central stores a barcode zero-padded as the manufacturer gave it (a UPC-A as 12
+  // digits, an EAN-13 as 13) and matches the stored text exactly: "16000275683" finds nothing where "016000275683"
+  // finds the product (measured against the live API), and most US UPCs start with 0. The three padded forms go in
+  // one query, separated by spaces, which matches any of them; the barcode check in parseSearch decides.
+  const queryFor = code => [...new Set([12, 13, 14].map(n => digits(code).padStart(n, '0')))].join(' ');
+
   function nutritionFromFdc(food) {
     const unit = String(food && food.servingSizeUnit || '').toLowerCase();
     const basis = /^(?:g|grm|gram)s?$/.test(unit) ? 'servingGrams' : /^(?:ml|mlt|milliliter)s?$/.test(unit) ? 'servingMl' : '';
@@ -111,7 +117,7 @@
         if (body && body.ok === true && Array.isArray(body.foods)) return { ok: true, json: { foods: body.foods } };
         return { ok: false, reason: body && /busy/.test(String(body.error)) ? failure(429) : 'unavailable' };
       }
-      const url = `${ENDPOINT}?query=${encodeURIComponent(query)}&dataType=Branded&pageSize=10`;
+      const url = `${ENDPOINT}?query=${encodeURIComponent(queryFor(query))}&dataType=Branded&pageSize=10`;
       const res = await networkRequest(url, { credentials: 'omit', referrerPolicy: 'no-referrer', headers: { 'X-Api-Key': cfg.key } },
         async r => ({ status: r.status, json: r.ok ? await r.json() : null }));
       return res.json ? { ok: true, json: res.json } : { ok: false, reason: failure(res.status) };
@@ -127,7 +133,8 @@
     if (!want || want.length < 7 || want.length > 14 || typeof networkRequest !== 'function') return null;
     const cfg = await config(manual ? null : 'useUsda');
     if (!cfg.ok) return null;
-    const cacheKey = `usda:${want}`;
+    // 'usda2:': misses saved before the zero-padding fix (queryFor) were wrong for most barcodes.
+    const cacheKey = `usda2:${want}`;
     const held = (await chrome.storage.local.get(cacheKey))[cacheKey];
     if (held && Number.isFinite(held.t) && Date.now() - held.t < (held.data ? TTL_MS : MISS_TTL_MS)) {
       return held.data ? afterFoodCheck(held.data, foodOnly) : null;
@@ -163,7 +170,7 @@
   }
 
   root.AIR = root.AIR || {};
-  root.AIR.usdaWorker = { lookup, test, parseSearch, nutritionFromFdc, digits, PERMISSION, KEY, ENDPOINT,
+  root.AIR.usdaWorker = { lookup, test, parseSearch, nutritionFromFdc, digits, queryFor, PERMISSION, KEY, ENDPOINT,
     // For tests: clear the pause after a 429.
     resetBackoff() { backoffUntil = 0; } };
 })(typeof globalThis !== 'undefined' ? globalThis : self);

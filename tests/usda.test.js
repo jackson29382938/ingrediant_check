@@ -113,7 +113,7 @@ test('with nothing at Open Food Facts, USDA answers: one request with the key in
   const call = w.usda()[0];
   const url = new URL(call.url);
   assert.equal(url.origin + url.pathname, 'https://api.nal.usda.gov/fdc/v1/foods/search');
-  assert.equal(url.searchParams.get('query'), '28400064057', 'the barcode, as digits');
+  assert.equal(url.searchParams.get('query'), '028400064057 0028400064057 00028400064057', 'the zero-padded forms USDA stores, not the stripped digits');
   assert.equal(url.searchParams.get('dataType'), 'Branded');
   assert.equal(call.options.headers['X-Api-Key'], KEY);
   assert.ok(!call.url.includes(KEY), 'the key is never in a URL');
@@ -121,7 +121,7 @@ test('with nothing at Open Food Facts, USDA answers: one request with the key in
   assert.equal(call.options.referrerPolicy, 'no-referrer');
   assert.deepEqual((await lookup(w)).ingredients_text, got.ingredients_text);
   assert.equal(w.usda().length, 1, 'answered from this computer');
-  assert.ok(w.data['usda:28400064057'].t > 0);
+  assert.ok(w.data['usda2:28400064057'].t > 0);
 });
 
 test('a wrong-barcode or empty answer is a miss, kept 3 days; a refusal is not kept', async () => {
@@ -267,4 +267,11 @@ test('a saved reading is usable only while its source\'s switches are on, and is
   // The row round-trips with its source, and the shared tab is not told about a source it cannot check.
   const row = C.fromScan({ store: 'amazon.com', asin: 'B00LOAW7U6', input: { name: 'Chips', ingredients_text: 'potatoes, salt' }, via: 'usda-fdc', confidence: 0.55 });
   assert.equal(row.data.via, 'usda-fdc');
+});
+
+test('the direct query pads like the script: stripped digits are never searched', async () => {
+  const { queryFor } = vm.runInContext('AIR.usdaWorker', worker(on, () => OFF_MISSING).context);
+  assert.equal(queryFor('016000275683'), '016000275683 0016000275683 00016000275683');
+  assert.equal(queryFor('0016000275683'), '016000275683 0016000275683 00016000275683', 'the same barcode however it is written');
+  assert.equal(queryFor('4006381333931'), '4006381333931 04006381333931');
 });

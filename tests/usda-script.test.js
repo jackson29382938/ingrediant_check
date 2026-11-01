@@ -34,7 +34,7 @@ test('the key goes to USDA in a header, the barcode in the query, and only match
   assert.deepEqual(Object.keys(reply.foods[0]).sort(), ['brandName', 'brandOwner', 'description', 'foodCategory', 'foodNutrients', 'gtinUpc', 'ingredients', 'modifiedDate', 'servingSizeUnit']);
   assert.deepEqual(reply.foods[0].foodNutrients, [{ nutrientId: 1093, value: 590 }], 'only the nutrients the extension reads, numbers only');
   const call = r.usdaCalls[0];
-  assert.equal(new URL(call.url).searchParams.get('query'), '28400064057');
+  assert.equal(new URL(call.url).searchParams.get('query'), '028400064057 0028400064057 00028400064057', 'USDA matches the stored, zero-padded text: the stripped digits find nothing');
   assert.equal(new URL(call.url).searchParams.get('dataType'), 'Branded');
   assert.equal(call.options.headers['X-Api-Key'], KEY);
   assert.ok(!call.url.includes(KEY), 'never in the URL');
@@ -46,7 +46,7 @@ test('an answer is kept six hours; a miss is kept too; a changed barcode is a ne
   const r = receiver({ usdaKey: KEY, usdaFetch: () => { n++; return ok([food()]); } });
   ask(r); ask(r); ask(r, '0' + UPC);
   assert.equal(n, 1);
-  const held = r.cache.get('usda:' + UPC.replace(/^0+/, ''));
+  const held = r.cache.get('usda2:' + UPC.replace(/^0+/, ''));
   assert.equal(held.seconds, 21600);
   ask(r, '036000291452');
   assert.equal(n, 2);
@@ -61,7 +61,7 @@ test('an upstream refusal is reported as a status only: no body, no key', () => 
     const reply = ask(r);
     assert.deepEqual(reply, { ok: false, error });
     assert.ok(!JSON.stringify(reply).includes(KEY));
-    assert.equal(r.cache.has('usda:' + UPC.replace(/^0+/, '')), false, 'a refusal is not cached as an answer');
+    assert.equal(r.cache.has('usda2:' + UPC.replace(/^0+/, '')), false, 'a refusal is not cached as an answer');
   }
 });
 
@@ -89,4 +89,16 @@ test('the lookup is a read: it does not spend the per-minute allowance that anon
   for (let i = 0; i < 5; i++) assert.equal(ask(r, String(2000000000000 + i)).ok, true);
   assert.equal(r.post({ kind: 'report', product_name: 'x' }).ok !== undefined, true);
   assert.ok(r.get({}).accepts.includes('usda'));
+});
+
+test('the query lists the padded forms FoodData Central stores: 12, 13 and 14 digits, once each', () => {
+  const queries = code => {
+    const r = receiver({ usdaKey: KEY, usdaFetch: () => ok([]) });
+    ask(r, code);
+    return new URL(r.usdaCalls[0].url).searchParams.get('query');
+  };
+  assert.equal(queries('016000275683'), '016000275683 0016000275683 00016000275683');
+  assert.equal(queries('722252100900'), '722252100900 0722252100900 00722252100900');
+  assert.equal(queries('4006381333931'), '4006381333931 04006381333931', 'an EAN-13 is already 13 digits');
+  assert.equal(queries('40084107'), '000040084107 0000040084107 00000040084107', 'an 8-digit EAN is padded to the stored length');
 });
