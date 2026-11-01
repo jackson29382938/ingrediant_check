@@ -111,6 +111,19 @@ test('a listing is priced in every family it can supply', () => {
   assert.deepEqual([tea.unitId, tea.unitSources.count], ['ct', 'amazon']);
 });
 
+test('conflicting fluid pack and item counts are not used to calculate a unit price', () => {
+  const ambiguous = card('Soda 12 fl oz, Pack of 6, 12 cans', 12);
+  assert.equal(ambiguous.unitPrices.fluid, undefined);
+  assert.equal(ambiguous.unitPrices.count, undefined);
+  assert.equal(U.parseQuantity('Soda 12 fl oz, Pack of 6, 12 cans'), null);
+  assert.equal(U.parseQuantity('Soda 2 fl oz each, 12 fl oz total, Pack of 6, 12 cans'), null);
+  assert.equal(U.parseQuantity('Soda 12 fl oz, 10000 cans'), null, 'unsupported counts are not treated as one package');
+
+  const matching = card('Soda 12 fl oz, Pack of 6, 6 cans', 12);
+  near(matching.unitPrices.fluid, 12 / 72);
+  assert.deepEqual(U.parseQuantity('Soda 2 fl oz each, 12 fl oz total, Pack of 6, 6 cans'), { ounces: 12, kind: 'fluid' });
+});
+
 test('the missing-price setting still decides how much of the card is read', () => {
   const titled = { title: 'Oats', text: 'Oats\nNet Wt 32 oz, Pack of 2\n$6.40', listingPrice: 6.4 };
   assert.deepEqual(U.unitPricesFor(titled, { unitMissing: 'calculate-clear' }, 'www.amazon.com').unitPrices, {});

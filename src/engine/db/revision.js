@@ -8,7 +8,7 @@
 //
 // Bump RULES_REVISION whenever anything in these files changes in a way that can move a score:
 //   src/engine/score.js, src/engine/categories.js,
-//   src/engine/db/{oils,sugars,additives,labels,allergens,provenance}.js
+//   src/engine/db/{oils,sugars,additives,labels,allergens,provenance,ingestible,product-ratings}.js
 // Then copy the hash the failing test prints into RULES_HASH. The hash covers code only: a comment on
 // its own line, a blank line or trailing spaces change nothing, so prose can be edited freely. A comment
 // trailing code, a rename or any reformatting of code still counts.
