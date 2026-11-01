@@ -76,8 +76,15 @@ are told about this in three places:
 
 - the toolbar popup, in a line under the switch that is always shown;
 - Settings → *What to rate*, next to the same switch;
-- once on the first results page it rates, beside the results, with a **Turn off automatic rating**
-  button.
+- once on the first results page it would rate, beside the results. **Nothing is requested until you answer it**:
+  **Rate these results** starts the requests, **Turn off automatic rating** switches the setting off, and saved
+  scores show either way. Finishing setup with the option ticked counts as the answer, because the setup page says
+  the same thing.
+
+While it runs, a status line above the results shows how many are scored and the best score, with **Pause**.
+Every tab shares one request allowance (300 requests per ten minutes in the whole browser, kept in memory and cleared
+when the browser closes), and an Amazon robot check, or five refusals in a row, stops automatic requests in every tab
+for 15 minutes, then 30, up to four hours if it keeps happening. A robot-check page is never read as a product.
 
 Turn it off in any of those places. Results then only show a score for products already read, by you
 or through the shared database. Scoring on product pages you open does not change.
@@ -101,7 +108,7 @@ Scoring is always local: the rules, your weights and every score are computed in
 | **Share product readings with other computers** (off by default; experimental) | The store and product IDs of search tiles this computer cannot already answer (one batched request per page), and of a product page whose ingredients Amazon did not publish as text. For products you score: what was read off the page — ingredient text, title, feature bullets, certifications, nutrition numbers, how it was read — and when. One pull count when a shared read is used. Never your settings, your scores, or anything that identifies you. Readings from other computers are not checked, so a badge could show a score for text that is not on the label (product pages you open are always read from the page). | The Ingredient Check Apps Script, as above. It learns which products are being looked at, not by whom. See [CACHE.md](CACHE.md). |
 | **Back up my settings** (on by default) | Weights, goals and their importance, allergen and diet choices, avoid list, toggles, sort, speed and display preferences | Chrome's own sync, for the Google account signed into Chrome. Not the Ingredient Check database. |
 | **Sign in with Google** (only when you click it) | Signing in asks Google for your name, email and picture (scopes `openid email profile`) so Settings can show who is signed in; the picture is then loaded from Google's image host each time Settings opens. Those three are kept only in this browser's local storage, never backed up, exported or sent anywhere else; **Sign out** deletes them. The access token is never stored. **Save my settings to Google** also sends the same settings as the Chrome backup, and while you are signed in and this computer has saved or restored once, the same copy is sent a few seconds after each change (switch off with *Keep my Google copy up to date automatically*). | Google, for the profile. The Ingredient Check database, for a saved copy, keyed by a SHA-256 of your Google account id — not your email. |
-| **Automatic Amazon search rating** (on by default) or **Score on hover** | Ordinary `GET` of `/dp/ASIN` on the Amazon store you are on, using your Amazon session (`credentials: same-origin`), three at a time and at most 60 per results page — only for tiles this computer and the shared database cannot already answer | **Amazon.** Each auto-scored or hovered tile looks like you opened that product. See *Access to Amazon* above. |
+| **Automatic Amazon search rating** (on by default) or **Score on hover** | Ordinary `GET` of `/dp/ASIN` on the Amazon store you are on, using your Amazon session (`credentials: same-origin`), three at a time and at most 60 per results page, and at most 300 per ten minutes across all tabs — only for tiles this computer and the shared database cannot already answer, and only after you answer the first-use question | **Amazon.** Each auto-scored or hovered tile looks like you opened that product. See *Access to Amazon* above. |
 | **Automatic cart rating** (on by default) | Public same-origin product pages only, without cookies or referrer, two at a time and at most 20–60 per cart view depending on Speed. No quantities, prices, totals, delivery information or cart URL parameters are sent. | The retailer hosting that public product page; no cart data goes to Google or the shared database. |
 | **Cart points** (off by default) | Nothing. A running total, and for each product the day it last earned points (store and product ID only), are kept in `chrome.storage.local` on this computer. | Nobody. Not part of a backup, the settings file or a report, and never uploaded; **Reset points** in Settings deletes it. |
 | **Sort menu → Rate them** (the default sort setting; only when *Rate every search result* is on) | After you choose an Ingredient Check option in Amazon's sort menu: the same product-page `GET`s as *Rate every search result*, for listings in the list without a score. They go through the same queue as the badges: three at a time in total, never twice for one product, paused for both when Amazon refuses, and inside the same limit — 60 product pages (fewer under *Speed*) for each Amazon results page in the list, counting the ones the badges already requested. It stops at that limit or when you press *Stop rating* | **Amazon**, as above. |
@@ -170,7 +177,7 @@ tracking behind this.
 The sorted list (opened from Amazon's sort menu) and the priorities set in its *Prioritize* bar are kept in `chrome.storage.session`: in memory, for this
 browser session only, gone when Chrome closes.
 
-`chrome.storage.local` holds your weights, allergen/diet flags, avoid list, toggles, the optional cart points (a total and, per product, the day it last earned them; only when you turn points on), a **score cache** (number, verdict, ASIN) and the **product data** behind it (what was read off each product page, kept 30 days by default, 1 to 90 days under Settings → *Speed*, so a weight change does not refetch). **Clear cached scores** in the popup removes both.
+`chrome.storage.local` holds your weights, allergen/diet flags, avoid list, toggles, the optional cart points (a total and, per product, the day it last earned them; only when you turn points on), the purchase history, when you turn it on (in 64 small groups plus an index, so one change rewrites one group), a **score cache** (number, verdict, ASIN) and the **product data** behind it (what was read off each product page, kept 30 days by default, 1 to 90 days under Settings → *Speed*, so a weight change does not refetch). **Clear cached scores** in the popup removes both.
 
 ## Single purpose
 

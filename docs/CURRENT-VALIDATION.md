@@ -1,6 +1,6 @@
 # Current validation
 
-The current source is **1.19.1**. See [the cart label recovery record](CART-LABEL-RECOVERY-2026-10-30.md)
+The current source is **1.20.0** ([release notes](releases/1.20.0.md)). The record below was written for 1.19.1. See [the cart label recovery record](CART-LABEL-RECOVERY-2026-10-30.md)
 and [1.19.1 release notes](releases/1.19.1.md) for four independently located public Amazon labels,
 parser/dictionary fixes, saved-label recovery and optional cart barcode/photo fallbacks.
 

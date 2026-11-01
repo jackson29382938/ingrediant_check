@@ -11,9 +11,11 @@ engine runs unchanged in Node (tests) and in a content script.
 | Unit and integration tests (about 25 s on four cores) | `npm test` (parallel; files marked `// @serial` run alone afterwards; `npm run test:serial` runs everything one at a time) |
 | Lint (installs pinned ESLint for this run only) | `npm run lint` |
 | Manifest, scripts and locale checks | `npm run preflight` |
-| Build Chrome and Firefox packages | `npm run pack` |
-| Real-Chromium harness (no network) | `npm install --no-save --no-package-lock playwright@1.63.0`, then `HARNESS_CHROME=/opt/pw-browsers/chromium npm run harness:ci` |
-| Firefox package lint | `npm install --no-save --no-package-lock web-ext@10.0.0`, then `npm run firefox:lint` |
+| Build Chrome and Firefox packages (plain Node, reproducible: same commit, same SHA256) | `npm run pack` |
+| Coverage of `src/` from the test suite (content scripts and the worker run in `vm`, so their rows are partial) | `npm run test:coverage` |
+| Content-script file lists and URL patterns in `manifest.json` | edit `scripts/script-lists.mjs` / `scripts/content-matches.mjs`, then `node scripts/script-lists.mjs --write` and `node scripts/content-matches.mjs --write` |
+| Real-Chromium harness (no network) | `npm install --no-save --no-package-lock --ignore-scripts playwright@1.63.0`, then `HARNESS_CHROME=/opt/pw-browsers/chromium npm run harness:ci` |
+| Firefox package lint | `npm install --no-save --no-package-lock --ignore-scripts web-ext@10.0.0`, then `npm run firefox:lint` |
 
 In a cloud session Playwright's pinned browser is not installed and must not be downloaded; set
 `HARNESS_CHROME` to the preinstalled Chromium as above (`/opt/pw-browsers/chromium` is a symlink that survives
@@ -84,7 +86,22 @@ Rules that are easy to break:
 - A service-worker message handler that returns `true` answers through `answer()` in `background.js`, so a
   rejected promise still replies and leaves a trace.
 - A test that asserts a millisecond limit carries a `// @serial` comment so `npm test` runs it alone.
-- `docs/apps-script.gs` ends with a byte-for-byte copy of `src/engine/db/purchase-history.js`; after editing that file run
-  `node scripts/sync-apps-script-schema.mjs` (a test fails otherwise) and redeploy the script by hand.
+- `docs/apps-script.gs` ends with a byte-for-byte copy of `src/engine/db/purchase-history.js` (a test fails when they differ):
+  after editing that file, paste it over the tail of the script, and redeploy the script by hand.
+- **Every script list has one source.** `scripts/script-lists.mjs` writes `content_scripts[].js`; a page or group that
+  uses an `AIR.db.x` module it does not load fails `tests/page-dependencies.test.js`. A new `src/` file the content
+  scripts need goes in that list, not into `manifest.json` by hand.
+- **Watch for address changes with `AIR.nav.onChange` (`src/content/nav.js`)**, never a `setInterval` on `location.href`.
+- **Change a panel's state with `AIR.panel.setPanelState`**, never `host.dataset.airState = …`; a state it does not know
+  is flagged, and the test reads every call.
+- **Automatic requests to Amazon go through the budget** (`search.js` `budget`, worker `fetchBudget` / `fetchBlocked`)
+  and wait for the first-use answer; a hover is the reader's own request and does not. A page that comes back as a
+  robot check is `AIR.cart.isChallenge`, never "no ingredients".
+- **Purchase history is read and written through `AIR.db.purchaseStore`** (64 buckets plus an index), never under one
+  `purchaseHistory` key; watch `purchaseStore.changed(changes)`, not `changes.purchaseHistory`.
+- A message a content script sends the worker with free-form content is bounded in `worker/messages.js`
+  (`cleanProductPost`, `boundedRecord`) before it is stored or posted.
+- `connect-src` in the manifest lists every host non-content code fetches; a new one must be added there (a test checks).
+- ESLint's `max-len` ratchet (300) applies to every `src` file not on the legacy list in `eslint.config.mjs`; do not add to the list.
 - Do not add runtime dependencies. Vendored OCR and DOMPurify bundles are reproduced by scripts in
   `scripts/` from pinned inputs.
