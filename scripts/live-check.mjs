@@ -28,7 +28,7 @@ const SITES = {
   amazon: { search: 'https://www.amazon.com/s?k=organic+rolled+oats&i=grocery', link: 'a[href*="/dp/"]', product: /\/dp\/[A-Z0-9]{10}/, known: 'https://www.amazon.com/dp/B0DX45213W' },
   target: { search: 'https://www.target.com/s?searchTerm=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/.*A-\d+/, known: 'https://www.target.com/p/-/A-79364857' },
   walmart: { search: 'https://www.walmart.com/search?q=organic+rolled+oats', link: 'a[href*="/ip/"]', product: /\/ip\//, known: 'https://www.walmart.com/ip/10314926' },
-  costco: { search: 'https://www.costco.com/s?keyword=organic+oats', link: 'a[href*=".product."], a[href*="/p/"]', product: /\.product\.\d+\.html|\/p\/(?:[^/]+\/)+\d+/, known: 'https://www.costco.com/product.product.100423971.html' },
+  costco: { search: 'https://www.costco.com/s?keyword=organic+oats', link: 'a[href*=".product."], a[href*="/p/"]', product: /\.product\.\d+\.html|\/p\/(?:[^/]+\/)+\d+/, relevant: /oats?|oatmeal/i, known: 'https://www.costco.com/product.product.100423971.html' },
   kroger: { search: 'https://www.kroger.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/, known: 'https://www.kroger.com/p/quaker-old-fashioned-oats/0003000001020' },
   frys: { search: 'https://www.frysfood.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/, known: 'https://www.frysfood.com/p/quaker-old-fashioned-oats/0003000001020' },
   ralphs: { search: 'https://www.ralphs.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/\d{10,14}/, known: 'https://www.ralphs.com/p/quaker-old-fashioned-oats/0003000001020' },
@@ -115,21 +115,29 @@ async function visit(name, label, url) {
   report[name][label] = entry;
   fs.writeFileSync(path.join(out, 'report.json'), JSON.stringify(report, null, 2));
   console.error(`${name}/${label}: HTTP ${entry.status || 'unavailable'}, ${entry.numericBadges || 0} numeric scores, panel ${entry.panel?.state || 'none'}${entry.error ? `; ${entry.error}` : ''}`);
-  const firstLink = label === 'search' && !entry.error ? await page.evaluate(({ sel, rx }) => {
+  const firstLink = label === 'search' && !entry.error ? await page.evaluate(({ sel, rx, relevant }) => {
     const re = new RegExp(rx);
+    const relevantText = relevant ? new RegExp(relevant, 'i') : null;
+    const matchesRelevant = link => {
+      if (!relevantText) return true;
+      const card = link.closest('[data-testid^="ProductTile"], article') || link;
+      return relevantText.test(card.innerText || card.textContent || link.getAttribute('aria-label') || '');
+    };
     // Header promotions can link to unrelated products (Costco's gift cards, for
     // example). Prefer an actual scored result when selecting a food product.
     for (const badge of document.querySelectorAll('.air-badge')) {
       if (!/^\d+$/.test((badge.textContent || '').trim())) continue;
       for (let node = badge.parentElement; node && !/^(?:BODY|MAIN)$/.test(node.tagName); node = node.parentElement) {
         const links = node.matches('a[href]') ? [node] : [...node.querySelectorAll(sel)];
-        const own = links.find(a => re.test(a.href));
+        const own = links.find(a => re.test(a.href) && matchesRelevant(a));
         if (own) return own.href;
       }
     }
-    const a = [...document.querySelectorAll(sel)].map(x => x.href).find(h => re.test(h));
-    return a || '';
-  }, { sel: SITES[name].link, rx: SITES[name].product.source }).catch(() => '') : '';
+    const a = [...document.querySelectorAll(sel)].find(link => {
+      return re.test(link.href) && matchesRelevant(link);
+    });
+    return a ? a.href : '';
+  }, { sel: SITES[name].link, rx: SITES[name].product.source, relevant: SITES[name].relevant?.source || '' }).catch(() => '') : '';
   await page.close();
   return firstLink;
 }

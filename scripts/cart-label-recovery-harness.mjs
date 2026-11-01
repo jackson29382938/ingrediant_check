@@ -54,6 +54,17 @@ export async function cartLabelRecoveryEndToEnd(context, worker, errors) {
     await page.reload(); await page.waitForFunction(() => document.querySelectorAll('.air-cart-badge[data-air-status="scored"]').length === 2);
     const saved = await worker.evaluate(ids => chrome.storage.local.get(ids.map(id => 's:amazon.com:' + id)), synthetic);
     if (saved['s:amazon.com:' + synthetic[0]]?.source !== 'open-food-facts' || saved['s:amazon.com:' + synthetic[1]]?.source !== 'label-ocr') throw new Error('Cart fallbacks lost their source identity');
+    // The same barcode fallback when USDA FoodData Central is the database that answered: the saved reading keeps that
+    // source (not "open-food-facts"), and the cart uses it only while the USDA switch is on.
+    await worker.evaluate(async ids => {
+      await chrome.storage.local.remove(ids.flatMap(id => ['s:amazon.com:' + id, 'p:amazon.com:' + id]));
+      self.lookupBarcode = async code => { self.__cartLabelCalls.push({ type: 'barcode', code }); return { name: 'Oats', source: 'usda-fdc', ingredients_text: 'whole grain oats, salt' }; };
+      await chrome.storage.local.set({ useUsda: true });
+    }, synthetic.slice(0, 2));
+    await page.reload(); await page.waitForFunction(() => document.querySelectorAll('.air-cart-badge[data-air-status="scored"]').length === 2);
+    const fromUsda = await worker.evaluate(id => chrome.storage.local.get('s:amazon.com:' + id), synthetic[0]);
+    if (fromUsda['s:amazon.com:' + synthetic[0]]?.source !== 'usda-fdc') throw new Error('A USDA barcode answer lost its source identity in the cart');
+    await worker.evaluate(() => chrome.storage.local.set({ useUsda: false }));
     const called = await worker.evaluate(() => self.__cartLabelCalls.length);
     mismatched = true; items = [{ asin: synthetic[2], title: 'Whole grain oats' }];
     await page.reload(); await page.waitForFunction(() => document.querySelector('.air-cart-badge')?.dataset.airStatus === 'unavailable');

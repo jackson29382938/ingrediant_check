@@ -492,7 +492,7 @@ test('importing a settings file never turns on a switch that sends data, but app
   for (const k of ['sendDiagnostics', 'shareContributions', 'sharedProducts']) {
     assert.notEqual(p.data[k], true, `${k} stays as this reader set it`);
   }
-  assert.deepEqual(prefs.SHARING_KEYS.slice().sort(), ['googleAutoSave', 'sendDiagnostics', 'settingsBackup', 'shareContributions', 'sharedProducts']);
+  assert.deepEqual(prefs.SHARING_KEYS.slice().sort(), ['aiLabels', 'aiRatings', 'googleAutoSave', 'sendDiagnostics', 'settingsBackup', 'shareContributions', 'sharedProducts', 'useUsda']);
 });
 
 test('the sharing checkboxes follow storage when a restore or another page changes them', async () => {

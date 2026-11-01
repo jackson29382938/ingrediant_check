@@ -46,6 +46,19 @@ true ([CACHE.md](CACHE.md), *Trust*). To open them anyway, **Project Settings �
 Add** `PRODUCTS_OPEN` = `true`; delete the property to close them again. No redeploy is needed.
 Readers still have to turn on *Share product readings with other computers* in their own settings.
 
+### USDA FoodData Central key (optional)
+
+The barcode lookup in USDA FoodData Central (`kind: 'usda'`) works without any key in the extension, because an
+extension cannot keep a secret: its files are plain text to anyone who installs it, and USDA **deactivates any api.data.gov
+key it finds in a public repository**. The key belongs to the script instead. Get a free key at
+`fdc.nal.usda.gov/api-key-signup`, then **Project Settings → Script Properties → Add** `USDA_API_KEY` = *the key*, and
+deploy a new version (below). Never paste the key into `apps-script.gs`, `prefs.js` or any file in this repository.
+Without the property the script answers `usda not configured` and readers fall back to their own key, if they saved one.
+The script sends the key to USDA in a header, never returns it or an upstream error body, caches an answer for six
+hours and spends at most 600 upstream requests an hour (the key allows 3,600 at the time of writing), so a flood of
+lookups can use up the budget but cannot exhaust or expose the key. A reader can switch it off with *Shared online
+database*, and a build with `ENDPOINT` empty never asks.
+
 After changing the script, **Deploy → Manage deployments → Edit → New version**. That keeps the
 same `/exec` URL; a *new deployment* would change it and every installed copy would lose the
 database until the next release.
@@ -99,6 +112,30 @@ Every row, on both sides, is re-validated: products by `sanitize()` (field bound
 no future timestamps, no pasted lists), settings by `parseBackup()` (unknown ids dropped, weights
 clamped to the slider range). A hand-edited cell or a crafted POST cannot widen what the extension
 will trust.
+
+## Abuse limits
+
+The `/exec` URL ships in the extension, so anyone can post to it. Google Sheets stops at 10 million cells for
+the whole file, and `accounts` and `purchase-history` live in the same file as the anonymous tabs, so two limits
+protect the signed-in data from the anonymous kinds (`diagnostics`, `report`, `products`, contributions):
+
+- **Per-minute allowance**, kept in the script cache and checked before the lock is taken: 120 posts and 3,000
+  rows a minute across all anonymous kinds. Over it the answer is `{"ok":false,"error":"busy; retry later",
+  "rateLimited":true}`, which the extension already treats as "keep the rows, try again later". Change them
+  with the Script Properties `ANON_WRITES_PER_MINUTE` and `ANON_ROWS_PER_MINUTE`.
+- **Rolling window** on `diagnostics` (20,000 rows), `reports` and `contributions` (5,000 each): past the cap the
+  oldest rows are deleted first. Edit `TAB_ROW_CAPS` to change them.
+
+Signed-in kinds (`account*`, `history*`) are not counted: Google has vouched for who sends them. Redeploy the
+script by hand after pulling this change (Deploy > Manage deployments > Edit > New version).
+
+## Drift report
+
+Amazon changes pages without notice. `weeklyDriftReport()` compares the share of `unreadable` and
+`low-coverage` outcomes on the `diagnostics` tab in the last seven days with the seven before, overall (a rise
+of ten points on at least 50 rows each week) and per store (twenty points on at least 30 rows), and emails the
+owner a line per jump. Run `installDriftTrigger()` once from the editor to schedule it for Monday mornings; the
+first run asks for permission to send mail. It only reports what opted-in diagnostics already collect.
 
 ## Measuring load
 

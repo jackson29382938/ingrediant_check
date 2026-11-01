@@ -230,6 +230,7 @@ const SAME_AS_ENGLISH = {
   de: [
     'cartXpGained',      // "+$XP$ XP": a symbol and a game term used as is
     'srcShortBarcode',   // "Open Food Facts": a name
+    'srcShortUsda',      // "USDA FoodData Central": a name
     'popupCompareA', 'popupCompareB',   // the labels "A" and "B"
     'autoNoticeOk',      // "OK"
     'sortedPerUnit',     // "$FIRST$/$SECOND$": a price and a unit

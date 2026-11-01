@@ -182,11 +182,11 @@ const LOOP_KEYS = SETTINGS.filter(k => !OWN_TEST.has(k));
 // The settings, spelled out. Written by hand on purpose: if a setting is dropped from the code that
 // builds backups, it would also vanish from every list derived from that code and nothing would
 // notice. Adding a setting means adding it here, with a test value above.
-const EXPECTED_KEYS = ['accent', 'allergens', 'autoScoreSearch', 'avoidList', 'badges', 'breakdownDelayMs', 'breakdownDetail', 'cacheBackgroundRefresh', 'cacheFirst', 'cacheGraceDays', 'cacheMemory',
+const EXPECTED_KEYS = ['accent', 'aiLabels', 'aiRatings', 'allergens', 'autoScoreSearch', 'avoidList', 'badges', 'breakdownDelayMs', 'breakdownDetail', 'cacheBackgroundRefresh', 'cacheFirst', 'cacheGraceDays', 'cacheMemory',
   'diets', 'ratingStyle', 'personalCareEnabled', 'foodOnly', 'goalImportance', 'goals', 'googleAutoSave', 'hoverBreakdown', 'hoverScore', 'ocrLabels', 'orderBadgePlacement',
   'palette', 'panelOpen', 'pointsEnabled', 'ratePace', 'scoreHoverDelayMs', 'sendDiagnostics', 'settingsBackup', 'settingsLevel',
   'shareContributions', 'sharedCache', 'sharedProducts', 'sortCount', 'sortLoadMore', 'sortMissing',
-  'sortPriorities', 'sortRemember', 'sortFollowSearch', 'sortTimeLimit', 'speedMode', 'theme', 'unitMissing', 'unitPrice', 'useOpenFoodFacts', 'weights'];
+  'sortPriorities', 'sortRemember', 'sortFollowSearch', 'sortTimeLimit', 'speedMode', 'theme', 'unitMissing', 'unitPrice', 'useOpenFoodFacts', 'useUsda', 'weights'];
 
 // What a saved copy must hold for `key` after VARIANTS[key] was set, judged against the test value
 // itself rather than against the code under test. A key missing from the copy fails here.
@@ -232,8 +232,8 @@ test('every control on the settings page is a saved setting, or is listed here a
   }
   for (const m of html.matchAll(/<(?:select|textarea)\b[^>]*\bid="([^"]+)"/g)) controls.add(m[1]);
   // Not settings: a file picker, a filter box, the store request form, the sign-in client id (kept
-  // on purpose out of backups) and the depth choice, which is the sort count and load-more together.
-  const notSettings = new Set(['importFile', 'catFilter', 'reqName', 'reqUrl', 'oauthClientId', 'sortDepth']);
+  // on purpose out of backups), the OpenRouter key (the same) and the depth choice, which is the sort count and load-more together.
+  const notSettings = new Set(['importFile', 'catFilter', 'reqName', 'reqUrl', 'oauthClientId', 'sortDepth', 'openrouterKey', 'usdaKey']);
   const unsaved = [...controls].filter(c => c && !notSettings.has(c) && !SETTINGS.includes(c));
   assert.deepEqual(unsaved, [], `these controls are not part of any backup: ${unsaved.join(', ')}`);
   assert.ok(controls.size > 25, 'the scan found the page controls');

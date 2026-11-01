@@ -300,7 +300,23 @@
     <p class="sec-lede">Shared by product pages, search results, carts and purchased items.</p>
     <div class="opt"><label class="sw"><input type="checkbox" id="ocrLabels" role="switch"><span class="sw-title">Read label photos on this computer</span></label><p class="sw-hint">Uses local OCR when a readable ingredient photo is available. Photos are not uploaded. Missing or unreadable labels remain unknown.</p></div>
     <div class="opt"><label class="sw"><input type="checkbox" id="useOpenFoodFacts" role="switch"><span class="sw-title">Look up barcodes in Open Food Facts</span></label><p class="sw-hint">Requires Chrome permission. Sends only the product barcode to Open Food Facts; your purchase history is not sent.</p></div>
+    <div class="opt"><label for="usdaKey">Your own USDA FoodData Central key (optional)</label>
+      <input type="password" id="usdaKey" autocomplete="off" spellcheck="false">
+      <p class="sw-hint">A second barcode database for US packaged foods, tried when Open Food Facts has no ingredient list. Without a key, lookups go through Ingredient Check's own lookup service, which uses the project's key, so the barcode passes through it (turn off the shared online database to stop that). With your own free key (fdc.nal.usda.gov/api-key-signup) the barcode goes straight to USDA instead. The key stays in this browser and is not part of a backup, a settings file, Chrome sync or a problem report. <span id="usdaKeyStatus" class="status"></span></p>
+      <p><button type="button" id="usdaTest">Test key and access</button> <button type="button" id="usdaForget">Remove key</button> <span id="usdaTestStatus" class="status"></span></p></div>
+    <div class="opt"><label class="sw"><input type="checkbox" id="useUsda" role="switch"><span class="sw-title">Look up barcodes in USDA FoodData Central</span></label><p class="sw-hint">Sends only the product barcode, after Open Food Facts has found nothing usable, and only while barcode lookup above is on. With your own key it also needs Chrome permission for api.nal.usda.gov. A record is used only if it carries the same barcode.</p></div>
     <p class="note"><a href="history.html#historySettings">Purchase import and order display settings</a> · <a href="history.html#driversHeading">Purchase score drivers</a></p>
+  </section>
+
+  <section id="sec-ai" data-level="3">
+    <h2>AI help (optional)</h2>
+    <p class="sec-lede">Uses a free model through OpenRouter, with your own key. Scores work without it, and it is off until you add a key and allow access to openrouter.ai.</p>
+    <div class="opt"><label for="openrouterKey">OpenRouter API key</label>
+      <input type="password" id="openrouterKey" autocomplete="off" spellcheck="false">
+      <p class="sw-hint">Create a free key at openrouter.ai/keys. It stays in this browser, and is not part of a backup, a settings file, Chrome sync or a problem report. <span id="aiKeyStatus" class="status"></span></p>
+      <p><button type="button" id="aiTest">Test key and access</button> <button type="button" id="aiForget">Remove key</button> <span id="aiTestStatus" class="status"></span></p></div>
+    <div class="opt"><label class="sw"><input type="checkbox" id="aiRatings" role="switch"><span class="sw-title">Rate ingredients the rules do not recognise</span></label><p class="sw-hint">Sends only those ingredient names (not the product, store, page or you) to OpenRouter. The answer is used in the score and shown as an “AI estimate”. It can only lower a score, never raise it or set a hard cap, it is smaller than a built-in rule, and it applies on product pages you open. Free models are rate limited, so each name is asked about once and kept on this computer.</p></div>
+    <div class="opt"><label class="sw"><input type="checkbox" id="aiLabels" role="switch"><span class="sw-title">Read label photos with AI when OCR cannot</span></label><p class="sw-hint">When on-device OCR finds no ingredient list in the product photos, the public address of up to three photos on m.media-amazon.com is sent to OpenRouter so a vision model can read the list. It is used only if it looks like an ingredient list, is kept on this computer, and is never shared.</p></div>
   </section>
 
   <section id="sec-rate" data-level="1">

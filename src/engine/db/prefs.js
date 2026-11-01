@@ -51,6 +51,14 @@ const TOGGLE_DEFAULTS = {
   useOpenFoodFacts: true,
   shareContributions: false,
   sendDiagnostics: false,
+  // AI help through OpenRouter (worker/ai.js), both off until the reader turns them on and gives a key.
+  // aiRatings: ingredient names no rule recognises are rated by a model and charged (db/ai-ratings.js).
+  // aiLabels: a label photo the on-device OCR could not read is read by a vision model instead.
+  aiRatings: false,
+  aiLabels: false,
+  // USDA FoodData Central as a second barcode database (worker/usda.js), tried after Open Food Facts has nothing.
+  // Off until the reader pastes their own api.data.gov key and grants the host; it runs under useOpenFoodFacts.
+  useUsda: false,
   // Owner-kept certification tables are enabled by default. Switching this off
   // keeps certification lookups on this computer.
   sharedCache: true,
@@ -126,6 +134,14 @@ function levelOf(stored) {
 function asBool(value, fallback) {
   if (value === true || value === false) return value;
   return fallback;
+}
+
+// A saved reading from a barcode database may be used only while the switches for its source are on. The USDA
+// source runs under the Open Food Facts barcode switch, so it needs both.
+function barcodeReadingAllowed(via, toggles) {
+  if (via === 'open-food-facts') return toggles.useOpenFoodFacts === true;
+  if (via === 'usda-fdc') return toggles.useOpenFoodFacts === true && toggles.useUsda === true;
+  return true;
 }
 
 function sanitizeToggles(raw) {
@@ -276,7 +292,7 @@ function parseBackup(obj) {
 // Switches that send data off this computer. A settings file never turns these on: a file is
 // something a reader may have been handed, and each of these is a decision the reader makes on this
 // computer (a Chrome or Google restore of the reader's own copy still carries them, after a confirm).
-const SHARING_KEYS = ['sharedProducts', 'shareContributions', 'sendDiagnostics', 'googleAutoSave', 'settingsBackup'];
+const SHARING_KEYS = ['sharedProducts', 'shareContributions', 'sendDiagnostics', 'googleAutoSave', 'settingsBackup', 'aiRatings', 'aiLabels', 'useUsda'];
 
 // The settings as a backup would carry them: one sanitized value per key, defaults filled in.
 function settingsSnapshot(stored) { return parseBackup(backupPayload(stored)).values; }
@@ -378,7 +394,7 @@ const _exports = AIRmodule('prefs', {
   SETTINGS_FORMAT, SETTINGS_VERSION, TOGGLE_DEFAULTS, DISPLAY_DEFAULTS, BREAKDOWN_DELAY_MAX, LEVELS, DEFAULT_LEVEL, levelOf,
   SCORE_HOVER_DELAY_MIN, SCORE_HOVER_DELAY_MAX, THEMES, PALETTE_NAMES, DEFAULT_ACCENT, sanitizeDisplay,
   AVOID_MAX_LINES, AVOID_MAX_LEN, AVOID_HINTS, ENDPOINT, OAUTH_CLIENT_ID, SHARED_PRODUCTS_ALLOWED, SYNC_KEYS,
-  sanitizeToggles, sanitizeScoring, sanitizeAvoidList, toScriptUrl, endpoint,
+  sanitizeToggles, barcodeReadingAllowed, sanitizeScoring, sanitizeAvoidList, toScriptUrl, endpoint,
   parseImport, exportPayload, looksLikeSettings, scoringEqual,
   backupPayload, parseBackup, SETTING_KEYS, SHARING_KEYS, settingsSnapshot, diffSettings, toSyncItems, fromSyncItems, readSync, WORKFLOW_KEYS, sanitizeWorkflow, oauthClientId,
 });

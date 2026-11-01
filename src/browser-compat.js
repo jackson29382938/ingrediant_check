@@ -29,7 +29,7 @@
     return (options, callback) => {
       const opts = { ...options }, identity = opts.permissions?.includes('identity');
       if (identity) { opts.permissions = opts.permissions.filter(p => p !== 'identity'); opts.data_collection = DATA; }
-      else if (opts.origins?.includes('https://world.openfoodfacts.org/*')) opts.data_collection = ['websiteContent'];
+      else if (opts.origins?.some(origin => ['https://world.openfoodfacts.org/*', 'https://openrouter.ai/*', 'https://api.nal.usda.gov/*'].includes(origin))) opts.data_collection = ['websiteContent'];
       const pending = modern.permissions.request(opts);
       return callback ? pending.then(callback, () => callback(false)) : pending;
     };

@@ -6,6 +6,9 @@
 
 var PAGE_MESSAGE_TYPES = new Set([
   'pageScore', 'ocrLabels', 'lookupBarcode', 'provenanceLookup',
+  // AI help (worker/ai.js): ingredient ratings and label-photo reading. Amazon tabs only, like OCR; retailer previews
+  // do no worker network work. The settings page may test the key.
+  'aiRateIngredients', 'aiReadLabels',
   'contribute', 'report', 'diagnostic', 'productsLookup', 'productsQueue',
   // Amazon's sort menu (src/content/sort.js): open the side panel, send the list as it fills in, and
   // open it in a tab when Chrome would not open the panel. The list pages themselves send nothing:
@@ -22,7 +25,7 @@ var PAGE_MESSAGE_TYPES = new Set([
 // message, so neither is affected. tests/sanity.test.js fails if another page starts sending one.
 var SETTINGS_MESSAGE_TYPES = new Set([
   'flushDiagnostics', 'diagnosticsStatus', 'refreshSheet',
-  'accountSave', 'accountLoad', 'accountFetch',
+  'accountSave', 'accountLoad', 'accountFetch', 'aiTest', 'usdaTest',
 ]);
 var HISTORY_MESSAGE_TYPES = new Set(['purchaseScanStart', 'purchaseScanResume', 'purchaseScanPause', 'purchaseScanCancel', 'purchaseScanState', 'purchaseScanProgress', 'purchaseImport', 'purchaseOpenHistory', 'purchaseSync', 'purchaseConfigure', 'purchaseDelete']);
 var OFFSCREEN_MESSAGE_TYPES = new Set(['ocrIdle']);

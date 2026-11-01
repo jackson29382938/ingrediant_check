@@ -406,7 +406,7 @@
     const out = new Map();
     for (const asin of asins) {
       const hit = got[cacheKey(asin)];
-      const row = C.sanitize(got[localKey(asin)]);
+      const row = C.sanitizeLocal(got[localKey(asin)]);
       const okRow = row && row.status === 'ok' && freshLocal(row);
       if (usableCache(hit, asin)) {
         // The saved score keeps no reasons; the product reading behind it does.

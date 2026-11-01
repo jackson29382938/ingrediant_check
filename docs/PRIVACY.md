@@ -111,6 +111,9 @@ Scoring is always local: the rules, your weights and every score are computed in
 | **Show why on hover** (on by default) | Nothing. The breakdown is worked out on your computer from what was already read. | — |
 | **Read label photos** | Fetch of the product image on `m.media-amazon.com` | The image is read **on your computer** (Tesseract). The pixels are not uploaded. |
 | **Open Food Facts fallback** | The **barcode only** | Open Food Facts, after Chrome grants the host. |
+| **USDA FoodData Central fallback** (off by default) | The **barcode only**, as a search term. Asked only after Open Food Facts had no ingredient list, and only while barcode lookup is on. By default it goes to the **Ingredient Check Apps Script**, which asks USDA with the project's key (the extension holds no key; the script sees the barcode, not who asked). With your own free api.data.gov key and Chrome's permission for `api.nal.usda.gov` it goes straight to USDA instead, with your key in a header. The answer is kept on this computer (30 days; "no such product" 3 days) | The Ingredient Check Apps Script (default, and it can be switched off with *Shared online database*), or **USDA FoodData Central** (a US government service), which sees the barcode, the key and your IP address. |
+| **AI help — rate unfamiliar ingredients** (off by default; needs your own OpenRouter key and Chrome's permission for `openrouter.ai`) | Only the **ingredient names** the built-in rules do not recognise, up to 24 words copied from a label (for example `zorbex gum`). Never the product, store, page address, your settings, your scores or anything that identifies you. Each name is asked about once and the answer is kept on this computer | **OpenRouter** and the free model provider it routes to. See *AI help* below. |
+| **AI help — read label photos** (off by default; same key and permission) | When on-device OCR finds no ingredient list: the public address of up to three product photos on `m.media-amazon.com`. OpenRouter's provider fetches the photo; the extension uploads no pixels | **OpenRouter** and the model provider, as above. |
 | **Send certifications** / "Looks wrong?" | Product identifiers and certification text; a report adds what the score was | The Ingredient Check database. |
 | **Report a problem or suggest an improvement** (only when you attach the file and send the draft yourself) | Nothing from the extension. Your email app sends what you wrote, and the report file if you attach it: a screenshot of the Amazon or a retailer preview tab you were on (no other tab is captured), that page's address (path and search term only), its score and the side panel list, your Ingredient Check settings, your recent clicks in the extension, and the extension and browser version. Every part is shown first and can be left out | The maintainer, by email from your address. See *Reporting a problem* below. |
 | **Request a store** (only when you open the draft and send it yourself) | Nothing from the extension. Your email app sends the store name and optional site address, if you press Send | The maintainer, by email from your address. See *Requesting a store* below. |
@@ -121,6 +124,41 @@ off, and the extension makes no network requests of its own. A build shipped wit
 everything but the Chrome backup.
 
 There is no Ingredient Check account, no analytics SDK, and no third-party ad or crash reporter.
+
+## USDA FoodData Central (optional)
+
+Settings → *Label reading* can add [FoodData Central](https://fdc.nal.usda.gov) as a second barcode database for
+US packaged foods. It is public-domain US government data; branded foods come from manufacturers' label submissions.
+It is **off** until you turn the switch on. The extension contains no USDA key (a key in an extension, or in a public
+repository, is readable by everyone and gets deactivated by USDA). By default the barcode is sent to the Ingredient
+Check Apps Script, which holds the project's key as a script property, asks USDA, and returns only the records
+that carry that barcode; turning off the *Shared online database* stops this. If you would rather the barcode went
+straight to USDA, paste your own free key (from fdc.nal.usda.gov/api-key-signup) and allow Chrome's optional
+permission for `api.nal.usda.gov`. That key is stored in its own browser storage key and is not part of a backup,
+settings file, Chrome sync or problem report; only the service worker reads it. The shared `DEMO_KEY` is not used. A record is accepted only when it carries the barcode that was asked for, and the panel says
+the label was matched by barcode via USDA FoodData Central, not read from the page.
+
+## AI help (optional)
+
+Settings → *AI help* offers two features that use a free model through [OpenRouter](https://openrouter.ai).
+Both are **off** until you paste your own OpenRouter API key, turn a switch on and allow Chrome's optional
+permission for `openrouter.ai`. Nothing is sent before then, and scoring without them is unchanged.
+
+- **The key** is stored in this browser under its own storage key. It is not part of the Chrome or Google
+  settings backup, a settings file, a problem report or any export, and only the extension's service worker
+  reads it. *Remove key* deletes it. Because you supply it, OpenRouter's terms and its free-tier rate limits are
+  between you and OpenRouter; the free models route to third-party providers who may log requests.
+- **Rating unfamiliar ingredients** sends only ingredient *names* the built-in rules do not recognise. The
+  model chooses one class from a fixed list (for example "emulsifier, gum or thickener"); the extension, not
+  the model, decides what that class is worth. An estimate can only lower a score, never raise it or set a hard
+  cap, it is smaller than a built-in rule, it is limited per product, and every row it adds is labelled
+  *AI estimate*. A rule that recognises an ingredient always wins. Allergen, diet and avoid-list warnings never
+  read it. Ratings are saved on this computer with the product's reading, are not uploaded and are not accepted
+  from the shared database. They apply to products you open; search results and carts use them once saved.
+- **Reading label photos** is a fallback after the on-device OCR. The reply is used only if it contains an
+  ingredient list, is kept on this computer and is never shared. A photo is read once.
+
+Retailer previews (Target, Walmart and the others) make no AI requests; they have no worker network path.
 
 ## Reporting a problem or suggesting an improvement
 

@@ -10,7 +10,7 @@
     close(); const mine = token, { line, record } = value;
     const stored = record.input ? {} : await A.db.scoreCache.readLocal([A.db.productCache.localKey(location.hostname, line.asin)], conf, null, chrome.storage);
     if (mine !== token || !badge.isConnected) return;
-    const row = A.db.productCache.sanitize(stored[A.db.productCache.localKey(location.hostname, line.asin)]);
+    const row = A.db.productCache.sanitizeLocal(stored[A.db.productCache.localKey(location.hostname, line.asin)]);
     let result = null;
     const input = record.input || (row?.status === 'ok' ? A.db.productCache.toInput(row) : null);
     if (record.profile === profile && record.version === version && input?.ingredients_text.slice(0, 2000) === record.ingredients) {

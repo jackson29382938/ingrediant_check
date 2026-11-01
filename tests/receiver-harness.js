@@ -6,7 +6,9 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 
 // productsOpen: the PRODUCTS_OPEN script property. The product tests below model an opened receiver.
-function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true, propertyClientId = null } = {}) {
+// usdaKey: the USDA_API_KEY script property; usdaFetch: answers api.nal.usda.gov requests (url, options) -> { status, text }.
+function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true, propertyClientId = null, usdaKey = null, usdaFetch = null, anonLimits = { writes: 1e9, rows: 1e9 } } = {}) {
+  const usdaCalls = [];
   const tabs = new Map();
   const order = [];
   let locked = false, failFlush = false, legacy = '{}', tokenChecks = 0;
@@ -57,7 +59,12 @@ function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true, pro
       insertSheet(name) { const sheet = newSheet(); tabs.set(name, sheet); order.push(name); return sheet; },
     }), flush() { if (failFlush) { failFlush = false; throw new Error('lost acknowledgement'); } } },
     // Google's tokeninfo: `tokens` maps an access token to what Google would say about it.
-    UrlFetchApp: { fetch(url) {
+    UrlFetchApp: { fetch(url, options) {
+      if (String(url).startsWith('https://api.nal.usda.gov/')) {
+        usdaCalls.push({ url, options });
+        const reply = usdaFetch ? usdaFetch(url, options) : { status: 500, text: '{}' };
+        return { getResponseCode: () => reply.status, getContentText: () => reply.text };
+      }
       tokenChecks++;
       const info = tokens[decodeURIComponent(url.split('access_token=')[1])];
       return { getResponseCode: () => (info ? 200 : 400), getContentText: () => JSON.stringify(info || {}) };
@@ -70,7 +77,9 @@ function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true, pro
     Utilities: { DigestAlgorithm: { SHA_256: 'sha256' },
       computeDigest: (_alg, text) => [...require('node:crypto').createHash('sha256').update(text).digest()].map(b => (b << 24) >> 24) },
     PropertiesService: { getScriptProperties: () => ({
-      getProperty: key => (key === 'PRODUCTS_OPEN' ? (productsOpen ? 'true' : null) : key === 'OAUTH_CLIENT_ID' ? propertyClientId : legacy),
+      getProperty: key => (key === 'PRODUCTS_OPEN' ? (productsOpen ? 'true' : null) : key === 'OAUTH_CLIENT_ID' ? propertyClientId
+        : key === 'USDA_API_KEY' ? usdaKey
+        : key === 'ANON_WRITES_PER_MINUTE' ? String(anonLimits.writes) : key === 'ANON_ROWS_PER_MINUTE' ? String(anonLimits.rows) : legacy),
       deleteProperty(key) { if (key === 'PRODUCTS_OPEN') productsOpen = false; },
       setProperty() { throw new Error('dedup must not depend on property writes'); } }) },
     ContentService: { MimeType: { JSON: 'json' },
@@ -83,7 +92,7 @@ function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true, pro
     sheet: name => { const sh = newSheet(); tabs.set(name, sh); order.push(name); return sh; },
     failNext: () => { failFlush = true; }, setLocked: v => { locked = v; },
     setLegacy: v => { legacy = JSON.stringify(v); },
-    tokenChecks: () => tokenChecks, cache, expireCache: () => cache.clear() };
+    tokenChecks: () => tokenChecks, cache, expireCache: () => cache.clear(), usdaCalls };
 }
 
 module.exports = { receiver };

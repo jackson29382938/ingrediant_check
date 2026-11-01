@@ -55,6 +55,18 @@ var DEDUP_WINDOW = 20000;
 // How long a Google token that checked out is remembered: a settings save or a history sync is several
 // requests, each of which used to cost a call to Google (the day's UrlFetch quota is shared by everyone).
 var TOKEN_CACHE_SECONDS = 60;
+// The URL ships inside the extension, so anyone can post to it. Two limits keep an abuser from filling the
+// spreadsheet (Google Sheets stops at 10 million cells for the whole file, and accounts and purchase history
+// live in the same file) or from keeping the script lock busy:
+//   - the anonymous kinds (diagnostics, reports, contributions, product rows) share a per-minute allowance of
+//     posts and of rows, kept in the script cache; over it the answer is "busy; retry later", which the
+//     extension already treats as "keep the rows and try again";
+//   - the tabs those kinds write to hold a rolling window: past the cap the oldest rows are deleted first.
+// Both can be changed in Project Settings > Script Properties (ANON_WRITES_PER_MINUTE, ANON_ROWS_PER_MINUTE).
+// Signed-in kinds (account*, history*) are not counted: Google has vouched for who sends them.
+var ANON_WRITES_PER_MINUTE = 120;
+var ANON_ROWS_PER_MINUTE = 3000;
+var TAB_ROW_CAPS = { diagnostics: 20000, reports: 5000, contributions: 5000 };
 
 // Script Properties, not code, so opening product rows needs no redeploy and no code edit.
 function productsOpen() {
@@ -107,6 +119,68 @@ function itemsOf(body) {
   return (Array.isArray(body.upserts) ? body.upserts.length : 0) + (Array.isArray(body.pulls) ? body.pulls.length : 0) || 1;
 }
 
+// ---------------------------------------------------------------- USDA FoodData Central lookup
+// A barcode -> the FoodData Central branded records that carry exactly that barcode. The api.data.gov key lives
+// in the script property USDA_API_KEY (Project Settings -> Script properties), never in this file or in the
+// extension, which anyone can unzip and read, and a key found in a public repository is deactivated by USDA.
+// It is sent to USDA in a header, never echoed to a caller, and an upstream error body is never passed on.
+// The extension re-checks every record's barcode itself, so this script is a courier, not a source of truth.
+// Answers are cached for six hours, and the script spends at most USDA_HOURLY_BUDGET upstream requests an hour
+// (the key allows 1,000), so a flood of lookups can use up the budget but cannot reach the owner's key.
+var USDA_SEARCH = 'https://api.nal.usda.gov/fdc/v1/foods/search';
+var USDA_HOURLY_BUDGET = 600;
+var USDA_CACHE_SECONDS = 21600;
+var USDA_NUTRIENT_IDS = [1003, 1004, 1005, 1079, 1093, 1235, 1258, 2000];
+function usdaDigits(code) {
+  return String(code == null ? '' : code).replace(/\D/g, '').replace(/^0+/, '');
+}
+// FoodData Central stores a barcode zero-padded as the manufacturer gave it (a UPC-A as 12 digits) and matches that
+// text exactly: "16000275683" finds nothing where "016000275683" finds the product (measured against the live API).
+// The 12-, 13- and 14-digit forms go in one query, separated by spaces, which matches any of them.
+function usdaQuery(digits) {
+  var forms = [];
+  [12, 13, 14].forEach(function (n) {
+    var form = digits;
+    while (form.length < n) form = '0' + form;
+    if (forms.indexOf(form) === -1) forms.push(form);
+  });
+  return forms.join(' ');
+}
+function usdaLookup(code) {
+  var digits = usdaDigits(code);
+  if (digits.length < 7 || digits.length > 14) return json({ ok: false, error: 'invalid barcode' });
+  var key = PropertiesService.getScriptProperties().getProperty('USDA_API_KEY');
+  if (!key) return json({ ok: false, error: 'usda not configured' });
+  var cache = CacheService.getScriptCache();
+  // 'usda2:': answers cached before the zero-padding fix (usdaQuery) were empty for most barcodes.
+  var held = cache.get('usda2:' + digits);
+  if (held) return json({ ok: true, foods: JSON.parse(held) });
+  var hour = 'usdaBudget:' + Math.floor(Date.now() / 3600000);
+  var used = Number(cache.get(hour) || 0);
+  if (used >= USDA_HOURLY_BUDGET) return json({ ok: false, error: 'busy; retry later' });
+  cache.put(hour, String(used + 1), 7200);
+  var res = UrlFetchApp.fetch(USDA_SEARCH + '?query=' + encodeURIComponent(usdaQuery(digits)) + '&dataType=Branded&pageSize=10',
+    { method: 'get', headers: { 'X-Api-Key': key }, muteHttpExceptions: true });
+  var status = res.getResponseCode();
+  if (status !== 200) return json({ ok: false, error: status === 429 ? 'busy; retry later' : 'upstream ' + status });
+  var found = JSON.parse(res.getContentText()).foods;
+  var foods = [];
+  (Array.isArray(found) ? found : []).forEach(function (f) {
+    if (!f || typeof f !== 'object' || usdaDigits(f.gtinUpc) !== digits || typeof f.ingredients !== 'string') return;
+    foods.push({
+      gtinUpc: String(f.gtinUpc), ingredients: f.ingredients.slice(0, 6000), description: String(f.description || '').slice(0, 200),
+      brandName: String(f.brandName || '').slice(0, 100), brandOwner: String(f.brandOwner || '').slice(0, 100),
+      foodCategory: String(f.foodCategory || '').slice(0, 120), servingSizeUnit: String(f.servingSizeUnit || '').slice(0, 12),
+      modifiedDate: String(f.modifiedDate || f.publishedDate || '').slice(0, 20),
+      foodNutrients: (Array.isArray(f.foodNutrients) ? f.foodNutrients : []).filter(function (n) {
+        return n && USDA_NUTRIENT_IDS.indexOf(Number(n.nutrientId)) !== -1 && isFinite(Number(n.value));
+      }).map(function (n) { return { nutrientId: Number(n.nutrientId), value: Number(n.value) }; }),
+    });
+  });
+  cache.put('usda2:' + digits, JSON.stringify(foods), USDA_CACHE_SECONDS);
+  return json({ ok: true, foods: foods });
+}
+
 function doPost(e) {
   var started = Date.now();
   var body = null;
@@ -132,9 +206,14 @@ function handlePost(e, seen) {
   // alongside history deletion, to avoid exposing a partly cleared account.
   try {
     if (body.kind === 'lookup') return lookupProducts(body.keys);
+    if (body.kind === 'usda') return usdaLookup(body.code);
     if (body.kind === 'accountGet') return readAccount(body.token, identity);
   } catch (err) {
     return json({ ok: false, error: String(err) });
+  }
+  // Counted before the lock is taken, so a flood of posts never waits for it.
+  if (isAnonymousWrite(body.kind) && !anonymousWriteAllowed(itemsOf(body))) {
+    return json({ ok: false, error: 'busy; retry later', rateLimited: true });
   }
   var lock = LockService.getScriptLock();
   var acquired = false;
@@ -188,7 +267,7 @@ function handleGet(e) {
   // by opening the /exec URL: `"accounts":true` means this version is live and configured.
   var clientId = PropertiesService.getScriptProperties().getProperty('OAUTH_CLIENT_ID') || OAUTH_CLIENT_ID;
   return json({ ok: true, service: 'ingredient-check', diagnosticsSchema: 2, accounts: !!clientId, history: !!clientId, historySchema: 1, historyCapacity: AIR.db.purchaseHistory.MAX,
-    accepts: ['lookup', 'products', 'diagnostics', 'report', 'account', 'accountGet', 'historyGet', 'historyPut', 'historyClear', 'contribution'] });
+    accepts: ['lookup', 'usda', 'products', 'diagnostics', 'report', 'account', 'accountGet', 'historyGet', 'historyPut', 'historyClear', 'contribution'] });
 }
 
 // Strings only, so a date or an all-digit UPC reaches the extension exactly as typed.
@@ -502,6 +581,7 @@ function writeRows(tabName, columns, rows, existingSheet) {
       return v === undefined || v === null ? '' : v;
     });
   });
+  trimToCap(sheet, TAB_ROW_CAPS[tabName], values.length);
   sheet.getRange(sheet.getLastRow() + 1, 1, values.length, columns.length).setValues(values);
   SpreadsheetApp.flush();
   return json({ ok: true, wrote: values.length, tab: tabName });
@@ -530,6 +610,120 @@ function json(obj) {
   lastReply = obj;
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ---------------------------------------------------------------- abuse limits
+
+var SIGNED_IN_KINDS = ['account', 'accountGet', 'historyGet', 'historyPut', 'historyClear'];
+// Anything that is neither a read nor a signed-in kind writes a row anyone could have sent. The USDA lookup is a read
+// (it has its own hourly budget against the key, usdaLookup above).
+function isAnonymousWrite(kind) {
+  return kind !== 'lookup' && kind !== 'usda' && SIGNED_IN_KINDS.indexOf(kind) === -1;
+}
+
+function propertyNumber(name, fallback) {
+  var raw = PropertiesService.getScriptProperties().getProperty(name);
+  var n = Number(raw);
+  return raw !== null && raw !== undefined && raw !== '' && isFinite(n) && n > 0 ? n : fallback;
+}
+
+// A counter per minute in the script cache. Not atomic, so a burst can overshoot by a few posts, which is
+// fine for a limit whose job is to stop thousands. Without a cache the limit is off rather than the script.
+function anonymousWriteAllowed(rows) {
+  var cache = typeof CacheService !== 'undefined' ? CacheService.getScriptCache() : null;
+  if (!cache) return true;
+  var key = 'anon:' + Math.floor(Date.now() / 60000);
+  var raw = cache.get(key), seen = { w: 0, r: 0 };
+  try { if (raw) seen = JSON.parse(raw); } catch (err) { /* start the minute over */ }
+  var maxWrites = propertyNumber('ANON_WRITES_PER_MINUTE', ANON_WRITES_PER_MINUTE);
+  var maxRows = propertyNumber('ANON_ROWS_PER_MINUTE', ANON_ROWS_PER_MINUTE);
+  if (seen.w + 1 > maxWrites || seen.r + (Number(rows) || 1) > maxRows) return false;
+  cache.put(key, JSON.stringify({ w: seen.w + 1, r: seen.r + (Number(rows) || 1) }), 120);
+  return true;
+}
+
+// Keep at most `cap` data rows (the header is row 1) after `incoming` more are added: the oldest go first.
+function trimToCap(sheet, cap, incoming) {
+  if (!cap) return;
+  var rows = Math.max(0, sheet.getLastRow() - 1);
+  var excess = rows + incoming - cap;
+  if (excess > 0) sheet.deleteRows(2, Math.min(rows, excess));
+}
+
+// ---------------------------------------------------------------- drift report
+//
+// Amazon changes its pages without notice, and the first sign is usually a pile of "no readable ingredients"
+// from people who did nothing different. The diagnostics tab already records, per scored product, the
+// version, the store and an outcome ('unreadable', 'low-coverage', 'not-food', 'wrong-score' or blank for a
+// score). Once a week this compares the share of unreadable and low-coverage rows in the last seven days with
+// the seven before, overall and per store, and emails the owner when it jumped. Run installDriftTrigger() once
+// from the editor to schedule it (it asks for permission to send mail the first time).
+
+var DRIFT_DAYS = 7;
+var DRIFT_MIN_ROWS = 50;
+var DRIFT_STORE_MIN_ROWS = 30;
+var DRIFT_RISE = 0.10;
+var DRIFT_STORE_RISE = 0.20;
+
+function driftBucket() { return { n: 0, bad: 0 }; }
+function driftRate(b) { return b.n ? b.bad / b.n : null; }
+
+// table: the diagnostics tab with its header row. -> overall and per-store counts for the last two windows.
+function driftSummary(table, now) {
+  var head = {};
+  (table[0] || []).forEach(function (h, i) { head[String(h)] = i; });
+  var windowMs = DRIFT_DAYS * 86400000;
+  var out = { recent: driftBucket(), before: driftBucket(), stores: {} };
+  for (var i = 1; i < table.length; i++) {
+    var row = table[i];
+    var t = Date.parse(unquote(row[head.ts]));
+    var age = now - t;
+    if (!isFinite(t) || age < 0 || age >= 2 * windowMs) continue;
+    var period = age < windowMs ? 'recent' : 'before';
+    var bad = /^(unreadable|low-coverage)$/.test(String(row[head.outcome] || '')) ? 1 : 0;
+    var store = String(row[head.store] || 'unknown');
+    out.stores[store] = out.stores[store] || { recent: driftBucket(), before: driftBucket() };
+    [out[period], out.stores[store][period]].forEach(function (b) { b.n++; b.bad += bad; });
+  }
+  return out;
+}
+
+// -> lines describing what jumped, or [] when nothing did.
+function driftAlerts(summary) {
+  var lines = [];
+  var pct = function (r) { return r === null ? 'n/a' : Math.round(r * 100) + '%'; };
+  var now = driftRate(summary.recent), then = driftRate(summary.before);
+  if (summary.recent.n >= DRIFT_MIN_ROWS && summary.before.n >= DRIFT_MIN_ROWS && now - then >= DRIFT_RISE) {
+    lines.push('Overall: ' + pct(then) + ' -> ' + pct(now) + ' unreadable or low-coverage (' + summary.recent.n + ' rows this week, ' + summary.before.n + ' last week).');
+  }
+  Object.keys(summary.stores).sort().forEach(function (store) {
+    var s = summary.stores[store], a = driftRate(s.recent), b = driftRate(s.before);
+    if (s.recent.n >= DRIFT_STORE_MIN_ROWS && s.before.n >= DRIFT_STORE_MIN_ROWS && a - b >= DRIFT_STORE_RISE) {
+      lines.push(store + ': ' + pct(b) + ' -> ' + pct(a) + ' (' + s.recent.n + ' rows this week).');
+    }
+  });
+  return lines;
+}
+
+function weeklyDriftReport() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('diagnostics');
+  if (!sheet || sheet.getLastRow() < 2) return { skipped: 'no diagnostics yet' };
+  var last = sheet.getLastRow(), from = Math.max(2, last - DEDUP_WINDOW + 1);
+  var table = [sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]]
+    .concat(sheet.getRange(from, 1, last - from + 1, sheet.getLastColumn()).getValues());
+  var summary = driftSummary(table, Date.now());
+  var lines = driftAlerts(summary);
+  if (lines.length && typeof MailApp !== 'undefined') {
+    MailApp.sendEmail(Session.getEffectiveUser().getEmail(), 'Ingredient Check: more unreadable pages than last week',
+      lines.join('\n') + '\n\nAmazon or a store may have changed its page. Open the diagnostics tab and filter by outcome.');
+  }
+  return { alerts: lines, summary: summary };
+}
+
+// Run once from the Apps Script editor.
+function installDriftTrigger() {
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'weeklyDriftReport') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('weeklyDriftReport').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(9).create();
 }
 
 // Purchase history schema: generated from src/engine/db/purchase-history.js.

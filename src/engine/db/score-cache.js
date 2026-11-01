@@ -29,7 +29,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
   // rating style, the category switch and, for the preference-focused style only, the avoid list.
   // `category` is the saved result's own ('food' or absent for food), so each kind is retired by its
   // own settings and by the rules revision, never by the other's.
-  function fingerprint(raw = {}, source, category) {
+  // `ai`: the saved score used AI ingredient ratings (db/ai-ratings.js). Only such a score is retired when the
+  // reader turns that help off, as for the OCR and Open Food Facts switches below.
+  function fingerprint(raw = {}, source, category, ai = false) {
     const out = { rules: (AIR.db.revision && AIR.db.revision.RULES_REVISION) || '' };
     if (category && category !== 'food') {
       const scoring = AIR.db.prefs.sanitizeScoring(raw);
@@ -46,7 +48,10 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
     // Toggling OCR / OFF must not retire DOM-extracted chips. Only entries produced by those
     // paths include the matching flag in the fingerprint.
     if (source === 'label-ocr' || source === 'ocr') out.ocrLabels = AIR.db.prefs.sanitizeToggles(raw).ocrLabels;
+    if (source === 'label-ai') out.aiLabels = AIR.db.prefs.sanitizeToggles(raw).aiLabels;
     if (source === 'open-food-facts') out.useOpenFoodFacts = AIR.db.prefs.sanitizeToggles(raw).useOpenFoodFacts;
+    if (source === 'usda-fdc') { const t = AIR.db.prefs.sanitizeToggles(raw); out.useOpenFoodFacts = t.useOpenFoodFacts; out.useUsda = t.useUsda; }
+    if (ai) out.aiRatings = AIR.db.prefs.sanitizeToggles(raw).aiRatings;
     return JSON.stringify(out);
   }
 
@@ -56,7 +61,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
     if (Object.hasOwn(hit, 'cacheRevision') ? hit.cacheRevision !== CACHE_REVISION
       : hit.v !== version && !(CACHE_REVISION === 1 && LEGACY_COMPATIBLE.has(hit.v))) return false;
     if (normalizeStore(hit.store) !== normalizeStore(store) || hit.asin !== asin) return false;
-    if (hit.prefs !== fingerprint(prefs, hit.source, hit.category)) return false;
+    if (hit.prefs !== fingerprint(prefs, hit.source, hit.category, hit.ai === true)) return false;
     if (!Number.isFinite(hit.score) || hit.score < 0 || hit.score > 100) return false;
     if (!Number.isFinite(hit.t) || hit.t > now || now - hit.t >= maxAgeMs) return false;
     if (typeof hit.source !== 'string' || !hit.source) return false;

@@ -1,35 +1,54 @@
 # Current validation
 
-The current source is **1.19.1**. See [the cart label recovery record](CART-LABEL-RECOVERY-2026-10-30.md)
-and [1.19.1 release notes](releases/1.19.1.md) for four independently located public Amazon labels,
-parser/dictionary fixes, saved-label recovery and optional cart barcode/photo fallbacks.
+Source version: **1.19.2**. This maintenance release bounds unit-price parsing on long numeric
+input and refuses fluid unit prices when pack and item counts conflict. See
+[1.19.2 release notes](releases/1.19.2.md). The scoring rules and score revision are unchanged.
 
-The **1.19.0** baseline is documented in [the feature integration and verification record](FEATURE-INTEGRATION-2026-10-30.md)
-and [release notes](releases/1.19.0.md) for Orders scores independent of history saving, the compact
-history overview, evidence summaries, comparisons, filters, standalone label checking and local
-shortlists. Both browser packages are prepared; browser-store publication and Mozilla signing
-remain separate publisher actions.
-
-## Previous release baseline — 1.18.1
-
-The previous **1.18.1** baseline was built on published **1.18.0** (commit `7deb375`). It combined the scoring review, parser and shared-database fixes, and the new icon. See [what changed](releases/1.18.1.md), [scoring sensitivity](SCORING-SENSITIVITY.md), [personal-care and supplement indices](PERSONAL-CARE.md) and [accuracy evidence](ACCURACY.md). Older dated audits describe the source at the time of that review.
-
-Executed on the final 1.18.1 source:
+## Checks run on 1.19.2
 
 | Check | Result |
 | --- | --- |
-| `npm test` | 1,236 passed (1,207 in parallel, 29 timing-sensitive tests run alone); zero failed or skipped |
-| ESLint with `--max-warnings 0` | Passed |
-| `npm run preflight` | Passed (manifest, scripts, 573 locale keys in English and German) |
-| Chromium extension harness (`npm run harness:ci`) | Passed: 44 checks against the preinstalled Chromium with no Amazon network and no page errors, including the real unpacked extension on saved Amazon pages |
-| Website responsive/theme/header checks (`npm run website:check`) | Passed (pages, navigation, privacy, light and dark at 390 and 1280 px, production headers) |
-| Chrome and Firefox ZIP packaging | Both 1.18.1 packages built, about 3.9 MB each |
-| Mozilla `web-ext` 10 package validation | Zero errors, warnings or notices |
+| `npm test` | 1,261 passed (1,232 parallel and 29 serial); zero failed or skipped |
+| `npm run lint` | Passed with `--max-warnings 0` |
+| `npm run preflight` | Passed: manifest, scripts, 660 English/German locale messages and release-note checks |
+| `npm run pack` | Chrome and Firefox 1.19.2 packages built, about 3.9 MB each |
+| Chromium harness | All content/UI scenarios passed in `HARNESS_CONTENT_ONLY=1` mode; full unpacked-extension smoke timed out waiting for the service worker in installed Chrome |
 
-The Firefox extension harness runs in CI (it needs Firefox and geckodriver downloads) and was not run in the environment that prepared this release.
+The unit-price hostile-input regression completes in about 33 ms locally against its 400 ms limit.
+Fixture coverage and automated tests establish implementation behavior; they do not prove live
+retailer coverage or independent nutrition/health-score accuracy.
 
-Calibration: the default score of every one of the 61 corpus products was compared with 1.18.0. Five move (kefir 91 to 89, bone broth 88 to 74, deli turkey 40 to 29, uncured bacon 38 to 24, Medjool dates 95 to 98), each for the stated reason in the release notes, and two calibration bands widen (bone broth 80–100 to 70–100, uncured bacon 30–65 to 20–65). The other 56 are unchanged. Twenty-nine real personal-care and supplement label formats (antiperspirant, deodorant, toothpaste, mouthwash, shampoo, conditioner, soap, moisturizer, supplements) score identically in both styles on 1.18.0 and 1.18.1.
+## Live retailer smoke checks
 
-Browser retailer pages, OCR labels, certification replies and account/backend responses in the harness are controlled fixtures. Real Google consent, live retailer freshness, signed Mozilla publication, backend deployment, native-speaker review of the German catalog, independent health-score calibration and a live re-check of the supplement upper limits and cautions against the National Academies, NIH and FDA pages remain separate evidence requirements. The shared-database script (`docs/apps-script.gs`) is deployed by hand and was not deployed by this release.
+The unpacked extension was exercised on public pages in Playwright Chromium on 2026-10-30. These
+were smoke tests, not exhaustive journeys; no accounts were used and no bot challenge was bypassed.
 
-For backend load decisions, use request `ms`, `lockWaitMs`, `lockHeldMs`, busy rates and sheet sizes. The template retains Sheets storage and atomic history deletion/merging; migrate to indexed storage only when measured load warrants it.
+- Product scores appeared on Target, Safeway, Albertsons and Instacart; Instacart search also showed
+  numeric score badges.
+- Amazon returned HTTP 503 for search and no score panel on the attempted product page.
+- Walmart showed a “Robot or human?” challenge; the test stopped there.
+- Costco search did not yield a verified score. The previous checker could select an unrelated
+  product when no scored result existed; 1.19.2 now requires an oat-related result before using a
+  Costco search link as its product sample. A direct public product route still needs live recheck.
+- Kroger, Dillons, Fry’s, Ralphs, King Soopers, Smith’s, Fred Meyer, QFC and Harris Teeter failed
+  navigation with `ERR_HTTP2_PROTOCOL_ERROR` in this environment.
+
+The 15-retailer fixture harness is controlled test data, not live-site validation. Store layouts,
+anti-bot responses and network access can change; blocked checks are not counted as successful.
+
+## External evidence still required
+
+- Independent nutrition or dietitian review against packaging-verified, held-out labels and a
+  predeclared rubric. The scoring corpus and passing tests do not establish clinical validity.
+- Live checks for retailers blocked by transport errors or bot challenges, and a Costco product
+  route that exposes a readable ingredient label.
+- Deployment owner verification of Apps Script properties. The checked-in template keeps shared
+  product reads/writes closed unless `PRODUCTS_OPEN=true`; the deployed setting and sheet were not
+  accessible during this review.
+- Browser-store publication and Mozilla signing remain publisher actions.
+
+## Historical baseline
+
+The prior 1.18.1 verification record is retained in
+[the 1.18.1 release notes](releases/1.18.1.md) and dated audits. Those results are not the current
+1.19.2 verification.

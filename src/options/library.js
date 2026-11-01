@@ -21,7 +21,7 @@
     const search = session.sortedResults, sourceURL = AIR.db.sortedResults.sanitizeSourceUrl(search?.sourceUrl);
     prices = sourceURL ? { items: AIR.db.sortedResults.sanitizeResults(search.items), store: new URL(sourceURL).hostname.replace(/^www\./, ''), currency: AIR.db.storefronts.storefront(sourceURL).currency, unit: AIR.db.unitPrice.isUnitId(search.unit) ? search.unit : '100g' } : null;
     const recent = listed.flatMap(p => {
-      const row = AIR.db.productCache.sanitize(readings[AIR.db.productCache.localKey(p.store, p.asin)]), input = S.cleanInput(row?.status === 'ok' ? AIR.db.productCache.toInput(row) : cached[p.key]?.input);
+      const row = AIR.db.productCache.sanitizeLocal(readings[AIR.db.productCache.localKey(p.store, p.asin)]), input = S.cleanInput(row?.status === 'ok' ? AIR.db.productCache.toInput(row) : cached[p.key]?.input);
       return input ? [{ id: 'cached:' + p.key, name: p.name || input.name, input, source: p.source, capturedAt: row ? Date.parse(row.scanned_at) : p.t, cached: true, store: p.store, asin: p.asin }] : [];
     });
     if (turn !== loadVersion) return;
@@ -142,7 +142,7 @@
       if (!await chrome.permissions.request(origins)) throw new Error('permission');
       const found = await chrome.runtime.sendMessage({ type: 'lookupBarcode', code, foodOnly: true });
       if (!found?.ingredients_text || found.ingredients_text.length > 6000 || found.rejected) throw new Error('unavailable');
-      $('labelName').value = found.name || ''; $('labelText').value = found.ingredients_text; $('labelAdvisory').value = ''; currentSource = 'open-food-facts'; currentLabel = null; $('saveLabelControls').hidden = true; $('checkResult').replaceChildren();
+      $('labelName').value = found.name || ''; $('labelText').value = found.ingredients_text; $('labelAdvisory').value = ''; currentSource = AIR.db.productCache.barcodeVia(found); currentLabel = null; $('saveLabelControls').hidden = true; $('checkResult').replaceChildren();
       for (const field of ['protein', 'fibre', 'sugar', 'addedSugar', 'sodium']) $(field).value = '';
       const nutrition = AIR.engine.normaliseNutrition(found.nutrition);
       if (['per 100g', 'per 100ml'].includes(nutrition.basis)) { $('labelBasis').value = nutrition.basis.replace('per ', ''); for (const field of ['protein', 'fibre', 'sugar', 'addedSugar', 'sodium']) if (nutrition.values[field] != null) $(field).value = nutrition.values[field]; }

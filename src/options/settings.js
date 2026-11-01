@@ -1030,6 +1030,8 @@ function startSettingsPage() {
     wireDatabase();
     wireSearchScoring();
     wireLabelReading();
+    wireAi();
+    wireUsda();
     wireSort();
     wireSpeed();
     wireBreakdown();

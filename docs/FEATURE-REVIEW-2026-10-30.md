@@ -2,6 +2,12 @@
 
 Implementation follow-up: [1.19.0 feature integration](FEATURE-INTEGRATION-2026-10-30.md).
 
+> Historical snapshot: this review assessed the 1.18.1 codebase. The 1.19.0 integration record
+> documents the subsequent implementation of evidence summaries, comparisons, constraints,
+> standalone checking, saved products, warning evidence and preview goals. Do not treat this
+> snapshot's prioritized list as the current unimplemented roadmap; publication, live retailer
+> coverage, onboarding research and independent score validation remain separate work.
+
 Ingredient Check 1.18.1 already has substantial functionality. The best next investment is making its scores easier to interpret and its comparisons more useful, while improving installation and real-store reliability. Additional retailer adapters and more scoring preferences have lower priority until those foundations are stronger.
 
 This is a source-based product assessment, not user research or a fresh live-store audit. Priorities reflect the current implementation and documented evidence gaps; adoption and retention benefits are hypotheses to validate.

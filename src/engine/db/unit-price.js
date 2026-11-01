@@ -78,8 +78,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
   function parseDisplayedUnit(text, store) {
     const normalized = String(text || '').replace(/\u00a0/g, ' ');
     const { decimal } = SF().storefront(store);
-    const qty = decimal === ',' ? '(\\d+(?:[.,]\\d+)?)' : '(\\d+(?:\\.\\d+)?)';
-    const pattern = new RegExp(`(?:${SF().PRICE}|(?<![\\d.,])(\\d+(?:[.,]\\d+)?)\\s*\u00a2)\\s*(?:\\/|per\\s+)\\s*${qty}?\\s*(${UNIT}|${COUNT_UNIT})(?![a-z])`, 'i');
+    const centsPattern = '(\\d{1,7}(?:[.,]\\d{1,6})?)';
+    const qty = decimal === ',' ? '(\\d{1,7}(?:[.,]\\d{1,6})?)' : '(\\d{1,7}(?:\\.\\d{1,6})?)';
+    const pattern = new RegExp(`(?:${SF().PRICE}|(?<![\\d.,])${centsPattern}\\s*\u00a2)\\s*(?:\\/|per\\s+)\\s*${qty}?\\s*(${UNIT}|${COUNT_UNIT})(?![a-z])`, 'i');
     const match = normalized.match(pattern);
     if (!match) return null;
     const info = unitInfo(match[5], store);
@@ -169,6 +170,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
   // "12 Count", "24-pack", "6 bottles". A pack word and an item count together ("Pack of 6, 12 ct each")
   // could be either the total or each, so they only count when they agree or the pack is one.
   const COUNT_WORDS = 'count|ct|pieces?|pcs?|bottles?|cans?|cartons?|bags?|bars?|pouches?|packets?|sachets?|jars?|tubs?|sticks?|capsules?|tablets?|softgels?|gummies';
+  const COUNT_MARKER = new RegExp(`\\bpack\\s+of\\s+\\d{1,7}\\b|\\b\\d{1,7}[\\s-]*(?:pack|pk|${COUNT_WORDS})(?![a-z])`, 'i');
   function parseCount(text) {
     const source = String(text || '').toLowerCase().replace(/,(?=\d{3}\b)/g, '');
     const packs = [], items = [];
@@ -193,20 +195,21 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
       ? lower.replace(/(\d),(\d)/g, '$1.$2')
       : lower.replace(/,/g, '');
     const found = [];
-    // One way to read each number, starting only where a number starts: the ported "\d*\.?\d+" could
-    // split a run of digits in every possible way from every position, and took minutes on a long one.
-    for (const match of source.matchAll(new RegExp(`(?<![\\d.])(\\d+(?:\\.\\d+)?|\\.\\d+)[\\s-]*(${UNIT})\\.?(?![a-z])`, 'g'))) {
+    // Package quantities do not need unbounded numeric tokens; limiting each side of the decimal
+    // avoids quadratic backtracking on a 6,000-digit listing title (tests/hostile-input.test.js).
+    for (const match of source.matchAll(new RegExp(`(?<![\\d.])(\\d{1,7}(?:\\.\\d{1,6})?|\\.\\d{1,6})[\\s-]*(${UNIT})\\.?(?![a-z])`, 'g'))) {
       if (NUTRIENT_AFTER.test(source.slice(match.index + match[0].length))) continue;
       const info = unitInfo(match[2], store);
       const ounces = Number(match[1]) * (info ? info.oz : 0);
       if (info && Number.isFinite(ounces) && ounces > 0) found.push({ ounces, kind: info.kind });
     }
-    const total = source.match(new RegExp(`(\\d+(?:\\.\\d+)?)[\\s-]*(${UNIT})\\s+total\\b`, 'i'));
+    const total = source.match(new RegExp(`(?<![\\d.])(\\d{1,7}(?:\\.\\d{1,6})?|\\.\\d{1,6})[\\s-]*(${UNIT})\\s+total\\b`, 'i'));
     if (total) {
       const info = unitInfo(total[2], store);
       const ounces = Number(total[1]) * (info ? info.oz : 0);
-      const count = source.match(/\bpack\s+of\s+(\d+)\b|\b(\d+)[\s-]*(?:pack|pk|count|ct|bottles?|cans?)\b/i);
-      const multiplier = count ? Number(count[1] || count[2]) : 1;
+      const items = parseCount(source);
+      if (COUNT_MARKER.test(source) && items == null) return null;
+      const multiplier = items || 1;
       const item = found.find(f => f.kind === (info && info.kind)
         && Math.abs(f.ounces * multiplier - ounces) / Math.max(f.ounces * multiplier, ounces) <= 0.02);
       if (info && ounces > 0 && item) return { ounces, kind: info.kind };
@@ -222,14 +225,18 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
     const representative = found[0].ounces;
     if (!found.every(f => Math.abs(f.ounces - representative) / Math.max(f.ounces, representative) <= 0.02)) return null;
 
-    const pack = source.match(/\bpack\s+of\s+(\d+)\b|\b(\d+)[\s-]*(?:pack|pk)\b/);
-    const count = source.match(/\b(\d+)[\s-]*(?:count|ct|pieces?|bottles?|cans?|cartons?)\b/);
+    const pack = source.match(/\bpack\s+of\s+(\d{1,7})\b|\b(\d{1,7})[\s-]*(?:pack|pk)\b/);
+    const count = source.match(/\b(\d{1,7})[\s-]*(?:count|ct|pieces?|bottles?|cans?|cartons?)\b/);
     let multiplier = pack ? Number(pack[1] || pack[2]) : 1;
-    if (count) {
-      // A liquid's size is per bottle ("3.1 fl oz, 8 Count" is 24.8 fl oz). A weight next to a
-      // count may be the total or per item ("100 Count, 7 oz" tea), so that stays unsorted.
-      if (kind !== 'fluid') return null;
-      if (!pack) multiplier = Number(count[1]);
+    if (kind === 'fluid') {
+      // Fluid sizes are per item ("3.1 fl oz, 8 Count" is 24.8 fl oz). Reuse the count parser so
+      // conflicting pack/item counts never choose one multiplier arbitrarily.
+      const items = parseCount(source);
+      if (COUNT_MARKER.test(source) && items == null) return null;
+      if (items != null) multiplier = items;
+    } else if (count) {
+      // A weight next to a count may be the total or per item ("100 Count, 7 oz" tea), so that stays unsorted.
+      return null;
     }
     return { ounces: representative * multiplier, kind };
   }
