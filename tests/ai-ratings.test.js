@@ -12,6 +12,8 @@ const categories = require(src('engine/categories.js'));
 const productCache = require(src('engine/db/product-cache.js'));
 const scoreCache = require(src('engine/db/score-cache.js'));
 
+// sanitize() returns objects with no prototype (nothing to replace or inherit), which deepEqual tells apart from {}.
+const plain = map => ({ ...map });
 const sum = rows => rows.reduce((a, r) => a + (typeof r.c === 'number' ? r.c : 0), 0);
 const LIST = 'Rice flour, water, salt, zorbex gum, qualiflavor 12, kaniwa';
 const product = extra => ({ name: 'Test snack', ingredients_text: LIST, ...extra });
@@ -122,16 +124,18 @@ test('keyOf and sanitize heal anything a stored map can hold', () => {
   assert.equal(A.keyOf('x'.repeat(81)), '');
   assert.equal(A.keyOf({}), '');
   const messy = { 'Zorbex Gum': { c: 'texture', k: 2 }, '': { c: 'texture', k: 1 }, 'a b': { c: 'nope', k: 1 }, 'c d': { c: 'sugar', k: 'high' }, 'e f': 'x', 'g h': null };
-  assert.deepEqual(A.sanitize(messy), { 'zorbex gum': { c: 'texture', k: 1 } });
+  assert.deepEqual(plain(A.sanitize(messy)), { 'zorbex gum': { c: 'texture', k: 1 } });
   const big = Object.fromEntries(Array.from({ length: 100 }, (_, i) => [`word${String.fromCharCode(97 + (i % 26))}${String.fromCharCode(97 + Math.floor(i / 26))}`, { c: 'sugar', k: 1 }]));
   assert.equal(Object.keys(A.sanitize(big)).length, A.MAX_PER_READING);
-  assert.deepEqual(A.sanitize('nonsense'), {});
-  assert.deepEqual(A.sanitize(JSON.parse('{"__proto__":{"c":"sugar","k":1}}')), {});
-  assert.equal(Object.getPrototypeOf(A.sanitize(JSON.parse('{"__proto__":{"c":"sugar","k":1}}'))), Object.prototype, 'the result is still an ordinary object');
-  assert.equal(A.keyOf('__proto__'), '');
-  assert.equal(A.keyOf('constructor'), 'constructor', 'only __proto__ is special to assignment; lookups use Object.hasOwn');
-  assert.deepEqual(A.parseReply(JSON.stringify({ ratings: [{ name: '__proto__', class: 'sugar', confidence: 1 }] }), ['__proto__']), {});
-  assert.deepEqual(A.toAsk(['__proto__', 'zorbex'], null), ['zorbex']);
+  assert.deepEqual(plain(A.sanitize('nonsense')), {});
+  const proto = A.sanitize(JSON.parse('{"__proto__":{"c":"sugar","k":1},"constructor":{"c":"sugar","k":1},"prototype":{"c":"sugar","k":1}}'));
+  assert.deepEqual(plain(proto), {});
+  assert.equal(Object.getPrototypeOf(proto), null, 'no prototype to replace or inherit from');
+  // Reserved names are refused however they are spelled, including after normalising ("__PROTO__", " Constructor ").
+  for (const name of ['__proto__', '__PROTO__', ' __proto__ ', 'constructor', ' Constructor ', 'prototype']) assert.equal(A.keyOf(name), '', name);
+  assert.equal(A.keyOf('constructor oil'), 'constructor oil', 'only the whole name is reserved');
+  assert.deepEqual(A.parseReply(JSON.stringify({ ratings: [{ name: '__PROTO__', class: 'sugar', confidence: 1 }] }), ['__PROTO__']), {});
+  assert.deepEqual(A.toAsk(['__proto__', '__PROTO__', 'Constructor', 'zorbex'], null), ['zorbex']);
   assert.equal(engine.score({ name: 'x', ingredients_text: 'rice, __proto__', aiRatings: JSON.parse('{"__proto__":{"c":"sugar","k":1}}') }).ai, undefined);
 });
 
@@ -162,13 +166,13 @@ test('ratings stay on this computer: a shared or outgoing row carries none, a lo
   const row = { store: 'amazon.com', asin: 'B00LOAW7U6', status: 'ok', scanned_at: Date.now(), data };
   assert.equal(productCache.sanitize(row).data.aiRatings, undefined, 'default read, as for a shared row');
   const local = productCache.sanitizeLocal(row);
-  assert.deepEqual(local.data.aiRatings, { 'zorbex gum': { c: 'texture', k: 0.9 }, kaniwa: { c: 'whole', k: 0.95 } });
-  assert.deepEqual(productCache.toInput(local).aiRatings, local.data.aiRatings);
+  assert.deepEqual(plain(local.data.aiRatings), { 'zorbex gum': { c: 'texture', k: 0.9 }, kaniwa: { c: 'whole', k: 0.95 } });
+  assert.deepEqual(productCache.toInput(local).aiRatings, plain(local.data.aiRatings));
   assert.notEqual(productCache.toInput(local).aiRatings, local.data.aiRatings, 'a copy, so a consumer cannot alter the stored reading');
   const queued = productCache.mergeQueue({}, { upserts: [{ ...row, data: { ...data } }] });
   assert.equal(Object.values(queued.upserts)[0].data.aiRatings, undefined, 'never queued for upload');
   const scanned = productCache.fromScan({ store: 'amazon.com', asin: 'B00LOAW7U6', input: { name: 'Snack', ingredients_text: LIST, aiRatings: GUM }, via: 'page', confidence: 1 });
-  assert.deepEqual(scanned.data.aiRatings, { 'zorbex gum': { c: 'texture', k: 0.9 } });
+  assert.deepEqual(plain(scanned.data.aiRatings), { 'zorbex gum': { c: 'texture', k: 0.9 } });
   // Poisoned values never survive a local read either.
   const hostile = productCache.sanitizeLocal({ ...row, data: { ...data, aiRatings: { 'zorbex gum': { c: 'cap-the-score', k: 1 } } } });
   assert.equal(hostile.data.aiRatings, undefined);
