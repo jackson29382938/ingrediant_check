@@ -281,6 +281,11 @@ Search grids compact around removed sponsored cells and collapse empty promotion
 restores Walmart's layout. Live desktop/mobile browser captures were checked with injected content
 scripts; the managed browser's unpacked-extension installation restriction remains.
 
+In **1.21.1**, isolated final rows that cannot pull products from the next Walmart result group use
+the ten predefined search summaries listed in [the release notes](releases/1.21.1.md). Compaction
+still comes first. These summaries occupy only residual columns and describe actual loaded products,
+ratings, prices and label progress; missing values remain unknown. Pausing restores the original page.
+
 While Ingredient Check is enabled, Walmart search hides sponsored cards/modules and automatically
 rates discovered organic results, including results loaded later. Walmart search always shows its
 rating badges regardless of the global **Rate every search result** and **Result badges** switches;

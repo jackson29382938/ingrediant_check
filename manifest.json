@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "1.21.0",
+  "version": "1.21.1",
   "minimum_chrome_version": "116",
   "description": "__MSG_appDescription__",
   "permissions": [
@@ -969,6 +969,7 @@
         "src/engine/db/storefronts.js",
         "src/engine/db/unit-price.js",
         "src/engine/db/sorted-results.js",
+        "src/content/walmart-space.js",
         "src/content/walmart-sort.js",
         "src/content/retailer.js",
         "src/content/badge-link.js",
@@ -1556,6 +1557,7 @@
         "src/engine/db/storefronts.js",
         "src/engine/db/unit-price.js",
         "src/engine/db/sorted-results.js",
+        "src/content/walmart-space.js",
         "src/content/walmart-sort.js",
         "src/content/retailer.js",
         "src/content/badge-link.js",

@@ -113,6 +113,7 @@
       if (!stack.querySelector(ITEM_CARD)) continue;
       stack.setAttribute('data-air-compact-grid', '');
       for (const cell of stack.children) {
+        if (cell.hasAttribute('data-air-space-filler')) { cell.setAttribute('data-air-result-cell', ''); continue; }
         if (cell.matches(ITEM_CARD) || cell.querySelector(ITEM_CARD)) cell.setAttribute('data-air-result-cell', '');
         // Retail ad slots may become completely empty after hydration. Preserve
         // interactive/media/announced content, and recheck when anything arrives.

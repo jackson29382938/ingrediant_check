@@ -2270,5 +2270,44 @@
   },
   "walmartSortMixed": {
     "message": "Mixed categories: health ranking is unavailable."
+  },
+  "walmartStatLoaded": {
+    "message": "Products in this search"
+  },
+  "walmartStatRated": {
+    "message": "Ingredient ratings ready"
+  },
+  "walmartStatAverage": {
+    "message": "Average ingredient score"
+  },
+  "walmartStatBest": {
+    "message": "Highest ingredient score"
+  },
+  "walmartStatExcellent": {
+    "message": "Excellent ingredient scores"
+  },
+  "walmartStatLowPrice": {
+    "message": "Lowest listed price"
+  },
+  "walmartStatLowUnit": {
+    "message": "Lowest price per ounce"
+  },
+  "walmartStatAds": {
+    "message": "Hidden ad slots"
+  },
+  "walmartStatWaiting": {
+    "message": "Labels still checking"
+  },
+  "walmartStatUnknown": {
+    "message": "Labels unavailable"
+  },
+  "walmartStatSection": {
+    "message": "Ingredient Check search summaries"
+  },
+  "walmartStatScope": {
+    "message": "This loaded search"
+  },
+  "walmartStatNote": {
+    "message": "Updates as labels arrive. Missing values stay unknown."
   }
 }

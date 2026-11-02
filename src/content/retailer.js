@@ -306,6 +306,7 @@
         for (const controller of state.controllers) controller.abort();
         clearBadges();
         root.AIR.retailerSort?.reset(false);
+        root.AIR.retailerSpace?.reset();
         return true;
       }
     }
@@ -333,6 +334,7 @@
         ranked.push({ tile: x, hit: job?.hit || saved?.hit || null });
       }
       root.AIR.retailerSort?.update(ranked);
+      root.AIR.retailerSpace?.update(ranked);
       drain();
     }, chrome.storage);
     return false;
@@ -385,6 +387,7 @@
     state.pageScore = null; state.override = false; state.done = false; state.started = Date.now();
     state.url = location.href;
     root.AIR.retailerSort?.reset(state.enabled && adapter.isSearchPage(location));
+    root.AIR.retailerSpace?.reset();
     if (!state.enabled) return;
     if (!adapter.isProductPage(location) && !adapter.isSearchPage(location)) return;
     pass();

@@ -2270,5 +2270,44 @@
   },
   "walmartSortMixed": {
     "message": "Verschiedene Kategorien: Sortierung nach Gesundheit ist nicht verfügbar."
+  },
+  "walmartStatLoaded": {
+    "message": "Produkte in dieser Suche"
+  },
+  "walmartStatRated": {
+    "message": "Fertige Zutatenbewertungen"
+  },
+  "walmartStatAverage": {
+    "message": "Durchschnittliche Zutatenbewertung"
+  },
+  "walmartStatBest": {
+    "message": "Höchste Zutatenbewertung"
+  },
+  "walmartStatExcellent": {
+    "message": "Ausgezeichnete Zutatenbewertungen"
+  },
+  "walmartStatLowPrice": {
+    "message": "Niedrigster Angebotspreis"
+  },
+  "walmartStatLowUnit": {
+    "message": "Niedrigster Preis pro Unze"
+  },
+  "walmartStatAds": {
+    "message": "Ausgeblendete Werbeplätze"
+  },
+  "walmartStatWaiting": {
+    "message": "Zutatenlisten werden geprüft"
+  },
+  "walmartStatUnknown": {
+    "message": "Zutatenlisten nicht verfügbar"
+  },
+  "walmartStatSection": {
+    "message": "Suchübersichten von Ingredient Check"
+  },
+  "walmartStatScope": {
+    "message": "Diese geladenen Suchergebnisse"
+  },
+  "walmartStatNote": {
+    "message": "Aktualisierung beim Laden der Zutaten. Fehlende Werte bleiben unbekannt."
   }
 }

@@ -149,5 +149,39 @@ try {
   await page.waitForFunction(() => document.getElementById('air-score-panel')?.dataset.airState === 'scored');
   assert.deepEqual(errors, []);
   console.log('ok SPA filter changes and product navigation: badges refresh and real product score panel renders on ' + searchOrigin);
+  // A real Walmart layout can leave one organic card in a separate four-column
+  // result group. Do not move React nodes across groups: fill the residual slots.
+  await page.evaluate(html => {
+    history.pushState({}, '', '/search?q=ground+beef');
+    document.body.innerHTML = `<main id="residual-stack" data-testid="item-stack" style="width:1100px">${html}</main>`;
+  }, card('10000001').replace('display:block', 'display:block;height:560px')
+    + card('50000001', true) + card('50000002', true) + card('50000003', true));
+  await page.waitForFunction(() => document.querySelectorAll('[data-air-space-filler]').length === 3);
+  const fillers = page.locator('[data-air-space-filler]');
+  assert.equal(await fillers.locator('.stat').count(), 10, 'ten predefined summaries occupy the residual columns');
+  const headings = await fillers.locator('.title').allTextContents();
+  assert.equal(new Set(headings).size, 10);
+  assert.equal(await fillers.locator('[data-stat="0"] .value').textContent(), '1', 'count only the loaded organic product');
+  assert.equal(await fillers.locator('[data-stat="1"] .value').textContent(), '1', 'ratings update from the validated cache');
+  assert.equal(await fillers.locator('[data-stat="2"] .value').textContent(), '86/100');
+  const row = await page.locator('#residual-stack > [data-item-id="10000001"]').boundingBox();
+  for (const filler of await fillers.all()) {
+    const box = await filler.boundingBox();
+    assert(Math.abs(box.y - row.y) < 2 && box.x >= row.x + row.width, 'summaries fill empty columns without covering the product');
+    assert(box.height >= 500, 'summaries occupy the tall residual gap');
+  }
+  await page.setViewportSize({ width: 600, height: 900 });
+  await page.waitForFunction(() => document.querySelectorAll('[data-air-space-filler]').length === 1);
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.waitForFunction(() => document.querySelectorAll('[data-air-space-filler]').length === 3);
+  await page.locator('#residual-stack').evaluate((el, html) => el.insertAdjacentHTML('beforeend', html), card('10000002').replace('display:block', 'display:block;height:560px'));
+  await page.waitForFunction(() => document.querySelectorAll('[data-air-space-filler]').length === 2);
+  await page.locator('#residual-stack').evaluate((el, html) => el.insertAdjacentHTML('beforeend', html),
+    card('10000003').replace('display:block', 'display:block;height:560px') + card('10000004').replace('display:block', 'display:block;height:560px'));
+  await page.waitForFunction(() => !document.querySelector('[data-air-space-filler]'));
+  await page.evaluate(() => window.__settings({ enabled: false }));
+  await page.waitForFunction(() => !document.querySelector('[data-air-space-filler]'));
+  assert.equal(await page.locator('[data-item-id="50000001"]').isVisible(), true);
+  console.log('ok residual whitespace: three empty columns filled with ten live summaries, product unobstructed, pause restores original page');
   await context.close();
 } finally { await browser.close(); }
