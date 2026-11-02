@@ -19,7 +19,7 @@ See [purchase history](PURCHASE-HISTORY.md).
 |---|---|---|---|---|---|
 | Amazon | supported | yes | pass (`npm test`, `npm run harness:ci`) | amazon.com product and search pages, 2026-09-05 and again 2026-09-25, including label-photo OCR, Open Food Facts and the shared database ([VERIFY.md](VERIFY.md)) | Only amazon.com has been live checked. The other 20 Amazon stores share its code and markup but were not checked one by one. |
 | Target | preview | yes, 2026-09-25 (`src/stores/target.js`, `src/content/retailer.js`) | pass (`tests/target.test.js`, `tests/stores.test.js`) | **partly**, 2026-09-25: live product and search pages were read correctly, but behind Target's bot check | See *Target* below. Needs one check in your own Chrome to become supported. |
-| Walmart | preview | yes | adapter and identity checks | Public product HTML retrieved 2026-10-04 (HTTP 200), product 10314926 | Current-page embedded ingredient declaration; search can scan public product pages. Live browser validation remains incomplete. |
+| Walmart | preview | yes | adapter, identity and real-scoring browser fixture checks (`npm run walmart:check`) | Public product HTML retrieved 2026-10-04 (HTTP 200), product 10314926 | Sponsored search items hidden; automatic ratings on public search results. Live browser validation remains incomplete. |
 | Costco | preview | yes | adapter and identity checks | Public product HTML retrieved 2026-10-04 (HTTP 200), product 100423971 | Visible labels only; retrieved initial page had no ingredient declaration. Paste fallback available. Live browser validation remains incomplete. |
 
 | Instacart | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Initial product page retrieved; no usable label | instacart.com; readable public labels scored, missing labels remain unknown. |
@@ -270,3 +270,18 @@ and ids), and the Chrome harness checks the real extension on them, including th
 caught. Other stores' carts are still checked on fixtures only: their sites block automated browsers or need an
 account, so live filled-cart coverage there remains pending. Rows inside carousels, suggestions, "buy it again" and
 footers are now excluded on every store.
+
+## Walmart search in 1.20.1
+
+While Ingredient Check is enabled, Walmart search hides sponsored cards/modules and automatically
+rates discovered organic results, including results loaded later. Walmart search always shows its
+rating badges regardless of the global **Rate every search result** and **Result badges** switches;
+other stores retain those preferences. Pausing the extension removes badges and restores hidden ads.
+Public product-page reads run at most two at a time and stop when the store blocks or rate-limits
+requests. Missing readable ingredient declarations show **Label unavailable**, never an estimated
+score from the title. Search URLs with a trailing slash are supported too.
+
+`HARNESS_CHROME=/path/to/chromium npm run walmart:check` exercises the real content scripts and
+scoring engine with intercepted pages: 65 uncached beef results, sponsored exclusions, late cards,
+recycled cards, pause/resume, and missing declarations. This is fixture validation, not a live-site
+check. The managed cloud environment blocks Walmart network access and unpacked extension installs.

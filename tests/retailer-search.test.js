@@ -43,7 +43,7 @@ function element(tag = 'div') {
   return node;
 }
 
-function runner({ ids = ['79364857'], stored = {}, query = 'oats' } = {}) {
+function runner({ ids = ['79364857'], stored = {}, query = 'oats', adapterOptions = {} } = {}) {
   const body = element('body'), nodes = [], requests = [], writes = [], timers = [], intervals = [], observers = [];
   const location = { origin: 'https://www.target.com', href: `https://www.target.com/s?searchTerm=${query}`, hostname: 'www.target.com', pathname: '/s', search: `?searchTerm=${query}` };
   let now = Date.now(), settingsChanged;
@@ -56,6 +56,7 @@ function runner({ ids = ['79364857'], stored = {}, query = 'oats' } = {}) {
     return { id, title: 'Organic oats', anchor: title, link: titleLink, card };
   });
   const adapter = { id: 'target', name: 'Target', matchesHost: host => host === 'www.target.com', productId,
+    ...adapterOptions,
     isProductPage: loc => !!productId(loc.href), isSearchPage: loc => loc.pathname === '/s', searchQuery: () => query,
     productUrl: id => `https://www.target.com/p/${id}`,
     searchTiles: () => tiles.map(tile => ({ ...tile, id: productId(tile.link.href) })),
@@ -108,6 +109,25 @@ function runner({ ids = ['79364857'], stored = {}, query = 'oats' } = {}) {
 }
 
 const waitForRequest = async w => { await w.flush(); assert.ok(w.requests.length, 'uncached grocery product page is requested'); };
+
+test('always-rate stores rate results with global badge switches off but still honor pause', async () => {
+  const w = runner({ stored: { badges: false, autoScoreSearch: false }, adapterOptions: { alwaysRateSearch: true } });
+  await waitForRequest(w); w.reply(0); await w.flush();
+  assert.equal(w.badges()[0]?.textContent, '93');
+  w.change({ enabled: false }); await w.flush();
+  assert.equal(w.badges().length, 0);
+  assert.equal(w.settings.badges, false, 'the global preference is preserved');
+  assert.equal(w.settings.autoScoreSearch, false);
+});
+
+test('always-rate stores process all discovered results beyond the default fetch allowance', async () => {
+  const ids = Array.from({ length: 65 }, (_, i) => String(79364800 + i));
+  const w = runner({ ids, adapterOptions: { alwaysRateSearch: true } });
+  await waitForRequest(w);
+  for (let i = 0; i < ids.length; i++) { w.reply(i); await w.flush(); }
+  assert.equal(w.requests.length, 65);
+  assert.equal(w.badges().filter(badge => badge.textContent === '93').length, 65);
+});
 
 test('retailer search rates a previously unopened product and caches its score', async () => {
   const w = runner(); await waitForRequest(w); w.reply(0); await w.flush();

@@ -164,6 +164,25 @@ test('Walmart search rejects reused cards containing contradictory product IDs',
   assert.deepEqual(W.searchTiles(doc), []);
 });
 
+test('Walmart item-ID cards inside forms use the sibling title rather than the overlay link', () => {
+  const doc = createDocument('<form><main data-testid="item-stack"><div data-item-id="10314926">'
+    + '<a href="/ip/beef/10314926"><img alt="Ground beef package"></a>'
+    + '<span data-automation-id="product-title">Ground beef, 1 lb</span></div></main></form>');
+  const hits = W.searchTiles(doc);
+  assert.equal(hits.length, 1);
+  assert.equal(hits[0].title, 'Ground beef, 1 lb');
+  assert.equal(hits[0].anchor.getAttribute('data-automation-id'), 'product-title');
+});
+
+test('Walmart standalone sponsored labels exclude only the advertised card, including duplicate organic items', () => {
+  const doc = createDocument('<main><div data-item-id="10314926"><a href="/ip/beef/10314926">Beef</a><span>Sponsored</span></div>'
+    + '<div data-item-id="10314926"><a href="/ip/beef/10314926">Beef</a></div>'
+    + '<div data-item-id="10314925" data-sponsored="true"><a href="/ip/oats/10314925">Oats</a></div></main>');
+  const hits = W.searchTiles(doc);
+  assert.deepEqual(hits.map(hit => hit.id), ['10314926']);
+  assert.equal(hits[0].tile.querySelector('span'), null, 'organic duplicate survives sponsored exclusion');
+});
+
 test('Walmart public product URL stays on the current origin and drops tracking or private-route input', () => {
   assert.equal(W.productUrl('10314926', at('https://www.walmart.com/search?q=oats&session=ignored')), 'https://www.walmart.com/ip/10314926');
   assert.equal(W.productUrl('10314926', at('https://walmart.com/search?q=oats')), 'https://walmart.com/ip/10314926');

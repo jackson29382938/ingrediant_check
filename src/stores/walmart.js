@@ -64,11 +64,50 @@
     return { ...base, ...visible, ingredients, labelText: ingredients, label: ingredients ? 'open' : visible.label,
       crumbs: (Array.isArray(product?.category?.path) ? product.category.path : []).map(item => typeof item?.name === 'string' ? L.clean(item.name) : '').filter(Boolean) };
   }
+  const CARD = '[data-item-id], [data-testid="product-card"], [data-testid="list-view"], [role="group"]';
+  const AD_ATTRS = ['data-testid', 'data-test', 'data-automation-id', 'aria-label'];
+  function sponsored(node) {
+    return node.getAttribute('data-sponsored') === 'true' || AD_ATTRS.some(attr =>
+      /sponsored|advertisement|(?:^|[-_])ad(?:[-_]|$)|^sp-(?:search|carousel|brand)(?:-|$)/i.test(node.getAttribute(attr) || ''));
+  }
+  function sponsoredCard(card) {
+    return sponsored(card) || Array.from(card.querySelectorAll('span, p, [aria-label], [data-testid], [data-automation-id]'))
+      .some(node => sponsored(node) || /^sponsored$/i.test(L.text(node)));
+  }
+  // Hide instead of deleting React-owned nodes. Recheck recycled cards before each pass,
+  // and restore only our own changes when paused or navigating away from search.
+  function restoreSponsored(doc) {
+    for (const node of doc.querySelectorAll('[data-air-sponsored-hidden]')) {
+      node.style.removeProperty('display');
+      const display = node.getAttribute('data-air-sponsored-display');
+      if (display) node.style.setProperty('display', display, node.getAttribute('data-air-sponsored-priority') || '');
+      node.removeAttribute('data-air-sponsored-hidden');
+      node.removeAttribute('data-air-sponsored-display');
+      node.removeAttribute('data-air-sponsored-priority');
+    }
+  }
+  function hideSponsored(doc) {
+    restoreSponsored(doc);
+    const candidates = new Set(doc.querySelectorAll(CARD));
+    for (const node of doc.querySelectorAll('[data-testid], [data-automation-id], [aria-label], [data-sponsored]')) {
+      if (sponsored(node)) candidates.add(node.querySelector('a[href]') ? node : node.closest(CARD) || node);
+    }
+    for (const node of candidates) {
+      if (!sponsoredCard(node)) continue;
+      // A generic role=group may be the whole results grid. Never hide organic siblings.
+      const ids = new Set(Array.from(node.querySelectorAll('a[href]')).map(link => productId(link.getAttribute('href'))).filter(Boolean));
+      if (ids.size > 1 && !sponsored(node)) continue;
+      node.setAttribute('data-air-sponsored-hidden', 'true');
+      node.setAttribute('data-air-sponsored-display', node.style.getPropertyValue('display'));
+      node.setAttribute('data-air-sponsored-priority', node.style.getPropertyPriority('display'));
+      node.style.setProperty('display', 'none', 'important');
+    }
+  }
   function searchTiles(doc) {
     const out = [], seen = new Set();
     for (const link of doc.querySelectorAll('a[href]')) {
       const id = productId(link.getAttribute('href'));
-      if (!id || seen.has(id) || link.closest('nav, aside, footer, form') || L.hiddenFromSight(link)) continue;
+      if (!id || seen.has(id) || link.closest('nav, aside, footer, [data-air-sponsored-hidden]') || L.hiddenFromSight(link)) continue;
       let excluded = false;
       for (let parent = link; parent && parent.getAttribute; parent = parent.parentNode) {
         if (['data-testid', 'data-test', 'data-automation-id', 'aria-label'].some(attr => /recommend|promot|sponsored|advertis/i.test(parent.getAttribute(attr) || ''))) {
@@ -78,7 +117,8 @@
       if (excluded) continue;
       // The public grid uses role=group cards with an overlay link and a separate title span.
       // item-stack is the entire grid. Never borrow that grid's first product title.
-      const card = link.closest('[role="group"]');
+      const card = link.closest('[data-item-id], [data-testid="product-card"], [data-testid="list-view"]') || link.closest('[role="group"]');
+      if (card && sponsoredCard(card)) continue;
       if (card && Array.from(card.querySelectorAll('a[href]')).some(other => {
         const otherId = productId(other.getAttribute('href'));
         return otherId && otherId !== id;
@@ -98,6 +138,7 @@
     return out;
   }
   const adapter = { id: 'walmart', name: 'Walmart', matchesHost, productId, productUrl, remountPanel: true,
+    alwaysRateSearch: true, hideSponsored, restoreSponsored,
     isProductPage: loc => !!productId(loc.href), isSearchPage: loc => matchesHost(loc.hostname) && /^\/search\/?$/.test(loc.pathname),
     searchQuery: loc => { try { return new URL(loc.href).searchParams.get('q') || ''; } catch { return ''; } },
     readProduct, labelToggle: L.labelToggle, labelName: 'Ingredients', searchTiles };

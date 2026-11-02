@@ -34,6 +34,12 @@
     state.badges = toggles.badges;
     state.foodOnly = toggles.foodOnly;
     state.autoScoreSearch = toggles.autoScoreSearch;
+    // Walmart results always show ratings while the extension is enabled. Keep the
+    // global switches intact for other stores and honor the extension's pause switch.
+    if (adapter.alwaysRateSearch) {
+      state.badges = true;
+      state.autoScoreSearch = true;
+    }
     state.panelOpen = toggles.panelOpen;
     if (root.AIR.db.theme) root.AIR.db.theme.use(o);   // the reader's score palette and light/dark
     const scoring = PREFS.sanitizeScoring(o);
@@ -43,6 +49,7 @@
       sheetIndexRev: o.sheetIndexRev, producerIndexRev: o.producerIndexRev };
     // How old a saved score may be: the speed setting's age (1 to 90 days), as on Amazon.
     state.fetchLimit = root.AIR.db.speed ? root.AIR.db.speed.profile(o.speedMode).autoFetches : 60;
+    if (adapter.alwaysRateSearch) state.fetchLimit = Number.MAX_SAFE_INTEGER;
     state.maxAgeMs = root.AIR.db.speed ? root.AIR.db.speed.profile(o.speedMode).maxAgeMs : CACHE.TTL_MS;
   }
 
@@ -284,6 +291,7 @@
   }
 
   function searchPass() {
+    adapter.hideSponsored?.(document);
     const tiles = adapter.searchTiles(document);
     if (state.foodOnly) {
       const gate = root.AIR.db.ingestible;
@@ -352,7 +360,7 @@
       if (pending) return;
       pending = setTimeout(() => { pending = null; pass(); }, 400);
     });
-    state.observer.observe(document.body || document.documentElement, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['href', 'hidden', 'aria-hidden', 'aria-expanded', 'data-test', 'data-testid'] });
+    state.observer.observe(document.body || document.documentElement, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['href', 'hidden', 'aria-hidden', 'aria-expanded', 'aria-label', 'data-test', 'data-testid', 'data-automation-id', 'data-item-id', 'data-sponsored'] });
   }
 
   function reset() {
@@ -364,6 +372,7 @@
     stopWatching();
     document.getElementById(HOST_ID)?.remove();
     clearBadges();
+    adapter.restoreSponsored?.(document);
     state.signature = null;
     state.pageScore = null; state.override = false; state.done = false; state.started = Date.now();
     state.url = location.href;

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "1.20.0",
+  "version": "1.20.1",
   "minimum_chrome_version": "116",
   "description": "__MSG_appDescription__",
   "permissions": [
@@ -815,9 +815,11 @@
         "https://www.walmart.com/ip/*",
         "https://www.walmart.com/search",
         "https://www.walmart.com/search?*",
+        "https://www.walmart.com/search/*",
         "https://walmart.com/ip/*",
         "https://walmart.com/search",
         "https://walmart.com/search?*",
+        "https://walmart.com/search/*",
         "https://www.costco.com/p/*",
         "https://www.costco.com/*.product.*.html",
         "https://www.costco.com/s",

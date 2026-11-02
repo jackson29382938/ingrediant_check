@@ -63,7 +63,7 @@
     if (!store || store.status === 'planned') return false;
     if (/\/(?:cart|checkout|account|login|orders|your-account|gp\/(?:cart|buy|css)|ap)(?:[/.]|$)/i.test(u.pathname)) return false;
     if (store.id === 'target') return /^(?:www\.)?target\.com$/i.test(u.hostname) && /^\/(?:p\/|s(?:\/|$))/.test(u.pathname);
-    if (store.id === 'walmart') return /^(?:www\.)?walmart\.com$/i.test(u.hostname) && (/^\/ip\/(?:[^/]+\/)?\d{5,15}\/?$/.test(u.pathname) || u.pathname === '/search');
+    if (store.id === 'walmart') return /^(?:www\.)?walmart\.com$/i.test(u.hostname) && (/^\/ip\/(?:[^/]+\/)?\d{5,15}\/?$/.test(u.pathname) || /^\/search\/?$/.test(u.pathname));
     if (store.id === 'costco') return /^(?:www\.)?costco\.com$/i.test(u.hostname) && (/^\/[^/]+\.product\.\d{5,15}\.html$/.test(u.pathname) || /^\/p\/(?:[^/]+\/)+\d{5,15}\/?$/.test(u.pathname) || ['/s', '/CatalogSearch'].includes(u.pathname));
     if (store.id !== 'amazon') {
       if (!store.domains.some(domain => u.hostname === domain || u.hostname === 'www.' + domain)) return false;
