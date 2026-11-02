@@ -136,6 +136,16 @@ test('retailer search rates a previously unopened product and caches its score',
   assert.equal(new URL(w.requests[0].url).origin, 'https://www.target.com');
 });
 
+test('public reads preserve same-origin sessions only for adapters that opt in', async () => {
+  const ordinary = runner(); await waitForRequest(ordinary);
+  assert.equal(ordinary.requests[0].options.credentials, 'omit');
+  ordinary.reply(0); await ordinary.flush();
+  const session = runner({ adapterOptions: { publicCredentials: 'same-origin' } });
+  await waitForRequest(session);
+  assert.equal(session.requests[0].options.credentials, 'same-origin');
+  session.reply(0); await session.flush();
+});
+
 test('retailer search displays unavailable status when the public product page has no declared list', async () => {
   const w = runner(); await waitForRequest(w); w.reply(0, {}); await w.flush();
   assert.equal(w.badges()[0]?.textContent, 'Label unavailable');

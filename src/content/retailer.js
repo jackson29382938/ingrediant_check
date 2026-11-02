@@ -249,11 +249,11 @@
       (async () => {
         const url = new URL(adapter.productUrl(job.id, location), location.href);
         if (url.origin !== location.origin || adapter.productId(url.href) !== job.id) throw new Error('unavailable');
-        const response = await fetch(url.href, { credentials: 'omit', signal: controller.signal });
+        const response = await fetch(url.href, { credentials: adapter.publicCredentials === 'same-origin' ? 'same-origin' : 'omit', signal: controller.signal });
         if (generation !== state.generation || location.href !== state.url || controller.signal.aborted) return;
         if ([403, 429, 503].includes(response.status)) state.throttled = true;
         const final = new URL(response.url || url.href);
-        if (final.origin !== url.origin || adapter.productId(final.href) !== job.id) throw new Error('unavailable');
+        if ((final.origin !== url.origin && !adapter.acceptsProductRedirect?.(url, final, job.id)) || adapter.productId(final.href) !== job.id) throw new Error('unavailable');
         const doc = await publicDocument(response, controller.signal);
         if (generation !== state.generation || location.href !== state.url || controller.signal.aborted) return;
         const data = adapter.readProduct(doc, final);
@@ -360,7 +360,7 @@
       if (pending) return;
       pending = setTimeout(() => { pending = null; pass(); }, 400);
     });
-    state.observer.observe(document.body || document.documentElement, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['href', 'hidden', 'aria-hidden', 'aria-expanded', 'aria-label', 'data-test', 'data-testid', 'data-automation-id', 'data-item-id', 'data-sponsored'] });
+    state.observer.observe(document.body || document.documentElement, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['href', 'hidden', 'aria-hidden', 'aria-expanded', 'aria-label', 'data-test', 'data-testid', 'data-automation-id', 'data-item-id', 'data-dca-card-id', 'data-sponsored'] });
   }
 
   function reset() {

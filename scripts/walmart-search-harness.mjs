@@ -8,18 +8,34 @@ import { chromium } from 'playwright';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json')));
 const scripts = manifest.content_scripts.find(entry => entry.js.includes('src/content/retailer.js')).js;
+const searchOrigin = process.env.WALMART_TEST_ORIGIN || 'https://www.walmart.com';
+assert(['https://walmart.com', 'https://www.walmart.com'].includes(searchOrigin));
 const card = (id, sponsored = false) => `<div data-item-id="${id}" style="display:block"><a href="/ip/beef/${id}"><img alt="Beef"></a>
   <span data-automation-id="product-title">Ground beef ${id}</span><button>Add to cart</button>${sponsored ? '<span>Sponsored</span>' : ''}</div>`;
 const browser = await chromium.launch({ headless: true, executablePath: process.env.HARNESS_CHROME || undefined });
 try {
   const context = await browser.newContext();
+  if (searchOrigin === 'https://walmart.com') await context.addInitScript(() => {
+    // Model the final URL metadata of Walmart's canonical redirect without allowing
+    // Playwright's redirect follow-up to escape our intercepted fixture responses.
+    const original = window.fetch.bind(window);
+    window.fetch = async (...args) => {
+      const response = await original(...args);
+      const url = new URL(response.url);
+      if (url.hostname === 'walmart.com' && url.pathname.startsWith('/ip/')) {
+        url.hostname = 'www.walmart.com';
+        Object.defineProperty(response, 'url', { value: url.href });
+      }
+      return response;
+    };
+  });
   const page = await context.newPage(), errors = [], fetched = [];
   page.on('pageerror', e => errors.push(e.message));
   await context.route('**/*', route => {
     const url = new URL(route.request().url());
     if (url.pathname.startsWith('/ip/')) {
       const id = url.pathname.split('/').pop(); fetched.push(id);
-      return route.fulfill({ contentType: 'text/html', body: `<h1>Ground beef ${id}</h1><script id="__NEXT_DATA__" type="application/json">${JSON.stringify({ props: { pageProps: { initialData: { data: {
+      return route.fulfill({ contentType: 'text/html', headers: { 'access-control-allow-origin': searchOrigin }, body: `<h1>Ground beef ${id}</h1><script id="__NEXT_DATA__" type="application/json">${JSON.stringify({ props: { pageProps: { initialData: { data: {
         product: { usItemId: id, name: `Ground beef ${id}`, category: { path: [{ name: 'Food' }] } },
         idml: { ingredients: { ingredients: { value: id === '40000000' ? '' : 'Beef.' } } },
       } } } } })}</script>` });
@@ -29,7 +45,7 @@ try {
       <section data-testid="sp-search-brand-carousel">${card('20000000')}</section>
       </main></form></body></html>` });
   });
-  await page.goto('https://www.walmart.com/search?q=beef');
+  await page.goto(searchOrigin + '/search?q=ground+beef&facet=fulfillment_method%3ADelivery');
   await page.evaluate(() => {
     const data = { enabled: true, badges: false, autoScoreSearch: false, speedMode: 'fastest' }, listeners = [], pending = [];
     let booted = false;
@@ -39,7 +55,7 @@ try {
       for (const listener of listeners) listener(Object.fromEntries(Object.entries(values).map(([key, newValue]) => [key, { newValue }])), 'local');
     };
     window.chrome = { i18n: { getMessage: () => '' },
-      runtime: { getManifest: () => ({ version: '1.20.1' }), sendMessage: (_msg, cb) => cb?.(), onMessage: { addListener() {} } },
+      runtime: { getManifest: () => ({ version: '1.20.2' }), sendMessage: (_msg, cb) => cb?.(), onMessage: { addListener() {} } },
       storage: { local: {
         get: (keys, cb) => { const result = Object.fromEntries([].concat(keys).map(key => [key, data[key]])); if (cb) { if (booted) cb(result); else pending.push(() => cb(result)); } return Promise.resolve(result); },
         set: values => { Object.assign(data, values); return Promise.resolve(); },
@@ -62,6 +78,15 @@ try {
   assert(/^\d+$/.test(score));
   assert(await page.locator('.air-badge').first().getAttribute('aria-label'));
   console.log('ok Walmart beef: 65 real scores with global badges/auto-rate off; sponsored cards and modules hidden, never fetched');
+  assert.equal(new URL(page.url()).searchParams.get('facet'), 'fulfillment_method:Delivery');
+  await page.locator('main').evaluate((el, html) => el.insertAdjacentHTML('beforeend', html), card('10000001'));
+  await page.waitForFunction(() => document.querySelectorAll('[data-item-id="10000001"] .air-badge[data-air-status="scored"]').length === 2);
+  assert.equal(fetched.filter(id => id === '10000001').length, 1, 'duplicate result cards share one label read');
+  await page.locator('.air-badge').first().focus();
+  await page.waitForSelector('#air-retailer-details');
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('#air-retailer-details', { state: 'detached' });
+  console.log('ok delivery filter retained, duplicate cards both rated, keyboard score breakdown opens and closes');
 
   // Late cards, late sponsorship markers, and recycled React nodes.
   await page.locator('main').evaluate((el, html) => el.insertAdjacentHTML('beforeend', html), card('30000000', true) + card('30000001'));
@@ -84,5 +109,18 @@ try {
   assert.equal(await page.locator('[data-item-id="40000000"] .air-badge').textContent(), 'Label unavailable');
   assert.deepEqual(errors, []);
   console.log('ok Walmart pause/resume and missing labels: original display restored, behavior resumes, no invented score or page errors');
+  await page.evaluate(() => {
+    history.pushState({}, '', '/search/?q=ground+beef&facet=fulfillment_method%3APickup');
+    document.querySelectorAll('[data-item-id="40000000"]').forEach(el => el.remove());
+  });
+  await page.waitForFunction(() => document.querySelectorAll('.air-badge[data-air-status="scored"]').length === 67);
+  assert.equal(new URL(page.url()).searchParams.get('facet'), 'fulfillment_method:Pickup');
+  await page.evaluate(() => {
+    history.pushState({}, '', '/ip/ground-beef/10000001');
+    document.body.innerHTML = '<h1>Ground beef</h1><section><h3>Ingredients</h3><p>Beef.</p></section>';
+  });
+  await page.waitForFunction(() => document.getElementById('air-score-panel')?.dataset.airState === 'scored');
+  assert.deepEqual(errors, []);
+  console.log('ok SPA filter changes and product navigation: badges refresh and real product score panel renders on ' + searchOrigin);
   await context.close();
 } finally { await browser.close(); }

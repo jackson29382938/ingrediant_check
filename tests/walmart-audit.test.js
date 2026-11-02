@@ -124,6 +124,25 @@ test('Walmart search accepts its own trailing-slash route and rejects foreign pa
   for (const raw of ['ftp://www.walmart.com/ip/oats/10314926', 'https://user:password@www.walmart.com/ip/oats/10314926', 'https://walmart.com.evil.example/ip/oats/10314926', '/ip/oats/not-an-id']) assert.equal(W.productId(raw), '');
 });
 
+test('Walmart canonical host redirects accept only the same public product over HTTPS', () => {
+  const from = new URL('https://walmart.com/ip/beef/10314926');
+  assert.equal(W.acceptsProductRedirect(from, new URL('https://www.walmart.com/ip/ground-beef/10314926'), '10314926'), true);
+  for (const to of ['https://evil.example/ip/10314926', 'https://www.walmart.com/ip/beef/10314925',
+    'https://www.walmart.com/blocked', 'https://www.walmart.com/account', 'http://www.walmart.com/ip/10314926',
+    'https://user:pass@www.walmart.com/ip/10314926']) {
+    assert.equal(W.acceptsProductRedirect(from, new URL(to), '10314926'), false, to);
+  }
+});
+
+test('Walmart duplicate organic cards each receive an anchor without duplicating links within a card', () => {
+  const html = '<div data-dca-card-id="one"><a href="/ip/beef/10314926">Beef</a><a href="/ip/beef/10314926">View item</a>'
+    + '<span data-automation-id="product-title">Ground beef</span></div>';
+  const hits = W.searchTiles(createDocument(html + html.replace('"one"', '"two"')));
+  assert.equal(hits.length, 2);
+  assert.notEqual(hits[0].anchor, hits[1].anchor);
+  assert.deepEqual(hits.map(hit => hit.title), ['Ground beef', 'Ground beef']);
+});
+
 test('Walmart image-only search links use their own accessible names and deduplicate products', () => {
   const doc = createDocument('<div data-testid="item-stack"><a href="/ip/oats/10314926" aria-label="Rolled oats"><img alt="Oats package"></a>'
     + '<a href="/ip/oats/10314926">Rolled oats</a><a href="/ip/almonds/10314925"><img alt="Whole almonds"></a></div>');
