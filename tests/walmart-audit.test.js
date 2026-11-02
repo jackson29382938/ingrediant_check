@@ -163,7 +163,7 @@ test('Walmart search refuses hidden/navigation/promotional links and never borro
 
 test('Walmart public overlay-link cards expose their own visible title and safe badge container', () => {
   const doc = createDocument('<div data-testid="item-stack">'
-    + '<div role="group"><a href="/ip/oats/10314926?athbdg=L1102">10K+ bought since yesterday, Rolled oats</a>'
+    + '<div role="group"><a href="/ip/oats/10314926?athbdg=L1102"><span style="position:absolute;width:1px;overflow:hidden"><h3>10K+ bought since yesterday, Rolled oats</h3></span></a>'
     + '<div><span data-automation-id="product-title">Rolled oats</span></div><button>Add to cart</button></div>'
     + '<div role="group"><a href="/ip/almonds/10314925">Overall pick, Whole almonds</a>'
     + '<span data-automation-id="product-title">Whole almonds</span></div></div>');

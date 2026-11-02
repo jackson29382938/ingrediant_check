@@ -105,10 +105,19 @@
       // A generic role=group may be the whole results grid. Never hide organic siblings.
       const ids = new Set(Array.from(node.querySelectorAll('a[href]')).map(link => productId(link.getAttribute('href'))).filter(Boolean));
       if (ids.size > 1 && !sponsored(node)) continue;
-      node.setAttribute('data-air-sponsored-hidden', 'true');
-      node.setAttribute('data-air-sponsored-display', node.style.getPropertyValue('display'));
-      node.setAttribute('data-air-sponsored-priority', node.style.getPropertyPriority('display'));
-      node.style.setProperty('display', 'none', 'important');
+      let target = node;
+      const stack = node.closest('[data-testid="item-stack"]');
+      if (stack && stack !== node) {
+        let cell = node;
+        while (cell.parentElement && cell.parentElement !== stack) cell = cell.parentElement;
+        const cellIds = new Set(Array.from(cell.querySelectorAll('a[href]')).map(link => productId(link.getAttribute('href'))).filter(Boolean));
+        if (cell.parentElement === stack && cellIds.size === ids.size && Array.from(cellIds).every(id => ids.has(id))) target = cell;
+      }
+      if (target.hasAttribute('data-air-sponsored-hidden')) continue;
+      target.setAttribute('data-air-sponsored-hidden', 'true');
+      target.setAttribute('data-air-sponsored-display', target.style.getPropertyValue('display'));
+      target.setAttribute('data-air-sponsored-priority', target.style.getPropertyPriority('display'));
+      target.style.setProperty('display', 'none', 'important');
     }
   }
   function searchTiles(doc) {
@@ -133,7 +142,10 @@
         const otherId = productId(other.getAttribute('href'));
         return otherId && otherId !== id;
       })) continue;
-      const titleNode = (card || link).querySelector('h2, h3, [data-automation-id="product-title"]');
+      // Walmart's overlay link comes first and contains a screen-reader-only h3.
+      // Prefer the separate visible title, otherwise badges inherit that 1px clipping.
+      const scope = card || link;
+      const titleNode = scope.querySelector('[data-automation-id="product-title"]') || scope.querySelector('h2, h3');
       const titleOwner = titleNode && titleNode.closest('a[href]');
       const heading = !titleOwner || productId(titleOwner.getAttribute('href')) === id ? titleNode : null;
       // Accessible names cover image-only links without borrowing another product's image.
@@ -143,7 +155,7 @@
         || L.clean(image && image.getAttribute('alt'));
       if (!title || title.length > 300) continue;
       seen.add(identity);
-      out.push({ id, title, tile: card || link, el: card || undefined, anchor: heading || link });
+      out.push({ id, title, tile: card || link, el: card || undefined, anchor: heading || link, badgePlacement: 'title' });
     }
     return out;
   }

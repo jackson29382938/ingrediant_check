@@ -10,7 +10,7 @@ const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json')));
 const scripts = manifest.content_scripts.find(entry => entry.js.includes('src/content/retailer.js')).js;
 const searchOrigin = process.env.WALMART_TEST_ORIGIN || 'https://www.walmart.com';
 assert(['https://walmart.com', 'https://www.walmart.com'].includes(searchOrigin));
-const card = (id, sponsored = false) => `<div data-item-id="${id}" style="display:block"><a href="/ip/beef/${id}"><img alt="Beef"></a>
+const card = (id, sponsored = false) => `<div data-item-id="${id}" style="display:block"><a href="/ip/beef/${id}"><img alt="Beef"><span style="position:absolute;width:1px;height:1px;overflow:hidden"><h3>Ground beef ${id}</h3></span></a>
   <span data-automation-id="product-title">Ground beef ${id}</span><button>Add to cart</button>${sponsored ? '<span>Sponsored</span>' : ''}</div>`;
 const browser = await chromium.launch({ headless: true, executablePath: process.env.HARNESS_CHROME || undefined });
 try {
@@ -77,6 +77,9 @@ try {
   const score = await page.locator('.air-badge').first().textContent();
   assert(/^\d+$/.test(score));
   assert(await page.locator('.air-badge').first().getAttribute('aria-label'));
+  const badgeBox = await page.locator('.air-badge').first().boundingBox();
+  assert(badgeBox?.width >= 20 && badgeBox.height >= 20, 'rating must not inherit the overlay heading clipping');
+  assert.equal(await page.locator('.air-badge').first().locator('..').getAttribute('data-automation-id'), 'product-title');
   console.log('ok Walmart beef: 65 real scores with global badges/auto-rate off; sponsored cards and modules hidden, never fetched');
   assert.equal(new URL(page.url()).searchParams.get('facet'), 'fulfillment_method:Delivery');
   await page.locator('main').evaluate((el, html) => el.insertAdjacentHTML('beforeend', html), card('10000001'));
@@ -92,7 +95,7 @@ try {
   await page.locator('main').evaluate((el, html) => el.insertAdjacentHTML('beforeend', html), card('30000000', true) + card('30000001'));
   await page.waitForFunction(() => document.querySelector('[data-item-id="30000001"] .air-badge')?.dataset.airStatus === 'scored');
   assert.equal(await page.locator('[data-item-id="30000000"]').isVisible(), false);
-  await page.locator('[data-item-id="30000000"] span:last-child').evaluate(el => el.remove());
+  await page.locator('[data-item-id="30000000"] > span:last-child').evaluate(el => el.remove());
   await page.waitForFunction(() => document.querySelector('[data-item-id="30000000"] .air-badge')?.dataset.airStatus === 'scored');
   assert.equal(await page.locator('[data-item-id="30000000"]').isVisible(), true);
   await page.locator('[data-item-id="30000001"]').evaluate(el => el.setAttribute('data-sponsored', 'true'));

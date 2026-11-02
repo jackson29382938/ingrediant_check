@@ -197,6 +197,10 @@
       }
       b.style.cssText = 'display:inline-flex!important;position:static!important;float:none!important;'
         + 'vertical-align:middle!important;margin:4px 0 4px 6px!important;max-width:100%!important;';
+      if (tile.badgePlacement === 'title') {
+        b.style.setProperty('position', 'relative', 'important');
+        b.style.setProperty('z-index', '2', 'important');
+      }
       if (tile.badgePlacement === 'corner') b.style.cssText = 'display:inline-flex!important;position:absolute!important;'
         + 'top:6px!important;left:6px!important;z-index:2!important;max-width:calc(100% - 12px)!important;pointer-events:auto!important;';
       if (b.attachShadow) {
