@@ -85,6 +85,8 @@
   // Hide instead of deleting React-owned nodes. Recheck recycled cards before each pass,
   // and restore only our own changes when paused or navigating away from search.
   function restoreSponsored(doc) {
+    for (const stack of doc.querySelectorAll('[data-air-compact-grid]')) stack.removeAttribute('data-air-compact-grid');
+    for (const cell of doc.querySelectorAll('[data-air-result-cell]')) cell.removeAttribute('data-air-result-cell');
     for (const node of doc.querySelectorAll('[data-air-sponsored-hidden]')) {
       node.style.removeProperty('display');
       const display = node.getAttribute('data-air-sponsored-display');
@@ -92,6 +94,30 @@
       node.removeAttribute('data-air-sponsored-hidden');
       node.removeAttribute('data-air-sponsored-display');
       node.removeAttribute('data-air-sponsored-priority');
+    }
+  }
+  function hideSlot(node) {
+    if (node.hasAttribute('data-air-sponsored-hidden')) return;
+    node.setAttribute('data-air-sponsored-hidden', 'true');
+    node.setAttribute('data-air-sponsored-display', node.style.getPropertyValue('display'));
+    node.setAttribute('data-air-sponsored-priority', node.style.getPropertyPriority('display'));
+    node.style.setProperty('display', 'none', 'important');
+  }
+  function compactResults(doc) {
+    if (!doc.getElementById('air-walmart-compact-style')) {
+      const style = doc.createElement('style'); style.id = 'air-walmart-compact-style';
+      style.textContent = '[data-air-compact-grid]{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr))!important;align-items:start!important;gap:0!important}[data-air-compact-grid]>[data-air-result-cell]{width:auto!important;min-width:0!important;max-width:none!important}[data-air-compact-grid]>:not([data-air-result-cell]){grid-column:1/-1}@media(max-width:600px){[data-air-compact-grid]{grid-template-columns:repeat(2,minmax(0,1fr))!important}}';
+      (doc.head || doc.documentElement).append(style);
+    }
+    for (const stack of doc.querySelectorAll('[data-testid="item-stack"]')) {
+      if (!stack.querySelector(ITEM_CARD)) continue;
+      stack.setAttribute('data-air-compact-grid', '');
+      for (const cell of stack.children) {
+        if (cell.matches(ITEM_CARD) || cell.querySelector(ITEM_CARD)) cell.setAttribute('data-air-result-cell', '');
+        // Retail ad slots may become completely empty after hydration. Preserve
+        // interactive/media/announced content, and recheck when anything arrives.
+        else if (!L.text(cell) && !cell.querySelector('a, button, input, select, img, picture, video, canvas, iframe, [aria-live], [role="status"]')) hideSlot(cell);
+      }
     }
   }
   function hideSponsored(doc) {
@@ -113,12 +139,9 @@
         const cellIds = new Set(Array.from(cell.querySelectorAll('a[href]')).map(link => productId(link.getAttribute('href'))).filter(Boolean));
         if (cell.parentElement === stack && cellIds.size === ids.size && Array.from(cellIds).every(id => ids.has(id))) target = cell;
       }
-      if (target.hasAttribute('data-air-sponsored-hidden')) continue;
-      target.setAttribute('data-air-sponsored-hidden', 'true');
-      target.setAttribute('data-air-sponsored-display', target.style.getPropertyValue('display'));
-      target.setAttribute('data-air-sponsored-priority', target.style.getPropertyPriority('display'));
-      target.style.setProperty('display', 'none', 'important');
+      hideSlot(target);
     }
+    compactResults(doc);
   }
   function searchTiles(doc) {
     const out = [], seen = new Set();

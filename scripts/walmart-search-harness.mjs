@@ -10,8 +10,8 @@ const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json')));
 const scripts = manifest.content_scripts.find(entry => entry.js.includes('src/content/retailer.js')).js;
 const searchOrigin = process.env.WALMART_TEST_ORIGIN || 'https://www.walmart.com';
 assert(['https://walmart.com', 'https://www.walmart.com'].includes(searchOrigin));
-const card = (id, sponsored = false) => `<div data-item-id="${id}" style="display:block"><a href="/ip/beef/${id}"><img alt="Beef"><span style="position:absolute;width:1px;height:1px;overflow:hidden"><h3>Ground beef ${id}</h3></span></a>
-  <span data-automation-id="product-title">Ground beef ${id}</span><button>Add to cart</button>${sponsored ? '<span>Sponsored</span>' : ''}</div>`;
+const card = (id, sponsored = false) => { const price = 10 - Number(id) % 5; return `<div data-item-id="${id}" style="display:block"><a href="/ip/beef/${id}"><img alt="Beef"><span style="position:absolute;width:1px;height:1px;overflow:hidden"><h3>Ground beef ${id}</h3></span></a>
+  <span data-automation-id="product-title">Ground beef ${id}, 1 lb</span><span data-testid="unified-global-product-price-a11y-text">Price $${price.toFixed(2)} $${price.toFixed(2)}/lb</span><button>Add to cart</button>${sponsored ? '<span>Sponsored</span>' : ''}</div>`; };
 const browser = await chromium.launch({ headless: true, executablePath: process.env.HARNESS_CHROME || undefined });
 try {
   const context = await browser.newContext();
@@ -37,11 +37,11 @@ try {
       const id = url.pathname.split('/').pop(); fetched.push(id);
       return route.fulfill({ contentType: 'text/html', headers: { 'access-control-allow-origin': searchOrigin }, body: `<h1>Ground beef ${id}</h1><script id="__NEXT_DATA__" type="application/json">${JSON.stringify({ props: { pageProps: { initialData: { data: {
         product: { usItemId: id, name: `Ground beef ${id}`, category: { path: [{ name: 'Food' }] } },
-        idml: { ingredients: { ingredients: { value: id === '40000000' ? '' : 'Beef.' } } },
+        idml: { ingredients: { ingredients: { value: id === '40000000' ? '' : id === '10000002' ? 'Beef, sugar, red 40, salt.' : 'Beef.' } } },
       } } } } })}</script>` });
     }
     return route.fulfill({ contentType: 'text/html', body: `<html><body><form><main data-testid="item-stack" role="group">
-      ${card('10000000', true)}${Array.from({ length: 65 }, (_, i) => card(String(10000001 + i))).join('')}
+      <div id="empty-ad-slot" style="height:600px"></div>${card('10000000', true)}${Array.from({ length: 65 }, (_, i) => card(String(10000001 + i))).join('')}
       <section data-testid="sp-search-brand-carousel">${card('20000000')}</section>
       </main></form></body></html>` });
   });
@@ -55,7 +55,7 @@ try {
       for (const listener of listeners) listener(Object.fromEntries(Object.entries(values).map(([key, newValue]) => [key, { newValue }])), 'local');
     };
     window.chrome = { i18n: { getMessage: () => '' },
-      runtime: { getManifest: () => ({ version: '1.20.2' }), sendMessage: (_msg, cb) => cb?.(), onMessage: { addListener() {} } },
+      runtime: { getManifest: () => ({ version: '1.21.0' }), sendMessage: (_msg, cb) => cb?.(), onMessage: { addListener() {} } },
       storage: { local: {
         get: (keys, cb) => { const result = Object.fromEntries([].concat(keys).map(key => [key, data[key]])); if (cb) { if (booted) cb(result); else pending.push(() => cb(result)); } return Promise.resolve(result); },
         set: values => { Object.assign(data, values); return Promise.resolve(); },
@@ -90,6 +90,27 @@ try {
   await page.keyboard.press('Escape');
   await page.waitForSelector('#air-retailer-details', { state: 'detached' });
   console.log('ok delivery filter retained, duplicate cards both rated, keyboard score breakdown opens and closes');
+  assert.equal(await page.locator('#empty-ad-slot').isVisible(), false, 'empty ad slot collapses');
+  const drawer = page.locator('#air-walmart-sort');
+  await drawer.getByRole('button', { name: 'Price & health', exact: true }).click();
+  const docked = await page.locator('body').boundingBox(), drawerBox = await drawer.locator('.drawer').boundingBox();
+  assert(docked.x + docked.width <= drawerBox.x, 'drawer reserves space; it must not cover the page');
+  await drawer.getByRole('button', { name: 'Lowest price', exact: true }).click();
+  let prices = await drawer.locator('.item .facts strong').allTextContents();
+  let amounts = prices.map(p => Number(p.replace(/[^0-9.]/g, '')));
+  assert.deepEqual(amounts, amounts.slice().sort((a, b) => a - b));
+  await drawer.getByRole('button', { name: 'Healthiest', exact: true }).click();
+  const scores = (await drawer.locator('.item .score').allTextContents()).map(Number);
+  assert.deepEqual(scores, scores.slice().sort((a, b) => b - a));
+  await drawer.getByRole('button', { name: 'Lowest price per oz', exact: true }).click();
+  assert((await drawer.locator('.item .facts').first().textContent()).includes('/oz'));
+  await drawer.locator('input[data-factor="health"]').fill('4');
+  await page.keyboard.press('Escape');
+  assert.equal(await drawer.locator('.drawer').isVisible(), false);
+  assert.equal(await drawer.evaluate(el => el.shadowRoot.activeElement?.className), 'toggle', 'Escape returns focus to the tab');
+  assert.equal(await page.locator('html').getAttribute('data-air-walmart-docked'), null, 'closing restores full page width');
+  console.log('ok right-hand drawer: price, health, normalized unit-price ranking, sliders, Escape; empty ad slot collapsed');
+
 
   // Late cards, late sponsorship markers, and recycled React nodes.
   await page.locator('main').evaluate((el, html) => el.insertAdjacentHTML('beforeend', html), card('30000000', true) + card('30000001'));
@@ -104,6 +125,9 @@ try {
 
   await page.evaluate(() => window.__settings({ enabled: false }));
   await page.waitForFunction(() => !document.querySelector('.air-badge') && !document.querySelector('[data-air-sponsored-hidden]'));
+  assert.equal(await page.locator('#air-walmart-sort').count(), 0, 'pause removes the comparison drawer');
+  assert.equal(await page.locator('[data-air-compact-grid]').count(), 0, 'pause restores retailer grid styling');
+  assert.equal(await page.locator('#empty-ad-slot').isVisible(), true, 'pause restores the original empty slot');
   assert.equal(await page.locator('[data-item-id="10000000"]').evaluate(el => el.style.display), 'block');
   await page.evaluate(() => window.__settings({ enabled: true }));
   await page.waitForFunction(() => document.querySelector('.air-badge[data-air-status="scored"]') && document.querySelector('[data-air-sponsored-hidden]'));

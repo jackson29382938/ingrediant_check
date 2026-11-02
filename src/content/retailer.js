@@ -305,6 +305,7 @@
         state.searchAllowed = false; state.queue = [];
         for (const controller of state.controllers) controller.abort();
         clearBadges();
+        root.AIR.retailerSort?.reset(false);
         return true;
       }
     }
@@ -315,11 +316,12 @@
     CACHE.readLocal(keys, state.raw, got => {
       if (generation !== state.generation || !state.enabled || !state.badges || location.href !== state.url) return;
       const current = new Map(adapter.searchTiles(document).map(tile => [tile.anchor, tile.id]));
+      const ranked = [];
       for (const x of tiles) {
         if (!currentTile(x, current)) continue;
         const hit = got && got[CACHE.key(STORE, x.id)];
         const saved = CACHE.recall(hit, { store: STORE, asin: x.id, version: VERSION, prefs: state.raw, maxAgeMs: state.maxAgeMs });
-        if (saved && !saved.refresh) { paintBadge(x, hit, '', saved.stale); continue; }
+        if (saved && !saved.refresh) { paintBadge(x, hit, '', saved.stale); ranked.push({ tile: x, hit }); continue; }
         let job = state.requests.get(x.id);
         if (!job && state.autoScoreSearch && adapter.productUrl && !state.throttled && state.fetchCount < state.fetchLimit) {
           job = { status: 'checking' };
@@ -328,7 +330,9 @@
           state.queue.push({ id: x.id, generation });
         }
         paintBadge(x, job?.hit || saved?.hit || null, job?.status || (state.throttled ? 'unavailable' : 'limited'), saved?.stale && !job?.hit);
+        ranked.push({ tile: x, hit: job?.hit || saved?.hit || null });
       }
+      root.AIR.retailerSort?.update(ranked);
       drain();
     }, chrome.storage);
     return false;
@@ -380,6 +384,7 @@
     state.signature = null;
     state.pageScore = null; state.override = false; state.done = false; state.started = Date.now();
     state.url = location.href;
+    root.AIR.retailerSort?.reset(state.enabled && adapter.isSearchPage(location));
     if (!state.enabled) return;
     if (!adapter.isProductPage(location) && !adapter.isSearchPage(location)) return;
     pass();

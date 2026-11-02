@@ -273,6 +273,14 @@ footers are now excluded on every store.
 
 ## Walmart search in 1.20.1
 
+In **1.21.0**, the **Price & health** tab at the right edge opens a comparison drawer using the same
+ranking and unit-price engines as Amazon. Choose Healthiest, Lowest price, Lowest price per oz,
+or Balanced, or adjust the two importance sliders. It compares loaded organic results and refreshes
+as labels arrive. Unknown values remain unknown; unit-price comparison is for weight-based prices.
+Search grids compact around removed sponsored cells and collapse empty promotional slots. Pausing
+restores Walmart's layout. Live desktop/mobile browser captures were checked with injected content
+scripts; the managed browser's unpacked-extension installation restriction remains.
+
 While Ingredient Check is enabled, Walmart search hides sponsored cards/modules and automatically
 rates discovered organic results, including results loaded later. Walmart search always shows its
 rating badges regardless of the global **Rate every search result** and **Result badges** switches;

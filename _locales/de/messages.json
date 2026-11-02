@@ -2237,5 +2237,38 @@
   },
   "cartLabelBlocked": {
     "message": "Der Händler hat die öffentliche Etikettenanfrage blockiert. Öffne das Produkt, um das Etikett zu lesen."
+  },
+  "walmartPerOunce": {
+    "message": "Niedrigster Preis pro Unze"
+  },
+  "walmartSortTab": {
+    "message": "Preis und Gesundheit"
+  },
+  "walmartSortTitle": {
+    "message": "Walmart-Ergebnisse vergleichen"
+  },
+  "walmartSortClose": {
+    "message": "Vergleich schließen"
+  },
+  "walmartHealthWeight": {
+    "message": "Gewichtung der Gesundheit"
+  },
+  "walmartPriceWeight": {
+    "message": "Gewichtung des Grundpreises"
+  },
+  "walmartSortHint": {
+    "message": "Nur geladene Ergebnisse. Bewertungen werden beim Lesen der Zutaten aktualisiert; unbekannte Werte stehen am Ende."
+  },
+  "walmartSortList": {
+    "message": "Walmart-Ergebnisse nach Ihren Prioritäten"
+  },
+  "walmartSortCount": {
+    "message": "$1 Produkte geladen"
+  },
+  "walmartSortRated": {
+    "message": "$1 bewertet"
+  },
+  "walmartSortMixed": {
+    "message": "Verschiedene Kategorien: Sortierung nach Gesundheit ist nicht verfügbar."
   }
 }

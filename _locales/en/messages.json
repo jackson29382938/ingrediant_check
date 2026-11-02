@@ -2237,5 +2237,38 @@
   },
   "cartLabelBlocked": {
     "message": "The store blocked the public label request. Open the product to read its label."
+  },
+  "walmartPerOunce": {
+    "message": "Lowest price per oz"
+  },
+  "walmartSortTab": {
+    "message": "Price & health"
+  },
+  "walmartSortTitle": {
+    "message": "Compare Walmart results"
+  },
+  "walmartSortClose": {
+    "message": "Close comparison"
+  },
+  "walmartHealthWeight": {
+    "message": "Health importance"
+  },
+  "walmartPriceWeight": {
+    "message": "Unit-price importance"
+  },
+  "walmartSortHint": {
+    "message": "Loaded results only. Ratings update as labels arrive; unknown values stay last."
+  },
+  "walmartSortList": {
+    "message": "Walmart results ranked by your priorities"
+  },
+  "walmartSortCount": {
+    "message": "$1 products loaded"
+  },
+  "walmartSortRated": {
+    "message": "$1 rated"
+  },
+  "walmartSortMixed": {
+    "message": "Mixed categories: health ranking is unavailable."
   }
 }
