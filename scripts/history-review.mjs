@@ -26,6 +26,6 @@ await p.evaluate(()=>window.__changeHistory({theme:'dark'}));
 await p.waitForFunction(()=>document.documentElement.style.colorScheme === 'dark' && getComputedStyle(document.documentElement).getPropertyValue('--page').trim() === '#1b1c1c');
 await p.setViewportSize({width:390,height:844});await p.screenshot({path:'/tmp/ic-history-review/after-mobile.png'});if(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2))throw Error('mobile overflow');
 }
-await p.locator('a[href=\"#scanHeading\"]').first().click();assert.equal(await p.locator('#scanControls').evaluate(el=>el.open),true,'scan navigation must reveal its controls');
+await p.locator('a[href="#scanHeading"]').first().click();assert.equal(await p.locator('#scanControls').evaluate(el=>el.open),true,'scan navigation must reveal its controls');
 assert.deepEqual(pageErrors,[],'dashboard must not raise browser errors');
 console.log('History checks passed: quality coverage, immutable snapshots, cache eviction, current goals, empty state, and mobile dark layout.');}finally{await b.close();}
