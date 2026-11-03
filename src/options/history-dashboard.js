@@ -14,6 +14,7 @@
     const low = Math.min(...dates), high = Math.max(...dates), x = g => high === low ? 290 : 55 + (Date.parse(g.month.length === 4 ? g.month + '-01-01' : g.month + '-01') - low) / (high - low) * 455;
     for (const n of [0, 25, 50, 75, 100]) { line(svg, 50, y(n), 520, y(n), 'grid'); svg.append(svgNode('text', { x: 13, y: y(n) + 4, class: 'axis' }, n)); }
     const series = new Map(); for (const g of rated) { const list = series.get(g.setup) || []; list.push(g); series.set(g.setup, list); }
+    const setupNames = new Map([...new Set(groups.map(g => g.setup))].map((key, i) => [key, `Recorded setup ${i + 1}`]));
     const dash = ['', '8 4', '2 4', '12 4 2 4']; let seriesIndex = 0;
     const readout = el('p', 'Hover or focus a point to inspect its average and coverage.'); readout.className = 'chart-readout'; readout.setAttribute('aria-live', 'polite'); $('trendChart').append(readout);
     for (const list of series.values()) {
@@ -22,7 +23,7 @@
       for (const g of list) {
         const mode = $('errorBars').value, interval = mode === 'iqr' ? [g.q1, g.q3] : mode === 'range' ? [g.min, g.max] : mode === 'ci' ? g.ci : null;
         if (interval && interval.every(Number.isFinite)) { line(svg, x(g), y(interval[0]), x(g), y(interval[1]), 'error'); for (const n of interval) line(svg, x(g) - 5, y(n), x(g) + 5, y(n), 'error'); }
-        const label = `${g.month}: ${fmt(g.mean)}/100 · ${g.rated}/${g.items} product entries rated · ${g.orders} identified orders · ${g.setup === 'current' ? 'Current goals' : 'Recorded setup ' + g.setup.slice(0, 18)}${interval ? ` · interval ${fmt(interval[0])}–${fmt(interval[1])}` : ''}`;
+        const label = `${g.month}: ${fmt(g.mean)}/100 · ${g.rated}/${g.items} product entries rated · ${g.orders} identified orders · ${g.setup === 'current' ? 'Current goals' : setupNames.get(g.setup)}${interval ? ` · interval ${fmt(interval[0])}–${fmt(interval[1])}` : ''}`;
         const point = svgNode('circle', { cx: x(g), cy: y(g.mean), r: 5, class: 'point', tabindex: '0', role: 'img', 'aria-label': label }); point.append(svgNode('title', {}, label));
         point.addEventListener('mouseenter', () => { readout.textContent = label; }); point.addEventListener('focus', () => { readout.textContent = label; }); svg.append(point);
       }
@@ -46,6 +47,19 @@
     if (calculating) return;
     const opts = options(), rows = A.filter(projected, opts), s = A.stats(rows, opts.weighting), periods = A.periods(rows, opts);
     const all = A.stats(projected), approx = rows.filter(r => r.record.state === 'purchased' && r.current !== null && r.partial).length;
+    const quality = A.quality(rows, opts.mode);
+    $('historyEmpty').hidden = projected.length > 0;
+    $('historyNoMatches').hidden = !projected.length || rows.length > 0;
+    const notes = [];
+    if (quality.purchased) {
+      notes.push(`${quality.rated}/${quality.purchased} purchased entries have a usable score (${Math.round(quality.rated / quality.purchased * 100)}% coverage).`);
+      if (quality.missing) notes.push(`${quality.missing} missing scores are excluded from averages, not counted as zero.`);
+      if (quality.setups > 1) notes.push(`${quality.setups} recorded scoring setups are mixed in the overall average. Switch to current goals for a consistent comparison; timeline lines remain separate.`);
+      if (quality.approximate) notes.push(`${quality.approximate} comparisons use older ingredient-only inputs.`);
+    } else notes.push(rows.length ? 'No confirmed purchases in this view. Returned, cancelled and unconfirmed entries do not contribute to trends.' : 'No purchased entries to summarize.');
+    $('qualitySummary').textContent = notes.join(' ');
+    $('qualityMeter').max = Math.max(1, quality.purchased); $('qualityMeter').value = quality.rated;
+    $('qualityMeter').setAttribute('aria-label', `${quality.rated} of ${quality.purchased} purchased entries rated`);
     $('coverage').textContent = `${s.rated} of ${s.items} matching purchased product entries rated · ${s.orders} identified orders${s.ungrouped ? ` · ${s.ungrouped} older entries have unknown order grouping (revisit their order pages to fill it)` : ''}. Full history: ${all.items} purchased product entries across ${all.orders} identified orders. Cancelled, returned and unconfirmed entries do not drive trends.`;
     $('viewNote').textContent = opts.mode === 'recorded' ? 'Showing the original recorded scores. Different scoring setups remain separate in the timeline.' : `Showing current-goal comparisons calculated locally. ${approx} matching entries use ingredient text only. ${s.items - s.rated} could not be recalculated. Recorded scores are unchanged.`;
     $('goalSummary').textContent = 'Current setup: ' + AIR.db.categories.goalsLabel(conf.goals) + (AIR.db.categories.describeGoals(conf.weights, conf.goals, conf.goalImportance).custom ? ' · custom weights' : '');
@@ -83,9 +97,13 @@
   async function update(raw) {
     conf = raw; calculating = $('scoreView').value === 'current' || $('driverBasis').value === 'current'; $('trends').closest('section').setAttribute('aria-busy', String(calculating)); const turn = ++generation, opts = options(), scoring = AIR.db.prefs.sanitizeScoring(conf), key = JSON.stringify(scoring);
     if (key !== memoKey) { memo.clear(); memoKey = key; }
+    const records = H.merge([], conf.purchaseHistory), result = [];
+    // Deleted/replaced history must not survive as serialized label inputs in the
+    // open dashboard's scoring cache. Retain only inputs still in current storage.
+    const liveInputs = new Set(records.map(record => record.input || (record.ingredients ? { name: record.name, ingredients_text: record.ingredients } : null)).filter(Boolean).map(input => JSON.stringify(input)));
+    for (const cached of memo.keys()) if (!liveInputs.has(cached)) memo.delete(cached);
     const score = input => { const key = JSON.stringify(input); if (!memo.has(key)) { const result = AIR.engine.score(input, scoring), { score, parsed, coverage, readable } = result; memo.set(key, { score, parsed, coverage, readable, breakdown: H.fromResult(result) }); } return memo.get(key); };
     scoreInput = score;
-    const records = H.merge([], conf.purchaseHistory), result = [];
     if ($('driverBasis').value === 'current') $('driversNote').textContent = 'Analysing saved labels locally…';
     if (opts.mode === 'current') $('viewNote').textContent = 'Calculating current-goal comparisons on your computer…';
     for (let offset = 0; offset < records.length; offset += 100) {

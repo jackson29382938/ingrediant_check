@@ -3,6 +3,16 @@ const assert = require('node:assert/strict');
 const A = require('../src/engine/db/purchase-analytics.js'), H = require('../src/engine/db/purchase-history.js');
 const r = (id, order = 'a', more = {}) => H.clean({ key: id.toString(16).padStart(64, '0'), orderKey: order?.repeat(64), store: 'amazon.com', asin: 'B000000001', date: '2026-09-01', state: 'purchased', name: 'Oats', score: 50, version: '1.13.0', profile: 'f'.repeat(64), ingredients: 'oats', flags: [], scoredAt: 1000, observedAt: 1000, ...more });
 const rows = records => records.map(record => A.project(record, 'recorded'));
+test('health summary distinguishes missing scores, excluded purchases and scoring rule revisions', () => {
+  const records = [r(1, 'a', { score: 0, rulesRevision: 'old' }), r(2, 'b', { score: 80, rulesRevision: 'new' }),
+    r(3, 'c', { score: null }), r(4, 'd', { state: 'returned', score: 100 })];
+  const original = JSON.stringify(records), view = rows(records);
+  assert.deepEqual(A.quality(view), { purchased: 3, rated: 2, missing: 1, excluded: 1, setups: 2, approximate: 0 });
+  assert.equal(A.periods(view).length, 3, 'unknown rule revision stays distinct from both recorded revisions');
+  assert.equal(A.quality(view, 'current').setups, 1);
+  assert.equal(JSON.stringify(records), original);
+  assert.deepEqual(A.quality([]), { purchased: 0, rated: 0, missing: 0, excluded: 0, setups: 0, approximate: 0 });
+});
 test('multiple product entries sum within distinct orders without treating entries as quantities', () => {
   const s = A.stats(rows([r(1, 'a', { score: 10 }), r(2, 'a', { score: 30 }), r(3, 'b', { score: 80 }), r(4, null)]));
   assert.equal(s.items, 4); assert.equal(s.orders, 2); assert.equal(s.ungrouped, 1); assert.equal(s.mean, 42.5);

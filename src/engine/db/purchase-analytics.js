@@ -1,5 +1,14 @@
 // Descriptive purchase statistics. Recorded snapshots are never mutated.
 (function(root) {
+  const setupOf = record => JSON.stringify([record.version || '', record.profile || '', record.rulesRevision || null]);
+  function quality(rows, mode = 'recorded') {
+    const purchased = rows.filter(r => r.record.state === 'purchased');
+    const rated = purchased.filter(r => Number.isFinite(r.score));
+    return { purchased: purchased.length, rated: rated.length, missing: purchased.length - rated.length,
+      excluded: rows.length - purchased.length,
+      setups: mode === 'current' ? (rated.length ? 1 : 0) : new Set(rated.map(r => setupOf(r.record))).size,
+      approximate: mode === 'current' ? rated.filter(r => r.partial).length : 0 };
+  }
   function project(record, mode, score) {
     let current = null, partial = false;
     if (mode === 'current') {
@@ -81,11 +90,11 @@
     const groups = new Map();
     for (const row of rows.filter(r => r.record.state === 'purchased')) {
       const month = row.record.date.slice(0, options.period === 'year' ? 4 : 7);
-      const setup = options.mode === 'current' ? 'current' : `${row.record.version}:${row.record.profile}`;
+      const setup = options.mode === 'current' ? 'current' : setupOf(row.record);
       const key = month + ':' + setup, group = groups.get(key) || { month, setup, rows: [] }; group.rows.push(row); groups.set(key, group);
     }
     return [...groups.values()].sort((a, b) => a.month.localeCompare(b.month) || a.setup.localeCompare(b.setup)).map(g => ({ ...g, ...stats(g.rows, options.weighting) }));
   }
-  const api = { project, stats, filter, periods, quantile, drivers }; root.AIR = root.AIR || {}; root.AIR.db = root.AIR.db || {}; root.AIR.db.purchaseAnalytics = api;
+  const api = { project, stats, filter, periods, quantile, drivers, quality }; root.AIR = root.AIR || {}; root.AIR.db = root.AIR.db || {}; root.AIR.db.purchaseAnalytics = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

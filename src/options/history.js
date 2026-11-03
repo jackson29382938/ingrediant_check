@@ -6,7 +6,7 @@
   function say(text) { $('status').textContent = text; }
   async function paint() {
     conf = await chrome.storage.local.get(['purchaseHistory', 'historyEnabled', 'historyAutoSync', 'historyOwner', 'historySyncStatus', 'historyDeletePending', 'googleProfile', 'oauthClientId', 'theme', 'palette', 'accent', 'ocrLabels', 'useOpenFoodFacts', 'ratePace', 'orderBadgePlacement', 'hoverBreakdown', 'historyScan', 'weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly', 'ratingStyle', 'personalCareEnabled']);
-    AIR.db.theme.use(conf); AIR.db.theme.force(document);
+    AIR.db.theme.use(conf); AIR.db.theme.page(document);
     $('historyEnabled').checked = conf.historyEnabled === true; $('historyAutoSync').checked = conf.historyAutoSync !== false;
     const toggles = AIR.db.prefs.sanitizeToggles(conf); $('readingSummary').textContent = `Shared settings: label photos ${toggles.ocrLabels ? 'on' : 'off'} · barcode lookup ${toggles.useOpenFoodFacts ? 'on' : 'off'} · fetching pace ${['gentle', 'normal', 'quick', 'fast'].includes(conf.ratePace) ? conf.ratePace : 'normal'} · hover details ${toggles.hoverBreakdown ? 'on' : 'off'}.`;
     $('account').textContent = conf.googleProfile?.email ? `Signed in: ${conf.googleProfile.email}` : 'Not signed in. Import can work locally; account sync waits for Google sign-in.';
@@ -50,7 +50,10 @@
   $('export').addEventListener('click', () => { const url = URL.createObjectURL(new Blob([JSON.stringify({ format: 'ingredient-check-purchases', records: H.merge([], conf.purchaseHistory) }, null, 2)], { type: 'application/json' })); const a = document.createElement('a'); a.href = url; a.download = 'ingredient-check-purchases.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); });
   let paintTimer;
   chrome.storage.onChanged.addListener((changes, area) => { if (area === 'local' && dashboardKeys.some(key => changes[key])) dashboardDirty = true; if (area === 'local' && ['purchaseHistory', 'historyScan', 'historyEnabled', 'historyAutoSync', 'historyOwner', 'historySyncStatus', 'historyDeletePending', 'googleProfile', 'theme', 'palette', 'accent', 'ocrLabels', 'useOpenFoodFacts', 'ratePace', 'orderBadgePlacement', 'hoverBreakdown', 'weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly', 'ratingStyle', 'personalCareEnabled'].some(key => changes[key])) { clearTimeout(paintTimer); paintTimer = setTimeout(() => { void paint(); }, 150); } });
-  const reveal = () => { if (['#historySettings', '#controls'].includes(location.hash)) $('purchasePreferences').open = true; };
+  const reveal = () => {
+    if (['#historySettings', '#controls'].includes(location.hash)) $('purchasePreferences').open = true;
+    if (location.hash === '#scanHeading') { $('scanControls').open = true; $('scanHeading').scrollIntoView({ block: 'start' }); }
+  };
   addEventListener('hashchange', reveal); reveal();
   void paint();
 })();
