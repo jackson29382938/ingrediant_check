@@ -265,14 +265,24 @@ const panelPage = { id: 'ext', url: 'chrome-extension://ext/src/options/sidepane
 const settingsPage = { id: 'ext', url: 'chrome-extension://ext/src/options/options.html' };
 const popup = { id: 'ext', url: 'chrome-extension://ext/src/options/popup.html' };
 
-test('who may ask: only Amazon tabs; the list pages send no messages at all', () => {
+test('who may ask: Amazon tabs and the supported stores\' tabs; the list pages send no messages at all', () => {
   const w = worker();
   const allow = (type, s) => w.call(`allowMessage({type:${JSON.stringify(type)}}, ${JSON.stringify(s)})`);
-  for (const type of ['openSortedPanel', 'updateSortedResults', 'openSortedTab']) {
-    assert.equal(allow(type, amazonTab), true, type);
-    for (const other of [targetTab, sortedPage, panelPage, settingsPage, popup, { id: 'other', tab: amazonTab.tab }]) {
+  const tab = url => ({ id: 'ext', tab: { id: 9, url } });
+  for (const type of ['openSortedPanel', 'updateSortedResults', 'openSortedTab', 'followSortedSearch']) {
+    for (const allowed of [amazonTab, targetTab, tab('https://www.walmart.com/search?q=oats'), tab('https://www.costco.com/CatalogSearch?keyword=oats'),
+      tab('https://www.kroger.com/search?query=oats'), tab('https://www.safeway.com/shop/search-results.html?q=oats')]) {
+      assert.equal(allow(type, allowed), true, `${type} from ${allowed.tab.url}`);
+    }
+    // Not a store this extension runs on, a look-alike host, another extension, or one of our own pages.
+    for (const other of [tab('https://example.com/search?q=oats'), tab('https://www.walmart.com.evil.example/search'), tab('https://evil-target.com/s?searchTerm=x'),
+      sortedPage, panelPage, settingsPage, popup, { id: 'other', tab: amazonTab.tab }, { id: 'other', tab: targetTab.tab }]) {
       assert.equal(allow(type, other), false, `${type} from ${JSON.stringify(other)}`);
     }
+  }
+  // A store's tabs may still ask for nothing the worker would fetch.
+  for (const network of ['ocrLabels', 'lookupBarcode', 'aiRateIngredients', 'productsLookup', 'contribute']) {
+    assert.equal(allow(network, targetTab), false, `${network} stays Amazon-only`);
   }
   for (const gone of ['openSortedResults', 'openSortSettings', 'openResultsSidePanel']) {
     assert.equal(allow(gone, amazonTab) || allow(gone, sortedPage), false, `${gone} is no longer a message`);
@@ -356,10 +366,10 @@ test('shortcut: the price shortcut sorts by price per ounce', async () => {
   assert.equal(w.sent[0][1].mode, 'unitPrice');
 });
 
-test('shortcut: it does nothing off Amazon search pages, and ignores commands it does not know', async () => {
+test('shortcut: it does nothing off search pages, and ignores commands it does not know', async () => {
   const w = worker();
-  for (const url of ['https://www.amazon.com/dp/B000000001', 'https://www.target.com/s?searchTerm=oats', 'https://example.com/s?k=oats',
-    'https://www.amazon.com.evil.example/s?k=oats', 'chrome://extensions', '']) {
+  for (const url of ['https://www.amazon.com/dp/B000000001', 'https://www.target.com/p/oats/-/A-79364857', 'https://www.walmart.com/cart', 'https://example.com/s?k=oats',
+    'https://www.amazon.com.evil.example/s?k=oats', 'https://www.target.com.evil.example/s?searchTerm=oats', 'http://www.walmart.com/search?q=oats', 'chrome://extensions', '']) {
     await w.command('sort-health', { id: 3, url });
   }
   await w.command('something-else', searchTab);
@@ -450,7 +460,44 @@ test('updates are re-checked, and only the newest run from its own tab lands', a
   const old = (await w.send({ type: 'updateSortedResults', runId: 'older', items: [], loading: false }, amazonTab)).reply;
   assert.equal(old.stale, true);
   assert.equal(w.session.sortedResults.items.length, 2, 'refused updates change nothing');
-  assert.equal((await w.send({ type: 'updateSortedResults', runId: reply.runId, items: [] }, targetTab)).reply, undefined, 'refused from Target');
+  assert.equal((await w.send({ type: 'updateSortedResults', runId: reply.runId, items: [] }, targetTab)).reply.stale, true, 'another store\'s tab is not this list\'s tab');
+  assert.equal(w.session.sortedResults.items.length, 2, 'and changes nothing');
+});
+
+test('a supported store\'s list: its own ids, links and pictures only, decided by the sending tab\'s address', async () => {
+  const w = worker();
+  const walmart = { id: 'ext', tab: { id: 12, url: 'https://www.walmart.com/search?q=oats', windowId: 1 } };
+  const { reply } = await w.send({ type: 'openSortedPanel', mode: 'unitPrice', sourceUrl: walmart.tab.url, unitEnabled: true }, walmart);
+  assert.equal(reply.ok, true);
+  assert.equal(w.session.sortedResults.sourceUrl, walmart.tab.url, 'the back link may point at the store\'s search');
+  const items = [
+    { asin: '10314926', title: 'Oats', url: 'https://www.walmart.com/ip/10314926', image: 'https://i5.walmartimages.com/seo/a.jpeg', listingPrice: 3.97, unitPrice: 0.095, unitKind: 'weight' },
+    { asin: '10314927', title: 'Foreign', url: 'https://evil.example/ip/1', image: 'https://evil.example/a.png' },
+    { asin: 'B000000001', title: 'An Amazon id', url: 'https://www.amazon.com/dp/B000000001' },
+    { asin: 'x', title: 'Too short to be an id', url: 'https://www.walmart.com/ip/2' },
+  ];
+  const sent = (await w.send({ type: 'updateSortedResults', runId: reply.runId, items, loading: false, status: 'Collected' }, walmart)).reply;
+  assert.equal(sent.ok, true);
+  const [oats, foreign, amazon, short] = w.session.sortedResults.items;
+  assert.equal(oats.url, 'https://www.walmart.com/ip/10314926');
+  assert.equal(oats.image, 'https://i5.walmartimages.com/seo/a.jpeg');
+  assert.deepEqual([foreign.url, foreign.image], ['', ''], 'a link or picture off the store is dropped');
+  assert.equal(amazon.url, '', 'an Amazon address is not a Walmart link');
+  assert.equal(short.asin, '', 'an id the store does not use is dropped');
+  // The same message from the same list through a different store's tab is a different tab: refused as stale.
+  assert.equal((await w.send({ type: 'updateSortedResults', runId: reply.runId, items, loading: false }, targetTab)).reply.stale, true);
+  // And Amazon's own list is exactly as strict as before.
+  const { reply: amazonReply } = await w.send({ type: 'openSortedPanel', mode: 'health', sourceUrl: 'https://www.amazon.com/s?k=oats' }, amazonTab);
+  await w.send({ type: 'updateSortedResults', runId: amazonReply.runId, items, loading: false }, amazonTab);
+  assert.equal(w.session.sortedResults.items.length, 1, 'only the Amazon item with an ASIN survives in an Amazon list');
+});
+
+test('a store\'s shortcut opens the panel and asks that tab to start', async () => {
+  const w = worker();
+  await w.command('sort-price', { id: 21, url: 'https://www.target.com/s?searchTerm=oats' });
+  await nextTick();
+  assert.equal(w.calls.filter(c => c[0] === 'sidePanel.open').length, 1);
+  assert.equal(w.session.sortedResults.sourceUrl, 'https://www.target.com/s?searchTerm=oats');
 });
 
 test('why it scored: bounded rows, points or CAP, only for a scored listing', () => {

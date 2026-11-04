@@ -241,6 +241,38 @@
   // Read through the shared page reader (stores/cart.js, loaded after this file and used only at call time).
   const publicDocument = (response, signal) => root.AIR.cart.publicDocument(response, signal);
 
+  // One product's public page, read, scored and saved: the single way a retailer product is rated from a results
+  // page, whoever asks (the badges' queue below, or the sorted list in retailer-sort.js). `alive()` is asked after
+  // each wait: false means the page moved on, and nothing is saved or returned. Returns { hit } for a score,
+  // { status: 'not-food' } for a product outside food scoring, or undefined when it is no longer wanted;
+  // throws Error('unavailable') for a page that gave no readable label, Error('blocked') for a challenge page.
+  async function readProductScore(id, signal, alive = () => true) {
+    const url = new URL(adapter.productUrl(id, location), location.href);
+    if (url.origin !== location.origin || adapter.productId(url.href) !== id) throw new Error('unavailable');
+    const response = await fetch(url.href, { credentials: adapter.publicCredentials === 'same-origin' ? 'same-origin' : 'omit', signal });
+    if (!alive() || signal.aborted) return undefined;
+    if ([403, 429, 503].includes(response.status)) state.throttled = true;
+    const final = new URL(response.url || url.href);
+    if ((final.origin !== url.origin && !adapter.acceptsProductRedirect?.(url, final, id)) || adapter.productId(final.href) !== id) throw new Error('unavailable');
+    const doc = await publicDocument(response, signal);
+    if (!alive() || signal.aborted) return undefined;
+    const data = adapter.readProduct(doc, final);
+    data.supplementFacts = data.supplementFacts || root.AIR.retailerLabels?.supplementFacts?.(doc) || '';
+    if (data.id !== id || !data.ingredients) throw new Error('unavailable');
+    const context = { title: data.title, text: [data.department || root.AIR.retailerLabels?.department(data.crumbs || []),
+      (data.crumbs || []).join(' › '), data.title, data.labelText].join(' \n ') };
+    const food = root.AIR.db.ingestible.assess({ querySelector: () => null }, context);
+    if (state.foodOnly && !food.ok && food.negatives.length && !root.AIR.db.ingestible?.allowsProduct?.(data.title, state.prefs)) return { status: 'not-food' };
+    const input = { name: data.title, ingredients_text: data.ingredients, advisory_text: data.advisoryText,
+      category: data.supplementFacts ? 'supplement' : undefined, supplement_facts: data.supplementFacts, nutrition: data.nutrition };
+    const result = root.AIR.engine.score(input, state.prefs);
+    if (!root.AIR.engine.isReadable(result)) throw new Error('unavailable');
+    const entry = cacheEntry(id, result, data.title, 'page', input);
+    try { await chrome.storage.local.set({ [CACHE.key(STORE, id)]: entry }); }
+    catch (e) { /* The score can still be displayed on this tab if persistence fails. */ }
+    return { hit: entry };
+  }
+
   function drain() {
     while (state.active < 2 && state.queue.length && state.enabled && state.badges && state.autoScoreSearch && state.searchAllowed && !state.throttled && location.href === state.url && adapter.isSearchPage(location)) {
       const job = state.queue.shift();
@@ -251,31 +283,8 @@
       state.controllers.add(controller);
       const timer = setTimeout(() => controller.abort(), 15000);
       (async () => {
-        const url = new URL(adapter.productUrl(job.id, location), location.href);
-        if (url.origin !== location.origin || adapter.productId(url.href) !== job.id) throw new Error('unavailable');
-        const response = await fetch(url.href, { credentials: adapter.publicCredentials === 'same-origin' ? 'same-origin' : 'omit', signal: controller.signal });
-        if (generation !== state.generation || location.href !== state.url || controller.signal.aborted) return;
-        if ([403, 429, 503].includes(response.status)) state.throttled = true;
-        const final = new URL(response.url || url.href);
-        if ((final.origin !== url.origin && !adapter.acceptsProductRedirect?.(url, final, job.id)) || adapter.productId(final.href) !== job.id) throw new Error('unavailable');
-        const doc = await publicDocument(response, controller.signal);
-        if (generation !== state.generation || location.href !== state.url || controller.signal.aborted) return;
-        const data = adapter.readProduct(doc, final);
-        data.supplementFacts = data.supplementFacts || root.AIR.retailerLabels?.supplementFacts?.(doc) || '';
-        if (data.id !== job.id || !data.ingredients) throw new Error('unavailable');
-        const context = { title: data.title, text: [data.department || root.AIR.retailerLabels?.department(data.crumbs || []),
-          (data.crumbs || []).join(' › '), data.title, data.labelText].join(' \n ') };
-        const food = root.AIR.db.ingestible.assess({ querySelector: () => null }, context);
-        if (state.foodOnly && !food.ok && food.negatives.length && !root.AIR.db.ingestible?.allowsProduct?.(data.title, state.prefs)) {
-          state.requests.set(job.id, { status: 'not-food' }); return;
-        }
-        const result = root.AIR.engine.score({ name: data.title, ingredients_text: data.ingredients,
-          advisory_text: data.advisoryText, category: data.supplementFacts ? 'supplement' : undefined, supplement_facts: data.supplementFacts, nutrition: data.nutrition }, state.prefs);
-        if (!root.AIR.engine.isReadable(result)) throw new Error('unavailable');
-        const entry = cacheEntry(job.id, result, data.title, 'page', { name: data.title, ingredients_text: data.ingredients, advisory_text: data.advisoryText, category: data.supplementFacts ? 'supplement' : undefined, supplement_facts: data.supplementFacts, nutrition: data.nutrition });
-        state.requests.set(job.id, { hit: entry });
-        try { await chrome.storage.local.set({ [CACHE.key(STORE, job.id)]: entry }); }
-        catch (e) { /* The score can still be displayed on this tab if persistence fails. */ }
+        const out = await readProductScore(job.id, controller.signal, () => generation === state.generation && location.href === state.url);
+        if (out) state.requests.set(job.id, out.hit ? { hit: out.hit } : { status: out.status });
       })().catch(error => {
         if (generation === state.generation && error.message === 'blocked') state.throttled = true;
         if (generation === state.generation) state.requests.set(job.id, { status: 'unavailable' });
@@ -469,5 +478,7 @@
     return false;
   });
 
+  // What the sorted list (retailer-sort.js, loaded before this file and used only at call time) needs of the runner.
+  root.AIR.retailerRunner = { adapter, state, CACHE, STORE, VERSION, readProductScore, publicDocument };
   if (typeof module !== 'undefined' && module.exports) module.exports = { state, pass, reset, adapter };
 })(typeof globalThis !== 'undefined' ? globalThis : self);

@@ -19,21 +19,21 @@
     },
     // Public product/search previews; search scans can fetch same-origin public declarations.
     // Live pages were read correctly on 2026-09-25, but behind Target's bot check (docs/STORES.md).
-    { id: 'target', name: 'Target', status: 'preview', domains: ['target.com'] },
-    { id: 'walmart', name: 'Walmart', status: 'preview', domains: ['walmart.com'] },
-    { id: 'costco', name: 'Costco', status: 'preview', domains: ['costco.com'] },
-    {"id": "instacart", "name": "Instacart", "status": "preview", "domains": ["instacart.com"]},
-    {"id": "kroger", "name": "Kroger", "status": "preview", "domains": ["kroger.com"]},
-    {"id": "frys", "name": "Fry’s", "status": "preview", "domains": ["frysfood.com"]},
-    {"id": "ralphs", "name": "Ralphs", "status": "preview", "domains": ["ralphs.com"]},
-    {"id": "kingsoopers", "name": "King Soopers", "status": "preview", "domains": ["kingsoopers.com"]},
-    {"id": "smiths", "name": "Smith’s", "status": "preview", "domains": ["smithsfoodanddrug.com"]},
-    {"id": "fredmeyer", "name": "Fred Meyer", "status": "preview", "domains": ["fredmeyer.com"]},
-    {"id": "qfc", "name": "QFC", "status": "preview", "domains": ["qfc.com"]},
-    {"id": "harristeeter", "name": "Harris Teeter", "status": "preview", "domains": ["harristeeter.com"]},
-    {"id": "dillons", "name": "Dillons", "status": "preview", "domains": ["dillons.com"]},
-    {"id": "safeway", "name": "Safeway", "status": "preview", "domains": ["safeway.com"]},
-    {"id": "albertsons", "name": "Albertsons", "status": "preview", "domains": ["albertsons.com"]},
+    { id: 'target', name: 'Target', status: 'preview', domains: ['target.com'], search: '^/s(?:/|$)', images: ['scene7.com', 'targetimg1.com'] },
+    { id: 'walmart', name: 'Walmart', status: 'preview', domains: ['walmart.com'], search: '^/search/?$', images: ['walmartimages.com'] },
+    { id: 'costco', name: 'Costco', status: 'preview', domains: ['costco.com'], search: '^/(?:s|CatalogSearch)$', images: ['bfldr.com', 'costco-static.com'] },
+    {"id": "instacart", "name": "Instacart", "status": "preview", "domains": ["instacart.com"], "search": "^/store/(?:[^/]+/)?s/?$"},
+    {"id": "kroger", "name": "Kroger", "status": "preview", "domains": ["kroger.com"], "search": "^/search/?$"},
+    {"id": "frys", "name": "Fry’s", "status": "preview", "domains": ["frysfood.com"], "search": "^/search/?$"},
+    {"id": "ralphs", "name": "Ralphs", "status": "preview", "domains": ["ralphs.com"], "search": "^/search/?$"},
+    {"id": "kingsoopers", "name": "King Soopers", "status": "preview", "domains": ["kingsoopers.com"], "search": "^/search/?$"},
+    {"id": "smiths", "name": "Smith’s", "status": "preview", "domains": ["smithsfoodanddrug.com"], "search": "^/search/?$"},
+    {"id": "fredmeyer", "name": "Fred Meyer", "status": "preview", "domains": ["fredmeyer.com"], "search": "^/search/?$"},
+    {"id": "qfc", "name": "QFC", "status": "preview", "domains": ["qfc.com"], "search": "^/search/?$"},
+    {"id": "harristeeter", "name": "Harris Teeter", "status": "preview", "domains": ["harristeeter.com"], "search": "^/search/?$"},
+    {"id": "dillons", "name": "Dillons", "status": "preview", "domains": ["dillons.com"], "search": "^/search/?$"},
+    {"id": "safeway", "name": "Safeway", "status": "preview", "domains": ["safeway.com"], "search": "^/shop/search-results\\.html$"},
+    {"id": "albertsons", "name": "Albertsons", "status": "preview", "domains": ["albertsons.com"], "search": "^/shop/search-results\\.html$"},
   ];
 
   const bareHost = host => String(host || '').toLowerCase().replace(/^www\./, '').replace(/\.$/, '');
@@ -75,7 +75,25 @@
     return true;
   }
 
-  const api = { STORES, storeForHost, storeForName, reportMayCapture };
+  // The retailer store a result-page address belongs to, or null: https, no credentials or port, the store's own
+  // host (or www.), and that store's search route. Used by the worker to decide which tabs may be sorted, and by
+  // the sorted-list page to name and link the store; it must agree with each adapter's isSearchPage
+  // (tests/retailer-sort.test.js checks that it does).
+  function searchStore(raw) {
+    let u;
+    try { u = new URL(String(raw || '')); } catch (e) { return null; }
+    if (u.protocol !== 'https:' || u.username || u.password || u.port) return null;
+    const store = STORES.find(s => s.search && s.domains.some(d => u.hostname === d || u.hostname === 'www.' + d));
+    return store && new RegExp(store.search).test(u.pathname) ? store : null;
+  }
+  // May a list for this store show a picture from this host? The store's own site always; a CDN only when it is
+  // named here (the sorted list is an extension page, so a picture is a request to that host).
+  function imageHostOk(store, hostname) {
+    const h = String(hostname || '').toLowerCase();
+    return !!store && [...store.domains, ...(store.images || [])].some(d => h === d || h.endsWith('.' + d));
+  }
+
+  const api = { STORES, storeForHost, storeForName, reportMayCapture, searchStore, imageHostOk };
   root.AIR = root.AIR || {};
   root.AIR.stores = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

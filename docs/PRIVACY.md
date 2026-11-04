@@ -89,8 +89,20 @@ Since 1.24.0 the Walmart and Target script also loads on those sites' public hom
 (Walmart: `/`, `/browse/*`, `/cp/*`, `/shop/*`; Target: `/`, `/c/*`, `/pl/*`, `/b/*`), because both sites open
 search results without loading a page and a script that was not already there would never run. On those pages it
 reads nothing from the page and makes no request; it only waits for a search or product page to appear. Account,
-cart-checkout, login and order pages are not matched, and the sort panel it adds on search pages reads only the
-cards already on screen.
+cart-checkout, login and order pages are not matched.
+
+The **Ingredient Check sort** button that retailer search pages now carry (the same two entries as Amazon's sort
+menu) builds the sorted list from the cards already on screen, and nothing else unless you turn on **Load more
+results** (off by default). Then, up to the number of products and the time limit you set, it reads further result
+pages of that same store: first the page's HTML, as the product-page scans do (public page, no cookies except on
+Walmart, whose same-site cookies are sent as for its product pages); where that HTML holds no results (Target,
+Instacart, the Kroger banners), the same address in a **hidden frame**, which loads the page exactly as visiting it
+would, **with your ordinary cookies for that store**, and is removed once read; and, where a store has no next-page
+address, **scrolling the page you are on** (or pressing its own "show more" button) and putting it back. With **Rate
+them**, it then requests product pages as the badges do. A challenge or rate-limit page stops all of it. Nothing is sent
+anywhere else: the list goes to this extension's own worker and is kept in memory for the browser session. The worker
+accepts it only for the store that sent it, drops links and pictures that are not that store's, and still fetches
+nothing for a store's tab.
 They have no additional broad host permissions. Automatic rating can fetch public product pages
 from the same origin without cookies; cart lookups also omit the referrer. These scans do not call
 the shared database, Open Food Facts, OCR or Google. Chrome lists these sites in the extension's

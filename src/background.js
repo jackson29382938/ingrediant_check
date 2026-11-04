@@ -12,7 +12,7 @@
 if (typeof importScripts === 'function') {
   importScripts('browser-compat.js', 'browser-platform.js', 'engine/db/_module.js', 'engine/db/allergens.js', 'engine/categories.js',
     'engine/db/ingestible.js', 'engine/db/prefs.js', 'engine/db/theme.js',
-    'engine/db/ocr-text.js', 'engine/db/ai-ratings.js', 'engine/db/product-cache.js', 'engine/db/shopping.js', 'engine/db/storefronts.js', 'engine/db/sorted-results.js',
+    'engine/db/ocr-text.js', 'engine/db/ai-ratings.js', 'engine/db/product-cache.js', 'engine/db/shopping.js', 'engine/db/storefronts.js', 'stores/registry.js', 'engine/db/sorted-results.js',
     'engine/db/speed.js', 'engine/db/unit-price.js',
     'engine/db/activity.js', 'options/google-auth.js', 'worker/messages.js', 'worker/ai.js', 'worker/usda.js', 'worker/sheet-store.js', 'engine/db/purchase-history.js', 'worker/purchase-history.js', 'engine/db/history-scan.js', 'worker/history-scan.js');
 }
@@ -379,7 +379,10 @@ async function followSortedSearchOnce(msg, sender) {
   // (history.pushState), and then it still names the previous search while the tab and the page itself
   // name the new one, so every follow was refused. The tab's address is the one to match; the sender
   // only has to be the top frame of that tab on the same Amazon origin.
-  if (!url || !isAmazonSearchUrl(url) || tab?.id !== sender.tab?.id || tab.url !== url || !sameOrigin(sender.url, url) || sender.frameId !== 0) return {ok:false};
+  // For a store the extension holds no host permission for (every retailer), chrome.tabs.get names no address; the
+  // sender's own tab address, which the browser supplies with the message, stands in for it.
+  const actual = (tab && tab.url) || (sender.tab && sender.tab.url);
+  if (!url || !isSortableSearchUrl(url) || tab?.id !== sender.tab?.id || actual !== url || !sameOrigin(sender.url, url) || sender.frameId !== 0) return {ok:false};
   const {sortedResults:list} = await chrome.storage.session.get('sortedResults');
   if (!sortedViews.size || !list || list.sourceTabId !== tab.id || (list.sourceUrl === url && !!list.priceOnly === (msg.priceOnly === true))) return {ok:false};
   const runId = crypto.randomUUID();
@@ -429,6 +432,11 @@ function isAmazonSearchUrl(raw) {
     return AMAZON_HOST.test(u.hostname) && (/^\/s(?:\/|$)/.test(u.pathname) || u.searchParams.has('k'));
   } catch (e) { return false; }
 }
+// A results page a list may be made from: Amazon's, or one of the supported stores' own search pages
+// (stores/registry.js searchStore, which mirrors each adapter's isSearchPage).
+function isSortableSearchUrl(raw) {
+  return isAmazonSearchUrl(raw) || !!(self.AIR.stores && self.AIR.stores.searchStore(raw));
+}
 
 async function endSortedList(runId, key, fallback) {
   const { sortedResults: list } = await chrome.storage.session.get('sortedResults');
@@ -440,7 +448,7 @@ async function endSortedList(runId, key, fallback) {
 
 function sortFromCommand(command, tab) {
   const mode = command === 'sort-health' ? 'health' : command === 'sort-price' ? 'unitPrice' : null;
-  if (!mode || !tab || typeof tab.id !== 'number' || !isAmazonSearchUrl(tab.url)) return;
+  if (!mode || !tab || typeof tab.id !== 'number' || !isSortableSearchUrl(tab.url)) return;
   openSortedPanel({ mode, sourceUrl: tab.url, unitEnabled: true }, { tab }, async reply => {
     if (!reply || !reply.runId) return;
     const conf = await chrome.storage.local.get('unitPrice');
@@ -453,7 +461,7 @@ function sortFromCommand(command, tab) {
     let answer = null;
     try { answer = await chrome.tabs.sendMessage(tab.id, { type: 'sortStart', mode, runId: reply.runId }); } catch (e) { /* no listener */ }
     if (!answer || answer.ok !== true) {
-      await endSortedList(reply.runId, 'sortNotHere', 'Ingredient Check is not sorting this page: it is switched off, or this is not a food search on a supported Amazon store.');
+      await endSortedList(reply.runId, 'sortNotHere', 'Ingredient Check is not sorting this page: it is switched off, or this is not a food search on a supported store.');
     }
   });
 }
@@ -466,7 +474,10 @@ async function updateSortedResults(msg, sender) {
   const { sortedResults: list } = await chrome.storage.session.get('sortedResults');
   const tabId = sender && sender.tab && sender.tab.id;
   if (!list || !msg.runId || list.runId !== msg.runId || list.sourceTabId !== tabId) return { ok: false, stale: true };
-  const items = R.sanitizeResults(msg.items);
+  // What the list may link to and show is decided by the address of the tab that sent it, never by the message.
+  const scope = R.scopeFor(sender.tab.url);
+  if (!scope) return { ok: false, reason: 'unsupported-page' };
+  const items = R.sanitizeResults(msg.items, scope);
   await chrome.storage.session.set({ sortedResults: {
     ...list, items: msg.priceOnly === true ? items.map(p => ({...p, score:null, verdict:'', source:'unrated', why:null})) : items, priceOnly: msg.priceOnly === true, unit: R.sanitizeUnitId(msg.unit), loading: msg.loading === true, status: R.sanitizeStatus(msg.status), t: Date.now(),
   } });

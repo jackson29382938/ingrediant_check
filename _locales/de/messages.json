@@ -957,10 +957,10 @@
     "message": "Nach Bewertung oder Stückpreis sortieren"
   },
   "optSortLedeShort": {
-    "message": "Fügt Amazons Menü „Sortieren nach“ zwei Optionen hinzu. Eine Auswahl reiht die Ergebnisse dieser Suche im Seitenbereich von Chrome; Amazons Seite bleibt unverändert."
+    "message": "Fügt Amazons Menü „Sortieren nach“ zwei Optionen hinzu und auf Walmart, Target, Costco, Instacart, Kroger und den anderen unterstützten Shops eine Schaltfläche „Zutaten-Check sortieren“. Eine Auswahl reiht die Ergebnisse dieser Suche im Seitenbereich von Chrome; die Seite des Shops bleibt unverändert."
   },
   "optSortLede": {
-    "message": "Bei einer Amazon-Lebensmittelsuche bekommt Amazons eigenes Menü „Sortieren nach“ die Einträge „Zutaten-Check-Bewertung: Hoch bis niedrig“ und „Preis pro …: Niedrig bis hoch“, in der Einheit, in der die meisten Angebote ausgepreist sind (Unze, fl oz, Pfund, Gallone, Stück …); die Einheit kannst du in der Seitenleiste ändern. Wählst du einen Eintrag, öffnet sich die Seitenleiste von Chrome mit den Angeboten dieser Suche in Rangfolge; Amazons Seite bleibt unverändert. In der Seitenleiste gewichtet „Priorisieren“ Gesundheitsbewertung, Stückpreis, Gesamtpreis, Kundenbewertung und Zahl der Rezensionen, und „In neuem Tab öffnen“ zeigt dieselbe Liste in einem Tab."
+    "message": "Bei einer Lebensmittelsuche bekommt Amazons eigenes Menü „Sortieren nach“ die Einträge „Zutaten-Check-Bewertung: Hoch bis niedrig“ und „Preis pro …: Niedrig bis hoch“; bei Walmart, Target und den anderen unterstützten Shops bietet die Schaltfläche „Zutaten-Check sortieren“ auf der Seite dieselben zwei Einträge. Der Preis gilt pro Einheit, in der die meisten Angebote ausgepreist sind (Unze, fl oz, Pfund, Gallone, Stück …); die Einheit kannst du in der Seitenleiste ändern. Wählst du einen Eintrag, öffnet sich die Seitenleiste von Chrome mit den Angeboten dieser Suche in Rangfolge; die Seite des Shops bleibt unverändert. In der Seitenleiste gewichtet „Priorisieren“ Gesundheitsbewertung, Stückpreis, Gesamtpreis, Kundenbewertung und Zahl der Rezensionen, ein Hover über eine Bewertung zeigt, warum sie so ausfiel, und „In neuem Tab öffnen“ zeigt dieselbe Liste in einem Tab."
   },
   "optSortMissingH": {
     "message": "Angebote ohne Bewertung"
@@ -969,7 +969,7 @@
     "message": "Bewerten"
   },
   "optSortRateFirstD": {
-    "message": "Ruft ihre Produktseiten bei Amazon ab, mit deiner Anmeldung, drei gleichzeitig, während sich der Seitenbereich füllt. Erfordert „Suchergebnisse und Warenkorbartikel bewerten“; im Seitenbereich lässt es sich stoppen."
+    "message": "Ruft ihre Produktseiten beim Shop ab, bei Amazon drei gleichzeitig (mit deiner Anmeldung), bei anderen Shops zwei gleichzeitig, während sich der Seitenbereich füllt. Erfordert „Suchergebnisse und Warenkorbartikel bewerten“; im Seitenbereich lässt es sich stoppen."
   },
   "optSortEnd": {
     "message": "Unbewertet lassen"
@@ -978,13 +978,13 @@
     "message": "Keine zusätzlichen Anfragen. Nur Bewertungen, die dieser Computer oder die gemeinsame Datenbank schon hat."
   },
   "optSortLoadMore": {
-    "message": "Weitere Amazon-Ergebnisse laden"
+    "message": "Weitere Ergebnisse laden"
   },
   "optHintSortLoadMore": {
     "message": "Standardmäßig aus. Liest weitere Suchseiten und bewertet, was möglich ist."
   },
   "optSortLoadMoreD": {
-    "message": "Standardmäßig aus. Liest weitere Amazon-Suchseiten, bis die Zahl unten erreicht ist, fragt dann die gemeinsame Datenbank nach deren Bewertungen und fordert mit „Bewerten“ die Produktseiten der übrigen an: drei gleichzeitig, mit deiner Amazon-Anmeldung, und bricht ab, sobald Amazon sich weigert."
+    "message": "Standardmäßig aus. Liest weitere Suchseiten, bis die Zahl unten erreicht ist, fragt dann (bei Amazon) die gemeinsame Datenbank nach deren Bewertungen und fordert mit „Bewerten“ die Produktseiten der übrigen an; verweigert der Shop die Antwort, wird abgebrochen. Zeichnet ein Shop seine Ergebnisse mit Skripten (Target, Instacart …), wird die nächste Seite in einem verborgenen Frame so dargestellt, wie dein Browser sie zeigen würde; hat ein Shop keinen Link zur nächsten Seite, wird die Seite für dich gescrollt und zurückgesetzt."
   },
   "optSortCount": {
     "message": "Zu vergleichende Produkte"
@@ -1118,13 +1118,13 @@
     "message": "Stückpreis (pro Unze, Pfund, Gallone, Stück …)"
   },
   "optHintUnitPrice": {
-    "message": "Amazons Preis pro Einheit oder aus Preis und Packungsgewicht berechnet."
+    "message": "Der Stückpreis des Shops oder aus Preis und Packungsgewicht berechnet."
   },
   "optSortUnitPriceD": {
-    "message": "Amazons Stückpreis, wenn die Ergebnisseite einen zeigt; sonst aus dem angegebenen Preis und einem Packungsgewicht im Titel errechnet. Keine zusätzlichen Anfragen. Gutscheine und Abopreise sind nicht enthalten. Auch im Popup der Symbolleiste."
+    "message": "Der Stückpreis des Shops, wenn die Ergebnisseite einen zeigt; sonst aus dem angegebenen Preis und einem Packungsgewicht im Titel errechnet. Keine zusätzlichen Anfragen. Gutscheine und Abopreise sind nicht enthalten. Auch im Popup der Symbolleiste."
   },
   "optUnitMissingH": {
-    "message": "Wenn Amazon keinen Stückpreis zeigt"
+    "message": "Wenn der Shop keinen Stückpreis zeigt"
   },
   "optUnitCalc": {
     "message": "Errechnen, wenn das Gewicht eindeutig ist"
@@ -1133,7 +1133,7 @@
     "message": "Nutzt ein eindeutiges Packungsgewicht im Titel („12 oz, Pack of 6“ sind 72 oz; „100 Count, 7 oz“ bleibt unberührt)."
   },
   "optUnitDisplayed": {
-    "message": "Nur Amazons Stückpreis"
+    "message": "Nur der Stückpreis des Shops"
   },
   "optUnitDisplayedD": {
     "message": "Angebote ohne einen haben keinen Stückpreis."
@@ -1184,7 +1184,7 @@
     "message": "Stückpreis"
   },
   "popupUnitPriceD": {
-    "message": "Fügt Amazons Sortiermenü und der sortierten Liste „Preis pro …: Niedrig bis hoch“ hinzu, in der Einheit, die die meisten Angebote verwenden (Unze, Pfund, Gallone, Stück …). Wird aus der Ergebnisseite errechnet — keine zusätzlichen Anfragen."
+    "message": "Fügt dem Sortiermenü (bei Amazon das Amazon-Menü, bei anderen Shops die Schaltfläche „Zutaten-Check sortieren“) und der sortierten Liste „Preis pro Unze: Niedrig bis hoch“ hinzu. Wird aus der Ergebnisseite berechnet — keine zusätzlichen Anfragen."
   },
   "sortFailed": {
     "message": "Diese Ergebnisseite konnte nicht gelesen werden ($FIRST$). Lade die Amazon-Seite neu und wähle die Option noch einmal.",
@@ -1457,7 +1457,7 @@
     "message": "Mehr Produkte vergleichen besser und dauern länger."
   },
   "optSortDepthD": {
-    "message": "Mehr Produkte ergeben einen besseren Vergleich und dauern länger. Über diese Seite hinaus liest Ingredient Check weitere Amazon-Ergebnisseiten und bewertet, was es kann, innerhalb des Zeitlimits. Gespeicherte Bewertungen und die gemeinsame Datenbank kommen zuerst, eine wiederholte Suche geht also schnell."
+    "message": "Mehr Produkte ergeben einen besseren Vergleich und dauern länger. Über diese Seite hinaus liest Ingredient Check weitere Ergebnisseiten und bewertet, was es kann, innerhalb des Zeitlimits. Gespeicherte Bewertungen und die gemeinsame Datenbank kommen zuerst, eine wiederholte Suche geht also schnell."
   },
   "optSortDepthPage": {
     "message": "Nur diese Seite (etwa 48 Produkte)"
@@ -1562,19 +1562,19 @@
     "message": "Die sortierte Liste öffnet ihre Prioritäts-Regler wie zuletzt eingestellt."
   },
   "optSortRememberD": {
-    "message": "In der sortierten Liste öffnen die Prioritäts-Regler so, wie du sie zuletzt eingestellt hast, getrennt für die Optionen Bewertung und Preis pro Unze in Amazons Menü. Aus: Jede Liste beginnt mit dem Standard der gewählten Option."
+    "message": "In der sortierten Liste öffnen die Prioritäts-Regler so, wie du sie zuletzt eingestellt hast, getrennt für die Optionen Bewertung und Preis pro Einheit im Sortiermenü. Aus: Jede Liste beginnt mit dem Standard der gewählten Option."
   },
   "cmdSortHealth": {
-    "message": "Diese Amazon-Suche nach Ingredient-Check-Bewertung sortieren"
+    "message": "Diese Suche nach Ingredient-Check-Bewertung sortieren"
   },
   "cmdSortPrice": {
-    "message": "Diese Amazon-Suche nach Stückpreis sortieren"
+    "message": "Diese Suche nach Stückpreis sortieren"
   },
   "sortUnitOff": {
     "message": "Der Stückpreis ist in den Einstellungen von Zutaten-Check ausgeschaltet."
   },
   "sortNotHere": {
-    "message": "Ingredient Check sortiert diese Seite nicht: Es ist ausgeschaltet, oder dies ist keine Lebensmittelsuche in einem unterstützten Amazon-Shop."
+    "message": "Ingredient Check sortiert diese Seite nicht: Es ist ausgeschaltet, oder dies ist keine Lebensmittelsuche in einem unterstützten Shop."
   },
   "welKeysAria": {
     "message": "Tastaturkürzel"
@@ -1610,7 +1610,7 @@
     "message": "Tastaturkürzel"
   },
   "optShortcutD": {
-    "message": "Öffne die sortierte Liste auf einer Amazon-Suchseite per Tastatur. Die Tasten kannst du in Chrome ändern oder löschen."
+    "message": "Öffne die sortierte Liste per Tastatur auf der Suchseite eines unterstützten Shops. Chrome lässt dich die Tasten ändern oder löschen."
   },
   "optShortcutChange": {
     "message": "Kürzel ändern"
@@ -1860,7 +1860,7 @@
     "message": "Neue Suchen in der Seitenleiste verfolgen"
   },
   "optSortFollowSearchD": {
-    "message": "Standardmäßig aktiviert. Ein offener Vergleich folgt neuen Amazon-Suchen im ursprünglichen Tab. Ausschalten, um die bisherigen Ergebnisse zu behalten."
+    "message": "Standardmäßig aktiviert. Ein offener Vergleich folgt neuen Suchen im ursprünglichen Tab. Ausschalten, um die bisherigen Ergebnisse zu behalten."
   },
   "optPersonalCare": {
     "message": "Körperpflege und Nahrungsergänzungsmittel bewerten"
@@ -2238,39 +2238,6 @@
   "cartLabelBlocked": {
     "message": "Der Händler hat die öffentliche Etikettenanfrage blockiert. Öffne das Produkt, um das Etikett zu lesen."
   },
-  "walmartPerOunce": {
-    "message": "Niedrigster Preis pro Unze"
-  },
-  "walmartSortTab": {
-    "message": "Preis und Gesundheit"
-  },
-  "walmartSortTitle": {
-    "message": "Walmart-Ergebnisse vergleichen"
-  },
-  "walmartSortClose": {
-    "message": "Vergleich schließen"
-  },
-  "walmartHealthWeight": {
-    "message": "Gewichtung der Gesundheit"
-  },
-  "walmartPriceWeight": {
-    "message": "Gewichtung des Grundpreises"
-  },
-  "walmartSortHint": {
-    "message": "Nur geladene Ergebnisse. Bewertungen werden beim Lesen der Zutaten aktualisiert; unbekannte Werte stehen am Ende."
-  },
-  "walmartSortList": {
-    "message": "Walmart-Ergebnisse nach Ihren Prioritäten"
-  },
-  "walmartSortCount": {
-    "message": "$1 Produkte geladen"
-  },
-  "walmartSortRated": {
-    "message": "$1 bewertet"
-  },
-  "walmartSortMixed": {
-    "message": "Verschiedene Kategorien: Sortierung nach Gesundheit ist nicht verfügbar."
-  },
   "walmartStatLoaded": {
     "message": "Produkte in dieser Suche"
   },
@@ -2349,37 +2316,58 @@
   "uiDetailOptions": {
     "message": "Detailstufe wählen"
   },
-  "retailerSortTab": {
-    "message": "Ergebnisse sortieren"
+  "sortedSrcUnreadableStore": {
+    "message": "Keine lesbare Zutatenliste bei $1"
   },
-  "retailerSortTitle": {
-    "message": "$1-Ergebnisse sortieren"
+  "sortedListAriaStore": {
+    "message": "$1-Angebote, nach deinen Prioritäten gereiht"
   },
-  "retailerSortUnitLow": {
-    "message": "Preis pro Einheit: aufsteigend"
+  "sortedUnitStore": {
+    "message": "Stückpreis von $1"
   },
-  "retailerSortPer": {
-    "message": "Preis pro"
+  "sortedResultPageStore": {
+    "message": "$1-Seite $2"
   },
-  "retailerSortAuto": {
-    "message": "Automatisch ($1)"
+  "sortedResultFirstStore": {
+    "message": "$1-Seite 1"
   },
-  "retailerUnitItem": {
-    "message": "Stück"
+  "sortedBackStore": {
+    "message": "Zurück zur $1-Suche"
   },
-  "retailerSortUnpriced": {
-    "message": "$1 stehen am Ende: weder auf der Karte noch im Titel steht ein Preis pro $2."
+  "sortedReadingStore": {
+    "message": "$1-Angebote werden gelesen…"
   },
-  "retailerSortNoUnit": {
-    "message": "Kein Grundpreis"
+  "sortedEmptyBodyStore": {
+    "message": "Verwende bei einer $1-Lebensmittelsuche die Schaltfläche „Zutaten-Check sortieren“ auf der Seite und wähle „Zutaten-Check-Bewertung: Hoch bis niedrig“ oder „Preis pro …: Niedrig bis hoch“."
   },
-  "retailerSortSponsored": {
-    "message": "Gesponsert"
+  "sortedStalledStore": {
+    "message": "Vom $1-Tab ist noch nichts angekommen. Lade die $1-Ergebnisseite neu (nach dem Neuladen der Erweiterung verlieren alte Tabs die Verbindung zu ihr) und wähle die Option noch einmal."
   },
-  "retailerSortHidden": {
-    "message": "$1 Werbeplätze ausgeblendet"
+  "sortLoadingPageStore": {
+    "message": "$1-Ergebnisseite $2 wird geladen ($3 Produkte gefunden)…"
   },
-  "retailerSortList": {
-    "message": "Sortierte Ergebnisse"
+  "sortNoMoreStore": {
+    "message": "$1 hat keine weiteren Ergebnisse."
+  },
+  "sortThrottledStore": {
+    "message": "$1 antwortet nicht mehr auf Produktseiten, deshalb pausiert die Bewertung."
+  },
+  "sortBudgetStore": {
+    "message": "Die Bewertung wurde bei $2 Produktseiten beendet, dem Limit für die $1-Ergebnisseiten in dieser Liste."
+  },
+  "sortPageTimeoutStore": {
+    "message": "$1 hat zu lange gebraucht, die nächste Ergebnisseite zu senden"
+  },
+  "sortFailedStore": {
+    "message": "Diese Ergebnisseite konnte nicht gelesen werden ($2). Lade die $1-Seite neu und wähle die Option noch einmal."
+  },
+  "sortNoCardsStore": {
+    "message": "Es wurden keine $1-Produktkarten gefunden. Prüfe, ob dies eine Suchergebnisseite ist, und lade sie neu, nachdem die Angebote geladen sind."
+  },
+  "sortMoreFromPage": {
+    "message": "Weitere Ergebnisse werden von dieser Seite geladen… ($1 Produkte gefunden)"
+  },
+  "sortMenuButton": {
+    "message": "Zutaten-Check sortieren"
   }
 }

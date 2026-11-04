@@ -12,7 +12,7 @@
 // hosts. The results page renders with textContent only, so this is defence in depth, not the only
 // line.
 
-if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('./_module.js'); require('./storefronts.js'); require('./unit-price.js'); }
+if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('./_module.js'); require('./storefronts.js'); require('./unit-price.js'); require('../../stores/registry.js'); }
 
 (function () {
   const MAX_RESULTS = 500;
@@ -22,6 +22,30 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
   const IMAGE_HOST = /^(?:m\.media-amazon\.com|images-na\.ssl-images-amazon\.com|images-eu\.ssl-images-amazon\.com|images-fe\.ssl-images-amazon\.com)$/i;
   const SOURCES = new Set(['scored', 'unreadable', 'not-food', 'unrated']);
   const UNIT_SOURCES = new Set(['amazon', 'calculated', 'none']);
+
+  // What a list may contain, by where it came from. Amazon's is the original, unchanged. A retailer's list is
+  // bound to that one store: its own host for links, its own site or a named CDN for pictures, and the store's
+  // product ids (numeric or UPC-like; stored in the same `asin` field, which is only a name).
+  const AMAZON_SCOPE = Object.freeze({
+    kind: 'amazon', name: 'Amazon', id: /^[A-Z0-9]{10}$/, linkHost: h => AMAZON_HOST.test(h), imageHost: h => IMAGE_HOST.test(h),
+  });
+  const STORE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{3,39}$/;
+  const REGISTRY = () => (typeof AIR !== 'undefined' && AIR.stores) || null;
+  // The scope for a tab's address (the sender's, never the content script's claim), or null when it is a page
+  // no list may come from.
+  function scopeFor(rawUrl) {
+    let host = '';
+    try { const u = new URL(String(rawUrl || '')); if (u.protocol !== 'https:') return null; host = u.hostname; } catch (e) { return null; }
+    if (AMAZON_HOST.test(host)) return AMAZON_SCOPE;
+    const registry = REGISTRY();
+    const store = registry && registry.storeForHost(host);
+    if (!store || store.status === 'planned' || store.id === 'amazon') return null;
+    return Object.freeze({
+      kind: 'store', id: STORE_ID, name: store.name, storeId: store.id,
+      linkHost: h => store.domains.some(d => h === d || h === 'www.' + d),
+      imageHost: h => registry.imageHostOk(store, h),
+    });
+  }
 
   const finiteScore = s => (typeof s === 'number' && Number.isFinite(s) && s >= 0 && s <= 100 ? s : null);
   // Loaded after this file on some pages, so looked up when used rather than when this file runs.
@@ -114,10 +138,10 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
     return any ? out : { caps: [], plus: [], minus: [], neutral: [], clean: true };
   }
 
-  function sanitizeProduct(raw) {
+  function sanitizeProduct(raw, scope = AMAZON_SCOPE) {
     if (!raw || typeof raw !== 'object') return null;
-    const asin = /^[A-Z0-9]{10}$/.test(String(raw.asin || '')) ? raw.asin : '';
-    const url = safeUrl(raw.url, AMAZON_HOST);
+    const asin = scope.id.test(String(raw.asin || '')) ? raw.asin : '';
+    const url = safeUrl(raw.url, { test: scope.linkHost });
     if (!asin && !url) return null;
     const price = Number(raw.listingPrice);
     const unit = raw.unitPrice == null ? NaN : Number(raw.unitPrice);
@@ -128,9 +152,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
     const page = Math.round(Number(raw.pageNumber));
     return {
       asin,
-      title: str(raw.title, 400) || 'Amazon listing',
+      title: str(raw.title, 400) || `${scope.name} listing`,
       url,
-      image: safeUrl(raw.image, IMAGE_HOST),
+      image: safeUrl(raw.image, { test: scope.imageHost }),
       listingPrice: Number.isFinite(price) && price > 0 && price < 1e6 ? Math.round(price * 100) / 100 : null,
       unitPrice: Number.isFinite(unit) && unit > 0 && unit < 1e5 ? Math.round(unit * 10000) / 10000 : null,
       unitSource: UNIT_SOURCES.has(raw.unitSource) && Number.isFinite(unit) && unit > 0 && unit < 1e5 ? raw.unitSource : 'none',
@@ -158,11 +182,12 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
   }
 
   // Untrusted list -> at most MAX_RESULTS clean products, duplicates by ASIN dropped, order kept.
-  function sanitizeResults(list) {
+  function sanitizeResults(list, scope = AMAZON_SCOPE) {
     const out = [];
     const seen = new Set();
+    if (!scope) return out;
     for (const raw of Array.isArray(list) ? list.slice(0, MAX_RESULTS * 2) : []) {
-      const p = sanitizeProduct(raw);
+      const p = sanitizeProduct(raw, scope);
       if (!p) continue;
       const key = p.asin || p.url;
       if (seen.has(key)) continue;
@@ -174,7 +199,14 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
   }
 
   // The Amazon search the list came from, for the "Back to Amazon search" link.
-  const sanitizeSourceUrl = raw => safeUrl(raw, AMAZON_HOST);
+  // The search a list came from, for the "Back to ... search" link: an Amazon address, or a retailer's own
+  // search results address.
+  const sanitizeSourceUrl = raw => {
+    const amazon = safeUrl(raw, AMAZON_HOST);
+    if (amazon) return amazon;
+    const registry = REGISTRY();
+    return registry && registry.searchStore(raw) ? safeUrl(raw, { test: () => true }) : '';
+  };
 
   // ---------------------------------------------------------------- priorities
   const FACTORS = ['health', 'unitPrice', 'price', 'rating', 'reviews'];
@@ -266,7 +298,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
 
   const _exports = AIRmodule('sortedResults', {
     MAX_RESULTS, COUNT_MIN, COUNT_MAX, TIME_LIMITS, SORT_DEFAULTS, FACTORS, WEIGHT_MAX, PRESETS,
-    sortByScore, parseMoney, sanitizeSort, sanitizeProduct, sanitizeResults, sanitizeSourceUrl,
+    sortByScore, parseMoney, sanitizeSort, sanitizeProduct, sanitizeResults, sanitizeSourceUrl, scopeFor, AMAZON_SCOPE,
     sanitizeWeights, sanitizePriorities, PRIORITY_MODES, presetFor, factorValues, rank, sanitizeStatus, sanitizeWhy,
     sanitizeUnitPrices, sanitizeUnitChoice, sanitizeUnitId,
   });

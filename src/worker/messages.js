@@ -31,8 +31,11 @@ var HISTORY_MESSAGE_TYPES = new Set(['purchaseScanStart', 'purchaseScanResume', 
 var OFFSCREEN_MESSAGE_TYPES = new Set(['ocrIdle']);
 var AMAZON_HOST = /(^|\.)amazon\.(com|co\.uk|ca|com\.au|ie|in|sg|ae|sa|de|fr|es|it|nl|se|pl|com\.be|com\.tr|com\.mx|com\.br|co\.jp)$/i;
 // Retailer previews perform their public same-origin reads in the content script.
-// Their tabs may ask the worker only for toolbar badges; worker network paths stay Amazon-only.
-var RETAILER_MESSAGE_TYPES = new Set(['pageScore']);
+// Their tabs may ask the worker for toolbar badges and, as Amazon's do, for the sorted list (src/content/retailer-sort.js):
+// open the side panel, send the list as it fills in, follow a new search, open a tab when the panel cannot open, and
+// leave a line in "Report a problem". None of these makes the worker request anything: the list is checked
+// against the sender's own store (sorted-results.js scopeFor) and kept in session storage. Worker network paths stay Amazon-only.
+var RETAILER_MESSAGE_TYPES = new Set(['pageScore', 'openSortedPanel', 'updateSortedResults', 'openSortedTab', 'followSortedSearch', 'logAction']);
 var RETAILER_HOST = /^(?:www\.)?(?:target\.com|walmart\.com|costco\.com|instacart\.com|kroger\.com|frysfood\.com|ralphs\.com|kingsoopers\.com|smithsfoodanddrug\.com|fredmeyer\.com|qfc\.com|harristeeter\.com|dillons\.com|safeway\.com|albertsons\.com)$/i;
 
 function isOwnExtension(sender) {

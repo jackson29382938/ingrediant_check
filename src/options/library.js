@@ -21,7 +21,7 @@
     const readings = await chrome.storage.local.get(listed.map(p => AIR.db.productCache.localKey(p.store, p.asin)));
     const session = await chrome.storage.session.get('sortedResults');
     const search = session.sortedResults, sourceURL = AIR.db.sortedResults.sanitizeSourceUrl(search?.sourceUrl);
-    prices = sourceURL ? { items: AIR.db.sortedResults.sanitizeResults(search.items), store: new URL(sourceURL).hostname.replace(/^www\./, ''), currency: AIR.db.storefronts.storefront(sourceURL).currency, unit: AIR.db.unitPrice.isUnitId(search.unit) ? search.unit : '100g' } : null;
+    prices = sourceURL && AIR.db.sortedResults.scopeFor(sourceURL)?.kind === 'amazon' ? { items: AIR.db.sortedResults.sanitizeResults(search.items), store: new URL(sourceURL).hostname.replace(/^www\./, ''), currency: AIR.db.storefronts.storefront(sourceURL).currency, unit: AIR.db.unitPrice.isUnitId(search.unit) ? search.unit : '100g' } : null;
     const recent = listed.flatMap(p => {
       const row = AIR.db.productCache.sanitizeLocal(readings[AIR.db.productCache.localKey(p.store, p.asin)]), input = S.cleanInput(row?.status === 'ok' ? AIR.db.productCache.toInput(row) : cached[p.key]?.input);
       return input ? [{ id: 'cached:' + p.key, name: p.name || input.name, input, source: p.source, capturedAt: row ? Date.parse(row.scanned_at) : p.t, cached: true, store: p.store, asin: p.asin }] : [];

@@ -18,8 +18,8 @@ See [purchase history](PURCHASE-HISTORY.md).
 | Store | Status | Implemented | Automated checks | Live checked | Notes |
 |---|---|---|---|---|---|
 | Amazon | supported | yes | pass (`npm test`, `npm run harness:ci`) | amazon.com product and search pages, 2026-09-05 and again 2026-09-25, including label-photo OCR, Open Food Facts and the shared database ([VERIFY.md](VERIFY.md)) | Only amazon.com has been live checked. The other 20 Amazon stores share its code and markup but were not checked one by one. |
-| Target | preview | yes, 2026-09-25 (`src/stores/target.js`, `src/content/retailer.js`) | pass (`tests/target.test.js`, `tests/stores.test.js`), and the real extension on replica pages (`npm run retailers:check`) | **partly**, 2026-09-25: live product and search pages were read correctly, but behind Target's bot check. 2026-11-04: Target answered HTTP 429 to an automated browser | See *Target* below and *Sorting and ad hiding on Walmart and Target*. Needs one check in your own Chrome to become supported. |
-| Walmart | preview | yes | adapter, identity and real-scoring browser fixture checks (`npm run walmart:check`), and the real extension on replica pages (`npm run retailers:check`) | Public product HTML retrieved 2026-10-04 (HTTP 200), product 10314926. 2026-11-04: Walmart showed its bot check to this environment, so no live search page was captured | Sponsored search items hidden; automatic ratings on public search results; sort by price per unit. See *Sorting and ad hiding on Walmart and Target* below. Live browser validation remains incomplete. |
+| Target | preview | yes, 2026-09-25 (`src/stores/target.js`, `src/content/retailer.js`) | pass (`tests/target.test.js`, `tests/stores.test.js`), and the real extension on replica pages (`npm run retailers:check`) | **partly**, 2026-09-25: live product and search pages were read correctly, but behind Target's bot check. 2026-11-04: Target answered HTTP 429 to an automated browser | See *Target* below and *The sorted list on every store, and ad hiding on Walmart*. Needs one check in your own Chrome to become supported. |
+| Walmart | preview | yes | adapter, identity and real-scoring browser fixture checks (`npm run walmart:check`), and the real extension on replica pages (`npm run retailers:check`) | Public product HTML retrieved 2026-10-04 (HTTP 200), product 10314926. 2026-11-04: Walmart showed its bot check to this environment, so no live search page was captured | Sponsored search items hidden; automatic ratings on public search results; sort by price per unit. See *The sorted list on every store, and ad hiding on Walmart* below. Live browser validation remains incomplete. |
 | Costco | preview | yes | adapter and identity checks | Public product HTML retrieved 2026-10-04 (HTTP 200), product 100423971 | Visible labels only; retrieved initial page had no ingredient declaration. Paste fallback available. Live browser validation remains incomplete. |
 
 | Instacart | preview | yes (`src/stores/grocery.js`) | adapter and Chrome fixture checks | Initial product page retrieved; no usable label | instacart.com; readable public labels scored, missing labels remain unknown. |
@@ -273,7 +273,7 @@ footers are now excluded on every store.
 
 ## Walmart search in 1.20.1
 
-In **1.21.0**, the **Price & health** tab at the right edge opens a comparison drawer using the same
+(1.24.0 replaced this drawer with the sorted list described at the end of this page.) In **1.21.0**, the **Price & health** tab at the right edge opened a comparison drawer using the same
 ranking and unit-price engines as Amazon. Choose Healthiest, Lowest price, Lowest price per oz,
 or Balanced, or adjust the two importance sliders. It compares loaded organic results and refreshes
 as labels arrive. Unknown values remain unknown; unit-price comparison is for weight-based prices.
@@ -299,23 +299,46 @@ scoring engine with intercepted pages: 65 uncached beef results, sponsored exclu
 recycled cards, pause/resume, and missing declarations. This is fixture validation, not a live-site
 check. The managed cloud environment blocks Walmart network access and unpacked extension installs.
 
-## Sorting and ad hiding on Walmart and Target (1.24.0)
+## The sorted list on every store, and ad hiding on Walmart (1.24.0)
 
-**Sort results.** On a Walmart or Target search, the *Sort results* tab at the right edge opens a panel docked
-beside the page. Its first and default order is **Price per unit: low to high**. The panel lists the results already
-loaded on the page; it does not change the store's own sort menu or reorder the store's cards.
+**One list, every store.** Amazon's two sort entries, the side-panel list behind them and the settings that drive them
+now work the same on all fifteen retailer previews (Walmart, Target, Costco, Instacart, Kroger, Fry's, Ralphs, King
+Soopers, Smith's, Fred Meyer, QFC, Harris Teeter, Dillons, Safeway, Albertsons). A retailer's own sort menu is a
+script-built widget this extension cannot safely extend, so the page gets one **Ingredient Check sort** button (at the
+right edge) that offers the same two entries with Amazon's wording: *Ingredient Check score: High to Low* and *Price
+per ounce (or pound, fl oz, item…): Low to High*. The unit is the one most listings already state. Choosing one never
+reorders the store's page: it opens Chrome's side panel (a tab where Chrome will not) with this search's listings ranked
+there, in the same page Amazon uses (`src/options/sorted.js`): the Prioritize sliders, the unit picker, **hovering a score
+shows why it scored that way**, Stop, *Back to <store> search*, and "Open in new tab". The keyboard shortcuts
+(`chrome://extensions/shortcuts`) work on any of these searches, and with the panel open a new search in the tab fills it
+again ("Follow new searches in the side panel").
 
-- A result is priced per ounce, per fluid ounce or per item, whichever its card states ("9.5 ¢/oz", "($0.20/ounce)",
-  "$1.66/lb") or its title gives unambiguously ("12 Count"). Weight, volume and item counts are never converted into
-  one another, because that needs a density or a pack size nobody printed, so the list is ranked in one family at a
-  time. **Price per** chooses the unit: Automatic follows what most loaded results already state; or pick oz, lb,
-  100 g, kg, fl oz, pt, qt, gal, 100 ml, L or item. Pounds and ounces convert (a $1.66/lb apple sorts as $0.104/oz).
-- Results that cannot be priced in the chosen family stay at the end, in the store's own order, marked *No unit
-  price* (nothing is guessed). A card showing a price range ("$3.99 - $5.99") has no single price and is unpriced.
-- The same panel also offers Healthiest, Lowest price and Balanced orders and the two importance sliders. The choice,
-  the unit and whether the panel is open are kept while you search again in the same tab.
-- Target's advertisements are tagged *Sponsored* in the list (Target marks them in the card's accessible name, as
-  captured on 2026-09-25). They are not hidden on Target. Walmart's are hidden and never appear in the list.
+**How the list is built** (`src/content/retailer-sort.js`, a port of Amazon's `sort.js` onto the shared adapter interface),
+in Amazon's order and under Amazon's settings (*Settings > Search and unit-price sorting*):
+
+1. the listings on this page, with the scores this computer already holds and the reasons behind them;
+2. with **Load more results** on, further result pages until **Products to compare** is reached or the time limit is up
+   (both off by default, as on Amazon). A store's page is read three ways, tried in order:
+   - its HTML, through the shared page reader (`AIR.cart.publicDocument`: one size cap, one abort rule, one block-page test).
+     The next page is the page's own *Next* link, else the store's page number (Walmart `page=`) or offset (Target `Nao=`);
+   - when that HTML holds no products (Target, Instacart and the Kroger banners draw them with scripts), the same address
+     rendered in a **hidden same-origin frame**, as your browser would show it, read once it settles and removed;
+   - when the store gives no next-page address at all, the page itself is **scrolled** (or its own "show more" button
+     pressed) to make it load more, and put back where it was.
+   Each stops at the count or the time limit, and at once on a challenge page;
+3. with **Rate them** and automatic rating on, the product pages of listings still without a score, through the runner's
+   one reader (`readProductScore` in `retailer.js`, shared with the badges): two at a time, one request per product, one
+   throttle flag, one per-page budget. Stop, the master switch or the store refusing ends it.
+
+Results from a later page say where they came from ("Target page 3"); Walmart's ads are hidden and never listed, Target's
+are listed and marked *Sponsored*. Weight, volume and item counts are never converted into one another, so a list is
+priced in one family at a time (the unit picker changes it) and results that cannot be priced in it come last, marked.
+
+**Worker side.** A store's tab may now send the sorted-list messages (`openSortedPanel`, `updateSortedResults`,
+`openSortedTab`, `followSortedSearch`, `logAction`); it still may not ask for anything the worker fetches (OCR,
+barcodes, AI, the shared database). What a list may contain is decided by the **sending tab's address**, never by the
+message: only that store's own product ids, its own links, and pictures from its own site or a CDN the registry names
+(`src/stores/registry.js`, `src/engine/db/sorted-results.js` `scopeFor`). Amazon's list is exactly as strict as before.
 
 **Walmart ad hiding.** Walmart's markup is built from generated class names, and nobody has been able to capture its
 current advertisement markup from an automated browser. The detector therefore never reads a class name and accepts
@@ -326,31 +349,37 @@ nothing but that ad, so the grid closes up); banners and brand carousels are hid
 never hidden, and neither is the results grid or the page. Ads that arrive after load are hidden on the next frame.
 Pausing the extension restores every ad exactly as the page rendered it.
 
-**Why it did not work before 1.24.0** (reproduced on 1.23.0, `REPRO=1 npm run retailers:check` with `EXT_DIR` set to an
-unpacked 1.23.0): both sites are single-page apps, so a search typed in the header from the home page changes the
-address without loading a page. The script was injected only on `/search` and `/ip/*` (Target: `/s`, `/p/*`), so for
-a search started anywhere else **nothing ran: no ratings, no sort, every ad visible**. Reloading the results page made
-it appear to work. Separately, a banner marked only by its "Sponsored" label and an ad whose only link was Walmart's
-tracker were never hidden even after a reload. 1.24.0 also injects on the public routes a search starts from: the home
-page, `/browse/*`, `/cp/*` and `/shop/*` (Walmart), `/c/*`, `/pl/*` and `/b/*` (Target). It does nothing there until a
-search or product page appears. Account, cart, checkout, login and order pages stay out by construction
+**Why Walmart ads were still showing before 1.24.0** (reproduced on 1.23.0: `REPRO=1 npm run retailers:check` with
+`EXT_DIR` set to an unpacked 1.23.0): both sites are single-page apps, so a search typed in the header from the home page
+changes the address without loading a page. The script was injected only on `/search` and `/ip/*` (Target: `/s`,
+`/p/*`), so for a search started anywhere else **nothing ran: no ratings, no sort, every ad visible**. Reloading the
+results page made it appear to work. Separately, a banner marked only by its "Sponsored" label and an ad whose only link
+was Walmart's tracker were never hidden even after a reload. 1.24.0 also injects on the public routes a search starts
+from: the home page, `/browse/*`, `/cp/*` and `/shop/*` (Walmart), `/c/*`, `/pl/*` and `/b/*` (Target). It does nothing
+there until a search or product page appears. Account, cart, checkout, login and order pages stay out by construction
 (`tests/retailer-sort.test.js` fails if a route is added that is not on the list). A search started from any other
-public page still needs a reload.
+public page still needs a reload. The other thirteen stores keep their own routes; they are not injected on a home page.
 
 **How this was checked, and what it does not prove.** `npm run retailers:check` loads the real unpacked extension in
-Chromium and serves *replica* Walmart and Target pages over the real hostnames
-(`scripts/retailer-replicas.mjs`; every other host is unresolvable, so there is no retailer traffic). The replicas copy
-the structure earlier sessions recorded from the real sites and serve several different ad markups on one page, since
-the real one is not known. The run drives what a shopper does (home page, type, Enter) and checks injection, ads
-hidden and never rated, a late-arriving ad, every sort order and unit, the hover breakdown, pause and resume, the
-product page and toolbar icon, the cart, and a phone width. Screenshots are in [screenshots/retailers](screenshots/retailers/README.md).
+Chromium and serves *replica* Walmart, Target and Kroger pages over the real hostnames
+(`scripts/retailer-replicas.mjs`, `scripts/retailer-replica-kroger.mjs`; every other host is unresolvable, so there is no
+retailer traffic). The replicas copy the structure earlier sessions recorded from the real sites and serve several
+different ad markups on one page, since the real one is not known. The run drives what a shopper does (home page, type,
+Enter, the menu) and checks injection, ads hidden and never rated, a late-arriving ad, the list through the real worker
+(ranking across units, pages 2 and 3 read from HTML on Walmart and through a hidden frame on Target, the count cap,
+scrolling on a Kroger-style page, hover notes, Follow, the keyboard shortcut, the panel's narrow column), the product page,
+the cart and a phone width. `tests/retailer-sort-all-stores.test.js` checks, for **all fifteen stores**, that the registry
+and each adapter agree on what a search page is and that each store's real product ids and links survive its own list's
+sanitizer. Screenshots are in [screenshots/retailers](screenshots/retailers/README.md).
 **On 2026-11-04 Walmart showed its "Robot or human?" press-and-hold check to this environment and Target answered
-HTTP 429, so none of this has been seen on the live sites; no check was solved or bypassed.** If ads still show on
-the real Walmart, save the results page from your own Chrome (*Save page as... > Webpage, HTML only*, signed out, no
-account details) and add it under `tests/pages/` as a fixture: the detector can then be corrected against the real
-markup rather than a guess.
+HTTP 429, so none of this has been seen on the live sites; no check was solved or bypassed.** For the other thirteen
+stores only the shared path and the registry/adapter agreement are covered; **their live pagination (whether a next link,
+a page number or scrolling is what works) is unverified**, and Costco's, Instacart's, Safeway's and Albertsons' page
+numbers are not guessed: they rely on the page's own next link or on scrolling. If a store's list stops at the first
+page, or Walmart's ads still show, save the results page from your own Chrome (*Save page as... > Webpage, HTML only*,
+signed out, no account details) and add it under `tests/pages/` as a fixture so the reader can be corrected against the
+real markup rather than a guess.
 
-**Known limits.** Category and browse pages are not rated, sorted or ad-filtered (search results only). The panel
-lists the results loaded so far, so scrolling to load more adds to it. Walmart's *Add to cart* and the store's own
-sorting stay on the page; the panel only links to each product.
-
+**Known limits.** Category and browse pages are not rated, sorted or ad-filtered (search results only). A frame-rendered
+or scrolled results page is the slowest way to read a page and runs only with *Load more results* on. Walmart's own sort
+menu, filters and *Add to cart* stay as they are; the list links to each product.

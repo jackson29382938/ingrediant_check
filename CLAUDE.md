@@ -92,6 +92,9 @@ Rules that are easy to break:
 - A content script that fetches another page of the store reads it with `AIR.cart.publicDocument` /
   `readHtml` (`src/stores/cart.js`): one cap, one abort rule, one definition of a block page. Do not add a
   fourth way.
+  The one exception is `src/content/retailer-sort.js`, which (only with "Load more results" on) renders a results page
+  that holds no products in a hidden same-origin frame (`readInFrame`) and scrolls a page that names no next page; the
+  frame applies the same block-page test (`AIR.cart.isChallenge`) and its own size and time limits. Keep it to that.
 - A service-worker message handler that returns `true` answers through `answer()` in `background.js`, so a
   rejected promise still replies and leaves a trace.
 - A test that asserts a millisecond limit carries a `// @serial` comment so `npm test` runs it alone.

@@ -17,6 +17,12 @@
   // unit the reader picked, else the one most of the list is priced in.
   const SF = AIR.db.storefronts;
   const store = () => SF.storefront(saved && saved.sourceUrl);
+  // Which store the list came from (the worker bound it to the sending tab's address): what links and pictures it may
+  // hold, and the name to say. Amazon's wording is kept as it was; another store gets the same sentence with its name.
+  const scope = () => R.scopeFor(saved && saved.sourceUrl) || R.AMAZON_SCOPE;
+  const isAmazon = () => scope().kind === 'amazon';
+  const said = (amazonKey, amazonText, storeKey, storeText, ...subs) => (isAmazon()
+    ? t(amazonKey, amazonText, ...subs) : t(storeKey, storeText, scope().name, ...subs));
   const formatters = new Map();
   const money = value => {
     const { currency, locale } = store();
@@ -86,7 +92,7 @@
   };
   const SOURCE_TEXT = {
     scored: () => t('sortedSrcScored', 'Ingredient Check score, under your current settings'),
-    unreadable: () => t('sortedSrcUnreadable', 'No readable ingredient list on Amazon'),
+    unreadable: () => said('sortedSrcUnreadable', 'No readable ingredient list on Amazon', 'sortedSrcUnreadableStore', 'No readable ingredient list on $1'),
     'not-food': () => t('sortedSrcNotFood', 'Not scored: does not look like food'),
     unrated: () => t('sortedSrcUnrated', 'Not scored yet'),
   };
@@ -132,7 +138,7 @@
 
   // ---------------------------------------------------------------- buttons
   async function backToAmazon() {
-    logUi('Back to Amazon search');
+    logUi(`Back to ${scope().name} search`);
     const url = R.sanitizeSourceUrl(saved && saved.sourceUrl);
     if (!url) return;
     const tabId = saved && saved.sourceTabId;
@@ -142,7 +148,7 @@
         await chrome.tabs.update(tabId, tab.url === url ? { active: true } : { url, active: true });
         if (Number.isInteger(tab.windowId)) chrome.windows.update(tab.windowId, { focused: true }).catch(() => {});
         return;
-      } catch (e) { /* the Amazon tab was closed: open the search again */ }
+      } catch (e) { /* the store's tab was closed: open the search again */ }
     }
     chrome.tabs.create({ url }).catch(() => {});
   }
@@ -209,7 +215,7 @@
     root.append(buildPriorities());
     root.append(buildFilters());
     ui.list = node('section', 'result-list');
-    ui.list.setAttribute('aria-label', t('sortedListAria', 'Amazon listings ranked by your priorities'));
+    ui.list.setAttribute('aria-label', said('sortedListAria', 'Amazon listings ranked by your priorities', 'sortedListAriaStore', '$1 listings ranked by your priorities'));
     root.append(ui.list);
     ui.empty = node('section', 'empty-state');
     root.append(ui.empty);
@@ -495,12 +501,12 @@
     const rank = node('span', 'rank', '');
     heading.append(rank, ' ');
     if (product.url) {
-      const link = node('a', '', product.title || 'Amazon listing');
+      const link = node('a', '', product.title || `${scope().name} listing`);
       link.href = product.url;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
       heading.append(link);
-    } else heading.append(product.title || 'Amazon listing');
+    } else heading.append(product.title || `${scope().name} listing`);
     content.append(heading);
     if (!saved?.priceOnly) content.append(chipFor(product));
 
@@ -512,7 +518,7 @@
         : t('sortedNoUnitPer', 'No price per $1', unitName(id));
       const unitFact = node('span', 'fact unit', text);
       if (each != null) unitFact.title = U.sourceIn(product, family()) === 'amazon'
-        ? t('sortedUnitAmazon', 'Amazon’s unit price') : t('sortedUnitCalculated', 'Worked out from the listed price and package size');
+        ? said('sortedUnitAmazon', 'Amazon’s unit price', 'sortedUnitStore', '$1’s unit price') : t('sortedUnitCalculated', 'Worked out from the listed price and package size');
       facts.append(unitFact);
     }
     if (product.listingPrice != null) facts.append(node('span', 'fact', money(product.listingPrice)));
@@ -534,7 +540,8 @@
     if (product.bought) meta.append(node('span', '', product.bought));
     if (product.sponsored) meta.append(node('span', '', t('sortedSponsored', 'Sponsored')));
     meta.append(node('span', '', product.pageNumber > 1
-      ? t('sortedResultPage', 'Amazon page $1', product.pageNumber) : t('sortedResultFirst', 'Amazon page 1')));
+      ? said('sortedResultPage', 'Amazon page $1', 'sortedResultPageStore', '$1 page $2', product.pageNumber)
+      : said('sortedResultFirst', 'Amazon page 1', 'sortedResultFirstStore', '$1 page 1')));
     const missing = node('span', 'missing', '');
     meta.append(missing);
     content.append(meta);
@@ -573,11 +580,13 @@
   function renderList() {
     hideWhy();
     // Re-checked on read too: session storage is shared with every extension page.
-    const items = R.sanitizeResults(saved && saved.items);
+    const items = R.sanitizeResults(saved && saved.items, scope());
     if (saved?.priceOnly) weights = R.sanitizeWeights(weights, {unitEnabled:unitEnabled(), healthEnabled:false});
     for (const id of ['health', 'balanced']) { const b = ui.presets.querySelector(`[data-preset="${id}"]`); if (b) b.hidden = !!saved?.priceOnly; }
     const loading = !!(saved && saved.loading);
     ui.back.hidden = !R.sanitizeSourceUrl(saved && saved.sourceUrl);
+    ui.back.textContent = said('sortedBack', 'Back to Amazon search', 'sortedBackStore', 'Back to $1 search');
+    ui.list.setAttribute('aria-label', said('sortedListAria', 'Amazon listings ranked by your priorities', 'sortedListAriaStore', '$1 listings ranked by your priorities'));
     ui.stop.hidden = !loading || !!saved?.priceOnly;
     if (!loading) ui.stop.disabled = false;
     ui.status.textContent = R.sanitizeStatus(saved && saved.status);
@@ -590,10 +599,11 @@
       views.clear();
       ui.subtitle.textContent = '';
       const status = R.sanitizeStatus(saved && saved.status);
-      ui.empty.append(node('h2', '', loading ? t('sortedReading', 'Reading Amazon listings…')
+      ui.empty.append(node('h2', '', loading ? said('sortedReading', 'Reading Amazon listings…', 'sortedReadingStore', 'Reading $1 listings…')
         : saved ? t('sortedNothingFound', 'No listings came back') : t('sortedEmptyTitle', 'No sorted results yet')));
       if (!loading) {
-        ui.empty.append(node('p', '', status || t('sortedEmptyBody', 'On an Amazon grocery search, open Amazon’s “Sort by” menu and choose “Ingredient Check score: High to Low” or “Price per …: Low to High”.')));
+        ui.empty.append(node('p', '', status || said('sortedEmptyBody', 'On an Amazon grocery search, open Amazon’s “Sort by” menu and choose “Ingredient Check score: High to Low” or “Price per …: Low to High”.',
+          'sortedEmptyBodyStore', 'On a $1 grocery search, use the “Ingredient Check sort” button on the page and choose “Ingredient Check score: High to Low” or “Price per …: Low to High”.')));
         ui.status.textContent = '';
       } else {
         // The Amazon tab sends the first listings within a second or two. If nothing has come, say so
@@ -602,7 +612,8 @@
         const waitMs = Math.max(0, 12000 - (Date.now() - started));
         ui.stallTimer = setTimeout(() => {
           if (!saved || !saved.loading || (saved.items || []).length) return;
-          ui.empty.append(node('p', '', t('sortedStalled', 'Nothing has arrived from the Amazon tab yet. Refresh the Amazon results page (after reloading the extension, old tabs lose their connection to it) and choose the option again.')));
+          ui.empty.append(node('p', '', said('sortedStalled', 'Nothing has arrived from the Amazon tab yet. Refresh the Amazon results page (after reloading the extension, old tabs lose their connection to it) and choose the option again.',
+            'sortedStalledStore', 'Nothing has arrived from the $1 tab yet. Refresh the $1 results page (after reloading the extension, old tabs lose their connection to it) and choose the option again.')));
         }, waitMs);
       }
       return;

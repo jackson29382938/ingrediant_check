@@ -49,6 +49,21 @@ export const WALMART_CAROUSEL = [
   { id: '20000004', title: 'Breakfast Biscuits Honey, 5.3 oz', price: 3.18, unit: '60.0 \u00a2/oz', ing: CEREAL },
   { id: '20000005', title: 'Breakfast Biscuits Berry, 5.3 oz', price: 3.18, unit: '60.0 \u00a2/oz', ing: CEREAL },
 ];
+// Further result pages (?page=2, ?page=3); page 4 and beyond are empty, as a real search runs out.
+export const WALMART_PAGE_2 = [
+  { id: '10460001', title: 'Quaker Steel Cut Oats, 30 oz', price: 6.48, unit: '21.6 \u00a2/oz', stars: 4.7, reviews: 1500, ing: 'Steel cut oats.' },
+  { id: '10460002', title: 'Great Value Organic Quick Oats, 18 oz', price: 3.28, unit: '18.2 \u00a2/oz', stars: 4.5, reviews: 420, ing: 'Organic whole grain rolled oats.' },
+  { id: '20000010', title: 'Cinnamon Swirl Oat Cereal, 12 oz', price: 4.18, unit: '34.8 \u00a2/oz', stars: 4.0, reviews: 60, ing: CEREAL, ad: 'tracker' },
+  { id: '10460003', title: 'Chocolate Peanut Butter Granola, 11 oz', price: 4.78, unit: '43.5 \u00a2/oz', stars: 4.3, reviews: 310, ing: 'Rolled oats, peanuts, sugar, cocoa, palm oil, soy lecithin, natural flavor.' },
+  { id: '10460004', title: 'Maple Brown Sugar Instant Oatmeal, 15 Count', price: 3.48, unit: '23.2 \u00a2/ea', stars: 4.6, reviews: 2200, ing: CEREAL },
+  { id: '10460005', title: 'Plain Greek Yogurt, 32 oz', price: 4.28, unit: '13.4 \u00a2/oz', stars: 4.6, reviews: 5100, ing: 'Cultured pasteurized nonfat milk.' },
+  { id: '10460006', title: 'Honey Oat Bread, 20 oz', price: 3.58, unit: '17.9 \u00a2/oz', stars: 4.4, reviews: 800, ing: 'Whole wheat flour, water, honey, oats, yeast, salt.' },
+];
+export const WALMART_PAGE_3 = [
+  { id: '10470001', title: 'Rolled Oats Canister, 48 oz', price: 5.98, unit: '12.5 \u00a2/oz', stars: 4.7, reviews: 3300, ing: OATS },
+  { id: '10470002', title: 'Overnight Oats Jar Variety, 4 Count', price: 7.48, unit: '$1.87/ea', stars: 4.1, reviews: 90, ing: CEREAL },
+  { id: '10470003', title: 'Oat Flour, 16 oz', price: 3.18, unit: '19.9 \u00a2/oz', stars: 4.5, reviews: 210, ing: 'Whole grain oat flour.' },
+];
 export const WALMART_LATE_AD = { id: '20000006', title: 'Late Arriving Toasted Oats, 12 oz', price: 3.88, unit: '32.3 \u00a2/oz', stars: 4.1, reviews: 44, ing: CEREAL, ad: 'label' };
 
 const swatch = id => `<img src="https://i5.walmartimages.com/seo/${id}.jpeg" alt="" width="180" height="180" loading="lazy" style="display:block;margin:0 auto;width:150px;height:150px;object-fit:contain">`;
@@ -71,7 +86,12 @@ function walmartTile(item, { href } = {}) {
 }
 const stack = children => `<div data-testid="item-stack" class="flex flex-wrap w-100 flex-grow-0 flex-shrink-0 ph2 pr0-xl pl4-xl mt0-xl" style="display:flex;flex-wrap:wrap">${children}</div>`;
 const sponsoredBanner = '<div class="banner-ad" style="width:100%;margin:8px 8px 16px;padding:14px 18px;background:#eaf3ff;border:1px solid #b7d4f4;border-radius:12px;display:flex;align-items:center;gap:16px"><span style="font-size:11px;color:#555">Sponsored</span><a href="/brand/acme-foods"><img src="https://i5.walmartimages.com/seo/banner.jpeg" alt="Acme Foods" width="120" height="48"></a><p style="margin:0">Fuel your morning. Shop Acme Foods oatmeal.</p></div>';
-function walmartResults(query) {
+function walmartResults(query, page = 1) {
+  if (page === 2 || page === 3) {
+    const items = page === 2 ? WALMART_PAGE_2 : WALMART_PAGE_3;
+    return `<form action="/search" method="get"><main data-testid="search-results" style="padding:12px 24px"><h2 style="margin:8px 12px">Results for \u201c${esc(query)}\u201d, page ${page}</h2>${stack(items.map(item => walmartTile(item)).join(''))}</main></form>`;
+  }
+  if (page > 3) return `<form action="/search" method="get"><main data-testid="search-results" style="padding:12px 24px"><h2>No more results</h2></main></form>`;
   const q = String(query || '').toLowerCase();
   const items = WALMART_ITEMS.filter(() => !/zzzz/.test(q));
   const first = items.slice(0, 9), second = items.slice(9);
@@ -106,7 +126,7 @@ header form{flex:1;display:flex}header input{flex:1;border-radius:999px 0 0 999p
 }
 const walmartHome = () => '<div class="home"><h1>Save money. Live better.</h1><p>Shop groceries, home and more.</p><div class="rail"><div>Deals</div><div>Grocery</div><div>Pharmacy</div></div></div>';
 function walmartProduct(id) {
-  const item = [...WALMART_ITEMS, ...WALMART_CAROUSEL, WALMART_LATE_AD].find(i => i.id === id) || WALMART_ITEMS[0];
+  const item = [...WALMART_ITEMS, ...WALMART_CAROUSEL, WALMART_LATE_AD, ...WALMART_PAGE_2, ...WALMART_PAGE_3].find(i => i.id === id) || WALMART_ITEMS[0];
   return `<main style="padding:24px 40px"><h1>${esc(item.title)}</h1><p style="font-size:26px;font-weight:700">$${item.price.toFixed(2)}</p><p>${esc(item.unit)}</p><div style="height:220px;width:220px;background:#f2f8fd;border-radius:12px"></div>
 <script id="__NEXT_DATA__" type="application/json">${JSON.stringify({ props: { pageProps: { initialData: { data: {
   product: { usItemId: item.id, name: item.title, category: { path: [{ name: 'Food' }, { name: 'Breakfast & Cereal' }] } },
@@ -121,7 +141,7 @@ export function walmartPage(url) {
   return walmartShell(u.pathname, fragmentFor(u));
 }
 function fragmentFor(u) {
-  if (/^\/search/.test(u.pathname)) return walmartResults(u.searchParams.get('q') || '');
+  if (/^\/search/.test(u.pathname)) return walmartResults(u.searchParams.get('q') || '', Number(u.searchParams.get('page')) || 1);
   if (/^\/ip\//.test(u.pathname)) return walmartProduct((u.pathname.match(/(\d{5,15})\/?$/) || [])[1]);
   if (/^\/cart/.test(u.pathname)) return walmartCart();
   return walmartHome();
@@ -139,6 +159,18 @@ function walmartCart() {
 export const walmartLateAdHtml = () => walmartTile(WALMART_LATE_AD);
 
 // ---------------------------------------------------------------- Target
+export const TARGET_PAGE_2 = [
+  { id: '13022001', title: 'Quaker Steel Cut Oats - 30oz', price: 6.99, unit: '($0.23/ounce)', stars: 4.7, reviews: 600, ing: 'Steel cut oats.' },
+  { id: '94350001', title: 'Premium Protein Granola Clusters - 12oz', price: 6.49, unit: '($0.54/ounce)', stars: 4.2, reviews: 77, ing: CEREAL, ad: true },
+  { id: '13022002', title: 'Good & Gather\u2122 Quick Oats - 42oz', price: 5.49, unit: '($0.13/ounce)', stars: 4.6, reviews: 1500, ing: OATS },
+  { id: '13022003', title: 'Plain Greek Yogurt - 32oz', price: 4.99, unit: '($0.16/ounce)', stars: 4.5, reviews: 900, ing: 'Cultured pasteurized nonfat milk.' },
+  { id: '13022004', title: 'Honey Oat Bread - 20oz', price: 3.79, unit: '($0.19/ounce)', stars: 4.4, reviews: 310, ing: 'Whole wheat flour, water, honey, oats, yeast, salt.' },
+  { id: '13022005', title: 'Oatmeal Cookies - 12ct', price: 3.29, unit: '($0.27/count)', stars: 4.3, reviews: 240, ing: 'Flour, sugar, oats, butter, eggs, baking soda, salt.' },
+];
+export const TARGET_PAGE_3 = [
+  { id: '13032001', title: 'Rolled Oats Canister - 48oz', price: 5.99, unit: '($0.12/ounce)', stars: 4.7, reviews: 3300, ing: OATS },
+  { id: '13032002', title: 'Oat Flour - 16oz', price: 3.19, unit: '($0.20/ounce)', stars: 4.5, reviews: 150, ing: 'Whole grain oat flour.' },
+];
 export const TARGET_ITEMS = [
   { id: '79364857', title: 'Organic Old Fashioned Oats - 18oz - Good & Gather\u2122', price: 3.59, unit: '($0.20/ounce)', stars: 4.7, reviews: 1289, ing: 'organic whole grain rolled oats.' },
   { id: '94340519', title: 'Seven Sundays\u2122 Wildberry Protein Oats, Gluten Free Instant Oatmeal - 16 oz', price: 6.99, unit: '($0.44/ounce)', stars: 4.4, reviews: 212, ing: 'Gluten free whole grain oats, protein blend, dried berries, sugar, natural flavor.', ad: true },
@@ -163,7 +195,7 @@ function targetTile(item) {
   <div data-test="@web/ProductCard/PriceFulfillmentSection"><span data-test="current-price" style="font-size:18px;font-weight:700"><span>$${item.price.toFixed(2)}</span></span> ${item.unit ? `<span data-test="unit-price" style="font-size:12px;color:#555">${esc(item.unit)}</span>` : ''}</div>${stars}
   <button type="button" style="margin-top:8px;border-radius:8px;border:1px solid #cc0000;background:#fff;color:#cc0000;padding:6px 14px;font-weight:700">Add to cart</button></div></div>`;
 }
-function targetShell(body) {
+function targetShell(body, drawResults = false) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Target replica</title><style>
 body{margin:0;font-family:system-ui,Arial,sans-serif;color:#333;background:#fff}header{background:#cc0000;color:#fff;padding:12px 24px;display:flex;gap:16px;align-items:center;position:sticky;top:0;z-index:30}header strong{font-size:22px}
 header form{flex:1;display:flex}header input{flex:1;border:0;border-radius:8px 0 0 8px;padding:10px 14px;font-size:15px}header button{border:0;background:#333;color:#fff;border-radius:0 8px 8px 0;padding:0 18px}
@@ -179,17 +211,19 @@ header form{flex:1;display:flex}header input{flex:1;border:0;border-radius:8px 0
   document.addEventListener('submit',e=>{ const form=e.target.closest('[data-search-form]'); if(!form) return; e.preventDefault(); go('/s?searchTerm='+encodeURIComponent(form.searchTerm.value)); });
   document.addEventListener('click',e=>{ const a=e.target.closest('a[href]'); if(!a||e.defaultPrevented||e.button) return; const u=new URL(a.href,location.href); if(u.origin===location.origin&&/^\\/(?:p|s)\\b/.test(u.pathname)){ e.preventDefault(); go(u.pathname+u.search); } });
   window.addEventListener('popstate',()=>render());
-  if(location.pathname==='/s'){ const body=app.innerHTML; app.innerHTML=''; delay(250).then(()=>{app.innerHTML=body;}); }
+  ${drawResults ? 'render();' : ''}
 })();
 </script></body></html>`;
 }
 function targetFragment(u) {
   if (u.pathname === '/s' || u.pathname.startsWith('/s/')) {
-    return `<main><h1 style="margin:12px 24px;font-size:20px">\u201c${esc(u.searchParams.get('searchTerm') || '')}\u201d</h1><div data-test="product-grid">${TARGET_ITEMS.map(targetTile).join('')}</div></main>`;
+    const offset = Number(u.searchParams.get('Nao')) || 0;
+    const items = offset === 0 ? TARGET_ITEMS : offset === 24 ? TARGET_PAGE_2 : offset === 48 ? TARGET_PAGE_3 : [];
+    return `<main><h1 style="margin:12px 24px;font-size:20px">\u201c${esc(u.searchParams.get('searchTerm') || '')}\u201d</h1><div data-test="product-grid">${items.map(targetTile).join('')}</div></main>`;
   }
   const id = (u.pathname.match(/A-(\d{6,12})/) || [])[1];
   if (id) {
-    const item = TARGET_ITEMS.find(i => i.id === id) || TARGET_ITEMS[0];
+    const item = [...TARGET_ITEMS, ...TARGET_PAGE_2, ...TARGET_PAGE_3].find(i => i.id === id) || TARGET_ITEMS[0];
     return `<main style="padding:24px 40px"><nav aria-label="Breadcrumbs"><a href="/" data-test="@web/Breadcrumbs/BreadcrumbLink">Target</a> <a href="/c/grocery/-/N-5xt1a" data-test="@web/Breadcrumbs/BreadcrumbLink">Grocery</a></nav><h1 data-test="product-title">${esc(item.title)}</h1><p style="font-size:24px;font-weight:700">$${item.price.toFixed(2)}</p>
 <div data-test="@web/site-top-of-funnel/ProductDetailCollapsible-LabelInfo"><button aria-expanded="true" type="button"><h3>Label info</h3></button><div><div><h4>Ingredients:</h4><div>${esc(item.ing || '')}</div></div></div></div></main>`;
   }
@@ -198,7 +232,9 @@ function targetFragment(u) {
 export function targetPage(url) {
   const u = new URL(url);
   if (u.pathname === '/__fragment') return targetFragment(new URL(u.searchParams.get('path') || '/', 'https://www.target.com'));
-  return targetShell(targetFragment(u));
+  // Like the real site, a results page's HTML holds no products: the page's scripts fetch and draw them.
+  const results = u.pathname === '/s' || u.pathname.startsWith('/s/');
+  return targetShell(results ? '' : targetFragment(u), results);
 }
 
 // A flat colored square with the product's initials, for every product image request.

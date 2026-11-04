@@ -972,10 +972,10 @@
     "message": "Sort by score or unit price"
   },
   "optSortLedeShort": {
-    "message": "Adds two options to Amazon's “Sort by” menu. Choosing one ranks this search's listings in Chrome's side panel; Amazon's page is left as it is."
+    "message": "Adds two options to Amazon's “Sort by” menu, and an “Ingredient Check sort” button on Walmart, Target, Costco, Instacart, Kroger and the other supported stores. Choosing one ranks this search's listings in Chrome's side panel; the store's page is left as it is."
   },
   "optSortLede": {
-    "message": "On an Amazon grocery search, Amazon's own “Sort by” menu gets “Ingredient Check score: High to Low” and “Price per …: Low to High”, in the unit most listings are priced in (ounce, fl oz, pound, gallon, count…), which you can change in the side panel. Choosing one opens Chrome's side panel with this search's listings ranked; Amazon's page is left as it is. In the panel, Prioritize weighs health score, unit price, total price, rating and number of reviews, and Open in new tab shows the same list in a tab."
+    "message": "On a grocery search, Amazon's own “Sort by” menu gets “Ingredient Check score: High to Low” and “Price per …: Low to High”; on Walmart, Target and the other supported stores, an “Ingredient Check sort” button on the page offers the same two entries. The price is per the unit most listings use (ounce, fl oz, pound, gallon, count…), which you can change in the side panel. Choosing one opens Chrome's side panel with this search's listings ranked; the store's page is left as it is. In the panel, Prioritize weighs health score, unit price, total price, rating and number of reviews, hovering a score shows why it scored that way, and Open in new tab shows the same list in a tab."
   },
   "optSortMissingH": {
     "message": "Listings without a score"
@@ -984,7 +984,7 @@
     "message": "Rate them"
   },
   "optSortRateFirstD": {
-    "message": "Requests their product pages from Amazon, signed in as you, three at a time while the side panel fills in. Needs “Rate search results and cart items” on; stop it in the panel."
+    "message": "Requests their product pages from the store, three at a time on Amazon (signed in as you) and two at a time on other stores, while the side panel fills in. Needs “Rate search results and cart items” on; stop it in the panel."
   },
   "optSortEnd": {
     "message": "Leave them unscored"
@@ -993,13 +993,13 @@
     "message": "No extra requests. Only scores this computer or the shared database already has."
   },
   "optSortLoadMore": {
-    "message": "Load more Amazon results"
+    "message": "Load more results"
   },
   "optHintSortLoadMore": {
     "message": "Off by default. Reads further search pages, then rates what it can."
   },
   "optSortLoadMoreD": {
-    "message": "Off by default. Reads further Amazon search pages until it has the number below, then asks the shared database for their scores and, with “Rate them”, requests the product pages of the rest: three at a time, with your Amazon sign-in, stopping if Amazon starts refusing."
+    "message": "Off by default. Reads further search pages until it has the number below, then (on Amazon) asks the shared database for their scores and, with “Rate them”, requests the product pages of the rest, stopping if the store starts refusing. Where a store draws its results with scripts (Target, Instacart…), the next page is rendered in a hidden frame the way your browser would show it; where a store has no next-page link, the page is scrolled for you and put back."
   },
   "optSortCount": {
     "message": "Products to compare"
@@ -1133,13 +1133,13 @@
     "message": "Unit price (per ounce, pound, gallon, count…)"
   },
   "optHintUnitPrice": {
-    "message": "Amazon's unit price, or worked out from the price and package weight."
+    "message": "The store's unit price, or worked out from the price and package weight."
   },
   "optSortUnitPriceD": {
-    "message": "Amazon's unit price when the results page shows one; otherwise worked out from the listed price and a package weight in the title. No extra requests. Coupons and subscription prices are not included. Also in the toolbar popup."
+    "message": "The store's unit price when the results page shows one; otherwise worked out from the listed price and a package weight in the title. No extra requests. Coupons and subscription prices are not included. Also in the toolbar popup."
   },
   "optUnitMissingH": {
-    "message": "When Amazon shows no unit price"
+    "message": "When the store shows no unit price"
   },
   "optUnitCalc": {
     "message": "Work it out when the weight is clear"
@@ -1148,7 +1148,7 @@
     "message": "Uses a clear package weight in the product title (“12 oz, Pack of 6” is 72 oz; “100 Count, 7 oz” is left alone)."
   },
   "optUnitDisplayed": {
-    "message": "Amazon's unit price only"
+    "message": "The store's unit price only"
   },
   "optUnitDisplayedD": {
     "message": "Listings without one have no unit price."
@@ -1199,7 +1199,7 @@
     "message": "Unit price"
   },
   "popupUnitPriceD": {
-    "message": "Adds “Price per …: Low to High” to Amazon's sort menu and the sorted list, in the unit most listings use (ounce, pound, gallon, count…). Worked out from the results page — no extra requests."
+    "message": "Adds “Price per ounce: Low to High” to the sort menu (Amazon's menu, or the Ingredient Check sort button on other stores) and the sorted list. Worked out from the results page — no extra requests."
   },
   "sortFailed": {
     "message": "Could not read this results page ($FIRST$). Refresh the Amazon page and choose the option again.",
@@ -1457,7 +1457,7 @@
     "message": "More products compare better and take longer."
   },
   "optSortDepthD": {
-    "message": "More products make a better comparison and take longer. Beyond this page, Ingredient Check reads further Amazon results pages and rates what it can, within the time limit. Saved scores and the shared database are used first, so a repeat search is quick."
+    "message": "More products make a better comparison and take longer. Beyond this page, Ingredient Check reads further results pages and rates what it can, within the time limit. Saved scores and the shared database are used first, so a repeat search is quick."
   },
   "optSortDepthPage": {
     "message": "Just this page (about 48 products)"
@@ -1562,19 +1562,19 @@
     "message": "The sorted list reopens its Prioritize sliders the way you last set them."
   },
   "optSortRememberD": {
-    "message": "In the sorted list, the Prioritize sliders reopen the way you last set them, separately for the score and unit-price options in Amazon's menu. Off: each list starts from that option's default."
+    "message": "In the sorted list, the Prioritize sliders reopen the way you last set them, separately for the score and unit-price options in the sort menu. Off: each list starts from that option's default."
   },
   "cmdSortHealth": {
-    "message": "Sort this Amazon search by Ingredient Check score"
+    "message": "Sort this search by Ingredient Check score"
   },
   "cmdSortPrice": {
-    "message": "Sort this Amazon search by unit price"
+    "message": "Sort this search by unit price"
   },
   "sortUnitOff": {
     "message": "Unit price is switched off in Ingredient Check settings."
   },
   "sortNotHere": {
-    "message": "Ingredient Check is not sorting this page: it is switched off, or this is not a food search on a supported Amazon store."
+    "message": "Ingredient Check is not sorting this page: it is switched off, or this is not a food search on a supported store."
   },
   "welKeysAria": {
     "message": "Keyboard shortcuts"
@@ -1610,7 +1610,7 @@
     "message": "Keyboard shortcuts"
   },
   "optShortcutD": {
-    "message": "Open the sorted list from the keyboard on an Amazon search page. Chrome lets you change or clear the keys."
+    "message": "Open the sorted list from the keyboard on a search page of a supported store. Chrome lets you change or clear the keys."
   },
   "optShortcutChange": {
     "message": "Change shortcuts"
@@ -1860,7 +1860,7 @@
     "message": "Follow new searches in the side panel"
   },
   "optSortFollowSearchD": {
-    "message": "On by default. An open comparison follows new Amazon searches in its source tab. Turn off to keep the previous results."
+    "message": "On by default. An open comparison follows new searches in its source tab. Turn off to keep the previous results."
   },
   "optPersonalCare": {
     "message": "Rate personal care and supplements"
@@ -2238,39 +2238,6 @@
   "cartLabelBlocked": {
     "message": "The store blocked the public label request. Open the product to read its label."
   },
-  "walmartPerOunce": {
-    "message": "Lowest price per oz"
-  },
-  "walmartSortTab": {
-    "message": "Price & health"
-  },
-  "walmartSortTitle": {
-    "message": "Compare Walmart results"
-  },
-  "walmartSortClose": {
-    "message": "Close comparison"
-  },
-  "walmartHealthWeight": {
-    "message": "Health importance"
-  },
-  "walmartPriceWeight": {
-    "message": "Unit-price importance"
-  },
-  "walmartSortHint": {
-    "message": "Loaded results only. Ratings update as labels arrive; unknown values stay last."
-  },
-  "walmartSortList": {
-    "message": "Walmart results ranked by your priorities"
-  },
-  "walmartSortCount": {
-    "message": "$1 products loaded"
-  },
-  "walmartSortRated": {
-    "message": "$1 rated"
-  },
-  "walmartSortMixed": {
-    "message": "Mixed categories: health ranking is unavailable."
-  },
   "walmartStatLoaded": {
     "message": "Products in this search"
   },
@@ -2349,37 +2316,58 @@
   "uiDetailOptions": {
     "message": "Choose a detail level"
   },
-  "retailerSortTab": {
-    "message": "Sort results"
+  "sortedSrcUnreadableStore": {
+    "message": "No readable ingredient list on $1"
   },
-  "retailerSortTitle": {
-    "message": "Sort $1 results"
+  "sortedListAriaStore": {
+    "message": "$1 listings ranked by your priorities"
   },
-  "retailerSortUnitLow": {
-    "message": "Price per unit: low to high"
+  "sortedUnitStore": {
+    "message": "$1’s unit price"
   },
-  "retailerSortPer": {
-    "message": "Price per"
+  "sortedResultPageStore": {
+    "message": "$1 page $2"
   },
-  "retailerSortAuto": {
-    "message": "Automatic ($1)"
+  "sortedResultFirstStore": {
+    "message": "$1 page 1"
   },
-  "retailerUnitItem": {
-    "message": "item"
+  "sortedBackStore": {
+    "message": "Back to $1 search"
   },
-  "retailerSortUnpriced": {
-    "message": "$1 listed last: no price per $2 on the card or in the title."
+  "sortedReadingStore": {
+    "message": "Reading $1 listings…"
   },
-  "retailerSortNoUnit": {
-    "message": "No unit price"
+  "sortedEmptyBodyStore": {
+    "message": "On a $1 grocery search, use the “Ingredient Check sort” button on the page and choose “Ingredient Check score: High to Low” or “Price per …: Low to High”."
   },
-  "retailerSortSponsored": {
-    "message": "Sponsored"
+  "sortedStalledStore": {
+    "message": "Nothing has arrived from the $1 tab yet. Refresh the $1 results page (after reloading the extension, old tabs lose their connection to it) and choose the option again."
   },
-  "retailerSortHidden": {
-    "message": "$1 ad slots hidden"
+  "sortLoadingPageStore": {
+    "message": "Loading $1 results page $2 ($3 products found)…"
   },
-  "retailerSortList": {
-    "message": "Sorted results"
+  "sortNoMoreStore": {
+    "message": "$1 has no more results."
+  },
+  "sortThrottledStore": {
+    "message": "$1 stopped answering product pages, so rating paused."
+  },
+  "sortBudgetStore": {
+    "message": "Rating stopped at $2 product pages, the limit for the $1 results pages in this list."
+  },
+  "sortPageTimeoutStore": {
+    "message": "$1 took too long to send the next results page"
+  },
+  "sortFailedStore": {
+    "message": "Could not read this results page ($2). Refresh the $1 page and choose the option again."
+  },
+  "sortNoCardsStore": {
+    "message": "No $1 product cards were found. Check that this is a search results page, then refresh after listings load."
+  },
+  "sortMoreFromPage": {
+    "message": "Loading more results from this page… ($1 products found)"
+  },
+  "sortMenuButton": {
+    "message": "Ingredient Check sort"
   }
 }

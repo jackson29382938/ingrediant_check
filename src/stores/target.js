@@ -349,7 +349,7 @@
   const adapter = {
     id: 'target', name: 'Target', matchesHost, productId, isProductPage, isSearchPage, searchQuery,
     readProduct, labelToggle, searchTiles, nutritionFacts, productUrl, LABEL, TILE, readListing, isSponsored,
-    storeHost: 'target.com',
+    storeHost: 'target.com', paging: { param: 'Nao', offset: true, size: 24 },
   };
   root.AIR = root.AIR || {};
   root.AIR.storeAdapters = root.AIR.storeAdapters || {};
