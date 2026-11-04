@@ -343,8 +343,30 @@
   function clearBadges() { document.querySelectorAll('.' + BADGE_CLASS).forEach(b => b.remove()); }
 
   // ------------------------------------------------------------------ lifecycle
+  // An ad that arrives with a late result must not paint, so hiding does not wait for the debounce in watch():
+  // the first change after a quiet moment is handled on the next frame, however many mutations arrive. During
+  // sustained change (a page lazy-loading as it scrolls, or our own badges arriving) the next run waits eight
+  // times as long as the last one took, never less than a frame, so this cannot take more than about an eighth of
+  // the page's time. A page of a few dozen cards costs a few milliseconds, so it runs about every other frame.
+  const fast = { raf: 0, timer: 0, next: 0 };
+  const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  function fastHide() {
+    if (fast.raf || fast.timer || !adapter.hideSponsored || typeof requestAnimationFrame !== 'function' || !adapter.isSearchPage(location)) return;
+    const run = () => {
+      fast.raf = 0;
+      if (!state.enabled || !adapter.isSearchPage(location)) return;
+      const started = now();
+      adapter.hideSponsored(document);
+      fast.next = now() + Math.max(16, (now() - started) * 8);
+    };
+    const wait = fast.next - now();
+    if (wait > 0) fast.timer = setTimeout(() => { fast.timer = 0; fast.raf = requestAnimationFrame(run); }, wait);
+    else fast.raf = requestAnimationFrame(run);
+  }
   function stopWatching() {
     if (state.observer) { state.observer.disconnect(); state.observer = null; }
+    if (fast.raf && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(fast.raf);
+    clearTimeout(fast.timer); fast.raf = fast.timer = 0;
     clearTimeout(state.timer);
   }
 
@@ -367,6 +389,7 @@
     root.AIR.engine?.warmUp?.();   // compile the engine's patterns in idle time, before the first label needs them
     let pending = null;
     state.observer = new MutationObserver(() => {
+      fastHide();
       if (pending) return;
       pending = setTimeout(() => { pending = null; pass(); }, 400);
     });
@@ -394,8 +417,10 @@
     if (!state.done) watch();
   }
 
-  // Target is a single-page app: moving from results to a product does not reload the page.
-  setInterval(() => { if (location.href !== state.url) { state.manual = null; reset(); } }, 1000);
+  // Target and Walmart are single-page apps: moving from the home page to results, or from results to a
+  // product, changes the address without loading a page. The script is injected on the public routes a
+  // search starts from (manifest.json), and this notices each move within half a second.
+  setInterval(() => { if (location.href !== state.url) { state.manual = null; reset(); } }, 500);
 
   const KEYS = ['enabled', 'badges', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'weights', 'allergens', 'diets', 'avoidList',
     'sheetIndexRev', 'producerIndexRev', 'speedMode', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'autoScoreSearch', 'panelOpen', 'theme', 'palette'];

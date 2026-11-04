@@ -144,7 +144,67 @@
     }
     return out;
   }
+  // ---------------------------------------------------------------- a result card's facts
+  // What a search card says about its product, for the sort panel: the listing price, the text a unit
+  // price can be read from, the star rating and review count, and the picture. Everything is read from
+  // what the card already shows; nothing is fetched. A value the card does not state stays null, and
+  // the panel ranks unknown values last rather than guessing.
+  const MONEY = /\$\s*(\d[\d,]*(?:\.\d{1,2})?)(?![\d.])/;
+  // "Was $4.50", "Reg $4.49", "Save $1" and "$0.18/oz" are not the price to pay for the package.
+  const NOT_THE_PRICE = /\b(?:was|reg(?:ular)?\.?|list(?:\s+price)?|save|you\s+save|compare\s+at|msrp)\s*:?\s*\$\s*\d[\d,]*(?:\.\d+)?|\$\s*\d[\d,]*(?:\.\d+)?\s*(?:\/|per\s)\s*[a-z]/gi;
+  const RANGE = /\$\s*\d[\d,]*(?:\.\d+)?\s*(?:-|–|—|to)\s*\$\s*\d/i;
+  function firstPrice(value) {
+    const shown = clean(value).replace(NOT_THE_PRICE, ' ');
+    if (RANGE.test(shown)) return null;          // "$3.99 - $5.99" has no single price to sort on
+    const match = shown.match(MONEY);
+    const price = match ? Number(match[1].replace(/,/g, '')) : NaN;
+    return Number.isFinite(price) && price > 0 && price < 1e5 ? price : null;
+  }
+  function countFrom(raw) {
+    const m = String(raw || '').replace(/,/g, '').match(/^(\d+(?:\.\d+)?)\s*([km])?$/i);
+    if (!m) return null;
+    const n = Number(m[1]) * (/k/i.test(m[2] || '') ? 1e3 : /m/i.test(m[2] || '') ? 1e6 : 1);
+    return Number.isFinite(n) && n >= 0 && n < 1e9 ? Math.round(n) : null;
+  }
+  // "4.5 out of 5 Stars. 1,234 reviews", "4.5 out of 5 stars with 87 ratings", "(1.2K)".
+  function ratingFrom(value) {
+    const shown = clean(value);
+    const stars = shown.match(/(?<![\d.])([0-5](?:\.\d+)?)\s*(?:out of 5|\/\s*5)\b/i);
+    if (!stars) return { ratingValue: null, reviewCount: null };
+    const around = shown.slice(stars.index + stars[0].length, stars.index + stars[0].length + 80);
+    const reviews = around.match(/(\d[\d,]*(?:\.\d+)?\s*[km]?)\s*(?:reviews?|ratings?)\b/i);
+    return { ratingValue: Number(stars[1]), reviewCount: reviews ? countFrom(reviews[1].replace(/\s+/g, '')) : null };
+  }
+  // The card's own picture, on the retailer's image host only, so nothing foreign is ever drawn.
+  function pictureOf(card, host) {
+    for (const img of card.querySelectorAll('img')) {
+      const src = String(img.currentSrc || img.getAttribute('src') || '');
+      try {
+        const u = new URL(src);
+        if (u.protocol === 'https:' && !u.username && !u.password && host.test(u.hostname)) return u.href;
+      } catch (e) { /* data: placeholders and relative paths are not shown */ }
+    }
+    return '';
+  }
+  // opts.priceNode: the element that states the price, when the store has one (a screen-reader node
+  // carries the exact decimals when the visible price is split into dollars and cents).
+  // opts.imageHost: a RegExp the picture's host must satisfy.
+  function listingFacts(card, opts = {}) {
+    const body = text(card);
+    const priced = opts.priceNode ? text(opts.priceNode) : '';
+    const labels = Array.from(card.querySelectorAll('[aria-label]')).map(el => el.getAttribute('aria-label') || '').join(' ');
+    const rating = ratingFrom(`${labels} ${body}`);
+    return {
+      listingPrice: firstPrice(priced) ?? firstPrice(body),
+      // The unit price may sit in the price node or elsewhere on the card.
+      unitText: clean(`${priced} ${body}`).slice(0, 800),
+      ...rating,
+      image: opts.imageHost ? pictureOf(card, opts.imageHost) : '',
+    };
+  }
+
   root.AIR = root.AIR || {};
-  root.AIR.retailerLabels = { clean, text, warningText, readLabel, supplementFacts, labelToggle, sameCanonical, searchTiles, department, hiddenFromSight };
+  root.AIR.retailerLabels = { clean, text, warningText, readLabel, supplementFacts, labelToggle, sameCanonical, searchTiles, department, hiddenFromSight,
+    listingFacts, firstPrice, ratingFrom };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.AIR.retailerLabels;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

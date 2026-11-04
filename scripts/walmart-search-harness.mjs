@@ -91,8 +91,8 @@ try {
   await page.waitForSelector('#air-retailer-details', { state: 'detached' });
   console.log('ok delivery filter retained, duplicate cards both rated, keyboard score breakdown opens and closes');
   assert.equal(await page.locator('#empty-ad-slot').isVisible(), false, 'empty ad slot collapses');
-  const drawer = page.locator('#air-walmart-sort');
-  await drawer.getByRole('button', { name: 'Price & health', exact: true }).click();
+  const drawer = page.locator('#air-retailer-sort');
+  await drawer.getByRole('button', { name: 'Sort results', exact: true }).click();
   const docked = await page.locator('body').boundingBox(), drawerBox = await drawer.locator('.drawer').boundingBox();
   assert(docked.x + docked.width <= drawerBox.x, 'drawer reserves space; it must not cover the page');
   await drawer.getByRole('button', { name: 'Lowest price', exact: true }).click();
@@ -102,13 +102,17 @@ try {
   await drawer.getByRole('button', { name: 'Healthiest', exact: true }).click();
   const scores = (await drawer.locator('.item .score').allTextContents()).map(Number);
   assert.deepEqual(scores, scores.slice().sort((a, b) => b - a));
-  await drawer.getByRole('button', { name: 'Lowest price per oz', exact: true }).click();
+  await drawer.getByRole('button', { name: 'Price per unit: low to high', exact: true }).click();
+  // Auto follows the unit the listings state (ground beef is priced per pound); the picker can change it.
+  assert((await drawer.locator('.item .facts').first().textContent()).includes('/lb'));
+  await drawer.locator('select[data-control="unit"]').selectOption('oz');
   assert((await drawer.locator('.item .facts').first().textContent()).includes('/oz'));
+  await drawer.locator('select[data-control="unit"]').selectOption('auto');
   await drawer.locator('input[data-factor="health"]').fill('4');
   await page.keyboard.press('Escape');
   assert.equal(await drawer.locator('.drawer').isVisible(), false);
   assert.equal(await drawer.evaluate(el => el.shadowRoot.activeElement?.className), 'toggle', 'Escape returns focus to the tab');
-  assert.equal(await page.locator('html').getAttribute('data-air-walmart-docked'), null, 'closing restores full page width');
+  assert.equal(await page.locator('html').getAttribute('data-air-sort-docked'), null, 'closing restores full page width');
   console.log('ok right-hand drawer: price, health, normalized unit-price ranking, sliders, Escape; empty ad slot collapsed');
 
 
@@ -125,7 +129,7 @@ try {
 
   await page.evaluate(() => window.__settings({ enabled: false }));
   await page.waitForFunction(() => !document.querySelector('.air-badge') && !document.querySelector('[data-air-sponsored-hidden]'));
-  assert.equal(await page.locator('#air-walmart-sort').count(), 0, 'pause removes the comparison drawer');
+  assert.equal(await page.locator('#air-retailer-sort').count(), 0, 'pause removes the comparison drawer');
   assert.equal(await page.locator('[data-air-compact-grid]').count(), 0, 'pause restores retailer grid styling');
   assert.equal(await page.locator('#empty-ad-slot').isVisible(), true, 'pause restores the original empty slot');
   assert.equal(await page.locator('[data-item-id="10000000"]').evaluate(el => el.style.display), 'block');

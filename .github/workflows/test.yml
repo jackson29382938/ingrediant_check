@@ -60,6 +60,8 @@ jobs:
       - run: npm install --no-save --no-package-lock playwright@1.63.0
       - run: npx playwright install --with-deps chromium
       - run: npm run harness:ci
+      # Walmart and Target through the real extension: search from the home page, ads hidden, sorting by price per unit.
+      - run: npm run retailers:check
       - run: npm run website:check
       - name: Check deployed website when configured
         if: ${{ vars.WEBSITE_URL != '' }}

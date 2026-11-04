@@ -85,6 +85,12 @@ or through the shared database. Scoring on product pages you open does not chang
 ## Access to retailer previews
 
 Target and the other retailer previews use narrowly scoped product, search and cart content scripts.
+Since 1.24.0 the Walmart and Target script also loads on those sites' public home and category or browse pages
+(Walmart: `/`, `/browse/*`, `/cp/*`, `/shop/*`; Target: `/`, `/c/*`, `/pl/*`, `/b/*`), because both sites open
+search results without loading a page and a script that was not already there would never run. On those pages it
+reads nothing from the page and makes no request; it only waits for a search or product page to appear. Account,
+cart-checkout, login and order pages are not matched, and the sort panel it adds on search pages reads only the
+cards already on screen.
 They have no additional broad host permissions. Automatic rating can fetch public product pages
 from the same origin without cookies; cart lookups also omit the referrer. These scans do not call
 the shared database, Open Food Facts, OCR or Google. Chrome lists these sites in the extension's

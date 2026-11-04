@@ -2348,5 +2348,38 @@
   },
   "uiDetailOptions": {
     "message": "Choose a detail level"
+  },
+  "retailerSortTab": {
+    "message": "Sort results"
+  },
+  "retailerSortTitle": {
+    "message": "Sort $1 results"
+  },
+  "retailerSortUnitLow": {
+    "message": "Price per unit: low to high"
+  },
+  "retailerSortPer": {
+    "message": "Price per"
+  },
+  "retailerSortAuto": {
+    "message": "Automatic ($1)"
+  },
+  "retailerUnitItem": {
+    "message": "item"
+  },
+  "retailerSortUnpriced": {
+    "message": "$1 listed last: no price per $2 on the card or in the title."
+  },
+  "retailerSortNoUnit": {
+    "message": "No unit price"
+  },
+  "retailerSortSponsored": {
+    "message": "Sponsored"
+  },
+  "retailerSortHidden": {
+    "message": "$1 ad slots hidden"
+  },
+  "retailerSortList": {
+    "message": "Sorted results"
   }
 }

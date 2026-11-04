@@ -1,4 +1,5 @@
 /node_modules
+/retailer-shots/
 node_modules/
 .chrome-profile/
 .DS_Store

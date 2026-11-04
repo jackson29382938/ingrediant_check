@@ -2348,5 +2348,38 @@
   },
   "uiDetailOptions": {
     "message": "Detailstufe wählen"
+  },
+  "retailerSortTab": {
+    "message": "Ergebnisse sortieren"
+  },
+  "retailerSortTitle": {
+    "message": "$1-Ergebnisse sortieren"
+  },
+  "retailerSortUnitLow": {
+    "message": "Preis pro Einheit: aufsteigend"
+  },
+  "retailerSortPer": {
+    "message": "Preis pro"
+  },
+  "retailerSortAuto": {
+    "message": "Automatisch ($1)"
+  },
+  "retailerUnitItem": {
+    "message": "Stück"
+  },
+  "retailerSortUnpriced": {
+    "message": "$1 stehen am Ende: weder auf der Karte noch im Titel steht ein Preis pro $2."
+  },
+  "retailerSortNoUnit": {
+    "message": "Kein Grundpreis"
+  },
+  "retailerSortSponsored": {
+    "message": "Gesponsert"
+  },
+  "retailerSortHidden": {
+    "message": "$1 Werbeplätze ausgeblendet"
+  },
+  "retailerSortList": {
+    "message": "Sortierte Ergebnisse"
   }
 }

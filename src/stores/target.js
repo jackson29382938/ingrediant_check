@@ -327,9 +327,29 @@
     return out;
   }
 
+  // A Target ad says so on the card's title link, as the end of its accessible name:
+  // aria-label="Seven Sundays Wildberry Protein Oats - 16 oz Sponsored" (captured 2026-09-25).
+  const SPONSORED_NAME = /(?:^|[\s,.;:|\u00b7\u2022\u2013\u2014-])sponsored\s*$/i;
+  function isSponsored(tile) {
+    const card = tile.el || tile.tile;
+    if (!card) return false;
+    return Array.from(card.querySelectorAll('a[aria-label], [aria-label]')).some(el => SPONSORED_NAME.test(el.getAttribute('aria-label') || ''))
+      || Array.from(card.querySelectorAll('span, p, div, small')).some(el => el.children.length <= 2 && /^sponsored$/i.test(clean(el.textContent)));
+  }
+
+  // The facts the sort panel ranks on, read from the card Target rendered. Target prints the price once
+  // ("$3.99") and, for groceries, a unit price beside it ("($0.22/ounce)"); the unit price is read from the
+  // card's text by the shared unit-price parser. A card that states no single price is left unpriced.
+  function readListing(tile) {
+    const card = tile.el || tile.tile;
+    const priceNode = card.querySelector('[data-test="current-price"]');
+    return { ...root.AIR.retailerLabels.listingFacts(card, { priceNode, imageHost: /(?:^|\.)(?:target\.com|targetimg1\.com|scene7\.com)$/i }), sponsored: isSponsored(tile) };
+  }
+
   const adapter = {
     id: 'target', name: 'Target', matchesHost, productId, isProductPage, isSearchPage, searchQuery,
-    readProduct, labelToggle, searchTiles, nutritionFacts, productUrl, LABEL, TILE,
+    readProduct, labelToggle, searchTiles, nutritionFacts, productUrl, LABEL, TILE, readListing, isSponsored,
+    storeHost: 'target.com',
   };
   root.AIR = root.AIR || {};
   root.AIR.storeAdapters = root.AIR.storeAdapters || {};

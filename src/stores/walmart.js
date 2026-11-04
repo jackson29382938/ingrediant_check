@@ -73,28 +73,144 @@
   }
   const ITEM_CARD = '[data-item-id], [data-dca-card-id], [data-testid="product-card"], [data-testid="list-view"]';
   const CARD = ITEM_CARD + ', [role="group"]';
+  const GRID = '[data-testid="item-stack"]';
+  // ---------------------------------------------------------------- sponsored placements
+  // An ad is recognised by any one of several independent signals, because Walmart's markup is built from
+  // generated class names and has changed under this extension before. The signals, strongest first:
+  //   1. a link through Walmart's ad tracker (/sp/track?...&plmt=sp-search-middle...&rd=<product>), which
+  //      an organic result never uses;
+  //   2. an attribute that names the placement (data-sponsored, data-testid="sp-search-...", aria-label);
+  //   3. an accessible name that ends in the disclosure ("Great Value oats, 42 oz, Sponsored");
+  //   4. the visible label itself, as its own element ("Sponsored", "Advertisement", "Ad").
+  // Nothing here reads a class name. A signal anywhere inside a result card marks that whole card.
   const AD_ATTRS = ['data-testid', 'data-test', 'data-automation-id', 'aria-label'];
-  function sponsored(node) {
-    return node.getAttribute('data-sponsored') === 'true' || AD_ATTRS.some(attr =>
-      /sponsored|advertisement|(?:^|[-_])ad(?:[-_]|$)|^sp-(?:search|carousel|brand)(?:-|$)/i.test(node.getAttribute(attr) || ''));
+  const AD_ATTR = /sponsored|advertisement|(?:^|[-_])ad(?:[-_]|$)|^sp-(?:search|carousel|brand)(?:-|$)/i;
+  const AD_NAME = /(?:^|[\s,.;:|·•–—-])(?:sponsored|advertisement)(?:\s+(?:ad|product|result|listing))?\s*$/i;
+  const AD_LABEL = /^(?:sponsored(?:\s+(?:ad|product|result|listing|item|content))?|advertisement|ad)$/i;
+  const AD_LINK = /\/sp\/track\b|[?&](?:adsRedirect=true|adUid=|plmt=sp-|mloc=sp-)/i;
+  const LABEL_NODES = 'span, p, div, small, strong, b, em, a, button, label, li, h4, h5, h6';
+  const MARK_NODES = '[data-sponsored], [data-testid], [data-test], [data-automation-id], [aria-label], [title], img[alt]';
+  // Never hide, or climb through, the page chrome or the results grid itself.
+  const STOP = 'main, form, nav, header, footer, aside, body, html, [role="main"], [data-testid="item-stack"]';
+  const CHROME = 'h1, input, select, nav, [role="search"]';
+  const clean = L.clean;
+  function marked(node) {
+    if (node.getAttribute('data-sponsored') === 'true') return true;
+    if (AD_ATTRS.some(attr => AD_ATTR.test(node.getAttribute(attr) || ''))) return true;
+    return ['aria-label', 'title', 'alt'].some(attr => AD_NAME.test(node.getAttribute(attr) || ''));
   }
-  function sponsoredCard(card) {
-    return sponsored(card) || Array.from(card.querySelectorAll('span, p, div, small, [aria-label], [data-testid], [data-automation-id]'))
-      .some(node => sponsored(node) || /^sponsored$/i.test(L.text(node)));
+  // A label has a tiny subtree, so large containers are rejected before their text is ever built. It is the bare
+  // word ("Sponsored"), or a short screen-reader sentence that ends in it ("Oats, current price $3.97, Sponsored").
+  const labelled = node => {
+    if (node.children.length > 3) return false;
+    const t = node.textContent;
+    if (!t || t.length > 300) return false;
+    const text = clean(t);
+    return (text.length <= 60 && AD_LABEL.test(text)) || AD_NAME.test(text);
+  };
+  const adHref = node => AD_LINK.test(node.getAttribute('href') || '');
+  // The product a tracked ad link leads to, so a sponsored card still knows which product it holds.
+  function trackedId(href) {
+    try { return productId(new URL(href, 'https://www.walmart.com').searchParams.get('rd') || ''); } catch { return ''; }
+  }
+  // Hrefs repeat on every pass and URL parsing is the dearest step, so each is parsed once.
+  const idMemo = new Map();
+  function idOf(href) {
+    let id = idMemo.get(href);
+    if (id === undefined) {
+      id = productId(href) || (AD_LINK.test(href) ? trackedId(href) : '');
+      if (idMemo.size > 4000) idMemo.clear();
+      idMemo.set(href, id);
+    }
+    return id;
+  }
+  const idsIn = node => new Set(Array.from(node.querySelectorAll('a[href]')).map(a => idOf(a.getAttribute('href') || '')).filter(Boolean));
+  const within = (outer, node) => { for (let n = node; n; n = n.parentNode) if (n === outer) return true; return false; };
+  // One product's card: an item card, or a role=group wrapper that holds exactly one product.
+  const isTile = node => node.matches(ITEM_CARD) || (node.getAttribute('role') === 'group' && idsIn(node).size === 1);
+  function ancestors(node, limit = 8) {
+    const out = [];
+    for (let p = node.parentNode; p && p.nodeType === 1 && out.length < limit && !p.matches('body, html'); p = p.parentNode) out.push(p);
+    return out;
+  }
+  const SIGNAL_NODES = `a[href], ${MARK_NODES}, ${LABEL_NODES}`;
+  const isSignal = node => (node.hasAttribute('href') && adHref(node)) || marked(node) || labelled(node);
+  // One card, asked on its own (searchTiles). A whole page is answered by sponsoredSlots in one pass instead.
+  const cardIsSponsored = card => marked(card) || Array.from(card.querySelectorAll(SIGNAL_NODES)).some(isSignal);
+  // A card inside a marked module (a sponsored brand carousel) is an ad too, though it carries no label itself.
+  const insideAdModule = card => ancestors(card).some(p => !p.matches(STOP) && marked(p));
+  const sponsoredTile = card => cardIsSponsored(card) || insideAdModule(card);
+  function sponsoredSlots(doc) {
+    const tiles = Array.from(doc.querySelectorAll(CARD)).filter(isTile);
+    const tileSet = new Set(tiles);
+    // One scan of the document finds every node that says "ad" in any of the ways above; most pages have a
+    // handful. Each is then walked up to the card that holds it, so a card is never searched on its own.
+    const signals = [];
+    for (const node of doc.querySelectorAll(`${SIGNAL_NODES}, ${CARD}`)) if (isSignal(node)) signals.push(node);
+    const ads = new Set();
+    const cardOf = node => { for (let n = node; n && n.nodeType === 1; n = n.parentNode) if (tileSet.has(n)) return n; return null; };
+    const outside = [];
+    for (const signal of signals) {
+      const card = cardOf(signal);
+      if (card) {
+        // Cards nest (an outer role=group around an inner list-view): every enclosing card of the same single
+        // product is the same ad, so the outermost is hidden and nothing is left behind as an empty cell.
+        ads.add(card);
+        const own = idsIn(card);
+        for (let n = card.parentNode; n && n.nodeType === 1 && !n.matches(STOP); n = n.parentNode) {
+          if (!tileSet.has(n)) continue;
+          if (!Array.from(idsIn(n)).every(id => own.has(id))) break;
+          ads.add(n);
+        }
+      } else outside.push(signal);
+      // A marked module that holds cards (a sponsored brand carousel) makes each of them an ad.
+      if (marked(signal) && !signal.matches(STOP) && !tileSet.has(signal)) for (const inner of signal.querySelectorAll(CARD)) if (tileSet.has(inner)) ads.add(inner);
+    }
+    // Every node that holds an organic card, from one walk up from each card; shared ancestors are added once.
+    const holding = new Set();
+    for (const tile of tiles) {
+      let inAd = false;
+      for (let n = tile; n && n.nodeType === 1; n = n.parentNode) if (ads.has(n)) { inAd = true; break; }
+      if (inAd) continue;
+      for (let n = tile; n && n.nodeType === 1 && !holding.has(n); n = n.parentNode) holding.add(n);
+    }
+    const slots = new Set();
+    // The widest wrapper that holds nothing but this ad, so the grid closes up around it.
+    function slotFor(node, ids) {
+      let slot = node;
+      for (const p of ancestors(node, 6)) {
+        if (p.matches(STOP) || holding.has(p) || p.querySelector(CHROME)) break;
+        if (ids && !Array.from(idsIn(p)).every(id => ids.has(id))) break;
+        slot = p;
+      }
+      return slot;
+    }
+    for (const ad of ads) slots.add(slotFor(ad, idsIn(ad)));
+    // Ad modules that are not one product's card: banners, brand carousels, video and display ads.
+    for (const signal of outside) {
+      if (signal.matches(STOP) || holding.has(signal)) continue;
+      if (Array.from(slots).some(slot => within(slot, signal))) continue;
+      const slot = slotFor(signal, null);
+      if (slot !== signal || !slot.matches(STOP)) slots.add(slot);
+    }
+    // Slots nested in one another collapse to the outermost, one hidden node per ad.
+    for (const slot of Array.from(slots)) if (Array.from(slots).some(other => other !== slot && within(other, slot))) slots.delete(slot);
+    return slots;
   }
   // Hide instead of deleting React-owned nodes. Recheck recycled cards before each pass,
   // and restore only our own changes when paused or navigating away from search.
+  function showSlot(node) {
+    node.style.removeProperty('display');
+    const display = node.getAttribute('data-air-sponsored-display');
+    if (display) node.style.setProperty('display', display, node.getAttribute('data-air-sponsored-priority') || '');
+    node.removeAttribute('data-air-sponsored-hidden');
+    node.removeAttribute('data-air-sponsored-display');
+    node.removeAttribute('data-air-sponsored-priority');
+  }
   function restoreSponsored(doc) {
     for (const stack of doc.querySelectorAll('[data-air-compact-grid]')) stack.removeAttribute('data-air-compact-grid');
     for (const cell of doc.querySelectorAll('[data-air-result-cell]')) cell.removeAttribute('data-air-result-cell');
-    for (const node of doc.querySelectorAll('[data-air-sponsored-hidden]')) {
-      node.style.removeProperty('display');
-      const display = node.getAttribute('data-air-sponsored-display');
-      if (display) node.style.setProperty('display', display, node.getAttribute('data-air-sponsored-priority') || '');
-      node.removeAttribute('data-air-sponsored-hidden');
-      node.removeAttribute('data-air-sponsored-display');
-      node.removeAttribute('data-air-sponsored-priority');
-    }
+    for (const node of doc.querySelectorAll('[data-air-sponsored-hidden]')) showSlot(node);
   }
   function hideSlot(node) {
     if (node.hasAttribute('data-air-sponsored-hidden')) return;
@@ -109,46 +225,34 @@
       style.textContent = '[data-air-compact-grid]{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr))!important;align-items:start!important;gap:0!important}[data-air-compact-grid]>[data-air-result-cell]{width:auto!important;min-width:0!important;max-width:none!important}[data-air-compact-grid]>:not([data-air-result-cell]){grid-column:1/-1}@media(max-width:600px){[data-air-compact-grid]{grid-template-columns:repeat(2,minmax(0,1fr))!important}}';
       (doc.head || doc.documentElement).append(style);
     }
-    for (const stack of doc.querySelectorAll('[data-testid="item-stack"]')) {
+    const stacks = new Set(), cells = new Set();
+    for (const stack of doc.querySelectorAll(GRID)) {
       if (!stack.querySelector(ITEM_CARD)) continue;
-      stack.setAttribute('data-air-compact-grid', '');
+      stacks.add(stack); stack.setAttribute('data-air-compact-grid', '');
       for (const cell of stack.children) {
-        if (cell.hasAttribute('data-air-space-filler')) { cell.setAttribute('data-air-result-cell', ''); continue; }
-        if (cell.matches(ITEM_CARD) || cell.querySelector(ITEM_CARD)) cell.setAttribute('data-air-result-cell', '');
+        if (cell.hasAttribute('data-air-space-filler')) { cells.add(cell); cell.setAttribute('data-air-result-cell', ''); continue; }
+        if (cell.matches(ITEM_CARD) || cell.querySelector(ITEM_CARD)) { cells.add(cell); cell.setAttribute('data-air-result-cell', ''); }
         // Retail ad slots may become completely empty after hydration. Preserve
         // interactive/media/announced content, and recheck when anything arrives.
         else if (!L.text(cell) && !cell.querySelector('a, button, input, select, img, picture, video, canvas, iframe, [aria-live], [role="status"]')) hideSlot(cell);
       }
     }
+    for (const stack of doc.querySelectorAll('[data-air-compact-grid]')) if (!stacks.has(stack)) stack.removeAttribute('data-air-compact-grid');
+    for (const cell of doc.querySelectorAll('[data-air-result-cell]')) if (!cells.has(cell)) cell.removeAttribute('data-air-result-cell');
   }
+  // Runs on every pass and, between passes, on the next frame after the page changes, so an ad that
+  // arrives with a late result never paints. Only our own slots are ever touched.
   function hideSponsored(doc) {
-    restoreSponsored(doc);
-    const candidates = new Set(doc.querySelectorAll(CARD));
-    for (const node of doc.querySelectorAll('[data-testid], [data-automation-id], [aria-label], [data-sponsored]')) {
-      if (sponsored(node)) candidates.add(node.querySelector('a[href]') ? node : node.closest(CARD) || node);
-    }
-    for (const node of candidates) {
-      if (!sponsoredCard(node)) continue;
-      // A generic role=group may be the whole results grid. Never hide organic siblings.
-      const ids = new Set(Array.from(node.querySelectorAll('a[href]')).map(link => productId(link.getAttribute('href'))).filter(Boolean));
-      if (ids.size > 1 && !sponsored(node)) continue;
-      let target = node;
-      const stack = node.closest('[data-testid="item-stack"]');
-      if (stack && stack !== node) {
-        let cell = node;
-        while (cell.parentElement && cell.parentElement !== stack) cell = cell.parentElement;
-        const cellIds = new Set(Array.from(cell.querySelectorAll('a[href]')).map(link => productId(link.getAttribute('href'))).filter(Boolean));
-        if (cell.parentElement === stack && cellIds.size === ids.size && Array.from(cellIds).every(id => ids.has(id))) target = cell;
-      }
-      hideSlot(target);
-    }
+    const wanted = sponsoredSlots(doc);
+    for (const node of doc.querySelectorAll('[data-air-sponsored-hidden]')) if (!wanted.has(node)) showSlot(node);
+    for (const node of wanted) hideSlot(node);
     compactResults(doc);
   }
   function searchTiles(doc) {
     const out = [], seen = new Set();
     for (const link of doc.querySelectorAll('a[href]')) {
       const id = productId(link.getAttribute('href'));
-      if (!id || link.closest('nav, aside, footer, [data-air-sponsored-hidden]') || L.hiddenFromSight(link)) continue;
+      if (!id || adHref(link) || link.closest('nav, aside, footer, [data-air-sponsored-hidden]') || L.hiddenFromSight(link)) continue;
       let excluded = false;
       for (let parent = link; parent && parent.getAttribute; parent = parent.parentNode) {
         if (['data-testid', 'data-test', 'data-automation-id', 'aria-label'].some(attr => /recommend|promot|sponsored|advertis/i.test(parent.getAttribute(attr) || ''))) {
@@ -161,7 +265,7 @@
       const card = link.closest(ITEM_CARD) || link.closest('[role="group"]');
       const identity = card || id;
       if (seen.has(identity)) continue;
-      if (card && sponsoredCard(card)) continue;
+      if (card && sponsoredTile(card)) continue;
       if (card && Array.from(card.querySelectorAll('a[href]')).some(other => {
         const otherId = productId(other.getAttribute('href'));
         return otherId && otherId !== id;
@@ -183,8 +287,16 @@
     }
     return out;
   }
+  // The facts the sort panel ranks on, read from the card as Walmart renders it. Walmart splits the visible price
+  // into dollars and cents; its screen-reader price node carries the exact decimals, so it is read first.
+  function readListing(tile) {
+    const card = tile.el || tile.tile || tile.anchor;
+    const priceNode = card.querySelector('[data-testid="unified-global-product-price-a11y-text"]') || card.querySelector('[data-automation-id="product-price"]');
+    return { ...L.listingFacts(card, { priceNode, imageHost: /(?:^|\.)walmartimages\.com$/i }), sponsored: false };
+  }
   const adapter = { id: 'walmart', name: 'Walmart', matchesHost, productId, productUrl, remountPanel: true,
-    alwaysRateSearch: true, hideSponsored, restoreSponsored,
+    alwaysRateSearch: true, hideSponsored, restoreSponsored, sponsoredSlots, readListing,
+    storeHost: 'walmart.com',
     acceptsProductRedirect, publicCredentials: 'same-origin',
     isProductPage: loc => !!productId(loc.href), isSearchPage: loc => matchesHost(loc.hostname) && /^\/search\/?$/.test(loc.pathname),
     searchQuery: loc => { try { return new URL(loc.href).searchParams.get('q') || ''; } catch { return ''; } },
