@@ -273,7 +273,7 @@ footers are now excluded on every store.
 
 ## Walmart search in 1.20.1
 
-(1.24.0 replaced this drawer with the sorted list described at the end of this page.) In **1.21.0**, the **Price & health** tab at the right edge opened a comparison drawer using the same
+(1.23.1 replaced this drawer with the sorted list described at the end of this page.) In **1.21.0**, the **Price & health** tab at the right edge opened a comparison drawer using the same
 ranking and unit-price engines as Amazon. Choose Healthiest, Lowest price, Lowest price per oz,
 or Balanced, or adjust the two importance sliders. It compares loaded organic results and refreshes
 as labels arrive. Unknown values remain unknown; unit-price comparison is for weight-based prices.
@@ -299,7 +299,7 @@ scoring engine with intercepted pages: 65 uncached beef results, sponsored exclu
 recycled cards, pause/resume, and missing declarations. This is fixture validation, not a live-site
 check. The managed cloud environment blocks Walmart network access and unpacked extension installs.
 
-## The sorted list on every store, and ad hiding on Walmart (1.24.0)
+## The sorted list on every store, and ad hiding on Walmart (1.23.1)
 
 **One list, every store.** Amazon's two sort entries, the side-panel list behind them and the settings that drive them
 now work the same on all fifteen retailer previews (Walmart, Target, Costco, Instacart, Kroger, Fry's, Ralphs, King
@@ -349,12 +349,12 @@ nothing but that ad, so the grid closes up); banners and brand carousels are hid
 never hidden, and neither is the results grid or the page. Ads that arrive after load are hidden on the next frame.
 Pausing the extension restores every ad exactly as the page rendered it.
 
-**Why Walmart ads were still showing before 1.24.0** (reproduced on 1.23.0: `REPRO=1 npm run retailers:check` with
+**Why Walmart ads were still showing before 1.23.1** (reproduced on 1.23.0: `REPRO=1 npm run retailers:check` with
 `EXT_DIR` set to an unpacked 1.23.0): both sites are single-page apps, so a search typed in the header from the home page
 changes the address without loading a page. The script was injected only on `/search` and `/ip/*` (Target: `/s`,
 `/p/*`), so for a search started anywhere else **nothing ran: no ratings, no sort, every ad visible**. Reloading the
 results page made it appear to work. Separately, a banner marked only by its "Sponsored" label and an ad whose only link
-was Walmart's tracker were never hidden even after a reload. 1.24.0 also injects on the public routes a search starts
+was Walmart's tracker were never hidden even after a reload. 1.23.1 also injects on the public routes a search starts
 from: the home page, `/browse/*`, `/cp/*` and `/shop/*` (Walmart), `/c/*`, `/pl/*` and `/b/*` (Target). It does nothing
 there until a search or product page appears. Account, cart, checkout, login and order pages stay out by construction
 (`tests/retailer-sort.test.js` fails if a route is added that is not on the list). A search started from any other

@@ -85,7 +85,7 @@ or through the shared database. Scoring on product pages you open does not chang
 ## Access to retailer previews
 
 Target and the other retailer previews use narrowly scoped product, search and cart content scripts.
-Since 1.24.0 the Walmart and Target script also loads on those sites' public home and category or browse pages
+Since 1.23.1 the Walmart and Target script also loads on those sites' public home and category or browse pages
 (Walmart: `/`, `/browse/*`, `/cp/*`, `/shop/*`; Target: `/`, `/c/*`, `/pl/*`, `/b/*`), because both sites open
 search results without loading a page and a script that was not already there would never run. On those pages it
 reads nothing from the page and makes no request; it only waits for a search or product page to appear. Account,

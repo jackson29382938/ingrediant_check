@@ -1,4 +1,4 @@
-# Walmart, Target and Kroger screenshots (1.24.0)
+# Walmart, Target and Kroger screenshots (1.23.1)
 
 Captured by `npm run retailers:check` (`scripts/retailer-sort-harness.mjs`): the **real unpacked extension** in
 Chromium, on **replica** store pages (`scripts/retailer-replicas.mjs`, `scripts/retailer-replica-kroger.mjs`) served over
@@ -15,7 +15,7 @@ the tab the worker opens instead; `06b` is the side-panel page in a 420 px colum
 | Image | What it shows |
 |---|---|
 | `00-before-1.23.0-search-from-home.png` | The **previous release** (1.23.0) after a search typed on the Walmart home page: no ratings, no sort button, every sponsored tile, the sponsored carousel and the banner on screen. This is the reported problem, reproduced. |
-| `02-walmart-search-from-home-ads-hidden.png` | 1.24.0, same flow: ratings on every organic result, five ads of five different markups gone, the grid closed up, the summary tiles filling the leftover cells. |
+| `02-walmart-search-from-home-ads-hidden.png` | 1.23.1, same flow: ratings on every organic result, five ads of five different markups gone, the grid closed up, the summary tiles filling the leftover cells. |
 | `03-walmart-search-paused-ads-visible.png` | The same page with Ingredient Check paused: the ads are exactly as the page rendered them (the "Sponsored" tile is the third card). |
 | `04b-walmart-hover-score-breakdown.png` | Hovering a rating on the page explains it (Froot Loops: Red 40 caps the score at 18). |
 | `04c-walmart-sort-menu.png` | The **Ingredient Check sort** button's menu: Amazon's two entries, with the unit most listings state. |
