@@ -2309,5 +2309,44 @@
   },
   "walmartStatNote": {
     "message": "Updates as labels arrive. Missing values stay unknown."
+  },
+  "uiChangeGoals": {
+    "message": "Change goals"
+  },
+  "uiCheckLabel": {
+    "message": "Check a label"
+  },
+  "uiHistory": {
+    "message": "Purchase history"
+  },
+  "uiLabelsSaved": {
+    "message": "Labels & saved"
+  },
+  "uiSkip": {
+    "message": "Skip to content"
+  },
+  "uiNavigation": {
+    "message": "Ingredient Check pages"
+  },
+  "uiStartSimple": {
+    "message": "Start with the essentials"
+  },
+  "uiSimpleHint": {
+    "message": "Choose your goals and warnings first. More controls are always available."
+  },
+  "uiEssentials": {
+    "message": "Show essentials"
+  },
+  "uiFindSetting": {
+    "message": "Find a setting"
+  },
+  "uiSearchEmpty": {
+    "message": "No matching sections in this detail view. Clear the search or choose a higher detail level below."
+  },
+  "uiSearchCount": {
+    "message": "$1 matching settings sections"
+  },
+  "uiDetailOptions": {
+    "message": "Choose a detail level"
   }
 }

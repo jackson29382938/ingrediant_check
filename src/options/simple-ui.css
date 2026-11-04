@@ -1,0 +1,41 @@
+/* UI/UX Pro Max: restrained hierarchy, native disclosures, comfortable targets.
+   Keep the existing semantic theme and score-band colours. No downloaded assets. */
+body[data-ui-page]{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.55}
+[data-ui-page] h1,[data-ui-page] h2{text-wrap:balance}
+[data-ui-page] button,[data-ui-page] .btn,[data-ui-page] summary,[data-ui-page] .sw{min-height:44px}
+[data-ui-page] button,[data-ui-page] .btn{border-radius:10px}
+[data-ui-page] input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),[data-ui-page] select{min-height:44px}
+[data-ui-page] summary{align-content:center;cursor:pointer}
+[data-ui-page] a,[data-ui-page] button,[data-ui-page] summary{touch-action:manipulation}
+[data-ui-page] button:active,[data-ui-page] .btn:active{filter:brightness(.96)}
+[data-ui-page] main,[data-ui-page] .wrap,[data-ui-page] section{min-width:0}
+.ui-app-nav{display:flex;flex-wrap:wrap;gap:8px;padding:8px;margin:0 0 24px;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.ui-app-nav a{display:flex;align-items:center;justify-content:center;min-height:44px;padding:8px 16px;font-weight:600;color:var(--muted);border-radius:8px}
+.ui-app-nav a:hover{background:var(--hover);color:var(--text)}
+.ui-app-nav a[aria-current=page]{background:var(--accent-bg);color:var(--text);box-shadow:inset 0 0 0 1px var(--accent-line)}
+.ui-skip{position:fixed;left:16px;top:8px;z-index:100;transform:translateY(-150%);padding:12px;background:var(--card);border:2px solid var(--accent)}
+.ui-skip:focus{transform:none}
+.ui-settings-tools{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px 20px;margin-bottom:24px}
+.ui-settings-tools h2{margin:0 0 4px;font-size:20px}.ui-settings-tools p{color:var(--muted);font-size:14px}
+.ui-settings-tools label,.ui-settings-tools input,.ui-settings-tools .ui-search-count,.ui-settings-tools>p{grid-column:1/-1}
+.ui-settings-tools label{font-weight:600}.ui-settings-tools input{width:100%;font:inherit}
+.ui-search-count:empty{display:none}.ui-search-hidden{display:none!important}
+[data-ui-page=options] .jump a{min-height:44px;display:flex;align-items:center}
+[data-ui-page=options] .sec-lede,[data-ui-page=options] .sw-hint,[data-ui-page=options] .note{font-size:13px}
+[data-ui-page=options] .layout{gap:24px}
+[data-ui-page=history] .hero{padding-top:8px}
+[data-ui-page=library]{padding:clamp(14px,3vw,28px)}
+[data-ui-page=library] .file-button{min-width:0;max-width:100%}
+[data-ui-page=library] button[type=submit]{background:var(--accent);color:var(--on-accent)}
+[data-ui-page=library] header nav,[data-ui-page=report] header nav{line-height:2}
+[data-ui-page=popup]{width:min(360px,100vw);font-size:14px}
+[data-ui-page=popup] .top{padding-top:16px}[data-ui-page=popup] .master{min-width:44px;justify-content:center}
+[data-ui-page=popup] .goals-head{margin-bottom:4px}[data-ui-page=popup] .ui-goal-picker{border-bottom:1px solid var(--soft);padding-bottom:6px}
+[data-ui-page=popup] .ui-goal-picker>summary{font-size:13px;color:var(--link);font-weight:600}
+[data-ui-page=popup] .fine-links{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-top:12px}
+[data-ui-page=popup] .fine-links>a:not(#openNetwork){display:flex;align-items:center;justify-content:center;min-height:44px;padding:8px;border:1px solid var(--line);border-radius:10px;text-align:center;font-weight:600;color:var(--text)}
+[data-ui-page=popup] .fine-links>.ui-primary{background:var(--accent);color:var(--on-accent)!important;border-color:var(--accent)!important}
+[data-ui-page=popup] #openNetwork{grid-column:1/-1;padding:4px 0;min-height:44px}
+[data-ui-page=popup] .btn.secondary{background:var(--card);border-color:var(--line);color:var(--text)}
+@media(max-width:600px){.ui-app-nav{gap:4px;padding:4px}.ui-app-nav a{flex:1;padding:8px;font-size:13px}.ui-settings-tools{grid-template-columns:1fr}.ui-settings-tools>.btn{justify-self:start}[data-ui-page] input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),[data-ui-page] select,[data-ui-page] textarea{font-size:16px}}
+@media(prefers-reduced-motion:reduce){[data-ui-page] *,[data-ui-page] *::before,[data-ui-page] *::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}

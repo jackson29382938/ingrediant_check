@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title data-i18n="optTitle">Ingredient Check — Settings</title>
 <link rel="stylesheet" href="ui.css">
 <style>
@@ -173,8 +173,9 @@
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } details.hint-more > summary::after { transition: none; } }
   @media (forced-colors: active) { .sort-choices > label:has(input:checked) { border: 3px solid Highlight; padding: 4px 12px; } }
 </style>
+<link rel="stylesheet" href="simple-ui.css">
 </head>
-<body>
+<body data-ui-page="options">
 <div class="wrap">
   <header class="head">
     <div class="brand">
@@ -194,7 +195,6 @@
         </div>
         <button type="button" class="btn" id="googleSignOut" data-i18n="optGoogleSignOut">Sign out</button>
       </div>
-      <a class="btn" href="history.html">Purchase history</a>
       <a class="btn" href="welcome.html" data-i18n="popupSetupAgain">Run setup again</a>
     </div>
   </header>
@@ -221,6 +221,7 @@
   <section id="sec-level">
     <h2 id="levelH" data-i18n="optLevelH">How many settings to show</h2>
     <p class="sec-lede" data-i18n="optLevelLede">Hidden settings keep their value and keep working.</p>
+    <details id="ui-detail-level"><summary data-i18n="uiDetailOptions">Choose a detail level</summary>
     <fieldset class="sort-choices" id="levelChoices" aria-labelledby="levelH">
       <label><input type="radio" name="settingsLevel" value="minimal" aria-describedby="lvlD-minimal"><span data-i18n="optLevelMinimal">Minimal</span></label>
       <p class="choice-d" id="lvlD-minimal" data-i18n="optLevelMinimalD">Your goals, allergen warnings and diets.</p>
@@ -233,6 +234,7 @@
       <label><input type="radio" name="settingsLevel" value="expert" aria-describedby="lvlD-expert"><span data-i18n="optLevelExpert">Everything</span></label>
       <p class="choice-d" id="lvlD-expert" data-i18n="optLevelExpertD">Also diagnostics and contributions to the shared database.</p>
     </fieldset>
+    </details>
   </section>
 
   <section id="sec-presets">
@@ -707,5 +709,6 @@
 <script src="../stores/registry.js"></script>
 <script src="store-request.js"></script>
 <script src="settings-stores.js"></script>
+<script src="simple-ui.js"></script>
 </body>
 </html>

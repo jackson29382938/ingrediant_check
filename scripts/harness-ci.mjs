@@ -296,6 +296,8 @@ async function run() {
       // Goals combine across tabs: picking one on another tab keeps that tab open with it selected,
       // and each tab counts its picks. (It used to jump back to the first goal's tab.)
       const pickGoal = async (category, n) => {
+        const picker = comparePage.locator('#goalPicker');
+        if (await picker.count() && !(await picker.evaluate(el => el.open))) await picker.locator('summary').click();
         await comparePage.click(`.preset-cat[data-category="${category}"]`);
         const id = await comparePage.evaluate(i => [...document.querySelectorAll('.preset')][i].dataset.preset, n);
         await comparePage.click(`.preset[data-preset="${id}"]`);
@@ -1047,6 +1049,8 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
 
 // The goal-category tabs, by keyboard: one tab stop, and ArrowRight / End move focus and selection.
 async function checkTabs(page, name) {
+  const picker = page.locator('#goalPicker');
+  if (await picker.count() && !(await picker.evaluate(el => el.open))) await picker.locator('summary').click();
   const state = () => page.evaluate(() => {
     const tabs = [...document.querySelectorAll('#presetCats [role="tab"]')];
     return { n: tabs.length, stops: tabs.filter(t => t.tabIndex === 0).length,

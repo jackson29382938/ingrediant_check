@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Ingredient Check</title>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ingredient Check</title>
 <link rel="stylesheet" href="ui.css">
 <style>
  body{width:340px;max-height:calc(100vh - 24px);overflow-y:auto;font-size:13px}
@@ -69,7 +69,7 @@
    .ps-num{background:var(--page);border-color:var(--dring,var(--ring,var(--line)));color:var(--dfg,var(--fg,var(--text)))}
    .ps-verdict{color:var(--dfg,var(--fg,var(--text)))}
  }
-</style></head><body>
+</style><link rel="stylesheet" href="simple-ui.css"></head><body data-ui-page="popup">
  <header class="top">
   <img src="../../icons/icon48.png" alt="" width="28" height="28">
   <div class="top-text">
@@ -82,9 +82,11 @@
  <div id="pageScore" class="page-score" hidden></div>
  <section class="goals" aria-labelledby="goalsH">
   <div class="goals-head"><h2 id="goalsH" data-i18n="popupPresets">Goals</h2><span class="goal-now" id="presetActiveName" aria-live="polite">Balanced</span></div>
+  <details class="ui-goal-picker" id="goalPicker"><summary data-i18n="uiChangeGoals">Change goals</summary>
   <div class="preset-cats" id="presetCats" role="tablist" data-i18n-aria="optPresetCatsAria" aria-label="Preset categories"></div>
   <div class="presets" id="presets" role="tabpanel"></div>
   <p class="preset-note" id="presetNote" data-level="2"></p>
+  </details>
  </section>
  <div class="list sub-toggles">
   <label class="sw"><input type="checkbox" id="autoScoreSearch" role="switch" checked><span class="sw-text"><span class="sw-title" data-i18n="popupAutoScore">Rate search results and cart items</span>
@@ -95,9 +97,9 @@
    <span class="d" data-i18n="popupHoverD">Hover or tab to a search result for half a second and its product page is requested from Amazon to score it. Only the result you point at.</span></span></label>
  </div>
  <div class="fine-links">
-  <a href="library.html" target="_blank" data-i18n="libraryLink">Check a label · Saved & compare</a>
+  <a href="library.html" target="_blank" class="ui-primary" data-i18n="uiCheckLabel">Check a label</a>
+  <a href="history.html" target="_blank" data-i18n="uiHistory">Purchase history</a>
   <a href="#" id="openNetwork" data-level="1" data-i18n="popupNetworkLink">Access and what is sent</a>
-  <a href="history.html" target="_blank">Purchase history &amp; trends</a>
  </div>
  <details class="more-box" id="moreBox">
   <summary data-i18n="popupMore">More</summary>
@@ -135,7 +137,7 @@
  </details>
  <p id="status" role="status" aria-live="polite"></p>
  <footer class="foot">
-  <a href="#" id="openSettings" class="btn" data-i18n="popupSettingsLink">Settings</a>
+  <a href="#" id="openSettings" class="btn secondary" data-i18n="popupSettingsLink">Settings</a>
   <div class="foot-row"><a href="#" id="openReport" data-i18n="popupReport">Report a problem or idea</a><span id="version" data-level="2"></span></div>
   <p class="fine" data-i18n="popupDisclaimer">A guide, not health or allergy advice. Read the label.</p>
  </footer>

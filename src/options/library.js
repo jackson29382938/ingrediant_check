@@ -13,6 +13,8 @@
   async function load() {
     const turn = ++loadVersion;
     prefs = await chrome.storage.local.get(settingsKeys); AIR.db.theme.use(prefs); AIR.db.theme.page(document);
+    // The checked label lives in a closed shadow root, so update its scheme too.
+    AIR.db.theme.force(AIR.panel.shadowOf($('checkResult').firstElementChild));
     const saved = await S.list(chrome.storage.local), keys = await AIR.db.scoreCache.storedKeys(chrome.storage.local);
     const cached = await chrome.storage.local.get(keys.filter(k => k.startsWith('s:')).slice(-200));
     const listed = AIR.db.scoreCache.listScores(cached, { version: chrome.runtime.getManifest().version, prefs });

@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title data-i18n="reportTitle">Report a problem or suggest an improvement — Ingredient Check</title>
+<link rel="stylesheet" href="ui.css">
 <style>
   :root { color-scheme: light dark; }
   * { box-sizing: border-box; }
@@ -55,8 +56,9 @@
     .kinds input:checked + span, #status { color: #6fd39a; }
   }
 </style>
+<link rel="stylesheet" href="simple-ui.css">
 </head>
-<body>
+<body data-ui-page="report">
 <main class="wrap">
   <h1 data-i18n="reportH">Report a problem or suggest an improvement</h1>
   <p class="lede" data-i18n="reportLede">Tell the developer what went wrong or what you would like. Ingredient Check adds a screenshot,
@@ -146,5 +148,6 @@
 <script src="store-request.js"></script>
 <script src="report-data.js"></script>
 <script src="report.js"></script>
+<script src="simple-ui.js"></script>
 </body>
 </html>

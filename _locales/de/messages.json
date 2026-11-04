@@ -2309,5 +2309,44 @@
   },
   "walmartStatNote": {
     "message": "Aktualisierung beim Laden der Zutaten. Fehlende Werte bleiben unbekannt."
+  },
+  "uiChangeGoals": {
+    "message": "Ziele ändern"
+  },
+  "uiCheckLabel": {
+    "message": "Zutatenliste prüfen"
+  },
+  "uiHistory": {
+    "message": "Einkaufsverlauf"
+  },
+  "uiLabelsSaved": {
+    "message": "Zutaten und Merkliste"
+  },
+  "uiSkip": {
+    "message": "Zum Inhalt springen"
+  },
+  "uiNavigation": {
+    "message": "Seiten von Ingredient Check"
+  },
+  "uiStartSimple": {
+    "message": "Mit dem Wesentlichen beginnen"
+  },
+  "uiSimpleHint": {
+    "message": "Wählen Sie zuerst Ziele und Warnungen. Weitere Einstellungen sind jederzeit verfügbar."
+  },
+  "uiEssentials": {
+    "message": "Wesentliches anzeigen"
+  },
+  "uiFindSetting": {
+    "message": "Einstellung finden"
+  },
+  "uiSearchEmpty": {
+    "message": "Keine passenden Bereiche in dieser Detailansicht. Leeren Sie die Suche oder wählen Sie unten eine höhere Detailstufe."
+  },
+  "uiSearchCount": {
+    "message": "$1 passende Einstellungsbereiche"
+  },
+  "uiDetailOptions": {
+    "message": "Detailstufe wählen"
   }
 }
