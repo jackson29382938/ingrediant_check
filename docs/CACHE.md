@@ -60,6 +60,19 @@ Saving a usable label in another tab can restore a failed cart badge without rel
 public Amazon pages can use enabled barcode and local photo readers, with the existing permissions;
 their source is retained. No fallback recipe is inferred from the product title.
 
+**On the other stores** there is no separate `p:` record: a product's `s:<store>:<id>` record holds the score and
+the label text it was worked out from. When the weights or the rules have moved since it was saved, the search badges, the sorted list and
+a product page score that saved label text again (about a millisecond) and save the result under the current
+settings, instead of requesting the product page. The re-scored record keeps the age of the label it came from, so
+it is never fresher than that label, and `recallReading` in `score-cache.js` applies the same age limit and grace
+as a saved score. A record is not reused this way when it has no label text, was worked out with AI ratings (those
+are not part of the saved reading), was pasted or overridden, or came from a photo, barcode, database or AI-label
+reading the reader has since switched off.
+
+On those stores' product pages the label the page shows is always read first. The saved reading answers only while
+the page shows none (the store is still rendering it, or keeps it behind a section the visitor has to open), and the
+live label replaces it as soon as it appears. If it never appears, the saved score stays.
+
 ## Trust
 
 A `products` row is written by whoever sends it. The endpoint ships inside the extension, so anyone

@@ -786,6 +786,31 @@ test('search following requires an open view, enabled preference and the origina
   const list=w.call('self.__session.sortedResults');assert.equal(list.sourceUrl,url);assert.equal(list.items.length,0);assert.equal(list.mode,'unitPrice');assert.equal(list.priceOnly,true);
 });
 
+// "Update list" in the list itself: the reader changed the count or time limit and wants the search they are looking
+// at run again. That is their own request, so it runs for the address already listed and without the follow-searches
+// setting; everything else a follow checks (a view is open, the page's own tab and frame and origin) still applies.
+test('a re-run starts the listed search again, but only from the page that is listed', async () => {
+  const url='https://www.amazon.com/s?k=milk';
+  const w=worker({sortFollowSearch:false});
+  w.call(`self.__session={sortedResults:{runId:'old',sourceTabId:3,sourceUrl:'${url}',mode:'health',items:[{score:90}],loading:false}};chrome.storage.session={get:async()=>self.__session,set:async v=>Object.assign(self.__session,v)};sortedViews.add({})`);
+  const sender={id:'ext',frameId:0,url,tab:{id:3,url}};
+  const call=(msg,from=sender)=>w.call(`followSortedSearch(${JSON.stringify(msg)},${JSON.stringify(from)})`);
+  assert.equal((await call({sourceUrl:url})).ok,false,'the same address is not followed twice');
+  assert.equal((await call({sourceUrl:url,rerun:'yes'})).ok,false,'only an explicit true counts');
+  assert.equal((await call({sourceUrl:url,rerun:true},{...sender,tab:{id:8,url}})).ok,false,'not from another tab');
+  assert.equal((await call({sourceUrl:url,rerun:true},{...sender,frameId:2})).ok,false,'not from a sub-frame');
+  assert.equal((await call({sourceUrl:url,rerun:true},{...sender,url:'https://evil.example/s?k=milk'})).ok,false,'not from another origin');
+  const old=w.call('self.__session.sortedResults.runId');
+  const reply=await call({sourceUrl:url,rerun:true});
+  assert.equal(reply.ok,true,'even with following new searches switched off');
+  assert.notEqual(reply.runId,old,'a new run id, so the old run is dropped');
+  assert.equal(w.call('self.__session.sortedResults.items.length'),0);
+  assert.equal(w.call('self.__session.sortedResults.loading'),true);
+  assert.equal(w.call('self.__session.sortedResults.mode'),'health');
+  w.call('sortedViews.clear()');
+  assert.equal((await call({sourceUrl:url,rerun:true})).ok,false,'with no list open there is nothing to update');
+});
+
 // Amazon starts some searches with history.pushState. The sender's url is then still the address the page loaded
 // with, while the tab and the page itself name the new search; refusing on that mismatch left the panel on the old search.
 test('search following works after a search that did not load a page, and still refuses another origin or frame', async () => {

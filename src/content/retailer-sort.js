@@ -43,7 +43,9 @@
   const FRAME_TIMEOUT_MS = 12000;
   const REQUEST_GAP_MS = 400;
   const CONCURRENT = 2;
-  const MAX_PAGES = 30;
+  // Enough for the largest count the reader can ask for (500) on a store that shows about 10 results per page; the
+  // count and the time limit end a list long before this does on the usual 24 to 48.
+  const MAX_PAGES = 60;
 
   let host, shadow, button, menu;
   let active = false, mounted = false, pending = false, run = 0, runId = null, listening = false, outside = false, followedURL = '';
@@ -234,17 +236,23 @@
   // id -> { score, verdict, source, why }, from this computer only: a saved score still valid under the current
   // settings (with the reasons, re-worked from the reading behind it), or the outcome the badges already found.
   async function knownScores(ids) {
-    const { CACHE, STORE, VERSION, state } = runner();
-    const out = new Map();
+    const { CACHE, STORE, VERSION, state, refit, saveRefits } = runner();
+    const out = new Map(), refits = {};
     if (!ids.length) return out;
     const got = await CACHE.readLocal(ids.map(id => CACHE.key(STORE, id)), state.raw, null, chrome.storage);
     for (const id of ids) {
-      const hit = got && got[CACHE.key(STORE, id)];
-      const saved = CACHE.recall(hit, { store: STORE, asin: id, version: VERSION, prefs: state.raw, maxAgeMs: state.maxAgeMs });
+      const context = { store: STORE, asin: id, version: VERSION, prefs: state.raw, maxAgeMs: state.maxAgeMs };
+      let hit = got && got[CACHE.key(STORE, id)], assessed = null;
+      let saved = CACHE.recall(hit, context);
+      // Settings or rules moved since it was saved: score the saved label text again instead of requesting the page.
+      if (!saved && refit) {
+        const again = refit(hit, id);
+        if (again) { hit = again.hit; assessed = again.result; refits[CACHE.key(STORE, id)] = hit; saved = CACHE.recall(hit, context); }
+      }
       if (saved && !saved.refresh && Number.isFinite(hit.score)) {
         let why = null, servings = null;
         if (hit.input) {
-          const assessed = root.AIR.engine.score(hit.input, state.prefs);
+          assessed = assessed || root.AIR.engine.score(hit.input, state.prefs);
           if (root.AIR.engine.isReadable(assessed) && assessed.score === hit.score) { why = whyOf(assessed); servings = servingsFor(hit.input); }
         }
         out.set(id, { score: hit.score, category: hit.category || 'food', ratingStyle: hit.ratingStyle || 'food', verdict: hit.verdict, source: 'scored', evidence: hit.evidence, why, servings });
@@ -255,6 +263,7 @@
       else if (seen?.status === 'not-food') out.set(id, { score: null, source: 'not-food' });
       else if (seen?.status === 'unavailable') out.set(id, { score: null, source: 'unreadable' });
     }
+    if (saveRefits) saveRefits(refits);
     return out;
   }
 
@@ -544,9 +553,14 @@
 
   // ------------------------------------------------------------------ messages from the panel and the worker
   // The panel's Stop button, the worker's shortcut start and the panel's "follow this search" ask this tab directly.
+  const fromListPage = sender => {
+    try { return /\/src\/options\/(sorted|sidepanel)\.html(?:[?#]|$)/.test(new URL(sender.url || '').pathname + '#'); } catch (e) { return false; }
+  };
   function onPanelMessage(msg, sender, respond) {
     const own = !!sender && sender.id === chrome.runtime.id && !sender.tab;
     if (msg?.type === 'sortFollow') { if (own) followSearch(true); return false; }
+    // The list's "Update list": start this search again, now under the count and time limit the reader just set.
+    if (msg?.type === 'sortRerun') { if (sender && sender.id === chrome.runtime.id && fromListPage(sender)) followSearch(true, true); return false; }
     if (msg && msg.type === 'sortStart') {
       const ok = own && mounted && typeof msg.runId === 'string' && /^[\w-]{1,64}$/.test(msg.runId);
       if (typeof respond === 'function') respond({ ok });
@@ -554,10 +568,7 @@
       return false;
     }
     if (!msg || msg.type !== 'sortStop') return false;
-    let fromList;
-    try {
-      fromList = own && /\/src\/options\/(sorted|sidepanel)\.html(?:[?#]|$)/.test(new URL(sender.url || '').pathname + '#');
-    } catch (e) { fromList = false; }
+    const fromList = own && fromListPage(sender);
     if (!fromList || (msg.runId && msg.runId !== runId)) return false;
     run++;
     for (const controller of controllers) controller.abort();
@@ -565,11 +576,11 @@
     return false;
   }
   // With the panel open, a new search in this tab fills it again, as on Amazon.
-  function followSearch(force = false) {
+  function followSearch(force = false, rerun = false) {
     if (!mounted || (!force && followedURL === location.href)) return;
     const url = location.href, generation = run;
     followedURL = url;
-    send({ type: 'followSortedSearch', sourceUrl: url, priceOnly: false, unitEnabled: true }).then(reply => {
+    send({ type: 'followSortedSearch', sourceUrl: url, priceOnly: false, unitEnabled: true, ...(rerun ? { rerun: true } : {}) }).then(reply => {
       if (reply?.ok && typeof reply.runId === 'string' && mounted && location.href === url && run === generation) void startFromCommand(reply);
     });
   }

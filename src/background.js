@@ -372,7 +372,10 @@ function followSortedSearch(msg, sender) {
 }
 async function followSortedSearchOnce(msg, sender) {
   const conf = await chrome.storage.local.get(['enabled','sortFollowSearch']);
-  if (!sortedViews.size || conf.enabled === false || conf.sortFollowSearch === false) return {ok:false};
+  // `rerun`: the reader pressed "Update list" in the list itself (after changing the count or time limit). That is
+  // their own request, so it runs for the address already listed and whether or not new searches are followed.
+  const rerun = msg.rerun === true;
+  if (!sortedViews.size || conf.enabled === false || (conf.sortFollowSearch === false && !rerun)) return {ok:false};
   const url = self.AIR.db.sortedResults.sanitizeSourceUrl(msg.sourceUrl);
   const tab = chrome.tabs?.get ? await chrome.tabs.get(sender.tab?.id) : sender.tab;
   // `sender.url` is the address the frame loaded with. Amazon starts some searches without a page load
@@ -384,7 +387,7 @@ async function followSortedSearchOnce(msg, sender) {
   const actual = (tab && tab.url) || (sender.tab && sender.tab.url);
   if (!url || !isSortableSearchUrl(url) || tab?.id !== sender.tab?.id || actual !== url || !sameOrigin(sender.url, url) || sender.frameId !== 0) return {ok:false};
   const {sortedResults:list} = await chrome.storage.session.get('sortedResults');
-  if (!sortedViews.size || !list || list.sourceTabId !== tab.id || (list.sourceUrl === url && !!list.priceOnly === (msg.priceOnly === true))) return {ok:false};
+  if (!sortedViews.size || !list || list.sourceTabId !== tab.id || (!rerun && list.sourceUrl === url && !!list.priceOnly === (msg.priceOnly === true))) return {ok:false};
   const runId = crypto.randomUUID();
   const mode = msg.priceOnly === true ? 'unitPrice' : list.mode;
   await chrome.storage.session.set({sortedResults:{...list,runId,mode,sourceUrl:url,priceOnly:msg.priceOnly===true,unitEnabled:msg.unitEnabled!==false,unit:'',items:[],loading:true,status:'',t:Date.now()},sortUnit:'auto'});

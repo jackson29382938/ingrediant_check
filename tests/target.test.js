@@ -391,6 +391,50 @@ test('fresh Target public HTML keeps its grocery label collapsed until the visit
   assert.deepEqual(w.clicks, ['label']);
 });
 
+// A product opened before has its reading saved on this computer. Waiting for the store to render the label (or to be
+// asked to open it) is the slow part of a revisit; the saved reading answers at once, and the live label replaces it.
+const savedOats = (patch = {}) => ({ 's:target.com:79364857': { schema: scoreCache.SCHEMA, cacheRevision: scoreCache.CACHE_REVISION, v: '1.1.0',
+  t: Date.now() - 86400000, store: 'target.com', asin: '79364857', prefs: scoreCache.fingerprint({}, 'page'), score: 77, verdict: 'Good', nova: 1,
+  category: 'food', source: 'page', name: 'Oats', input: { name: 'Oats', ingredients_text: 'whole grain rolled oats' }, ...patch } });
+
+test('a Target product opened before shows its saved score while the label is still collapsed', () => {
+  const url = 'https://www.target.com/p/oats/-/A-79364857';
+  const w = runner('target-p-oats-collapsed-2026-10-04.html', url, savedOats());
+  assert.equal(w.host.dataset.airState, 'scored', 'no "Open Label info" notice for a product that was already read');
+  assert.match(w.host.html, /^render:\d+:page:/, 'rendered as the reading it was, from the page');
+  assert.equal(w.host.dataset.airSaved, '79364857', 'and marked as a saved reading until the live label replaces it');
+  assert.equal(w.writes.length, 0, 'showing it saves nothing');
+  assert.equal(w.fetches.length, 0);
+  w.pass();
+  assert.equal(w.host.dataset.airState, 'scored', 'a later pass keeps waiting for the live label instead of replacing it with the notice');
+  assert.equal(w.writes.length, 0);
+});
+
+test('a saved reading from older settings is scored again for the panel, and kept under the current settings', () => {
+  const url = 'https://www.target.com/p/oats/-/A-79364857';
+  const stale = savedOats({ prefs: scoreCache.fingerprint({ weights: { sugar: 2 } }, 'page'), score: 12 });
+  const w = runner('target-p-oats-collapsed-2026-10-04.html', url, stale);
+  assert.equal(w.host.dataset.airSaved, '79364857');
+  const shown = Number(w.host.html.split(':')[1]);
+  assert.notEqual(shown, 12, 'the score is worked out under the current settings, not the old 12');
+  const kept = w.writes.map(write => write['s:target.com:79364857']).find(Boolean);
+  assert.equal(kept?.score, shown);
+  assert.equal(kept?.prefs, scoreCache.fingerprint({}, 'page'));
+  assert.equal(kept?.t, stale['s:target.com:79364857'].t, 'with the age of the label it came from');
+});
+
+test('a saved reading is not shown when it cannot be reused, or when the live page has its own label', () => {
+  const url = 'https://www.target.com/p/oats/-/A-79364857';
+  for (const patch of [{ t: Date.now() - 40 * 86400000 }, { input: undefined }, { ai: true }, { source: 'manual-paste' }, { asin: '1' }]) {
+    const w = runner('target-p-oats-collapsed-2026-10-04.html', url, savedOats(patch));
+    assert.equal(w.host.dataset.airState, 'waiting', `the notice stays for ${JSON.stringify(patch)}`);
+  }
+  const chips = 'https://www.target.com/p/chips/-/A-16600402';
+  const live = runner('target-p-chips.html', chips, { 's:target.com:16600402': { ...savedOats()['s:target.com:79364857'], asin: '16600402', score: 5 } });
+  assert.match(live.host.html, /^render:\d+:page:/);
+  assert.equal(live.host.dataset.airSaved, undefined, 'a label the page shows is always read live');
+});
+
 test('Target keeps collapsed accordions actionable despite auxiliary text and retained hidden labels', () => {
   const doc = createDocument(`<section data-test="@web/site-top-of-funnel/ProductDetailCollapsible-LabelInfo">
     <button aria-expanded="false">Label info</button><p>Show nutrition details</p>

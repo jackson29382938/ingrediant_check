@@ -212,6 +212,7 @@
     root.append(header);
 
     root.append(buildUnitPicker());
+    root.append(buildDepth());
     root.append(buildPriorities());
     root.append(buildFilters());
     ui.list = node('section', 'result-list');
@@ -290,6 +291,64 @@
       : here != null && items.length
         ? t('sortedUnitCover', 'Priced per $3: $1 of $2 listings. Weight, volume and count do not convert into each other.', here, items.length, unitName(unit()))
         : '';
+  }
+
+  // "Compare up to N products": how long the list is and how long it may take, where the reader is looking at it. The
+  // same three settings as Settings > Sort (sortLoadMore, sortCount, sortTimeLimit). "Update list" saves them and
+  // starts this search again, so asking for 300 products does not need a trip to Settings and back to the store.
+  const DEPTH_KEYS = ['sortLoadMore', 'sortCount', 'sortTimeLimit'];
+  function buildDepth() {
+    const box = node('div', 'unit-picker depth-picker');
+    const countLabel = node('label', 'unit-label', t('sortedDepth', 'Compare up to'));
+    ui.depthCount = node('input', 'depth-count');
+    ui.depthCount.id = 'depth-count'; countLabel.htmlFor = 'depth-count';
+    ui.depthCount.type = 'number'; ui.depthCount.inputMode = 'numeric'; ui.depthCount.step = '1';
+    ui.depthCount.min = String(R.COUNT_MIN); ui.depthCount.max = String(R.COUNT_MAX);
+    const timeLabel = node('label', 'unit-label', t('sortedDepthTime', 'products, for up to'));
+    ui.depthTime = node('select', 'unit-select depth-time');
+    ui.depthTime.id = 'depth-time'; timeLabel.htmlFor = 'depth-time';
+    for (const sec of R.TIME_LIMITS) {
+      ui.depthTime.append(new Option(!sec ? t('optSortTimeNone', 'No limit') : sec < 120 ? t('optSortSeconds', '$1 seconds', sec)
+        : t('optSortMinutes', '$1 minutes', sec / 60), String(sec)));
+    }
+    ui.depthApply = button('button secondary', t('sortedDepthApply', 'Update list'), applyDepth);
+    ui.depthNote = node('p', 'unit-note depth-note');
+    ui.depthNote.setAttribute('role', 'status');
+    box.append(countLabel, ui.depthCount, timeLabel, ui.depthTime, ui.depthApply, ui.depthNote);
+    const paintDepth = o => {
+      const v = R.sanitizeSort(o || {});
+      if (document.activeElement !== ui.depthCount) ui.depthCount.value = String(v.sortCount);
+      ui.depthTime.value = String(v.sortTimeLimit);
+      ui.depthNote.textContent = v.sortLoadMore
+        ? t('sortedDepthOn', 'Reads more results pages until it has this many, or the time is up. The same setting as Settings, Sort.')
+        : t('sortedDepthOff', 'Now just this page. Update list reads more results pages until it has this many, or the time is up.');
+    };
+    try {
+      chrome.storage.local.get(DEPTH_KEYS, paintDepth);
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === 'local' && DEPTH_KEYS.some(k => changes[k])) chrome.storage.local.get(DEPTH_KEYS, paintDepth);
+      });
+    } catch (e) { paintDepth({}); /* not an extension page */ }
+    return box;
+  }
+  async function applyDepth() {
+    const wanted = Number(ui.depthCount.value);
+    if (!ui.depthCount.value.trim() || !Number.isFinite(wanted)) { ui.depthNote.textContent = t('sortedDepthBad', 'Enter a number of products, from $1 to $2.', R.COUNT_MIN, R.COUNT_MAX); ui.depthCount.focus(); return; }
+    const v = R.sanitizeSort({ sortLoadMore: true, sortCount: wanted, sortTimeLimit: ui.depthTime.value });
+    ui.depthCount.value = String(v.sortCount);
+    logUi(`compare up to ${v.sortCount}, ${v.sortTimeLimit}s`);
+    if (!saved || !Number.isInteger(saved.sourceTabId)) {
+      ui.depthNote.textContent = t('sortedDepthNoTab', 'Search again from the store page to use this.');
+      return;
+    }
+    ui.depthApply.disabled = true;
+    try {
+      await chrome.storage.local.set({ sortLoadMore: true, sortCount: v.sortCount, sortTimeLimit: v.sortTimeLimit });
+      // After the write, so the page reads the new count when it starts.
+      await chrome.tabs.sendMessage(saved.sourceTabId, { type: 'sortRerun' }).catch(() => {});
+    } catch (e) {
+      ui.depthNote.textContent = t('sortedDepthFailed', 'Could not update the list. Search again from the store page.');
+    } finally { ui.depthApply.disabled = false; }
   }
 
   function buildPriorities() {

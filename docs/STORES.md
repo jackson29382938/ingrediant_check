@@ -325,7 +325,11 @@ in Amazon's order and under Amazon's settings (*Settings > Search and unit-price
      rendered in a **hidden same-origin frame**, as your browser would show it, read once it settles and removed;
    - when the store gives no next-page address at all, the page itself is **scrolled** (or its own "show more" button
      pressed) to make it load more, and put back where it was.
-   Each stops at the count or the time limit, and at once on a challenge page;
+   Each stops at the count or the time limit, and at once on a challenge page. The count (1 to 500) and the time limit
+   are also set in the list itself, under **Compare up to … products, for up to …**; **Update list** saves them (and turns
+   *Load more results* on, which a count needs) and runs the same search again, so a list of 300 does not need a trip to
+   Settings. The default time limit is 60 seconds, so a long list usually wants a longer one. A page cap of 60 results
+   pages sits behind the count;
 3. with **Rate them** and automatic rating on, the product pages of listings still without a score, through the runner's
    one reader (`readProductScore` in `retailer.js`, shared with the badges): two at a time, one request per product, one
    throttle flag, one per-page budget. Stop, the master switch or the store refusing ends it.

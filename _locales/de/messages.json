@@ -1066,6 +1066,30 @@
   "sortedSettings": {
     "message": "Einstellungen"
   },
+  "sortedDepth": {
+    "message": "Vergleiche bis zu"
+  },
+  "sortedDepthTime": {
+    "message": "Produkte, höchstens"
+  },
+  "sortedDepthApply": {
+    "message": "Liste aktualisieren"
+  },
+  "sortedDepthOn": {
+    "message": "Lädt weitere Ergebnisseiten, bis diese Anzahl erreicht ist oder die Zeit abgelaufen ist. Dieselbe Einstellung wie unter Einstellungen, Sortieren."
+  },
+  "sortedDepthOff": {
+    "message": "Derzeit nur diese Seite. „Liste aktualisieren“ lädt weitere Ergebnisseiten, bis diese Anzahl erreicht ist oder die Zeit abgelaufen ist."
+  },
+  "sortedDepthBad": {
+    "message": "Gib eine Anzahl von Produkten ein, von $1 bis $2."
+  },
+  "sortedDepthNoTab": {
+    "message": "Starte die Suche dafür erneut auf der Shopseite."
+  },
+  "sortedDepthFailed": {
+    "message": "Die Liste konnte nicht aktualisiert werden. Starte die Suche erneut auf der Shopseite."
+  },
   "sortedPriorities": {
     "message": "Priorisieren"
   },
