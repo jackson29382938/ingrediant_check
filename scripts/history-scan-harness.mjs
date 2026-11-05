@@ -21,6 +21,8 @@ export async function historyScanEndToEnd(context, worker, errors, extensionId) 
   let scanPage;
   try {
     await history.goto(`chrome-extension://${extensionId}/src/options/history.html`);
+    // The scan controls start collapsed (history-review.mjs pins that), so open them as a reader would.
+    await history.locator('#scanControls').evaluate(node => { node.open = true; });
     await history.waitForFunction(() => !document.querySelector('#scanStart').disabled);
     await history.click('#scanStart');
     await history.waitForFunction(() => document.querySelector('#scanStatus').textContent.includes('Scan complete'), null, { timeout: 30000 });
