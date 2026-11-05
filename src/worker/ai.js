@@ -110,6 +110,7 @@
   // -> { ok: true, text } | { ok: false, reason }
   async function complete(key, body) {
     if (Date.now() < backoffUntil) return { ok: false, reason: 'rate-limited' };
+    if ((await chrome.storage.local.get('enabled')).enabled === false) return { ok: false, reason: 'paused' };
     // Not networkRequest(): its 15 second limit is right for a barcode and too short for a vision model.
     const send = async payload => {
       const res = await fetch(ENDPOINT, {
@@ -207,20 +208,28 @@
     if (!allowed.length) return { ok: false, reason: 'no-images' };
     const results = [];
     let failed = '';
-    const stored = (await chrome.storage.local.get(LABEL_CACHE_KEY))[LABEL_CACHE_KEY];
-    const labels = stored && typeof stored === 'object' && !Array.isArray(stored) ? stored : {};
-    const keep = async (url, text) => {
-      labels[url] = { text, t: Date.now() };
-      const urlsHeld = Object.keys(labels);
-      if (urlsHeld.length > LABEL_CACHE_MAX) {
-        urlsHeld.sort((a, b) => (labels[a].t || 0) - (labels[b].t || 0));
-        for (const u of urlsHeld.slice(0, urlsHeld.length - LABEL_CACHE_MAX)) delete labels[u];
-      }
-      await chrome.storage.local.set({ [LABEL_CACHE_KEY]: labels }).catch(() => {});
+    let labelWrite = Promise.resolve();
+    const readLabelCache = async () => {
+      const stored = (await chrome.storage.local.get(LABEL_CACHE_KEY))[LABEL_CACHE_KEY];
+      return stored && typeof stored === 'object' && !Array.isArray(stored) ? stored : {};
     };
+    const keep = (url, text) => {
+      labelWrite = labelWrite.then(async () => {
+        const labels = await readLabelCache();
+        labels[url] = { text, t: Date.now() };
+        const urlsHeld = Object.keys(labels);
+        if (urlsHeld.length > LABEL_CACHE_MAX) {
+          urlsHeld.sort((a, b) => (labels[a].t || 0) - (labels[b].t || 0));
+          for (const u of urlsHeld.slice(0, urlsHeld.length - LABEL_CACHE_MAX)) delete labels[u];
+        }
+        await chrome.storage.local.set({ [LABEL_CACHE_KEY]: labels });
+      }).catch(() => {});
+      return labelWrite;
+    };
+    const initialLabels = await readLabelCache();
     for (const url of allowed) {
       // A photo is read once: the answer (or "no list here") is kept on this computer.
-      const held = Object.hasOwn(labels, url) ? labels[url] : null;
+      const held = Object.hasOwn(initialLabels, url) ? initialLabels[url] : null;
       if (held && typeof held.text === 'string' && Number.isFinite(held.t) && Date.now() - held.t < (held.text ? LABEL_TTL_MS : NO_LABEL_TTL_MS)) {
         if (held.text && ocr.ingredientsFromOcr(held.text)) { results.push({ url, text: held.text }); break; }
         continue;

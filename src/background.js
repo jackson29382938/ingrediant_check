@@ -307,7 +307,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     return true;
   }
   if (msg && msg.type === 'ocrIdle') {
-    closeOffscreenIfIdle().then(() => reply({ ok: true }));
+    answer('ocrIdle', () => closeOffscreenIfIdle().then(() => ({ ok: true })), reply, { ok: false });
     return true;
   }
   if (msg && msg.type === 'lookupBarcode' && msg.code) {
@@ -318,10 +318,13 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (msg && msg.type === 'ping') { reply({ ok: true }); return false; }
   // Amazon's sort menu (src/content/sort.js). openSortedPanel must reach sidePanel.open before any
   // await, so it is not wrapped in a promise chain here.
-  if (msg && msg.type === 'followSortedSearch') { followSortedSearch(msg, sender).then(reply, () => reply({ok:false})); return true; }
+  if (msg && msg.type === 'followSortedSearch') {
+    answer('followSortedSearch', () => followSortedSearch(msg, sender), reply, { ok: false });
+    return true;
+  }
   if (msg && msg.type === 'openSortedPanel') { openSortedPanel(msg, sender, reply); return true; }
   if (msg && msg.type === 'updateSortedResults') {
-    updateSortedResults(msg, sender).then(reply, e => reply({ ok: false, reason: String((e && e.message) || e) }));
+    updateSortedResults(msg, sender).then(reply, e => { noteWorkerError('updateSortedResults', e); reply({ ok: false, reason: String((e && e.message) || e) }); });
     return true;
   }
   // A line for "Report a problem" (engine/db/activity.js), from a content script, which cannot reach
@@ -332,7 +335,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   }
   if (msg && msg.type === 'openSortedTab') {
     chrome.tabs.create({ url: chrome.runtime.getURL('src/options/sorted.html') })
-      .then(() => reply({ ok: true }), e => reply({ ok: false, reason: String((e && e.message) || e) }));
+      .then(() => reply({ ok: true }), e => { noteWorkerError('openSortedTab', e); reply({ ok: false, reason: String((e && e.message) || e) }); });
     return true;
   }
   // Shared-database messages are handled here too. Registering a second onMessage listener works in
@@ -537,7 +540,7 @@ chrome.runtime.onInstalled.addListener(details => {
 function sweepAges(speedMode) {
   const speed = self.AIR && self.AIR.db && self.AIR.db.speed;
   const readings = speed ? speed.profile(speedMode).maxAgeMs : TTL_MS;
-  return { s: readings, p: readings, off: TTL_MS };
+  return { s: readings, p: readings, off: TTL_MS, usda2: TTL_MS };
 }
 
 // The cached readings and the one setting that decides their age. `get(null)` also reads everything else
@@ -547,9 +550,9 @@ function sweepAges(speedMode) {
 async function cacheSnapshot() {
   const local = chrome.storage.local;
   if (typeof local.getKeys !== 'function') return local.get(null);
-  const keys = (await local.getKeys()).filter(k => /^(s|p|off):/.test(k));
-  const [readings, setting] = await Promise.all([keys.length ? local.get(keys) : {}, local.get('speedMode')]);
-  return { ...readings, speedMode: setting.speedMode };
+  const keys = (await local.getKeys()).filter(k => /^(s|p|off|usda2):/.test(k));
+  const [readings, setting] = await Promise.all([keys.length ? local.get(keys) : {}, local.get(['speedMode', 'cacheGraceDays'])]);
+  return { ...readings, ...setting };
 }
 
 async function sweepCache(now = Date.now()) {
@@ -557,10 +560,15 @@ async function sweepCache(now = Date.now()) {
   const ages = sweepAges(all.speedMode);
   const grace = self.AIR.db.speed.sanitizeRecall(all).cacheGraceDays * self.AIR.db.speed.DAY;
   ages.s += grace; ages.p += grace;
-  // s: weighted scores, p: product data (docs/CACHE.md), off: Open Food Facts records.
-  const entries = Object.entries(all).filter(([k]) => /^(s|p|off):/.test(k));
+  // s: weighted scores, p: product data (docs/CACHE.md), off: Open Food Facts records, usda2: USDA barcode records.
+  const entries = Object.entries(all).filter(([k]) => /^(s|p|off|usda2):/.test(k));
   const stale = entries
-    .filter(([k, v]) => v && v.t && now - v.t > ages[k.slice(0, k.indexOf(':'))])
+    .filter(([k, v]) => {
+      if (!v || !v.t) return false;
+      const prefix = k.slice(0, k.indexOf(':'));
+      const ttl = prefix === 'usda2' && !v.data ? 3 * 24 * 60 * 60 * 1000 : ages[prefix];
+      return now - v.t > ttl;
+    })
     .map(([k]) => k);
   const staleSet = new Set(stale);   // `stale.includes` inside the filter below was O(n²) at 5k+ keys
   // Hard cap as well as a TTL: a heavy auto-scoring session can add thousands of fresh entries
@@ -1016,6 +1024,10 @@ function backupToChrome() {
     if (!chrome.storage.sync) return { ok: false, reason: 'no-sync' };
     const conf = await chrome.storage.local.get(BACKUP_SOURCE_KEYS);
     if (conf.settingsBackup === false) { chrome.alarms.clear(BACKUP_ALARM); return { ok: false, reason: 'not-enabled' }; }
+    if (self.AIR.platform?.hasDataSharingPermission && !await self.AIR.platform.hasDataSharingPermission()) {
+      chrome.alarms.clear(BACKUP_ALARM);
+      return { ok: false, reason: 'permission-required' };
+    }
     const P = self.AIR.db.prefs;
     try {
       const local = await chrome.storage.local.get('backupDeviceId');

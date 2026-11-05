@@ -69,7 +69,7 @@
           const node = document.createElement('div'); node.setAttribute('data-air-space-filler', ''); node.setAttribute('data-air-result-cell', '');
           node.style.cssText = `box-sizing:border-box;min-width:0;height:${Math.round(height)}px;padding:10px 24px 10px 8px`;
           const shadow = node.attachShadow({ mode: 'open' }), css = document.createElement('style');
-          css.textContent = ':host{color:#253e2e;font:14px/1.4 system-ui,sans-serif}.wrap{height:100%;display:flex;flex-direction:column;gap:10px}header{font-size:12px;color:#526557}header strong{display:block;font-size:14px;color:#234d34}.stat{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;border:1px solid #d6e3d8;border-radius:12px;background:#f4f8f4;padding:12px}.title{font-size:12px;color:#526557}.value{font-size:24px;font-weight:750;color:#234d34}.note{font-size:11px;color:#526557}';
+          css.textContent = ':host{color:#253e2e;font:14px/1.4 system-ui,sans-serif}.wrap{height:100%;display:flex;flex-direction:column;gap:10px}header{font-size:12px;color:#526557}header strong{display:block;font-size:14px;color:#234d34}.stat{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;border:1px solid #d6e3d8;border-radius:12px;background:#f4f8f4;padding:12px}.title{font-size:12px;color:#526557}.value{font-size:24px;font-weight:750;color:#234d34}.note{font-size:11px;color:#526557}@media (prefers-color-scheme:dark){:host(:not([data-air-theme="light"])){color:#e3ece5}:host(:not([data-air-theme="light"])) header,:host(:not([data-air-theme="light"])) .title,:host(:not([data-air-theme="light"])) .note{color:#9fb2a3}:host(:not([data-air-theme="light"])) header strong,:host(:not([data-air-theme="light"])) .value{color:#8ad8a6}:host(:not([data-air-theme="light"])) .stat{background:#18221b;border-color:#2d4033}}:host([data-air-theme="dark"]){color:#e3ece5}:host([data-air-theme="dark"]) header,:host([data-air-theme="dark"]) .title,:host([data-air-theme="dark"]) .note{color:#9fb2a3}:host([data-air-theme="dark"]) header strong,:host([data-air-theme="dark"]) .value{color:#8ad8a6}:host([data-air-theme="dark"]) .stat{background:#18221b;border-color:#2d4033}';
           const wrap = document.createElement('section'); wrap.className = 'wrap'; wrap.setAttribute('aria-label', t('walmartStatSection', 'Ingredient Check search summaries'));
           const header = document.createElement('header'), brand = document.createElement('strong'); brand.textContent = 'Ingredient Check';
           header.append(brand, document.createTextNode(t('walmartStatScope', 'This loaded search'))); wrap.append(header);
@@ -84,7 +84,7 @@
           shadow.append(css, wrap); stack.append(node); layout.nodes.push(node);
         }
       }
-      for (const node of layout.nodes) node.style.removeProperty('display');
+      for (const node of layout.nodes) { root.AIR.db.theme?.force?.(node); node.style.removeProperty('display'); }
       for (const node of layout.nodes) for (const stat of node.shadowRoot.querySelectorAll('[data-stat]')) {
         const value = summaries[Number(stat.dataset.stat)].value;
         const label = stat.querySelector('.value');

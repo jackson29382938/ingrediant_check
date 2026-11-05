@@ -438,13 +438,19 @@ function writeAccount(token, payload, identity) {
   return json({ ok: true, wrote: 1, tab: 'accounts' });
 }
 
+function safeParseJson(text) {
+  try { return JSON.parse(text); } catch (err) { return null; }
+}
+
 function readAccount(token, identity) {
   var id = identity || accountId(token);
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('accounts');
   var at = sheet ? findAccountRow(sheet, id) : -1;
   if (at === -1) return json({ ok: true, payload: null });
   var r = sheet.getRange(at, 1, 1, ACCOUNT_COLUMNS.length).getValues()[0];
-  return json({ ok: true, payload: JSON.parse(unquote(r[1])), ts: unquote(r[2]) });
+  var parsed = safeParseJson(unquote(r[1]));
+  if (!parsed || typeof parsed !== 'object') return json({ ok: true, payload: null });
+  return json({ ok: true, payload: parsed, ts: unquote(r[2]) });
 }
 
 // Separate private rows, verified Google account only. No order IDs, emails or tokens are stored.
@@ -460,7 +466,7 @@ function historyRows() {
 }
 function readHistory(token, identity) {
   var id = identity || accountId(token), cleared = historyClearTime(id);
-  var records = historyRows().filter(function(r) { return unquote(r[0]) === id; }).map(function(r) { return JSON.parse(unquote(r[2])); }).filter(function(r) { return r.observedAt > cleared; });
+  var records = historyRows().filter(function(r) { return unquote(r[0]) === id; }).map(function(r) { return safeParseJson(unquote(r[2])); }).filter(function(r) { return r && r.observedAt > cleared; });
   return json({ ok: true, kind: 'historyGet', account: id, clearedAt: cleared, records: AIR.db.purchaseHistory.merge([], records) });
 }
 function writeHistory(token, payload, identity) {
@@ -470,7 +476,14 @@ function writeHistory(token, payload, identity) {
   var cleared = historyClearTime(id), all = historyRows(), old = [], at = {}, previous = {};
   var wanted = {}; payload.records.forEach(function(r) { wanted[r.key] = true; });
   if (payload.epoch !== cleared) throw new Error('history was reset; sync again');
-  all.forEach(function(r, i) { if (unquote(r[0]) === id) { var parsed = JSON.parse(unquote(r[2])); old.push(parsed); previous[parsed.key] = JSON.stringify(AIR.db.purchaseHistory.clean(parsed)); at[unquote(r[1])] = i + 2; } });
+  all.forEach(function(r, i) {
+    if (unquote(r[0]) === id) {
+      var parsed = safeParseJson(unquote(r[2]));
+      var cleaned = parsed && H.clean(parsed);
+      if (cleaned) { old.push(parsed); previous[cleaned.key] = JSON.stringify(cleaned); }
+      at[unquote(r[1])] = i + 2;
+    }
+  });
   var records = H.merge(old.filter(function(r) { return r.observedAt > cleared; }), payload.records.filter(function(r) { return r.observedAt > cleared; }));
   var sheet = sheetFor('purchase-history', HISTORY_COLUMNS);
   records.forEach(function(r) {
@@ -576,7 +589,7 @@ function writeRows(tabName, columns, rows, existingSheet) {
       // input from a web page, so it is quoted rather than parsed.
       if (typeof v === 'string') {
         if (v.length > CELL_MAX) v = v.slice(0, CELL_MAX);
-        if (/^[=+\-@]/.test(v)) return "'" + v;
+        if (/^[\s\u0000-\u001f]*[=+\-@]/.test(v)) return "'" + v;
       }
       return v === undefined || v === null ? '' : v;
     });

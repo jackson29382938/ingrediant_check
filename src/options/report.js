@@ -33,7 +33,7 @@
     const built = current();
     const r = built.report;
     $('pagePreview').textContent = JSON.stringify(typeof r.page === 'object' ? r.page : D.build({}, { ...ctx }, {}).report.page, null, 2);
-    $('settingsPreview').textContent = JSON.stringify(typeof r.settings === 'object' ? r.settings : D.settingsFrom(ctx.settings), null, 2);
+    $('settingsPreview').textContent = JSON.stringify(typeof r.settings === 'object' ? r.settings : (ctx.settingsSummary || D.settingsFrom(ctx.settings)), null, 2);
     const actions = AIR.db.activity.sanitize(ctx.actions);
     $('actionsPreview').textContent = actions.length
       ? actions.map(a => `${new Date(a.t).toLocaleTimeString()}  ${a.where}: ${a.what}`).join('\n')
@@ -55,7 +55,11 @@
     paint();
   }
   function readImage(file) {
-    if (!file || !/^image\/(?:png|jpeg|webp)$/.test(file.type) || file.size > 8 * 1024 * 1024) return;
+    if (!file) return;
+    if (!/^image\/(?:png|jpeg|webp)$/.test(file.type) || file.size > 8 * 1024 * 1024) {
+      $('status').textContent = t('reportImageRejected', 'Please choose a PNG, JPEG or WebP image under 8 MB.');
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => setShot(reader.result);
     reader.readAsDataURL(file);
@@ -116,6 +120,7 @@
       ctx.settings = { ...(await chrome.storage.local.get(keys.filter(k => !AIR.db.scoreCache.isCacheKey(k)))),
         ...Object.fromEntries(cached.map(k => [k, true])) };
     } catch (e) { ctx.settings = {}; }
+    ctx.settingsSummary = D.settingsFrom(ctx.settings);
     paint();
   })();
 })();

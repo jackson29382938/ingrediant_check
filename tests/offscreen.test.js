@@ -106,4 +106,8 @@ test('only the service worker may ask the OCR host for anything', async () => {
   assert.equal(ok.async, true);
   for (let i = 0; i < 5 && !ok.answer(); i++) await turn();
   assert.equal(ok.answer().results[0].text, 'oats');
+  const ff = w.message({ type: 'ocrImages', urls }, { id: 'ext', url: 'moz-extension://ext/_generated_background_page.html' });
+  assert.equal(ff.async, true);
+  for (let i = 0; i < 5 && !ff.answer(); i++) await turn();
+  assert.equal(ff.answer().results[0].text, 'oats');
 });

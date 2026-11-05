@@ -101,7 +101,7 @@
         browser: text(ctx.userAgent, 300), language: text(ctx.language, 20),
       },
       page: keep.page ? { address: pageAddress(ctx.url), pageScore: pageScoreSummary(ctx.pageScore), sortedList: sortedSummary(ctx.sorted) } : 'left out',
-      settings: keep.settings ? settingsFrom(ctx.settings) : 'left out',
+      settings: keep.settings ? (ctx.settingsSummary || settingsFrom(ctx.settings)) : 'left out',
       recentActions: keep.actions && db().activity ? db().activity.sanitize(ctx.actions) : 'left out',
       screenshot: keep.screenshot && ctx.screenshot ? 'attached in the report file' : keep.screenshot ? 'none taken' : 'left out',
     };
