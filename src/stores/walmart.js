@@ -93,6 +93,7 @@
   // Never hide, or climb through, the page chrome or the results grid itself.
   const STOP = 'main, form, nav, header, footer, aside, body, html, [role="main"], [data-testid="item-stack"]';
   const CHROME = 'h1, input, select, nav, [role="search"]';
+  const SHOP_CONTROLS = 'button, [role="button"], [role="tab"], a[href^="/shop/"], a[href^="/browse/"]';
   const clean = L.clean;
   function marked(node) {
     if (node.getAttribute('data-sponsored') === 'true') return true;
@@ -181,6 +182,9 @@
       for (const p of ancestors(node, 6)) {
         if (p.matches(STOP) || holding.has(p) || p.querySelector(CHROME)) break;
         if (ids && !Array.from(idsIn(p)).every(id => ids.has(id))) break;
+        // Savings banners share a wrapper with category and filter controls. An ad may have
+        // its own buttons, but controls in sibling branches must remain visible.
+        if (Array.from(p.children).some(child => child !== slot && (child.matches(SHOP_CONTROLS) || child.querySelector(SHOP_CONTROLS)))) break;
         slot = p;
       }
       return slot;
