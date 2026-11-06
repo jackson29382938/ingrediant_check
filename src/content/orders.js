@@ -81,7 +81,7 @@
     badge.title = record.score !== null ? `Purchase snapshot, scored ${new Date(record.scoredAt).toLocaleDateString()}. Ingredient labels may differ from when ordered. ${record.flags.join('; ')}. Open product.` : `${line.name}: ${text || 'Label unavailable'}. Open the product to read its label, then use Refresh ratings. Missing labels do not receive an invented score.`;
     A.orderHover?.bind(badge, line, record);
     badge.setAttribute('aria-label', `${line.name}: ${badge.textContent.trim()}. Open product in a new tab.`);
-    const c = record.score !== null ? A.db.theme.band(record.score) : { fg: '#374151', bg: '#f3f4f6', ring: '#9ca3af' };
+    const c = A.db.theme.badgeColors(record.score !== null ? A.db.theme.band(record.score) : A.db.theme.neutral());
     badge.style.cssText = `display:inline-block;max-width:100%;box-sizing:border-box;white-space:normal;margin:4px 0;padding:3px 7px;border:2px solid ${c.ring};border-radius:999px;color:${c.fg};background:${c.bg};font:700 12px/1.4 sans-serif;text-decoration:none${badge.dataset.imageOnly ? ';position:absolute;bottom:2px;left:2px;margin:0;max-width:calc(100% - 4px);font-size:10px;padding:1px 3px' : ''}`;
   }
   async function product(line, conf, turn) {
@@ -149,7 +149,11 @@
     const hit = saved[scoreKey];
     // Purchase history is a record of food. A saved shampoo or supplement index shares the key but is not a food rating.
     if (hit && !cache.isFood(hit)) return { nonfood: true };
-    return cache.valid(hit, { store: location.hostname, asin: line.asin, version, prefs: conf, maxAgeMs: age }) ? { score: hit.score, scoredAt: hit.t, ingredients: '', flags: [] } : null;
+    if (!cache.valid(hit, { store: location.hostname, asin: line.asin, version, prefs: conf, maxAgeMs: age })) return null;
+    const rating = hit.input && rate(hit.input, hit.source, conf);
+    if (rating?.nonfood) return rating;
+    if (rating) return { ...rating, score: hit.score, scoredAt: hit.t, breakdown: rating.score === hit.score ? rating.breakdown : null };
+    return { score: hit.score, scoredAt: hit.t, ingredients: String(hit.input?.ingredients_text || ''), flags: Array.isArray(hit.flags) ? hit.flags : [] };
   }
   let lastURL = location.href, signature = '';
   async function run() {
