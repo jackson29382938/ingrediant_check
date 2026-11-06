@@ -291,6 +291,7 @@
   const ASIN = /^[A-Z0-9]{10}$/;
   const isCard = card => !!(card.dataset && ASIN.test(card.dataset.asin || '') && S().listingTitle(card));
   function productCardsIn(doc) {
+    S().adoptItemIds?.(doc);
     const slot = doc.querySelector('.s-main-slot, [data-component-type="s-search-results"] .s-result-list') || doc;
     let cards = [...slot.querySelectorAll(CARD + ', [data-asin]')].filter(isCard);
     if (!cards.length && slot !== doc) cards = [...doc.querySelectorAll('[data-asin]')].filter(isCard);
@@ -339,11 +340,10 @@
     // Our own score badge sits at the start of the title (search.js paintBadge); it is not the title.
     const badge = (card.querySelector('.air-badge')?.textContent || '').trim();
     const withoutBadge = s => (badge && s.startsWith(badge) ? s.slice(badge.length) : s).trim();
-    const titleNode = S().listingTitle(card);
     const linkNode = card.querySelector('h2 a')
       || [...card.querySelectorAll('a[href]')].find(a => /\/(?:dp|gp\/product)\/[A-Z0-9]{10}/.test(a.getAttribute('href') || ''))
       || card.querySelector('a.a-link-normal.s-no-outline');
-    const title = withoutBadge((titleNode?.innerText || titleNode?.textContent || '').trim());
+    const title = withoutBadge(S().listingName(card));
     const text = (card.innerText || card.textContent || '').replace(/\u00a0/g, ' ').trim()
       .split(/\n/).map(line => withoutBadge(line.trim())).filter(line => line && line !== badge).join('\n');
     const image = card.querySelector('img.s-image');
@@ -685,6 +685,13 @@
   // The panel's Stop button (sorted.js) asks this tab directly.
   function onPanelMessage(msg, sender, respond) {
     if (msg?.type === 'sortFollow') { if (sender?.id === chrome.runtime.id && !sender.tab) followSearch(true); return false; }
+    // The list's "Update list": start this search again, now under the count and time limit the reader just set.
+    if (msg?.type === 'sortRerun') {
+      let fromList = false;
+      try { fromList = /\/src\/options\/(sorted|sidepanel)\.html(?:[?#]|$)/.test(new URL(sender.url || '').pathname + '#'); } catch (e) { /* no address */ }
+      if (sender?.id === chrome.runtime.id && fromList) followSearch(true, true);
+      return false;
+    }
     if (msg && msg.type === 'sortStart') {
       // From this extension's worker only, for a page this extension is sorting.
       const own = sender && sender.id === chrome.runtime.id && !sender.tab;
@@ -712,11 +719,11 @@
   // Only on stores whose menus and listings the tests cover (storefronts.js `sort`).
   const storeSupported = () => !SF() || SF().sortEnabled(location.hostname);
   let followedURL = '';
-  function followSearch(force = false) {
+  function followSearch(force = false, rerun = false) {
     if (!mounted || (!force && followedURL === location.href)) return;
     const url = location.href, generation = run;
     followedURL = url;
-    send({type:'followSortedSearch',sourceUrl:url,priceOnly,unitEnabled:P().state.unitPrice!==false}).then(reply => {
+    send({type:'followSortedSearch',sourceUrl:url,priceOnly,unitEnabled:P().state.unitPrice!==false,...(rerun?{rerun:true}:{})}).then(reply => {
       if (reply?.ok && typeof reply.runId === 'string' && mounted && location.href === url && run === generation) void startFromCommand(reply);
     });
   }

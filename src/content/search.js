@@ -58,7 +58,33 @@
         && /[\p{L}]/u.test((link.innerText || link.textContent || '').trim())
         && !/^\s*\(?[\d.,]*\s*[$€£]|customer reviews|^\s*see details/i.test(link.innerText || link.textContent || '')) || null;
     }
-    return plain[0] || named[0] || null;
+    // A visible plain heading first; failing that, whatever is visible, so an unexpected wrapper never costs the badge.
+    return plain[0] || named[0] || productLinkTitle(tile, live) || null;
+  }
+
+  // Last resort, reached only when no heading or known title element matched: a grocery card that draws its title as
+  // plain text in a link to its own product (any classes, or only an aria-label). Without it such a card is not a
+  // listing at all, so the page gets no badge and the sorted list no row. The longest such link is the title (a
+  // product's image link has no text). Never a link inside a control or alert, and never a card in a carousel, whose
+  // untitled cards were the reason a title is required (their product pages spent the whole auto-score budget; the
+  // carousels that do publish their title as a link are the `.a-carousel-card` rule above).
+  const CAROUSEL = '.a-carousel-container, .a-carousel, [class*="carousel" i], [data-component-type="s-searchgrid-carousel"]';
+  function productLinkTitle(tile, live) {
+    if (typeof tile.querySelectorAll !== 'function' || typeof tile.getAttribute !== 'function') return null;
+    const asin = tile.getAttribute('data-asin') || '';
+    if (!ASIN.test(asin)) return null;
+    if (typeof tile.closest === 'function' && tile.closest(CAROUSEL)) return null;
+    let best = null, bestLength = 0;
+    for (const a of tile.querySelectorAll('a[href]')) {
+      if (typeof a.getAttribute !== 'function' || linkAsin(a) !== asin) continue;
+      const control = typeof a.closest === 'function' ? a.closest(NOT_A_TITLE) : null;
+      if (control && control !== tile && tile.contains(control)) continue;
+      if (live && typeof a.getClientRects === 'function' && a.getClientRects().length === 0) continue;
+      const text = ((a.innerText || a.textContent || '').replace(/\s+/g, ' ').trim() || (a.getAttribute('aria-label') || '').trim());
+      if (text.length < 6 || NOT_A_TITLE_TEXT.test(text)) continue;
+      if (text.length > bestLength) { best = a; bestLength = text.length; }
+    }
+    return best;
   }
   const badgeable = tile => !!listingTitle(tile);
   function tileAsin(tile) {
@@ -71,6 +97,56 @@
     const mainAsin = P().isProductPage?.() ? location.pathname.match(productPath)?.[1] : '';
     return [...doc.querySelectorAll(TILE_SEL)].filter(tile =>
       (!mainAsin || tileAsin(tile) !== mainAsin) && !tile.closest?.('header, nav, footer, #ewc-content, #sc-active-cart'));
+  }
+
+  // The listing's name, for the side panel and the food check: the title's text or, for a title that is a link with
+  // no visible text of its own, its accessible name.
+  function listingName(tile) {
+    const el = listingTitle(tile);
+    if (!el) return '';
+    const text = (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
+    if (text) return text;
+    const label = typeof el.getAttribute === 'function' ? (el.getAttribute('aria-label') || el.getAttribute('title') || '') : '';
+    return String(label).replace(/\s+/g, ' ').trim();
+  }
+
+  // Some grocery cards carry their product only as data-csa-c-item-id="amzn1.asin.1.B0…" and have no data-asin, and
+  // everything here (badges, the sorted list) finds a listing by data-asin. On a page with no valid data-asin at all
+  // the ASIN is copied across, outermost element only. A page that already has data-asin elements is never touched.
+  const ITEM_ASIN = /amzn1\.asin\.(?:\d+\.)?([A-Z0-9]{10})(?![A-Z0-9])/;
+  const ITEM_SEL = '[data-csa-c-item-id*="amzn1.asin"]';
+  function adoptItemIds(doc = document) {
+    try {
+      if ([...doc.querySelectorAll('[data-asin]')].some(el => /^[A-Z0-9]{10}$/.test(el.getAttribute('data-asin') || ''))) return 0;
+      let adopted = 0;
+      for (const el of doc.querySelectorAll(ITEM_SEL)) {
+        const match = ITEM_ASIN.exec(el.getAttribute('data-csa-c-item-id') || '');
+        if (!match || (el.parentElement && el.parentElement.closest(ITEM_SEL))) continue;
+        el.setAttribute('data-asin', match[1]);
+        adopted++;
+      }
+      return adopted;
+    } catch (e) { return 0; }
+  }
+
+  // Once per address: when five seconds in the page still has no listing the extension recognises, say what it did
+  // find (counts only) in "Report a problem"'s recent actions, so a layout this code does not know can be seen.
+  const notedAddresses = new Set();
+  function noteMissingListings() {
+    const address = location.href;
+    if (notedAddresses.has(address)) return;
+    notedAddresses.add(address);
+    const timer = setTimeout(() => {
+      try {
+        if (location.href !== address || !P().isListPage()) return;
+        if (candidateTiles().some(badgeable)) return;
+        const withAsin = [...document.querySelectorAll('[data-asin]')].filter(el => ASIN.test(el.getAttribute('data-asin') || ''));
+        const linked = new Set();
+        for (const a of document.querySelectorAll('a[href]')) { const id = linkAsin(a); if (id) linked.add(id); }
+        P().logAction?.('search results', `no listing recognised: ${withAsin.length} elements with an ASIN, ${linked.size} product links, ${document.querySelectorAll(ITEM_SEL).length} item ids`);
+      } catch (e) { /* a diagnostic must never throw */ }
+    }, 5000);
+    if (timer && typeof timer.unref === 'function') timer.unref();
   }
 
   const searchGate = { url: null, decision: null };
@@ -212,6 +288,8 @@
 
   function badgeSearchResults() {
     const { state, BADGE_ATTR } = P();
+    adoptItemIds();
+    noteMissingListings();
     // React can reuse a connected result tile for a different product. Clear its old badge and
     // arming flags before checking caches again; connectedness alone does not prove identity.
     const tiles = candidateTiles();
@@ -477,8 +555,7 @@
   }
 
   function tileTitle(tile) {
-    const el = listingTitle(tile);
-    return ((el && (el.innerText || el.textContent)) || '').replace(/\s+/g, ' ').trim();
+    return listingName(tile);
   }
 
   function enqueue(tile, asin, { front = false } = {}) {
@@ -744,7 +821,7 @@
     searchAllowed, resetSearchGate, standDown, badgeSearchResults,
     armHoverPass, armAutoScorePass, enqueue, scoreTile, cancelTileWork, resolveTiles,
     pauseForThrottle, clearBadges, paintBadge, AUTO_NOTICE_ID, AUTO_NOTICE_SEEN,
-    readProductHtml, recordReading, TITLE_SEL, listingTitle,
+    readProductHtml, recordReading, TITLE_SEL, listingTitle, listingName, adoptItemIds,
   };
   root.AIR.search = search;
   if (typeof module !== 'undefined' && module.exports) module.exports = search;

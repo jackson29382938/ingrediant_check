@@ -93,7 +93,68 @@
     };
   }
 
+  // A saved score that no longer matches the current weights or rules still holds the label text it came from
+  // (CACHE.recallReading), and scoring text again takes about a millisecond where the product page takes a request.
+  // Returns { hit, result } with the score worked out under the current settings, or null when the saved reading
+  // cannot be used. The entry keeps the reading's own age (`t`), so a re-scored entry never looks fresher than the label.
+  function refit(hit, id) {
+    if (!hit || typeof hit !== 'object' || !CACHE.recallReading) return null;
+    if (!CACHE.recallReading(hit, { store: STORE, asin: id, version: VERSION, prefs: state.raw, maxAgeMs: state.maxAgeMs })) return null;
+    let result;
+    try { result = root.AIR.engine.score(hit.input, state.prefs); } catch (e) { return null; }
+    if (!root.AIR.engine.isReadable(result)) return null;
+    const entry = { ...cacheEntry(id, result, hit.name, hit.source, hit.input), t: hit.t };
+    if (root.AIR.db.shopping) entry.evidence = root.AIR.db.shopping.evidence(result, { source: hit.source, capturedAt: hit.t, prefs: state.prefs });
+    return { hit: entry, result };
+  }
+  // One write for every entry a pass re-scored, so the next page of results finds them as ordinary saved scores.
+  function saveRefits(entries) {
+    if (!entries || !Object.keys(entries).length) return;
+    try { chrome.storage.local.set(entries, () => void chrome.runtime.lastError); } catch (e) { /* the scores still show */ }
+  }
+
+  // A product opened before has its reading saved on this computer. When the page shows no label yet (the store is
+  // still rendering it, or keeps it behind a section the visitor has to open), that reading answers at once and the
+  // live label replaces it the moment the page has one; if the page never does, the saved score stays. A label the
+  // page shows is never replaced by a saved one: productPass scores it first. Returns 'shown' (nothing more to wait
+  // for), 'reading' (the saved reading is being looked up) or null (there is none, so the page is waited on as before).
+  function savedPanel(data, host) {
+    let mine = state.saved;
+    if (!mine || mine.id !== data.id) {
+      mine = state.saved = { id: data.id, status: 'reading', result: null, hit: null };
+      const key = CACHE.key(STORE, data.id);
+      const context = { store: STORE, asin: data.id, version: VERSION, prefs: state.raw, maxAgeMs: state.maxAgeMs };
+      let sync = true;
+      CACHE.readLocal([key], state.raw, got => {
+        if (state.saved !== mine) return;                  // another product, or the page was reset meanwhile
+        const hit = got && got[key];
+        let result = null;
+        try {
+          if (CACHE.recall(hit, context)) { if (hit.input) { result = root.AIR.engine.score(hit.input, state.prefs); mine.hit = hit; } }
+          else {
+            const again = refit(hit, data.id);              // weights or rules moved since it was saved
+            if (again) { result = again.result; mine.hit = again.hit; saveRefits({ [key]: again.hit }); }
+          }
+        } catch (e) { result = null; }
+        if (result && root.AIR.engine.isReadable(result)) { mine.result = result; mine.status = 'shown'; } else mine.status = 'none';
+        if (!sync) pass();                                 // draw it, or carry on waiting for the page
+      }, chrome.storage);
+      sync = false;
+    }
+    if (mine.status === 'shown') {
+      const h = host();
+      if (h.dataset.airSaved !== data.id) {                // also after hydration discarded the panel
+        show(h, P.render(mine.result, { title: data.title, confidence: 0.95, via: mine.hit.source, capturedAt: mine.hit.t, report: false }), 'scored');
+        h.dataset.airSaved = data.id;
+        badge({ ...mine.hit, score: mine.result.score, verdict: mine.result.verdict, category: mine.result.category || 'food' });
+      }
+      return 'shown';
+    }
+    return mine.status === 'reading' ? 'reading' : null;
+  }
+
   function show(host, html, state_, wire) {
+    delete host.dataset.airSaved;
     host.dataset.airState = state_;
     const shadow = P.mount(host, html, null, wire && wire.paste);
     // "Open the score panel on product pages" applies here too, for a score (not a failure card).
@@ -166,6 +227,11 @@
     }
 
     if (data.ingredients) { scoreText(host(), data, data.ingredients, state.override ? 'food-override' : 'page'); return true; }
+
+    // No label on the page (yet): a product opened before answers from its saved reading.
+    const saved = savedPanel(data, host);
+    if (saved === 'shown') return 'watch';
+    if (saved === 'reading') return false;
 
     if (data.label === 'collapsed') {
       if (host().dataset.airState === 'waiting') return 'watch';
@@ -377,12 +443,18 @@
     CACHE.readLocal(keys, state.raw, got => {
       if (generation !== state.generation || !state.enabled || !state.badges || location.href !== state.url) return;
       const current = new Map(adapter.searchTiles(document).map(tile => [tile.anchor, tile.id]));
-      const ranked = [];
+      const ranked = [], refits = {};
       for (const x of tiles) {
         if (!currentTile(x, current)) continue;
         if ((browse || carouselPage()) && state.foodOnly && gate.looksNonFoodFromTitle(x.title) && !gate.allowsProduct?.(x.title, state.prefs)) continue;
-        const hit = got && got[CACHE.key(STORE, x.id)];
-        const saved = CACHE.recall(hit, { store: STORE, asin: x.id, version: VERSION, prefs: state.raw, maxAgeMs: state.maxAgeMs });
+        const context = { store: STORE, asin: x.id, version: VERSION, prefs: state.raw, maxAgeMs: state.maxAgeMs };
+        let hit = got && got[CACHE.key(STORE, x.id)];
+        let saved = CACHE.recall(hit, context);
+        // Settings or rules moved since it was saved: score the saved label text again rather than reading the page.
+        if (!saved) {
+          const again = refit(hit, x.id);
+          if (again) { hit = again.hit; refits[CACHE.key(STORE, x.id)] = hit; saved = CACHE.recall(hit, context); }
+        }
         if (saved && !saved.refresh) { paintBadge(x, hit, '', saved.stale); ranked.push({ tile: x, hit }); continue; }
         let job = state.requests.get(x.id);
         if (!job && state.autoScoreSearch && adapter.productUrl && !state.throttled && state.fetchCount < state.fetchLimit) {
@@ -394,6 +466,7 @@
         paintBadge(x, job?.hit || saved?.hit || null, job?.status || (state.throttled ? 'unavailable' : 'limited'), saved?.stale && !job?.hit);
         ranked.push({ tile: x, hit: job?.hit || saved?.hit || null });
       }
+      saveRefits(refits);
       if (isListingPage(location) && ranked.length) root.AIR.retailerSort?.update(ranked);
       if (search) root.AIR.retailerSpace?.update(ranked);
       drain();
@@ -468,7 +541,7 @@
     clearBadges();
     adapter.restoreSponsored?.(document);
     state.signature = null;
-    state.pageScore = null; state.override = false; state.done = false; state.started = Date.now();
+    state.pageScore = null; state.override = false; state.done = false; state.saved = null; state.started = Date.now();
     state.url = location.href;
     root.AIR.retailerSort?.reset(state.enabled && isListingPage(location));
     root.AIR.retailerSpace?.reset();
@@ -550,6 +623,6 @@
   });
 
   // What the sorted list (retailer-sort.js, loaded before this file and used only at call time) needs of the runner.
-  root.AIR.retailerRunner = { adapter, state, CACHE, STORE, VERSION, readProductScore, publicDocument };
+  root.AIR.retailerRunner = { adapter, state, CACHE, STORE, VERSION, readProductScore, publicDocument, refit, saveRefits };
   if (typeof module !== 'undefined' && module.exports) module.exports = { state, pass, reset, adapter };
 })(typeof globalThis !== 'undefined' ? globalThis : self);

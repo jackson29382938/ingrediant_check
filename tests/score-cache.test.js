@@ -228,3 +228,39 @@ test('a saved personal-care index is not a food rating', () => {
   assert.equal(cache.isFood({ ...entry, category: 'shampoo' }), false);
   assert.equal(cache.isFood({ ...entry, category: 'supplement' }), false);
 });
+
+// A saved score the current settings no longer match is still a saved reading: the record keeps the label text,
+// and scoring it again takes about a millisecond where the store's page takes a request (recallReading).
+test('a score the weights or rules have moved past can be rescored from its saved reading, not refetched', () => {
+  const day = 86400000;
+  const reading = { ...entry, input: { name: 'Oats', ingredients_text: 'rolled oats' } };
+  const moved = { ...context, prefs: { weights: { sugar: 2 } } };
+  assert.equal(cache.recall(reading, moved, now), null, 'the saved score itself is no longer valid');
+  assert.deepEqual(cache.recallReading(reading, moved, now), { hit: reading, stale: false, refresh: false });
+  // A rules revision is the same case: only what scores the reading changed.
+  const oldRules = { ...reading, prefs: JSON.stringify({ ...JSON.parse(reading.prefs), rules: 'older' }) };
+  assert.equal(cache.recall(oldRules, context, now), null);
+  assert.equal(cache.recallReading(oldRules, context, now).stale, false);
+  // Age is still the reading's: fresh, within the grace (stale, refreshed behind), then too old.
+  const grace = { ...reading, t: now - 31 * day };
+  assert.deepEqual(cache.recallReading(grace, moved, now), { hit: grace, stale: true, refresh: true });
+  assert.equal(cache.recallReading({ ...reading, t: now - 38 * day }, moved, now), null);
+  assert.equal(cache.recallReading(reading, { ...moved, prefs: { weights: { sugar: 2 }, cacheFirst: false } }, now), null);
+});
+
+test('a saved reading is never reused for another product, an unreadable record, or a source the reader has switched off', () => {
+  const reading = { ...entry, input: { name: 'Oats', ingredients_text: 'rolled oats' } };
+  const moved = { ...context, prefs: { weights: { sugar: 2 } } };
+  for (const patch of [{ asin: 'B000000002' }, { store: 'amazon.co.uk' }, { v: 'old' }, { cacheRevision: 999 }, { schema: 2 },
+    { source: 'manual-paste' }, { source: 'food-override' }, { score: NaN }, { t: now + 1 }, { ai: true },
+    { input: undefined }, { input: {} }, { input: { ingredients_text: '' } }, { input: 'oats' }, { prefs: 'not json' }]) {
+    assert.equal(cache.recallReading({ ...reading, ...patch }, moved, now), null, JSON.stringify(patch));
+  }
+  assert.equal(cache.recallReading(null, moved, now), null);
+  // A photo reading is retired by turning photo reading off, as the fingerprint already does for the score itself.
+  const photo = { ...reading, source: 'label-ocr', prefs: cache.fingerprint({ ocrLabels: true }, 'label-ocr') };
+  assert.notEqual(cache.recallReading(photo, { ...context, prefs: { ocrLabels: true, weights: { sugar: 2 } } }, now), null);
+  assert.equal(cache.recallReading(photo, { ...context, prefs: { ocrLabels: false } }, now), null);
+  const barcode = { ...reading, source: 'open-food-facts', prefs: cache.fingerprint({ useOpenFoodFacts: true }, 'open-food-facts') };
+  assert.equal(cache.recallReading(barcode, { ...context, prefs: { useOpenFoodFacts: false } }, now), null);
+});

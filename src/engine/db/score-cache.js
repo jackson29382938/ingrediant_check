@@ -55,13 +55,26 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
     return JSON.stringify(out);
   }
 
+  // The switches that decide whether a saved reading may be used at all: a photo, barcode, database or AI-label
+  // reading is retired when the reader turns that source off. The rest of a fingerprint (weights, rules, the
+  // avoid list, the provenance indexes) only changes what the same reading scores.
+  const SOURCE_GATES = ['ocrLabels', 'aiLabels', 'useOpenFoodFacts', 'useUsda'];
+  function sameSourceGates(saved, current) {
+    try {
+      const a = JSON.parse(saved), b = JSON.parse(current);
+      return !!a && !!b && SOURCE_GATES.every(k => JSON.stringify(a[k]) === JSON.stringify(b[k]));
+    } catch (e) { return false; }
+  }
+
   // maxAgeMs: the speed setting's age limit (AIR.db.speed); TTL_MS when not given.
-  function valid(hit, { store, asin, version, prefs, allowManual = false, maxAgeMs = TTL_MS }, now = Date.now()) {
+  // `rescoring`: accept a record whose fingerprint differs only in what scores it (see recallReading).
+  function valid(hit, { store, asin, version, prefs, allowManual = false, maxAgeMs = TTL_MS, rescoring = false }, now = Date.now()) {
     if (!hit || hit.schema !== SCHEMA || typeof hit.v !== 'string' || hit.v.length > 30 || !/^\d+(?:\.\d+){0,3}$/.test(hit.v)) return false;
     if (Object.hasOwn(hit, 'cacheRevision') ? hit.cacheRevision !== CACHE_REVISION
       : hit.v !== version && !(CACHE_REVISION === 1 && LEGACY_COMPATIBLE.has(hit.v))) return false;
     if (normalizeStore(hit.store) !== normalizeStore(store) || hit.asin !== asin) return false;
-    if (hit.prefs !== fingerprint(prefs, hit.source, hit.category, hit.ai === true)) return false;
+    const current = fingerprint(prefs, hit.source, hit.category, hit.ai === true);
+    if (rescoring ? !sameSourceGates(hit.prefs, current) : hit.prefs !== current) return false;
     if (!Number.isFinite(hit.score) || hit.score < 0 || hit.score > 100) return false;
     if (!Number.isFinite(hit.t) || hit.t > now || now - hit.t >= maxAgeMs) return false;
     if (typeof hit.source !== 'string' || !hit.source) return false;
@@ -113,6 +126,23 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
     if (valid(hit, context, now)) return { hit, stale: false, refresh: false };
     const maxAgeMs = (context.maxAgeMs ?? TTL_MS) + options.cacheGraceDays * AIR.db.speed.DAY;
     if (!options.cacheGraceDays || !valid(hit, { ...context, maxAgeMs }, now)) return null;
+    return { hit, stale: true, refresh: options.cacheBackgroundRefresh };
+  }
+
+  // A saved score that no longer matches the current weights or rules is still a saved *reading*: the record keeps
+  // the label text it was worked out from, and scoring that text again takes about a millisecond where the store's
+  // product page takes a request. Same product, engine contract, source switches and age limits as recall(); only
+  // the scoring part of the fingerprint may differ. The caller scores `hit.input` and saves the result under the
+  // current fingerprint, keeping the reading's own age (`t`). Not for a score that used AI ratings, which are not
+  // part of the saved reading, nor a pasted or overridden one, which never leaves its tab.
+  function recallReading(hit, context, now = Date.now()) {
+    const options = AIR.db.speed.sanitizeRecall(context.prefs);
+    if (!options.cacheFirst) return null;
+    if (!hit || hit.ai === true || !hit.input || typeof hit.input !== 'object' || typeof hit.input.ingredients_text !== 'string' || !hit.input.ingredients_text) return null;
+    const rescoring = { ...context, rescoring: true };
+    if (valid(hit, rescoring, now)) return { hit, stale: false, refresh: false };
+    const maxAgeMs = (context.maxAgeMs ?? TTL_MS) + options.cacheGraceDays * AIR.db.speed.DAY;
+    if (!options.cacheGraceDays || !valid(hit, { ...rescoring, maxAgeMs }, now)) return null;
     return { hit, stale: true, refresh: options.cacheBackgroundRefresh };
   }
 
@@ -169,7 +199,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') {
   }
 
   const api = AIRmodule('scoreCache', {
-    key, fingerprint, valid, isFood, recall, createReader, readLocal, parseKey, listScores, SCHEMA, CACHE_REVISION, TTL_MS, normalizeStore, storedKeys, isCacheKey,
+    key, fingerprint, valid, isFood, recall, recallReading, createReader, readLocal, parseKey, listScores, SCHEMA, CACHE_REVISION, TTL_MS, normalizeStore, storedKeys, isCacheKey,
   });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();

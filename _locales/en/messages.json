@@ -1081,6 +1081,30 @@
   "sortedSettings": {
     "message": "Settings"
   },
+  "sortedDepth": {
+    "message": "Compare up to"
+  },
+  "sortedDepthTime": {
+    "message": "products, for up to"
+  },
+  "sortedDepthApply": {
+    "message": "Update list"
+  },
+  "sortedDepthOn": {
+    "message": "Reads more results pages until it has this many, or the time is up. The same setting as Settings, Sort."
+  },
+  "sortedDepthOff": {
+    "message": "Now just this page. Update list reads more results pages until it has this many, or the time is up."
+  },
+  "sortedDepthBad": {
+    "message": "Enter a number of products, from $1 to $2."
+  },
+  "sortedDepthNoTab": {
+    "message": "Search again from the store page to use this."
+  },
+  "sortedDepthFailed": {
+    "message": "Could not update the list. Search again from the store page."
+  },
   "sortedPriorities": {
     "message": "Prioritize"
   },

@@ -43,7 +43,7 @@ function element(tag = 'div') {
   return node;
 }
 
-function runner({ ids = ['79364857'], stored = {}, query = 'oats', adapterOptions = {}, productPage = '' } = {}) {
+function runner({ ids = ['79364857'], stored = {}, query = 'oats', adapterOptions = {}, productPage = '', db = {} } = {}) {
   const body = element('body'), nodes = [], requests = [], writes = [], timers = [], intervals = [], observers = [];
   const url = new URL(productPage ? `https://www.target.com/p/${productPage}` : `https://www.target.com/s?searchTerm=${query}`);
   const { origin, href, hostname, pathname, search } = url;
@@ -86,7 +86,7 @@ function runner({ ids = ['79364857'], stored = {}, query = 'oats', adapterOption
       storage: { local: { get: (keys, callback) => callback(Object.fromEntries([].concat(keys).map(key => [key, settings[key]]))),
         set: values => { Object.assign(settings, values); writes.push(values); return Promise.resolve(); }, remove: (key, callback) => { delete settings[key]; callback?.(); } },
         onChanged: { addListener: callback => { const previous = settingsChanged; settingsChanged = (...args) => { previous?.(...args); callback(...args); }; } } } },
-    AIR: { storeAdapters: { target: adapter }, retailerLabels: require('../src/stores/label-reader.js'), db: { prefs, scoreCache,
+    AIR: { storeAdapters: { target: adapter }, retailerLabels: require('../src/stores/label-reader.js'), db: { prefs, scoreCache, ...db,
       ingestible: { RESULT_SAMPLE_MIN: 4, assessSearch: () => ({ ok: true }), looksNonFoodFromResults: () => false,
       assess: () => productPage ? { ok: false, negatives: ['electronics'] } : { ok: true, negatives: [] },
       looksNonFoodFromTitle: () => false } },
@@ -250,6 +250,52 @@ test('HTTP-200 Press and Hold challenges stop the remaining retailer queue', asy
   const w=runner({ids:['10000000','10000001','10000002','10000003']}); await w.flush();
   assert.equal(w.requests.length,2); w.reply(0,{pageTitle:'Press & Hold',ingredients:''}); await w.flush();
   assert.equal(w.api.state.throttled,true); assert.equal(w.requests.length,2);
+});
+
+// A saved score the settings have moved past still holds the label text it came from. Scoring that text again takes
+// about a millisecond; the store's product page takes a request, and a page of results would queue dozens of them.
+const staleSaved = (patch = {}) => {
+  const id = '79364857', t = Date.now() - 3 * 86400000;
+  return { [`s:target.com:${id}`]: { schema: scoreCache.SCHEMA, cacheRevision: scoreCache.CACHE_REVISION, v: '2.0.0', t, store: 'target.com', asin: id,
+    prefs: scoreCache.fingerprint({ weights: { sugar: 2 } }, 'page'), score: 12, verdict: 'Avoid', nova: 4, category: 'food', source: 'page', name: 'Organic oats',
+    input: { name: 'Organic oats', ingredients_text: 'organic oats, salt' }, ...patch }, t };
+};
+
+test('a saved score from other settings is scored again from its saved label, with no product-page request', async () => {
+  const { t, ...saved } = staleSaved();
+  const w = runner({ stored: saved });
+  await w.flush();
+  assert.equal(w.requests.length, 0, 'the product page was not requested');
+  assert.equal(w.badges()[0]?.textContent, '93', 'the badge shows the score under the current settings, not the old 12');
+  const written = w.writes.map(write => write['s:target.com:79364857']).find(Boolean);
+  assert.ok(written, 'the re-scored entry is saved');
+  assert.equal(written.score, 93);
+  assert.equal(written.prefs, scoreCache.fingerprint({}, 'page'), 'under the current fingerprint');
+  assert.equal(written.t, t, 'with the age of the label it came from, so it is no fresher than that');
+  assert.deepEqual(written.input, { name: 'Organic oats', ingredients_text: 'organic oats, salt' });
+  // The next pass finds an ordinary saved score and writes nothing more (the browser reports our own write, which
+  // is what drops the old record from the in-memory reader).
+  w.change({ 's:target.com:79364857': written });
+  const writes = w.writes.length; w.api.pass(); await w.flush();
+  assert.equal(w.writes.length, writes);
+  assert.equal(w.requests.length, 0);
+});
+
+test('a saved score is fetched again when its reading cannot be reused', async () => {
+  for (const [why, patch] of [['it is too old', { t: Date.now() - 40 * 86400000 }], ['it has no saved label text', { input: undefined }],
+    ['it was an AI-assisted score', { ai: true }]]) {
+    const { t, ...saved } = staleSaved(patch);   // eslint-disable-line no-unused-vars
+    const w = runner({ stored: saved });
+    await w.flush();
+    assert.equal(w.requests.length, 1, `${why}: the page is requested`);
+  }
+});
+
+test('with saved scores switched off a saved reading is not reused either', async () => {
+  const { t, ...saved } = staleSaved();   // eslint-disable-line no-unused-vars
+  const w = runner({ stored: { ...saved, cacheFirst: false }, db: { speed: require('../src/engine/db/speed.js') } });
+  await w.flush();
+  assert.equal(w.requests.length, 1);
 });
 
 test('a challenge redirect to a non-product URL stops the remaining retailer queue', async () => {

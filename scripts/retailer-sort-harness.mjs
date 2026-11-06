@@ -284,13 +284,53 @@ try {
   await capped.close();
   await setting({ sortCount: 30 });
 
+  // The same from the list itself: "Compare up to" and "Update list" save the count and start this search again under it,
+  // so asking for a longer (or shorter) list does not need Settings and a trip back to the store.
+  const resize = await chooseSort(wm, 'Price per ounce: Low to High');
+  assert.equal((await listRows(resize)).length, 22, 'all 22 under the count of 30');
+  assert.equal(await resize.inputValue('#depth-count'), '30', 'the list shows the count in Settings');
+  const beforeRerun = (await sortedState()).runId;
+  await resize.fill('#depth-count', '12');
+  await resize.getByRole('button', { name: 'Update list' }).click();
+  const shorter = await until(async () => { const s = await sortedState(); return s && s.runId !== beforeRerun && !s.loading && s.items.length ? s : null; }, 'the list run again with 12');
+  assert.equal(shorter.items.length, 12, `a count of 12 stops the new run at 12 (got ${shorter.items.length})`);
+  assert.match(shorter.status, /Collected 12 products/);
+  const saved = await worker.evaluate(() => chrome.storage.local.get(['sortLoadMore', 'sortCount', 'sortTimeLimit']));
+  assert.deepEqual(saved, { sortLoadMore: true, sortCount: 12, sortTimeLimit: 120 }, 'only the count (and load-more, which a count needs) was saved');
+  await resize.fill('#depth-count', '30');
+  await resize.getByRole('button', { name: 'Update list' }).click();
+  const longer = await until(async () => { const s = await sortedState(); return s && s.runId !== shorter.runId && !s.loading && s.items.length ? s : null; }, 'the list run again with 30');
+  assert.equal(longer.items.length, 22, 'and back to 30: all 22 again');
+  await shot(resize, '06a-walmart-list-compare-up-to');
+  await resize.close();
+  ok('Walmart: "Compare up to 12 products" in the list runs the search again and stops at 12; back to 30 gives all 22');
+
   // The other entry: ranked by the Ingredient Check score.
   const health = await chooseSort(wm, 'Ingredient Check score: High to Low');
-  const scores = (await listRows(health)).map(r => Number(r.score)).filter(Number.isFinite);
+  const healthRows = await listRows(health);
+  const scores = healthRows.map(r => Number(r.score)).filter(Number.isFinite);
   assert(scores.length >= 17 && scores.every((v, i) => i === 0 || v <= scores[i - 1]), `score descends: ${scores}`);
   await shot(health, '06-walmart-list-score-high-to-low');
   ok('Walmart: Ingredient Check score: High to Low');
   await health.close();
+
+  // The reader changes a weight. Every saved score now disagrees with the settings, but each record still holds the
+  // label text it was worked out from, so the list scores that again here. With "Leave them unscored" on nothing may
+  // be requested, so a score that is still there came from the saved reading: before this, they all came back blank.
+  const idOf = r => r.url.match(/(\d{5,15})(?:[/?#]|$)/)?.[1];
+  const hadScore = new Set(healthRows.filter(r => Number.isFinite(Number(r.score))).map(idOf));
+  const fetchedBefore = fetched.length;
+  await setting({ weights: { sugar: 3 }, sortMissing: 'end' });
+  const reweighed = await chooseSort(wm, 'Ingredient Check score: High to Low');
+  const reweighedScores = (await listRows(reweighed)).map(r => Number(r.score)).filter(Number.isFinite);
+  // A listing with no ingredient list never had a score to reuse, so the page's own badge pass may ask for it again.
+  const asked = fetched.slice(fetchedBefore).filter(id => hadScore.has(id));
+  assert.deepEqual(asked, [], `no product page that already had a score was requested again (${asked})`);
+  assert(reweighedScores.length >= scores.length, `every listing that had a score still has one under the new weight (${reweighedScores.length} of ${scores.length})`);
+  assert(reweighedScores.every((v, i) => i === 0 || v <= reweighedScores[i - 1]), `and the list is in the new score order: ${reweighedScores}`);
+  await reweighed.close();
+  await setting({ weights: {}, sortMissing: 'rate-first' });
+  ok(`Walmart: after a weight change, ${reweighedScores.length} saved scores are worked out again from their saved labels with no product page requested`);
 
   // Without "Load more results" only this page is listed, as on Amazon.
   await setting({ sortLoadMore: false });
