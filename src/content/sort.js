@@ -291,6 +291,7 @@
   const ASIN = /^[A-Z0-9]{10}$/;
   const isCard = card => !!(card.dataset && ASIN.test(card.dataset.asin || '') && S().listingTitle(card));
   function productCardsIn(doc) {
+    S().adoptItemIds?.(doc);
     const slot = doc.querySelector('.s-main-slot, [data-component-type="s-search-results"] .s-result-list') || doc;
     let cards = [...slot.querySelectorAll(CARD + ', [data-asin]')].filter(isCard);
     if (!cards.length && slot !== doc) cards = [...doc.querySelectorAll('[data-asin]')].filter(isCard);
@@ -339,11 +340,10 @@
     // Our own score badge sits at the start of the title (search.js paintBadge); it is not the title.
     const badge = (card.querySelector('.air-badge')?.textContent || '').trim();
     const withoutBadge = s => (badge && s.startsWith(badge) ? s.slice(badge.length) : s).trim();
-    const titleNode = S().listingTitle(card);
     const linkNode = card.querySelector('h2 a')
       || [...card.querySelectorAll('a[href]')].find(a => /\/(?:dp|gp\/product)\/[A-Z0-9]{10}/.test(a.getAttribute('href') || ''))
       || card.querySelector('a.a-link-normal.s-no-outline');
-    const title = withoutBadge((titleNode?.innerText || titleNode?.textContent || '').trim());
+    const title = withoutBadge(S().listingName(card));
     const text = (card.innerText || card.textContent || '').replace(/\u00a0/g, ' ').trim()
       .split(/\n/).map(line => withoutBadge(line.trim())).filter(line => line && line !== badge).join('\n');
     const image = card.querySelector('img.s-image');

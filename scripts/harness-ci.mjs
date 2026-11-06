@@ -11,6 +11,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sameDayGroceryEndToEnd } from './same-day-grocery-harness.mjs';
+import { sameDayLayoutsEndToEnd } from './same-day-layouts-harness.mjs';
 import { nonfoodSortEndToEnd } from './nonfood-sort-harness.mjs';
 import { recallEndToEnd } from './recall-harness.mjs';
 import { historyScanEndToEnd } from './history-scan-harness.mjs';
@@ -1040,6 +1041,7 @@ async function extensionSmoke(pw, executablePath, pageErrors) {
     await amazonEndToEnd(context, worker, pageErrors);
     await nonfoodSortEndToEnd(context, worker, pageErrors);
     await sameDayGroceryEndToEnd(context, worker, pageErrors);
+    await sameDayLayoutsEndToEnd(context, worker, pageErrors);
   } finally {
     await context.close();
     fs.rmSync(profile, { recursive: true, force: true });
