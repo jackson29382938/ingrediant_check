@@ -205,16 +205,22 @@
 
   function listingProductUrl(adapter, id, loc, listingUrl) {
     const checked = raw => {
-      if (!raw) return '';
+      if (!raw) return null;
       try {
         const url = new URL(raw, loc.href);
         if (url.origin === loc.origin && !url.username && !url.password && adapter.productId(url.href) === id) {
-          return url.origin + url.pathname;
+          url.hash = '';
+          return url;
         }
       } catch (e) { /* Invalid listing link: try the adapter's canonical route. */ }
-      return '';
+      return null;
     };
-    return checked(listingUrl) || checked(adapter.productUrl(id, loc));
+    const canonical = checked(adapter.productUrl(id, loc));
+    const listing = checked(listingUrl);
+    if (!listing) return canonical?.href || '';
+    // Only the adapter may supply query parameters for a product request.
+    listing.search = canonical?.pathname === listing.pathname ? canonical.search : '';
+    return listing.href;
   }
 
   root.AIR = root.AIR || {};

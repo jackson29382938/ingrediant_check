@@ -16,7 +16,7 @@
     const inside = badge.closest('a[href]');
     if (inside) return inside;
     const id = String((badge.dataset && badge.dataset.airProduct) || (badge.closest('[data-asin]') || badge).getAttribute('data-asin') || '').toLowerCase();
-    const href = badge.dataset?.airHref;
+    const href = badge.dataset?.airHref?.split('?')[0];
     for (let n = badge.parentNode; (href || id) && n && n.querySelectorAll; n = n.parentNode) {
       const link = [...n.querySelectorAll('a[href]')].find(a => a.getClientRects().length && (href
         ? a.origin + a.pathname === href : a.href.toLowerCase().includes(id)));
