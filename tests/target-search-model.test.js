@@ -19,6 +19,7 @@ test('Target public hydration exposes the exact child ingredients and explicit n
   assert.equal(data.nutrition.sodium, 120);
   assert.equal(data.nutrition.sugar, 0);
   assert.ok(Math.abs(data.nutrition.servingGrams - 28.3495) < 0.001);
+  assert.equal(data.nutrition.servingSize, '5.5 servings per container');
 });
 test('Target public hydration never borrows a parent, sibling, foreign buy URL, or different query product', () => {
   const wrongVariant = structuredClone(sample); wrongVariant.tcin = '99999999';

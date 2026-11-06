@@ -87,6 +87,7 @@ function setup() {
         scoreCache: require('../src/engine/db/score-cache.js'),
         prefs: require('../src/engine/db/prefs.js'),
         productCache: require('../src/engine/db/product-cache.js'),
+        theme: require('../src/engine/db/theme.js'),
       },
       extract: {
         extract: () => ({ ok: true, title: 'Oats', text: 'oats' }),

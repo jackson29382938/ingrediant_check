@@ -300,16 +300,18 @@
       b.title = 'Reading ingredients…';
       b.removeAttribute('aria-label');
       b.setAttribute('aria-hidden', 'true');
-      b.style.cssText = 'color:#565959;background:#f0f2f2;border:2px solid #d5d9d9;cursor:pointer;';
+      const c = root.AIR.db.theme.badgeColors({ fg: '#565959', bg: '#f0f2f2', ring: '#d5d9d9' });
+      b.style.cssText = `color:${c.fg};background:${c.bg};border:2px solid ${c.ring};cursor:pointer;`;
       return b;
     }
     if (hit === 'unreadable') {
       b.textContent = '?';
       b.title = throttleCopy('badgeNoIngredients', "Amazon doesn't publish readable ingredients for this one");
       if (hit.evidence && root.AIR.db.shopping) b.title += ' · ' + root.AIR.db.shopping.describe(hit.evidence, throttleCopy);
-    b.setAttribute('aria-label', b.title);
+      b.setAttribute('aria-label', b.title);
       b.setAttribute('role', 'img');
-      b.style.cssText = 'color:#6a6a6a;background:#f7f8f8;border:2px dashed #d5d9d9;cursor:pointer;';
+      const c = root.AIR.db.theme.badgeColors({ fg: '#6a6a6a', bg: '#f7f8f8', ring: '#d5d9d9' });
+      b.style.cssText = `color:${c.fg};background:${c.bg};border:2px dashed ${c.ring};cursor:pointer;`;
       return b;
     }
     b.dataset.cacheTime = String(hit.t);
@@ -317,7 +319,7 @@
     // A personal-care or supplement index is drawn in neutral gray and names its category; a food score is a color band.
     const care = !!hit.category && hit.category !== 'food';
     const ratings = root.AIR.db.productRatings;
-    const c = care ? root.AIR.db.theme.neutral() : root.AIR.panel.BAND_COLOR(hit.score);
+    const c = root.AIR.db.theme.badgeColors(care ? root.AIR.db.theme.neutral() : root.AIR.panel.BAND_COLOR(hit.score));
     b.textContent = care ? `${hit.score} · ${ratings.categoryLabel(hit.category, throttleCopy)}` : hit.score;
     const verdictKey = ({
       Excellent: 'verdictExcellent', Good: 'verdictGood', Mediocre: 'verdictMediocre',

@@ -132,7 +132,7 @@ function runner(file, url, stored = {}, productOverride = null) {
   const data = { autoScoreSearch: false, ...stored };
   const sandbox = {
     console, URL, Date, Math, JSON, Object, Array, String, Number,
-    location: { href: loc.href, hostname: loc.hostname, pathname: loc.pathname, search: loc.search },
+    location: { href: loc.href, origin: loc.origin, hostname: loc.hostname, pathname: loc.pathname, search: loc.search },
     setTimeout: (fn, ms) => { timers.push({ fn, ms }); return timers.length; }, clearTimeout() {},
     setInterval: () => 0,
     MutationObserver: class { observe() {} disconnect() {} },
@@ -140,7 +140,8 @@ function runner(file, url, stored = {}, productOverride = null) {
     document: {
       querySelector: s => page.querySelector(s), querySelectorAll: s => page.querySelectorAll(s),
       getElementById: id => (id === 'air-score-panel' ? host : null),
-      createElement: tag => ({ tagName: tag, style: {}, dataset: {}, attrs: {}, setAttribute(k, v) { this.attrs[k] = String(v); }, querySelector: () => null,
+      createElement: tag => ({ tagName: tag, style: {}, dataset: {}, attrs: {}, setAttribute(k, v) { this.attrs[k] = String(v); },
+        removeAttribute(k) { delete this.attrs[k]; }, querySelector: () => null,
         remove() { this.removed = true; if (host === this) host = null; } }),
       body: {}, documentElement: {}, title: page.title, URL: url,
     },
@@ -154,7 +155,7 @@ function runner(file, url, stored = {}, productOverride = null) {
       }, onChanged: { addListener() {} } },
     },
     AIR: {
-      engine, storeAdapters: { target: productOverride ? { ...T, readProduct: () => productOverride } : T },
+      engine, retailerLabels: require('../src/stores/label-reader.js'), storeAdapters: { target: productOverride ? { ...T, readProduct: () => productOverride } : T },
       db: { scoreCache, prefs, ingestible, speed: require('../src/engine/db/speed.js') },
       panel: {
         BAND_COLOR: () => ({ fg: '#000', bg: '#fff', ring: '#0f0' }),

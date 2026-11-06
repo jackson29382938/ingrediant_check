@@ -20,10 +20,12 @@
   const VERSION = (() => { try { return chrome.runtime.getManifest().version; } catch (e) { return '0'; } })();
   const STORE = CACHE.normalizeStore(location.hostname);
   const isListingPage = loc => adapter.isSearchPage(loc) || adapter.isBrowsePage?.(loc);
-  const ratesTiles = () => isListingPage(location) || (adapter.isBrowsePage && adapter.isProductPage(location));
+  const carouselPage = () => typeof adapter.isBrowsePage === 'function' && adapter.isProductPage(location);
+  const ratesTiles = () => isListingPage(location) || (carouselPage() && state.pageScore?.status !== 'not-food');
 
   const state = { requests: new Map(), controllers: new Set(), queue: [], active: 0, fetchCount: 0, searchAllowed: true, throttled: false, enabled: true, badges: true, foodOnly: true, prefs: {}, raw: {}, url: '', pageScore: null,
     manual: null, override: false, started: 0, done: false, observer: null, timer: null, drainTimer: null, nextRequest: 0 };
+  let detailHost, detailTurn = 0, detailTimer;
 
   const t = (key, fallback, sub) => {
     try { return (chrome.i18n && chrome.i18n.getMessage(key, sub != null ? [String(sub)] : [])) || fallback; }
@@ -44,6 +46,9 @@
       state.autoScoreSearch = true;
     }
     state.panelOpen = toggles.panelOpen;
+    state.hoverBreakdown = toggles.hoverBreakdown;
+    const { breakdownDelayMs, breakdownDetail } = PREFS.sanitizeDisplay(o);
+    Object.assign(state, { breakdownDelayMs, breakdownDetail });
     if (root.AIR.db.theme) root.AIR.db.theme.use(o);   // the reader's score palette and light/dark
     const scoring = PREFS.sanitizeScoring(o);
     state.prefs = { weights: scoring.weights, allergens: scoring.allergens, diets: scoring.diets, avoidList: scoring.avoidList, ratingStyle: scoring.ratingStyle, personalCareEnabled: scoring.personalCareEnabled };
@@ -69,6 +74,10 @@
   }
 
   function badge(result) {
+    if (result?.status === 'not-food' && state.pageScore?.status !== 'not-food' && carouselPage()) {
+      cancelTileRequests();
+      clearBadges();
+    }
     state.pageScore = result;
     send(result && typeof result.score === 'number'
       ? { type: 'pageScore', score: result.score, verdict: result.verdict, ...(result.category && result.category !== 'food' ? { index: true } : {}) }
@@ -211,8 +220,10 @@
         shadow.innerHTML = '<style>:host{line-height:normal}span{display:inline-flex;align-items:center;'
           + 'justify-content:center;box-sizing:border-box;min-width:26px;min-height:26px;padding:3px 7px;'
           + 'border-radius:999px;font:700 12px/1.3 sans-serif;color:var(--air-fg,#374151);'
-          + 'background:var(--air-bg,#f3f4f6);border:2px solid var(--air-ring,#9ca3af);white-space:normal}</style>'
+          + 'background:var(--air-bg,#f3f4f6);border:2px solid var(--air-ring,#9ca3af);white-space:normal}'
+          + '@media (prefers-color-scheme: dark){span{color:var(--air-dfg,#b8c0c0);background:#1b1c1c;border-color:var(--air-dring,#6a7373)}}</style>'
           + '<span><slot></slot></span>';
+        root.AIR.db.theme?.force(shadow);
       }
     }
     const care = !!hit && !!hit.category && hit.category !== 'food';
@@ -225,19 +236,25 @@
       : status === 'not-food' ? 'Ingredient Check: this product appears to be outside food scoring.'
       : 'Ingredient Check: open this product to rate it, or enable Rate every search result in Settings.';
     if (hit?.evidence && root.AIR.db.shopping) title += ' · ' + root.AIR.db.shopping.describe(hit.evidence, t);
-    if (b.textContent === text && b.title === title && b.dataset.airProduct === tile.id) return;
+    const href = tile.url ? root.AIR.retailerLabels.listingProductUrl(adapter, tile.id, location, tile.url) : '';
+    if (b.textContent === text && b.title === title && b.dataset.airProduct === tile.id && (b.dataset.airHref || '') === href) return;
+    if (href) b.dataset.airHref = href;
+    else delete b.dataset.airHref;
     b.textContent = text;
     b.title = title;
     b.dataset.airProduct = tile.id;
     b.dataset.airStatus = hit ? 'scored' : status;
     b.setAttribute('aria-label', title);
-    b.setAttribute('role', 'img');
-    if (hit?.input) b.setAttribute('tabindex', '0');
+    b.setAttribute('role', href && !anchor.closest('a[href]') ? 'link' : 'img');
+    if (href || hit?.input) b.setAttribute('tabindex', '0');
+    else b.removeAttribute('tabindex');
     const c = hit ? (care ? root.AIR.db.theme.neutral() : P.BAND_COLOR(hit.score)) : { fg: '#374151', bg: '#f3f4f6', ring: '#9ca3af' };
     if (b.style.setProperty) {
       b.style.setProperty('--air-fg', c.fg);
       b.style.setProperty('--air-bg', c.bg);
       b.style.setProperty('--air-ring', c.ring);
+      b.style.setProperty('--air-dfg', c.dfg || '#b8c0c0');
+      b.style.setProperty('--air-dring', c.dring || '#6a7373');
     }
   }
 
@@ -250,12 +267,9 @@
   // { status: 'not-food' } for a product outside food scoring, or undefined when it is no longer wanted;
   // throws Error('unavailable') for a page that gave no readable label, Error('blocked') for a challenge page.
   async function readProductScore(id, signal, alive = () => true, listingUrl) {
-    const url = new URL(adapter.productUrl(id, location), location.href);
-    if (listingUrl && adapter.productId(listingUrl) === id) {
-      const linked = new URL(listingUrl, location.href);
-      if (linked.origin === url.origin) url.pathname = linked.pathname;
-    }
-    if (url.origin !== location.origin || adapter.productId(url.href) !== id) throw new Error('unavailable');
+    const href = root.AIR.retailerLabels.listingProductUrl(adapter, id, location, listingUrl);
+    if (!href) throw new Error('unavailable');
+    const url = new URL(href);
     const response = await fetch(url.href, {
       credentials: adapter.publicCredentials === 'same-origin' ? 'same-origin' : 'omit',
       headers: { Accept: 'text/html' }, signal,
@@ -336,7 +350,8 @@
 
   function searchPass() {
     const search = adapter.isSearchPage(location);
-    if (isListingPage(location)) adapter.hideSponsored?.(document);
+    const browse = !!adapter.isBrowsePage?.(location);
+    if (search || browse) adapter.hideSponsored?.(document);
     const productId = adapter.productId(location.href);
     const gate = root.AIR.db.ingestible;
     const tiles = adapter.searchTiles(document).filter(tile => tile.id !== productId);
@@ -346,17 +361,12 @@
       const titles = tiles.map(x => x.title);
       if ((!verdict.ok || (titles.length >= gate.RESULT_SAMPLE_MIN && gate.looksNonFoodFromResults(titles)))
         && !gate.allowsSearch?.(context, titles, state.prefs)) {
-        const nonFood = adapter.isBrowsePage ? titles.filter(title => gate.looksNonFoodFromTitle(title)).length : 0;
-        // Mixed listings still get per-card screening. An all-food grid on a clearly non-food query
-        // can be the previous search's results while the retailer switches pages.
-        if (!nonFood || nonFood === titles.length) {
-          if (state.searchAllowed) cancelTileRequests();
-          state.searchAllowed = false;
-          clearBadges();
-          root.AIR.retailerSort?.reset(false);
-          root.AIR.retailerSpace?.reset();
-          return true;
-        }
+        if (state.searchAllowed) cancelTileRequests();
+        state.searchAllowed = false;
+        clearBadges();
+        root.AIR.retailerSort?.reset(false);
+        root.AIR.retailerSpace?.reset();
+        return true;
       }
     }
     if (!state.searchAllowed && isListingPage(location)) root.AIR.retailerSort?.reset(true);
@@ -370,7 +380,7 @@
       const ranked = [];
       for (const x of tiles) {
         if (!currentTile(x, current)) continue;
-        if (adapter.isBrowsePage && state.foodOnly && gate.looksNonFoodFromTitle(x.title) && !gate.allowsProduct?.(x.title, state.prefs)) continue;
+        if ((browse || carouselPage()) && state.foodOnly && gate.looksNonFoodFromTitle(x.title) && !gate.allowsProduct?.(x.title, state.prefs)) continue;
         const hit = got && got[CACHE.key(STORE, x.id)];
         const saved = CACHE.recall(hit, { store: STORE, asin: x.id, version: VERSION, prefs: state.raw, maxAgeMs: state.maxAgeMs });
         if (saved && !saved.refresh) { paintBadge(x, hit, '', saved.stale); ranked.push({ tile: x, hit }); continue; }
@@ -449,6 +459,7 @@
   }
 
   function reset() {
+    closeDetails();
     cancelTileRequests();
     state.fetchCount = 0; state.searchAllowed = true; state.throttled = false;
     send({ type: 'pageScore', status: null });
@@ -473,7 +484,8 @@
   setInterval(() => { if (location.href !== state.url) { state.manual = null; reset(); } }, 500);
 
   const KEYS = ['enabled', 'badges', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'weights', 'allergens', 'diets', 'avoidList',
-    'sheetIndexRev', 'producerIndexRev', 'speedMode', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'autoScoreSearch', 'panelOpen', 'theme', 'palette'];
+    'sheetIndexRev', 'producerIndexRev', 'speedMode', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'autoScoreSearch', 'panelOpen', 'theme', 'palette',
+    'hoverBreakdown', 'breakdownDelayMs', 'breakdownDetail'];
   chrome.storage.local.get(KEYS, o => { readSettings(o || {}); reset(); });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area && area !== 'local') return;
@@ -484,31 +496,49 @@
     chrome.storage.local.get(KEYS, o => { readSettings(o || {}); reset(); });
   });
 
-  let detailHost, detailTurn = 0, detailTimer;
   function closeDetails() { detailTurn++; clearTimeout(detailTimer); detailHost?.remove(); detailHost = null; }
   async function showDetails(badge) {
     const turn = ++detailTurn, id = badge.dataset.airProduct;
-    if (!id || !state.enabled) return;
-    const display = await chrome.storage.local.get(['hoverBreakdown', 'breakdownDetail']);
-    if (display.hoverBreakdown === false) return;
+    if (!id || !state.enabled || !state.hoverBreakdown || !badge.isConnected) return;
     const got = await CACHE.readLocal([CACHE.key(STORE, id)], state.raw, null, chrome.storage);
-    const hit = got[CACHE.key(STORE, id)];
-    if (turn !== detailTurn || !badge.isConnected || !hit?.input || !CACHE.recall(hit, {store:STORE, asin:id, version:VERSION, prefs:state.raw, maxAgeMs:state.maxAgeMs})) return;
+    const hit = got?.[CACHE.key(STORE, id)] || state.requests.get(id)?.hit;
+    if (turn !== detailTurn || !badge.isConnected || badge.dataset.airProduct !== id || !hit?.input || !CACHE.recall(hit, {store:STORE, asin:id, version:VERSION, prefs:state.raw, maxAgeMs:state.maxAgeMs})) return;
     const result = root.AIR.engine.score(hit.input, state.prefs);
     if (!root.AIR.engine.isReadable(result)) return;
     detailHost?.remove(); detailHost = document.createElement('div');
-    detailHost.id = 'air-retailer-details'; detailHost.style.cssText = 'position:fixed;z-index:2147483000;max-height:70vh;overflow:auto';
-    const shadow = P.mount(detailHost, P.renderBreakdown(result, {asin:id, score:hit.score, verdict:hit.verdict, category:hit.category, ratingStyle:hit.ratingStyle, detail:display.breakdownDetail}));
-    for (const link of shadow.querySelectorAll('a')) { link.href = adapter.productUrl(id, location); link.target = '_blank'; link.rel = 'noopener noreferrer'; }
+    detailHost.id = 'air-retailer-details'; detailHost.style.cssText = 'position:fixed;z-index:2147483000;max-height:min(70vh, calc(100vh - 16px));overflow:auto';
     document.body.append(detailHost);
-    const rect = badge.getBoundingClientRect(); detailHost.style.left = `${Math.max(8,Math.min(rect.left,innerWidth-356))}px`; detailHost.style.top = `${Math.max(8,Math.min(rect.bottom+6,innerHeight-detailHost.offsetHeight-8))}px`;
+    const shadow = P.mount(detailHost, P.renderBreakdown(result, {asin:id, score:hit.score, verdict:hit.verdict, category:hit.category, ratingStyle:hit.ratingStyle, detail:state.breakdownDetail}));
+    const link = shadow.querySelector('a.more');
+    const href = root.AIR.retailerLabels.listingProductUrl(adapter, id, location, badge.dataset.airHref);
+    if (link && href) { link.href = href; link.target = '_blank'; link.rel = 'noopener noreferrer'; }
+    else link?.remove();
+    const rect = badge.getBoundingClientRect();
+    detailHost.style.left = `${Math.max(8, Math.min(rect.left, innerWidth - detailHost.offsetWidth - 8))}px`;
+    detailHost.style.top = `${Math.max(8, Math.min(rect.bottom + 6, innerHeight - detailHost.offsetHeight - 8))}px`;
     detailHost.addEventListener('mouseenter',()=>clearTimeout(detailTimer));
     detailHost.addEventListener('mouseleave',()=>{detailTimer=setTimeout(closeDetails,250);});
   }
   const detailBadge = node => node?.closest?.('.air-badge, .air-cart-badge');
-  document.addEventListener?.('mouseover', e => { const badge=detailBadge(e.target); if (badge) {clearTimeout(detailTimer); void showDetails(badge);} });
-  document.addEventListener?.('mouseout', e => { if (detailBadge(e.target)) detailTimer=setTimeout(closeDetails,250); });
-  document.addEventListener?.('focusin', e => { const badge=detailBadge(e.target); if (badge) void showDetails(badge); });
+  document.addEventListener?.('mouseover', e => {
+    const badge = detailBadge(e.target);
+    if (!badge || badge === detailBadge(e.relatedTarget) || !state.hoverBreakdown) return;
+    closeDetails();
+    detailTimer = setTimeout(() => { void showDetails(badge); }, state.breakdownDelayMs);
+  });
+  document.addEventListener?.('mouseout', e => {
+    const badge = detailBadge(e.target);
+    if (!badge || badge === detailBadge(e.relatedTarget)) return;
+    detailTurn++;
+    clearTimeout(detailTimer);
+    detailTimer = setTimeout(closeDetails, 250);
+  });
+  document.addEventListener?.('focusin', e => {
+    const badge = detailBadge(e.target);
+    if (badge) { closeDetails(); void showDetails(badge); }
+    else if (!detailHost?.contains(e.target)) closeDetails();
+  });
+  document.addEventListener?.('pointerdown', e => { if (!detailHost?.contains(e.target)) closeDetails(); }, true);
   document.addEventListener?.('keydown', e => { if (e.key === 'Escape') closeDetails(); });
   if (typeof addEventListener === 'function') addEventListener('scroll',closeDetails,true);
 

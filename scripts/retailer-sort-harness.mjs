@@ -183,6 +183,20 @@ try {
   await wm.waitForSelector('#air-retailer-details', { state: 'detached', timeout: 10000 });
   ok('Walmart: hovering a rating on the page shows why it scored that way, and it goes away again');
 
+  await setting({ theme: 'dark', palette: 'cvd' });
+  await wm.waitForFunction(() => {
+    const badge = document.querySelector('[data-item-id="10450116"] .air-badge[data-air-status="scored"]')?.shadowRoot?.querySelector('span');
+    const toggle = document.querySelector('#air-retailer-sort')?.shadowRoot?.querySelector('.toggle');
+    return badge && toggle && getComputedStyle(badge).backgroundColor === 'rgb(27, 28, 28)'
+      && getComputedStyle(toggle).backgroundColor === 'rgb(35, 37, 37)';
+  });
+  await setting({ theme: 'light', palette: 'standard' });
+  await wm.waitForFunction(() => {
+    const toggle = document.querySelector('#air-retailer-sort')?.shadowRoot?.querySelector('.toggle');
+    return toggle && getComputedStyle(toggle).backgroundColor === 'rgb(255, 255, 255)';
+  });
+  ok('Walmart: the badge and existing sort menu follow forced dark and light settings');
+
   // ---- the sort menu: Amazon's two entries, the same wording
   await sortMenu(wm).getByRole('button', { name: 'Ingredient Check sort' }).click();
   const entries = await sortMenu(wm).getByRole('menuitem').allTextContents();
@@ -234,6 +248,10 @@ try {
 
   // With the list open, a new search in the page fills it again ("Follow new searches in the side panel", on by default).
   const sortedState = () => worker.evaluate(() => chrome.storage.session.get('sortedResults').then(r => r.sortedResults || null));
+  const rowsWithEvidence = (await sortedState()).items.filter(row => Number.isFinite(row.score) && row.evidence);
+  assert(rowsWithEvidence.some(row => row.pageNumber === 1), 'badge-scored rows retain label evidence');
+  assert(rowsWithEvidence.some(row => row.pageNumber > 1), 'freshly rated pagination rows retain label evidence');
+  assert.equal(rowsWithEvidence.find(row => row.asin === '10450116')?.servings, 12, 'the badge score retains the declared servings for unit pricing');
   const until = async (check, what, ms = 90000) => {
     const end = Date.now() + ms;
     for (;;) { const value = await check(); if (value) return value; if (Date.now() > end) throw new Error(`timed out waiting for ${what}`); await new Promise(r => setTimeout(r, 400)); }

@@ -60,6 +60,12 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
   const NEUTRAL = { fg: '#444a4a', bg: '#f1f3f3', ring: '#8b9494', dfg: '#b8c0c0', dring: '#6a7373' };
   const neutral = () => ({ ...NEUTRAL });
 
+  function badgeColors(colors) {
+    const dark = state.theme === 'dark'
+      || (state.theme === 'system' && typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches);
+    return dark ? { fg: colors.dfg || NEUTRAL.dfg, bg: '#1b1c1c', ring: colors.dring || NEUTRAL.dring } : colors;
+  }
+
   // Chrome owns the toolbar badge surface, so use the band's readable solid colour as its fill.
   // Numeric labels remain available in every palette; choose the strongest text contrast.
   function toolbar(score, palette = state.palette) {
@@ -175,7 +181,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
     window.addEventListener('load', () => force(document));
   }
 
-  const api = { DEFAULT_ACCENT, PALETTES, state, use, band, neutral, toolbar, accentFor, vars, force, applyVars, page, boot, contrast, mix };
+  const api = { DEFAULT_ACCENT, PALETTES, state, use, band, neutral, badgeColors, toolbar, accentFor, vars, force, applyVars, page, boot, contrast, mix };
   const out = AIRmodule('theme', api);
   if (typeof module !== 'undefined' && module.exports) module.exports = out;
 })();

@@ -137,7 +137,8 @@
       out[row[0]] = value;
     }
     for (const field of conflicts) delete out[field];
-    const sizes = Array.from(section.querySelectorAll('p')).filter(el => !hidden(el)).map(text).filter(t => /^serving size:/i.test(t));
+    const lines = Array.from(section.querySelectorAll('p')).filter(el => !hidden(el)).map(text);
+    const sizes = lines.filter(t => /^serving size:/i.test(t));
     const measures = sizes.map(size => {
       // Prefer the explicitly printed metric amount. Never infer grams from cups or pieces.
       const metric = size.match(/(?:^|[\s(])(\d+(?:\.\d+)?|\.\d+)\s*(g|grams?|ml|millilit(?:er|re)s?)\b/i);
@@ -153,6 +154,13 @@
       if (measures.some(m => m.field !== first.field || Math.abs(m.value - first.value) > 0.001)) return null;
       out[first.field] = first.value;
     }
+    const counts = new Set();
+    for (const line of lines) {
+      const count = Number(line.match(/^(?:about\s+)?(\d+(?:\.\d+)?)\s+servings?\s+per\s+(?:container|package)\.?$/i)?.[1]
+        || line.match(/^servings?\s+per\s+(?:container|package)\s*:\s*(?:about\s+)?(\d+(?:\.\d+)?)$/i)?.[1]);
+      if (count >= 1 && count <= 1000) counts.add(count);
+    }
+    if (counts.size === 1) out.servingSize = `${counts.values().next().value} servings per container`;
     return Object.keys(out).length ? out : null;
   }
 
@@ -240,7 +248,11 @@
       bold.push({ innerText: nutrient.name, parentNode: { innerText: `${nutrient.name} ${nutrient.quantity}${unit}` } });
     }
     const size = typeof panel.description === 'string' ? panel.description : `${panel.serving_size || ''} ${panel.serving_size_unit_of_measurement || ''}`;
-    return nutritionFacts({ querySelectorAll: tag => tag === 'b' ? bold : tag === 'p' ? [{ innerText: `Serving Size: ${size}` }] : [] });
+    const servingLines = [{ innerText: `Serving Size: ${size}` }];
+    if (typeof panel.servings_per_container === 'string' || typeof panel.servings_per_container === 'number') {
+      servingLines.push({ innerText: `Servings per container: ${panel.servings_per_container}` });
+    }
+    return nutritionFacts({ querySelectorAll: tag => tag === 'b' ? bold : tag === 'p' ? servingLines : [] });
   }
 
   function productUrl(id, loc) {
@@ -304,7 +316,8 @@
       const id = titleLink ? productId(titleLink.getAttribute('href')) : ids.length === 1 ? ids[0] : '';
       if (!id) return;
       anchors.add(heading);
-      out.push({ tile, el: tile, id, title: text(heading), anchor: heading });
+      const link = titleLink || Array.from(tile.querySelectorAll('a[href]')).find(a => productId(a.getAttribute('href')) === id);
+      out.push({ tile, el: tile, id, url: link?.getAttribute('href'), title: text(heading), anchor: heading });
     }
     for (const tile of doc.querySelectorAll(TILE)) {
       const headings = Array.from(tile.querySelectorAll(TILE_TITLE));

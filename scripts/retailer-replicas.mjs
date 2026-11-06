@@ -128,6 +128,7 @@ const walmartHome = () => '<div class="home"><h1>Save money. Live better.</h1><p
 function walmartProduct(id) {
   const item = [...WALMART_ITEMS, ...WALMART_CAROUSEL, WALMART_LATE_AD, ...WALMART_PAGE_2, ...WALMART_PAGE_3].find(i => i.id === id) || WALMART_ITEMS[0];
   return `<main style="padding:24px 40px"><h1>${esc(item.title)}</h1><p style="font-size:26px;font-weight:700">$${item.price.toFixed(2)}</p><p>${esc(item.unit)}</p><div style="height:220px;width:220px;background:#f2f8fd;border-radius:12px"></div>
+${id === '10450116' ? '<section data-testid="nutrition-facts"><p>About 12 servings per container</p></section>' : ''}
 <script id="__NEXT_DATA__" type="application/json">${JSON.stringify({ props: { pageProps: { initialData: { data: {
   product: { usItemId: item.id, name: item.title, category: { path: [{ name: 'Food' }, { name: 'Breakfast & Cereal' }] } },
   idml: { ingredients: { ingredients: { value: item.ing || '' } } } } } } } }).replace(/</g, '\\u003c')}</script></main>`;

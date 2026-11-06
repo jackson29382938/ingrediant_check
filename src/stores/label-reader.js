@@ -203,8 +203,22 @@
     };
   }
 
+  function listingProductUrl(adapter, id, loc, listingUrl) {
+    const checked = raw => {
+      if (!raw) return '';
+      try {
+        const url = new URL(raw, loc.href);
+        if (url.origin === loc.origin && !url.username && !url.password && adapter.productId(url.href) === id) {
+          return url.origin + url.pathname;
+        }
+      } catch (e) { /* Invalid listing link: try the adapter's canonical route. */ }
+      return '';
+    };
+    return checked(listingUrl) || checked(adapter.productUrl(id, loc));
+  }
+
   root.AIR = root.AIR || {};
   root.AIR.retailerLabels = { clean, text, warningText, readLabel, supplementFacts, labelToggle, sameCanonical, searchTiles, department, hiddenFromSight,
-    listingFacts, firstPrice, ratingFrom };
+    listingFacts, listingProductUrl, firstPrice, ratingFrom };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.AIR.retailerLabels;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

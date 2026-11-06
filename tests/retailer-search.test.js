@@ -43,9 +43,12 @@ function element(tag = 'div') {
   return node;
 }
 
-function runner({ ids = ['79364857'], stored = {}, query = 'oats', adapterOptions = {} } = {}) {
+function runner({ ids = ['79364857'], stored = {}, query = 'oats', adapterOptions = {}, productPage = '' } = {}) {
   const body = element('body'), nodes = [], requests = [], writes = [], timers = [], intervals = [], observers = [];
-  const location = { origin: 'https://www.target.com', href: `https://www.target.com/s?searchTerm=${query}`, hostname: 'www.target.com', pathname: '/s', search: `?searchTerm=${query}` };
+  const url = new URL(productPage ? `https://www.target.com/p/${productPage}` : `https://www.target.com/s?searchTerm=${query}`);
+  const { origin, href, hostname, pathname, search } = url;
+  const location = { origin, href, hostname, pathname, search };
+  if (productPage) body.appendChild(element('h1'));
   let now = Date.now(), settingsChanged;
   const settings = { autoScoreSearch: true, foodOnly: true, ...stored };
   const productId = url => { try { const parsed = new URL(url, location.href); return parsed.hostname === 'www.target.com' ? (parsed.pathname.match(/^\/p\/(\d{8})\/?$/) || [])[1] || null : null; } catch { return null; } };
@@ -83,11 +86,12 @@ function runner({ ids = ['79364857'], stored = {}, query = 'oats', adapterOption
       storage: { local: { get: (keys, callback) => callback(Object.fromEntries([].concat(keys).map(key => [key, settings[key]]))),
         set: values => { Object.assign(settings, values); writes.push(values); return Promise.resolve(); }, remove: (key, callback) => { delete settings[key]; callback?.(); } },
         onChanged: { addListener: callback => { const previous = settingsChanged; settingsChanged = (...args) => { previous?.(...args); callback(...args); }; } } } },
-    AIR: { storeAdapters: { target: adapter }, db: { prefs, scoreCache,
+    AIR: { storeAdapters: { target: adapter }, retailerLabels: require('../src/stores/label-reader.js'), db: { prefs, scoreCache,
       ingestible: { RESULT_SAMPLE_MIN: 4, assessSearch: () => ({ ok: true }), looksNonFoodFromResults: () => false,
-        assess: () => ({ ok: true, negatives: [] }), looksNonFoodFromTitle: () => false } },
+      assess: () => productPage ? { ok: false, negatives: ['electronics'] } : { ok: true, negatives: [] },
+      looksNonFoodFromTitle: () => false } },
       engine: { score: input => ({ score: input.ingredients_text.includes('sugar') ? 40 : 93, verdict: 'Excellent', nova: 1, parsed: 2, coverage: 1 }), isReadable: require('../src/engine/score.js').isReadable },
-      panel: { BAND_COLOR: () => ({ fg: '#000', bg: '#fff', ring: '#080' }), mount() {}, render() {}, renderFailure() {}, renderNotFood() {} } },
+      panel: { BAND_COLOR: () => ({ fg: '#000', bg: '#fff', ring: '#080' }), mount: () => element('shadow'), render() {}, renderFailure() {}, renderNotFood() {} } },
     module: { exports: {} },
   };
   sandbox.self = sandbox;
@@ -109,6 +113,14 @@ function runner({ ids = ['79364857'], stored = {}, query = 'oats', adapterOption
 }
 
 const waitForRequest = async w => { await w.flush(); assert.ok(w.requests.length, 'uncached grocery product page is requested'); };
+
+test('a non-food product page does not start rating its recommendations', async () => {
+  const w = runner({ productPage: '10000000', adapterOptions: { isBrowsePage: () => false } });
+  await w.flush();
+  assert.equal(w.api.state.pageScore.status, 'not-food');
+  assert.equal(w.requests.length, 0);
+  assert.equal(w.badges().length, 0);
+});
 
 test('always-rate stores rate results with global badge switches off but still honor pause', async () => {
   const w = runner({ stored: { badges: false, autoScoreSearch: false }, adapterOptions: { alwaysRateSearch: true } });
