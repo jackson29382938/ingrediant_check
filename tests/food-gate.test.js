@@ -107,6 +107,7 @@ check('food titles are not treated as kitchen equipment', () => {
 check('real kitchen equipment is still skipped', () => {
   assert.ok(ingestible.looksNonFoodFromTitle('Instant Pot Duo 7-in-1 Electric Pressure Cooker'));
   assert.ok(ingestible.looksNonFoodFromTitle('Cast Iron Skillet 12 inch'));
+  assert.ok(ingestible.looksNonFoodFromTitle('Stainless Steel Ice Cream Scoop'));
 });
 
 console.log('ingestible.assessTitle — the cheap path');
@@ -134,7 +135,9 @@ check('an ambiguous title is NOT rejected on the title alone', () => {
   // store-brand food with a weak title must still reach the page, where a Nutrition Facts panel
   // can save it.
   for (const t of ['Kirkland Signature', '365 Everyday Value', 'Organic Rolled Oats 42 oz',
-                   'Peter Pan Creamy Peanut Butter']) {
+                   'Peter Pan Creamy Peanut Butter',
+                   'Tostitos Scoops! Party Size Tortilla Chips, 14.5 oz Bag',
+                   'Fritos Scoops! Corn Chips, 9.25 oz Bag']) {
     assert.ok(!ingestible.looksNonFoodFromTitle(t), `wrongly rejected on title alone: ${t}`);
   }
 });

@@ -38,8 +38,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // 2026-11-01.1 (1.20.0): AI ingredient ratings (db/ai-ratings.js). An ingredient no rule recognises may carry a
   // model's class, which counts toward coverage and, for the processed classes, adds a small charge labelled
   // "AI estimate". Without ratings every score is unchanged. See docs/releases/1.20.0.md.
-  const RULES_REVISION = '2026-11-01.1';
-  const RULES_HASH = 'a5043f5d-277767';
+  // 2026-11-05.1: food names such as "Scoops! Tortilla Chips" pass the utensil filter.
+  const RULES_REVISION = '2026-11-05.1';
+  const RULES_HASH = 'eb5bba18-277832';
   const _exports = AIRmodule('revision', { RULES_REVISION, RULES_HASH });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 })();

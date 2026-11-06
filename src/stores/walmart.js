@@ -252,17 +252,19 @@
     const out = [], seen = new Set();
     for (const link of doc.querySelectorAll('a[href]')) {
       const id = productId(link.getAttribute('href'));
-      if (!id || adHref(link) || link.closest('nav, aside, footer, [data-air-sponsored-hidden]') || L.hiddenFromSight(link)) continue;
+      if (!id || adHref(link) || link.closest('header, nav, aside, footer, [data-air-sponsored-hidden]') || L.hiddenFromSight(link)) continue;
+      const card = link.closest(ITEM_CARD) || link.closest('[role="group"]');
+      const excludedMarker = card ? /promot|sponsored|advertis/i : /recommend|promot|sponsored|advertis/i;
       let excluded = false;
       for (let parent = link; parent && parent.getAttribute; parent = parent.parentNode) {
-        if (['data-testid', 'data-test', 'data-automation-id', 'aria-label'].some(attr => /recommend|promot|sponsored|advertis/i.test(parent.getAttribute(attr) || ''))) {
+        if (['data-testid', 'data-test', 'data-automation-id', 'aria-label'].some(attr =>
+          excludedMarker.test(parent.getAttribute(attr) || ''))) {
           excluded = true; break;
         }
       }
       if (excluded) continue;
       // The public grid uses role=group cards with an overlay link and a separate title span.
       // item-stack is the entire grid. Never borrow that grid's first product title.
-      const card = link.closest(ITEM_CARD) || link.closest('[role="group"]');
       const identity = card || id;
       if (seen.has(identity)) continue;
       if (card && sponsoredTile(card)) continue;
@@ -273,7 +275,7 @@
       // Walmart's overlay link comes first and contains a screen-reader-only h3.
       // Prefer the separate visible title, otherwise badges inherit that 1px clipping.
       const scope = card || link;
-      const titleNode = scope.querySelector('[data-automation-id="product-title"]') || scope.querySelector('h2, h3');
+      const titleNode = scope.querySelector('[data-automation-id="product-title"], .product-title') || scope.querySelector('h2, h3');
       const titleOwner = titleNode && titleNode.closest('a[href]');
       const heading = !titleOwner || productId(titleOwner.getAttribute('href')) === id ? titleNode : null;
       // Accessible names cover image-only links without borrowing another product's image.
@@ -283,7 +285,8 @@
         || L.clean(image && image.getAttribute('alt'));
       if (!title || title.length > 300) continue;
       seen.add(identity);
-      out.push({ id, title, tile: card || link, el: card || undefined, anchor: heading || link, badgePlacement: 'title' });
+      out.push({ id, title, url: link.getAttribute('href'), tile: card || link, el: card || undefined, anchor: heading || link,
+        badgePlacement: !heading && image && !L.text(link) ? 'corner' : 'title' });
     }
     return out;
   }
@@ -299,6 +302,7 @@
     storeHost: 'walmart.com', paging: { param: 'page', first: 1 },
     acceptsProductRedirect, publicCredentials: 'same-origin',
     isProductPage: loc => !!productId(loc.href), isSearchPage: loc => matchesHost(loc.hostname) && /^\/search\/?$/.test(loc.pathname),
+    isBrowsePage: loc => matchesHost(loc.hostname) && /^\/(?:$|(?:browse|cp|shop|m|global\/promo)(?:\/|$))/.test(loc.pathname),
     searchQuery: loc => { try { return new URL(loc.href).searchParams.get('q') || ''; } catch { return ''; } },
     readProduct, labelToggle: L.labelToggle, labelName: 'Ingredients', searchTiles };
   root.AIR.storeAdapters = root.AIR.storeAdapters || {}; root.AIR.storeAdapters.walmart = adapter;

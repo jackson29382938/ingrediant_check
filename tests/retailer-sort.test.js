@@ -37,9 +37,10 @@ test('no Walmart or Target route that holds an account, cart or checkout is adde
     assert.ok(!/(?:^|\/)(?:cart|checkout|account|login|orders|signin|wallet|payment|pharmacy|lists|registry)(?:[/*?]|$)/i.test(pathOf(match)), match);
   }
   // Exactly these routes per site, so a private page can never be added by a wildcard.
+  const browse = paths => paths.flatMap(p => [p, p + '?*', p + '/*']);
   const allowed = {
-    walmart: ['/', '/?*', '/browse/*', '/cp/*', '/shop/*', '/search', '/search?*', '/search/*', '/ip/*'],
-    target: ['/', '/?*', '/c/*', '/pl/*', '/b/*', '/s', '/s?*', '/s/*', '/p/*'],
+    walmart: ['/', '/?*', '/ip/*', ...browse(['/browse', '/cp', '/shop', '/search', '/m', '/global/promo'])],
+    target: ['/', '/?*', '/p/*', ...browse(['/c', '/pl', '/b', '/s', '/sale', '/deals', '/offers', '/finds'])],
   };
   for (const site of ['walmart', 'target']) {
     const routes = store.filter(m => new RegExp(`^https://(?:www\\.)?${site}\\.com/`).test(m)).map(m => m.replace(/^https:\/\/[^/]+/, ''));

@@ -219,7 +219,7 @@ test('the paste box does not take focus when the failure card mounts', () => {
   assert.ok(!/\.select\(\)/.test(wiring), 'wirePasteField selects the textarea');
 });
 
-test('hover and auto-score arm only on results pages', () => {
+test('hover and auto-score arm on public shopping pages and skip the main product on its own page', () => {
   const arm = (pathname, search) => {
     const title = { innerText: 'Organic Rolled Oats', textContent: 'Organic Rolled Oats', closest: () => null };
     const tiles = [0, 1, 2].map(i => ({
@@ -255,7 +255,9 @@ test('hover and auto-score arm only on results pages', () => {
       auto: tiles.filter(t => t.hasAttribute('data-air-auto')).length,
     };
   };
-  assert.deepEqual(arm('/dp/B000000001', ''), { hover: 0, auto: 0 }, 'a product page armed its carousels');
+  assert.deepEqual(arm('/dp/B000000001', ''), { hover: 2, auto: 2 }, 'only the other products are armed');
+  assert.deepEqual(arm('/alm/storefront', ''), { hover: 3, auto: 3 }, 'Fresh storefront listings are armed');
+  assert.deepEqual(arm('/gp/cart/view.html', '?k=oats'), { hover: 0, auto: 0 }, 'the public scanner stays off the cart');
   assert.deepEqual(arm('/s', '?k=oats'), { hover: 3, auto: 3 }, 'a results page did not arm');
 });
 

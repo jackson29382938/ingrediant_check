@@ -24,7 +24,17 @@
   // a kefir search 37 of them spent the auto-score budget before the last real results. A card that
   // renders its title later is picked up by the next pass, since nothing marks it until then.
   // Grocery storefronts can use linked text or h3 instead of the standard h2 title.
-  const TITLE_SEL = 'h2, h3, [data-cy="title-recipe"], [data-testid="product-title"], [data-test-id="product-title"], a[href*="/dp/"] .a-text-normal, a[href*="/gp/product/"] .a-text-normal, a[href*="/dp/"] .a-size-base-plus';
+  const TITLE_SEL = 'h2, h3, [data-cy="title-recipe"], [data-testid="product-title"], [data-test-id="product-title"], p[class*="ProductCard-module__title"], a[href*="/dp/"] .a-text-normal, a[href*="/gp/product/"] .a-text-normal, a[href*="/dp/"] .a-size-base-plus';
+  const TILE_SEL = '[data-asin], .a-carousel-card';
+  const ASIN = /^[A-Z0-9]{10}$/;
+  const productPath = /\/(?:dp|gp\/product|gp\/aw\/d)\/([A-Z0-9]{10})(?:\/|$)/;
+  function linkAsin(link) {
+    try {
+      const url = new URL(link.getAttribute('href'), location.href);
+      if (url.origin === new URL(location.href).origin && !url.username && !url.password) return url.pathname.match(productPath)?.[1] || '';
+    } catch { /* malformed link */ }
+    return '';
+  }
   // The first heading in a grocery tile is not always its title: the add-to-cart control in the image
   // carries a hidden error heading ("Quantity not updated") ahead of the title in document order. Taking
   // the first match painted every badge into that hidden heading (no badge on the page) and named every
@@ -40,10 +50,28 @@
     const plain = named.filter(el => { const control = el.closest(NOT_A_TITLE); return !(control && control !== tile && tile.contains(control)); });
     const live = !!(tile.ownerDocument && tile.ownerDocument.defaultView);
     const shown = el => !live || el.getClientRects().length > 0;
-    // A visible plain heading first; failing that, whatever is visible, so an unexpected wrapper never costs the badge.
-    return plain.find(shown) || named.find(shown) || plain[0] || named[0] || null;
+    const title = plain.find(shown) || named.find(shown);
+    if (title) return title;
+    // Fresh and recommendation carousels publish the title as a plain product link.
+    if (tile.matches?.('.a-carousel-card')) {
+      return [...tile.querySelectorAll('a[href]')].find(link => linkAsin(link) && shown(link)
+        && /[\p{L}]/u.test((link.innerText || link.textContent || '').trim())
+        && !/^\s*\(?[\d.,]*\s*[$€£]|customer reviews|^\s*see details/i.test(link.innerText || link.textContent || '')) || null;
+    }
+    return plain[0] || named[0] || null;
   }
   const badgeable = tile => !!listingTitle(tile);
+  function tileAsin(tile) {
+    const asin = tile.getAttribute('data-asin');
+    if (ASIN.test(asin || '')) return asin;
+    const link = tile.matches?.('.a-carousel-card') && listingTitle(tile)?.closest('a[href]');
+    return link ? linkAsin(link) : '';
+  }
+  function candidateTiles(doc = document) {
+    const mainAsin = P().isProductPage?.() ? location.pathname.match(productPath)?.[1] : '';
+    return [...doc.querySelectorAll(TILE_SEL)].filter(tile =>
+      (!mainAsin || tileAsin(tile) !== mainAsin) && !tile.closest?.('header, nav, footer, #ewc-content, #sc-active-cart'));
+  }
 
   const searchGate = { url: null, decision: null };
   // One queue for every Amazon product-page request this tab makes: the badges (below) and the sorted
@@ -74,20 +102,28 @@
 
   function searchAllowed() {
     const { state } = P();
-    if (!state.foodOnly) return true;
+    if (!state.foodOnly || P().isSearchPage?.() === false) return true;
     const gate = root.AIR.db && root.AIR.db.ingestible;
     if (!gate || typeof gate.assessSearch !== 'function') return true;
-    if (searchGate.url === location.href && searchGate.decision !== null) return searchGate.decision;
+    if (searchGate.url === location.href && searchGate.decision) return true;
 
-    const verdict = gate.assessSearch(searchContext());
+    const context = searchContext();
+    const verdict = gate.assessSearch(context);
+    const titles = [...document.querySelectorAll('[data-asin]')].slice(0, 24).map(tileTitle).filter(Boolean);
+    if (gate.allowsSearch?.(context, titles, state.prefs)) return true;
     let ok = verdict.ok;
-    if (gate.allowsSearch?.(searchContext(), [...document.querySelectorAll('[data-asin]')].slice(0, 24).map(tileTitle).filter(Boolean), state.prefs)) return true;
 
     if (ok && verdict.signal === 'none') {
-      const titles = [...document.querySelectorAll('[data-asin]')].slice(0, 24)
-        .map(tileTitle).filter(Boolean);
       if (titles.length < gate.RESULT_SAMPLE_MIN) return true;
       ok = !gate.looksNonFoodFromResults(titles);
+    }
+    // Mixed results can contain food even when the query or most titles indicate merchandise.
+    // Recheck negative decisions as later carousels hydrate.
+    if (!ok) {
+      if (verdict.signal === 'department' || verdict.signal === 'label') return false;
+      const candidates = candidateTiles().map(tileTitle).filter(Boolean);
+      const nonFood = candidates.filter(title => gate.looksNonFoodFromTitle(title)).length;
+      return nonFood > 0 && nonFood < candidates.length;
     }
 
     searchGate.url = location.href;
@@ -132,7 +168,7 @@
       if (!live()) return;
       const misses = [];
       for (const it of items) {
-        if (!it.tile.isConnected || it.tile.getAttribute('data-asin') !== it.asin) continue;
+        if (!it.tile.isConnected || tileAsin(it.tile) !== it.asin) continue;
         const hit = obj[cacheKey(it.asin)];
         const saved = recallCache(hit, it.asin);
         if (saved) {
@@ -160,7 +196,7 @@
           const rows = (reply && reply.rows) || {};
           const pulls = [];
           for (const it of misses) {
-            if (!it.tile.isConnected || it.tile.getAttribute('data-asin') !== it.asin || it.tile.querySelector('.air-badge')) continue;
+            if (!it.tile.isConnected || tileAsin(it.tile) !== it.asin || it.tile.querySelector('.air-badge')) continue;
             const row = C.sanitize(rows[it.asin]);
             if (!row || !sharedOk(row) || !applyRow(it.tile, it.asin, row)) { if (onMiss) onMiss(it); continue; }
             rememberProduct(it.asin, row, { share: false });
@@ -178,19 +214,20 @@
     const { state, BADGE_ATTR } = P();
     // React can reuse a connected result tile for a different product. Clear its old badge and
     // arming flags before checking caches again; connectedness alone does not prove identity.
-    document.querySelectorAll('[data-asin]').forEach(tile => {
+    const tiles = candidateTiles();
+    tiles.forEach(tile => {
       const previous = tileIdentities.get(tile);
-      if (!previous || previous === tile.getAttribute('data-asin')) return;
+      if (!previous || previous === tileAsin(tile)) return;
       tile.querySelector('.air-badge')?.remove();
       for (const attr of [BADGE_ATTR, 'data-air-auto', 'data-air-hover']) tile.removeAttribute(attr);
       hoverByTile.get(tile)?.abort();
       tileIdentities.delete(tile);
       root.AIR.hoverCard?.close();
     });
-    const tiles = document.querySelectorAll('[data-asin]:not([' + BADGE_ATTR + '])');
     const pending = [];
     tiles.forEach(tile => {
-      const asin = tile.getAttribute('data-asin');
+      if (tile.hasAttribute(BADGE_ATTR)) return;
+      const asin = tileAsin(tile);
       if (!asin || asin.length !== 10 || !badgeable(tile)) return;
       tile.setAttribute(BADGE_ATTR, '1');
       tileIdentities.set(tile, asin);
@@ -200,17 +237,18 @@
       pending.push({ tile, asin });
     });
     resolveTiles(pending);
-    armHoverPass();
-    armAutoScorePass();
+    armHoverPass(tiles);
+    armAutoScorePass(tiles);
   }
 
-  function armHoverPass() {
-    const { state, isListPage } = P();
+  function armHoverPass(tiles) {
+    const { state, isListPage, isProductPage } = P();
     if (!state.enabled || !state.badges || !state.hoverScore) return;
-    if (!isListPage() || !searchAllowed()) return;
-    document.querySelectorAll('[data-asin]:not([data-air-hover])').forEach(tile => {
-      const asin = tile.getAttribute('data-asin');
-      if (!asin || !/^[A-Z0-9]{10}$/.test(asin) || !badgeable(tile)) return;
+    if (!(isListPage() || isProductPage?.()) || !searchAllowed()) return;
+    (tiles || candidateTiles()).forEach(tile => {
+      if (tile.hasAttribute('data-air-hover')) return;
+      const asin = tileAsin(tile);
+      if (!asin || !badgeable(tile)) return;
       armHover(tile, asin);
     });
   }
@@ -231,7 +269,8 @@
   }
 
   function paintBadge(tile, hit) {
-    tileIdentities.set(tile, tile.getAttribute('data-asin'));
+    const asin = tileAsin(tile);
+    tileIdentities.set(tile, asin);
     ensureBadgeStyle();
     const titleEl = listingTitle(tile);
     if (!titleEl) return null;
@@ -241,6 +280,7 @@
       b.className = 'air-badge';
       titleEl.insertBefore(b, titleEl.firstChild);
     }
+    b.dataset.airProduct = asin;
     const breakdown = hit !== 'pending' && hit !== 'unreadable' && P().state.hoverBreakdown;
     // The category is part of the attribute only for an index, so a food badge keeps the form `score:verdict`.
     const sig = hit === 'pending' ? 'p' : hit === 'unreadable' ? '?' : `${hit.score}:${hit.verdict}${hit.category && hit.category !== 'food' ? ':' + hit.category : ''}`;
@@ -512,7 +552,7 @@
       hoverAborts.delete(ac);
     });
     const start = () => {
-      if (!state.enabled || !state.badges || !state.hoverScore || tile.getAttribute('data-asin') !== asin) return;
+      if (!state.enabled || !state.badges || !state.hoverScore || tileAsin(tile) !== asin) return;
       if (!searchAllowed()) return;
       if (tile.querySelector('.air-badge')) return;
       clearTimeout(timer);
@@ -537,7 +577,7 @@
         if (!entry.isIntersecting) continue;
         const tile = entry.target;
         tileObserver.unobserve(tile);
-        const asin = tile.getAttribute('data-asin');
+        const asin = tileAsin(tile);
         if (!asin || tile.querySelector('.air-badge')) continue;
         visible.push({ tile, asin });
       }
@@ -547,15 +587,16 @@
     return tileObserver;
   }
 
-  function armAutoScorePass() {
-    const { state, isListPage } = P();
+  function armAutoScorePass(tiles) {
+    const { state, isListPage, isProductPage } = P();
     if (queue.throttled) return;
     if (!state.enabled || !state.badges || !state.autoScoreSearch) return;
-    if (!isListPage() || !searchAllowed()) return;
+    if (!(isListPage() || isProductPage?.()) || !searchAllowed()) return;
     const obs = autoObserver();
-    document.querySelectorAll('[data-asin]:not([data-air-auto])').forEach(tile => {
-      const asin = tile.getAttribute('data-asin');
-      if (!asin || !/^[A-Z0-9]{10}$/.test(asin) || !badgeable(tile)) return;
+    (tiles || candidateTiles()).forEach(tile => {
+      if (tile.hasAttribute('data-air-auto')) return;
+      const asin = tileAsin(tile);
+      if (!asin || !badgeable(tile)) return;
       tile.setAttribute('data-air-auto', '1');
       obs.observe(tile);
     });
@@ -661,21 +702,23 @@
 
   async function scoreTile(tile, asin, epoch, url) {
     const { state } = P();
-    const current = () => epoch === queue.epoch && url === location.href && state.enabled
-      && state.badges && tile.isConnected && tile.getAttribute('data-asin') === asin && searchAllowed();
-    if (!current()) return;
+    const activePage = () => epoch === queue.epoch && url === location.href && state.enabled && state.badges && searchAllowed();
+    const currentTile = () => tile.isConnected && tileAsin(tile) === asin;
+    if (!activePage()) return;
     const done = queue.readings.get(asin);
-    if (done) { paintReading(tile, done); return; }
-    if (!tile.querySelector('.air-badge')?.dataset.saved) paintBadge(tile, 'pending');
+    if (done && currentTile()) { paintReading(tile, done); return; }
+    const targets = () => [...new Set([tile, ...candidateTiles()])].filter(target =>
+      target.isConnected && tileAsin(target) === asin && badgeable(target));
+    if (!currentTile() && !targets().length) { queue.seen.delete(asin); return; }
+    if (currentTile() && !tile.querySelector('.air-badge')?.dataset.saved) paintBadge(tile, 'pending');
     try {
       const reading = await readProductPage(asin, 'search-tile');
-      if (!current()) return;
-      for (const target of new Set([tile, ...document.querySelectorAll('[data-asin]')])) {
-        if (!target.isConnected || target.getAttribute('data-asin') !== asin || !badgeable(target)) continue;
+      if (!activePage()) return;
+      for (const target of targets()) {
         if (reading.outcome === 'scored' || reading.outcome === 'not-food' || !target.querySelector('.air-badge')?.dataset.saved) paintReading(target, reading);
       }
     } catch (e) {
-      if (!current()) return;
+      if (!activePage() || !currentTile()) return;
       // Refused, offline, or a request the sorted list started and then stopped.
       const b = tile.querySelector('.air-badge');
       if (b && b.textContent === '…') b.remove();

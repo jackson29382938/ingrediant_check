@@ -19,8 +19,8 @@
     },
     // Public product/search previews; search scans can fetch same-origin public declarations.
     // Live pages were read correctly on 2026-09-25, but behind Target's bot check (docs/STORES.md).
-    { id: 'target', name: 'Target', status: 'preview', domains: ['target.com'], search: '^/s(?:/|$)', images: ['scene7.com', 'targetimg1.com'] },
-    { id: 'walmart', name: 'Walmart', status: 'preview', domains: ['walmart.com'], search: '^/search/?$', images: ['walmartimages.com'] },
+    { id: 'target', name: 'Target', status: 'preview', domains: ['target.com'], search: '^/(?:$|(?:s|c|pl|b|sale|deals|offers|finds)(?:/|$))', images: ['scene7.com', 'targetimg1.com'] },
+    { id: 'walmart', name: 'Walmart', status: 'preview', domains: ['walmart.com'], search: '^/(?:$|search/?$|(?:browse|cp|shop|m|global/promo)(?:/|$))', images: ['walmartimages.com'] },
     { id: 'costco', name: 'Costco', status: 'preview', domains: ['costco.com'], search: '^/(?:s|CatalogSearch)$', images: ['bfldr.com', 'costco-static.com'] },
     {"id": "instacart", "name": "Instacart", "status": "preview", "domains": ["instacart.com"], "search": "^/store/(?:[^/]+/)?s/?$"},
     {"id": "kroger", "name": "Kroger", "status": "preview", "domains": ["kroger.com"], "search": "^/search/?$"},

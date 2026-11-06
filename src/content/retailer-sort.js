@@ -319,7 +319,7 @@
       if (a.getAttribute('aria-disabled') === 'true' || a.hasAttribute('disabled')) continue;
       try {
         const url = new URL(a.getAttribute('href'), currentUrl);
-        if (url.origin === location.origin && url.href !== currentUrl && adapter.isSearchPage({ href: url.href, hostname: url.hostname, pathname: url.pathname })) return url.href;
+        if (url.origin === location.origin && url.href !== currentUrl && (adapter.isSearchPage(url) || adapter.isBrowsePage?.(url))) return url.href;
       } catch (e) { /* not an address */ }
     }
     return null;

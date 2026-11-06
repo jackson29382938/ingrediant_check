@@ -208,3 +208,12 @@ test('Walmart public product URL stays on the current origin and drops tracking 
   for (const id of ['10314926/checkout', '../cart', '10314926?tracking=value', '1031', null]) assert.equal(W.productUrl(id, at(url)), '');
   for (const href of ['https://evil.example/search', 'ftp://www.walmart.com/search', 'https://user:password@www.walmart.com/search']) assert.equal(W.productUrl('10314926', at(href)), '');
 });
+
+test('Walmart carousel badges go in the visible title beside the overlay link', () => {
+  const doc = createDocument('<section data-testid="product-recommendations"><div role="group" data-item-id="10314926">'
+    + '<a href="/ip/oats/10314926"><div class="sr-only"><h3>Best seller, Rolled oats $3.00</h3></div></a>'
+    + '<h3 class="product-title">Rolled oats</h3></div></section>');
+  const [tile] = W.searchTiles(doc);
+  assert.equal(tile.title, 'Rolled oats');
+  assert.equal(tile.anchor.getAttribute('class'), 'product-title');
+});

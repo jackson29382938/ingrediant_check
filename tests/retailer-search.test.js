@@ -71,7 +71,7 @@ function runner({ ids = ['79364857'], stored = {}, query = 'oats', adapterOption
     MutationObserver: class { constructor(callback) { this.callback = callback; observers.push(this); } observe() {} disconnect() {} },
     DOMParser: class { parseFromString(html) { return { title: JSON.parse(html).pageTitle || '', productData: JSON.parse(html), querySelector: () => null, querySelectorAll: () => [] }; } },
     fetch: (url, options = {}) => new Promise((resolve, reject) => {
-      const request = { url: String(url), options, resolve, reject }; requests.push(request);
+      const request = { url: String(url), options, resolve, reject, started: now }; requests.push(request);
       options.signal?.addEventListener('abort', () => reject(Object.assign(new Error('Aborted'), { name: 'AbortError' })), { once: true });
     }),
     document: { body, documentElement: body, title: 'Oats', URL: location.href,
@@ -202,6 +202,7 @@ test('retailer badges are placed beside the product title without adding a grid 
 test('retailer search fetch work has bounded concurrency', async () => {
   const w = runner({ ids: ['79364857', '79364858', '79364859', '79364860', '79364861', '79364862'] });
   await waitForRequest(w); assert.equal(w.requests.length, 2, 'only two requests run concurrently');
+  assert.ok(w.requests[1].started - w.requests[0].started >= 400, 'public label requests are paced');
   for (let i = 0; i < 6; i++) { if (w.requests[i]) w.reply(i); await w.flush(); }
   assert.equal(w.badges().filter(badge => badge.textContent === '93').length, 6);
 });
@@ -237,4 +238,13 @@ test('HTTP-200 Press and Hold challenges stop the remaining retailer queue', asy
   const w=runner({ids:['10000000','10000001','10000002','10000003']}); await w.flush();
   assert.equal(w.requests.length,2); w.reply(0,{pageTitle:'Press & Hold',ingredients:''}); await w.flush();
   assert.equal(w.api.state.throttled,true); assert.equal(w.requests.length,2);
+});
+
+test('a challenge redirect to a non-product URL stops the remaining retailer queue', async () => {
+  const w = runner({ ids: ['10000000', '10000001', '10000002', '10000003'] });
+  await waitForRequest(w);
+  w.reply(0, { pageTitle: 'Robot or human?' }, { url: 'https://www.target.com/blocked' });
+  await w.flush();
+  assert.equal(w.api.state.throttled, true);
+  assert.equal(w.requests.length, 2);
 });

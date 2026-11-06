@@ -116,7 +116,7 @@ function runner(file, url, stored = {}, productOverride = null) {
     el.isConnected = true;
     const original = el.querySelector.bind(el);
     el.querySelector = selector => selector === '.air-badge' ? el.inserted?.find(child => !child.removed) || null : original(selector);
-    el.appendChild = child => { (el.inserted = el.inserted || []).push(child); child.isConnected = true; };
+    el.insertBefore = child => { (el.inserted = el.inserted || []).unshift(child); child.isConnected = true; };
   };
   const title = page.querySelector('h1[data-test="product-title"]');
   if (title) title.parentNode.insertBefore = child => { host = child; child.isConnected = true; };
@@ -482,4 +482,16 @@ test('Target contradictory canonical identities and hidden search variants stay 
     <div data-test="ListingPageProductListing"><a href="/p/chips/-/A-16600402"><h3>Visible chips</h3></a></div>`);
   assert.deepEqual(T.searchTiles(search).map(t => t.id), ['16600402']);
   assert.equal(T.isSearchPage(at('https://evil.example/s?searchTerm=oats')), false);
+});
+
+test('Target category carousel uses the rendered product title and ignores its image link', () => {
+  const doc = createDocument('<div data-test="item-card-1011416001">'
+    + '<a data-test="item-link" href="/p/protein-bars/-/A-1011416001"><img alt="Protein bars"></a>'
+    + '<a data-test="item-link" href="/p/protein-bars/-/A-1011416001"><div>$9.49</div>'
+    + '<div data-test="product-title-sm" hidden>Protein bars</div>'
+    + '<div data-test="product-title-md-lg">Protein bars</div></a></div>');
+  const [tile] = T.searchTiles(doc);
+  assert.equal(tile.id, '1011416001');
+  assert.equal(tile.title, 'Protein bars');
+  assert.equal(tile.anchor.getAttribute('data-test'), 'product-title-md-lg');
 });

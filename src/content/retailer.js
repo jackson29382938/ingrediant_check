@@ -13,14 +13,17 @@
   const HOST_ID = 'air-score-panel';
   const BADGE_CLASS = 'air-badge';
   const WAIT_FOR_LABEL_MS = 15000;      // how long a product page may take to render its label
+  const REQUEST_GAP_MS = 400;
   const P = root.AIR.panel;
   const CACHE = root.AIR.db.scoreCache;
   const PREFS = root.AIR.db.prefs;
   const VERSION = (() => { try { return chrome.runtime.getManifest().version; } catch (e) { return '0'; } })();
   const STORE = CACHE.normalizeStore(location.hostname);
+  const isListingPage = loc => adapter.isSearchPage(loc) || adapter.isBrowsePage?.(loc);
+  const ratesTiles = () => isListingPage(location) || (adapter.isBrowsePage && adapter.isProductPage(location));
 
   const state = { requests: new Map(), controllers: new Set(), queue: [], active: 0, fetchCount: 0, searchAllowed: true, throttled: false, enabled: true, badges: true, foodOnly: true, prefs: {}, raw: {}, url: '', pageScore: null,
-    manual: null, override: false, started: 0, done: false, observer: null, timer: null };
+    manual: null, override: false, started: 0, done: false, observer: null, timer: null, drainTimer: null, nextRequest: 0 };
 
   const t = (key, fallback, sub) => {
     try { return (chrome.i18n && chrome.i18n.getMessage(key, sub != null ? [String(sub)] : [])) || fallback; }
@@ -191,12 +194,12 @@
     if (!b) {
       b = document.createElement('span');
       b.className = BADGE_CLASS;
-      anchor.appendChild(b);
+      anchor.insertBefore(b, anchor.firstChild);
       if (tile.badgePlacement === 'corner') {
         if (typeof getComputedStyle === 'function' && getComputedStyle(anchor).position === 'static') anchor.style.position = 'relative';
       }
       b.style.cssText = 'display:inline-flex!important;position:static!important;float:none!important;'
-        + 'vertical-align:middle!important;margin:4px 0 4px 6px!important;max-width:100%!important;';
+        + 'vertical-align:middle!important;margin:4px 6px 4px 0!important;max-width:100%!important;';
       if (tile.badgePlacement === 'title') {
         b.style.setProperty('position', 'relative', 'important');
         b.style.setProperty('z-index', '2', 'important');
@@ -246,14 +249,27 @@
   // each wait: false means the page moved on, and nothing is saved or returned. Returns { hit } for a score,
   // { status: 'not-food' } for a product outside food scoring, or undefined when it is no longer wanted;
   // throws Error('unavailable') for a page that gave no readable label, Error('blocked') for a challenge page.
-  async function readProductScore(id, signal, alive = () => true) {
+  async function readProductScore(id, signal, alive = () => true, listingUrl) {
     const url = new URL(adapter.productUrl(id, location), location.href);
+    if (listingUrl && adapter.productId(listingUrl) === id) {
+      const linked = new URL(listingUrl, location.href);
+      if (linked.origin === url.origin) url.pathname = linked.pathname;
+    }
     if (url.origin !== location.origin || adapter.productId(url.href) !== id) throw new Error('unavailable');
-    const response = await fetch(url.href, { credentials: adapter.publicCredentials === 'same-origin' ? 'same-origin' : 'omit', signal });
+    const response = await fetch(url.href, {
+      credentials: adapter.publicCredentials === 'same-origin' ? 'same-origin' : 'omit',
+      headers: { Accept: 'text/html' }, signal,
+    });
     if (!alive() || signal.aborted) return undefined;
     if ([403, 429, 503].includes(response.status)) state.throttled = true;
     const final = new URL(response.url || url.href);
-    if ((final.origin !== url.origin && !adapter.acceptsProductRedirect?.(url, final, id)) || adapter.productId(final.href) !== id) throw new Error('unavailable');
+    // Walmart redirects to a challenge URL before serving the verification page.
+    if (final.origin === url.origin && /^\/blocked\/?$/.test(final.pathname)) {
+      state.throttled = true;
+      throw new Error('blocked');
+    }
+    if ((final.origin !== url.origin && !adapter.acceptsProductRedirect?.(url, final, id))
+      || adapter.productId(final.href) !== id) throw new Error('unavailable');
     const doc = await publicDocument(response, signal);
     if (!alive() || signal.aborted) return undefined;
     const data = adapter.readProduct(doc, final);
@@ -274,16 +290,23 @@
   }
 
   function drain() {
-    while (state.active < 2 && state.queue.length && state.enabled && state.badges && state.autoScoreSearch && state.searchAllowed && !state.throttled && location.href === state.url && adapter.isSearchPage(location)) {
+    while (state.active < 2 && state.queue.length && state.enabled && state.badges && state.autoScoreSearch && state.searchAllowed && !state.throttled && location.href === state.url && ratesTiles()) {
+      const delay = state.nextRequest - Date.now();
+      if (delay > 0) {
+        if (!state.drainTimer) state.drainTimer = setTimeout(() => { state.drainTimer = null; drain(); }, delay);
+        return;
+      }
       const job = state.queue.shift();
       const generation = state.generation;
       if (job.generation !== generation) continue;
+      state.nextRequest = Date.now() + REQUEST_GAP_MS;
       state.active++;
       const controller = new AbortController();
       state.controllers.add(controller);
       const timer = setTimeout(() => controller.abort(), 15000);
       (async () => {
-        const out = await readProductScore(job.id, controller.signal, () => generation === state.generation && location.href === state.url);
+        const out = await readProductScore(job.id, controller.signal,
+          () => generation === state.generation && location.href === state.url, job.url);
         if (out) state.requests.set(job.id, out.hit ? { hit: out.hit } : { status: out.status });
       })().catch(error => {
         if (generation === state.generation && error.message === 'blocked') state.throttled = true;
@@ -297,28 +320,46 @@
           for (const pending of state.queue) state.requests.set(pending.id, { status: 'unavailable' });
           state.queue = [];
         }
-        if (state.enabled && adapter.isSearchPage(location)) searchPass();
+        if (state.enabled && ratesTiles()) searchPass();
         drain();
       });
     }
   }
 
+  function cancelTileRequests() {
+    state.generation = (state.generation || 0) + 1;
+    clearTimeout(state.drainTimer);
+    state.drainTimer = null; state.nextRequest = 0;
+    for (const controller of state.controllers) controller.abort();
+    state.controllers.clear(); state.requests.clear(); state.queue = []; state.active = 0;
+  }
+
   function searchPass() {
-    adapter.hideSponsored?.(document);
-    const tiles = adapter.searchTiles(document);
-    if (state.foodOnly) {
-      const gate = root.AIR.db.ingestible;
-      const verdict = gate.assessSearch({ query: adapter.searchQuery(location), alias: '', label: '' });
+    const search = adapter.isSearchPage(location);
+    if (isListingPage(location)) adapter.hideSponsored?.(document);
+    const productId = adapter.productId(location.href);
+    const gate = root.AIR.db.ingestible;
+    const tiles = adapter.searchTiles(document).filter(tile => tile.id !== productId);
+    if (state.foodOnly && search) {
+      const context = { query: adapter.searchQuery(location), alias: '', label: '' };
+      const verdict = gate.assessSearch(context);
       const titles = tiles.map(x => x.title);
-      if ((!verdict.ok || (titles.length >= gate.RESULT_SAMPLE_MIN && gate.looksNonFoodFromResults(titles))) && !gate.allowsSearch?.({ query: adapter.searchQuery(location) }, titles, state.prefs)) {
-        state.searchAllowed = false; state.queue = [];
-        for (const controller of state.controllers) controller.abort();
-        clearBadges();
-        root.AIR.retailerSort?.reset(false);
-        root.AIR.retailerSpace?.reset();
-        return true;
+      if ((!verdict.ok || (titles.length >= gate.RESULT_SAMPLE_MIN && gate.looksNonFoodFromResults(titles)))
+        && !gate.allowsSearch?.(context, titles, state.prefs)) {
+        const nonFood = adapter.isBrowsePage ? titles.filter(title => gate.looksNonFoodFromTitle(title)).length : 0;
+        // Mixed listings still get per-card screening. An all-food grid on a clearly non-food query
+        // can be the previous search's results while the retailer switches pages.
+        if (!nonFood || nonFood === titles.length) {
+          if (state.searchAllowed) cancelTileRequests();
+          state.searchAllowed = false;
+          clearBadges();
+          root.AIR.retailerSort?.reset(false);
+          root.AIR.retailerSpace?.reset();
+          return true;
+        }
       }
     }
+    if (!state.searchAllowed && isListingPage(location)) root.AIR.retailerSort?.reset(true);
     state.searchAllowed = true;
     if (!state.badges || !tiles.length) return false;
     const generation = state.generation;
@@ -329,6 +370,7 @@
       const ranked = [];
       for (const x of tiles) {
         if (!currentTile(x, current)) continue;
+        if (adapter.isBrowsePage && state.foodOnly && gate.looksNonFoodFromTitle(x.title) && !gate.allowsProduct?.(x.title, state.prefs)) continue;
         const hit = got && got[CACHE.key(STORE, x.id)];
         const saved = CACHE.recall(hit, { store: STORE, asin: x.id, version: VERSION, prefs: state.raw, maxAgeMs: state.maxAgeMs });
         if (saved && !saved.refresh) { paintBadge(x, hit, '', saved.stale); ranked.push({ tile: x, hit }); continue; }
@@ -337,13 +379,13 @@
           job = { status: 'checking' };
           state.requests.set(x.id, job);
           state.fetchCount++;
-          state.queue.push({ id: x.id, generation });
+          state.queue.push({ id: x.id, url: x.url, generation });
         }
         paintBadge(x, job?.hit || saved?.hit || null, job?.status || (state.throttled ? 'unavailable' : 'limited'), saved?.stale && !job?.hit);
         ranked.push({ tile: x, hit: job?.hit || saved?.hit || null });
       }
-      root.AIR.retailerSort?.update(ranked);
-      root.AIR.retailerSpace?.update(ranked);
+      if (isListingPage(location) && ranked.length) root.AIR.retailerSort?.update(ranked);
+      if (search) root.AIR.retailerSpace?.update(ranked);
       drain();
     }, chrome.storage);
     return false;
@@ -360,10 +402,10 @@
   const fast = { raf: 0, timer: 0, next: 0 };
   const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
   function fastHide() {
-    if (fast.raf || fast.timer || !adapter.hideSponsored || typeof requestAnimationFrame !== 'function' || !adapter.isSearchPage(location)) return;
+    if (fast.raf || fast.timer || !adapter.hideSponsored || typeof requestAnimationFrame !== 'function' || !isListingPage(location)) return;
     const run = () => {
       fast.raf = 0;
-      if (!state.enabled || !adapter.isSearchPage(location)) return;
+      if (!state.enabled || !isListingPage(location)) return;
       const started = now();
       adapter.hideSponsored(document);
       fast.next = now() + Math.max(16, (now() - started) * 8);
@@ -382,7 +424,8 @@
   function pass() {
     if (!state.enabled) return;
     const product = adapter.isProductPage(location);
-    const done = product ? productPass() : adapter.isSearchPage(location) ? searchPass() : true;
+    const done = product && productPass();
+    if (ratesTiles()) searchPass();
     // true: finished, stop watching. 'watch': wait for the page to change. false: not rendered yet,
     // so a timer makes sure the give-up point is reached even if the page goes quiet.
     // Search pages keep watching for more tiles.
@@ -406,9 +449,7 @@
   }
 
   function reset() {
-    state.generation = (state.generation || 0) + 1;
-    for (const controller of state.controllers) controller.abort();
-    state.controllers.clear(); state.requests.clear(); state.queue = []; state.active = 0;
+    cancelTileRequests();
     state.fetchCount = 0; state.searchAllowed = true; state.throttled = false;
     send({ type: 'pageScore', status: null });
     stopWatching();
@@ -418,10 +459,10 @@
     state.signature = null;
     state.pageScore = null; state.override = false; state.done = false; state.started = Date.now();
     state.url = location.href;
-    root.AIR.retailerSort?.reset(state.enabled && adapter.isSearchPage(location));
+    root.AIR.retailerSort?.reset(state.enabled && isListingPage(location));
     root.AIR.retailerSpace?.reset();
     if (!state.enabled) return;
-    if (!adapter.isProductPage(location) && !adapter.isSearchPage(location)) return;
+    if (!adapter.isProductPage(location) && !isListingPage(location)) return;
     pass();
     if (!state.done) watch();
   }
@@ -437,7 +478,7 @@
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area && area !== 'local') return;
     if (!KEYS.some(k => changes[k])) {
-      if (Object.keys(changes).some(k => k.startsWith(`s:${STORE}:`)) && adapter.isSearchPage(location)) pass();
+      if (Object.keys(changes).some(k => k.startsWith(`s:${STORE}:`)) && ratesTiles()) pass();
       return;
     }
     chrome.storage.local.get(KEYS, o => { readSettings(o || {}); reset(); });

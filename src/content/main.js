@@ -30,9 +30,9 @@
 
   function settleIfDone() {
     const st = document.getElementById(HOST_ID)?.dataset.airState;
-    // not-food is stable. scored stays observed so late NIC hydration can replace a wrong first
-    // blurb. fail never settles permanently — Amazon often publishes the list after expanders load.
-    if (st === 'not-food') settle(st);
+    // A non-food product can still gain food recommendations. Scored and failed
+    // panels stay observed because Amazon can publish their ingredient list later.
+    if (st === 'not-food' && !state.badges) settle(st);
   }
 
   const DEBOUNCE_MS = 400;
@@ -52,21 +52,14 @@
   let navWired = false;
   let lastUrl = location.href;
 
-  function observeRoot(narrow) {
-    if (!narrow) return document.documentElement;
-    return document.querySelector(
-      '#search, .s-main-slot, [data-component-type="s-search-results"], #dp, #dp-container, #ppd'
-    ) || document.documentElement;
-  }
-
-  function startObserving(narrow = false) {
+  function startObserving() {
     if (!state.enabled) return;
-    const root = observeRoot(narrow);
+    const root = document.documentElement;
     if (observer && observerRoot === root) return;
     stopObserving();
     observer = new MutationObserver(schedule);
     observer.observe(root, { childList: true, characterData: true, subtree: true,
-      attributes: true, attributeFilter: ['data-asin', 'value'] });
+      attributes: true, attributeFilter: ['data-asin', 'href', 'value'] });
     observerRoot = root;
     state.settled = null;
   }
@@ -88,20 +81,22 @@
   function tick() {
     if (!state.enabled) return;
     try {
-      if (isProductPage()) { scoreCurrentPage(); settleIfDone(); }
+      if (isProductPage()) {
+        scoreCurrentPage();
+        if (state.badges) badgeSearchResults();
+        settleIfDone();
+      }
       else if (isListPage()) {
         removePanel();
         if (state.lastBadgeScore != null) {
           state.lastBadgeScore = undefined;
           publishActionBadge(null);
         }
-        if (!searchAllowed()) { standDown(); AIR.sort?.mount({ priceOnly: true }); startObserving(true); return; }
+        if (!searchAllowed()) { standDown(); AIR.sort?.mount({ priceOnly: true }); return; }
         // Amazon's Sort by menu gets the Ingredient Check options (sort.js), with or without badges.
         if (!state.badges) { standDown(); AIR.sort?.mount(); settle('badges off'); return; }
         badgeSearchResults();
         AIR.sort?.mount();
-        // After the first badge pass, watch only the results slot — not the whole document.
-        startObserving(true);
       } else {
         teardown();
         if (state.lastBadgeScore != null) {

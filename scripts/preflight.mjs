@@ -72,8 +72,8 @@ check('stores covered', () => {
   }
   const hosts = new Set(AMAZON_HOSTS);
   if (hosts.size < 21) throw new Error(`only ${hosts.size} Amazon hosts`);
-  if (matches.some(m => /\/\*$/.test(m) && !/\/(dp|s|b|stores|gp\/product|gp\/browse|gp\/aw\/d)/.test(m))) {
-    throw new Error('a catch-all /* match is back — content scripts must stay on product/search paths');
+  if (matches.some(m => /^\*:\/\/[^/]+\/\*$/.test(m))) {
+    throw new Error('a catch-all /* match is back — content scripts must stay on public shopping paths');
   }
   if (!matches.some(m => m.includes('/*/dp/')) || !matches.some(m => m.includes('/*/gp/product/'))) {
     throw new Error('slug product matches (/*/dp/*, /*/gp/product/*) missing');

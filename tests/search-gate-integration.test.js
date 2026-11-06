@@ -98,7 +98,9 @@ const page = (q, extra, titles) => ({
 const CASES = [
   ['a search for running shoes', page('running shoes', '', SHOES), false],
   ['a search inside i=fashion', page('socks', '&i=fashion', SHOES), false],
+  ['a non-food department with an unrelated food card', page('socks', '&i=fashion', [...SHOES, FOOD[0]]), false],
   ['a brand search returning shoes', page('nike air max', '', SHOES), false],
+  ['a food card among merchandise results', page('running shoes', '', [...SHOES, FOOD[0]]), true],
   ['a search for organic oats', page('organic oats', '', FOOD), true],
   ['a cookware word inside i=grocery', page('skillet', '&i=grocery', FOOD), true],
 ];

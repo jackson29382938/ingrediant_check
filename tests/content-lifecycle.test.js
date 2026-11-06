@@ -487,11 +487,11 @@ test('carousel cards with no title are never armed for auto-score', () => {
   Object.assign(c.location, { pathname: '/s', search: '?k=kefir', href: 'https://www.amazon.com/s?k=kefir' });
   const observed = [];
   c.IntersectionObserver = class { observe(t) { observed.push(t.getAttribute('data-asin')); } disconnect() {} unobserve() {} };
-  const attrs = () => { const a = {}; return { getAttribute: k => (k === 'data-asin' ? a.asin : a[k] ?? null), setAttribute: (k, v) => { a[k] = v; }, a }; };
+  const attrs = () => { const a = {}; return { getAttribute: k => (k === 'data-asin' ? a.asin : a[k] ?? null), hasAttribute: k => k in a, setAttribute: (k, v) => { a[k] = v; }, a }; };
   const heading = { textContent: '', closest: () => null };
   const titled = attrs(); titled.a.asin = 'B000000010'; titled.querySelector = s => (/h2/.test(s) ? heading : null); titled.querySelectorAll = s => (/h2/.test(s) ? [heading] : []);
   const card = attrs(); card.a.asin = 'B000000011'; card.querySelector = () => null; card.querySelectorAll = () => [];
-  c.document.querySelectorAll = sel => (/data-air-auto/.test(sel) ? [titled, card] : []);
+  c.document.querySelectorAll = sel => (sel.startsWith('[data-asin]') ? [titled, card] : []);
   c.AIR.search.armAutoScorePass();
   assert.deepEqual(observed, ['B000000010']);
   assert.equal(card.getAttribute('data-air-auto'), null, 'left unmarked, so a card that renders a title later is armed then');
@@ -933,4 +933,20 @@ test('shortcut: a second key press supersedes the first list', async () => {
   assert.equal(w.sort.runId, 'second-2');
   await flushAll();
   assert.ok(w.updates.some(u => u.runId === 'second-2'));
+});
+
+test('Amazon Fresh arms titled carousel cards without a data-asin, using only same-store links', () => {
+  const w = setup();
+  const c = w.context;
+  Object.assign(c.location, { pathname: '/alm/storefront', href: 'https://www.amazon.com/alm/storefront' });
+  const { createDocument } = require('./pages/load.js');
+  const doc = createDocument('<li class="a-carousel-card"><a href="/avocado/dp/B000NOGKN4"><img alt="Avocado"></a>'
+    + '<a href="/avocado/dp/B000NOGKN4"><span class="p13nTitle">Medium Hass Avocado</span></a></li>'
+    + '<li class="a-carousel-card"><a href="https://example.com/dp/B000NOGKN4">Foreign listing</a></li>');
+  c.document.querySelectorAll = selector => doc.querySelectorAll(selector);
+  const observed = [];
+  c.IntersectionObserver = class { observe(tile) { observed.push(tile); } };
+  c.AIR.search.armAutoScorePass();
+  assert.equal(observed.length, 1);
+  assert.equal(c.AIR.search.listingTitle(observed[0]).textContent, 'Medium Hass Avocado');
 });
