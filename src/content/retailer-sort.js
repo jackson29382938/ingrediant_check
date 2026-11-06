@@ -10,6 +10,10 @@
 // search's listings ranked there, by the same extension page Amazon uses (src/options/sorted.js): priorities,
 // units, "why it scored" notes on hover, Stop, back-to-search.
 //
+// A search that is not about food (a 9V battery, a shampoo) has no ingredients to score, but its listings still have a
+// price per unit ("$3.86/ea"), so the same button stays and offers only the price entry: a price-only list, as on
+// Amazon (sort.js), with no scores, no saved-score lookups and no product-page requests.
+//
 // The list fills in as it goes, in Amazon's order:
 //   1. the listings on this page, with the scores this computer already holds (and the reasons behind them);
 //   2. when "Load more results" is on (Settings > Search and unit-price sorting), further results pages, until the
@@ -49,6 +53,8 @@
 
   let host, shadow, button, menu;
   let active = false, mounted = false, pending = false, run = 0, runId = null, listening = false, outside = false, followedURL = '';
+  // True on a search that is not about food: the list ranks by price per unit only, and nothing about ingredients is read.
+  let priceOnly = false;
   let lastTiles = [], unitHeld = { sig: '', unit: null }, unitOn = true;
   const controllers = new Set();
   let unitSettings = {};
@@ -135,11 +141,14 @@
     const names = labels();
     for (const item of menu.querySelectorAll('[data-mode]')) {
       item.textContent = names[item.dataset.mode];
-      // Amazon's menu drops the price entry while unit prices are switched off in the popup; so does this one.
-      item.hidden = item.dataset.mode === 'unitPrice' && !unitOn;
+      // Amazon's menu drops the price entry while unit prices are switched off in the popup; so does this one. A search
+      // that is not about food has no score to offer.
+      item.hidden = (item.dataset.mode === 'unitPrice' && !unitOn) || (item.dataset.mode === 'health' && priceOnly);
     }
+    const first = menu.querySelector('button:not([hidden])');
+    if (!first) return;
     menu.hidden = false; button.setAttribute('aria-expanded', 'true');
-    menu.querySelector('button:not([hidden])').focus({ preventScroll: true });
+    first.focus({ preventScroll: true });
   }
   function mount() {
     if (host?.isConnected || !active) return;
@@ -190,13 +199,13 @@
 
   // ------------------------------------------------------------------ choosing
   function choose(mode) {
-    if (pending) return;
+    if (pending || (priceOnly && mode !== 'unitPrice')) return;
     pending = true;
     const token = ++run;
     for (const controller of controllers) controller.abort();
     controllers.clear();
     logAction('sort menu', `${storeName}: chose ${mode === 'unitPrice' ? 'Unit price' : 'Ingredient Check score'} on ${location.pathname}`);
-    send({ type: 'openSortedPanel', mode, sourceUrl: location.href, priceOnly: false, unitEnabled: true }).then(async reply => {
+    send({ type: 'openSortedPanel', mode, sourceUrl: location.href, priceOnly, unitEnabled: true }).then(async reply => {
       pending = false;
       if (token !== run || !reply || !reply.runId) return;
       runId = reply.runId;
@@ -433,7 +442,7 @@
       if (token !== run) return false;
       const likely = U().likelyUnit(items, 'us');
       if (new Set(items.filter(p => Number.isFinite(p.score)).map(p => p.category || 'food')).size > 1) status = t('sortMixed', 'Mixed categories: score ranking is disabled; other priorities still apply.') + ' ' + status;
-      const reply = await send({ type: 'updateSortedResults', runId: id, items, loading, status, priceOnly: false, unit: likely ? likely.unit : '' });
+      const reply = await send({ type: 'updateSortedResults', runId: id, items, loading, status, priceOnly, unit: likely ? likely.unit : '' });
       // A newer sort (in this tab or another) took the panel over: stop working for this one.
       if (reply && reply.stale) { if (token === run) run++; return false; }
       return true;
@@ -467,6 +476,8 @@
     await listingsReady(token);
     if (token !== run) return;
     const { state } = runner();
+    // Fixed for this run: a change of mode starts a new one (update).
+    const pricesOnly = priceOnly;
     const products = new Map();
     // Returns how many were new. `pageNumber` labels where each came from.
     const addTiles = (tiles, pageNumber) => {
@@ -494,8 +505,10 @@
       await publish(token, [], false, t('sortNoCardsStore', 'No $1 product cards were found. Check that this is a search results page, then refresh after listings load.', storeName), true);
       return;
     }
-    for (const [id, s] of await knownScores(noScore())) scores.set(id, s);
-    if (!await publish(token, list(), true, `${counting()} ${t('sortStatusChecking', 'Checking saved scores…')}`, true)) return;
+    // Scores this computer already holds. A price-only list looks up none: it has nothing to say about ingredients.
+    const refreshScores = async () => { if (!pricesOnly) for (const [id, s] of await knownScores(noScore())) scores.set(id, s); };
+    await refreshScores();
+    if (!await publish(token, list(), true, pricesOnly ? counting() : `${counting()} ${t('sortStatusChecking', 'Checking saved scores…')}`, true)) return;
 
     // Further results pages, when "Load more results" is on.
     let partialError = '', pagesInList = 1, exhausted = false;
@@ -524,7 +537,7 @@
           if (!fresh) { exhausted = true; break; }            // nothing new: the store has no more, or ignores the page number
           pagesInList = pageNumber;
           currentUrl = nextUrl; currentDoc = read.doc;
-          for (const [id, s] of await knownScores(noScore())) scores.set(id, s);
+          await refreshScores();
         } catch (error) {
           if (token !== run) return;
           if (error && error.blocked) runner().state.throttled = true;
@@ -535,12 +548,12 @@
       }
       if (token !== run) return;
       if (timeUp() && products.size < settings.sortCount && !exhausted) stopped = timeMessage();
-      for (const [id, s] of await knownScores(noScore())) scores.set(id, s);
+      await refreshScores();
       if (!await publish(token, list(), true, counting(), true)) return;
     }
 
     // Product pages for what is still unscored, when the settings allow it.
-    const rateAllowed = settings.sortMissing === 'rate-first' && state.autoScoreSearch;
+    const rateAllowed = !pricesOnly && settings.sortMissing === 'rate-first' && state.autoScoreSearch;
     if (rateAllowed && noScore().length && token === run) {
       const ids = noScore();
       const budget = () => (state.fetchLimit >= Number.MAX_SAFE_INTEGER ? Infinity : state.fetchLimit * pagesInList);
@@ -554,7 +567,7 @@
     if (token !== run) return;
 
     const items = list();
-    const unscored = items.filter(p => p.score == null).length;
+    const unscored = pricesOnly ? 0 : items.filter(p => p.score == null).length;
     const tail = unscored ? ' ' + unscoredTail(unscored) : '';
     const collected = t('sortCollected', 'Collected $1 products.', items.length);
     let status;
@@ -577,7 +590,7 @@
     // The list's "Update list": start this search again, now under the count and time limit the reader just set.
     if (msg?.type === 'sortRerun') { if (sender && sender.id === chrome.runtime.id && fromListPage(sender)) followSearch(true, true); return false; }
     if (msg && msg.type === 'sortStart') {
-      const ok = own && mounted && typeof msg.runId === 'string' && /^[\w-]{1,64}$/.test(msg.runId);
+      const ok = own && mounted && !(priceOnly && msg.mode !== 'unitPrice') && typeof msg.runId === 'string' && /^[\w-]{1,64}$/.test(msg.runId);
       if (typeof respond === 'function') respond({ ok });
       if (ok) startFromCommand({ mode: msg.mode === 'unitPrice' ? 'unitPrice' : 'health', runId: msg.runId });
       return false;
@@ -595,16 +608,24 @@
     if (!mounted || (!force && followedURL === location.href)) return;
     const url = location.href, generation = run;
     followedURL = url;
-    send({ type: 'followSortedSearch', sourceUrl: url, priceOnly: false, unitEnabled: true, ...(rerun ? { rerun: true } : {}) }).then(reply => {
+    send({ type: 'followSortedSearch', sourceUrl: url, priceOnly, unitEnabled: true, ...(rerun ? { rerun: true } : {}) }).then(reply => {
       if (reply?.ok && typeof reply.runId === 'string' && mounted && location.href === url && run === generation) void startFromCommand(reply);
     });
   }
 
   // ------------------------------------------------------------------ lifecycle (called by retailer.js)
   // `update` on every search pass with the tiles now on the page; `reset(enabled)` when the page, the settings or
-  // the switch change. A page that is not a food search, or an extension that is paused, gets no button.
-  function update(entries) {
+  // the switch change. An extension that is paused gets no button. `options.priceOnly`: this search is not about food,
+  // so the list offers the price entry only. A change of mode drops whatever list was being built for the other one.
+  function update(entries, options = {}) {
     if (!active) return;
+    const next = options.priceOnly === true;
+    if (mounted && next !== priceOnly) {
+      run++; pending = false; followedURL = '';
+      for (const controller of controllers) controller.abort();
+      controllers.clear();
+    }
+    priceOnly = next;
     lastTiles = entries.map(entry => entry.tile);
     mounted = true;
     mount();
@@ -612,7 +633,11 @@
       listening = true;
       try { chrome.runtime.onMessage.addListener(onPanelMessage); } catch (e) { /* no messaging */ }
     }
-    if (U()) storageGet([...Object.keys(U().UNIT_DEFAULTS), 'unitPrice']).then(got => { unitSettings = U().sanitizeUnit(got); unitOn = got.unitPrice !== false; });
+    if (U()) storageGet([...Object.keys(U().UNIT_DEFAULTS), 'unitPrice']).then(got => {
+      unitSettings = U().sanitizeUnit(got); unitOn = got.unitPrice !== false;
+      // With unit prices switched off a price-only list has no entry at all, so there is nothing to offer.
+      if (host) host.style.display = priceOnly && !unitOn ? 'none' : '';
+    });
     followSearch();
   }
   function reset(enabled) {

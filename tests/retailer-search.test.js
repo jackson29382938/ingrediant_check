@@ -43,7 +43,7 @@ function element(tag = 'div') {
   return node;
 }
 
-function runner({ ids = ['79364857'], stored = {}, query = 'oats', adapterOptions = {}, productPage = '', db = {} } = {}) {
+function runner({ ids = ['79364857'], stored = {}, query = 'oats', adapterOptions = {}, productPage = '', db = {}, sort = null, gate = {} } = {}) {
   const body = element('body'), nodes = [], requests = [], writes = [], timers = [], intervals = [], observers = [];
   const url = new URL(productPage ? `https://www.target.com/p/${productPage}` : `https://www.target.com/s?searchTerm=${query}`);
   const { origin, href, hostname, pathname, search } = url;
@@ -89,7 +89,8 @@ function runner({ ids = ['79364857'], stored = {}, query = 'oats', adapterOption
     AIR: { storeAdapters: { target: adapter }, retailerLabels: require('../src/stores/label-reader.js'), db: { prefs, scoreCache, ...db,
       ingestible: { RESULT_SAMPLE_MIN: 4, assessSearch: () => ({ ok: true }), looksNonFoodFromResults: () => false,
       assess: () => productPage ? { ok: false, negatives: ['electronics'] } : { ok: true, negatives: [] },
-      looksNonFoodFromTitle: () => false } },
+      looksNonFoodFromTitle: () => false, ...gate } },
+      ...(sort ? { retailerSort: sort } : {}),
       engine: { score: input => ({ score: input.ingredients_text.includes('sugar') ? 40 : 93, verdict: 'Excellent', nova: 1, parsed: 2, coverage: 1 }), isReadable: require('../src/engine/score.js').isReadable },
       panel: { BAND_COLOR: () => ({ fg: '#000', bg: '#fff', ring: '#080' }), mount: () => element('shadow'), render() {}, renderFailure() {}, renderNotFood() {} } },
     module: { exports: {} },
@@ -305,4 +306,37 @@ test('a challenge redirect to a non-product URL stops the remaining retailer que
   await w.flush();
   assert.equal(w.api.state.throttled, true);
   assert.equal(w.requests.length, 2);
+});
+
+// A search that is not about food has no ingredients to score, but its listings still have a price per unit, so the
+// store sort stays and offers that: it is updated in price-only mode instead of being switched off.
+const sortSpy = () => { const calls = []; return { calls, update: (entries, options) => calls.push(['update', entries.length, options || null]), reset: enabled => calls.push(['reset', enabled]) }; };
+const nonFood = { assessSearch: () => ({ ok: false, signal: 'query', reason: 'not a search for food' }) };
+
+test('a search that is not about food keeps the sort in price-only mode, with no badge and no product-page request', async () => {
+  const sort = sortSpy();
+  const w = runner({ ids: ['79364857', '79364858', '79364859'], query: '9v battery', sort, gate: nonFood });
+  await w.flush();
+  assert.equal(w.requests.length, 0, 'nothing is requested for a search that is not about food');
+  assert.equal(w.badges().length, 0, 'and no badge is painted');
+  const priceOnly = sort.calls.filter(([kind, , options]) => kind === 'update' && options && options.priceOnly === true);
+  assert.ok(priceOnly.length, 'the sort was updated in price-only mode');
+  assert.equal(priceOnly[0][1], 3, 'with the tiles on the page');
+  assert.ok(!sort.calls.some(([kind, enabled]) => kind === 'reset' && enabled === false), 'and was not switched off');
+});
+
+test('a food search updates the sort in the ordinary mode', async () => {
+  const sort = sortSpy();
+  const w = runner({ query: 'oats', sort });
+  await waitForRequest(w); w.reply(0); await w.flush();
+  const updates = sort.calls.filter(([kind]) => kind === 'update');
+  assert.ok(updates.length);
+  assert.ok(updates.every(([, , options]) => !options || options.priceOnly !== true), 'never price-only');
+});
+
+test('a non-food results page with no listings yet does not show the sort', async () => {
+  const sort = sortSpy();
+  const w = runner({ ids: [], query: '9v battery', sort, gate: nonFood });
+  await w.flush();
+  assert.ok(!sort.calls.some(([kind]) => kind === 'update'), 'no listings, no button');
 });

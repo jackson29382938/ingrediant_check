@@ -44,6 +44,17 @@ export const WALMART_ITEMS = [
   { id: '10450121', title: 'Nature Valley Crunchy Granola Bars, Oats n Honey, 12 Count, 8.94 oz', price: 3.98, unit: '44.5 \u00a2/oz', stars: 4.7, reviews: 9021, ing: 'Whole grain oats, sugar, canola oil, rice flour, honey, soy flour, brown sugar syrup, salt, soy lecithin, baking soda, natural flavor.' },
   { id: '10450122', title: "Cascadian Farm Organic Granola, 12.5 oz", price: 5.48, unit: '43.8 \u00a2/oz', stars: 4.4, reviews: 1203, ing: 'Organic rolled oats, organic cane sugar, organic sunflower oil, organic honey, sea salt.' },
 ];
+// A search that is not about food: no ingredients anywhere, but every card shows a price per each ("$3.47/ea"), which is what
+// the price-only list ranks by. Listed out of order on purpose; per each, cheapest first, they are 10500006, 10500003,
+// 10500005, 10500001, 10500002, 10500004.
+export const WALMART_BATTERIES = [
+  { id: '10500001', title: 'Duracell Coppertop 9V Batteries, 4 Count', price: 13.87, unit: '$3.47/ea', stars: 4.7, reviews: 3100 },
+  { id: '10500002', title: 'Energizer MAX 9V Batteries (2 Pack), 9 Volt Alkaline Batteries', price: 7.72, unit: '$3.86/ea', stars: 4.6, reviews: 1850 },
+  { id: '10500003', title: 'Great Value Alkaline 9 Volt Batteries, 2 Count', price: 4.97, unit: '$2.49/ea', stars: 4.5, reviews: 640 },
+  { id: '10500004', title: 'Rayovac High Energy 9V Battery', price: 5.48, unit: '$5.48/ea', stars: 4.2, reviews: 212 },
+  { id: '10500005', title: 'Panasonic 9V Heavy Duty Batteries, 2 Pack', price: 6.2, unit: '$3.10/ea', stars: 4.3, reviews: 98 },
+  { id: '10500006', title: 'Duracell Procell 9V Batteries, 12 Count', price: 24.97, unit: '$2.08/ea', stars: 4.8, reviews: 540 },
+];
 // A brand carousel (placement attribute) and a banner (label only): ad modules that are not one product card.
 export const WALMART_CAROUSEL = [
   { id: '20000004', title: 'Breakfast Biscuits Honey, 5.3 oz', price: 3.18, unit: '60.0 \u00a2/oz', ing: CEREAL },
@@ -87,6 +98,11 @@ function walmartTile(item, { href } = {}) {
 const stack = children => `<div data-testid="item-stack" class="flex flex-wrap w-100 flex-grow-0 flex-shrink-0 ph2 pr0-xl pl4-xl mt0-xl" style="display:flex;flex-wrap:wrap">${children}</div>`;
 const sponsoredBanner = '<div class="banner-ad" style="width:100%;margin:8px 8px 16px;padding:14px 18px;background:#eaf3ff;border:1px solid #b7d4f4;border-radius:12px;display:flex;align-items:center;gap:16px"><span style="font-size:11px;color:#555">Sponsored</span><a href="/brand/acme-foods"><img src="https://i5.walmartimages.com/seo/banner.jpeg" alt="Acme Foods" width="120" height="48"></a><p style="margin:0">Fuel your morning. Shop Acme Foods oatmeal.</p></div>';
 function walmartResults(query, page = 1) {
+  if (/batter/i.test(String(query))) {
+    const body = page > 1 ? '<h2>No more results</h2>'
+      : `<h2 style="margin:8px 12px">Results for \u201c${esc(query)}\u201d</h2>${stack(WALMART_BATTERIES.map(item => walmartTile(item)).join(''))}`;
+    return `<form action="/search" method="get"><main data-testid="search-results" style="padding:12px 24px">${body}</main></form>`;
+  }
   if (page === 2 || page === 3) {
     const items = page === 2 ? WALMART_PAGE_2 : WALMART_PAGE_3;
     return `<form action="/search" method="get"><main data-testid="search-results" style="padding:12px 24px"><h2 style="margin:8px 12px">Results for \u201c${esc(query)}\u201d, page ${page}</h2>${stack(items.map(item => walmartTile(item)).join(''))}</main></form>`;
@@ -186,6 +202,15 @@ export const TARGET_ITEMS = [
   { id: '13012350', title: 'Nature Valley Crunchy Oats n Honey Granola Bars - 12ct/8.94oz', price: 4.09, unit: '($0.46/ounce)', stars: 4.7, reviews: 2760, ing: 'Whole grain oats, sugar, canola oil, rice flour, honey, soy flour, salt.' },
   { id: '13012351', title: 'Assorted Breakfast Variety Box', price: 6.5, unit: '', stars: 0, reviews: 0, ing: '' },
 ];
+// A search that is not about food: priced per count ("($2.17/count)"). Per count, cheapest first: 14500005, 14500003,
+// 14500001, 14500002, 14500004.
+export const TARGET_BATTERIES = [
+  { id: '14500001', title: 'Duracell Coppertop 9V Alkaline Batteries - 4 ct', price: 13.99, unit: '($3.50/count)', stars: 4.7, reviews: 910 },
+  { id: '14500002', title: 'Energizer MAX 9V Alkaline Batteries - 2 ct', price: 7.99, unit: '($4.00/count)', stars: 4.6, reviews: 402 },
+  { id: '14500003', title: 'up&up\u2122 9V Alkaline Batteries - 2 ct', price: 5.49, unit: '($2.75/count)', stars: 4.4, reviews: 150 },
+  { id: '14500004', title: 'Rayovac 9V Alkaline Battery - 1 ct', price: 5.99, unit: '($5.99/count)', stars: 4.2, reviews: 61 },
+  { id: '14500005', title: 'Duracell Procell 9V Batteries - 12 ct', price: 25.99, unit: '($2.17/count)', stars: 4.8, reviews: 233 },
+];
 const targetImage = id => `<img src="https://target.scene7.com/is/image/Target/GUEST_${id}" alt="" width="180" height="180" style="display:block;margin:0 auto;width:160px;height:160px;object-fit:contain">`;
 function targetTile(item) {
   const ps = `/p/${slug(item.title)}/-/A-${item.id}`;
@@ -219,6 +244,9 @@ header form{flex:1;display:flex}header input{flex:1;border:0;border-radius:8px 0
 function targetFragment(u) {
   if (u.pathname === '/s' || u.pathname.startsWith('/s/')) {
     const offset = Number(u.searchParams.get('Nao')) || 0;
+    if (/batter/i.test(u.searchParams.get('searchTerm') || '')) {
+      return `<main><h1 style="margin:12px 24px;font-size:20px">\u201c${esc(u.searchParams.get('searchTerm') || '')}\u201d</h1><div data-test="product-grid">${(offset === 0 ? TARGET_BATTERIES : []).map(targetTile).join('')}</div></main>`;
+    }
     const items = offset === 0 ? TARGET_ITEMS : offset === 24 ? TARGET_PAGE_2 : offset === 48 ? TARGET_PAGE_3 : [];
     return `<main><h1 style="margin:12px 24px;font-size:20px">\u201c${esc(u.searchParams.get('searchTerm') || '')}\u201d</h1><div data-test="product-grid">${items.map(targetTile).join('')}</div></main>`;
   }

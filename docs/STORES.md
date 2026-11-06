@@ -313,6 +313,16 @@ shows why it scored that way**, Stop, *Back to <store> search*, and "Open in new
 (`chrome://extensions/shortcuts`) work on any of these searches, and with the panel open a new search in the tab fills it
 again ("Follow new searches in the side panel").
 
+**A search that is not about food** (a 9V battery, a shampoo that is not rated as personal care, paper towels) has no ingredients
+to score, so the stores' badges and every ingredient lookup stay off. The listings still show a price per unit
+("$3.86/ea" on Walmart, "($2.17/count)" on Target), so the **Ingredient Check sort** button stays and offers one entry,
+*Price per count: Low to High* (the unit most listings state; a count is the "each" the cards print). It opens the same
+side-panel list in its price-only form, as Amazon's non-food searches do: no scores, no score sliders, no saved-score
+lookups and no product-page requests (`priceOnly` in `src/content/retailer-sort.js`, `src/background.js` and
+`src/options/sorted.js`). With unit prices switched off in the popup there is nothing to offer and the button is hidden.
+A listing whose card prints no unit price is priced from the pack count in its title when the *Price per unit* setting
+allows it ("2 Pack", "12 Count"), and goes to the end of the list otherwise.
+
 **How the list is built** (`src/content/retailer-sort.js`, a port of Amazon's `sort.js` onto the shared adapter interface),
 in Amazon's order and under Amazon's settings (*Settings > Search and unit-price sorting*):
 
