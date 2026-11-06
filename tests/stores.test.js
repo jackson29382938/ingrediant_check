@@ -70,11 +70,12 @@ test('host lookup matches subdomains, not look-alikes', () => {
 
 test('"Report a problem" captures only public pages of implemented stores', () => {
   for (const url of ['https://www.amazon.com/dp/B00LOAW7U6', 'https://www.amazon.co.uk/s?k=oats',
-    'https://smile.amazon.de/dp/B000000001', 'https://www.target.com/p/oats/-/A-79364857', 'https://www.walmart.com/ip/oats/10314926', 'https://www.costco.com/p/-/bars/100423971']) {
+    'https://smile.amazon.de/dp/B000000001', 'https://www.target.com/p/oats/-/A-79364857', 'https://www.walmart.com/ip/oats/10314926', 'https://www.costco.com/p/-/bars/100423971',
+    'https://www.walmart.com/shop/savings/food?facet=special_offers%3ARollback', 'https://www.target.com/c/grocery/-/N-5xt1a']) {
     assert.equal(stores.reportMayCapture(url), true, url);
   }
   for (const url of ['https://mail.google.com/mail/u/0/', 'https://www.chase.com/', 'https://www.walmart.com/ip/1',
-    'http://www.amazon.com/dp/B00LOAW7U6', 'https://notamazon.com/', 'chrome://settings', 'file:///tmp/x.html', '', null]) {
+    'http://www.amazon.com/dp/B00LOAW7U6', 'https://notamazon.com/', 'https://www.walmart.com/shop/account', 'https://www.target.com/c/checkout', 'chrome://settings', 'file:///tmp/x.html', '', null]) {
     assert.equal(stores.reportMayCapture(url), false, String(url));
   }
   for (const domain of ['target.com', 'walmart.com', 'costco.com', 'amazon.com']) {
