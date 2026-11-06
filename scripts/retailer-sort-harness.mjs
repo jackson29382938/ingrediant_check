@@ -340,6 +340,43 @@ try {
   await setting({ sortLoadMore: true });
   ok('Walmart: with "Load more results" off, only this page is listed');
 
+  // ---- a search that is not about food ("9v battery"): no badges and no ingredient lookups, but every card still shows a
+  // price per each, so the button stays and offers that one entry, and the list ranks by it with no scores.
+  const requestsBeforeBatteries = fetched.length;
+  await wm.bringToFront();
+  await wm.getByRole('searchbox', { name: 'Search' }).fill('9v battery');
+  await wm.keyboard.press('Enter');
+  await wm.waitForURL(/\/search\?q=9v/);
+  await wm.waitForSelector('[data-item-id="10500006"]', { timeout: 20000 });
+  await sortMenu(wm).getByRole('button', { name: 'Ingredient Check sort' }).waitFor({ timeout: 20000 });
+  await frames(wm, 20);
+  assert.equal(await wm.locator('.air-badge').count(), 0, 'no score badges on a search that is not about food');
+  await sortMenu(wm).getByRole('button', { name: 'Ingredient Check sort' }).click();
+  const batteryEntries = await sortMenu(wm).getByRole('menuitem').allTextContents();
+  assert.deepEqual(batteryEntries, ['Price per count: Low to High'], 'only the price entry: there is no score to sort by');
+  await shot(wm, '06c-walmart-non-food-sort-menu');
+  await wm.keyboard.press('Escape');
+  const batteryList = await chooseSort(wm, 'Price per count: Low to High');
+  const batteryRows = await listRows(batteryList);
+  assert.deepEqual(batteryRows.map(r => r.title), [
+    'Duracell Procell 9V Batteries, 12 Count', 'Great Value Alkaline 9 Volt Batteries, 2 Count', 'Panasonic 9V Heavy Duty Batteries, 2 Pack',
+    'Duracell Coppertop 9V Batteries, 4 Count', 'Energizer MAX 9V Batteries (2 Pack), 9 Volt Alkaline Batteries', 'Rayovac High Energy 9V Battery',
+  ], `ranked by price per each, cheapest first (got ${batteryRows.map(r => `${r.title} ${r.unit}`).join(' | ')})`);
+  assert(nonDecreasing(batteryRows.map(r => money(r.unit))), `the per-each prices ascend: ${batteryRows.map(r => r.unit).join(' ')}`);
+  assert.deepEqual(batteryRows.map(r => r.score), batteryRows.map(() => ''), 'no score on any row');
+  assert.equal((await sortedState()).priceOnly, true, 'the worker holds a price-only list');
+  assert.match(await batteryList.locator('.results-subtitle').textContent(), /price comparison only/);
+  assert.equal(fetched.length, requestsBeforeBatteries, `no product page was requested (${fetched.slice(requestsBeforeBatteries)})`);
+  await shot(batteryList, '06d-walmart-non-food-list-price-per-each');
+  await batteryList.close();
+  // Back to the food search: both entries return.
+  await wm.goBack();
+  await wm.waitForSelector('[data-item-id="10314926"] .air-badge', { timeout: 30000 });
+  await sortMenu(wm).getByRole('button', { name: 'Ingredient Check sort' }).click();
+  assert.equal((await sortMenu(wm).getByRole('menuitem').allTextContents()).length, 2, 'a food search offers both entries again');
+  await wm.keyboard.press('Escape');
+  ok('Walmart: a "9v battery" search keeps the sort button with only the price entry (per each), no badges; the list ranks 6 batteries by price per each with no scores and no product page requested');
+
   // The side panel: the same list in the narrow column Chrome gives it.
   const panel = await context.newPage();
   await panel.setViewportSize({ width: 420, height: 900 });
@@ -422,6 +459,32 @@ try {
   assert(tScores.length >= 16 && tScores.every((v, i) => i === 0 || v <= tScores[i - 1]), `score descends: ${tScores}`);
   ok('Target: Ingredient Check score: High to Low');
   await tHealth.close();
+
+  // ---- a search that is not about food: the same price-only list, here priced per count ("($2.17/count)").
+  const tRequestsBefore = fetched.length;
+  await tg.getByRole('searchbox', { name: /help you find/ }).fill('9v battery');
+  await tg.keyboard.press('Enter');
+  await tg.waitForURL(/searchTerm=9v/);
+  await tg.getByText('Duracell Procell 9V Batteries - 12 ct').first().waitFor({ timeout: 20000 });
+  await sortMenu(tg).getByRole('button', { name: 'Ingredient Check sort' }).waitFor({ timeout: 20000 });
+  await frames(tg, 20);
+  assert.equal(await tg.locator('.air-badge').count(), 0, 'no score badges on a search that is not about food');
+  await sortMenu(tg).getByRole('button', { name: 'Ingredient Check sort' }).click();
+  assert.deepEqual(await sortMenu(tg).getByRole('menuitem').allTextContents(), ['Price per count: Low to High'], 'only the price entry');
+  await tg.keyboard.press('Escape');
+  const tBattery = await chooseSort(tg, 'Price per count: Low to High');
+  const tBatteryRows = await listRows(tBattery);
+  assert.deepEqual(tBatteryRows.map(r => r.title), [
+    'Duracell Procell 9V Batteries - 12 ct', 'up&up\u2122 9V Alkaline Batteries - 2 ct', 'Duracell Coppertop 9V Alkaline Batteries - 4 ct',
+    'Energizer MAX 9V Alkaline Batteries - 2 ct', 'Rayovac 9V Alkaline Battery - 1 ct',
+  ], `ranked by price per count (got ${tBatteryRows.map(r => `${r.title} ${r.unit}`).join(' | ')})`);
+  assert(nonDecreasing(tBatteryRows.map(r => money(r.unit))), `the per-count prices ascend: ${tBatteryRows.map(r => r.unit).join(' ')}`);
+  assert.deepEqual(tBatteryRows.map(r => r.score), tBatteryRows.map(() => ''), 'no score on any row');
+  assert.equal(fetched.length, tRequestsBefore, `no product page was requested (${fetched.slice(tRequestsBefore)})`);
+  await tBattery.close();
+  await tg.goBack();
+  await tg.waitForFunction(() => document.querySelectorAll('.air-badge[data-air-status="scored"]').length >= 1, null, { timeout: 30000 });
+  ok('Target: a "9v battery" search keeps the sort button with only the price entry, no badges; the list ranks 5 batteries by price per count with no scores and no product page requested');
   await tg.locator('[data-test="ListingPageProductListing"] a[data-test="content"]').first().click();
   await tg.waitForURL(/\/p\//);
   await tg.waitForFunction(() => document.getElementById('air-score-panel')?.dataset.airState === 'scored', null, { timeout: 30000 });

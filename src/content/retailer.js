@@ -430,7 +430,10 @@
         if (state.searchAllowed) cancelTileRequests();
         state.searchAllowed = false;
         clearBadges();
-        root.AIR.retailerSort?.reset(false);
+        // Not a food search: no badges and no ingredient lookups, but the listings still have a price per unit, so the
+        // sort button stays and offers that (a price-only list).
+        if (!isListingPage(location)) root.AIR.retailerSort?.reset(false);
+        else if (tiles.length) root.AIR.retailerSort?.update(tiles.map(tile => ({ tile })), { priceOnly: true });
         root.AIR.retailerSpace?.reset();
         return true;
       }
