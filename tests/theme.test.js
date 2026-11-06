@@ -72,6 +72,16 @@ test('band() picks the right step at each threshold and follows the palette', ()
   assert.equal(theme.band(50, 'nonsense').fg, theme.band(50, 'standard').fg, 'an unknown palette is Standard');
 });
 
+test('inline badges use the selected palette on the requested surface', () => {
+  try {
+    theme.use({ theme: 'dark', palette: 'cvd' });
+    const colors = theme.band(95);
+    assert.deepEqual(theme.badgeColors(colors), { fg: colors.dfg, bg: '#1b1c1c', ring: colors.dring });
+    theme.use({ theme: 'light', palette: 'cvd' });
+    assert.deepEqual(theme.badgeColors(colors), colors);
+  } finally { theme.use({}); }
+});
+
 test('the panel and every score paint site read the reader\'s palette through BAND_COLOR', () => {
   theme.use({ palette: 'standard' });
   assert.deepEqual(panel.BAND_COLOR(80), theme.band(80, 'standard'));

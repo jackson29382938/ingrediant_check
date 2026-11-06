@@ -49,9 +49,10 @@
       dropSummary();
       summary = document.createElement('div');
       summary.className = 'air-cart-summary'; summary.setAttribute('role', 'status');
-      summary.attachShadow({ mode: 'open' }).innerHTML = '<style>:host{display:block!important;margin:8px 0!important}.box{display:flex;align-items:center;gap:12px;padding:10px 14px;border:2px solid var(--ring);border-radius:12px;background:var(--bg);color:var(--fg);font:14px/1.4 sans-serif}.num{flex:none;display:grid;place-items:center;min-width:46px;height:46px;padding:0 6px;box-sizing:border-box;border:3px solid var(--ring);border-radius:999px;background:#fff;font:700 18px/1 sans-serif}.t{font-weight:700}.s{font-size:12px}</style><div class="box"><span class="num"></span><span><span class="t"></span><br><span class="s"></span></span></div>';
+      summary.attachShadow({ mode: 'open' }).innerHTML = '<style>:host{display:block!important;margin:8px 0!important}.box{display:flex;align-items:center;gap:12px;padding:10px 14px;border:2px solid var(--ring);border-radius:12px;background:var(--bg);color:var(--fg);font:14px/1.4 sans-serif}.num{flex:none;display:grid;place-items:center;min-width:46px;height:46px;padding:0 6px;box-sizing:border-box;border:3px solid var(--ring);border-radius:999px;background:#fff;font:700 18px/1 sans-serif}.t{font-weight:700}.s{font-size:12px}@media (prefers-color-scheme:dark){:host(:not([data-air-theme="light"])) .box{background:#191d22;color:var(--dfg,var(--fg));border-color:var(--dring,var(--ring))}:host(:not([data-air-theme="light"])) .num{background:#121519;border-color:var(--dring,var(--ring))}}:host([data-air-theme="dark"]) .box{background:#191d22;color:var(--dfg,var(--fg));border-color:var(--dring,var(--ring))}:host([data-air-theme="dark"]) .num{background:#121519;border-color:var(--dring,var(--ring))}</style><div class="box"><span class="num"></span><span><span class="t"></span><br><span class="s"></span></span></div>';
       place.parent.insertBefore(summary, place.before);
     }
+    A.db.theme?.force?.(summary);
     const q = sel => summary.shadowRoot.querySelector(sel);
     q('.num').textContent = s.average == null ? '—' : String(s.average);
     const named = category => category === 'food' ? t('catFood', 'Food') : A.db.productRatings.categoryLabel(category, t);
@@ -61,35 +62,42 @@
       earnedHere ? t('cartXpGained', '+$1 XP', earnedHere) : '', lv ? t('cartLevel', 'Level $1 · $2/$3 XP', lv.level, lv.into, lv.need) : ''].filter(Boolean).join(' · ');
     // An index, or a cart of several kinds, has no quality band.
     const c = s.average == null || s.category ? A.db.theme.neutral() : A.db.theme.band(s.average);
-    for (const k of ['fg', 'bg', 'ring']) summary.style.setProperty('--' + k, c[k]);
+    for (const k of ['fg', 'bg', 'ring', 'dfg', 'dring']) if (c[k]) summary.style.setProperty('--' + k, c[k]);
     summary.dataset.airSig = sig;
   }
   // Points for the good lines that have not been looked at yet on this page (each product once a week, and the
   // stored object is read and written only when there is something new). Never touches a score.
-  async function award(items) {
-    if (!settings.pointsEnabled) return;
+  let awardChain = Promise.resolve();
+  function award(items) {
+    if (!settings.pointsEnabled) return awardChain;
     const fresh = items.filter(i => Number.isFinite(i.score) && (!i.category || i.category === 'food') && !awarded.has(i.id)), turn = generation;
-    if (!fresh.length) return;
+    if (!fresh.length) return awardChain;
     for (const i of fresh) awarded.add(i.id);
-    const stored = (await chrome.storage.local.get('xp')).xp;
-    if (turn !== generation) return;
-    const host = cache.normalizeStore(location.hostname), r = P.earn(stored, fresh.map(i => ({ key: `${host}:${i.id}`, score: i.score })));
-    xp = r.xp;
-    if (r.gained) { earnedHere += r.gained; await chrome.storage.local.set({ xp }); }
-    schedule();
+    const next = awardChain.then(async () => {
+      if (turn !== generation) return;
+      const stored = (await chrome.storage.local.get('xp')).xp;
+      if (turn !== generation) return;
+      const host = cache.normalizeStore(location.hostname), r = P.earn(stored, fresh.map(i => ({ key: `${host}:${i.id}`, score: i.score })));
+      xp = r.xp;
+      if (r.gained) { earnedHere += r.gained; await chrome.storage.local.set({ xp }); }
+      schedule();
+    });
+    awardChain = next.catch(() => {});
+    return awardChain;
   }
   function schedule() { clearTimeout(timer); timer = setTimeout(pass, 200); }
   function paint(tile, hit, status, saved = false, detail = '', reason = '') {
     let b = tile.anchor.querySelector('.air-cart-badge');
     if (!b) {
       b = document.createElement('span'); b.className = 'air-cart-badge';
-      b.attachShadow({ mode: 'open' }).innerHTML = '<style>:host{display:inline-flex!important;vertical-align:middle!important;margin:4px!important;cursor:pointer}span{font:700 12px/1.4 sans-serif;padding:3px 7px;border:2px solid var(--ring);border-radius:999px;color:var(--fg);background:var(--bg)} </style><span><slot></slot></span>';
+      b.attachShadow({ mode: 'open' }).innerHTML = '<style>:host{display:inline-flex!important;vertical-align:middle!important;margin:4px!important;cursor:pointer}span{font:700 12px/1.4 sans-serif;padding:3px 7px;border:2px solid var(--ring);border-radius:999px;color:var(--fg);background:var(--bg)}@media (prefers-color-scheme:dark){:host(:not([data-air-theme="light"])) span{background:#191d22;color:var(--dfg,var(--fg));border-color:var(--dring,var(--ring))}}:host([data-air-theme="dark"]) span{background:#191d22;color:var(--dfg,var(--fg));border-color:var(--dring,var(--ring))}</style><span><slot></slot></span>';
       if (tile.imageOnly) {
         if (getComputedStyle(tile.anchor).position === 'static') tile.anchor.style.position = 'relative';
         b.style.cssText = 'position:absolute!important;top:4px!important;left:4px!important;z-index:2!important';
       }
       tile.anchor.insertBefore(b, tile.anchor.firstChild);
     }
+    A.db.theme?.force?.(b);
     const care = !!hit && !!hit.category && hit.category !== 'food';
     const label = hit ? `${hit.score}${care ? ` · ${A.db.productRatings.categoryLabel(hit.category, t)}` : ''}${saved ? ' · saved' : ''}` : status === 'checking' ? detail === 'ocr' ? t('cartReadingPhoto', 'Reading label photo…') : detail === 'barcode' ? t('cartReadingBarcode', 'Looking up barcode…') : 'Checking label…' : status === 'not-food' ? 'Not a food' : status === 'unavailable' ? 'Label unavailable' : 'Open to rate';
     if (b.textContent !== label) b.textContent = label;
@@ -108,8 +116,8 @@
       b.setAttribute('aria-label', name); b.setAttribute('role', card ? 'link' : 'img');
       if (card) { b.setAttribute('tabindex', '0'); b.setAttribute('aria-haspopup', 'dialog'); b.setAttribute('aria-expanded', 'false'); } else b.title = name;
     }
-    const color = hit ? (care ? A.db.theme.neutral() : A.db.theme.band(hit.score)) : { fg: '#374151', bg: '#f3f4f6', ring: '#9ca3af' };
-    for (const k of ['fg', 'bg', 'ring']) b.style.setProperty('--' + k, color[k]);
+    const color = hit ? (care ? A.db.theme.neutral() : A.db.theme.band(hit.score)) : { fg: '#374151', bg: '#f3f4f6', ring: '#9ca3af', dfg: '#d1d5db', dring: '#6b7280' };
+    for (const k of ['fg', 'bg', 'ring', 'dfg', 'dring']) if (color[k]) b.style.setProperty('--' + k, color[k]);
   }
   const live = turn => turn === generation && location.href === url && C.allowed(location);
   function rate(input, source, capturedAt = Date.now()) {

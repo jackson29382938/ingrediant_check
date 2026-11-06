@@ -116,7 +116,7 @@ function runner(file, url, stored = {}, productOverride = null) {
     el.isConnected = true;
     const original = el.querySelector.bind(el);
     el.querySelector = selector => selector === '.air-badge' ? el.inserted?.find(child => !child.removed) || null : original(selector);
-    el.appendChild = child => { (el.inserted = el.inserted || []).push(child); child.isConnected = true; };
+    el.insertBefore = child => { (el.inserted = el.inserted || []).unshift(child); child.isConnected = true; };
   };
   const title = page.querySelector('h1[data-test="product-title"]');
   if (title) title.parentNode.insertBefore = child => { host = child; child.isConnected = true; };
@@ -132,7 +132,7 @@ function runner(file, url, stored = {}, productOverride = null) {
   const data = { autoScoreSearch: false, ...stored };
   const sandbox = {
     console, URL, Date, Math, JSON, Object, Array, String, Number,
-    location: { href: loc.href, hostname: loc.hostname, pathname: loc.pathname, search: loc.search },
+    location: { href: loc.href, origin: loc.origin, hostname: loc.hostname, pathname: loc.pathname, search: loc.search },
     setTimeout: (fn, ms) => { timers.push({ fn, ms }); return timers.length; }, clearTimeout() {},
     setInterval: () => 0,
     MutationObserver: class { observe() {} disconnect() {} },
@@ -140,7 +140,8 @@ function runner(file, url, stored = {}, productOverride = null) {
     document: {
       querySelector: s => page.querySelector(s), querySelectorAll: s => page.querySelectorAll(s),
       getElementById: id => (id === 'air-score-panel' ? host : null),
-      createElement: tag => ({ tagName: tag, style: {}, dataset: {}, attrs: {}, setAttribute(k, v) { this.attrs[k] = String(v); }, querySelector: () => null,
+      createElement: tag => ({ tagName: tag, style: {}, dataset: {}, attrs: {}, setAttribute(k, v) { this.attrs[k] = String(v); },
+        removeAttribute(k) { delete this.attrs[k]; }, querySelector: () => null,
         remove() { this.removed = true; if (host === this) host = null; } }),
       body: {}, documentElement: {}, title: page.title, URL: url,
     },
@@ -154,7 +155,7 @@ function runner(file, url, stored = {}, productOverride = null) {
       }, onChanged: { addListener() {} } },
     },
     AIR: {
-      engine, storeAdapters: { target: productOverride ? { ...T, readProduct: () => productOverride } : T },
+      engine, retailerLabels: require('../src/stores/label-reader.js'), storeAdapters: { target: productOverride ? { ...T, readProduct: () => productOverride } : T },
       db: { scoreCache, prefs, ingestible, speed: require('../src/engine/db/speed.js') },
       panel: {
         BAND_COLOR: () => ({ fg: '#000', bg: '#fff', ring: '#0f0' }),
@@ -526,4 +527,16 @@ test('Target contradictory canonical identities and hidden search variants stay 
     <div data-test="ListingPageProductListing"><a href="/p/chips/-/A-16600402"><h3>Visible chips</h3></a></div>`);
   assert.deepEqual(T.searchTiles(search).map(t => t.id), ['16600402']);
   assert.equal(T.isSearchPage(at('https://evil.example/s?searchTerm=oats')), false);
+});
+
+test('Target category carousel uses the rendered product title and ignores its image link', () => {
+  const doc = createDocument('<div data-test="item-card-1011416001">'
+    + '<a data-test="item-link" href="/p/protein-bars/-/A-1011416001"><img alt="Protein bars"></a>'
+    + '<a data-test="item-link" href="/p/protein-bars/-/A-1011416001"><div>$9.49</div>'
+    + '<div data-test="product-title-sm" hidden>Protein bars</div>'
+    + '<div data-test="product-title-md-lg">Protein bars</div></a></div>');
+  const [tile] = T.searchTiles(doc);
+  assert.equal(tile.id, '1011416001');
+  assert.equal(tile.title, 'Protein bars');
+  assert.equal(tile.anchor.getAttribute('data-test'), 'product-title-md-lg');
 });

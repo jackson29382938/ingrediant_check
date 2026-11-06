@@ -84,6 +84,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
   .plus .pts { color: #0f7b3f; }
   .minus .pts { color: #a4161a; }
   .capflag .pts { color: #a4161a; font-size: 10px; letter-spacing: .5px; }
+  :host([data-air-palette="cvd"]) .plus .pts { color: #1e6db9; }
+  :host([data-air-palette="cvd"]) :is(.minus, .capflag) .pts { color: #a34712; }
   .why { flex: 1 1 auto; color: #0f1111; }
   .ing { color: #565959; font-style: italic; }
   .foot { margin-top: 14px; padding-top: 10px; border-top: 1px solid #eaeded;
@@ -140,6 +142,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
     .pts { color: #f3f3f3; }
     .plus .pts { color: #7bd99b; }
     .minus .pts, .capflag .pts { color: #ff8585; }
+    :host([data-air-palette="cvd"]) .plus .pts { color: #8cc8f0; }
+    :host([data-air-palette="cvd"]) :is(.minus, .capflag) .pts { color: #f39356; }
     .pop { color: #f3f3f3; }
     .fail { color: #f3f3f3; }
     .foot { border-top-color: #3a3c3c; }
@@ -588,6 +592,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
     const safe = root.DOMPurify.sanitize(html, { RETURN_DOM_FRAGMENT: true, FORCE_BODY: true, USE_PROFILES: { html: true } });
     if (!safe) throw new Error('Score panel HTML parsing failed');
     shadow.replaceChildren(safe);
+    host.setAttribute('data-air-palette', root.AIR.db.theme.state.palette);
     root.AIR.db.theme.force(shadow);          // light or dark as the reader chose, not only the system's
     const card = shadow.querySelector('.card');
     const report = shadow.querySelector('.report');

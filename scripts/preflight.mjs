@@ -33,13 +33,19 @@ check('parses and declares MV3', () => {
   return `manifest v3, version ${manifest.version}, Chrome ${manifest.minimum_chrome_version}+`;
 });
 check('every declared file exists', () => {
-  const files = [
-    ...manifest.content_scripts[0].js,
-    manifest.background.service_worker,
+  const workerFile = manifest.background.service_worker;
+  const workerSrc = exists(workerFile) ? read(workerFile) : '';
+  const importedByWorker = [...workerSrc.matchAll(/importScripts\(([^)]+)\)/g)]
+    .flatMap(m => [...m[1].matchAll(/['"]([^'"]+)['"]/g)].map(s => path.posix.join(path.posix.dirname(workerFile), s[1])));
+  const files = [...new Set([
+    ...manifest.content_scripts.flatMap(cs => cs.js || []),
+    workerFile,
+    ...importedByWorker,
     manifest.options_page,
     manifest.action.default_popup,
+    manifest.side_panel?.default_path,
     ...Object.values(manifest.icons),
-  ];
+  ].filter(Boolean))];
   const missing = files.filter(f => !exists(f));
   if (missing.length) throw new Error('missing: ' + missing.join(', '));
   return `${files.length} declared files present`;
@@ -66,8 +72,8 @@ check('stores covered', () => {
   }
   const hosts = new Set(AMAZON_HOSTS);
   if (hosts.size < 21) throw new Error(`only ${hosts.size} Amazon hosts`);
-  if (matches.some(m => /\/\*$/.test(m) && !/\/(dp|s|b|stores|gp\/product|gp\/browse|gp\/aw\/d)/.test(m))) {
-    throw new Error('a catch-all /* match is back — content scripts must stay on product/search paths');
+  if (matches.some(m => /^\*:\/\/[^/]+\/\*$/.test(m))) {
+    throw new Error('a catch-all /* match is back — content scripts must stay on public shopping paths');
   }
   if (!matches.some(m => m.includes('/*/dp/')) || !matches.some(m => m.includes('/*/gp/product/'))) {
     throw new Error('slug product matches (/*/dp/*, /*/gp/product/*) missing');
@@ -207,7 +213,10 @@ check('every locale has every English key, with the same $1 substitutions', () =
     });
     return (text.match(/\$\d/g) || []).sort().join(',');
   };
-  const locales = fs.readdirSync(path.join(root, '_locales')).filter(l => l !== 'en');
+  const localeDirs = () => fs.readdirSync(path.join(root, '_locales'), { withFileTypes: true })
+    .filter(d => d.isDirectory() && !d.name.startsWith('.') && d.name !== 'en')
+    .map(d => d.name);
+  const locales = localeDirs();
   const problems = [];
   for (const locale of locales) {
     const other = JSON.parse(read(`_locales/${locale}/messages.json`));
@@ -241,7 +250,9 @@ const SAME_AS_ENGLISH = {
 };
 check('a translation is not the English text', () => {
   const en = JSON.parse(read('_locales/en/messages.json'));
-  const locales = fs.readdirSync(path.join(root, '_locales')).filter(l => l !== 'en');
+  const locales = fs.readdirSync(path.join(root, '_locales'), { withFileTypes: true })
+    .filter(d => d.isDirectory() && !d.name.startsWith('.') && d.name !== 'en')
+    .map(d => d.name);
   const problems = [];
   for (const locale of locales) {
     const other = JSON.parse(read(`_locales/${locale}/messages.json`));

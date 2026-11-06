@@ -85,6 +85,11 @@ test('Costco hydrated fixture cards separate title badge anchors from image and 
   assert.equal(tiles[0].badgePlacement, 'inline');
   assert.equal(tiles[1].anchor, tiles[1].tile);
   assert.equal(tiles[1].badgePlacement, 'corner');
+  const loc = new URL('https://www.costco.com/s?keyword=bars');
+  const resolve = raw => require('../src/stores/label-reader.js').listingProductUrl(C, tiles[0].id, loc, raw);
+  assert.equal(resolve(tiles[0].url), 'https://www.costco.com/p/-/bars/100423971');
+  assert.equal(resolve('/p/-/oats/10055555'), 'https://www.costco.com/product.product.100423971.html');
+  assert.equal(resolve('https://example.org/p/-/bars/100423971'), 'https://www.costco.com/product.product.100423971.html');
 });
 
 test('Costco skips mixed-product cards instead of borrowing a title across item IDs', () => {

@@ -17,7 +17,8 @@
 
 (function (root) {
   const LABEL = '[data-test="@web/site-top-of-funnel/ProductDetailCollapsible-LabelInfo"]';
-  const TILE = '[data-test="ListingPageProductListing"]';
+  const TILE = '[data-test="ListingPageProductListing"], [data-test^="item-card-"]';
+  const TILE_TITLE = 'h3, h2, [data-test^="product-title-"]';
   const CRUMB = '[data-test="@web/Breadcrumbs/BreadcrumbLink"]';
   const TCIN = /\/-\/A-(\d{6,12})(?=$|[/?#])/;
 
@@ -52,6 +53,7 @@
 
   const isProductPage = loc => !!productId(loc.href);
   const isSearchPage = loc => matchesHost(loc.hostname) && (loc.pathname === '/s' || loc.pathname.startsWith('/s/'));
+  const isBrowsePage = loc => matchesHost(loc.hostname) && /^\/(?:$|(?:c|pl|b|sale|deals|offers|finds)(?:\/|$))/.test(loc.pathname);
 
   function searchQuery(loc) {
     try {
@@ -135,7 +137,8 @@
       out[row[0]] = value;
     }
     for (const field of conflicts) delete out[field];
-    const sizes = Array.from(section.querySelectorAll('p')).filter(el => !hidden(el)).map(text).filter(t => /^serving size:/i.test(t));
+    const lines = Array.from(section.querySelectorAll('p')).filter(el => !hidden(el)).map(text);
+    const sizes = lines.filter(t => /^serving size:/i.test(t));
     const measures = sizes.map(size => {
       // Prefer the explicitly printed metric amount. Never infer grams from cups or pieces.
       const metric = size.match(/(?:^|[\s(])(\d+(?:\.\d+)?|\.\d+)\s*(g|grams?|ml|millilit(?:er|re)s?)\b/i);
@@ -151,6 +154,13 @@
       if (measures.some(m => m.field !== first.field || Math.abs(m.value - first.value) > 0.001)) return null;
       out[first.field] = first.value;
     }
+    const counts = new Set();
+    for (const line of lines) {
+      const count = Number(line.match(/^(?:about\s+)?(\d+(?:\.\d+)?)\s+servings?\s+per\s+(?:container|package)\.?$/i)?.[1]
+        || line.match(/^servings?\s+per\s+(?:container|package)\s*:\s*(?:about\s+)?(\d+(?:\.\d+)?)$/i)?.[1]);
+      if (count >= 1 && count <= 1000) counts.add(count);
+    }
+    if (counts.size === 1) out.servingSize = `${counts.values().next().value} servings per container`;
     return Object.keys(out).length ? out : null;
   }
 
@@ -238,7 +248,11 @@
       bold.push({ innerText: nutrient.name, parentNode: { innerText: `${nutrient.name} ${nutrient.quantity}${unit}` } });
     }
     const size = typeof panel.description === 'string' ? panel.description : `${panel.serving_size || ''} ${panel.serving_size_unit_of_measurement || ''}`;
-    return nutritionFacts({ querySelectorAll: tag => tag === 'b' ? bold : tag === 'p' ? [{ innerText: `Serving Size: ${size}` }] : [] });
+    const servingLines = [{ innerText: `Serving Size: ${size}` }];
+    if (typeof panel.servings_per_container === 'string' || typeof panel.servings_per_container === 'number') {
+      servingLines.push({ innerText: `Servings per container: ${panel.servings_per_container}` });
+    }
+    return nutritionFacts({ querySelectorAll: tag => tag === 'b' ? bold : tag === 'p' ? servingLines : [] });
   }
 
   function productUrl(id, loc) {
@@ -295,23 +309,27 @@
         .map(a => productId(a.getAttribute('href'))).filter(Boolean)));
     }
     function add(tile, heading) {
-      if (!heading || hidden(tile) || hidden(heading) || !text(heading) || anchors.has(heading)) return;
+      if (!heading || hidden(tile) || hidden(heading) || !text(heading) || anchors.has(heading)
+        || heading.closest('header, nav, footer')) return;
       const titleLink = heading.closest('a');
       const ids = productIds(tile);
       const id = titleLink ? productId(titleLink.getAttribute('href')) : ids.length === 1 ? ids[0] : '';
       if (!id) return;
       anchors.add(heading);
-      out.push({ tile, el: tile, id, title: text(heading), anchor: heading });
+      const link = titleLink || Array.from(tile.querySelectorAll('a[href]')).find(a => productId(a.getAttribute('href')) === id);
+      out.push({ tile, el: tile, id, url: link?.getAttribute('href'), title: text(heading), anchor: heading });
     }
     for (const tile of doc.querySelectorAll(TILE)) {
-      const headings = Array.from(tile.querySelectorAll('h3, h2'));
-      const heading = headings.find(h => !hidden(h) && productId(h.closest('a')?.getAttribute('href'))) || headings[0];
+      const headings = Array.from(tile.querySelectorAll(TILE_TITLE));
+      const heading = headings.find(h => !hidden(h)
+        && doc.defaultView?.getComputedStyle(h).display !== 'none'
+        && productId(h.closest('a')?.getAttribute('href'))) || headings[0];
       add(tile, heading);
     }
     for (const link of doc.querySelectorAll('a[href]')) {
       const id = productId(link.getAttribute('href'));
       if (!id || hidden(link) || link.closest(TILE)) continue;
-      const heading = link.querySelector('h3, h2, [data-test="product-title"]') ||
+      const heading = link.querySelector(TILE_TITLE + ', [data-test="product-title"]') ||
         (link.getAttribute('data-test') === 'product-title' ? link : null);
       if (!heading || hidden(heading)) continue;
       let tile = link;
@@ -347,7 +365,7 @@
   }
 
   const adapter = {
-    id: 'target', name: 'Target', matchesHost, productId, isProductPage, isSearchPage, searchQuery,
+    id: 'target', name: 'Target', matchesHost, productId, isProductPage, isSearchPage, isBrowsePage, searchQuery,
     readProduct, labelToggle, searchTiles, nutritionFacts, productUrl, LABEL, TILE, readListing, isSponsored,
     storeHost: 'target.com', paging: { param: 'Nao', offset: true, size: 24 },
   };

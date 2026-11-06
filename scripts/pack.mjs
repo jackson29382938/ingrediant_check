@@ -51,8 +51,9 @@ for (const browser of browsers) {
     const known = Object.keys(JSON.parse(fs.readFileSync(path.join(folder, '_locales/en/messages.json'), 'utf8'))).map(key => key.toLowerCase());
     const compat = path.join(folder, 'src/browser-compat.js');
     fs.writeFileSync(compat, 'globalThis.AIR_BROWSER_MESSAGE_KEYS = new Set(' + JSON.stringify(known) + ');\n' + fs.readFileSync(compat, 'utf8'));
-    for (const locale of fs.readdirSync(path.join(folder, '_locales'))) {
-      const file = path.join(folder, '_locales', locale, 'messages.json'), messages = JSON.parse(fs.readFileSync(file, 'utf8'));
+    for (const d of fs.readdirSync(path.join(folder, '_locales'), { withFileTypes: true })) {
+      if (!d.isDirectory() || d.name.startsWith('.')) continue;
+      const file = path.join(folder, '_locales', d.name, 'messages.json'), messages = JSON.parse(fs.readFileSync(file, 'utf8'));
       for (const message of Object.values(messages)) message.message = copy(message.message);
       fs.writeFileSync(file, JSON.stringify(messages, null, 2) + '\n');
     }

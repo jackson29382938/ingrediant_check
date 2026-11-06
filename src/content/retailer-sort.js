@@ -100,7 +100,7 @@
     const unit = settings.unitPrice === false ? { unitPrice: null, unitSource: 'none', unitKind: '', unitId: '', unitPrices: {}, unitSources: {} }
       : U().unitPricesFor({ title: tile.title, text: f.unitText, listingPrice: f.listingPrice }, settings, priceStore);
     return {
-      asin: tile.id, title: tile.title, url: adapter.productUrl(tile.id, location), image: f.image || '',
+      asin: tile.id, title: tile.title, url: root.AIR.retailerLabels.listingProductUrl(adapter, tile.id, location, tile.url), image: f.image || '',
       listingPrice: f.listingPrice, ...unit,
       rating: f.ratingValue != null ? `${f.ratingValue} out of 5 stars` : '', ratingValue: f.ratingValue,
       reviews: f.reviewCount != null ? String(f.reviewCount) : '', reviewCount: f.reviewCount,
@@ -152,7 +152,10 @@
       + '.toggle{position:fixed;right:0;top:44%;z-index:2147482900;border-radius:12px 0 0 12px;box-shadow:0 2px 12px #0003;font-weight:700;max-width:150px}'
       + '.menu{position:fixed;right:12px;top:calc(44% + 52px);z-index:2147482901;width:min(300px,calc(100vw - 24px));margin:0;padding:6px;background:#fff;border:1px solid #c9d4cc;border-radius:14px;box-shadow:0 8px 32px #0003;display:flex;flex-direction:column;gap:4px}'
       + '.menu button{border:0;border-radius:10px;text-align:left;padding:10px 12px;font-weight:600;background:transparent}.menu button:hover{background:#e8f2ec}'
-      + '.note{margin:2px 8px 6px;font-size:12px;color:#536158}';
+      + '.note{margin:2px 8px 6px;font-size:12px;color:#536158}'
+      + '@media (prefers-color-scheme:dark){:host{color:#f3f3f3}button{background:#232525;color:#e5eee8;border-color:#656d68}'
+      + 'button:hover,button:focus-visible{outline-color:#8dc8a3}.menu{background:#232525;border-color:#656d68}'
+      + '.menu button:hover{background:#343c37}.note{color:#c0c9c3}}';
     shadow.append(css);
     button = el('button', t('sortMenuButton', 'Ingredient Check sort'), 'toggle');
     button.type = 'button'; button.setAttribute('aria-haspopup', 'menu'); button.setAttribute('aria-expanded', 'false');
@@ -176,6 +179,7 @@
     }
     shadow.append(button, menu);
     document.body.append(host);
+    root.AIR.db.theme?.force(shadow);
   }
   function unmount() {
     mounted = false; pending = false; run++;
@@ -233,6 +237,16 @@
     return { caps: caps.slice(0, WHY_ROWS).map(row), plus: plus.slice(0, WHY_ROWS).map(row), minus: minus.slice(0, WHY_ROWS).map(row), neutral: neutral.slice(0, 3).map(row) };
   }
   const servingsFor = input => (input && U() && U().servingsOf(input.nutrition)) || null;
+  // `done`: the result of scoring `hit.input` under `prefs` when the caller already has it (a re-scored saved reading).
+  function scoreRow(hit, prefs, done) {
+    const { score, verdict, category = 'food', ratingStyle = 'food', input } = hit;
+    const assessed = done || (input && root.AIR.engine.score(input, prefs));
+    const matches = assessed && root.AIR.engine.isReadable(assessed) && assessed.score === score;
+    const why = matches ? whyOf(assessed) : null;
+    // Retailer cache entries written before shopping evidence loaded here can still carry a full label.
+    const evidence = hit.evidence || (matches ? root.AIR.db.shopping?.evidence(assessed, { source: hit.source, capturedAt: hit.t, prefs }) : null);
+    return { score, evidence, verdict, category, ratingStyle, source: 'scored', why, servings: servingsFor(input) };
+  }
   // id -> { score, verdict, source, why }, from this computer only: a saved score still valid under the current
   // settings (with the reasons, re-worked from the reading behind it), or the outcome the badges already found.
   async function knownScores(ids) {
@@ -250,16 +264,11 @@
         if (again) { hit = again.hit; assessed = again.result; refits[CACHE.key(STORE, id)] = hit; saved = CACHE.recall(hit, context); }
       }
       if (saved && !saved.refresh && Number.isFinite(hit.score)) {
-        let why = null, servings = null;
-        if (hit.input) {
-          assessed = assessed || root.AIR.engine.score(hit.input, state.prefs);
-          if (root.AIR.engine.isReadable(assessed) && assessed.score === hit.score) { why = whyOf(assessed); servings = servingsFor(hit.input); }
-        }
-        out.set(id, { score: hit.score, category: hit.category || 'food', ratingStyle: hit.ratingStyle || 'food', verdict: hit.verdict, source: 'scored', evidence: hit.evidence, why, servings });
+        out.set(id, scoreRow(hit, state.prefs, assessed));
         continue;
       }
       const seen = state.requests.get(id);
-      if (seen?.hit && Number.isFinite(seen.hit.score)) out.set(id, { score: seen.hit.score, category: seen.hit.category || 'food', ratingStyle: seen.hit.ratingStyle || 'food', verdict: seen.hit.verdict, source: 'scored', why: seen.hit.input ? whyOf(root.AIR.engine.score(seen.hit.input, state.prefs)) : null });
+      if (seen?.hit && Number.isFinite(seen.hit.score)) out.set(id, scoreRow(seen.hit, state.prefs));
       else if (seen?.status === 'not-food') out.set(id, { score: null, source: 'not-food' });
       else if (seen?.status === 'unavailable') out.set(id, { score: null, source: 'unreadable' });
     }
@@ -269,7 +278,7 @@
 
   // Product pages for listings still without a score, through the runner's reader: a few at a time, one request per
   // product, one throttle flag shared with the badges, one budget per results page in the list.
-  async function rateByProductPage(ids, token, onProgress, budget, timeUp) {
+  async function rateByProductPage(ids, products, token, onProgress, budget, timeUp) {
     const { state, readProductScore } = runner();
     const out = new Map();
     let next = 0, done = 0, stopped = '', fetches = 0, lastStart = 0;
@@ -283,7 +292,7 @@
         const seen = state.requests.get(id);
         // A product the badges already read costs nothing more.
         if (seen && seen.status !== 'checking') {
-          if (seen.hit) out.set(id, { score: seen.hit.score, category: seen.hit.category || 'food', ratingStyle: seen.hit.ratingStyle || 'food', verdict: seen.hit.verdict, source: 'scored', why: seen.hit.input ? whyOf(root.AIR.engine.score(seen.hit.input, state.prefs)) : null });
+          if (seen.hit) out.set(id, scoreRow(seen.hit, state.prefs));
           else out.set(id, { score: null, source: seen.status === 'not-food' ? 'not-food' : 'unreadable' });
           done++; onProgress(done, ids.length, out); continue;
         }
@@ -296,13 +305,12 @@
         controllers.add(controller);
         const timer = setTimeout(() => controller.abort(), PAGE_TIMEOUT_MS);
         try {
-          const reading = await readProductScore(id, controller.signal, () => token === run && state.enabled);
+          const reading = await readProductScore(id, controller.signal, () => token === run && state.enabled, products.get(id)?.url);
           if (token !== run) return;
           if (!reading) continue;
           if (reading.hit) {
             state.requests.set(id, { hit: reading.hit });
-            out.set(id, { score: reading.hit.score, category: reading.hit.category || 'food', ratingStyle: reading.hit.ratingStyle || 'food', verdict: reading.hit.verdict, source: 'scored',
-              why: reading.hit.input ? whyOf(root.AIR.engine.score(reading.hit.input, state.prefs)) : null, servings: servingsFor(reading.hit.input) });
+            out.set(id, scoreRow(reading.hit, state.prefs));
           } else { state.requests.set(id, { status: 'not-food' }); out.set(id, { score: null, source: 'not-food' }); }
         } catch (e) {
           // Refused, offline, aborted or unreadable: the listing stays without a score.
@@ -328,7 +336,7 @@
       if (a.getAttribute('aria-disabled') === 'true' || a.hasAttribute('disabled')) continue;
       try {
         const url = new URL(a.getAttribute('href'), currentUrl);
-        if (url.origin === location.origin && url.href !== currentUrl && adapter.isSearchPage({ href: url.href, hostname: url.hostname, pathname: url.pathname })) return url.href;
+        if (url.origin === location.origin && url.href !== currentUrl && (adapter.isSearchPage(url) || adapter.isBrowsePage?.(url))) return url.href;
       } catch (e) { /* not an address */ }
     }
     return null;
@@ -348,12 +356,18 @@
   // A results page rendered in a hidden same-origin frame, read before it is removed. For stores whose HTML holds no
   // results: the shopper's browser builds the page exactly as it would for a visit.
   function readInFrame(url, signal, extract) {
+    if (signal?.aborted) return Promise.reject(new Error('aborted'));
     return new Promise((resolve, reject) => {
       const frame = document.createElement('iframe');
       frame.setAttribute('aria-hidden', 'true'); frame.tabIndex = -1; frame.title = '';
       frame.style.cssText = 'position:fixed;left:-10000px;top:0;width:1280px;height:1600px;border:0;opacity:0;pointer-events:none';
       let poll = 0, last = '';
-      const finish = (fn, value) => { clearInterval(poll); clearTimeout(timer); signal?.removeEventListener('abort', onAbort); frame.remove(); fn(value); };
+      const finish = (fn, value) => {
+        clearInterval(poll); clearTimeout(timer); signal?.removeEventListener('abort', onAbort);
+        frame.src = 'about:blank';
+        frame.remove();
+        fn(value);
+      };
       const onAbort = () => finish(reject, new Error('aborted'));
       const timer = setTimeout(() => finish(resolve, []), FRAME_TIMEOUT_MS);
       signal?.addEventListener('abort', onAbort);
@@ -379,6 +393,7 @@
     const response = await fetch(url, { credentials: adapter.publicCredentials === 'same-origin' ? 'same-origin' : 'omit', headers: { Accept: 'text/html' }, signal });
     if (!response.ok) { if ([403, 429, 503].includes(response.status)) throw Object.assign(new Error('blocked'), { blocked: true }); throw new Error(`${storeName} returned ${response.status}`); }
     const doc = await root.AIR.cart.publicDocument(response, signal);
+    if (signal?.aborted) throw new Error('aborted');
     const tiles = adapter.searchTiles(doc);
     if (tiles.length) return { doc, items: extract(tiles, doc) };
     return { doc, items: await readInFrame(url, signal, extract) };
@@ -529,7 +544,7 @@
     if (rateAllowed && noScore().length && token === run) {
       const ids = noScore();
       const budget = () => (state.fetchLimit >= Number.MAX_SAFE_INTEGER ? Infinity : state.fetchLimit * pagesInList);
-      const rated = await rateByProductPage(ids, token, (done, total, got) => {
+      const rated = await rateByProductPage(ids, products, token, (done, total, got) => {
         for (const [id, s] of got) scores.set(id, s);
         publish(token, list(), true, t('sortRatingMore', 'Rating listings without a score: $1 of $2…', done, total));
       }, budget, timeUp);
@@ -602,6 +617,7 @@
   }
   function reset(enabled) {
     active = enabled;
+    if (enabled && host?.isConnected) root.AIR.db.theme?.force(shadow);
     unitHeld = { sig: '', unit: null };
     lastTiles = [];
     // Another search, a settings change or the switch: whatever list was being built for the old page stops here.

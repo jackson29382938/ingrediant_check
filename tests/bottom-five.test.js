@@ -142,8 +142,12 @@ test('observed Kroger banner cards mount outside truncated links and preserve ac
     assert.equal(tiles.length, 1, id); const tile = tiles[0];
     assert.equal(tile.tile.getAttribute('data-testid'), 'product-card-0');
     assert.equal(tile.anchor.tagName, 'DIV'); assert.equal(tile.badgePlacement, 'inline');
-    const url = stores[id].productUrl(tile.id, at(`https://www.${id}.com/search?query=chips`));
+    const loc = new URL(`https://www.${id}.com/search?query=chips`);
+    const url = stores[id].productUrl(tile.id, loc);
     assert.match(url, /\/p\/doritos-nacho-cheese-tortilla-chips\/0002840051646\?fulfillment=PICKUP$/);
+    const { listingProductUrl } = globalThis.AIR.retailerLabels;
+    assert.equal(listingProductUrl(stores[id], tile.id, loc), url);
+    assert.equal(listingProductUrl(stores[id], tile.id, loc, new URL(url).pathname + '?tracking=discard'), url);
   }
 });
 

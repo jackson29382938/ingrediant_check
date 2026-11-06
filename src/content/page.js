@@ -47,9 +47,10 @@
   // must not wake Amazon's authenticated search scanner or its recommendation processing.
   const isPrivatePage = () => /\/(?:cart|checkout|account|orders|ap|buy)(?:\/|\.|$)/i.test(location.pathname);
   const isProductPage = () => !isPrivatePage() && /\/(dp|gp\/product|gp\/aw\/d)\/[A-Z0-9]{10}/.test(location.pathname);
+  const isSearchPage = () => /^\/s(?:\/|$)/.test(location.pathname);
   // Do not treat a PDP with a stray k= param as a search page.
   const isListPage = () => !isPrivatePage() && !isProductPage() && (
-    /\/(s|b|gp\/browse|stores)\b/.test(location.pathname) || /[?&]k=/.test(location.search)
+    /^\/(?:$|ref=|(?:s|b|stores|alm|fresh|fmc|grocery|deals|gp\/(?:browse|goldbox|bestsellers|new-releases))(?:[/.]|$))/.test(location.pathname)
   );
   const isRelevantPage = () => isProductPage() || isListPage();
 
@@ -175,7 +176,7 @@
   const page = {
     HOST_ID, BADGE_ATTR, state, ENGINE_VERSION, CACHE,
     cachePrefs, cacheKey, usableCache, recallCache, freshLocal, sharedOk, sharedProductsOn, speed, pace, storeHost, ingredientSig,
-    MAX_EXTRACT_RETRIES, isProductPage, isListPage, isRelevantPage,
+    MAX_EXTRACT_RETRIES, isProductPage, isSearchPage, isListPage, isRelevantPage,
     unreadable,
     sendDiagnostic, publishActionBadge, cacheScore, cache, rememberProduct, logAction,
   };

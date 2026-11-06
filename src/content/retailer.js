@@ -13,14 +13,19 @@
   const HOST_ID = 'air-score-panel';
   const BADGE_CLASS = 'air-badge';
   const WAIT_FOR_LABEL_MS = 15000;      // how long a product page may take to render its label
+  const REQUEST_GAP_MS = 400;
   const P = root.AIR.panel;
   const CACHE = root.AIR.db.scoreCache;
   const PREFS = root.AIR.db.prefs;
   const VERSION = (() => { try { return chrome.runtime.getManifest().version; } catch (e) { return '0'; } })();
   const STORE = CACHE.normalizeStore(location.hostname);
+  const isListingPage = loc => adapter.isSearchPage(loc) || adapter.isBrowsePage?.(loc);
+  const carouselPage = () => typeof adapter.isBrowsePage === 'function' && adapter.isProductPage(location);
+  const ratesTiles = () => isListingPage(location) || (carouselPage() && state.pageScore?.status !== 'not-food');
 
   const state = { requests: new Map(), controllers: new Set(), queue: [], active: 0, fetchCount: 0, searchAllowed: true, throttled: false, enabled: true, badges: true, foodOnly: true, prefs: {}, raw: {}, url: '', pageScore: null,
-    manual: null, override: false, started: 0, done: false, observer: null, timer: null };
+    manual: null, override: false, started: 0, done: false, observer: null, timer: null, drainTimer: null, nextRequest: 0 };
+  let detailHost, detailTurn = 0, detailTimer;
 
   const t = (key, fallback, sub) => {
     try { return (chrome.i18n && chrome.i18n.getMessage(key, sub != null ? [String(sub)] : [])) || fallback; }
@@ -41,6 +46,9 @@
       state.autoScoreSearch = true;
     }
     state.panelOpen = toggles.panelOpen;
+    state.hoverBreakdown = toggles.hoverBreakdown;
+    const { breakdownDelayMs, breakdownDetail } = PREFS.sanitizeDisplay(o);
+    Object.assign(state, { breakdownDelayMs, breakdownDetail });
     if (root.AIR.db.theme) root.AIR.db.theme.use(o);   // the reader's score palette and light/dark
     const scoring = PREFS.sanitizeScoring(o);
     state.prefs = { weights: scoring.weights, allergens: scoring.allergens, diets: scoring.diets, avoidList: scoring.avoidList, ratingStyle: scoring.ratingStyle, personalCareEnabled: scoring.personalCareEnabled };
@@ -66,6 +74,10 @@
   }
 
   function badge(result) {
+    if (result?.status === 'not-food' && state.pageScore?.status !== 'not-food' && carouselPage()) {
+      cancelTileRequests();
+      clearBadges();
+    }
     state.pageScore = result;
     send(result && typeof result.score === 'number'
       ? { type: 'pageScore', score: result.score, verdict: result.verdict, ...(result.category && result.category !== 'food' ? { index: true } : {}) }
@@ -257,12 +269,12 @@
     if (!b) {
       b = document.createElement('span');
       b.className = BADGE_CLASS;
-      anchor.appendChild(b);
+      anchor.insertBefore(b, anchor.firstChild);
       if (tile.badgePlacement === 'corner') {
         if (typeof getComputedStyle === 'function' && getComputedStyle(anchor).position === 'static') anchor.style.position = 'relative';
       }
       b.style.cssText = 'display:inline-flex!important;position:static!important;float:none!important;'
-        + 'vertical-align:middle!important;margin:4px 0 4px 6px!important;max-width:100%!important;';
+        + 'vertical-align:middle!important;margin:4px 6px 4px 0!important;max-width:100%!important;';
       if (tile.badgePlacement === 'title') {
         b.style.setProperty('position', 'relative', 'important');
         b.style.setProperty('z-index', '2', 'important');
@@ -274,8 +286,10 @@
         shadow.innerHTML = '<style>:host{line-height:normal}span{display:inline-flex;align-items:center;'
           + 'justify-content:center;box-sizing:border-box;min-width:26px;min-height:26px;padding:3px 7px;'
           + 'border-radius:999px;font:700 12px/1.3 sans-serif;color:var(--air-fg,#374151);'
-          + 'background:var(--air-bg,#f3f4f6);border:2px solid var(--air-ring,#9ca3af);white-space:normal}</style>'
+          + 'background:var(--air-bg,#f3f4f6);border:2px solid var(--air-ring,#9ca3af);white-space:normal}'
+          + '@media (prefers-color-scheme: dark){span{color:var(--air-dfg,#b8c0c0);background:#1b1c1c;border-color:var(--air-dring,#6a7373)}}</style>'
           + '<span><slot></slot></span>';
+        root.AIR.db.theme?.force(shadow);
       }
     }
     const care = !!hit && !!hit.category && hit.category !== 'food';
@@ -288,19 +302,25 @@
       : status === 'not-food' ? 'Ingredient Check: this product appears to be outside food scoring.'
       : 'Ingredient Check: open this product to rate it, or enable Rate every search result in Settings.';
     if (hit?.evidence && root.AIR.db.shopping) title += ' · ' + root.AIR.db.shopping.describe(hit.evidence, t);
-    if (b.textContent === text && b.title === title && b.dataset.airProduct === tile.id) return;
+    const href = tile.url ? root.AIR.retailerLabels.listingProductUrl(adapter, tile.id, location, tile.url) : '';
+    if (b.textContent === text && b.title === title && b.dataset.airProduct === tile.id && (b.dataset.airHref || '') === href) return;
+    if (href) b.dataset.airHref = href;
+    else delete b.dataset.airHref;
     b.textContent = text;
     b.title = title;
     b.dataset.airProduct = tile.id;
     b.dataset.airStatus = hit ? 'scored' : status;
     b.setAttribute('aria-label', title);
-    b.setAttribute('role', 'img');
-    if (hit?.input) b.setAttribute('tabindex', '0');
+    b.setAttribute('role', href && !anchor.closest('a[href]') ? 'link' : 'img');
+    if (href || hit?.input) b.setAttribute('tabindex', '0');
+    else b.removeAttribute('tabindex');
     const c = hit ? (care ? root.AIR.db.theme.neutral() : P.BAND_COLOR(hit.score)) : { fg: '#374151', bg: '#f3f4f6', ring: '#9ca3af' };
     if (b.style.setProperty) {
       b.style.setProperty('--air-fg', c.fg);
       b.style.setProperty('--air-bg', c.bg);
       b.style.setProperty('--air-ring', c.ring);
+      b.style.setProperty('--air-dfg', c.dfg || '#b8c0c0');
+      b.style.setProperty('--air-dring', c.dring || '#6a7373');
     }
   }
 
@@ -312,14 +332,24 @@
   // each wait: false means the page moved on, and nothing is saved or returned. Returns { hit } for a score,
   // { status: 'not-food' } for a product outside food scoring, or undefined when it is no longer wanted;
   // throws Error('unavailable') for a page that gave no readable label, Error('blocked') for a challenge page.
-  async function readProductScore(id, signal, alive = () => true) {
-    const url = new URL(adapter.productUrl(id, location), location.href);
-    if (url.origin !== location.origin || adapter.productId(url.href) !== id) throw new Error('unavailable');
-    const response = await fetch(url.href, { credentials: adapter.publicCredentials === 'same-origin' ? 'same-origin' : 'omit', signal });
+  async function readProductScore(id, signal, alive = () => true, listingUrl) {
+    const href = root.AIR.retailerLabels.listingProductUrl(adapter, id, location, listingUrl);
+    if (!href) throw new Error('unavailable');
+    const url = new URL(href);
+    const response = await fetch(url.href, {
+      credentials: adapter.publicCredentials === 'same-origin' ? 'same-origin' : 'omit',
+      headers: { Accept: 'text/html' }, signal,
+    });
     if (!alive() || signal.aborted) return undefined;
     if ([403, 429, 503].includes(response.status)) state.throttled = true;
     const final = new URL(response.url || url.href);
-    if ((final.origin !== url.origin && !adapter.acceptsProductRedirect?.(url, final, id)) || adapter.productId(final.href) !== id) throw new Error('unavailable');
+    // Walmart redirects to a challenge URL before serving the verification page.
+    if (final.origin === url.origin && /^\/blocked\/?$/.test(final.pathname)) {
+      state.throttled = true;
+      throw new Error('blocked');
+    }
+    if ((final.origin !== url.origin && !adapter.acceptsProductRedirect?.(url, final, id))
+      || adapter.productId(final.href) !== id) throw new Error('unavailable');
     const doc = await publicDocument(response, signal);
     if (!alive() || signal.aborted) return undefined;
     const data = adapter.readProduct(doc, final);
@@ -340,16 +370,23 @@
   }
 
   function drain() {
-    while (state.active < 2 && state.queue.length && state.enabled && state.badges && state.autoScoreSearch && state.searchAllowed && !state.throttled && location.href === state.url && adapter.isSearchPage(location)) {
+    while (state.active < 2 && state.queue.length && state.enabled && state.badges && state.autoScoreSearch && state.searchAllowed && !state.throttled && location.href === state.url && ratesTiles()) {
+      const delay = state.nextRequest - Date.now();
+      if (delay > 0) {
+        if (!state.drainTimer) state.drainTimer = setTimeout(() => { state.drainTimer = null; drain(); }, delay);
+        return;
+      }
       const job = state.queue.shift();
       const generation = state.generation;
       if (job.generation !== generation) continue;
+      state.nextRequest = Date.now() + REQUEST_GAP_MS;
       state.active++;
       const controller = new AbortController();
       state.controllers.add(controller);
       const timer = setTimeout(() => controller.abort(), 15000);
       (async () => {
-        const out = await readProductScore(job.id, controller.signal, () => generation === state.generation && location.href === state.url);
+        const out = await readProductScore(job.id, controller.signal,
+          () => generation === state.generation && location.href === state.url, job.url);
         if (out) state.requests.set(job.id, out.hit ? { hit: out.hit } : { status: out.status });
       })().catch(error => {
         if (generation === state.generation && error.message === 'blocked') state.throttled = true;
@@ -363,28 +400,42 @@
           for (const pending of state.queue) state.requests.set(pending.id, { status: 'unavailable' });
           state.queue = [];
         }
-        if (state.enabled && adapter.isSearchPage(location)) searchPass();
+        if (state.enabled && ratesTiles()) searchPass();
         drain();
       });
     }
   }
 
+  function cancelTileRequests() {
+    state.generation = (state.generation || 0) + 1;
+    clearTimeout(state.drainTimer);
+    state.drainTimer = null; state.nextRequest = 0;
+    for (const controller of state.controllers) controller.abort();
+    state.controllers.clear(); state.requests.clear(); state.queue = []; state.active = 0;
+  }
+
   function searchPass() {
-    adapter.hideSponsored?.(document);
-    const tiles = adapter.searchTiles(document);
-    if (state.foodOnly) {
-      const gate = root.AIR.db.ingestible;
-      const verdict = gate.assessSearch({ query: adapter.searchQuery(location), alias: '', label: '' });
+    const search = adapter.isSearchPage(location);
+    const browse = !!adapter.isBrowsePage?.(location);
+    if (search || browse) adapter.hideSponsored?.(document);
+    const productId = adapter.productId(location.href);
+    const gate = root.AIR.db.ingestible;
+    const tiles = adapter.searchTiles(document).filter(tile => tile.id !== productId);
+    if (state.foodOnly && search) {
+      const context = { query: adapter.searchQuery(location), alias: '', label: '' };
+      const verdict = gate.assessSearch(context);
       const titles = tiles.map(x => x.title);
-      if ((!verdict.ok || (titles.length >= gate.RESULT_SAMPLE_MIN && gate.looksNonFoodFromResults(titles))) && !gate.allowsSearch?.({ query: adapter.searchQuery(location) }, titles, state.prefs)) {
-        state.searchAllowed = false; state.queue = [];
-        for (const controller of state.controllers) controller.abort();
+      if ((!verdict.ok || (titles.length >= gate.RESULT_SAMPLE_MIN && gate.looksNonFoodFromResults(titles)))
+        && !gate.allowsSearch?.(context, titles, state.prefs)) {
+        if (state.searchAllowed) cancelTileRequests();
+        state.searchAllowed = false;
         clearBadges();
         root.AIR.retailerSort?.reset(false);
         root.AIR.retailerSpace?.reset();
         return true;
       }
     }
+    if (!state.searchAllowed && isListingPage(location)) root.AIR.retailerSort?.reset(true);
     state.searchAllowed = true;
     if (!state.badges || !tiles.length) return false;
     const generation = state.generation;
@@ -395,6 +446,7 @@
       const ranked = [], refits = {};
       for (const x of tiles) {
         if (!currentTile(x, current)) continue;
+        if ((browse || carouselPage()) && state.foodOnly && gate.looksNonFoodFromTitle(x.title) && !gate.allowsProduct?.(x.title, state.prefs)) continue;
         const context = { store: STORE, asin: x.id, version: VERSION, prefs: state.raw, maxAgeMs: state.maxAgeMs };
         let hit = got && got[CACHE.key(STORE, x.id)];
         let saved = CACHE.recall(hit, context);
@@ -409,14 +461,14 @@
           job = { status: 'checking' };
           state.requests.set(x.id, job);
           state.fetchCount++;
-          state.queue.push({ id: x.id, generation });
+          state.queue.push({ id: x.id, url: x.url, generation });
         }
         paintBadge(x, job?.hit || saved?.hit || null, job?.status || (state.throttled ? 'unavailable' : 'limited'), saved?.stale && !job?.hit);
         ranked.push({ tile: x, hit: job?.hit || saved?.hit || null });
       }
       saveRefits(refits);
-      root.AIR.retailerSort?.update(ranked);
-      root.AIR.retailerSpace?.update(ranked);
+      if (isListingPage(location) && ranked.length) root.AIR.retailerSort?.update(ranked);
+      if (search) root.AIR.retailerSpace?.update(ranked);
       drain();
     }, chrome.storage);
     return false;
@@ -433,10 +485,10 @@
   const fast = { raf: 0, timer: 0, next: 0 };
   const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
   function fastHide() {
-    if (fast.raf || fast.timer || !adapter.hideSponsored || typeof requestAnimationFrame !== 'function' || !adapter.isSearchPage(location)) return;
+    if (fast.raf || fast.timer || !adapter.hideSponsored || typeof requestAnimationFrame !== 'function' || !isListingPage(location)) return;
     const run = () => {
       fast.raf = 0;
-      if (!state.enabled || !adapter.isSearchPage(location)) return;
+      if (!state.enabled || !isListingPage(location)) return;
       const started = now();
       adapter.hideSponsored(document);
       fast.next = now() + Math.max(16, (now() - started) * 8);
@@ -455,7 +507,8 @@
   function pass() {
     if (!state.enabled) return;
     const product = adapter.isProductPage(location);
-    const done = product ? productPass() : adapter.isSearchPage(location) ? searchPass() : true;
+    const done = product && productPass();
+    if (ratesTiles()) searchPass();
     // true: finished, stop watching. 'watch': wait for the page to change. false: not rendered yet,
     // so a timer makes sure the give-up point is reached even if the page goes quiet.
     // Search pages keep watching for more tiles.
@@ -479,9 +532,8 @@
   }
 
   function reset() {
-    state.generation = (state.generation || 0) + 1;
-    for (const controller of state.controllers) controller.abort();
-    state.controllers.clear(); state.requests.clear(); state.queue = []; state.active = 0;
+    closeDetails();
+    cancelTileRequests();
     state.fetchCount = 0; state.searchAllowed = true; state.throttled = false;
     send({ type: 'pageScore', status: null });
     stopWatching();
@@ -491,10 +543,10 @@
     state.signature = null;
     state.pageScore = null; state.override = false; state.done = false; state.saved = null; state.started = Date.now();
     state.url = location.href;
-    root.AIR.retailerSort?.reset(state.enabled && adapter.isSearchPage(location));
+    root.AIR.retailerSort?.reset(state.enabled && isListingPage(location));
     root.AIR.retailerSpace?.reset();
     if (!state.enabled) return;
-    if (!adapter.isProductPage(location) && !adapter.isSearchPage(location)) return;
+    if (!adapter.isProductPage(location) && !isListingPage(location)) return;
     pass();
     if (!state.done) watch();
   }
@@ -505,42 +557,61 @@
   setInterval(() => { if (location.href !== state.url) { state.manual = null; reset(); } }, 500);
 
   const KEYS = ['enabled', 'badges', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'weights', 'allergens', 'diets', 'avoidList',
-    'sheetIndexRev', 'producerIndexRev', 'speedMode', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'autoScoreSearch', 'panelOpen', 'theme', 'palette'];
+    'sheetIndexRev', 'producerIndexRev', 'speedMode', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'autoScoreSearch', 'panelOpen', 'theme', 'palette',
+    'hoverBreakdown', 'breakdownDelayMs', 'breakdownDetail'];
   chrome.storage.local.get(KEYS, o => { readSettings(o || {}); reset(); });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area && area !== 'local') return;
     if (!KEYS.some(k => changes[k])) {
-      if (Object.keys(changes).some(k => k.startsWith(`s:${STORE}:`)) && adapter.isSearchPage(location)) pass();
+      if (Object.keys(changes).some(k => k.startsWith(`s:${STORE}:`)) && ratesTiles()) pass();
       return;
     }
     chrome.storage.local.get(KEYS, o => { readSettings(o || {}); reset(); });
   });
 
-  let detailHost, detailTurn = 0, detailTimer;
   function closeDetails() { detailTurn++; clearTimeout(detailTimer); detailHost?.remove(); detailHost = null; }
   async function showDetails(badge) {
     const turn = ++detailTurn, id = badge.dataset.airProduct;
-    if (!id || !state.enabled) return;
-    const display = await chrome.storage.local.get(['hoverBreakdown', 'breakdownDetail']);
-    if (display.hoverBreakdown === false) return;
+    if (!id || !state.enabled || !state.hoverBreakdown || !badge.isConnected) return;
     const got = await CACHE.readLocal([CACHE.key(STORE, id)], state.raw, null, chrome.storage);
-    const hit = got[CACHE.key(STORE, id)];
-    if (turn !== detailTurn || !badge.isConnected || !hit?.input || !CACHE.recall(hit, {store:STORE, asin:id, version:VERSION, prefs:state.raw, maxAgeMs:state.maxAgeMs})) return;
+    const hit = got?.[CACHE.key(STORE, id)] || state.requests.get(id)?.hit;
+    if (turn !== detailTurn || !badge.isConnected || badge.dataset.airProduct !== id || !hit?.input || !CACHE.recall(hit, {store:STORE, asin:id, version:VERSION, prefs:state.raw, maxAgeMs:state.maxAgeMs})) return;
     const result = root.AIR.engine.score(hit.input, state.prefs);
     if (!root.AIR.engine.isReadable(result)) return;
     detailHost?.remove(); detailHost = document.createElement('div');
-    detailHost.id = 'air-retailer-details'; detailHost.style.cssText = 'position:fixed;z-index:2147483000;max-height:70vh;overflow:auto';
-    const shadow = P.mount(detailHost, P.renderBreakdown(result, {asin:id, score:hit.score, verdict:hit.verdict, category:hit.category, ratingStyle:hit.ratingStyle, detail:display.breakdownDetail}));
-    for (const link of shadow.querySelectorAll('a')) { link.href = adapter.productUrl(id, location); link.target = '_blank'; link.rel = 'noopener noreferrer'; }
+    detailHost.id = 'air-retailer-details'; detailHost.style.cssText = 'position:fixed;z-index:2147483000;max-height:min(70vh, calc(100vh - 16px));overflow:auto';
     document.body.append(detailHost);
-    const rect = badge.getBoundingClientRect(); detailHost.style.left = `${Math.max(8,Math.min(rect.left,innerWidth-356))}px`; detailHost.style.top = `${Math.max(8,Math.min(rect.bottom+6,innerHeight-detailHost.offsetHeight-8))}px`;
+    const shadow = P.mount(detailHost, P.renderBreakdown(result, {asin:id, score:hit.score, verdict:hit.verdict, category:hit.category, ratingStyle:hit.ratingStyle, detail:state.breakdownDetail}));
+    const link = shadow.querySelector('a.more');
+    const href = root.AIR.retailerLabels.listingProductUrl(adapter, id, location, badge.dataset.airHref);
+    if (link && href) { link.href = href; link.target = '_blank'; link.rel = 'noopener noreferrer'; }
+    else link?.remove();
+    const rect = badge.getBoundingClientRect();
+    detailHost.style.left = `${Math.max(8, Math.min(rect.left, innerWidth - detailHost.offsetWidth - 8))}px`;
+    detailHost.style.top = `${Math.max(8, Math.min(rect.bottom + 6, innerHeight - detailHost.offsetHeight - 8))}px`;
     detailHost.addEventListener('mouseenter',()=>clearTimeout(detailTimer));
     detailHost.addEventListener('mouseleave',()=>{detailTimer=setTimeout(closeDetails,250);});
   }
   const detailBadge = node => node?.closest?.('.air-badge, .air-cart-badge');
-  document.addEventListener?.('mouseover', e => { const badge=detailBadge(e.target); if (badge) {clearTimeout(detailTimer); void showDetails(badge);} });
-  document.addEventListener?.('mouseout', e => { if (detailBadge(e.target)) detailTimer=setTimeout(closeDetails,250); });
-  document.addEventListener?.('focusin', e => { const badge=detailBadge(e.target); if (badge) void showDetails(badge); });
+  document.addEventListener?.('mouseover', e => {
+    const badge = detailBadge(e.target);
+    if (!badge || badge === detailBadge(e.relatedTarget) || !state.hoverBreakdown) return;
+    closeDetails();
+    detailTimer = setTimeout(() => { void showDetails(badge); }, state.breakdownDelayMs);
+  });
+  document.addEventListener?.('mouseout', e => {
+    const badge = detailBadge(e.target);
+    if (!badge || badge === detailBadge(e.relatedTarget)) return;
+    detailTurn++;
+    clearTimeout(detailTimer);
+    detailTimer = setTimeout(closeDetails, 250);
+  });
+  document.addEventListener?.('focusin', e => {
+    const badge = detailBadge(e.target);
+    if (badge) { closeDetails(); void showDetails(badge); }
+    else if (!detailHost?.contains(e.target)) closeDetails();
+  });
+  document.addEventListener?.('pointerdown', e => { if (!detailHost?.contains(e.target)) closeDetails(); }, true);
   document.addEventListener?.('keydown', e => { if (e.key === 'Escape') closeDetails(); });
   if (typeof addEventListener === 'function') addEventListener('scroll',closeDetails,true);
 

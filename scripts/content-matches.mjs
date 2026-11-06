@@ -27,6 +27,23 @@ export const PATH_PATTERNS = [
   '/stores',
   '/stores?*',
   '/stores/*',
+  '/',
+  '/?*',
+  '/ref=*',
+  '/alm',
+  '/alm?*',
+  '/alm/*',
+  '/fresh',
+  '/fresh?*',
+  '/fresh/*',
+  '/fmc/*',
+  '/grocery/*',
+  '/deals',
+  '/deals?*',
+  '/deals/*',
+  '/gp/goldbox*',
+  '/gp/bestsellers/*',
+  '/gp/new-releases/*',
 ];
 
 // The cart pages, which have their own content_scripts entry (cart ratings): the cart itself, and the page Amazon

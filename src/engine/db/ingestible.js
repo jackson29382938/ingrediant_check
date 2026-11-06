@@ -118,9 +118,9 @@ const HARD_NEGATIVE = [
   // "Case of 24", "Variety Case" and "with Scoop" are how groceries are sold; a bare "case" is a
   // phone case and a bare "scoop" is a utensil. The unguarded words made a case of sparkling water
   // not-food on its own page and stood a whole sparkling-water search down.
-  // "Funnel Cake Mix" is a dessert and "24 Count Case" is how sparkling water is sold.
+  // "Funnel Cake Mix" and "Scoops! Party Size Tortilla Chips" are food names.
   { id: 'supplementEquipment', pts: 8, why: 'Accessory rather than a consumable',
-    test: (doc, text, title) => /\b(shaker bottle|pill organi[sz]er|dispenser|funnel(?!\s+cakes?)|holder)\b|(?<!variety\s|count\s|ct\s|pack\s|pk\s|cans?\s|bottles?\s|\d\s|\d)\bcases?\b(?!\s+(?:of\s+)?\d)|(?<!with\s|includes\s|free\s|\+\s)\bscoops?\b(?!\s+included)/i.test(title) },
+    test: (doc, text, title) => /\b(shaker bottle|pill organi[sz]er|dispenser|funnel(?!\s+cakes?)|holder)\b|(?<!variety\s|count\s|ct\s|pack\s|pk\s|cans?\s|bottles?\s|\d\s|\d)\bcases?\b(?!\s+(?:of\s+)?\d)|(?<!with\s|includes\s|free\s|\+\s)\bscoops?\b(?!\s+included|!?\s+(?:(?:party|family)\s+size\s+)?(?:corn|tortilla)\s+chips?\b)/i.test(title) },
 ];
 
 // Some words appear in both worlds and must not be treated as food evidence on their own:

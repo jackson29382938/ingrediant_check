@@ -64,3 +64,22 @@ test('search adapters deduplicate product links and ignore off-store recommendat
   assert.equal(W.searchQuery(at('https://www.walmart.com/search?q=rolled+oats')), 'rolled oats');
   assert.equal(C.searchQuery(at('https://www.costco.com/s?keyword=oats')), 'oats');
 });
+
+test('Walmart and Target collection routes accept public storefronts and exclude account, cart and checkout', () => {
+  const T = globalThis.AIR.storeAdapters.target;
+  const stores = require('../src/stores/registry.js');
+  for (const [adapter, paths] of [
+    [W, ['/', '/shop/savings/food?facet=special_offers%3ARollback', '/cp/food/976759', '/browse/food/976759']],
+    [T, ['/', '/c/grocery-deals/-/N-k4uyq', '/pl/1234', '/b/good-gather/-/N-gwfnw', '/sale']],
+  ]) {
+    const origin = `https://www.${adapter.id}.com`;
+    for (const path of paths) {
+      assert.ok(adapter.isBrowsePage(at(origin + path)), path);
+      assert.equal(stores.searchStore(origin + path)?.id, adapter.id, path);
+    }
+    for (const path of ['/account', '/cart', '/checkout', '/orders', '/login']) {
+      assert.ok(!adapter.isBrowsePage(at(origin + path)), path);
+      assert.equal(stores.searchStore(origin + path), null, path);
+    }
+  }
+});

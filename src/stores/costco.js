@@ -101,7 +101,7 @@
       if (!title || title.length > 300) continue;
       seen.add(id);
       const anchor = titleText(heading) ? heading : titleLink || tile;
-      out.push({ id, title, tile, el: tile, anchor, badgePlacement: anchor === tile && !titleLink ? 'corner' : 'inline' });
+      out.push({ id, title, url: (titleLink || link).getAttribute('href'), tile, el: tile, anchor, badgePlacement: anchor === tile && !titleLink ? 'corner' : 'inline' });
     }
     return out;
   }

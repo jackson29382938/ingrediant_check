@@ -512,6 +512,7 @@
       chip.style.color = c.fg;
       chip.style.background = c.bg;
       chip.style.borderColor = c.ring;
+      for (const k of ['fg', 'bg', 'ring', 'dfg', 'dring']) if (c[k]) chip.style.setProperty('--' + k, c[k]);
       chip.tabIndex = 0;
       chip.setAttribute('aria-label', t('sortedWhyHead', 'Why it scored $1', product.score));
       chip.addEventListener('mouseenter', () => showWhy(chip, product));
@@ -620,7 +621,8 @@
   const views = new Map();
   function viewFor(product) {
     const key = product.asin || product.url;
-    const sig = `${!!saved?.priceOnly}|${unitEnabled()}|${unit()}|${store().key}|${JSON.stringify(product)}`;
+    const palette = (AIR.db.theme && AIR.db.theme.state && AIR.db.theme.state.palette) || 'default';
+    const sig = `${!!saved?.priceOnly}|${unitEnabled()}|${unit()}|${store().key}|${palette}|${JSON.stringify(product)}`;
     const held = views.get(key);
     if (held && held.sig === sig) return held;
     const view = { ...makeProduct(product), sig };
@@ -744,7 +746,7 @@
   try {
     // A new score palette while the list is open: the chips are painted again under it.
     chrome.storage.onChanged.addListener((changes, area) => {
-      if (area === 'local' && changes.palette) { AIR.db.theme.use({ ...AIR.db.theme.state, palette: changes.palette.newValue }); scheduleRender(); }
+      if (area === 'local' && changes.palette) { AIR.db.theme.use({ ...AIR.db.theme.state, palette: changes.palette.newValue }); document.documentElement.dataset.airPalette = AIR.db.theme.state.palette; scheduleRender(); }
       if (area === 'local' && ['allergens', 'diets', 'avoidList', 'weights'].some(k => changes[k]) && AIR.db.shopping) {
         currentWarningProfile = 'pending'; scheduleRender();
         const version = ++warningVersion;

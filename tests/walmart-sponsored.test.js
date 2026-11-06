@@ -74,6 +74,15 @@ test('a banner or video ad that is not one product card is hidden by its label, 
   assert.equal(slots[0].getAttribute('class'), 'banner', 'only the banner, not the grid or an organic card');
 });
 
+test('a Savings banner sharing a wrapper with category and filter controls hides only the banner', () => {
+  const doc = createDocument(`<main><div class="savings-header">
+    <div class="banner"><a href="/sp/track?bt=1"><img alt="Fitbit"></a><span>Sponsored</span></div>
+    <div><button>Flash Deals</button><button>Fashion savings</button><a href="/shop/savings/food">Food savings</a></div>
+    <div><button>In-store</button><button>Price</button><button>Brand</button><button>Fulfillment Speed</button></div>
+  </div><div data-testid="item-stack">${organic('10000001')}</div></main>`);
+  assert.deepEqual(Array.from(W.sponsoredSlots(doc), slot => slot.getAttribute('class')), ['banner']);
+});
+
 test('the grid, the page and organic cards are never hidden, however the ad is wrapped', () => {
   const wrapped = `<div class="cell"><div class="inner">${organic('10000002', undefined, '<span>Sponsored</span>')}</div></div>`;
   const doc = createDocument(grid(organic('10000001') + wrapped + organic('10000003')));

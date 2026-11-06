@@ -19,8 +19,8 @@
     },
     // Public product/search previews; search scans can fetch same-origin public declarations.
     // Live pages were read correctly on 2026-09-25, but behind Target's bot check (docs/STORES.md).
-    { id: 'target', name: 'Target', status: 'preview', domains: ['target.com'], search: '^/s(?:/|$)', images: ['scene7.com', 'targetimg1.com'] },
-    { id: 'walmart', name: 'Walmart', status: 'preview', domains: ['walmart.com'], search: '^/search/?$', images: ['walmartimages.com'] },
+    { id: 'target', name: 'Target', status: 'preview', domains: ['target.com'], search: '^/(?:$|(?:s|c|pl|b|sale|deals|offers|finds)(?:/|$))', images: ['scene7.com', 'targetimg1.com'] },
+    { id: 'walmart', name: 'Walmart', status: 'preview', domains: ['walmart.com'], search: '^/(?:$|search/?$|(?:browse|cp|shop|m|global/promo)(?:/|$))', images: ['walmartimages.com'] },
     { id: 'costco', name: 'Costco', status: 'preview', domains: ['costco.com'], search: '^/(?:s|CatalogSearch)$', images: ['bfldr.com', 'costco-static.com'] },
     {"id": "instacart", "name": "Instacart", "status": "preview", "domains": ["instacart.com"], "search": "^/store/(?:[^/]+/)?s/?$"},
     {"id": "kroger", "name": "Kroger", "status": "preview", "domains": ["kroger.com"], "search": "^/search/?$"},
@@ -62,8 +62,8 @@
     const store = storeForHost(u.hostname);
     if (!store || store.status === 'planned') return false;
     if (/\/(?:cart|checkout|account|login|orders|your-account|gp\/(?:cart|buy|css)|ap)(?:[/.]|$)/i.test(u.pathname)) return false;
-    if (store.id === 'target') return /^(?:www\.)?target\.com$/i.test(u.hostname) && /^\/(?:p\/|s(?:\/|$))/.test(u.pathname);
-    if (store.id === 'walmart') return /^(?:www\.)?walmart\.com$/i.test(u.hostname) && (/^\/ip\/(?:[^/]+\/)?\d{5,15}\/?$/.test(u.pathname) || /^\/search\/?$/.test(u.pathname));
+    if (store.id === 'target') return /^(?:www\.)?target\.com$/i.test(u.hostname) && (/^\/p\//.test(u.pathname) || searchStore(u.href) === store);
+    if (store.id === 'walmart') return /^(?:www\.)?walmart\.com$/i.test(u.hostname) && (/^\/ip\/(?:[^/]+\/)?\d{5,15}\/?$/.test(u.pathname) || searchStore(u.href) === store);
     if (store.id === 'costco') return /^(?:www\.)?costco\.com$/i.test(u.hostname) && (/^\/[^/]+\.product\.\d{5,15}\.html$/.test(u.pathname) || /^\/p\/(?:[^/]+\/)+\d{5,15}\/?$/.test(u.pathname) || ['/s', '/CatalogSearch'].includes(u.pathname));
     if (store.id !== 'amazon') {
       if (!store.domains.some(domain => u.hostname === domain || u.hostname === 'www.' + domain)) return false;

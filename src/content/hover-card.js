@@ -72,7 +72,7 @@
     clearTimeout(showTimer);
     clearTimeout(hideTimer);
     const tile = badge.closest('[data-asin]');
-    const asin = tile && tile.getAttribute('data-asin');
+    const asin = badge.dataset?.airProduct || tile?.getAttribute('data-asin');
     if (!asin) return;
     const mine = ++token;
     const { state, storeHost } = P();

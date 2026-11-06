@@ -2391,6 +2391,9 @@
   "sortMoreFromPage": {
     "message": "Weitere Ergebnisse werden von dieser Seite geladen… ($1 Produkte gefunden)"
   },
+  "reportImageRejected": {
+    "message": "Bitte wähle ein PNG-, JPEG- oder WebP-Bild unter 8 MB aus."
+  },
   "sortMenuButton": {
     "message": "Zutaten-Check sortieren"
   }

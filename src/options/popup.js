@@ -7,6 +7,7 @@ const KEYS = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'hoverBreakdow
 // checkbox inert: it never loaded its stored value and never wrote one.
 const TOGGLE_KEYS = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'hoverBreakdown', 'hoverScore', 'unitPrice', 'ocrLabels'];
 const OFF_PERMISSION = { origins: ['https://world.openfoodfacts.org/*'] };
+let pendingWrites = 0;
 let writing = false;
 
 const cleanToggles = raw => PREFS.sanitizeToggles(raw);
@@ -20,9 +21,11 @@ function say(msg) {
 }
 
 function persist(values, done) {
+  pendingWrites++;
   writing = true;
   chrome.storage.local.set(values, () => {
-    writing = false;
+    pendingWrites--;
+    writing = pendingWrites > 0;
     if (chrome.runtime.lastError) {
       say(msg('popupCouldNotSave', 'Could not save.'));
       if (done) done(false);

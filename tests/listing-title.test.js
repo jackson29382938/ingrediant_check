@@ -8,6 +8,7 @@ const assert = require('node:assert/strict');
 
 globalThis.AIR = { db: {} };
 globalThis.chrome = { runtime: {}, i18n: { getMessage: () => '' }, storage: { local: { get() {} } } };
+globalThis.location = { href: 'https://www.amazon.com/s?k=bacon&i=same-day-grocery' };   // linkAsin resolves a link against the page
 const { listingTitle, listingName, adoptItemIds } = require('../src/content/search.js');
 
 // A heading as the page gives it: its text, the control or alert it sits in (what closest() finds), and whether

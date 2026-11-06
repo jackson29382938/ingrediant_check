@@ -104,7 +104,7 @@ function sorter({ paging, readListing, href = 'https://www.fake.test/search?q=oa
     name: 'Fake', matchesHost: h => h === 'www.fake.test', searchTiles: () => [], isSearchPage: l => l.pathname === '/search',
     productId: raw => (String(raw).match(/\/p\/(\d{5,})/) || [])[1] || '', productUrl: id => `https://www.fake.test/p/${id}`, paging, readListing,
   };
-  const sandbox = { AIR: { storeAdapters: { fake }, db: { unitPrice: U, sortedResults: R } }, location: { hostname: url.hostname, href: url.href, origin: url.origin, pathname: url.pathname },
+  const sandbox = { AIR: { storeAdapters: { fake }, retailerLabels: require('../src/stores/label-reader.js'), db: { unitPrice: U, sortedResults: R } }, location: { hostname: url.hostname, href: url.href, origin: url.origin, pathname: url.pathname },
     chrome: { runtime: { sendMessage() {}, onMessage: { addListener() {} } }, i18n: { getMessage: () => '' }, storage: { local: { get() {} } } },
     URL, URLSearchParams, Promise, setTimeout, clearTimeout, console, AbortController, Set, Map, Array, Date, JSON, Number, String, RegExp, Math, Object };
   sandbox.globalThis = sandbox;
