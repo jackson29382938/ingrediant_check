@@ -32,4 +32,9 @@ synthetic.
 `/gp/product/` links and `h3` headings without standard `h2` result titles. The real browser harness
 checks cold label requests, three visible score badges and three scored comparison results.
 This is not a capture or a claim of live delivery-area verification: the cloud's public request
-returned Amazon's “Sorry! Something went wrong!” page.
+returned Amazon's “Sorry! Something went wrong!” page (again a 503 for `k=bacon`, on 2026-11-06).
+
+`scripts/same-day-layouts-harness.mjs` builds two more synthetic layouts inline, for the cases the code
+now tolerates because the real markup is unknown: a card whose title is only a link with unfamiliar
+classes, and a card that carries its ASIN only as `data-csa-c-item-id`; plus a carousel card that merely
+links to a product and must not become a listing.
