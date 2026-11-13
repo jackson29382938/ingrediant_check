@@ -666,3 +666,19 @@ paintCompare();
     el.textContent = v ? `v${v}` : '';
   } catch (e) { el.textContent = ''; }
 })();
+
+// The browser stops a toolbar popup at 800x600 of its own pixels, so at a default zoom above about
+// 220% fewer than the body's 360px are left and the right-hand edge (every switch) sat off-screen
+// behind a sideways scrollbar: 266px at 300%, measured in Chromium. Only then, take the width the
+// window really has (less its scrollbar, which the browser adds back when it sizes the popup, so
+// this cannot shrink it step by step). Below 200px the window is still being sized.
+(function fitWidth() {
+  const FULL = 360;
+  const fit = () => {
+    const have = document.documentElement.clientWidth, style = document.body.style;
+    if (have >= 200 && have < FULL) style.width = `${have}px`;
+    else if (style.width) style.width = '';
+  };
+  fit();
+  window.addEventListener('resize', fit);
+})();

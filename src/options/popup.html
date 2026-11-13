@@ -1,7 +1,12 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ingredient Check</title>
 <link rel="stylesheet" href="ui.css">
 <style>
- body{width:340px;max-height:calc(100vh - 24px);overflow-y:auto;font-size:13px}
+ /* A fixed width, never one measured from the viewport. The browser sizes a toolbar popup to its
+    content, so width:min(360px,100vw) and max-height:calc(100vh - 24px) each measured the window
+    they were setting: the popup opened about 210px wide with one word per line (1.26.0). The
+    browser already stops at 800x600 and scrolls the page itself; popup.js narrows the body only
+    when that limit, at a high zoom, leaves less than 360px. */
+ body{width:360px;font-size:13px}
  .top{display:flex;align-items:center;gap:10px;padding:14px 16px 12px}
  .top img{flex:none;width:28px;height:28px;border-radius:7px}
  .top-text{flex:1;min-width:0}

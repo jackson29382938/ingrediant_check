@@ -28,7 +28,7 @@ body[data-ui-page]{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;lin
 [data-ui-page=library] .file-button{min-width:0;max-width:100%}
 [data-ui-page=library] button[type=submit]{background:var(--accent);color:var(--on-accent)}
 [data-ui-page=library] header nav,[data-ui-page=report] header nav{line-height:2}
-[data-ui-page=popup]{width:min(360px,100vw);font-size:14px}
+[data-ui-page=popup]{font-size:14px}
 [data-ui-page=popup] .top{padding-top:16px}[data-ui-page=popup] .master{min-width:44px;justify-content:center}
 [data-ui-page=popup] .goals-head{margin-bottom:4px}[data-ui-page=popup] .ui-goal-picker{border-bottom:1px solid var(--soft);padding-bottom:6px}
 [data-ui-page=popup] .ui-goal-picker>summary{font-size:13px;color:var(--link);font-weight:600}
