@@ -34,6 +34,9 @@ jobs:
       # No install step: the extension and automated checks have no package dependencies.
       - run: npm test
       - run: npm run preflight
+      # Both store packages build from this commit. The release workflow used to be the first place that ran, so a
+      # packaging failure surfaced only after the tag had been pushed.
+      - run: npm run pack
 
   lint:
     runs-on: ubuntu-24.04

@@ -28,6 +28,11 @@ const VERSION = chrome.runtime.getManifest().version;
 // plus OFF's own app_name/app_version query parameters instead.
 const CLIENT_ID = `IngredientCheck/${VERSION}`;
 const TTL_MS = 1000 * 60 * 60 * 24 * 30;   // a month; ingredient lists rarely change
+// "Open Food Facts has no ingredient list for this barcode" is an answer too, and it used to be thrown
+// away: every visit to such a product (most barcodes, for a US shopper) sent the same GET again, and the
+// barcode with it. Kept for three days, as worker/usda.js keeps its misses. Only an answer is kept; a
+// request that failed (offline, rate-limited, a server error) says nothing about the barcode.
+const OFF_MISS_TTL_MS = 1000 * 60 * 60 * 24 * 3;
 
 const networkControllers = new Set();
 async function networkRequest(url, options, read) {
@@ -109,7 +114,11 @@ async function lookupOpenFoodFacts(code, { foodOnly = true, manual = false } = {
   if (!/^\d{8,14}$/.test(String(code))) return null;
   const key = `off:${code}`;
   const cached = (await chrome.storage.local.get(key))[key];
-  if (cached && Date.now() - cached.t < TTL_MS) {
+  // A remembered miss answers the pages. "Look up" in the library is the reader asking now (they may have
+  // just added the product to Open Food Facts), so it asks again.
+  if (cached && cached.miss) {
+    if (!manual && Date.now() - cached.t < OFF_MISS_TTL_MS) return null;
+  } else if (cached && Date.now() - cached.t < TTL_MS) {
     if (cached.rejected === 'not-food') {
       return foodOnly
         ? { rejected: 'not-food', reason: cached.reason || NOT_FOOD_REASON }
@@ -140,10 +149,15 @@ async function fetchOpenFoodFacts(code, key) {
       + `?fields=${OFF_FIELDS}`
       + `&app_name=${encodeURIComponent('IngredientCheck')}`
       + `&app_version=${encodeURIComponent(VERSION)}`;
-    const json = await networkRequest(url, { headers: { 'X-Client-Id': CLIENT_ID } },
-      res => res.ok ? res.json() : null);
+    const answered = await networkRequest(url, { headers: { 'X-Client-Id': CLIENT_ID } },
+      async res => (res.ok ? { json: await res.json() } : { status: res.status }));
+    const json = answered.json;
     const p = json && json.product;
-    if (!p || !(p.ingredients_text_en || p.ingredients_text)) return null;
+    if (!p || !(p.ingredients_text_en || p.ingredients_text)) {
+      // Open Food Facts answers 404 for a barcode it does not hold.
+      if ((json && typeof json === 'object') || answered.status === 404) await chrome.storage.local.set({ [key]: { t: Date.now(), miss: true } });
+      return null;
+    }
     const data = {
       // Open Food Facts marks allergens as _WHEAT_; the panel and the saved reading show plain text.
       ingredients_text: String(p.ingredients_text_en || p.ingredients_text).replace(/_+/g, ''),
@@ -569,7 +583,8 @@ async function sweepCache(now = Date.now()) {
     .filter(([k, v]) => {
       if (!v || !v.t) return false;
       const prefix = k.slice(0, k.indexOf(':'));
-      const ttl = prefix === 'usda2' && !v.data ? 3 * 24 * 60 * 60 * 1000 : ages[prefix];
+      // A remembered "no such product" is kept three days, from either barcode database.
+      const ttl = (prefix === 'usda2' && !v.data) || (prefix === 'off' && v.miss) ? OFF_MISS_TTL_MS : ages[prefix];
       return now - v.t > ttl;
     })
     .map(([k]) => k);
@@ -1124,12 +1139,12 @@ function handleSharedDbMessage(msg, reply) {
     return true;
   }
   if (msg.type === 'diagnosticsStatus') {
-    chrome.storage.local.get([DIAG_KEY, 'sendDiagnostics', 'diagLastError'], o => reply({
-      reason: o.diagLastError || '',
-      queued: (o[DIAG_KEY] || []).length,
-      enabled: o.sendDiagnostics === true,
-      configured: !!self.AIR.db.prefs.endpoint(),
-    }));
+    // Through answer(), as every asynchronous reply is: the callback form read `o` when storage had failed
+    // and it was undefined, threw, and the settings page waited for a reply that never came.
+    answer('diagnosticsStatus', async () => {
+      const o = await chrome.storage.local.get([DIAG_KEY, 'sendDiagnostics', 'diagLastError']);
+      return { reason: o.diagLastError || '', queued: (o[DIAG_KEY] || []).length, enabled: o.sendDiagnostics === true, configured: !!self.AIR.db.prefs.endpoint() };
+    }, reply, null);   // the settings page leaves its status line as it was
     return true;
   }
   if (msg.type === 'provenanceLookup') {

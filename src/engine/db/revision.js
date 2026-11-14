@@ -39,8 +39,12 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // model's class, which counts toward coverage and, for the processed classes, adds a small charge labelled
   // "AI estimate". Without ratings every score is unchanged. See docs/releases/1.20.0.md.
   // 2026-11-05.1: food names such as "Scoops! Tortilla Chips" pass the utensil filter.
-  const RULES_REVISION = '2026-11-05.1';
-  const RULES_HASH = 'eb5bba18-277832';
+  // 2026-11-14.1 (1.26.2): formats that hid an ingredient from the rules are read: a heading without its colon,
+  // ligatures, full-width letters and decomposed accents, direction marks, punctuation and trade mark signs at
+  // the ends of an entry, two ingredients joined by "or" or a slash, and a list set out with spaced dashes or
+  // tabs. A list written the usual way scores what it did. See docs/releases/1.26.2.md.
+  const RULES_REVISION = '2026-11-14.1';
+  const RULES_HASH = '8db40035-279610';
   const _exports = AIRmodule('revision', { RULES_REVISION, RULES_HASH });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 })();

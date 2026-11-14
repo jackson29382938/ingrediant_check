@@ -411,7 +411,31 @@ const hitsAny = (rules, ing, pick = r => r) => rules.some(r => hits1(pick(r), in
 const spaced = s => (s.includes('-') ? s.replace(/([a-zß-ÿœ\u0100-\u017f])-(?=[a-zß-ÿœ\u0100-\u017f])/gi, '$1 ') : s);
 const eitherForm = (re, s) => re.test(s) || (s.includes('-') && re.test(spaced(s)));
 
-function penaltiesFor(ing) {
+// Which rules read an entry depends on the entry alone, and the same entries come round again and again:
+// score() asks about each one four or five times (the dominant food, named additives, the charges, the
+// coverage), and a results page scores sixty lists that mostly say water, sugar and salt. Each question
+// ran every rule's pattern afresh: 3.3 ms for a fortified cereal, 8.3 ms for a sixty-entry list, 0.73 ms
+// a product across tests/corpus.json. The answers are kept by entry text instead (1.7, 2.3 and 0.37 ms:
+// the median of five runs, on lists whose entries had been seen before, which on a results page is most).
+// Bounded, and a very long entry (a list no parser could split) is never kept, so hostile text cannot
+// grow it. What is returned is shared between callers: read it, never change it.
+const MEMO_ENTRIES = 4000;
+const MEMO_ENTRY_LENGTH = 120;
+function remembered(read) {
+  const kept = new Map();
+  return ing => {
+    if (ing.length > MEMO_ENTRY_LENGTH) return read(ing);
+    let answer = kept.get(ing);
+    if (answer === undefined) {
+      if (kept.size >= MEMO_ENTRIES) kept.clear();
+      answer = read(ing);
+      kept.set(ing, answer);
+    }
+    return answer;
+  };
+}
+
+const penaltiesFor = remembered(ing => {
   const hit = new Set(PENALTIES.filter(r => eitherForm(r.m, ing)));
   if (!QUALIFIERS.test(ing)) return hit;
   const groups = new Set([...hit].map(r => r.group));
@@ -420,20 +444,21 @@ function penaltiesFor(ing) {
     if (!hit.has(r) && !groups.has(r.group) && r.m.test(stripped)) hit.add(r);
   }
   return hit;
-}
+});
+const capsFor = remembered(ing => CAPS.filter(c => eitherForm(c.m, ing)));
 
 // Whether the rulebase can read this entry at all — the per-entry half of the coverage measure.
 // `unnamed` function words are excluded on request, because "preservative" is recognised in the
 // sense of being charged, but it does not tell us WHICH preservative is beside it.
-function recognised(ing, { unnamed = true } = {}) {
-  return hitsAny(labels.WHOLE, ing)
-    || hits1(labels.CULINARY, ing)
-    || COMMON_PANEL.test(ing)
-    || hitsAny(sugars.FREE, ing)
-    || PENALTIES.some(r => (unnamed || !r.unnamed) && (hits1(r.m, ing) || (ing.includes('-') && hits1(r.m, spaced(ing)))))
-    || CAPS.some(c => eitherForm(c.m, ing))
-    || labels.BONUSES.some(b => b.m.test(ing));
-}
+const readBy = unnamed => ing => hitsAny(labels.WHOLE, ing)
+  || hits1(labels.CULINARY, ing)
+  || COMMON_PANEL.test(ing)
+  || hitsAny(sugars.FREE, ing)
+  || PENALTIES.some(r => (unnamed || !r.unnamed) && (hits1(r.m, ing) || (ing.includes('-') && hits1(r.m, spaced(ing)))))
+  || capsFor(ing).length > 0
+  || labels.BONUSES.some(b => b.m.test(ing));
+const recognisedAny = remembered(readBy(true)), recognisedNamed = remembered(readBy(false));
+const recognised = (ing, { unnamed = true } = {}) => (unnamed ? recognisedAny : recognisedNamed)(ing);
 
 // Entries, not strings: an entry whose organic word was taken off still counts as read, as it did
 // when the organic claim itself was what the rules recognised ("Organic medjool dates").
@@ -508,14 +533,37 @@ function dropShare(s) {
   return s.slice(0, end);
 }
 // Organic and footnote markers ("sucre*", "cane sugar #", "lait°") hid the ingredient from anchored rules.
-const MARKERS = /[*°¹²³†‡#]+/g;
+// So did a trade mark sign: "sucralose®" and "aspartame™" read as nothing where the bare word caps.
+const MARKERS = /[*°¹²³†‡#®™©℠]+/g;
+// Punctuation left at either end of an entry by OCR or a copied page: quotation marks round a word, a
+// colon or an exclamation mark after it. Each hid the ingredient from every rule anchored at that end
+// ('"sugar"', "sugar!" and "sugar:" were charged nothing; "sugar" costs 14). Only the ends are trimmed:
+// the apostrophe in "flocons d'avoine" and the colon in "emulsifier: lecithins" stay where they are.
+const EDGE_START = /^[\s*•\-–:"“”„«»‘’'`=~>]+/;
+const EDGE_END = ' "“”„«»‘’\'`!?:;=~';
+// A loop, not /[...]+$/, which tries every start position: a run of 6,000 colons would cost a second.
+function trimEnd(s) {
+  let end = s.length;
+  while (end > 0 && EDGE_END.includes(s[end - 1])) end--;
+  return end === s.length ? s : s.slice(0, end);
+}
 // The share in front ("19,5% sucre", "46% flocons d'avoine"), and an ingredient heading left inside
 // the text ("Zutaten: Zucker"), hid the ingredient from rules anchored at the start of the entry.
 // "1% milk" and "2% milk" are a fat level, not a share, and the fat-reduced dairy rule reads them.
 const LEADING_SHARE = /^(?:\d+(?:[.,]\d+)?\s*%|%\s*\d+(?:[.,]\d+)?)\s+(?=\D)(?!(?:\S+\s+){0,2}(?:milk|milkfat|dairy|yogh?urt|cheese|kefir|cream|buttermilk|chocolate milk)\b)/;
-const LEADING_HEADING = /^(?:ingredients?|zutaten|ingr[ée]dients|ingredientes|ingredienti|ingredi[ëe]nten|ingredienser|sk[łl]ad(?:niki)?|i[çc]indekiler)\s*:\s*/i;
-const tidy = s => dropShare(s.replace(MARKERS, ' ').replace(/^[\s*•\-–:]+/, '').replace(/\s+/g, ' ').trim().toLowerCase().replace(/i\u0307/g, 'i'))
-  .trim().replace(LEADING_HEADING, '').replace(LEADING_SHARE, '');
+// The heading is not always followed by a colon. A page prints it on a line of its own and a label photo
+// loses the colon to OCR, so the list arrives as "INGREDIENTS SUGAR, WATER, SALT" and its first entry, the
+// one that weighs most, was "ingredients sugar": charged nothing (80 where the list scores 63, in every
+// language). Sellers also write "Ingredient list:", "Other ingredients:" and "List of ingredients:". No
+// ingredient starts with the word, so the heading goes with or without its colon, and an entry that is
+// nothing but the heading (it had a line to itself) goes entirely.
+const LEADING_HEADING = new RegExp('^(?:(?:(?:other|all|full|complete)\\s+)?(?:ingredients?|ingr[ée]dients|ingredientes|ingredienti|ingredi[ëe]nten|ingredienser)(?:\\s+(?:list|statement))?'
+  + '|list of ingredients|zutaten|sk[łl]ad(?:niki)?|i[çc]indekiler)(?:\\s*[:\\-–]\\s*|\\s+|$)', 'i');
+// A footnote that begins with the word is a note, not a heading: "ingrédients issus de l'agriculture
+// biologique" and "ingredienti biologici" are read whole (LABEL_NOTE, below).
+const withoutHeading = s => (LEADING_HEADING.test(s) && !LABEL_NOTE.test(s) ? s.replace(LEADING_HEADING, '') : s);
+const tidy = s => withoutHeading(trimEnd(dropShare(trimEnd(s.replace(MARKERS, ' ').replace(EDGE_START, '').replace(/\s+/g, ' ').trim().toLowerCase().replace(/i\u0307/g, 'i')))))
+  .replace(EDGE_START, '').replace(LEADING_SHARE, '');
 // Keep long entries in the assessment: discarding one hid oil caps and falsely reported 100%
 // coverage. The resource limit now produces an explicit incomplete reading, never a clean score.
 const usable = s => s.length > 1;
@@ -715,16 +763,18 @@ function withoutOrganic(ing) {
 // every language. The pair is split only when no rule reads it whole ("mono- and diglycerides",
 // "natural and artificial flavors" stay one), every half is an ingredient the rules read, and a half
 // is charged.
-const CONJUNCTION = /\s(?:and|&|und|et|e|y|i|en|och|ve|oraz)\s/i;
+// "Or" joins two the same way ("sugar or honey", "sucre ou miel"), and so does a slash: "sugar/dextrose",
+// and the bilingual "Sugar/Sucre" of a Canadian label. Each read as one unknown word and was charged nothing.
+const CONJUNCTION = /\s(?:and|or|&|und|oder|et|ou|e|o|y|i|en|och|eller|ve|veya|oraz|lub)\s|\s*\/\s*/i;
 function splitConjunction(e) {
   const ing = tidy(e.ing);
   if (!CONJUNCTION.test(ing) || MAY_CONTAIN.test(ing) || LABEL_NOTE.test(ing) || allergenDeclaration(ing)) return [e];
-  if (PENALTIES.some(r => eitherForm(r.m, ing)) || CAPS.some(c => eitherForm(c.m, ing))) return [e];
+  if (PENALTIES.some(r => eitherForm(r.m, ing)) || capsFor(ing).length) return [e];
   const pieces = ing.split(new RegExp(CONJUNCTION.source, 'gi')).map(p => p.trim());
   if (pieces.length < 2 || !pieces.every(p => p.length > 1 && recognised(withoutOrganic(p) || p))) return [e];
   // Only when the split exposes something charged: "orange juice and pulp" or "salt and pepper" stay one
   // entry, since splitting them changes nothing but the list's length.
-  const charged = p => penaltiesFor(withoutOrganic(p) || p).size > 0 || CAPS.some(c => eitherForm(c.m, p));
+  const charged = p => penaltiesFor(withoutOrganic(p) || p).size > 0 || capsFor(p).length > 0;
   if (!pieces.some(charged)) return [e];
   return pieces.map(p => ({ ...e, ing: p }));
 }
@@ -745,7 +795,7 @@ const WRAPPED_WORD = /([a-zß-ÿœ\u0100-\u017f]{2,})-\s+([a-zß-ÿœ\u0100-\u01
 function chargeOf(ing) {
   let points = 0, ceiling = 100;
   for (const r of penaltiesFor(ing)) points += r.pts || 0;
-  for (const c of CAPS) if (eitherForm(c.m, ing)) ceiling = Math.min(ceiling, c.cap);
+  for (const c of capsFor(ing)) ceiling = Math.min(ceiling, c.cap);
   return points + (100 - ceiling);
 }
 function rejoinWrapped(ing) {
@@ -830,7 +880,7 @@ function shareOf(part) {
   const { head: outside, groups } = bracketGroups(part);
   const head = outside.replace(MARKERS, ' ').replace(/^[\s*•\-–:]+/, '').replace(/\s+/g, ' ').trim().toLowerCase();
   const trailing = trailingShare(head);
-  const m = trailing ? trailing.text : (LEADING_SHARE.exec(head.trim().replace(LEADING_HEADING, '')) || [null])[0];
+  const m = trailing ? trailing.text : (LEADING_SHARE.exec(withoutHeading(head.trim())) || [null])[0];
   const alone = m ? null : groups.map(g => BRACKET_SHARE.exec(g.trim())).find(Boolean);
   const pct = m ? parseFloat(SHARE_NUMBER.exec(m)[0].replace(',', '.')) : alone ? parseFloat(alone[1].replace(',', '.')) : NaN;
   return pct > 0 && pct <= 100 ? pct : null;
@@ -879,7 +929,7 @@ function normaliseNutrition(raw) {
   // All quantity curves compare 100g/100ml. An unknown serving cannot use those same thresholds
   // as if it weighed 100g; retain an unavailable assessment and use ingredient fallbacks instead.
   if (serving == null) return {values:{},basis:'per-serving',reason:'serving-size-missing'};
-  const factor = serving == null ? 1 : 100 / serving;
+  const factor = 100 / serving;
   const values = {};
   for (const field of ['sodium','saturatedFat','sugar','addedSugar','fibre','protein','carbs']) {
     const value = raw[field];
@@ -899,7 +949,7 @@ function normaliseNutrition(raw) {
       || (normalizedFat != null && values.saturatedFat != null && values.saturatedFat > normalizedFat + 2)
       || fat + (values.carbs ?? values.sugar ?? 0) + (values.protein || 0) > 102) return {values:{},basis:'invalid'};
   }
-  return {values, basis:serving == null ? 'per-serving' : hasGrams ? 'per 100g' : 'per 100ml'};
+  return {values, basis:hasGrams ? 'per 100g' : 'per 100ml'};
 }
 
 const NUTRITION = [
@@ -945,7 +995,20 @@ const LABEL_NOTE = new RegExp('^(?:(?:\\*\\s*)?(?:(?:certified )?organic ingredi
 // unreadable entry, and an entry no rule can read is charged nothing: "Oats， Sugar" scored 90 where
 // "Oats, Sugar" scores 65. Newlines are deliberately NOT separators, because a label wraps lines in the
 // middle of one ingredient ("high fructose\ncorn syrup").
-const INVISIBLE = /[\u00ad\u200b-\u200d\u2060\ufeff]/g;
+// Direction marks count as invisible too: Amazon prints U+200E and U+200F round the values in its
+// product details, and "sugar" followed by one was charged nothing.
+const INVISIBLE = /[\u00ad\u061c\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff]/g;
+// The same letters in another encoding. OCR and text copied from a PDF write "fi" and "fl" as one
+// ligature character, so "artiﬁcial ﬂavor" matched no rule (90 where the plain spelling scores 41), and
+// a full-width "ｓｕｇａｒ" read the same way. An accent typed as a letter plus a combining mark ("azúcar"
+// from a Mac, or from an API that decomposes) is not the single character the rules are written with.
+// The text is composed (NFC) and these two blocks are mapped; full compatibility folding (NFKC) is not
+// used, because it would also turn the footnote mark in "sugar¹" into a digit glued to the word. Run
+// after the entities are decoded and the full-width punctuation below has been given its meaning.
+const LIGATURES = ['ff', 'fi', 'fl', 'ffi', 'ffl', 'st', 'st'];
+const sameLetters = text => text.normalize('NFC')
+  .replace(/[\uff01-\uff5e]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
+  .replace(/[\ufb00-\ufb06]/g, c => LIGATURES[c.charCodeAt(0) - 0xfb00]);
 const HTML_TAG = /<\/?[a-z][^<>]{0,200}>/gi;
 const HTML_ENTITY = /&(#x[0-9a-f]{1,6}|#\d{1,7}|[a-z]{2,8});/gi;
 const ENTITY_TEXT = { amp: '&', nbsp: ' ', quot: '"', apos: "'", lt: '<', gt: '>', ndash: '-', mdash: '-' };
@@ -976,14 +1039,32 @@ function verticalList(text) {
 // Markup that ends a line (<br>, the end of a list item or paragraph) is where a vertical list breaks;
 // every other tag is dropped as before.
 const LINE_BREAK_TAG = /<\s*(?:br|\/li|\/p|\/div|\/tr)\b[^<>]{0,200}>/gi;
+// A list with no comma in it at all, its items set apart by a spaced dash or slash ("farina di grano
+// tenero - zucchero - olio di semi di girasole - sale", as some Italian labels print it) or by tabs (copied
+// out of a table). Read as one entry, "oats - sugar - salt" scored 90 where the comma list scores 65.
+// The same test as a vertical list: no comma or semicolon anywhere, and every item short. Four items or
+// more, one more than a vertical list asks for, because a product name published in place of the list is
+// also set out with dashes ("Organic Raw Almonds - Unpasteurized - 16 oz") and must stay the one entry
+// it is. A spaced hyphen inside a comma list is left alone: there it is a word broken at a line end
+// ("mono - i diglicerydy"), which score() closes up.
+const DASHED_MIN_ITEMS = 4;
+const SPACED_SEPARATOR = /[ \u00a0]+[-–—/][ \u00a0]+|\t+/;
+function dashedList(text) {
+  if (LIST_SEPARATORS.test(text) || !SPACED_SEPARATOR.test(text)) return text;
+  const items = text.split(new RegExp(SPACED_SEPARATOR.source, 'g')).map(item => item.trim()).filter(Boolean);
+  if (items.length < DASHED_MIN_ITEMS || items.length > VERTICAL_MAX_LINES || items.some(item => item.length > VERTICAL_MAX_LINE)) return text;
+  return items.join(', ');
+}
+// A list however it is laid out: one item to a line, or items apart by dashes, becomes a comma list.
+const commaList = text => dashedList(verticalList(text));
 function cleanText(value) {
-  return verticalList(String(value ?? '')
+  return commaList(sameLetters(String(value ?? '')
     .replace(LINE_BREAK_TAG, '\n')
     .replace(HTML_TAG, ' ').replace(HTML_ENTITY, entityText)
-    .replace(INVISIBLE, '')
+    .replace(INVISIBLE, '').replace(/[\u2028\u2029\u0085]/g, '\n')
     .replace(/[，、،﹐﹑]/g, ',').replace(/[；؛]/g, ';').replace(/：/g, ':').replace(/％/g, '%')
     .replace(/[（［｛]/g, '(').replace(/[）］｝]/g, ')')
-    .replace(/[•●▪◦‣⁃·｜|]/g, ','));
+    .replace(/[•●▪◦‣⁃·｜|]/g, ',')));
 }
 
 // ---------------------------------------------------------------- scoring
@@ -1062,7 +1143,7 @@ function score(product, options = {}) {
   // Classified on the scored list, not the raw text: the eggs and milk of "may contain traces of
   // eggs, milk" made a rye bread an animal product with a sourcing charge (55 against 69).
   const dominant = entries.find(e => !e.parent && !penaltiesFor(e.ing).size
-    && !CAPS.some(c => eitherForm(c.m, e.ing))
+    && !capsFor(e.ing).length
     && (hitsAny(labels.WHOLE, e.ing) || hits1(labels.CULINARY, e.ing)));
   const kindInfo = prov ? prov.classify(dominant?.ing || product.name || '') : null;
 
@@ -1103,7 +1184,7 @@ function score(product, options = {}) {
   for (const e of entries) if (e.parent) childrenOf.set(e.parent, [...(childrenOf.get(e.parent) || []), e]);
   // Categories named anywhere in the list; the artificial sweeteners are caps, not penalties.
   const namedUltra = new Set(entries.flatMap(e => [...penaltiesFor(e.ing)].filter(p => !p.unnamed).map(p => p.cat)
-    .concat(CAPS.some(c => /sweetener/i.test(c.why) && eitherForm(c.m, e.ing)) ? ['sweetener'] : [])));
+    .concat(capsFor(e.ing).some(c => /sweetener/i.test(c.why)) ? ['sweetener'] : [])));
   const namedFam = new Set();
   for (const e of entries) {
     const kids = childrenOf.get(e.fam) || [];
@@ -1205,7 +1286,7 @@ function score(product, options = {}) {
   // artificial sweeteners, industrial syrups, trans fat, carrageenan. They never voted, so "water,
   // sucralose" read NOVA 2 and a flour with Red 40 NOVA 3, while stevia extract read NOVA 4. Refined
   // seed oils (a culinary ingredient) and the preservative caps (BHA, TBHQ…) do not vote.
-  if (CAPS.some(c => ULTRA_CAP.test(c.why) && list.some(i => eitherForm(c.m, i)))) hardHits++;
+  if (list.some(i => capsFor(i).some(c => ULTRA_CAP.test(c.why)))) hardHits++;
   const nova = novaClass(list, txt, hardHits, softHits);
   // List length is not an independent defect: twenty herbs are not twenty additives.
   const penalty = saturate(rawPenalty);
@@ -1254,7 +1335,7 @@ function score(product, options = {}) {
   // its benefit, so organic cane sugar or honey scores above the conventional one.
   const capsHit = CAPS.filter(c => eitherForm(c.m, txt));
   const allPenalised = list.length > 0
-    && list.every(i => hits.some(h => h.ing === i && h.cat !== 'naturalSugar') || capsHit.some(c => eitherForm(c.m, i)));
+    && list.every(i => hits.some(h => h.ing === i && h.cat !== 'naturalSugar') || capsFor(i).some(c => capsHit.includes(c)));
   let bonus = 0, titleBonus = 0;
   for (const b of labels.BONUSES) {
     if (allPenalised && b.cat !== 'organic') continue;
@@ -1321,7 +1402,7 @@ function score(product, options = {}) {
       // Checked per entry, not against the whole text: a product listing both "sunflower oil" and
       // "cold-pressed olive oil" must keep the sunflower cap. Only when every entry naming this
       // oil carries the qualifier does the softer ceiling apply.
-      const naming = list.filter(i => eitherForm(c.m, i));
+      const naming = list.filter(i => capsFor(i).includes(c));
       if (naming.length && naming.every(i => c.unless.test(i))) ceiling = c.soften;
     }
     // A ceiling of 25 at weight 1 becomes no ceiling at weight 0 and a ceiling of 0 at weight 2.
@@ -1427,9 +1508,7 @@ function score(product, options = {}) {
 
     if (unknownCost > 0) {
       pts -= unknownCost;
-      bad.push({ c: -unknownCost, sourcing: true, why: verified.length || claims.length
-        ? 'Animal production details unverified — sourcing preference'
-        : 'Animal production details unverified — sourcing preference' });
+      bad.push({ c: -unknownCost, sourcing: true, why: 'Animal production details unverified — sourcing preference' });
     }
 
     provenance = {
@@ -1544,7 +1623,7 @@ function score(product, options = {}) {
   for (const row of [...good, ...bad]) if (Number.isFinite(row.c)) {
     dimensions[row.sourcing || row.organic ? 'sourcing' : NUTRITION.some(n => n.cat === row.cat) ? 'nutrition' : 'ingredients'] += row.c;
   }
-  return {
+  const result = {
     score: final,
     verdict: BANDS.find(b => final >= b[0])[1],
     nova, base: displayBase, novaBase: base, cap: capWhy, flags, provenance,
@@ -1555,10 +1634,12 @@ function score(product, options = {}) {
     // Entries no rule recognises, for a caller that may ask a model about them; ai: what a model's ratings changed.
     unrecognised: [...new Set(coverageInfo.missed)].filter(i => /[a-zß-ÿœ\u0100-\u017f]/i.test(i)).slice(0, 24),
     ...(coverageInfo.rated.length ? { ai: { rated: coverageInfo.rated } } : {}),
-    readable: list.length > 0 && coverage >= MIN_COVERAGE && !parseWarnings.length,
     parseWarnings, nutritionAssessment, dimensions,
     ruleCount: PENALTIES.length + CAPS.length + labels.BONUSES.length,
   };
+  // Asked of the finished result, by the one function every caller asks it of.
+  result.readable = isReadable(result);
+  return result;
 }
 
 // The first score() call compiles the engine's regular expressions, lazily, as each is first used: about 200 ms,
@@ -1583,6 +1664,6 @@ const SCORING_POLICY = Object.freeze({floor:SCORE_FLOOR, ceilingKnee:CEIL_KNEE, 
   singleIngredientBonus:SINGLE_INGREDIENT_BONUS, positionWeights:POSITION_WEIGHTS,
   shareTiers:SHARE_TIERS.map(([min, tier]) => `${min}%+ → ${POSITION_WEIGHTS[tier]}`).concat(`under 2% → ${POSITION_WEIGHTS[3]}`),
   minorBlockLimit:MINOR_LIMIT, minCoverage:MIN_COVERAGE});
-return { score, parse, parseEntries, verticalList, warmUp, stripNegations, PENALTIES, CAPS, BANDS, NOVA_BASE, NUTRITION, normaliseNutrition, SCORING_POLICY,
+return { score, parse, parseEntries, verticalList, commaList, warmUp, stripNegations, PENALTIES, CAPS, BANDS, NOVA_BASE, NUTRITION, normaliseNutrition, SCORING_POLICY,
   MIN_COVERAGE, isReadable };
 });

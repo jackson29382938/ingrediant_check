@@ -118,7 +118,8 @@ past 30 days, whatever the step, because the worker drops them first.
 The twice-daily housekeeping sweep (`sweepCache` in `src/background.js`) deletes this computer's `s:`
 and `p:` entries once they pass the current step's age, so a step's age is also how long they are
 kept. Moving to a fresher step therefore deletes older readings at the next sweep; moving back does
-not restore them. Open Food Facts records (`off:`) keep their own 30 days at every step.
+not restore them. Open Food Facts records (`off:`) keep their own 30 days at every step, and a remembered
+"no such product" (`{ t, miss: true }`) keeps 3, as a USDA miss does. A request that failed is never kept.
 
 - A newer scan replaces the row straight away, even before it is stale, and resets `pulls`.
 - An older scan never overwrites a newer row.

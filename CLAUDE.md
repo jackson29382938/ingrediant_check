@@ -11,7 +11,7 @@ engine runs unchanged in Node (tests) and in a content script.
 | Unit and integration tests (about 25 s on four cores) | `npm test` (parallel; files marked `// @serial` run alone afterwards; `npm run test:serial` runs everything one at a time) |
 | Lint (installs pinned ESLint for this run only) | `npm run lint` |
 | Manifest, scripts and locale checks | `npm run preflight` |
-| Build Chrome and Firefox packages | `npm run pack` |
+| Build Chrome and Firefox packages (runs preflight first; CI builds them on every push) | `npm run pack` |
 | Real-Chromium harness (no network) | `npm install --no-save --no-package-lock playwright@1.63.0`, then `HARNESS_CHROME=/opt/pw-browsers/chromium npm run harness:ci` |
 | Firefox package lint | `npm install --no-save --no-package-lock web-ext@10.0.0`, then `npm run firefox:lint` |
 
@@ -52,7 +52,13 @@ Rules that are easy to break:
   by punctuation the parser does not understand quietly scores better. When you find a format that hides
   one, fix the parser (`cleanText`, `tidy`, `splitTopLevel`, `rejoinWrapped`) and add the format to
   `tests/invariants.test.js`. Formats already covered there: separators and invisible characters, HTML,
-  a line wrapped inside an ingredient, a word broken by a hyphen at a line end, one ingredient per line.
+  a line wrapped inside an ingredient, a word broken by a hyphen at a line end, one ingredient per line,
+  other encodings of the same letters (ligatures, full-width, decomposed accents, direction marks), stray
+  punctuation and trade mark signs at the ends of an entry, a heading without its colon, two ingredients
+  joined by "or" or a slash, and a list set out with spaced dashes or tabs.
+- **Rule lookups are remembered by entry text** (`remembered()` in `score.js`: `penaltiesFor`, `capsFor`,
+  `recognised`). What they return is shared between calls, so read it and never change it, and anything
+  remembered must depend on the entry alone: never on weights, the product or the rest of the list.
 - **One readability gate.** `engine.MIN_COVERAGE` and `engine.isReadable(result)` / `result.readable`
   are the only definition of "readable enough to show". Do not copy the threshold; `tests/languages.test.js`
   fails if a content script does. A list with no entries scores 90, so never show a score without

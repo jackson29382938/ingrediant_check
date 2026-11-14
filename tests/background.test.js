@@ -575,6 +575,64 @@ test('Open Food Facts: a failed lookup is not remembered, and the food check sta
   assert.equal(open.name, 'Shampoo');
 });
 
+// "No such product" was never kept, so every visit to a product Open Food Facts does not hold sent its
+// barcode again. An answer is kept three days (as worker/usda.js keeps its misses); a failure is not an answer.
+test('Open Food Facts: "no such product" is remembered for three days, a failure is not', async () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const librarySender = { id: 'ext', url: 'chrome-extension://ext/src/options/library.html' };
+  const lookup = (w, sender = amazonTab) => w.send({ type: 'lookupBarcode', code: '0012345678936' }, sender);
+  const answers = {
+    'a 404': { ok: false, status: 404, json: async () => ({ status: 0 }) },
+    'status 0 in a 200': { ok: true, status: 200, json: async () => ({ status: 0, status_verbose: 'product not found' }) },
+    'a product with no ingredient list': { ok: true, status: 200, json: async () => ({ product: { product_name: 'Mystery', product_type: 'food' } }) },
+  };
+  for (const [name, answer] of Object.entries(answers)) {
+    let calls = 0;
+    // Only requests to Open Food Facts are counted: a manual lookup goes on to the second barcode database.
+    const w = worker({ useOpenFoodFacts: true }, async url => { if (!/openfoodfacts/.test(url)) return { ok: false, status: 503 }; calls++; return answer; });
+    assert.equal(await lookup(w), null, name);
+    assert.equal(w.data['off:0012345678936'].miss, true, `${name}: kept`);
+    assert.equal(await lookup(w), null, name);
+    assert.equal(calls, 1, `${name}: the second visit sends nothing`);
+    // The reader pressing "Look up" in the library asks again, whatever is remembered.
+    assert.equal(await lookup(w, librarySender), null, name);
+    assert.equal(calls, 2, `${name}: a manual lookup asks`);
+    // Three days on, the pages ask again.
+    w.data['off:0012345678936'].t = Date.now() - 3 * DAY - 1000;
+    await lookup(w);
+    assert.equal(calls, 3, `${name}: asked again after three days`);
+  }
+  for (const [name, answer] of Object.entries({ 'a server error': { ok: false, status: 503 }, 'a rate limit': { ok: false, status: 429 } })) {
+    let calls = 0;
+    const w = worker({ useOpenFoodFacts: true }, async () => { calls++; return answer; });
+    assert.equal(await lookup(w), null, name);
+    assert.equal(w.data['off:0012345678936'], undefined, `${name}: nothing kept`);
+    await lookup(w);
+    assert.equal(calls, 2, `${name}: asked again`);
+  }
+  // A product that appears later replaces the remembered miss, and an old miss never reads as a record.
+  const found = { ok: true, status: 200, json: async () => ({ product: { product_name: 'Kefir', ingredients_text: 'cultured milk', product_type: 'food', categories_tags: ['en:dairies'] } }) };
+  const later = worker({ useOpenFoodFacts: true, 'off:0012345678936': { t: Date.now() - 10 * DAY, miss: true } }, async () => found);
+  assert.equal((await lookup(later)).ingredients_text, 'cultured milk');
+  assert.equal(later.data['off:0012345678936'].miss, undefined);
+  // The sweep drops a miss after its three days, and keeps a record for its month.
+  const now = Date.now();
+  const swept = worker({ 'off:0000000000017': { t: now - 2 * DAY, miss: true }, 'off:0000000000024': { t: now - 4 * DAY, miss: true },
+    'off:0000000000031': { t: now - 4 * DAY, data: { ingredients_text: 'oats' } } });
+  await swept.call(`sweepCache(${now})`);
+  assert.deepEqual(Object.keys(swept.data).sort(), ['off:0000000000017', 'off:0000000000031']);
+});
+
+test('the diagnostics status answers even when storage fails', async () => {
+  const w = worker({ sendDiagnostics: true, diagQueue: [{ id: 1 }, { id: 2 }], diagLastError: '' });
+  assert.deepEqual({ ...(await w.send({ type: 'diagnosticsStatus' }, settingsSender)) }, { reason: '', queued: 2, enabled: true, configured: true });
+  w.call('chrome.storage.local.get = async () => { throw new Error("storage is gone"); }');
+  const original = console.warn;
+  console.warn = () => {};
+  try { assert.equal(await w.send({ type: 'diagnosticsStatus' }, settingsSender), null, 'a reply, not a wait'); }
+  finally { console.warn = original; }
+});
+
 test('toolbar badge colours keep white text readable (WCAG AA, 4.5:1)', () => {
   const lum = hex => {
     const c = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(v => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));

@@ -298,6 +298,162 @@ test('entities and tags cannot smuggle in an ingredient or a marker', () => {
   assert.ok(!engine.parse('Oats, &unknown; Sugar').some(e => e.includes('\u0001')));
 });
 
+// The same word in another encoding. Each of these left "sugar" (or the flavour, or the oil) as a word no
+// rule could read, so it was charged nothing while `readable` stayed true: "Water, artiﬁcial ﬂavor, Salt"
+// scored 90 where the plain spelling scores 41.
+test('the encoding a word arrives in does not decide whether it is charged', () => {
+  const plain = score('Oats, Sugar');
+  const variants = {
+    'left-to-right mark after the word': 'Oats, Sugar‎', 'right-to-left mark before it': 'Oats, ‏Sugar',
+    'directional embedding round it': 'Oats, ‪Sugar‬', 'directional isolate round it': 'Oats, ⁦Sugar⁩',
+    'full-width letters': 'Oats, ｓｕｇａｒ', 'full-width capitals': 'ＯＡＴＳ, ＳＵＧＡＲ',
+  };
+  for (const [name, text] of Object.entries(variants)) {
+    assert.equal(score(text).score, plain.score, `${name}: ${JSON.stringify(text)}`);
+    assert.deepEqual(engine.parse(text), ['oats', 'sugar'], name);
+  }
+  // Ligatures, as OCR and PDF text print "fi" and "fl".
+  assert.equal(score('Water, artiﬁcial ﬂavor, Salt').score, score('Water, artificial flavor, Salt').score);
+  assert.deepEqual(engine.parse('Water, saﬄower oil, wheat ﬂour, caﬀeine'), ['water', 'safflower oil', 'wheat flour', 'caffeine']);
+  assert.equal(score('Oats, saﬄower oil').cap, score('Oats, safflower oil').cap);
+  // An accent written as a letter and a combining mark is the accented letter.
+  for (const [composed, name] of [['Avena, azúcar', 'Spanish'], ['Avoine, sirop de glucose-fructose, arôme', 'French'], ['Hafer, Sonnenblumenöl', 'German']]) {
+    const decomposed = composed.normalize('NFD');
+    assert.notEqual(decomposed, composed, `${name}: the fixture has to contain an accent`);
+    assert.equal(score(decomposed).score, score(composed).score, name);
+    assert.deepEqual(engine.parse(decomposed), engine.parse(composed), name);
+  }
+  // A footnote mark is still a mark, not a digit joined to the word (which full compatibility folding would make it).
+  assert.deepEqual(engine.parse('Oats, Sugar¹, Salt²'), ['oats', 'sugar', 'salt']);
+  // Full-width brackets and percent signs keep the meaning they already had.
+  assert.deepEqual(engine.parse('Oats（60％）, Sugar'), engine.parse('Oats (60%), Sugar'));
+});
+
+// Punctuation at the ends of an entry, and a trade mark sign, hid the word from rules anchored there:
+// '"Sugar"', "Sugar!", "Sugar:" and "Sugar™" each scored 90 in a three-ingredient list that scores 65.
+test('stray punctuation round an entry does not hide the ingredient', () => {
+  const plain = score('Oats, Sugar, Salt');
+  for (const entry of ['"Sugar"', '“Sugar”', '‘Sugar’', "'Sugar'", '«Sugar»', 'Sugar!', 'Sugar?', 'Sugar:', 'Sugar: ', 'Sugar;', '=Sugar', '~Sugar',
+    'Sugar™', 'Sugar®', 'Sugar ®', 'Sugar©', '"Sugar" 20%']) {
+    const read = score(`Oats, ${entry}, Salt`);
+    assert.deepEqual(engine.parse(`Oats, ${entry}, Salt`), ['oats', 'sugar', 'salt'], entry);
+    if (!/%/.test(entry)) assert.equal(read.score, plain.score, entry);
+  }
+  assert.equal(score('Water, Sucralose®, Salt').score, score('Water, Sucralose, Salt').score);
+  assert.equal(score('Water, Splenda® Sucralose, Salt').cap, score('Water, Sucralose, Salt').cap);
+  // Inside an entry the same characters are text.
+  assert.deepEqual(engine.parse("Flocons d'avoine, sucre"), ["flocons d'avoine", 'sucre']);
+  assert.deepEqual(engine.parse('Oats, emulsifier: soy lecithin'), engine.parse('Oats, emulsifier (soy lecithin)'));
+});
+
+// A page prints the heading on its own line and OCR loses the colon, so the first entry, the heaviest one,
+// arrived as "ingredients sugar" and was charged nothing: 80 where "Sugar, Water, Salt" scores 63.
+test('a heading without its colon does not hide the first ingredient', () => {
+  const plain = score('Sugar, Water, Salt');
+  assert.ok(costOf(plain, /sugar/i) > 0);
+  for (const heading of ['Ingredients\n', 'INGREDIENTS ', 'Ingredients - ', 'Ingredients – ', 'Ingredients:\n', 'Ingredients : ', 'Ingredient List: ',
+    'Ingredients list: ', 'Ingredient statement: ', 'Other Ingredients: ', 'Full ingredients: ', 'List of ingredients: ', 'Ingredients; ', 'Ingredients. ']) {
+    const text = heading + 'Sugar, Water, Salt';
+    assert.deepEqual(engine.parse(text), ['sugar', 'water', 'salt'], JSON.stringify(heading));
+    assert.equal(score(text).score, plain.score, JSON.stringify(heading));
+  }
+  const local = { Zutaten: 'Zucker, Wasser, Salz', 'Ingrédients': 'Sucre, eau, sel', Ingredientes: 'Azúcar, agua, sal', Ingredienti: 'Zucchero, acqua, sale',
+    'Ingrediënten': 'Suiker, water, zout', Ingredienser: 'Socker, vatten, salt', 'Składniki': 'Cukier, woda, sól', 'İçindekiler': 'Şeker, su, tuz' };
+  for (const [heading, list] of Object.entries(local)) {
+    for (const join of ['\n', ' ', ': ']) {
+      assert.deepEqual(engine.parse(heading + join + list), engine.parse(list), `${heading}${JSON.stringify(join)}`);
+      assert.equal(score(heading + join + list).score, score(list).score, `${heading}${JSON.stringify(join)}`);
+    }
+  }
+  // A heading with a line to itself above a vertical list is not an ingredient of its own.
+  assert.deepEqual(engine.parse('Ingredients\nSugar\nWater\nSalt'), ['sugar', 'water', 'salt']);
+  assert.equal(score('Ingredients\nSugar\nWater\nSalt').score, plain.score);
+  // A footnote that starts with the word is still read whole, and still earns what it earned.
+  for (const note of ["*Ingrédients issus de l'agriculture biologique", 'Ingredienti biologici', 'Ingrédients biologiques']) {
+    const withNote = score(`Avoine, sucre, ${note}`);
+    assert.equal(withNote.parsed, 2, note);
+    assert.ok(withNote.good.some(g => g.organic), `${note}: the organic note still counts`);
+  }
+});
+
+// Two ingredients joined by "or" or a slash read as one unknown word: "Oats, sugar or honey, Salt" scored 90
+// (64 as a comma list) and "Water, sugar/dextrose, Salt" 90 (61). A Canadian label writes every entry twice.
+test('"or" and a slash between two ingredients do not hide either of them', () => {
+  assert.equal(score('Oats, sugar or honey, Salt').score, score('Oats, sugar, honey, Salt').score);
+  assert.equal(score('Water, sugar/dextrose, Salt').score, score('Water, sugar, dextrose, Salt').score);
+  assert.equal(score('Water, sugar / dextrose, Salt').score, score('Water, sugar, dextrose, Salt').score);
+  for (const [text, same] of [['Avoine, sucre ou miel', 'Avoine, sucre, miel'], ['Hafer, Zucker oder Honig', 'Hafer, Zucker, Honig'], ['Avena, azúcar o miel', 'Avena, azúcar, miel']]) {
+    assert.equal(score(text).score, score(same).score, text);
+  }
+  // Bilingual: the sugar is charged once, as it is on the English label.
+  const bilingual = score('Water/Eau, Sugar/Sucre, Salt/Sel');
+  assert.equal(costOf(bilingual, /sugar/i), costOf(score('Water, Sugar, Salt'), /sugar/i));
+  assert.equal(bilingual.bad.length, 1);
+  // What a rule already reads whole stays whole, and a pair that charges nothing is not split.
+  assert.deepEqual(engine.parse('Oats, canola/soybean oil'), ['oats', 'canola/soybean oil']);
+  assert.deepEqual(engine.parse('Oats, salt/pepper'), ['oats', 'salt/pepper']);
+  assert.deepEqual(engine.parse('Oats, orange juice or pulp'), ['oats', 'orange juice or pulp']);
+});
+
+// Some Italian labels set a list out with spaced dashes and no comma at all, and a list copied from a table
+// arrives with tabs. Read as one entry, the sugar in the middle was never seen.
+test('a list set out with spaced dashes, slashes or tabs is read as a list', () => {
+  const items = ['Oats', 'Sugar', 'Rice Flour', 'Salt', 'Natural Flavors'];
+  const plain = score(items.join(', '));
+  assert.ok(plain.score < 70, 'the fixture has to cost something for the comparison to mean anything');
+  for (const sep of [' - ', ' – ', ' — ', ' / ', '\t', '  -  ']) {
+    const text = items.join(sep);
+    assert.deepEqual(engine.parse(text), items.map(item => item.toLowerCase()), JSON.stringify(sep));
+    assert.equal(score(text).score, plain.score, JSON.stringify(sep));
+  }
+  const italian = 'farina di grano tenero - zucchero - olio di semi di girasole - sale';
+  assert.equal(score(italian).score, score(italian.replace(/ - /g, ', ')).score);
+  assert.deepEqual(reasons(score(italian)), reasons(score(italian.replace(/ - /g, ', '))));
+  // A comma anywhere means the dashes belong to the entries: a word broken at a line end stays one word.
+  assert.equal(engine.parse('Woda, mono - i diglicerydy - kwasów tłuszczowych, sól, cukier').length, 4);
+  assert.equal(engine.parse('Woda, mono - i diglicerydy, sól').length, 3);
+  // A product name set out with dashes is not a list, and a hyphenated word has no spaces round it.
+  assert.equal(engine.parse('Organic Raw Almonds - Unpasteurized - 16 oz').length, 1);
+  assert.deepEqual(engine.parse('High-oleic sunflower oil'), ['high-oleic sunflower oil']);
+  // The paste box sees the same list the engine does.
+  require('../src/engine/db/ingestible.js');
+  const extract = require('../src/content/extract.js');
+  const saved = AIR.engine;
+  try {
+    AIR.engine = engine;
+    const long = ['Water', 'Oats', 'Rice', 'Salt', 'Yeast', 'Vinegar', 'Sugar', 'Milk', 'Eggs', 'Butter', 'Honey', 'Garlic', 'Onion', 'Pepper'].join(' - ');
+    assert.equal(extract.looksLikeIngredients(long), true);
+  } finally { if (saved) AIR.engine = saved; else delete AIR.engine; }
+});
+
+// score() asks the same question of the same entry several times, and keeps the answer (penaltiesFor,
+// recognised). A kept answer must be the one a fresh engine gives, in whatever order lists arrive.
+test('a remembered answer is the answer a fresh engine gives', () => {
+  const lists = ['Water, Sugar, Salt, Natural Flavors', 'Organic agave nectar, oats', 'Enriched Wheat Flour (Wheat Flour, Niacin), Soybean Oil, Red 40',
+    'Emulsifier (soy lecithin), preservative, colour', 'Sodium Benzoate (Preservative), Annatto (Color)', 'Oats, natural-flavors, soya-lecithin',
+    'Milk, cream, sugar, carrageenan', 'Beef, salt, sodium nitrite', 'Water, Sugar, Salt, Natural Flavors'];
+  const fresh = () => {
+    const file = require.resolve('../src/engine/score.js');
+    const kept = require.cache[file];
+    delete require.cache[file];
+    try { return require('../src/engine/score.js'); } finally { require.cache[file] = kept; }
+  };
+  const once = lists.map(text => JSON.stringify(fresh().score({ name: '', ingredients_text: text })));
+  const warm = fresh();
+  for (const order of [lists, [...lists].reverse(), lists]) {
+    for (const text of order) {
+      assert.equal(JSON.stringify(warm.score({ name: '', ingredients_text: text })), once[lists.indexOf(text)], text);
+    }
+  }
+  // A user's weights change what a rule costs, never which rules read an entry.
+  const strict = { weights: { sugar: 2, flavour: 0 } };
+  assert.equal(JSON.stringify(warm.score({ name: '', ingredients_text: lists[0] }, strict)), JSON.stringify(fresh().score({ name: '', ingredients_text: lists[0] }, strict)));
+  // Far more distinct entries than are kept: the store empties itself and the answers do not change.
+  const many = Array.from({ length: 9000 }, (_, i) => `made-up ingredient ${i}`);
+  for (let i = 0; i < many.length; i += 60) warm.score({ name: '', ingredients_text: many.slice(i, i + 60).join(', ') });
+  assert.equal(JSON.stringify(warm.score({ name: '', ingredients_text: lists[0] })), once[0]);
+});
+
 test('a share is ignored when it is not a quantity', () => {
   for (const text of ['Oats, Sugar 0%', 'Oats, Sugar 140%']) {
     assert.equal(score(text).score, score('Oats, Sugar').score, text);
