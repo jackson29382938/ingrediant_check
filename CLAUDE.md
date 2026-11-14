@@ -31,7 +31,7 @@ presets live in `categories.js`.
 Rules that are easy to break:
 
 - **Bump the revision when a score can move.** Editing `score.js`, `categories.js` or
-  `db/{oils,sugars,additives,labels,allergens,provenance,ingestible,product-ratings,ai-ratings}.js` fails `tests/rules-revision.test.js`
+  `db/{oils,sugars,additives,labels,allergens,provenance,ingestible,product-ratings,ai-ratings,vocabulary}.js` fails `tests/rules-revision.test.js`
   until `RULES_REVISION` and `RULES_HASH` in `src/engine/db/revision.js` are updated (the failing
   test prints the hash). That retires every cached score. The hash covers code only: whole-line comments, blank
   lines and trailing spaces are not hashed, so prose can be edited freely; a renamed variable or a comment
@@ -55,7 +55,14 @@ Rules that are easy to break:
   a line wrapped inside an ingredient, a word broken by a hyphen at a line end, one ingredient per line,
   other encodings of the same letters (ligatures, full-width, decomposed accents, direction marks), stray
   punctuation and trade mark signs at the ends of an entry, a heading without its colon, two ingredients
-  joined by "or" or a slash, and a list set out with spaced dashes or tabs.
+  joined by "or" or a slash, a list set out with spaced dashes or tabs, a weight after an ingredient, two
+  words run together, and German written without its umlauts. Where the text cannot say which reading is
+  right (a rejoined word, a put-back space, an umlaut, a short dashed list) the new reading is taken only
+  when the rulebase then charges or reads more than it did; keep that test when you add another.
+- **Words no rule charges live in `db/vocabulary.js`** (`COMMON_PANEL`). It only decides what counts as
+  read, but that can still move a score, so it is hashed like the other rule files. A new rule file must be
+  listed before `score.js` in `manifest.json` (five groups), `src/options/{library,history}.html` and the
+  `tests/*.html` harness pages, and in `RULE_SOURCES` in `tests/rules-revision.test.js`.
 - **Rule lookups are remembered by entry text** (`remembered()` in `score.js`: `penaltiesFor`, `capsFor`,
   `recognised`). What they return is shared between calls, so read it and never change it, and anything
   remembered must depend on the entry alone: never on weights, the product or the rest of the list.
@@ -104,6 +111,8 @@ Rules that are easy to break:
 - A service-worker message handler that returns `true` answers through `answer()` in `background.js`, so a
   rejected promise still replies and leaves a trace.
 - A test that asserts a millisecond limit carries a `// @serial` comment so `npm test` runs it alone.
+- Workflows name an action by commit with its version in a comment (`uses: actions/checkout@<40 hex> # v6.1.0`);
+  `tests/workflow-pins.test.js` fails on a tag. The comment above `jobs:` in `test.yml` says how to update one.
 - `docs/apps-script.gs` ends with a byte-for-byte copy of `src/engine/db/purchase-history.js`; after editing that file run
   `node scripts/sync-apps-script-schema.mjs` (a test fails otherwise) and redeploy the script by hand.
 - Do not add runtime dependencies. Vendored OCR and DOMPurify bundles are reproduced by scripts in

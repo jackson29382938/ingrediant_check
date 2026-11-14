@@ -15,7 +15,7 @@ const path = require('node:path');
 global.self = global;
 require(path.join(__dirname, '..', 'src', 'engine', 'db', '_module.js'));
 const engine = require('../src/engine/score.js');
-const DB = ['additives', 'oils', 'sugars', 'labels', 'allergens', 'provenance', 'ingestible', 'ocr-text'];
+const DB = ['additives', 'oils', 'sugars', 'labels', 'allergens', 'provenance', 'ingestible', 'ocr-text', 'vocabulary'];
 
 const ACCENTED = 'ßà-ÿœ\\u0100-\\u017f';   // ß sits just below à
 // An accented letter (alone, or in a class with one) then \b, allowing ?, *, +, a closing group, and

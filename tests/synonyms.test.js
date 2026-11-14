@@ -923,7 +923,9 @@ test('a bare code in a function word’s bracket is the E-number it names', () =
   ];
   for (const [coded, bare] of pairs) assert.deepEqual(reasons(score(bare)).sort(), reasons(score(coded)).sort(), bare);
   // Anywhere else a number stays a number.
-  assert.deepEqual(engine.parse('flour, chocolate (200 g)'), ['flour', 'chocolate', '200 g']);
+  assert.deepEqual(engine.parse('flour, chocolate (471)'), ['flour', 'chocolate', '471']);
+  // A weight alone in a bracket is a quantity, dropped as a percentage alone in one is (1.26.2); never a code.
+  assert.deepEqual(engine.parse('flour, chocolate (200 g)'), ['flour', 'chocolate']);
   assert.deepEqual(engine.parse('flour, 2 eggs'), ['flour', '2 eggs']);
 });
 

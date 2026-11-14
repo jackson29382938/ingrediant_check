@@ -16,7 +16,7 @@
         additives: req('./db/additives.js'), labels: req('./db/labels.js'),
         allergens: req('./db/allergens.js'), categories: req('./categories.js'),
         provenance: req('./db/provenance.js'), ingestible: req('./db/ingestible.js'), productRatings: req('./db/product-ratings.js'),
-        aiRatings: req('./db/ai-ratings.js') }
+        aiRatings: req('./db/ai-ratings.js'), vocabulary: req('./db/vocabulary.js') }
     : root.AIR.db;
   const api = factory(db);
   if (req) module.exports = api;
@@ -248,147 +248,19 @@ const ULTRA_CAP = /artificial colour|caramel colour|citrus red|titanium dioxide|
 // with a low number — content/main.js declines to show a score rather than showing a confident
 // wrong one.
 //
-// Vocabulary that is unmistakably an ingredient panel but matches no scoring rule, so a clean
-// short list is never mistaken for an unreadable one. Deliberately generous: being liberal with
-// ENGLISH food nouns costs the gate nothing, because the text this is meant to catch — another
-// language, OCR noise, a cosmetics panel — will not match English food words either. Matched
-// anywhere in the entry, since "turmeric root powder" should count as much as "turmeric".
+// The words an ingredient panel is written with that no rule charges live in db/vocabulary.js (COMMON_PANEL):
+// they make a clean short list count as read, and nothing else.
 // Probiotic strains are written as a genus initial and a species: "B. breve", "L. acidophilus", and
 // on Amazon's card "B, BREVE". Split at that period or comma, a kefir listing twelve strains became
 // twenty-four fragments the rulebase could not read, and the label was declined as unreadable.
 // joinStrains keeps each strain as one entry ("b breve"); parseEntries gives a run of them one shared
 // position, the way a parenthetical sub-list shares its parent's, so twelve strains listed first do
 // not push the milk to position thirteen.
-const STRAIN_SPECIES = 'breve|lactis|longum|acidophilus|casei|paracasei|cremoris|plantarum|reuteri|rhamnosus'
-  + '|diacetylactis|florentinus|bulgaricus|delbrueckii|thermophilus|bifidum|infantis|animalis|adolescentis'
-  + '|helveticus|fermentum|salivarius|gasseri|johnsonii|kefiri|kefiranofaciens|mesenteroides|coagulans'
-  + '|subtilis|boulardii|cerevisiae';
+const { STRAIN_SPECIES, COMMON_PANEL } = db.vocabulary;
 const STRAIN_JOIN = new RegExp('(^|[,;(:]\\s*)([a-z])[.,]\\s*(' + STRAIN_SPECIES + ')\\b', 'gi');
 const STRAIN_ENTRY = new RegExp('^[a-z] (?:' + STRAIN_SPECIES + ')\\b', 'i');
 const joinStrains = text => text.replace(STRAIN_JOIN, '$1$2 $3');
 
-const COMMON_PANEL = new RegExp('\\b(?:' + [
-  // panel staples
-  'water|salt|spices?|herbs?|seasoning|vinegar|yeast|baking soda|baking powder|sodium bicarbonate',
-  'culture|cultures|rennet|enzymes?|pectin|gelatin|agar|broth|stock|juice|puree|paste|extract',
-  // beverages and their raw forms
-  'tea|green tea|black tea|matcha|coffee|arabica|robusta|espresso|chicory|kombucha|cocoa|cacao|chocolate',
-  // aromatics, spices, seasonings
-  'vanilla|cinnamon|turmeric|ginger|paprika|cumin|coriander|oregano|basil|thyme|rosemary|sage|dill',
-  'nutmeg|clove|cardamom|allspice|fennel|anise|saffron|chili|chilli|cayenne|peppercorns?|mustard',
-  'garlic|onion|shallot|leek|celery|parsley|cilantro|bay leaf|bay leaves|lemongrass|mint',
-  // produce
-  'tomato|potato|carrot|cabbage|cauliflower|broccoli|spinach|kale|lettuce|cucumber|zucchini|squash',
-  'pumpkin|beet|beetroot|turnip|radish|asparagus|artichoke|pepper|eggplant|aubergine|mushrooms?',
-  'apple|banana|orange|lemon|lime|grape|berry|berries|mango|pineapple|peach|pear|plum|cherry|melon',
-  'avocado|olive|coconut|date|fig|raisin|apricot|cranberry|currant',
-  // grains, legumes, seeds, nuts
-  'oats?|rice|quinoa|barley|millet|sorghum|buckwheat|amaranth|teff|rye|spelt|farro|couscous|pasta',
-  'beans?|lentils?|chickpeas?|peas?|soy|edamame|tofu|tempeh|hummus',
-  'chia|flax|linseed|hemp|sesame|tahini|sunflower seeds?|pumpkin seeds?|poppy',
-  'almonds?|walnuts?|pecans?|cashews?|pistachios?|hazelnuts?|macadamias?|peanuts?|nuts?',
-  'flour|starch|bran|germ|semolina|masa|tapioca|arrowroot|cornmeal',
-  // animal foods
-  'beef|pork|chicken|turkey|lamb|duck|bison|veal|venison|goat|liver|bone|gelatine',
-  'fish|salmon|tuna|cod|halibut|sardines?|anchov(?:y|ies)|mackerel|trout|shrimp|crab|scallops?|oysters?',
-  'milk|cream|butter|cheese|yogh?urt|kefir|ghee|whey|curd|eggs?',
-  // seaweed, fungi, ferments
-  'nori|kombu|wakame|seaweed|kelp|spirulina|chlorella|miso|kimchi|sauerkraut|sourdough|nutritional yeast',
-  // Probiotic organisms, by genus or as the "B. breve" / "L. acidophilus" short form (joined by
-  // joinStrains below). A kefir that names its twelve strains is not an unreadable label.
-  'bifidobacteri(?:um|a)|bifidus|lactobacill(?:us|i)|lactococcus|lacticaseibacillus|leuconostoc|saccharomyces|streptococcus thermophilus|probiotics?|live (?:and )?active cultures',
-  '[a-z] (?:' + STRAIN_SPECIES + ')',
-  'honey|maple|molasses|syrup',
-  // Fortification vocabulary, which real cereal panels are full of. Without it a fortified product
-  // reads as barely recognisable: Kellogg's Frosted Flakes measured 44% coverage against live
-  // Amazon text, uncomfortably close to the 34% floor for a list the engine reads perfectly well.
-  'corn|maize|vitamins?|minerals?|malt|niacin|thiamin[e]?|riboflavin|folate|folic|pyridoxine',
-  'cobalamin|tocopherol|ascorb(ic|ate)|calcium|iron|zinc|magnesium|potassium|phosphate',
-  // Non-English staples, so a Spanish/French panel that DOES hit the cap rules above clears the
-  // coverage gate and gets scored rather than declined.
-  'agua|eau|wasser|sal|sel|salz|az[uú]car|sucre|zucker|leche|lait|milch|harina|farine|mehl|avoine|hafer|avena|flocons|hafervollkornflocken|muesli|granola',
-  'aceite|huile|[öo]l|jarabe|sirop|jugo|jus|saft|ma[ií]z|ma[ïi]s|trigo|bl[ée]|arroz|riz|reis',
-  'soja|girasol|tournesol|colza|vegetal|v[ée]g[ée]tale|almid[óo]n|amidon|levadura|levure',
-  // Italian staples, and German compounds: "Vollmilchpulver" and "Kakaobutter" contain the words
-  // above but no word boundary, so they read as unrecognised and a correctly scored German list
-  // still carried a "50% recognised" warning.
-  'acqua|sale|latte|farina|olio|succo|riso|mais|soia|lievito|agenti lievitanti|amido|burro|panna|formaggio|uova|miele|nocciole|mandorle',
-  '\\w*(?:milch|zucker|butter|mehl|pulver|st[äa]rke|sirup|saft|salz|wasser|sahne|k[äa]se|joghurt|schokolade|kakao|mandeln|n[üu]sse|haselnuss|erdnuss)\\w*',
-  'emulgator(?:en)?|emulsionantes?|emulgentes?|[ée]mulsifiants?|emulsionanti|conservante|conservateur|konservierungsstoff|colorante|colorant|farbstoff|s[äa]uerungsmittel|acidulant|acidificante|correcteur',
-  // Colours from food, which no rule charges. Without them "Annatto (color)" read as an unnamed
-  // colour next to an unrecognised word, and "beta carotene" lowered coverage on a clean list.
-  'annatto|carotenes?|carotenoids?|beet(?:root)? (?:juice|powder|red)|anthocyanins?|lycopene|curcumin|chlorophyll(?:in)?|carmine|cochineal|riboflavin|lutein|paprika (?:extract|oleoresin)|spirulina extract|caramel',
-  // Swedish and Polish staples. Words that begin with a letter outside ASCII (äpple, śmietanka,
-  // łosoś) follow the list, with explicit boundaries, because `\\b` cannot see those letters. Generic
-  // words (olja, olej, mjöl, mąka, syra, kwas) are left out on purpose: "olej bawełniany" or "kwas
-  // sorbowy" would then count as read while no rule charged them.
-  'vatten|woda|havre|havregryn|havremj[öo]l|owies|owsiane|p[łl]atki|kakao|kulturer|kultury|bakterie|mleko|mleka|mleczn\\w*|dro[żz]d[żz]e|j[äa]st',
-  'potatis|ziemniaki|ziemniaczan\\w*|tomater|tomatpur[ée]|pomidory|pomidorow\\w*|vitl[öo]k|czosnek|cebula|basilika|bazylia|oregano|persilja|pietruszka|peppar|pieprz|kanel|cynamon|ingef[äa]ra|imbir|paprika|papryka|kryddor|przyprawy',
-  'russin|rodzynki|hasseln[öo]tter|mandlar|orzechy|migda[łl]y|solrosfr[öo]n|pumpafr[öo]n|nasiona|pestki|sesamfr[öo]n|sezam|jab[łl]ka|jab[łl]ko|jordgubbar|truskawki|hallon|maliny|bl[åa]b[äa]r|jagody|citron|cytryna|banan|banany|apelsin|pomara[ńn]cz\\w*',
-  'gr[äa]dde|mj[öo]lk|skummj[öo]lk|helmj[öo]lk|mj[öo]lkpulver|\\w*mj[öo]lkspulver|ost|ser|mas[łl]o|jogurt|yoghurt|smetana|vassle|serwatka|jaja|jajka|honung|mi[óo]d|kakaosm[öo]r|kakaomassa|miazga kakaowa|t[łl]uszcz kakaowy',
-  'pektin|pektyna|pektyny|koffein|kofeina|kolsyra|kolsyrat|gazowana|natriumbikarbonat|natriumv[äa]tekarbonat|bakpulver|wodorow[ęe]glan sodu|proszek do pieczenia|substancj[ae] spulchniaj[ąa]c[ae]|spulchniacz|j[äa]stpulver',
-  'ris|ry[żz]|majs|kukurydza|kli|otr[ęe]by|b[öo]nor|fasola|linser|soczewica|kik[äa]rtor|ciecierzyca|groch|soja',
-  'kyckling|kurczak|n[öo]tk[öo]tt|wo[łl]owina|fl[äa]sk|wieprzowina|lax|fisk|ryba|r[äa]kor|krewetki',
-  'palmolja|olej palmowy|kokosolja|olej kokosowy|olivolja|oliwa z oliwek|sm[öo]r',
-  'emulgeringsmedel|stabiliseringsmedel|f[äa]rg[äa]mne|barwnik|surhetsreglerande medel|regulator kwasowo[śs]ci|smakf[öo]rst[äa]rkare|wzmacniacz smaku|konserveringsmedel|konserwant',
-  // Benign E-numbers, so an EU list written in codes is still recognised as a list. Every E-number
-  // that a rule charges is recognised through that rule; these are the ones nothing charges.
-  'e[- ]?(?:100|120|14[01]|16[0-3][a-i]?|262|32[5-7]|33[1-3]|40[1-6]|440a?|50[0-4](?:i{1,3})?|50[89]|524|57[45]|49[1-5]|901|903|941|948)',
-  // Plain English foods and seasonings that real lists name and no rule charges. Each missed `\\b` on a
-  // plural or compound ("blackberries" beside "berries", "flaxseed" beside "flax"), so "Shallots" or
-  // "Okra, water, salt" read as unrecognised and a clean list could fall under the coverage gate.
-  'blackberr(?:y|ies)|pomegranates?|papayas?|guavas?|kiwis?|kiwifruit|a[çc]a[íi]|acai|elderberr(?:y|ies)|mulberr(?:y|ies)|lingonberr(?:y|ies)|sea buckthorn|tart cherr(?:y|ies)|rhubarb|chestnuts?|bulgur|freekeh|polenta|grits|popcorn|oatmeal|flaxseeds?',
-  'jalape[ñn]os?|habaneros?|poblanos?|chipotles?|sun-?dried tomato(?:es)?|roasted red peppers?|scallions?|shallots?|leeks?|bok choy|brussels sprouts?|collard greens?|chard|arugula|rocket|yams?|cassava|yuca|plantains?|jackfruit|bamboo shoots?|okra|kohlrabi|rutabaga|watercress|endive|radicchio|dulse|konjac',
-  'carob|rooibos|hibiscus|chamomile|peppermint|spearmint|caraway|sumac|za.?atar|wasabi|horseradish|capers?|pickles?|harissa|sriracha|tabasco|hot sauce|hoisin|tamari|worcestershire|mirin|curry(?: powder| leaves)?|garam masala',
-  'ricotta|feta|skyr|lobster|squid|calamari|prosciutto|pancetta|salami|pepperoni|chorizo|rabbit|seitan|krill oil|algal oil|mct oil|selenium|chromium|manganese|molybdenum',
-].join('|') + ')\\b'
-  + '|(?<![a-zß-ÿ\\u0100-\\u017f])(?:ägg|äggula|äggvita|äpple|äpplen|ärtor|ärter|[śs]mietan[a-zß-ÿ\\u0100-\\u017f]*|łoso[śs]|żyto'
-  // Turkish staples: most end or begin in ı, ş, ğ, ç or ü, so they take the same boundaries.
-  + '|su|tuz|maya|s[üu]t|s[üu]t tozu|ya[ğg]s[ıi]z s[üu]t tozu|tam ya[ğg]l[ıi] s[üu]t tozu|krema|tereya[ğg][ıi]|peynir|yo[ğg]urt|yo[ğg]urt k[üu]lt[üu]r[üu]|k[üu]lt[üu]r(?:[üu]|ler)?|yumurta|bal|kakao|kakao ya[ğg][ıi]|kakao k[üu]tlesi'
-  + '|patates|domates|sar[ıi]msak|so[ğg]an|fesle[ğg]en|kekik|biber|kuru [üu]z[üu]m|[üu]z[üu]m|f[ıi]nd[ıi]k|badem|ceviz|ay[çc][ıi][çc]e[ğg]i [çc]ekirde[ğg]i|elma|[çc]ilek|limon|portakal|muz'
-  + '|pirin[çc]|m[ıi]s[ıi]r|nohut|mercimek|fasulye|bezelye|yulaf|yulaf ezmesi|tavuk|tavuk eti|s[ıi][ğg][ıi]r eti|dana eti|bal[ıi]k|baharat(?:lar)?|pektin|kafein|karbonatl[ıi] su|maden suyu'
-  + '|kabart[ıi]c[ıi](?:lar)?|kabartma tozu|sodyum bikarbonat|lezzet artt?[ıi]r[ıi]c[ıi]|palm ya[ğg][ıi]|zeytinya[ğg][ıi]|hindistan cevizi ya[ğg][ıi]|aroma verici(?:ler)?'
-  // Everyday words from real labels (Open Food Facts, 2026-09-26), per language, that matched no rule and
-  // left real lists declined: nothing here is charged; it only lets the list be read.
-  + '|b(?:1|2|3|5|6|7|9|12)|d[23]|vitamin[aeos]?|vitamine[ns]?|vitaminer|vitaminler|witaminy|tocopher\\w*|tocoferol\\w*|tokoferol\\w*|tokoferoller|beta[- ]?karoten|beta[- ]?caroten[eo]?|palm|palme|palma|palmiste|palmkern|shea|karit[ée]' // any
-  + '|sodium citrates?|trisodium citrate|calcium citrate|carbon dioxide|carbonic acid|sodium acid carbonate|sodium hydrogen carbonate|ammonium hydrogen carbonate|(?:sodium|ammonium) carbonates?|raising agents?|baking powders?|oligofructose|sultanas|cranberries|humectant|cocoa mass|sunflower|rapeseed|glazing agent|flour treatment agent|anti-?caking agent|firming agent|gelling agent|carnauba wax|beeswax|palm fat|vegetable fats?' // en
-  + '|poudres? [àa] lever|carbonates? (?:acides? )?d[e\'’] ?(?:sodium|ammonium)|bicarbonates?|noisettes?|cr[èe]me(?: fra[îi]che)?|magn[ée]sium|extrait de vanille|vanille|ferments? lact?iques?|vinaigre(?: de vin| d[\'’]alcool)?|ail|noix de cajou|noix|levain|levures?|pr[ée]sure(?: halal)?|fromage blanc|perm[ée]at de lactos[ée]rum|lactos[ée]rum(?: en poudre)?|basilic|raisins secs|flocons d[\'’]avoine(?: compl[èe]te)?|avoine|dattes|amandes?|citrates? de sodium|pectines?|huile de palme|graisses? v[ée]g[ée]tales?|mati[èe]re grasse\\w*|sirop d[\'’][ée]rable' // fr
-  + '|kohlens[äa]ure|natriumcitrate?|trinatriumcitrat|cashewkerne|basilikum|vanilleextrakt|vanille|tomaten\\w*|sojabohnen|calciumcarbonat|knoblauch|backtriebmittel|eier|walnusskerne|haselnusskerne|sonnenblumen?|pektine?|tricalciumcitrat|tocopherolhaltige extrakte|datteln|weinessig|branntweinessig|essig|traubenmost|kichererbsen|hafer|haferflocken|gew[üu]rze|kartoffel\\w*|zitronen\\w*|lysozym|palm[öo]l|pflanzliche fette|speisesalz|meersalz|jodsalz|natriumhydrogencarbonat|ammoniumhydrogencarbonat|natriumcarbonate|ammoniumcarbonate' // de
-  + '|avellanas|gasificantes?|calcio|carbonatos? [áa]cidos? de (?:sodio|amonio)|bicarbonato s[óo]dico(?: y am[óo]nico)?|almendras?(?: tostadas)?|extracto rico en tocoferoles|vitaminas?|manteca de palma|grasas? de palma|grasas? vegetales|copos de avena(?: integral)?|avena(?: integral)?|cacahuetes|oligofructosa|citratos? de sodio|citrato tric[áa]lcico|pectinas?|nata|hierro|yoduro de potasio|fibra de guisante|carbonato de calcio|cafe[íi]na|anacardos|pecanas|pacanas|nueces(?: de brasil)?|sal marina' // es
-  + '|anidride carbonica|cipoll[ae]|carbonato acido di (?:sodio|ammonio)|vaniglia|semi di sesamo|noci(?: di acagi[ùu]| del brasile| sgusciate)?|pistacchi|fiocchi d[\'’] ?avena|avena|polpa di pomodoro|concentrato di pomodoro|pomodor[io]|peperoni(?: rossi)?|crusca|germe|anacardi|basilico|patate(?: disidratate)?|caffeina|girasole|olio di palma|grassi vegetali|sale marino|aceto' // it
-  + '|[áa]gua|leite(?: de vaca)?(?: pasteurizado)?|levedantes?(?: qu[íi]micos)?|hidrogenocarbonato de (?:s[óo]dio|am[óo]nio)|carbonatos? de (?:s[óo]dio|c[áa]lcio|magn[ée]sio)|extr[ae]c?to rico em tocofer[óo]is|cacau(?: magro)?(?: em p[óo])?|manteiga de cacau|vitaminas?|citrato tric[áa]lcico|pectinas|citratos de s[óo]dio|[óo]leo de palma|flocos de aveia|aveia|milho|di[óo]xido de carbono|gorduras? vegeta(?:l|is)|gordura de palma|tomate|vinagre(?: de [áa]lcool)?|nata|fermentos?(?: vivos)?(?: de iogurte)?|ferro|[áa]cido pantot[ée]nico|ovos|cebola|am[êe]ndoas?|miolo de am[êe]ndoa|amendoins|sementes de s[ée]samo|fibras? vegeta(?:l|is)|fibra de ervilha|cafe[íi]na|avel[ãa]s|sal marinho' // pt
-  + '|zout|zeezout|cacaomassa|cacaoboter|magere cacaopoeder|cacaopoeder|melk|pectinen?|natriumcitraten?|vanille|tricalciumcitraat|calciumcitraten|sojabonen|palmolie|bulgaricus|amandel(?:en)?|calciumcarbonaat|ijzer|wortelextract|eieren|plantaardige vetten|mangopit|geleermiddel|rijsmiddel(?:en)?|ammoniumcarbonaten|natriumcarbonaten|hazelnoten|weipoeder|haver|maïsvezel|walnoten|granen|gist|azijn' // nl
-  + '|havssalt|ystenzym|tomatpur[ée]|koncentrerad tomatpur[ée]|tomatkoncentrat|[äa]ttika|vin[äa]ger|sojab[öo]nor|natriumkarbonater|jordn[öo]tter|kryddextrakt|[öo]rtextrakt|krydd- och [öo]rtextrakt|paprikaextrakt|l[öo]k|mandel|laktos|yoghurtkultur|chilipeppar|syrakulturer|syrningskultur|bakteriekultur|majsk[äa]rnor|hela majsk[äa]rnor|durumvete|kik[äa]rter|mor[öo]tter|[öo]rtkryddor|mj[öo]lkprotein|trinatriumcitrat|laktasenzym|vassleprodukt|snabbkaffe\\w*|kaffe|kokosfett|mj[öo]lkfett|apelsinjuice\\w*|citronjuice\\w*' // sv
-  + '|s[óo]l(?: morska)?|dwutlenek w[ęe]gla|cytryniany sodu|orzeszki (?:ziemne|arachidowe)(?: pra[żz]one)?|pra[żz]one orzeszki arachidowe|gorczyc[ęa]|nap[óo]j sojowy|ekstrakt z wanilii|wyci[ąa]g z rozmarynu|s[łl]onecznik\\w*|miazga z orzech[óo]w laskowych|syrop klonowy|ocet(?: spirytusowy)?|ekstrakty? przypraw(?: i zi[óo][łl])?|przyprawy?|permeat serwatki|t[łl]uszcz palmowy|t[łl]uszcze ro[śs]linne|czekolada\\w*|t[łl]uszcz kakaowy|wodorow[ęe]glan (?:amonu|sodu)|p[łl]atki owsiane|pe[łl]noziarnist\\w* p[łl]atk\\w* owsian\\w*|kukurydz\\w*|ziarna kukurydzy|skrobia z manioku|kokos\\w*|migda[łl]\\w*|soj[ęa]|ziarna soi' // pl
-  + '|karbondioksit|sodyum hidrojen karbonat|amonyum (?:hidrojen karbonat|bikarbonat)|ay[çc][ıi][çc]ek|deniz tuzu|yer f[ıi]st[ıi][ğg][ıi]|peynir ?alt[ıi] suyu tozu|poligliserol polirisin?oleat|pamuk|sirke|ni[şs]asta|sodyum metabis[üu]lfit|sodyum sitrat|sodyum asit pirofosfat|hindiba k[öo]k[üu] lifi|hindistan cevizi (?:s[üu]t[üu]|kremas[ıi])|un i[şs]lem maddesi|nem verici|s[ıi][ğg][ıi]r jelatini|parlatma maddesi|karnauba mumu|kalsiyum karbonat|tam ya[ğg]l[ıi] s[üu]t ?tozu|asitli[ğg]i d[üu]zenleyici(?:ler)?' // tr
-  // From the second sample (page 2, 661 lists): additives English leaves uncharged but did not read either,
-  // in each language, so they counted against the list as unreadable.
-  + '|humectants?|humectantes?|humidificantes?|umidificant[ei]|feuchthaltemittel|bevochtigingsmiddel(?:en)?|fuktighetsbevarande medel|substancj[ae] utrzymuj[ąa]c[ae] wilgo[ćc]|nem vericiler?|nemlendirici(?:ler)?'
-  + '|(?:sodium|potassium|calcium) alginates?|alginate de (?:sodium|potassium|calcium)|alginato (?:s[óo]dico|pot[áa]sico|c[áa]lcico|de s[óo]dio|di sodio)|(?:natrium|kalium|calcium)alginaa?t|alginian (?:sodu|potasu|wapnia)|sodyum aljinat'
-  + '|emulsifying salts?|sels de fonte|sales (?:de )?fundid[oa]s?|sali di fusione|schmelzsalze?|smeltzouten|sm[äa]ltsalter|s[óo]le emulguj[ąa]ce|eritme tuzlar[ıi]|sais de fus[ãa]o'
-  + '|polyglycerol esters?(?: of fatty acids)?|sorbitan (?:tri|mono)?stearate|sorbitan(?:tri|mono)stearat|trist[ée]arate de sorbitane|triestearato de sorbitano|(?:ya[ğg] asitlerinin )?poligliserol esterleri'
-  + '|sodium hydroxide|natriumhydroxide?|hydroxyde de sodium|hidr[óo]xido de s[óo]dio|idrossido di sodio|wodorotlenek sodu|sodyum hidroksit|kaliumcarbonate?n?|carotin|b[ée]ta[- ]?carot[èe]ne'
-  + '|siyah [çc]ay|ye[şs]il [çc]ay|[çc]ay|tahin[ie]?|tahina|karabu[ğg]day|nane|maydanoz|dereotu|fesle[ğg]en|kekik|biberiye|karabiber|mynta|persilja|basilika|timjan|rosmarin|peppar|menthe|persil|aneth|basilic|origan|thym|romarin|ciboulette|menta|perejil|eneldo|albahaca|or[ée]gano|tomillo|romero|prezzemolo|aneto|basilico|origano|timo|rosmarino|minze|petersilie|thymian|peterselie|dille|basilicum|tijm|rozemarijn|mi[ęe]ta|pietruszka|koperek|bazylia|tymianek|rozmaryn|hortel[ãa]|endro|manjeric[ãa]o|or[ée]g[ãa]os|tomilho|alecrim'
-  + '|pectins|pantothenic acid|(?:calcium )?d-?pantothenate|biotin|mixed seeds|seed mix|seeds|vegetables|parsnips?|lovage|celeriac|mace|cloves?|chives|curcuma|nigari|salvia hispanica|caffeine|taurine|tartaric acid|invertase|psyllium(?: husks?)?|dietary fib(?:re|er)s?|vegetable fib(?:re|er)s?|ammonium acid carbonate|(?:green |black )?olives|peppermint oil|propellant gas|nitrogen'
-  + '|iodine|iodised salt|iodized salt|jod|jodid|iode|yodo|iodio|jodium|jodek|iyot|iyodat|klumpf[öo]rebyggande medel|antiaglomerantes?|anti-?agglom[ée]rants?|trennmittel|antiagglomeranti?|antiklontermiddel(?:en)?|substancj[ae] przeciwzbrylaj[ąa]c[ae]|topaklanmay[ıi] [öo]nleyici(?:ler)?|antiaglutinantes?'
-  + '|lactas[ea]|laktase?|lattasi|laktaz(?: enzimi)?|kahve|[öo][ğg][üu]t[üu]lm[üu][şs] kahve|caf[ée](?: moulu| soluble| torr[ée]fi[ée])?|caff[èe]|kaffee|koffie|kaffe|kawa|chicor[ée]e(?: soluble)?|achicoria|cicoria|zichorie|cichorei|cikoria|cykoria|hindiba|sumo|polpa'
-  + "|huile de s[ée]same|aceite de s[ée]samo|olio di sesamo|sesam[öo]l|sesamolie|sesamolja|olej sezamowy|susam ya[ğg][ıi]|[óo]leo de s[ée]samo"
-  + '|mj[öo]lksyrakulturer?|syrakulturer?|vitm[öo]gelkultur|l[öo]pe|milchs[äa]urekulturen|fermenti lattici|fermentos? l[áa]cticos|zuursel|kultury bakterii|pr[ée]sure|cuajo(?: microbiano)?|caglio|stremsel|podpuszczk[ai]|peynir mayas[ıi]|coalho(?: microbiano)?|labferment'
-  // From the third sample (page 3, 715 lists): everyday words English reads and does not charge.
-  + '|selderij|selleri|sellerie|apio|c[ée]leri|sedano|aipo|seler|kereviz|prei|purjol[öo]k|poireaux?|puerros?|porro|lauch|p[ıi]rasa'
-  + '|citroen\\w*|zitrone|lim[óo]n|limone|lim[ãa]o|sinaasappel\\w*|naranjas?|arancia|arance|laranjas?|mandarijn\\w*'
-  + '|vainilla|baunilha|vanilya|wanilia|vanilj\\w*|vanillepoeder|extracto de vainilla|estratto di vaniglia'
-  + '|chocolat(?: noir| au lait| blanc)?|cioccolato(?: fondente| al latte| bianco)?|\\w*chocolade|[a-zß-ÿ]*choklad|(?:s[üu]tl[üu] |bitter |beyaz )?[çc]ikolata'
-  + '|especias?|especiarias?|specerij(?:en)?|[ée]pices|gew[üu]rz|spezie|przyprawa'
-  + '|kryddnejlik(?:a|or)|clavos?(?: de olor)?|chiodi di garofano|cravinhos?|clous? de girofle|(?:gew[üu]rz)?nelken|kruidnagel(?:en)?|go[źz]dzik[ia]?|karanfil'
-  + '|mostaza|moutarde|senf|mosterd|senap|hardal|mostarda|senape|senapsfr[öo]n|semillas de mostaza|graines de moutarde|senfk[öo]rner|senfsa(?:men|at)|mosterdzaad|semi di senape|ziarna gorczycy|hardal tohumu|sementes de mostarda'
-  + '|carotenos|karotener|karotenler|karoteny|carot[èe]nes?|caroteni|karotene|antocyjany|antocianinas?|antocianine|anthocyanes?|antocyaner|antosiyanin(?:ler)?|antocianos'
-  + "|carbonato acido d['’] ?ammonio|ammoniumv[äa]tekarbonat|w[ęe]glany (?:amonu|sodu)|carbonatos? (?:de )?(?:amonio|am[óo]nio|sodio)|ammoniumcarbonat|natriums[äa]urecarbonat|natriumbicarbonaat|carbonati di (?:sodio|ammonio)|bicarbonato di sodio|bicarbonato de s[óo]dio|natriumcarbonate?|(?:sodyum|amonyum) karbonatlar?"
-  + '|agent[ei] lievitant[ei]|triebmittel|trisodyum sitrat|citrato tris[óo]dico|citrate trisodique'
-  + '|cloruro pot[áa]sico|kaliumchlorid|cloruro di potassio|cloreto de pot[áa]ssio|chlorek potasu|potasyum kl[öo]r[üu]r|kaliumklorid'
-  + '|tiamina|tiammina|tiamin|tiamine|farinha|zonnebloem|girassol|solros|levedura|(?:back)?hefe'
-  + '|estratt[io] di rosmarino|extrait de romarin|extracto de romero|rosmarinextrakt|rozemarijnextract|ekstrakt z rozmarynu|biberiye ekstrakt[ıi]'
-  + ')(?![a-zß-ÿ\\u0100-\\u017f])', 'i');
 
 // Marketing qualifiers in front of an ingredient carry no scoring information, but most sugar and
 // sweetener rules are anchored at the start of the entry — so "organic agave nectar" matched nothing
@@ -498,7 +370,7 @@ function recognitionCoverage(entries, ai, info) {
   if (!entries.length) return 0;
   let seen = 0;
   for (const e of entries) {
-    if (e.ing.length >= 80) continue;
+    if (e.ing.length >= LONG_ENTRY) continue;
     if (recognised(e.ing)) { seen++; continue; }
     if (info) info.missed.push(e.ing);
     const rated = ai && ai.rate(e.ing);
@@ -562,7 +434,35 @@ const LEADING_HEADING = new RegExp('^(?:(?:(?:other|all|full|complete)\\s+)?(?:i
 // A footnote that begins with the word is a note, not a heading: "ingrédients issus de l'agriculture
 // biologique" and "ingredienti biologici" are read whole (LABEL_NOTE, below).
 const withoutHeading = s => (LEADING_HEADING.test(s) && !LABEL_NOTE.test(s) ? s.replace(LEADING_HEADING, '') : s);
-const tidy = s => withoutHeading(trimEnd(dropShare(trimEnd(s.replace(MARKERS, ' ').replace(EDGE_START, '').replace(/\s+/g, ' ').trim().toLowerCase().replace(/i\u0307/g, 'i')))))
+// A weight written after the ingredient ("sugar 5g", "caffeine 80 mg") is a quantity, as a percentage is,
+// and hid the ingredient from the anchored rules the same way: "Oats, Sugar 5g, Salt" scored 90 where the
+// list scores 65. Unlike a percentage it says nothing about the share of the product (5 g of what?), so it
+// is dropped and the entry keeps the weight of its position. A number with no unit is part of the name
+// ("Red 40", "Polysorbate 80", "vitamin B12") and stays. Litres are left out: "blue 1 l" is a lake.
+// Two things are deliberately not read. A weight in front ("11g protein") is a claim from the front of the
+// pack, not an ingredient with a quantity. And an entry that is nothing but a weight ("…, 32 oz") is a pack
+// size: it marks a product name published in place of the list, so it stays, unread, and counts against
+// coverage as it always has. Alone in an ingredient's bracket ("sugar (5g)") it is that ingredient's
+// quantity and is dropped there (expandEntry), as a percentage alone in a bracket is.
+const AMOUNT_UNIT = '(?:g|gr|grams?|mg|mcg|µg|μg|ug|kg|ml|cl|dl|oz|iu)';
+const TRAILING_AMOUNT = new RegExp('(?:^|\\s)\\d+(?:[.,]\\d+)?\\s?' + AMOUNT_UNIT + '$', 'i');
+const BARE_AMOUNT = new RegExp('^\\d+(?:[.,]\\d+)?\\s?' + AMOUNT_UNIT + '$', 'i');
+const AMOUNT_WINDOW = 24;
+const LONG_ENTRY = 80;
+function dropAmount(s) {
+  // An entry too long to be assessed (LONG_ENTRY) is not a name with a weight after it: a nutrition panel
+  // read as one entry ends in "… Salz 0,02 g", and shortening it must not make it short enough to pass.
+  if (s.length >= LONG_ENTRY) return s;
+  // Only the end is searched, for the reason dropShare gives.
+  const from = Math.max(0, s.length - AMOUNT_WINDOW);
+  const m = TRAILING_AMOUNT.exec(from ? s.slice(from) : s);
+  // A match at the very start of the window may be the tail of a longer number or word.
+  if (!m || (from && m.index === 0)) return s;
+  let end = from + m.index;
+  while (end > 0 && SHARE_SEPARATORS.includes(s[end - 1])) end--;   // "sugar - 5g", as for a share
+  return end > 0 ? s.slice(0, end) : s;
+}
+const tidy = s => withoutHeading(trimEnd(dropAmount(trimEnd(dropShare(trimEnd(s.replace(MARKERS, ' ').replace(EDGE_START, '').replace(/\s+/g, ' ').trim().toLowerCase().replace(/i\u0307/g, 'i')))))))
   .replace(EDGE_START, '').replace(LEADING_SHARE, '');
 // Keep long entries in the assessment: discarding one hid oil caps and falsely reported 100%
 // coverage. The resource limit now produces an explicit incomplete reading, never a clean score.
@@ -674,6 +574,7 @@ function expandEntry(raw, depth = 0, ids = { n: 0 }, parent = 0) {
     for (const child of splitTopLevel(codes ? group.replace(/(?<=\d),(?=\d)/g, ', ') : group)) {
       if (depth < 3 && (child.includes('(') || child.includes(':'))) { pieces.push(...expandEntry(child, depth + 1, ids, fam)); continue; }
       const one = tidy(child.replace(/[()]/g, ' '));
+      if (BARE_AMOUNT.test(one)) continue;   // "sugar (5g)": the quantity of the entry outside the bracket
       if (child.includes('(')) { pieces.push({ ing: one, fam: ++ids.n, parent: fam, unassessed: true }); continue; }
       const bare = codes ? one.split(/\s*(?:&|\/|\band\b|\bund\b|\bet\b|\by\b|\be\b|\bi\b|\ben\b|\boch\b|\bve\b)\s*/) : [one];
       if (codes && bare.length && bare.every(c => E_CODE.test(c))) for (const c of bare) pieces.push({ ing: `e${c}`, fam: ++ids.n, parent: fam });
@@ -765,6 +666,7 @@ function withoutOrganic(ing) {
 // is charged.
 // "Or" joins two the same way ("sugar or honey", "sucre ou miel"), and so does a slash: "sugar/dextrose",
 // and the bilingual "Sugar/Sucre" of a Canadian label. Each read as one unknown word and was charged nothing.
+const isCharged = p => penaltiesFor(withoutOrganic(p) || p).size > 0 || capsFor(p).length > 0;
 const CONJUNCTION = /\s(?:and|or|&|und|oder|et|ou|e|o|y|i|en|och|eller|ve|veya|oraz|lub)\s|\s*\/\s*/i;
 function splitConjunction(e) {
   const ing = tidy(e.ing);
@@ -774,8 +676,7 @@ function splitConjunction(e) {
   if (pieces.length < 2 || !pieces.every(p => p.length > 1 && recognised(withoutOrganic(p) || p))) return [e];
   // Only when the split exposes something charged: "orange juice and pulp" or "salt and pepper" stay one
   // entry, since splitting them changes nothing but the list's length.
-  const charged = p => penaltiesFor(withoutOrganic(p) || p).size > 0 || capsFor(p).length > 0;
-  if (!pieces.some(charged)) return [e];
+  if (!pieces.some(isCharged)) return [e];
   return pieces.map(p => ({ ...e, ing: p }));
 }
 
@@ -814,10 +715,56 @@ function rejoinWrapped(ing) {
   return out;
 }
 
+// German written without its umlauts: "Sonnenblumenoel", "Rapsoel", "Kaese", "gehaertetes Pflanzenfett", as
+// a label set in capitals prints them (SONNENBLUMENOEL) and as text from an ASCII-only system arrives. No
+// rule is written that way, so the sunflower oil went uncapped: "Hafer, Sonnenblumenoel" scored 90 where
+// "Sonnenblumenöl" scores 63. The same test as a rejoined word: the spelling with the umlaut is taken only
+// when the rulebase then sees more than it did, so "blueberries" and "aloe" stay as they are. Each "ae",
+// "oe" and "ue" is tried on its own as well as together, because a word can hold both kinds: in
+// "Saeuerungsmittel" the "ae" is an umlaut and the "ue" beside it is not. The spelling that is charged
+// most wins, then the one with most words read, then the one that changes least.
+const WRITTEN_UMLAUT = /ae|oe|ue/g;
+const UMLAUT = { ae: 'ä', oe: 'ö', ue: 'ü' };
+const UMLAUT_SPOTS = 4;
+const withUmlauts = remembered(ing => {
+  const spots = [...ing.matchAll(WRITTEN_UMLAUT)].map(m => m.index);
+  if (!spots.length) return ing;
+  const spell = mask => spots.reduceRight((word, at, i) => (mask >> i & 1 ? word.slice(0, at) + UMLAUT[word.slice(at, at + 2)] + word.slice(at + 2) : word), ing);
+  const worth = text => [chargeOf(text), recognised(text) ? 1 : 0, text.split(' ').filter(word => word.length > 1 && recognised(word)).length];
+  const better = (a, b) => a[0] !== b[0] ? a[0] > b[0] : a[1] !== b[1] ? a[1] > b[1] : a[2] > b[2];
+  // Each combination, fewest changes first; past four of them only all of them together is tried.
+  const all = (1 << spots.length) - 1;
+  const bits = mask => mask.toString(2).replace(/0/g, '').length;
+  const masks = spots.length > UMLAUT_SPOTS ? [all] : Array.from({ length: all }, (_, i) => i + 1).sort((a, b) => bits(a) - bits(b));
+  let best = ing, bestWorth = worth(ing);
+  for (const mask of masks) {
+    const text = spell(mask), w = worth(text);
+    if (better(w, bestWorth)) { best = text; bestWorth = w; }
+  }
+  return best;
+});
+
+// Two words of one ingredient run together, as text arrives when a page's markup put them in separate
+// elements and nothing between: "SoybeanOil", "CornSyrup", "NaturalFlavors". The capital is the only trace
+// of the space. A capital inside a word is also how brands are written ("NutraSweet", "SunButter"), so the
+// space is put back only when the rulebase then charges more than it did, or reads each of the words on
+// its own where it read nothing: "PeanutButter" is peanut butter, "CocoaVia" and "modifiedDate" stay.
+const RUN_TOGETHER = /(?<=[a-zß-ÿ]{3})(?=[A-ZÀ-Þ][a-zß-ÿ]{2})/g;
+function apart(text) {
+  if (!/[a-zß-ÿ][A-ZÀ-Þ][a-zß-ÿ]/.test(text)) return text;
+  // Words of bounded length, so a run of thousands of letters is cut into pieces and not rescanned.
+  return text.replace(/[A-Za-zÀ-ÿ]{7,60}/g, word => {
+    const split = word.replace(RUN_TOGETHER, ' ');
+    if (split === word) return word;
+    const joined = word.toLowerCase(), spaced = split.toLowerCase();
+    return chargeOf(spaced) > chargeOf(joined) || (!recognised(joined) && spaced.split(' ').every(part => recognised(part))) ? split : word;
+  });
+}
+
 function parseEntries(text) {
   // "FD&C Red No. 40" and "Red #40" are how US labels print dyes. The full stop after "No" ended the
   // entry ("fd&c red no" / "40"), so the dye went unread; both now read as "no 40".
-  const numbered = text.replace(/\bno\.\s*(?=\d)/gi, 'no ').replace(/#\s*(?=\d)/g, 'no ');
+  const numbered = apart(text).replace(/\bno\.\s*(?=\d)/gi, 'no ').replace(/#\s*(?=\d)/g, 'no ');
   // "Contains 2% or less of:" opens the block US labels use for everything below two percent. It used to
   // be flattened to a comma, so trace ingredients kept the weight of their list position; it is now
   // kept as a marker and every top-level entry after it is weighted as a minor ingredient. Only a
@@ -838,7 +785,7 @@ function parseEntries(text) {
     for (const x of expandEntry(part, 0, ids)) {
       for (const e of splitConjunction(x)) {
         const bare = withoutOrganic(e.ing);
-        out.push({ ing: rejoinWrapped(bare || e.ing), pos, fam: e.fam, parent: e.parent, ...(bare ? { organic: true } : {}),
+        out.push({ ing: withUmlauts(rejoinWrapped(bare || e.ing)), pos, fam: e.fam, parent: e.parent, ...(bare ? { organic: true } : {}),
           ...(e.unassessed ? { unassessed: true } : {}),
           ...(share != null ? { share } : {}), ...(minor ? { minor: true } : {}) });
       }
@@ -1043,16 +990,22 @@ const LINE_BREAK_TAG = /<\s*(?:br|\/li|\/p|\/div|\/tr)\b[^<>]{0,200}>/gi;
 // tenero - zucchero - olio di semi di girasole - sale", as some Italian labels print it) or by tabs (copied
 // out of a table). Read as one entry, "oats - sugar - salt" scored 90 where the comma list scores 65.
 // The same test as a vertical list: no comma or semicolon anywhere, and every item short. Four items or
-// more, one more than a vertical list asks for, because a product name published in place of the list is
-// also set out with dashes ("Organic Raw Almonds - Unpasteurized - 16 oz") and must stay the one entry
-// it is. A spaced hyphen inside a comma list is left alone: there it is a word broken at a line end
+// more are a list. Two or three may be a product name published in place of the list, which is also set
+// out with dashes ("Organic Raw Almonds - Unpasteurized - 16 oz") and must stay the one entry it is; they
+// are a list only when the rulebase reads every item as an ingredient and charges one of them, the test
+// "sugar and salt" passes to be split. "Oats - Sugar - Salt" scored 90 where the comma list scores 65.
+// A spaced hyphen inside a comma list is left alone: there it is a word broken at a line end
 // ("mono - i diglicerydy"), which score() closes up.
 const DASHED_MIN_ITEMS = 4;
 const SPACED_SEPARATOR = /[ \u00a0]+[-–—/][ \u00a0]+|\t+/;
 function dashedList(text) {
   if (LIST_SEPARATORS.test(text) || !SPACED_SEPARATOR.test(text)) return text;
   const items = text.split(new RegExp(SPACED_SEPARATOR.source, 'g')).map(item => item.trim()).filter(Boolean);
-  if (items.length < DASHED_MIN_ITEMS || items.length > VERTICAL_MAX_LINES || items.some(item => item.length > VERTICAL_MAX_LINE)) return text;
+  if (items.length < 2 || items.length > VERTICAL_MAX_LINES || items.some(item => item.length > VERTICAL_MAX_LINE)) return text;
+  if (items.length < DASHED_MIN_ITEMS) {
+    const read = items.map(item => tidy(item.replace(/[()]/g, ' ')));
+    if (!read.every(item => item.length > 1 && recognised(withoutOrganic(item) || item)) || !read.some(isCharged)) return text;
+  }
   return items.join(', ');
 }
 // A list however it is laid out: one item to a line, or items apart by dashes, becomes a comma list.
@@ -1545,7 +1498,7 @@ function score(product, options = {}) {
   const coverageInfo = { missed: [], rated: [] };
   const coverage = recognitionCoverage(entries, ai, coverageInfo);
   const parseWarnings = [];
-  if (entries.some(e => e.ing.length >= 80)) parseWarnings.push('long-ingredient-entry');
+  if (entries.some(e => e.ing.length >= LONG_ENTRY)) parseWarnings.push('long-ingredient-entry');
   if (entries.some(e => e.unassessed)) parseWarnings.push('nested-ingredient-limit');
   const nutritionAssessment = NUTRITION.filter(n => w_(n.cat) > 0).map(n => ({
     category: n.cat, label: n.why.replace(/ per serving$/, ''),

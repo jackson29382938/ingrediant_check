@@ -8,7 +8,7 @@
 //
 // Bump RULES_REVISION whenever anything in these files changes in a way that can move a score:
 //   src/engine/score.js, src/engine/categories.js,
-//   src/engine/db/{oils,sugars,additives,labels,allergens,provenance,ingestible,product-ratings}.js
+//   src/engine/db/{oils,sugars,additives,labels,allergens,provenance,ingestible,product-ratings,ai-ratings,vocabulary}.js
 // Then copy the hash the failing test prints into RULES_HASH. The hash covers code only: a comment on
 // its own line, a blank line or trailing spaces change nothing, so prose can be edited freely. A comment
 // trailing code, a rename or any reformatting of code still counts.
@@ -43,8 +43,11 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // ligatures, full-width letters and decomposed accents, direction marks, punctuation and trade mark signs at
   // the ends of an entry, two ingredients joined by "or" or a slash, and a list set out with spaced dashes or
   // tabs. A list written the usual way scores what it did. See docs/releases/1.26.2.md.
-  const RULES_REVISION = '2026-11-14.1';
-  const RULES_HASH = '8db40035-279610';
+  // 2026-11-14.2 (1.26.2, with the above): a weight after an ingredient, two words run together, German written
+  // without its umlauts and a dashed list of two or three items are read too. The panel vocabulary moved to
+  // db/vocabulary.js unchanged, and that file is hashed from here on.
+  const RULES_REVISION = '2026-11-14.2';
+  const RULES_HASH = '4b47c492-282887';
   const _exports = AIRmodule('revision', { RULES_REVISION, RULES_HASH });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 })();

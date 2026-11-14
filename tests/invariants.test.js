@@ -412,8 +412,15 @@ test('a list set out with spaced dashes, slashes or tabs is read as a list', () 
   // A comma anywhere means the dashes belong to the entries: a word broken at a line end stays one word.
   assert.equal(engine.parse('Woda, mono - i diglicerydy - kwasów tłuszczowych, sól, cukier').length, 4);
   assert.equal(engine.parse('Woda, mono - i diglicerydy, sól').length, 3);
+  // Two or three items are a list only when the rulebase reads every one and charges one of them.
+  assert.equal(score('Oats - Sugar - Salt').score, score('Oats, Sugar, Salt').score);
+  assert.deepEqual(engine.parse('Oats - Sugar - Salt'), ['oats', 'sugar', 'salt']);
+  assert.deepEqual(engine.parse('Oats / Sugar'), ['oats', 'sugar']);
+  assert.equal(score('Avena – Azúcar – Sal').score, score('Avena, Azúcar, Sal').score);
   // A product name set out with dashes is not a list, and a hyphenated word has no spaces round it.
-  assert.equal(engine.parse('Organic Raw Almonds - Unpasteurized - 16 oz').length, 1);
+  for (const name of ['Organic Raw Almonds - Unpasteurized - 16 oz', 'Extra Virgin Olive Oil - Cold Pressed', 'Almond Milk - Unsweetened - Vanilla', 'Oats – Rice – Salt']) {
+    assert.equal(engine.parse(name).length, 1, name);
+  }
   assert.deepEqual(engine.parse('High-oleic sunflower oil'), ['high-oleic sunflower oil']);
   // The paste box sees the same list the engine does.
   require('../src/engine/db/ingestible.js');
@@ -424,6 +431,84 @@ test('a list set out with spaced dashes, slashes or tabs is read as a list', () 
     const long = ['Water', 'Oats', 'Rice', 'Salt', 'Yeast', 'Vinegar', 'Sugar', 'Milk', 'Eggs', 'Butter', 'Honey', 'Garlic', 'Onion', 'Pepper'].join(' - ');
     assert.equal(extract.looksLikeIngredients(long), true);
   } finally { if (saved) AIR.engine = saved; else delete AIR.engine; }
+});
+
+// A weight after the ingredient hid it from the anchored rules as a percentage once did: "Oats, Sugar 5g,
+// Salt" scored 90 where the list scores 65.
+test('a weight written after an ingredient does not hide it', () => {
+  const plain = score('Oats, Sugar, Salt');
+  for (const entry of ['Sugar 5g', 'Sugar 5 g', 'Sugar 12mg', 'Sugar 5,5 g', 'Sugar 0.5 oz', 'Sugar - 5g', 'Sugar: 5 g', 'Sugar (5g)', 'Sugar (5 g)', 'SUGAR 5G']) {
+    assert.deepEqual(engine.parse(`Oats, ${entry}, Salt`), ['oats', 'sugar', 'salt'], entry);
+    assert.equal(score(`Oats, ${entry}, Salt`).score, plain.score, entry);
+  }
+  assert.equal(score('Water, Sucralose 20 mg, Caffeine 80 mg').cap, score('Water, Sucralose, Caffeine').cap);
+  // A weight says nothing about the share of the product: the entry keeps the weight of its position.
+  assert.equal(costOf(score('Oats, Rice, Milk, Sugar 400 g'), /sugar/i), costOf(score('Oats, Rice, Milk, Sugar'), /sugar/i));
+  // A number with no unit is part of the name.
+  for (const name of ['red 40', 'polysorbate 80', 'vitamin b12', 'blue 1 lake', 'yellow 5']) assert.deepEqual(engine.parse(`Water, ${name}`), ['water', name]);
+  assert.deepEqual(engine.parse('Oats, 2% milk'), ['oats', '2% milk']);
+  // A pack size with an entry to itself marks a product name published in place of the list: it stays,
+  // unread, so the name is still declined. A claim from the front of the pack is not an ingredient either.
+  const name = score('Amazon Grocery, Cut Watermelon, 32 Oz');
+  assert.deepEqual(engine.parse('Amazon Grocery, Cut Watermelon, 32 Oz'), ['amazon grocery', 'cut watermelon', '32 oz']);
+  assert.equal(name.readable, false);
+  assert.deepEqual(engine.parse('Kefir, 11g Protein'), ['kefir', '11g protein']);
+  // An entry too long to assess stays too long: shortening it must not let a nutrition panel through.
+  const panel = 'Nährwerte je 100 g Energie 1.580 kJ / 377 kcal Zucker 12 g Eiweiß 4 g Salz 0,02 g';
+  assert.equal(score(panel).readable, false);
+  assert.ok(score(panel).parseWarnings.includes('long-ingredient-entry'));
+});
+
+// Two words of one ingredient with no space between them, the capital the only trace of it.
+test('two words run together are read as the ingredient they name', () => {
+  for (const [joined, apart] of [['SoybeanOil', 'soybean oil'], ['CornSyrup', 'corn syrup'], ['NaturalFlavors', 'natural flavors'],
+    ['HighFructoseCornSyrup', 'high fructose corn syrup'], ['PeanutButter', 'peanut butter']]) {
+    assert.deepEqual(engine.parse(`Oats, ${joined}, Salt`), ['oats', apart, 'salt'], joined);
+    assert.equal(score(`Oats, ${joined}, Salt`).score, score(`Oats, ${apart}, Salt`).score, joined);
+  }
+  assert.equal(score('Water, SoybeanOil, Salt').cap, score('Water, Soybean Oil, Salt').cap);
+  // A capital inside a brand, or inside a word the rules already read, is left alone.
+  for (const word of ['NutraSweet', 'SunButter', 'McCormick', 'DiGiorno', 'CocoaVia', 'MaltoDextrin', 'modifiedDate', 'pH']) {
+    assert.deepEqual(engine.parse(`Oats, ${word}`), ['oats', word.toLowerCase()], word);
+  }
+  assert.equal(score('Oats, NutraSweet').score, score('Oats, Nutrasweet').score);
+  // Capitals alone, and a label in capitals, say nothing.
+  assert.deepEqual(engine.parse('WATER, SOYBEAN OIL, SALT'), ['water', 'soybean oil', 'salt']);
+});
+
+// German without its umlauts, as a label set in capitals or an ASCII-only system writes it. No rule is
+// written that way: "Hafer, Sonnenblumenoel" scored 90 where "Sonnenblumenöl" scores 63.
+test('an umlaut written as two letters is the umlaut', () => {
+  const pairs = [['Hafer, Sonnenblumenoel', 'Hafer, Sonnenblumenöl'], ['Hafer, Rapsoel', 'Hafer, Rapsöl'], ['HAFER, SONNENBLUMENOEL', 'Hafer, Sonnenblumenöl'],
+    ['Hafer, gehaertetes Pflanzenfett', 'Hafer, gehärtetes Pflanzenfett'], ['Milch, Kaese', 'Milch, Käse'],
+    ['Wasser, Aepfel, Moehren', 'Wasser, Äpfel, Möhren'], ['Hafer, Gewuerze', 'Hafer, Gewürze'],
+    // Both kinds in one word: the "ae" is an umlaut, the "ue" beside it is not.
+    ['Hafer, Saeuerungsmittel Citronensaeure', 'Hafer, Säuerungsmittel Citronensäure']];
+  for (const [written, real] of pairs) {
+    assert.deepEqual(engine.parse(written), engine.parse(real), written);
+    assert.equal(score(written).score, score(real).score, written);
+    assert.deepEqual(reasons(score(written)), reasons(score(real)), written);
+  }
+  assert.ok(score('Hafer, Sonnenblumenoel').cap, 'the oil caps the score');
+  // Words that only happen to hold the letters are left exactly as written.
+  for (const text of ['Oats, blueberries, aloe vera juice', 'Roggenmehl, Sauerteig, Salz', 'Water, tomato puree, glucose', 'Oats, true cinnamon, queso fresco']) {
+    assert.deepEqual(engine.parse(text), text.toLowerCase().split(', '), text);
+  }
+});
+
+// The words of an ingredient panel that no rule charges are a rule table of their own (db/vocabulary.js).
+test('the panel vocabulary is its own rule file, and still only decides what counts as read', () => {
+  const vocabulary = require('../src/engine/db/vocabulary.js');
+  assert.ok(vocabulary.COMMON_PANEL instanceof RegExp && vocabulary.COMMON_PANEL.flags === 'i', 'one case-insensitive pattern, never global');
+  for (const word of ['water', 'turmeric root powder', 'Vollmilchpulver', 'śmietanka', 'yoğurt', 'b breve', 'e330'.replace('330', '440')]) {
+    assert.ok(vocabulary.COMMON_PANEL.test(word.toLowerCase()), word);
+  }
+  // Read, and charged nothing.
+  const r = score('Water, turmeric, cumin, garlic');
+  assert.equal(r.coverage, 1);
+  assert.equal(r.bad.length, 0);
+  // Hashed with the other rule sources: a word added here can change what counts as read.
+  assert.match(require('node:fs').readFileSync(require('node:path').join(__dirname, 'rules-revision.test.js'), 'utf8'), /engine\/db\/vocabulary\.js/);
 });
 
 // score() asks the same question of the same entry several times, and keeps the answer (penaltiesFor,
