@@ -109,6 +109,19 @@ test('Google restore remains locked until local state is refreshed and reload ex
   assert.deepEqual(p.guards, ['begin', 'complete']);
 });
 
+test('signing into a different Google account clears the previous backup link', async () => {
+  const p = page({
+    initial: { googleProfile: { email: 'first@example.com' }, googleLinked: true, googleBackupTs: 123 },
+    profile: { email: 'second@example.com' },
+  });
+  p.run('wireAccount()');
+  await tick();
+  await p.get('accountSignIn').click();
+  assert.equal(p.data.googleProfile.email, 'second@example.com');
+  assert.equal(p.data.googleLinked, false);
+  assert.equal(p.data.googleBackupTs, null);
+});
+
 test('Chrome restore persistence failure releases locks without reloading or claiming success', async () => {
   const p = page({ saveError: true });
   p.run('wireBackup()');

@@ -1,6 +1,6 @@
 # Google account and Chrome profile setup
 
-The extension has two independent backup routes. Chrome profile backup uses `chrome.storage.sync`; Chrome manages profile sign-in and cross-device sync. Google save/restore uses an OAuth token for one request to the Ingredient Check database. Signing in through one route does not sign in through the other.
+The extension has two independent backup routes. Chrome manages profile sign-in and cross-device sync for Chrome profile backups. Google save and restore use a short-lived OAuth token to access the Ingredient Check database.
 
 ## Chrome profile
 
@@ -25,6 +25,8 @@ Live checks on October 1, 2026 found that the deployed endpoint answers its heal
 7. Click **Sign in with Google** in the extension. The signed-in profile then appears at the top of Settings, whether or not the database is ready. Then click **Save my settings to Google**. Grant the optional identity permission when Chrome asks, choose your account, and confirm the saved result. Then change a test preference, click **Restore from my Google account**, and verify that the saved preference and goals return after reload. Choose the same account for both operations.
 
 Each operation selects an account explicitly. The access token stays in memory, is validated against the backend owner's client ID, and is never written into local storage, sync storage, reports, or the spreadsheet. The stored account identifier is a hash of Google's verified account ID; the extension does not pin all users to the developer's email.
+
+Automatic saving pauses when the Google copy has changed since this browser last saved or restored and its settings differ. Use **Check my backups** to compare the copies. Then restore the Google copy or explicitly save the settings from this browser. An older linked browser may need this one-time choice after updating. Deploy the current Apps Script version to also reject a competing write that lands between the extension's check and its save.
 
 ## Storage and data collection
 

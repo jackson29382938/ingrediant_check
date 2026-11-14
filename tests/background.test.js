@@ -801,7 +801,7 @@ test('automatic Google backup checks token identity and consent after authentica
     if (mode === 'disabled') w.call("self.AIR.googleAuth.token = async () => { await chrome.storage.local.set({googleAutoSave:false}); return 'a'.repeat(30); }");
     if (mode === 'signed-out') w.call("self.AIR.googleAuth.token = async () => { await chrome.storage.local.remove('googleProfile'); return 'a'.repeat(30); }");
     const result = await w.call('googleSaveOnce()');
-    assert.equal(posts, mode === 'same-account' ? 1 : 0, mode);
+    assert.equal(posts, mode === 'same-account' ? 2 : 0, mode);
     assert.equal(result.ok, mode === 'same-account', mode);
   }
 });

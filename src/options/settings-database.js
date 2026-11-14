@@ -349,6 +349,7 @@ function wireAccount() {
       : !s ? 'Automatic saving is on.'
       : s.ok ? `Last saved to Google ${when}.`
       : s.reason === 'needs-sign-in' ? `Automatic saving paused ${when}: Google needs you to sign in again. Click Save my settings to Google.`
+      : s.reason === 'backup-conflict' ? 'Your Google backup differs from this browser. Use Check my backups to compare, then restore the Google copy or save this browser’s settings to Google.'
       : `Could not save to Google ${when} (${s.reason}).`, s && !s.ok ? 'error' : '');
   });
   paintGoogleStatus();
@@ -363,8 +364,13 @@ function wireAccount() {
   // Keep who signed in. Returns false when Google signed the reader in but shared no usable profile.
   const rememberProfile = async token => {
     if (!auth.profile) return true;
+    const previous = profile;
     try { profile = await auth.profile(token); } catch (e) { return false; }
-    await new Promise(resolve => persist({ googleProfile: { ...profile, at: Date.now() } }, resolve));
+    const accountChanged = previous?.email && previous.email.toLowerCase() !== profile.email.toLowerCase();
+    await new Promise(resolve => persist({
+      googleProfile: { ...profile, at: Date.now() },
+      ...(accountChanged ? { googleLinked: false, googleBackupTs: null, googleBackupStatus: null } : {}),
+    }, resolve));
     paintProfile();
     return true;
   };
@@ -399,7 +405,7 @@ function wireAccount() {
     finally { setBackupBusy(false); paint(); }
   });
   el('googleSignOut')?.addEventListener('click', () => {
-    chrome.storage.local.remove(['googleProfile', 'googleLinked', 'googleBackupStatus'], () => {
+    chrome.storage.local.remove(['googleProfile', 'googleLinked', 'googleBackupTs', 'googleBackupStatus'], () => {
       profile = null; paintProfile();
       say('accountStatus', 'Signed out. Your settings on this computer and in Chrome sync are unchanged.');
     });

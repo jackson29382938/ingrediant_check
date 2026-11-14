@@ -391,7 +391,7 @@ test('Google: a burst of changes is saved once, a few seconds later, with the la
   assert.equal(w.state.posts.length, start, 'nothing is sent while the changes keep coming');
   assert.equal(w.pending() >= 1, true);
   await w.settle();
-  assert.equal(w.state.posts.length - start, 1, 'one save for the burst');
+  assert.deepEqual(w.state.posts.slice(start), ['accountGet', 'account'], 'one check and one save for the burst');
   assert.equal((await w.googleCopy()).values.sortCount, 333);
 });
 
@@ -411,6 +411,44 @@ test('Google: when Google needs the reader again, saving pauses with a clear sta
   await w.change({ ratePace: 'gentle' });
   assert.equal(w.local.data.googleBackupStatus.ok, true);
   assert.equal((await w.googleCopy()).values.ratePace, 'gentle');
+});
+
+test('Google: an older linked browser pauses autosave until the user chooses a copy', async () => {
+  const a = world();
+  await linked(a);
+  const b = world({ db: a.db });
+  assert.equal((await b.send({ type: 'accountLoad', token: GMAIL.token })).ok, true);
+  await b.settle();
+  await a.change({ sortCount: 321 });
+  b.cleared.length = 0;
+  await b.change({ sortCount: 322 });
+  assert.equal(b.local.data.googleBackupStatus.reason, 'backup-conflict');
+  assert.ok(b.cleared.includes('ic-google-save'));
+  assert.equal(b.local.data.sortCount, 322);
+  assert.equal((await a.googleCopy()).values.sortCount, 321);
+  await linked(b);
+  await b.change({ sortCount: 323 });
+  assert.equal((await a.googleCopy()).values.sortCount, 323);
+});
+
+test('Google: a competing write after the automatic check is rejected under the sheet lock', async () => {
+  const a = world();
+  await linked(a);
+  const fetch = a.state.posts.length;
+  a.state.hold = true;
+  await a.local.set({ sortCount: 222 });
+  a.fire();
+  await drain();
+  a.state.holds.shift()();
+  await drain();
+  assert.deepEqual(a.state.posts.slice(fetch), ['accountGet']);
+  const newer = prefs.backupPayload({ sortCount: 333 }, new Date(Date.now() + 1000));
+  assert.equal(a.db.post({ kind: 'account', token: GMAIL.token, payload: newer }).ok, true);
+  a.state.hold = false;
+  a.state.holds.shift()();
+  await drain();
+  assert.equal(a.local.data.googleBackupStatus.reason, 'backup-conflict');
+  assert.equal((await a.googleCopy()).values.sortCount, 333);
 });
 
 test('Google: the identity permission being withdrawn pauses saving the same way', async () => {
@@ -642,7 +680,7 @@ test('fallback alarms are cleared once a save is done, so a change is never save
   await linked(w);
   const before = w.state.posts.length;
   await w.change({ sortCount: 150 });
-  assert.equal(w.state.posts.length - before, 1, 'one save for the change');
+  assert.deepEqual(w.state.posts.slice(before), ['accountGet', 'account'], 'one check and one save for the change');
   assert.ok(w.cleared.includes('ic-backup-retry'), 'the Chrome profile alarm was cleared after its save');
   assert.ok(w.cleared.includes('ic-google-save'), 'and so was the Google one');
   // The alarms were only there for a suspended worker; with them cleared, Chrome never fires them.

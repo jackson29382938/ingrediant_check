@@ -980,7 +980,7 @@ function noteBackupChange(changes) {
 // computer has already saved to or restored from the account once (googleLinked): a new computer
 // must not overwrite the saved copy with its defaults before the reader has chosen. The token is
 // asked for without a window (prompt=none); when Google needs the reader, the status says so and
-// nothing is opened. Local settings always win, as with the Chrome backup.
+// nothing is opened. A different Google copy requires an explicit save or restore.
 const GOOGLE_ALARM = 'ic-google-save';
 let googleTimer = null;
 let googleChain = Promise.resolve();
@@ -993,7 +993,7 @@ function noteGoogleChange() {
 
 // The alarm is the fallback for a suspended worker. Once the save is done, or there is nothing to save,
 // clear it; a failure that may pass (the network) leaves it for one more try a minute later.
-const GOOGLE_DONE = new Set(['off', 'no-client']);   // a silent-token failure may be the network: one more try
+const GOOGLE_DONE = new Set(['off', 'no-client', 'backup-conflict']);   // only a manual choice resolves a conflict
 function googleAutoSave() {
   const attempt = googleSaveOnce().then(res => {
     if (res.ok || GOOGLE_DONE.has(res.reason)) chrome.alarms.clear(GOOGLE_ALARM);
@@ -1075,7 +1075,7 @@ function backupToChrome() {
 
 // The options page hands over an OAuth access token; the web app verifies it with Google and
 // keys the row by a hash of the account id. The token is never stored.
-async function accountRequest(kind, token, payload) {
+async function accountRequest(kind, token, payload, expectedTs) {
   const url = self.AIR.db.prefs.endpoint();
   if (!url) return { ok: false, reason: 'no-endpoint' };
   if (typeof token !== 'string' || !/^[\w.~+/-]{20,4096}={0,2}$/.test(token)) return { ok: false, reason: 'no-token' };
@@ -1083,7 +1083,7 @@ async function accountRequest(kind, token, payload) {
     const body = await networkRequest(url, {
       method: 'POST', credentials: 'omit',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ kind, token, ...(payload ? { payload } : {}) }),
+      body: JSON.stringify({ kind, token, ...(payload ? { payload } : {}), expectedTs }),
     }, res => res.ok ? res.json() : null);
     return body || { ok: false, reason: 'network' };
   } catch (e) {
@@ -1093,23 +1093,42 @@ async function accountRequest(kind, token, payload) {
 
 // Saving or restoring marks this computer as linked to the account (so later changes are saved
 // automatically) and records when, for the status line on the settings page.
-async function noteGoogleResult(res) {
+async function noteGoogleResult(res, backupTs) {
   await chrome.storage.local.set(res.ok
-    ? { googleLinked: true, googleBackupStatus: { ok: true, t: Date.now() } }
+    ? { googleLinked: true, googleBackupTs: backupTs, googleBackupStatus: { ok: true, t: Date.now() } }
     : { googleBackupStatus: { ok: false, t: Date.now(), reason: String(res.reason || 'failed').slice(0, 80) } });
 }
 
 async function accountSave(token, automaticOwner) {
   const P = self.AIR.db.prefs;
   const conf = await chrome.storage.local.get(BACKUP_SOURCE_KEYS);
+  let expectedTs;
   if (automaticOwner) {
-    const current = await chrome.storage.local.get(['googleProfile', 'googleLinked', 'googleAutoSave', 'enabled']);
+    const remote = await accountFetch(token);
+    const current = await chrome.storage.local.get(['googleProfile', 'googleLinked', 'googleAutoSave', 'enabled', 'googleBackupTs']);
     if (current.enabled === false || current.googleLinked !== true || !P.sanitizeToggles(current).googleAutoSave
       || String(current.googleProfile?.email || '').toLowerCase() !== automaticOwner) return { ok: false, reason: 'off' };
+    if (!remote.ok && remote.reason !== 'no-backup') {
+      await noteGoogleResult(remote);
+      return remote;
+    }
+    if (remote.ok) {
+      if (!P.diffSettings(conf, remote.values).differing.length) {
+        await noteGoogleResult({ ok: true }, remote.ts);
+        return { ok: true };
+      }
+      if (remote.ts === null || remote.ts !== current.googleBackupTs) {
+        const conflict = { ok: false, reason: 'backup-conflict' };
+        await noteGoogleResult(conflict);
+        return conflict;
+      }
+    }
+    expectedTs = remote.ok ? remote.ts : null;
   }
-  const res = await accountRequest('account', token, P.backupPayload(conf));
+  const payload = P.backupPayload(conf, new Date(Math.max(Date.now(), (expectedTs ?? 0) + 1)));
+  const res = await accountRequest('account', token, payload, expectedTs);
   const out = res.ok === true && res.tab === 'accounts' ? { ok: true } : { ok: false, reason: res.reason || res.error || 'write-not-confirmed' };
-  await noteGoogleResult(out);
+  await noteGoogleResult(out, Date.parse(payload.ts));
   return out;
 }
 
@@ -1118,14 +1137,15 @@ async function accountFetch(token) {
   const res = await accountRequest('accountGet', token);
   if (res.ok !== true) return { ok: false, reason: res.reason || res.error || 'network' };
   if (!res.payload) return { ok: false, reason: 'no-backup' };
-  return self.AIR.db.prefs.parseBackup(res.payload);
+  const parsed = self.AIR.db.prefs.parseBackup(res.payload);
+  return parsed.ok ? parsed : { ok: false, reason: 'invalid-backup' };
 }
 
 async function accountLoad(token) {
   const parsed = await accountFetch(token);
   if (!parsed.ok) return parsed;
-  await chrome.storage.local.set(parsed.values);
-  await noteGoogleResult({ ok: true });
+  await chrome.storage.local.set({ ...parsed.values, googleLinked: true, googleBackupTs: parsed.ts,
+    googleBackupStatus: { ok: true, t: Date.now() } });
   return { ok: true, ts: parsed.ts };
 }
 

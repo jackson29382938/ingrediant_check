@@ -229,7 +229,7 @@ function handlePost(e, seen) {
     }
     if (body.kind === 'report') return writeRows('reports', CONTRIBUTION_COLUMNS, [stamp(productPost(body, 'report'))]);
     if (body.kind === 'products') return writeProducts(body);
-    if (body.kind === 'account') return writeAccount(body.token, body.payload, identity);
+    if (body.kind === 'account') return writeAccount(body.token, body.payload, identity, body.expectedTs);
     if (body.kind === 'historyGet') return readHistory(body.token, identity);
     if (body.kind === 'historyPut') return writeHistory(body.token, body.payload, identity);
     if (body.kind === 'historyClear') return clearHistory(body.token, identity);
@@ -423,7 +423,7 @@ function findAccountRow(sheet, id) {
   return -1;
 }
 
-function writeAccount(token, payload, identity) {
+function writeAccount(token, payload, identity, expectedTs) {
   var id = identity || accountId(token);
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('invalid payload');
   if (payload._format !== 'ingredient-check-settings') throw new Error('unknown settings format');
@@ -432,6 +432,12 @@ function writeAccount(token, payload, identity) {
   var sheet = sheetFor('accounts', ACCOUNT_COLUMNS);
   var row = ["'" + id, "'" + text, "'" + new Date().toISOString()];
   var at = findAccountRow(sheet, id);
+  if (expectedTs !== undefined) {
+    var existing = at === -1 ? null : safeParseJson(unquote(sheet.getRange(at, 2, 1, 1).getValues()[0][0]));
+    if (at === -1 ? expectedTs !== null : !existing || !Number.isFinite(expectedTs) || Date.parse(existing.ts) !== expectedTs) {
+      return json({ ok: false, error: 'backup-conflict' });
+    }
+  }
   if (at === -1) sheet.appendRow(row);
   else sheet.getRange(at, 1, 1, ACCOUNT_COLUMNS.length).setValues([row]);
   SpreadsheetApp.flush();
