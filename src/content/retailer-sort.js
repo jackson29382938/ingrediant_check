@@ -55,6 +55,8 @@
   let active = false, mounted = false, pending = false, run = 0, runId = null, listening = false, outside = false, followedURL = '';
   // True on a search that is not about food: the list ranks by price per unit only, and nothing about ingredients is read.
   let priceOnly = false;
+  let menuURL = '';
+  const menuReady = () => mounted && menuURL === location.href;
   let lastTiles = [], unitHeld = { sig: '', unit: null }, unitOn = true;
   const controllers = new Set();
   let unitSettings = {};
@@ -138,6 +140,7 @@
     if (focus) button.focus({ preventScroll: true });
   }
   function openMenu() {
+    if (!menuReady()) return;
     const names = labels();
     for (const item of menu.querySelectorAll('[data-mode]')) {
       item.textContent = names[item.dataset.mode];
@@ -199,7 +202,7 @@
 
   // ------------------------------------------------------------------ choosing
   function choose(mode) {
-    if (pending || (priceOnly && mode !== 'unitPrice')) return;
+    if (!menuReady() || pending || (priceOnly && mode !== 'unitPrice')) return;
     pending = true;
     const token = ++run;
     for (const controller of controllers) controller.abort();
@@ -590,7 +593,7 @@
     // The list's "Update list": start this search again, now under the count and time limit the reader just set.
     if (msg?.type === 'sortRerun') { if (sender && sender.id === chrome.runtime.id && fromListPage(sender)) followSearch(true, true); return false; }
     if (msg && msg.type === 'sortStart') {
-      const ok = own && mounted && !(priceOnly && msg.mode !== 'unitPrice') && typeof msg.runId === 'string' && /^[\w-]{1,64}$/.test(msg.runId);
+      const ok = own && menuReady() && !(priceOnly && msg.mode !== 'unitPrice') && typeof msg.runId === 'string' && /^[\w-]{1,64}$/.test(msg.runId);
       if (typeof respond === 'function') respond({ ok });
       if (ok) startFromCommand({ mode: msg.mode === 'unitPrice' ? 'unitPrice' : 'health', runId: msg.runId });
       return false;
@@ -628,7 +631,9 @@
     priceOnly = next;
     lastTiles = entries.map(entry => entry.tile);
     mounted = true;
+    menuURL = location.href;
     mount();
+    host.style.display = priceOnly && !unitOn ? 'none' : '';
     if (!listening) {
       listening = true;
       try { chrome.runtime.onMessage.addListener(onPanelMessage); } catch (e) { /* no messaging */ }
@@ -636,13 +641,17 @@
     if (U()) storageGet([...Object.keys(U().UNIT_DEFAULTS), 'unitPrice']).then(got => {
       unitSettings = U().sanitizeUnit(got); unitOn = got.unitPrice !== false;
       // With unit prices switched off a price-only list has no entry at all, so there is nothing to offer.
-      if (host) host.style.display = priceOnly && !unitOn ? 'none' : '';
+      if (host && menuReady()) host.style.display = priceOnly && !unitOn ? 'none' : '';
     });
     followSearch();
   }
   function reset(enabled) {
     active = enabled;
-    if (enabled && host?.isConnected) root.AIR.db.theme?.force(shadow);
+    if (enabled && host?.isConnected) {
+      closeMenu(false);
+      host.style.display = 'none';
+      root.AIR.db.theme?.force(shadow);
+    }
     unitHeld = { sig: '', unit: null };
     lastTiles = [];
     // Another search, a settings change or the switch: whatever list was being built for the old page stops here.
