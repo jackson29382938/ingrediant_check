@@ -34,7 +34,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
   // The scope for a tab's address (the sender's, never the content script's claim), or null when it is a page
   // no list may come from.
   function scopeFor(rawUrl) {
-    let host = '';
+    let host;
     try { const u = new URL(String(rawUrl || '')); if (u.protocol !== 'https:') return null; host = u.hostname; } catch (e) { return null; }
     if (AMAZON_HOST.test(host)) return AMAZON_SCOPE;
     const registry = REGISTRY();

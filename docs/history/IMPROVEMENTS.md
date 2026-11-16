@@ -97,7 +97,7 @@ A Manifest V3 Chrome extension that rates Amazon grocery products **0–100** fr
 ### P1 — done on this branch (except owner-only live steps)
 
 - **`activeTab` dropped (P2).** Popup talks to the current tab; host permissions already cover Amazon. The “this page” card works on product/search tabs where content scripts inject. Preflight fails if `activeTab` returns.
-- **Privacy note + LICENSE.** [docs/PRIVACY.md](PRIVACY.md) is the one-page CWS note: default install sends nothing; auto-score / hover is an Amazon product view; diagnostics are a browse trace to *your* sheet. Root `LICENSE` is MIT (README did not imply otherwise).
+- **Privacy note + LICENSE.** [docs/PRIVACY.md](../PRIVACY.md) is the one-page CWS note: default install sends nothing; auto-score / hover is an Amazon product view; diagnostics are a browse trace to *your* sheet. Root `LICENSE` is MIT (README did not imply otherwise).
 - **Closed shadow (P2).** Panel attaches `{ mode: 'closed' }`. Harness / tests use `AIR.panel.shadowOf(host)`.
 
 ### Not a bug
@@ -167,7 +167,7 @@ Do **not** put live Amazon in CI ( captcha, ToS, flakes ).
 | Locales | `_locales/en` only | **Done (P2):** settings chrome (headings, nav, buttons, placeholders, flash strings) and popup preset labels go through `chrome.i18n`. Category help in `categories.js` stays English until a real second locale exists. |
 | **Naming** | GitHub repo `ingrediant_check`; npm/package `ingredient-check`; UI **Ingredient Check**; internal prefix `AIR` / `#air-score-panel` | Do not rename the GitHub repo unless you are ready to update every clone URL. For a store listing, keep **Ingredient Check**. A README one-liner (“repo folder spelling is historical”) is enough. Do not mass-rename `AIR` — it is in DOM ids, storage-adjacent comments, and tests. |
 
-`LICENSE` is MIT. Store-listing privacy copy is [docs/PRIVACY.md](PRIVACY.md).
+`LICENSE` is MIT. Store-listing privacy copy is [docs/PRIVACY.md](../PRIVACY.md).
 
 ---
 
@@ -201,7 +201,7 @@ These are not defects. Pick at most one.
 8. Owner: live OFF grant + Apps Script round-trip; redeploy receiver for `batchId` / `rowId`. **Not done here** — checklist in §4.
 9. ~~After N tile-fetch failures, pause auto-score and say so.~~ `TILE_FAIL_LIMIT` (5); `#air-throttle-notice`; no `seen.delete` on failure.
 10. ~~Headings for `amazon.se` / `.com.tr`; JP/AR decline-until-ready (no English OCR).~~ `Ingredienser` / `İçindekiler`; `ocrReadyForHost`.
-11. ~~One-page privacy summary for a store listing; add `LICENSE`.~~ [PRIVACY.md](PRIVACY.md), MIT `LICENSE`.
+11. ~~One-page privacy summary for a store listing; add `LICENSE`.~~ [PRIVACY.md](../PRIVACY.md), MIT `LICENSE`.
 12. ~~Wheat/gluten default stays 1.0.~~ Grain help now says whole wheat is penalized as gluten; user can lower the dial. NOVA mapping unchanged.
 
 ### P2 — later / done on this branch
@@ -212,7 +212,7 @@ These are not defects. Pick at most one.
 16. ~~Popup shortcuts to existing weight presets.~~ Same `PRESETS` objects as settings; no new weights.
 17. Repo rename `ingrediant` → `ingredient` only as a conscious GitHub move. **Still open — do not rename.** The product name stays **Ingredient Check**; the GitHub folder spelling is historical (README one-liner already says so).
 18. ~~Compare two cached ASINs in the popup.~~ `CACHE.listScores` + `#compareBlock`.
-19. ~~Store-listing checklist.~~ [store-listing/README.md](store-listing/README.md) (no version bump; screenshots owner-captured).
+19. ~~Store-listing checklist.~~ [store-listing/README.md](../store-listing/README.md) (no version bump; screenshots owner-captured).
 20. ~~OCR wasm smoke in `harness:ci`.~~ Default `harness-ocr.html` starts the vendored worker; `?live=1` keeps the Amazon image path.
 21. ~~DE/FR/ES/IT synonym pack.~~ Maps onto existing English keys; `RULES_REVISION` `2026-09-20`; `tests/synonyms.test.js`.
 

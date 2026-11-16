@@ -38,3 +38,23 @@ test('one action is pinned to one commit everywhere', () => {
   }
   for (const [action, commits] of pins) assert.equal(commits.size, 1, `${action} is pinned to ${[...commits].join(' and ')}`);
 });
+
+// A pinned action is not the only code a job runs. `npm install web-ext@10.0.0` pins one package and lets the
+// 340 it depends on resolve afresh, install scripts and all; in the release job that ran with permission to write
+// to the repository, between building the packages and publishing them (docs/AUDIT-2026-11-15.md, finding 8).
+test('a workflow that may write to the repository downloads no packages', () => {
+  for (const file of fs.readdirSync(dir).filter(f => /\.ya?ml$/.test(f))) {
+    const text = fs.readFileSync(path.join(dir, file), 'utf8');
+    if (!/^\s*contents:\s*write\b/m.test(text)) continue;
+    const runs = text.split('\n').filter(line => !/^\s*#/.test(line)).join('\n');
+    assert.doesNotMatch(runs, /\b(?:npm (?:install|i|ci|exec)|npx|yarn|pnpm|pip install|curl|wget)\b/, `${file} can write to the repository and installs or downloads something`);
+  }
+});
+
+test('tools are installed without running their packages\' install scripts', () => {
+  const sources = [...fs.readdirSync(dir).filter(f => /\.ya?ml$/.test(f)).map(f => fs.readFileSync(path.join(dir, f), 'utf8')),
+    fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8')].join('\n').split('\n').filter(line => !/^\s*#/.test(line)).join('\n');
+  const installs = sources.match(/npm install[^\n"&]*/g) || [];
+  assert.ok(installs.length >= 3, `only ${installs.length} installs found: the scan no longer reaches them`);
+  for (const command of installs) assert.match(command, /--ignore-scripts\b/, command);
+});

@@ -83,6 +83,8 @@
   </div>
   <label class="sw master"><input type="checkbox" id="enabled" role="switch" checked data-i18n-aria="popupMasterAria" aria-label="Ingredient Check on or off"></label>
  </header>
+ <!-- The main landmark as a role, not a <main> element: simple-ui.js adds the page navigation to any page that has one. -->
+ <div role="main">
  <p id="kept" data-i18n="popupKept">Paused — your settings are kept.</p>
  <div id="pageScore" class="page-score" hidden></div>
  <section class="goals" aria-labelledby="goalsH">
@@ -141,6 +143,7 @@
   </div>
  </details>
  <p id="status" role="status" aria-live="polite"></p>
+ </div>
  <footer class="foot">
   <a href="#" id="openSettings" class="btn secondary" data-i18n="popupSettingsLink">Settings</a>
   <div class="foot-row"><a href="#" id="openReport" data-i18n="popupReport">Report a problem or idea</a><span id="version" data-level="2"></span></div>

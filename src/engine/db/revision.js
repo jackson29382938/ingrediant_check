@@ -53,7 +53,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // ingredient is a list. Allergen warnings read bare "flour" and the other words the audit found missing, and no
   // longer fire on "butter beans", "oyster mushrooms" or a "-free" claim. See docs/releases/1.26.4.md.
   const RULES_REVISION = '2026-11-15.1';
-  const RULES_HASH = '66105159-287103';
+  const RULES_HASH = '1f4a8078-287099';
   const _exports = AIRmodule('revision', { RULES_REVISION, RULES_HASH });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 })();

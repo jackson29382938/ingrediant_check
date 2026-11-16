@@ -32,9 +32,11 @@ jobs:
           test -f "docs/releases/$version.md" || { echo "missing docs/releases/$version.md"; exit 1; }
           echo "VERSION=$version" >> "$GITHUB_ENV"
           echo "TAG=$tag" >> "$GITHUB_ENV"
+      # This job can write to the repository, so it runs nothing that was downloaded: no `npm install`. Packing
+      # needs no packages, and the packages are hashed as soon as they exist. The Firefox package lint, which
+      # installs web-ext and about 340 packages it depends on (pinned by nobody), runs in the `firefox` job of
+      # test.yml, which `validate` above has already passed with read-only permission.
       - run: npm run pack
-      - run: npm install --no-save --no-package-lock web-ext@10.0.0
-      - run: npm run firefox:lint
       - name: Hash browser packages
         run: cd dist && sha256sum ingredient-check-*.zip > SHA256SUMS
       - name: Publish the release

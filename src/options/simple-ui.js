@@ -22,6 +22,8 @@
   host.prepend(skip, nav);
   if (page !== 'options') return;
   const intro = make('section', null, 'ui-settings-tools');
+  // A landmark, so the heading, the button and the search field are not loose content between the header and the sections.
+  intro.setAttribute('role', 'search'); intro.setAttribute('aria-label', t('uiFindSetting', 'Find a setting'));
   const text = make('div'); text.append(make('h2', t('uiStartSimple', 'Start with the essentials')), make('p', t('uiSimpleHint', 'Choose your goals and warnings first. More controls are always available.')));
   const simple = make('button', t('uiEssentials', 'Show essentials'), 'btn'); simple.type = 'button';
   simple.addEventListener('click', () => {

@@ -44,7 +44,7 @@ Effort is relative: S = a focused change within an existing flow; M = several UI
 
 ### 1. Consistent evidence-quality summaries
 
-The engine already returns `coverage`, `parseWarnings`, `nutritionAssessment` and `dimensions` in [score.js](../src/engine/score.js). The product panel already shows partial recognition and unavailable nutrition factors in [panel.js](../src/content/panel.js). The gap is consistency and decision support across badges, cached comparisons and ranked results.
+The engine already returns `coverage`, `parseWarnings`, `nutritionAssessment` and `dimensions` in [score.js](../../src/engine/score.js). The product panel already shows partial recognition and unavailable nutrition factors in [panel.js](../../src/content/panel.js). The gap is consistency and decision support across badges, cached comparisons and ranked results.
 
 Show a compact evidence summary next to the score: label source, capture age, recognition completeness, and whether factors selected by the shopper were assessable. Expand it on focus/click. Retain source types independently: OCR, page text and barcode matches are different evidence, not a single ordered accuracy scale. Recognition coverage is not the probability that a label is correct.
 
@@ -54,7 +54,7 @@ Success criterion: shoppers can distinguish a high score supported by a complete
 
 ### 2. Explain differences in the existing comparison
 
-[paintCompareCard](../src/options/popup.js) currently renders a score, verdict, product summary and product link. Its inputs are saved scores; the comparison does not load full product readings. Build a larger comparison view backed by saved evidence and retain the lightweight popup as its entry point.
+[paintCompareCard](../../src/options/popup.js) currently renders a score, verdict, product summary and product link. Its inputs are saved scores; the comparison does not load full product readings. Build a larger comparison view backed by saved evidence and retain the lightweight popup as its entry point.
 
 Start with two products and show aligned rows for selected warning matches, available nutrients on compatible bases, processing contribution, ingredient deductions, sourcing, unit price where known, and source/freshness. Summarize the biggest differences: for example, “Higher ingredient score; higher price per 100 g; protein comparison unavailable.” Show changed goals in both columns together.
 
@@ -62,7 +62,7 @@ Success criterion: a shopper can explain the tradeoff between two products using
 
 ### 3. Constraints before ranking, plus a next step toward alternatives
 
-The current ranking factors in [sorted-results.js](../src/engine/db/sorted-results.js) are score, unit price, listing price, stars and review count. [sorted.js](../src/options/sorted.js) ranks the collected items without a shopper-facing constraint stage.
+The current ranking factors in [sorted-results.js](../../src/engine/db/sorted-results.js) are score, unit price, listing price, stars and review count. [sorted.js](../../src/options/sorted.js) ranks the collected items without a shopper-facing constraint stage.
 
 Add maximum price, minimum score, selected avoid/allergen-match exclusions, and required evidence filters. Preserve unknown matches in a distinct state and provide an explicit choice for handling them; never describe a filtered result as allergy-safe. Explain an empty result and offer to relax one constraint at a time.
 
@@ -72,7 +72,7 @@ Success criterion: products that violate explicit constraints never rise to the 
 
 ### 4. Installation and updates
 
-[README.md](../README.md) documents ZIP extraction, Developer mode and manual reloads for Chrome. [BROWSERS.md](BROWSERS.md) documents temporary unsigned Firefox installs. These are substantial adoption and maintenance costs even if the extension itself works well.
+[README.md](../../README.md) documents ZIP extraction, Developer mode and manual reloads for Chrome. [BROWSERS.md](../BROWSERS.md) documents temporary unsigned Firefox installs. These are substantial adoption and maintenance costs even if the extension itself works well.
 
 Prepare Chrome Web Store publication and a Mozilla-signed Firefox package, with browser-managed updates and a simple first-run verification. Signing/publication requires the publisher's accounts and release process. This review does not establish whether any external store listing exists beyond the repository's documented distribution path.
 
@@ -80,11 +80,11 @@ Success criterion: a new shopper installs from a normal browser installation flo
 
 ### 5. Reliable coverage before broader coverage
 
-[STORES.md](STORES.md) records partial live validation, changing layouts and challenges on several retailers. [ACCURACY.md](ACCURACY.md) separates the three retailer live-capture corpus entries from representative/synthetic labels and seven public database records. Those distinctions matter more than a large supported-host count.
+[STORES.md](../STORES.md) records partial live validation, changing layouts and challenges on several retailers. [ACCURACY.md](../ACCURACY.md) separates the three retailer live-capture corpus entries from representative/synthetic labels and seven public database records. Those distinctions matter more than a large supported-host count.
 
 Prioritize the stores shoppers actually use. Maintain independently reviewed labels across variants, languages, text/OCR sources and common product categories. Measure correct product binding, label completeness, false warning matches, missing-label abstention and successful scoring separately. Add a shopper-facing store/status explanation and an immediate recovery action such as opening label details, pasting text or reporting an incorrect reading.
 
-Review score behavior with held-out labels and independent judgments before retuning defaults. [SCORING-SENSITIVITY.md](SCORING-SENSITIVITY.md) already shows processing-weight changes of up to 40 points on some fixtures; this is evidence of model sensitivity, not proof that a particular ranking is wrong. Make the ingredient/preference nature of the score clear wherever a broad verdict is shown.
+Review score behavior with held-out labels and independent judgments before retuning defaults. [SCORING-SENSITIVITY.md](../SCORING-SENSITIVITY.md) already shows processing-weight changes of up to 40 points on some fixtures; this is evidence of model sensitivity, not proof that a particular ranking is wrong. Make the ingredient/preference nature of the score clear wherever a broad verdict is shown.
 
 Success criterion: a maintained set of representative shopping journeys works on the live stores, with capture dates and failure reasons. Passing synthetic tests alone is insufficient for promoting a preview.
 
@@ -98,7 +98,7 @@ Success criterion: a shopper can assess a label from an unsupported store withou
 
 ### 7. Allergen evidence types
 
-[score.js](../src/engine/score.js) passes ingredient, declared-allergen and cross-contact text together to the detector. [allergens.js](../src/engine/db/allergens.js) returns a flag with `kind`, `id`, `label` and a matching entry, without preserving which of those evidence types produced it.
+[score.js](../../src/engine/score.js) passes ingredient, declared-allergen and cross-contact text together to the detector. [allergens.js](../../src/engine/db/allergens.js) returns a flag with `kind`, `id`, `label` and a matching entry, without preserving which of those evidence types produced it.
 
 Preserve separate “Ingredient detected,” “Contains statement,” “May contain/shared facility,” and “Unassessed” states, with the matched source text. Carry these through caches, comparisons and purchase snapshots without inventing classifications for historical records. Keep warnings independent of scoring.
 
@@ -114,7 +114,7 @@ Success criterion: saved choices survive cache housekeeping, and a shopper can r
 
 ### 9. First-run learning and settings-impact preview
 
-[welcome.js](../src/options/welcome.js) already adapts setup steps to a selected detail level. Preserve that structure. Add a short interactive example showing a readable label, its biggest score contributors, separate warnings, and what changes when one goal is selected. Give the shopper a direct path to a first real score.
+[welcome.js](../../src/options/welcome.js) already adapts setup steps to a selected detail level. Preserve that structure. Add a short interactive example showing a readable label, its biggest score contributors, separate warnings, and what changes when one goal is selected. Give the shopper a direct path to a first real score.
 
 In Settings, preview the effect of a pending goal/weight change on a few saved products. Label missing evidence and changes to ranking; avoid suggesting a more favorable number means a measured health improvement.
 
@@ -136,7 +136,7 @@ Success criterion: a shopper can identify one recurring purchase to review and u
 
 Move allergen evidence typing earlier if warning-driven shopping is the main use case. Move distribution to the front if the near-term objective is public adoption. These choices should be informed by actual user needs rather than inferred usage.
 
-Defer more store adapters, additional scoring knobs, a full mobile app, and broad background monitoring until the earlier flows demonstrate value. Anonymous product exchange is currently disabled by `SHARED_PRODUCTS_ALLOWED = false` in [prefs.js](../src/engine/db/prefs.js); any future enablement needs verified trust controls rather than treating shared records as established label evidence.
+Defer more store adapters, additional scoring knobs, a full mobile app, and broad background monitoring until the earlier flows demonstrate value. Anonymous product exchange is currently disabled by `SHARED_PRODUCTS_ALLOWED = false` in [prefs.js](../../src/engine/db/prefs.js); any future enablement needs verified trust controls rather than treating shared records as established label evidence.
 
 ## How to evaluate the roadmap
 

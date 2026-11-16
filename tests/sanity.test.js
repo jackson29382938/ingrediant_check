@@ -200,7 +200,8 @@ check('content scripts are limited to product and search paths', () => {
     'a host-wide /* match would inject on cart and account pages');
   assert.ok(cs.matches.some(m => m.includes('/dp/')), 'product /dp/ matches missing');
   assert.ok(cs.matches.some(m => m.includes('/*/dp/')), 'slug /*/dp/ matches missing — cold loads of /Title/dp/ASIN would not inject');
-  assert.ok(cs.matches.some(m => m.startsWith('*://amazon.')), 'apex amazon.* matches missing');
+  assert.ok(cs.matches.some(m => m.startsWith('https://amazon.')), 'apex amazon.* matches missing');
+  assert.ok(manifest.content_scripts.every(entry => entry.matches.every(m => m.startsWith('https://'))), 'a content script matches a scheme other than https');
   assert.ok(cs.matches.some(m => m.includes('/gp/aw/d/')), 'mobile /gp/aw/d/ matches missing');
   assert.ok((cs.exclude_globs || []).some(g => g.includes('/ap/')), 'login /ap/ is not excluded');
   assert.ok((cs.exclude_globs || []).some(g => g.includes('/gp/cart')), 'cart is not excluded');

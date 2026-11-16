@@ -32,6 +32,8 @@
   /* Dimmed, not hidden: an unticked part's preview stays readable so a reader can see what they are
      leaving out. Only the preview dims; the note beneath it is text and keeps its contrast (4.5:1). */
   .part.off .body pre { opacity: .6; }
+  /* A preview scrolls once it is longer than its box; it takes focus (tabindex) so the keyboard can scroll it. */
+  pre:focus-visible { outline: 2px solid #1f7a4d; outline-offset: 2px; }
   pre { white-space: pre-wrap; word-break: break-word; background: #f4f6f5; border-radius: 8px; padding: 10px; font-size: 12px; max-height: 260px; overflow: auto; margin: 0; }
   #shot { max-width: 100%; max-height: 320px; border: 1px solid #d5d9d9; border-radius: 6px; display: block; margin-bottom: 8px; }
   #shot[hidden], [hidden] { display: none !important; }
@@ -96,21 +98,21 @@
       </div>
     </div>
     <div class="part" id="part-page">
-      <label><input type="checkbox" id="inc-page" checked><span data-i18n="reportIncPage">The page, its score and the side panel list</span></label>
-      <div class="body"><pre id="pagePreview"></pre></div>
+      <label><input type="checkbox" id="inc-page" checked><span id="lblPage" data-i18n="reportIncPage">The page, its score and the side panel list</span></label>
+      <div class="body"><pre id="pagePreview" tabindex="0" role="region" aria-labelledby="lblPage"></pre></div>
     </div>
     <div class="part" id="part-settings">
-      <label><input type="checkbox" id="inc-settings"><span data-i18n="reportIncSettings">Your Ingredient Check settings</span></label>
-      <div class="body"><pre id="settingsPreview"></pre>
+      <label><input type="checkbox" id="inc-settings"><span id="lblSettings" data-i18n="reportIncSettings">Your Ingredient Check settings</span></label>
+      <div class="body"><pre id="settingsPreview" tabindex="0" role="region" aria-labelledby="lblSettings"></pre>
         <p class="note" data-i18n="reportSettingsNote">Includes your allergen, diet and avoid-list choices, since they change scores. Never includes cached scores, sign-in tokens or anything from other pages.</p></div>
     </div>
     <div class="part" id="part-actions">
-      <label><input type="checkbox" id="inc-actions" checked><span data-i18n="reportIncActions">Your recent clicks in Ingredient Check (this browser session)</span></label>
-      <div class="body"><pre id="actionsPreview"></pre></div>
+      <label><input type="checkbox" id="inc-actions" checked><span id="lblActions" data-i18n="reportIncActions">Your recent clicks in Ingredient Check (this browser session)</span></label>
+      <div class="body"><pre id="actionsPreview" tabindex="0" role="region" aria-labelledby="lblActions"></pre></div>
     </div>
     <div class="part">
-      <label><input type="checkbox" checked disabled><span data-i18n="reportIncEnv">Extension and browser version (always)</span></label>
-      <div class="body"><pre id="envPreview"></pre></div>
+      <label><input type="checkbox" checked disabled><span id="lblEnv" data-i18n="reportIncEnv">Extension and browser version (always)</span></label>
+      <div class="body"><pre id="envPreview" tabindex="0" role="region" aria-labelledby="lblEnv"></pre></div>
     </div>
   </section>
 
@@ -127,8 +129,8 @@
     </div>
     <p id="status" role="status" aria-live="polite"></p>
     <details>
-      <summary data-i18n="reportPreviewH">Preview the email text</summary>
-      <pre id="textPreview"></pre>
+      <summary id="lblText" data-i18n="reportPreviewH">Preview the email text</summary>
+      <pre id="textPreview" tabindex="0" role="region" aria-labelledby="lblText"></pre>
     </details>
   </section>
 </main>

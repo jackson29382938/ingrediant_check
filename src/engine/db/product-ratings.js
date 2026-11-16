@@ -231,7 +231,7 @@ const hasActiveAmount = facts => /\b\d[\d,.]*\s*(?:mcg|mg|g|iu|µg|μg)\b/i.test
       return decline('Supplement Facts with serving size and declared amounts are required; proprietary blend amounts cannot establish individual doses.');
     const list = entries.join(', ');
 
-    let base = 0;
+    let base;
     if (ratingStyle === 'minimal') {
       if (label.partial) return decline('Only the active ingredient is listed. The inactive ingredients are needed to count the list.');
       // A supplement's actives are its purpose; only what is added to them counts as length.

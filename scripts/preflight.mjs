@@ -78,7 +78,7 @@ check('stores covered', () => {
   if (!matches.some(m => m.includes('/*/dp/')) || !matches.some(m => m.includes('/*/gp/product/'))) {
     throw new Error('slug product matches (/*/dp/*, /*/gp/product/*) missing');
   }
-  if (!matches.some(m => m.startsWith('*://amazon.'))) {
+  if (!matches.some(m => m.startsWith('https://amazon.'))) {
     throw new Error('apex amazon.* matches missing');
   }
   if (!matches.some(m => m.includes('/gp/aw/d/'))) {
@@ -119,6 +119,20 @@ check('content scripts skip account and checkout', () => {
     if (!globs.some(g => g.includes(need))) throw new Error(`exclude_globs missing ${need}`);
   }
   return `${globs.length} exclude_globs`;
+});
+// Every matched store page loads these files, so their weight is watched. Loading all forty takes about 23 ms in
+// Chromium with no code cache (five runs, docs/AUDIT-2026-11-15.md finding 11): DOMPurify 2.7 ms, the engine 2.1.
+// That is too little to justify loading parts on demand, which would need a new permission or web-accessible
+// files. The limit is here so the weight cannot double without anyone deciding it should.
+check('content scripts stay within their weight', () => {
+  const LIMIT_KB = 1100;
+  let heaviest = 0;
+  for (const entry of manifest.content_scripts) {
+    const kb = entry.js.reduce((sum, file) => sum + fs.statSync(path.join(root, file)).size, 0) / 1024;
+    if (kb > LIMIT_KB) throw new Error(`a content script group weighs ${Math.round(kb)} KB (limit ${LIMIT_KB}): measure the load time again before raising the limit`);
+    heaviest = Math.max(heaviest, kb);
+  }
+  return `heaviest group ${Math.round(heaviest)} KB of ${LIMIT_KB}`;
 });
 
 console.log('\nOCR');

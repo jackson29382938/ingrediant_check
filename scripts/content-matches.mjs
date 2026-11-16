@@ -60,8 +60,10 @@ export function buildContentMatches(hosts = AMAZON_HOSTS, paths = PATH_PATTERNS)
   const out = [];
   for (const host of hosts) {
     for (const path of paths) {
-      out.push(`*://*.${host}${path}`);
-      out.push(`*://${host}${path}`);
+      // https only: Amazon serves nothing over http (a plain request is redirected before any page loads), so
+      // the `*://` these patterns used to carry matched a scheme no store page arrives on.
+      out.push(`https://*.${host}${path}`);
+      out.push(`https://${host}${path}`);
     }
   }
   return out;

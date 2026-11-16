@@ -38,6 +38,9 @@ jobs:
           node-version: ${{ matrix.node }}
       # No install step: the extension and automated checks have no package dependencies.
       - run: npm test
+      # What the tests reach in the scoring engine, with floors (scripts/run-tests.mjs). Once is enough.
+      - if: matrix.node == '22'
+        run: npm run test:coverage
       - run: npm run preflight
       # Both store packages build from this commit. The release workflow used to be the first place that ran, so a
       # packaging failure surfaced only after the tag had been pushed.
@@ -52,7 +55,8 @@ jobs:
         with:
           node-version: '22'
       # `npm run lint` installs the pinned eslint, @eslint/js and globals (package.json) for this job only
-      # and fails on any warning.
+      # and fails on any warning. Tools are installed with --ignore-scripts here and below: only the named
+      # package is pinned, the packages it depends on are not, and none of them needs to run code to install.
       - run: npm run lint
 
   harness:
@@ -65,7 +69,7 @@ jobs:
           node-version: '22'
       # Playwright is CI-only and pinned, so the browser it downloads matches. The extension itself
       # stays dependency-free.
-      - run: npm install --no-save --no-package-lock playwright@1.63.0
+      - run: npm install --no-save --no-package-lock --ignore-scripts playwright@1.63.0
       - run: npx playwright install --with-deps chromium
       - run: npm run harness:ci
       # Walmart and Target through the real extension: search from the home page, ads hidden, sorting by price per unit.
@@ -85,7 +89,7 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: '22'
-      - run: npm install --no-save --no-package-lock web-ext@10.0.0
+      - run: npm install --no-save --no-package-lock --ignore-scripts web-ext@10.0.0
       - run: npm run pack:firefox
       - run: npm run firefox:lint
       - run: npm run firefox:setup

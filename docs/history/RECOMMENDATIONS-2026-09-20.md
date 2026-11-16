@@ -40,8 +40,8 @@ Do not invent security chores. Keep `preflight` and `sanity.test.js` as the guar
 
 | # | Item | Where | What to do |
 |---|---|---|---|
-| 1 | **Live optional-network proof** | [VERIFY.md](VERIFY.md) §3–5, [DIAGNOSTICS.md](DIAGNOSTICS.md), [apps-script.gs](apps-script.gs) | Owner-only. Enable OFF on Lifeway `B00LOAW7U6` (~28 Poor). Redeploy Apps Script (**Execute as: Me**, **Anyone**). Paste `/exec`, flush diagnostics, confirm one row per score and no `batchId` replay. |
-| 2 | **Post-WAR OCR on a real Amazon tab** | [VERIFY.md](VERIFY.md) “After removing WAR”, `src/offscreen/ocr.js`, `vendor/tesseract/` | [LIVE-TEST-2026-09-05.md](LIVE-TEST-2026-09-05.md) predates WAR removal. Node + `harness-ocr.html` do not prove the live offscreen path. Re-run Lifeway with **Read label photos** on unpacked `main`. |
+| 1 | **Live optional-network proof** | [VERIFY.md](../VERIFY.md) §3–5, [DIAGNOSTICS.md](../DIAGNOSTICS.md), [apps-script.gs](../apps-script.gs) | Owner-only. Enable OFF on Lifeway `B00LOAW7U6` (~28 Poor). Redeploy Apps Script (**Execute as: Me**, **Anyone**). Paste `/exec`, flush diagnostics, confirm one row per score and no `batchId` replay. |
+| 2 | **Post-WAR OCR on a real Amazon tab** | [VERIFY.md](../VERIFY.md) “After removing WAR”, `src/offscreen/ocr.js`, `vendor/tesseract/` | [LIVE-TEST-2026-09-05.md](LIVE-TEST-2026-09-05.md) predates WAR removal. Node + `harness-ocr.html` do not prove the live offscreen path. Re-run Lifeway with **Read label photos** on unpacked `main`. |
 | 3 | **Non-English lists still score “easy”** | **done (synonym pack)** | ~20 high-frequency DE/FR/ES/IT aliases map onto existing English keys (flavour, lecithin, grains, acids, oils, sugars, isolates). `RULES_REVISION` `2026-09-20`. Pinned in `tests/synonyms.test.js` + corpus. |
 | 4 | **Wheat / gluten / NOVA product story** | **done (copy only)** | Default grain weight stays **1.0**. Help text now says whole wheat is penalized as gluten by default; user can lower the grain dial. NOVA mapping unchanged. |
 | 5 | **Amazon layout drift** | `src/content/extract.js`, `tests/pages/` (dated 2026-09-02) | Snapshots pin US oats/shampoo, SE havregryn, US grocery search. Do **not** add jsdom or refresh fixtures for sport. When a live grocery card breaks, drop a sanitized HTML next to those files and assert extract + food gate. |
@@ -51,7 +51,7 @@ Do not invent security chores. Keep `preflight` and `sanity.test.js` as the guar
 | # | Item | Where | What to do |
 |---|---|---|---|
 | 6 | **Compare two cached ASINs** | **done** | Popup `#compareBlock` + `CACHE.listScores` (`s:` entries only). No network. Seeded in `harness:ci`. |
-| 7 | **Chrome Web Store package** | **done (checklist)** | [store-listing/README.md](store-listing/README.md). Screenshots still owner-captured; version bump only at submit. |
+| 7 | **Chrome Web Store package** | **done (checklist)** | [store-listing/README.md](../store-listing/README.md). Screenshots still owner-captured; version bump only at submit. |
 | 8 | **OCR wasm in CI** | **done** | `harness-ocr.html` default is a no-Amazon worker smoke; `?live=1` keeps the old Amazon image path. `npm run harness:ci` waits on `__ocrSmoke.ok`. |
 | 9 | **Worker hygiene** | **done (`toCsvUrl`)** | Worker delegates to `prefs.toSheetUrl`. Tests load `prefs.js`. Message-type inventory still optional. |
 | 10 | **i18n leftovers** | **done (en chrome)** | Throttle + verdict keys harvested from `search.js`; settings notes + `catHelp_grain`; panel verdict labels. Category help still English in `categories.js` except grain. No `_locales/de`. |
@@ -86,7 +86,7 @@ Ordered for user-visible accuracy first, then store, then hygiene. Skip 1–2 un
 2. ~~**Decide the grain story**~~ — default stays 1.0 (gluten grains, including whole wheat). Copy in `categories.js` / `catHelp_grain` says so; NOVA mapping unchanged.
 3. ~~**DE/FR/ES/IT top-20 additive synonyms**~~ — existing English keys; `RULES_REVISION` `2026-09-20`; `tests/synonyms.test.js`.
 4. ~~**Compare two cached ASINs**~~ in the popup (`CACHE.listScores`).
-5. ~~**Store-listing folder + `harness-ocr` in CI**~~ — [store-listing/README.md](store-listing/README.md); wasm smoke in `harness:ci`.
+5. ~~**Store-listing folder + `harness-ocr` in CI**~~ — [store-listing/README.md](../store-listing/README.md); wasm smoke in `harness:ci`.
 
 `toCsvUrl` delegates to `prefs.toSheetUrl`. Throttle/verdict i18n and `catHelp_grain` are wired. Leftover long settings notes with nested markup are still English.
 

@@ -9,11 +9,12 @@ engine runs unchanged in Node (tests) and in a content script.
 | Task | Command |
 |---|---|
 | Unit and integration tests (about 25 s on four cores) | `npm test` (parallel; files marked `// @serial` run alone afterwards; `npm run test:serial` runs everything one at a time) |
+| Engine coverage, with floors (CI runs it on Node 22) | `npm run test:coverage` |
 | Lint (installs pinned ESLint for this run only) | `npm run lint` |
 | Manifest, scripts and locale checks | `npm run preflight` |
 | Build Chrome and Firefox packages (runs preflight first; CI builds them on every push) | `npm run pack` |
-| Real-Chromium harness (no network) | `npm install --no-save --no-package-lock playwright@1.63.0`, then `HARNESS_CHROME=/opt/pw-browsers/chromium npm run harness:ci` |
-| Firefox package lint | `npm install --no-save --no-package-lock web-ext@10.0.0`, then `npm run firefox:lint` |
+| Real-Chromium harness (no network) | `npm install --no-save --no-package-lock --ignore-scripts playwright@1.63.0`, then `HARNESS_CHROME=/opt/pw-browsers/chromium npm run harness:ci` |
+| Firefox package lint | `npm install --no-save --no-package-lock --ignore-scripts web-ext@10.0.0`, then `npm run firefox:lint` |
 
 In a cloud session Playwright's pinned browser is not installed and must not be downloaded; set
 `HARNESS_CHROME` to the preinstalled Chromium as above (`/opt/pw-browsers/chromium` is a symlink that survives
@@ -56,9 +57,13 @@ Rules that are easy to break:
   other encodings of the same letters (ligatures, full-width, decomposed accents, direction marks), stray
   punctuation and trade mark signs at the ends of an entry, a heading without its colon, two ingredients
   joined by "or" or a slash, a list set out with spaced dashes or tabs, a weight after an ingredient, two
-  words run together, and German written without its umlauts. Where the text cannot say which reading is
-  right (a rejoined word, a put-back space, an umlaut, a short dashed list) the new reading is taken only
-  when the rulebase then charges or reads more than it did; keep that test when you add another.
+  words run together, German written without its umlauts, two ingredients joined by "and" where a rule
+  reads one of them, a joining word in front of an entry, a hyphen typed as another character, a footnote
+  digit or mark after the name, text in angle brackets, a share written with a sign or a colon, and a list
+  headed "Contains:". Where the text cannot say which reading is right (a rejoined word, a put-back space,
+  an umlaut, a short dashed list, a joining word, a trailing digit) the new reading is taken only when the
+  rulebase then charges or reads more than it did; keep that test when you add another. Two lines with no
+  comma stay one wrapped ingredient: splitting them reads "Almond\nFlour" as almonds and wheat flour.
 - **Words no rule charges live in `db/vocabulary.js`** (`COMMON_PANEL`). It only decides what counts as
   read, but that can still move a score, so it is hashed like the other rule files. A new rule file must be
   listed before `score.js` in `manifest.json` (five groups), `src/options/{library,history}.html` and the
@@ -72,6 +77,8 @@ Rules that are easy to break:
   asking `readable` first. Anything that wraps `engine.score()` must pass `readable` through.
 - **Panel arithmetic must add up.** Every row shown is part of the score the user sees
   (`tests/arithmetic.test.js`). A clamp pushes its own row rather than moving the score silently.
+- **An allergen word goes in `db/allergens.js` with its look-alikes** ("butter beans", "oyster mushrooms", "pasta de
+  cacao") in `tests/synonyms.test.js`; a "-free" claim is taken out of an entry before it is read (`detect`).
 - **Food allergen, diet and avoid-list flags never move a score.** Personal-care/supplement indices are separate: the explicitly selected Preference-focused style counts avoid-list matches, as requested by the product specification. Allergy and diet warnings remain separate in every style. See docs/PERSONAL-CARE.md.
 - **Calibration is pinned to bands, not numbers** (`tests/corpus.json`). Moving a corpus product out of
   its band needs a reason written in the release notes.
@@ -113,6 +120,11 @@ Rules that are easy to break:
 - A test that asserts a millisecond limit carries a `// @serial` comment so `npm test` runs it alone.
 - Workflows name an action by commit with its version in a comment (`uses: actions/checkout@<40 hex> # v6.1.0`);
   `tests/workflow-pins.test.js` fails on a tag. The comment above `jobs:` in `test.yml` says how to update one.
+  A workflow that can write to the repository (`release.yml`) installs and downloads nothing, and every
+  `npm install` of a tool carries `--ignore-scripts`; the same test fails otherwise.
+- The service worker stops after 30 idle seconds. Anything it must remember longer (a rate-limit pause) goes in
+  `chrome.storage.session` as well as a variable, a `fetch` gives up before 30 seconds, and an extension page does
+  not reconnect a dropped port on a timer: the worker asks (`sortedViewOpen` in `background.js`).
 - `docs/apps-script.gs` ends with a byte-for-byte copy of `src/engine/db/purchase-history.js`; after editing that file run
   `node scripts/sync-apps-script-schema.mjs` (a test fails otherwise) and redeploy the script by hand.
 - Do not add runtime dependencies. Vendored OCR and DOMPurify bundles are reproduced by scripts in

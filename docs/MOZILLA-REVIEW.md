@@ -51,7 +51,7 @@ hash and adaptation are recorded in scripts/build-panel-sanitizer.mjs.
 npm test
 npm run preflight
 npm run pack
-npm install --no-save --no-package-lock web-ext@10.0.0
+npm install --no-save --no-package-lock --ignore-scripts web-ext@10.0.0
 npm run firefox:lint
 npm run firefox:setup
 # Set FIREFOX_BINARY and GECKODRIVER to the paths printed by firefox:setup.
