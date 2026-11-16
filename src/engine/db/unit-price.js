@@ -169,13 +169,37 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
   // How many items a listing holds, when its title or card says so unambiguously: "Pack of 12",
   // "12 Count", "24-pack", "6 bottles". A pack word and an item count together ("Pack of 6, 12 ct each")
   // could be either the total or each, so they only count when they agree or the pack is one.
-  const COUNT_WORDS = 'count|ct|pieces?|pcs?|bottles?|cans?|cartons?|bags?|bars?|pouches?|packets?|sachets?|jars?|tubs?|sticks?|capsules?|tablets?|softgels?|gummies';
-  const COUNT_MARKER = new RegExp(`\\bpack\\s+of\\s+\\d{1,7}\\b|\\b\\d{1,7}[\\s-]*(?:pack|pk|${COUNT_WORDS})(?![a-z])`, 'i');
+  const COUNT_WORDS = 'count|ct|pieces?|pcs?|bottles?|cans?|cartons?|bags?|bars?|pouches?|packets?|sachets?|jars?|tubs?|sticks?|capsules?|tablets?|softgels?|gummies|boxes|cases|cups|pods';
+  // How many of the stated size a listing holds, in every way a title writes it. Only "Pack of N", "N pack" and
+  // "N pk" used to be read, so "15.5 oz (Case of 12)", "8 x 12 fl oz" and amazon.de's "500 g (5er Pack)" were
+  // priced as one item: the price per ounce came out twelve, eight and five times too high, and the multi-pack
+  // sorted as the dearest thing on the page (docs/AUDIT-2026-11-16.md, finding 1).
+  const PACK_OF = 'pack|case|box|carton|set|bundle|lot|pack\\s+size';
+  const PACK_FORMS = [
+    new RegExp(`\\b(?:${PACK_OF})\\s+of\\s+(\\d{1,4})\\b`, 'g'),
+    /(?<![\d.])(\d{1,4})[\s-]*(?:pack|pk)\b/g,
+    // de "6er Pack", fr "lot de 6" / "pack de 6", es "paquete de 6" / "caja de 6", it "confezione da 6" /
+    // "pacco da 6", nl "verpakking van 6", pt "pacote de 6" / "embalagem com 6"
+    /(?<![\d.])(\d{1,4})er[\s-]?pack(?:ung)?\b/g,
+    /\b(?:lot|pack|paquete|caja|pacote)\s+de\s+(\d{1,4})\b/g,
+    /\b(?:confezione|pacco)\s+da\s+(\d{1,4})\b/g,
+    /\bverpakking\s+van\s+(\d{1,4})\b/g,
+    /\bembalagem\s+com\s+(\d{1,4})\b/g,
+  ];
+  // "8 x 12 fl oz" and "500 g x 6": the count beside the size it multiplies.
+  const TIMES_BEFORE = new RegExp(`(?<![\\d.,])(\\d{1,3})\\s*[x×]\\s*(?=(?:\\d{1,7}(?:[.,]\\d{1,6})?|\\.\\d{1,6})[\\s-]*(?:${UNIT})\\.?(?![a-z]))`, 'g');
+  const TIMES_AFTER = new RegExp(`(?:${UNIT})\\.?\\s*[x×]\\s*(\\d{1,3})\\b(?![.,]?\\d*[\\s-]*(?:${UNIT})\\b)`, 'g');
+  // Every pack size a title states. -> [] when it states none.
+  function packsIn(source) {
+    const packs = [];
+    for (const form of [...PACK_FORMS, TIMES_BEFORE, TIMES_AFTER]) for (const m of source.matchAll(form)) packs.push(Number(m[1]));
+    return packs;
+  }
+  const PACK_MARKER = new RegExp(`\\b(?:${PACK_OF})\\s+of\\s+\\d|\\d\\s*[x×]\\s*\\d|\\der[\\s-]?pack|\\b(?:lot|paquete|caja|pacote)\\s+de\\s+\\d|\\b(?:confezione|pacco)\\s+da\\s+\\d|\\bverpakking\\s+van\\s+\\d|\\bembalagem\\s+com\\s+\\d`, 'i');
+  const COUNT_MARKER = new RegExp(`${PACK_MARKER.source}|\\b\\d{1,7}[\\s-]*(?:pack|pk|${COUNT_WORDS})(?![a-z])`, 'i');
   function parseCount(text) {
     const source = String(text || '').toLowerCase().replace(/,(?=\d{3}\b)/g, '');
-    const packs = [], items = [];
-    for (const m of source.matchAll(/\bpack\s+of\s+(\d{1,4})\b/g)) packs.push(Number(m[1]));
-    for (const m of source.matchAll(/(?<![\d.])(\d{1,4})[\s-]*(?:pack|pk)\b/g)) packs.push(Number(m[1]));
+    const packs = packsIn(source), items = [];
     for (const m of source.matchAll(new RegExp(`(?<![\\d.])(\\d{1,4})[\\s-]*(?:${COUNT_WORDS})(?![a-z])`, 'g'))) items.push(Number(m[1]));
     const agreed = list => (list.length && list.every(n => n === list[0]) ? list[0] : list.length ? NaN : null);
     const pack = agreed(packs), item = agreed(items);
@@ -190,9 +214,16 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
   // On a comma-decimal store "1,5 kg" is one and a half kilograms; elsewhere a comma only groups
   // thousands ("1,000 g").
   function parseQuantity(text, store) {
-    const lower = String(text || '').toLowerCase();
+    const lower = String(text || '').toLowerCase()
+      // "1/2 gallon" and "1 1/2 lb" are fractions: read digit by digit, the "2" alone made a half gallon two.
+      .replace(new RegExp(`(?<![\\d./])(?:(\\d{1,3})\\s+)?(\\d{1,2})\\/(\\d{1,2})(?=[\\s-]*(?:${UNIT})\\.?(?![a-z]))`, 'g'),
+        (all, whole, top, bottom) => (Number(bottom) > 0 ? String(Number(whole || 0) + Number(top) / Number(bottom)) : all))
+      .replace(/\bhalf[\s-]+(?=gallons?\b|pounds?\b|lbs?\b|pints?\b|lit(?:er|re)s?\b|kilos?\b)/g, '0.5 ');
     const source = SF().storefront(store).decimal === ','
-      ? lower.replace(/(\d),(\d)/g, '$1.$2')
+      // Where a comma is the decimal mark a full stop groups thousands: "1.000 g" is a kilogram, and read as
+      // one gram it priced rice at 85 dollars an ounce. Only for grams and millilitres, where three digits after
+      // the stop cannot be a decimal anyone prints ("2.268 kg", converted from pounds, is two kilograms).
+      ? lower.replace(/(?<![\d.,])([1-9]\d{0,2})\.(\d{3})(?=\s?(?:g|gr|gramm|ml)\b)/g, '$1$2').replace(/(\d),(\d)/g, '$1.$2')
       : lower.replace(/,/g, '');
     const found = [];
     // Package quantities do not need unbounded numeric tokens; limiting each side of the decimal
@@ -221,13 +252,24 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
     const kind = found[0].kind;
     if (found.some(f => f.kind !== kind)) return null;
 
+    // Every way the title states its pack size must agree ("Pack of 6" beside "6 x 500 g" is one statement
+    // twice; "Pack of 2" beside "6 x" is two the title does not explain, and nothing is worked out from it).
+    const packs = packsIn(source);
+    if (packs.length && !packs.every(n => n === packs[0])) return null;
+    const pack = packs.length ? packs[0] : null;
+    if (pack != null && !(pack >= 1 && pack <= 5000)) return null;
+
     // Repeated equivalent sizes such as "39 oz (2.4 lb)" or "32 fl oz (946 ml)" are one package.
     const representative = found[0].ounces;
-    if (!found.every(f => Math.abs(f.ounces - representative) / Math.max(f.ounces, representative) <= 0.02)) return null;
+    const near = (a, b) => Math.abs(a - b) / Math.max(a, b) <= 0.02;
+    if (!found.every(f => near(f.ounces, representative))) {
+      // "6 x 500 g (3 kg)": the item and the total it multiplies to. The total is the size.
+      const sizes = found.map(f => f.ounces), least = Math.min(...sizes), most = Math.max(...sizes);
+      return pack > 1 && sizes.every(size => near(size, least) || near(size, most)) && near(least * pack, most) ? { ounces: most, kind } : null;
+    }
 
-    const pack = source.match(/\bpack\s+of\s+(\d{1,7})\b|\b(\d{1,7})[\s-]*(?:pack|pk)\b/);
-    const count = source.match(/\b(\d{1,7})[\s-]*(?:count|ct|pieces?|bottles?|cans?|cartons?)\b/);
-    let multiplier = pack ? Number(pack[1] || pack[2]) : 1;
+    const count = source.match(/\b(\d{1,7})[\s-]*(?:count|ct|pieces?|bottles?|cans?|cartons?|boxes|cases|cups|pods)\b/);
+    let multiplier = pack != null ? pack : 1;
     if (kind === 'fluid') {
       // Fluid sizes are per item ("3.1 fl oz, 8 Count" is 24.8 fl oz). Reuse the count parser so
       // conflicting pack/item counts never choose one multiplier arbitrarily.

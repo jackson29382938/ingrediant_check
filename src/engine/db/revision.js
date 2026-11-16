@@ -52,8 +52,13 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // brackets, and "less than 2%" written with a sign or a colon. A list headed "Contains:" that holds a capped
   // ingredient is a list. Allergen warnings read bare "flour" and the other words the audit found missing, and no
   // longer fire on "butter beans", "oyster mushrooms" or a "-free" claim. See docs/releases/1.26.4.md.
-  const RULES_REVISION = '2026-11-15.1';
-  const RULES_HASH = '1f4a8078-287099';
+  // 2026-11-16.1 (1.26.5): what 1.26.4 left (docs/AUDIT-2026-11-16.md). An additive the label does not name is
+  // charged after a joining word, a purpose written after an ingredient ("sugar added to promote color
+  // retention") and a footnote digit after a dye ("red 401") no longer hide it, "contains soybean oil" is a
+  // statement about the food and keeps its cap, "does not contain" is a denial, and a claim typed as an entry
+  // of its own ("…, organic, non-gmo") counts as a title claim does. See docs/releases/1.26.5.md.
+  const RULES_REVISION = '2026-11-16.1';
+  const RULES_HASH = '2520cb58-288923';
   const _exports = AIRmodule('revision', { RULES_REVISION, RULES_HASH });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 })();

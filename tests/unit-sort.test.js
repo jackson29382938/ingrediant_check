@@ -234,3 +234,48 @@ test('one unit table: every unit has a family, a size, and a name', () => {
   assert.equal(U.defaultUnit('fluid', 'metric'), '100ml');
   assert.equal(U.defaultUnit('count', 'metric'), 'ct');
 });
+
+// docs/AUDIT-2026-11-16.md, finding 1: a pack was read only as "Pack of N" or "N pack", so every other way of
+// writing one priced the listing as a single item and the price per ounce came out N times too high.
+test('a pack size is read however the title writes it, and the size is the whole pack', () => {
+  const ounces = (title, store = 'www.amazon.com') => { const q = U.parseQuantity(title, store); return q ? q.ounces : null; };
+  near(ounces('Black Beans 15.5 oz (Case of 12)'), 186, 1e-3);
+  near(ounces('Protein Bars 2.12 oz bars, box of 12'), 25.44, 1e-3);
+  near(ounces('Sparkling Water 8 x 12 fl oz'), 96, 1e-3);
+  near(ounces('Sparkling Water 12 fl oz x 8'), 96, 1e-3);
+  near(ounces('Peanut Butter Twin Pack 2 x 40 oz'), 80, 1e-3);
+  near(ounces('Soup, 10.75 Ounce Cans (Pack of 12)'), 129, 1e-3);
+  // Each store's own wording.
+  near(ounces('Nudeln 500 g (5er Pack)', 'www.amazon.de'), 5 * 17.63698, 1e-3);
+  near(ounces('Mineralwasser 6 x 1,5 l', 'www.amazon.de'), 6 * 50.7210, 1e-3);
+  near(ounces('P\u00e2tes 500 g (Lot de 6)', 'www.amazon.fr'), 6 * 17.63698, 1e-3);
+  near(ounces('Pasta 500 g (Confezione da 6)', 'www.amazon.it'), 6 * 17.63698, 1e-3);
+  near(ounces('Arroz 1 kg (Paquete de 5)', 'www.amazon.es'), 5 * 35.27396, 1e-3);
+  near(ounces('Rijst 1 kg (Verpakking van 4)', 'www.amazon.nl'), 4 * 35.27396, 1e-3);
+  // The item and the total it multiplies to are one statement, and the total is the size.
+  near(ounces('Nudeln 6 x 500 g (3 kg)', 'www.amazon.de'), 105.8219, 1e-3);
+  near(ounces('Soda 12 fl oz cans, 12 pack (144 fl oz)'), 144, 1e-3);
+  // Two pack sizes that disagree are not explained by the title, and nothing is worked out from them.
+  assert.equal(ounces('Chips 1 oz (Pack of 2) 6 x 1 oz'), null);
+  // A weight beside a count may be the total or one item: still declined, now for boxes and cases too.
+  assert.equal(ounces('KIND Bars, 1.4 oz, 12 Count'), null);
+  assert.equal(ounces('Mac & Cheese 7.25 oz Box, 5 Boxes'), null);
+  // The price that follows: a twelve-pack is no longer twelve times as dear as it is.
+  near(card('Black Beans 15.5 oz (Case of 12)', 14.99).unitPrice, 14.99 / 186, 1e-3);
+  near(card('Nudeln 500 g (5er Pack)', 6.99, '', {}, 'www.amazon.de').unitPrice, 6.99 / (5 * 17.63698), 1e-3);
+  near(card('Black Beans 15.5 oz (Case of 12)', 14.99).unitPrices.count, 14.99 / 12, 1e-6);
+});
+
+test('a fraction is a fraction, and a full stop groups thousands where a comma is the decimal mark', () => {
+  const ounces = (title, store = 'www.amazon.com') => { const q = U.parseQuantity(title, store); return q ? q.ounces : null; };
+  near(ounces('Milk, 1/2 gallon'), 64, 1e-6);
+  near(ounces('Milk, Half Gallon'), 64, 1e-6);
+  near(ounces('Coffee 1 1/2 lb bag'), 24, 1e-6);
+  near(ounces('Cream 1/2 pint'), 8, 1e-6);
+  near(ounces('Reis 1.000 g', 'www.amazon.de'), 35.27396, 1e-4);
+  near(ounces('Saft 1.500 ml', 'www.amazon.de'), 50.7210, 1e-4);
+  // A converted weight keeps its decimals, and on a full-stop store a comma still groups thousands.
+  near(ounces('Protein 2.268 kg', 'www.amazon.de'), 80, 1e-3);
+  near(ounces('Rice 1,000 g'), 35.27396, 1e-4);
+  near(ounces('Rice 1.5 kg'), 52.91094, 1e-4);
+});

@@ -548,7 +548,8 @@ test('brackets inside brackets are read by depth', () => {
   assert.deepEqual(engine.parse('milk chocolate (sugar, emulsifier: lecithins (soy), vanillin), salt'),
     ['milk chocolate', 'sugar', 'soy lecithin', 'vanillin', 'salt']);
   assert.deepEqual(engine.parse('sugar (cane (organic)), salt'), ['sugar', 'cane', 'organic', 'salt']);
-  assert.equal(score('sugar (cane (organic)), salt').score, score('sugar, cane, organic, salt').score);
+  // (Compared with the same words in one bracket: "organic" as an entry of its own is a typed claim, worth half.)
+  assert.equal(score('sugar (cane (organic)), salt').score, score('sugar (cane, organic), salt').score);
   // An unclosed bracket is read as closed at the end, so what follows it is still split.
   assert.deepEqual(engine.parse('water, stabiliser (pectin, sugar, salt'), ['water', 'stabiliser', 'pectin', 'sugar', 'salt']);
 });
@@ -1193,4 +1194,17 @@ test('allergen warnings read the words the audit found missing, and not their lo
   for (const [id, words] of Object.entries(clear)) for (const word of words) assert.ok(!warned(word, id), `${word} should not raise ${id}`);
   // A flag never moves a score.
   assert.equal(engine.score({ ingredients_text: 'enriched flour, water' }, { allergens: ['wheat'] }).score, engine.score({ ingredients_text: 'enriched flour, water' }).score);
+});
+
+// docs/AUDIT-2026-11-16.md, finding 6: a sentence that denies an allergen raised its warning.
+test('a sentence that denies an allergen does not raise its warning', () => {
+  const flags = (text, ids) => engine.score({ ingredients_text: text }, { allergens: ids }).flags.map(f => f.id).sort();
+  assert.deepEqual(flags('Oats, salt. Contains no nuts.', ['treeNut']), []);
+  assert.deepEqual(flags('Oats, salt. Does not contain peanuts.', ['peanut']), []);
+  assert.deepEqual(flags('Oats, salt. This product does not contain any milk.', ['milk']), []);
+  // A declaration still does, and so does a "may contain" warning.
+  assert.deepEqual(flags('Oats, salt. Contains: tree nuts, milk.', ['treeNut', 'milk']), ['milk', 'treeNut']);
+  assert.deepEqual(flags('Oats, salt. Contains no peanuts, may contain milk.', ['peanut', 'milk']), ['milk']);
+  // A "-free" claim followed by a dash is still a claim.
+  assert.deepEqual(flags('Yogurt cultures, gluten free - strawberry', ['wheat']), []);
 });

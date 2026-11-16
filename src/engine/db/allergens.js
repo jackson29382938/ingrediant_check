@@ -277,7 +277,7 @@ const DIETS = [
 // "Gluten-free oats", "wheat-free tamari" and "egg-free noodles" name what the ingredient is free of, and each
 // raised the warning it denies. The claim is taken out before the entry is read; the rest of it still is
 // ("lactose-free milk" is milk, "wheat-free tamari" is soy).
-const FREE_CLAIM = /(?:^|\s)[a-zß-ÿœ\u0100-\u017f]+[- ]free(?![a-zß-ÿœ\u0100-\u017f-])/gi;
+const FREE_CLAIM = /(?:^|\s)[a-zß-ÿœ\u0100-\u017f]+[- ]free(?![a-zß-ÿœ\u0100-\u017f])/gi;
 const withoutFreeClaims = entry => (/free/i.test(entry) ? String(entry).replace(FREE_CLAIM, ' ').trim() : entry);
 
 // Scan a parsed ingredient list. `selected` is the list of ids the user asked to be warned about.

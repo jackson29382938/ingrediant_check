@@ -25,7 +25,9 @@ const PIECES = ['1', '1,', '1.', ' ', ',', 'a', 'oil ', '(', 'ingredients\n', 'I
   '(a, ', 'may contain (', 'b (c), ', ')', 'arom',
   // A run of hyphenated letters is one entry too long for the lookup memo, and every rule asked for its
   // spaced form afresh: 40,000 characters took a second (docs/AUDIT-2026-11-15.md, finding 12).
-  'a-', 'ab-cd ', 'and ', '<a ', 'sugar1 '];
+  'a-', 'ab-cd ', 'and ', '<a ', 'sugar1 ',
+  // The pack and fraction forms the unit price reads, and the clauses the list parser takes off an entry.
+  '6 x ', '1/2 ', '1.000 g ', '5er pack ', 'case of 12 ', 'sugar added to ', 'does not contain ', 'red 401 '];
 const INPUTS = PIECES.map(p => p.repeat(Math.ceil(LENGTH / p.length)).slice(0, LENGTH) + '!');
 // A quantity is read from the end of an entry, so a long run that ends the way a quantity does (a digit,
 // a percent sign, a separator and a number) must not be rescanned from every start position.

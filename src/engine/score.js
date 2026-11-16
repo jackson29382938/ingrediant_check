@@ -64,7 +64,7 @@ function softCeiling(raw) {
 // "Absolutely no...", "100% free of..." (the % broke the delimiter), and the suffix form "MSG free".
 // Delimiters now include % and dashes, the vocabulary is broader, and a separate pass handles
 // "<thing> free" / "<thing>-free", which reads backwards from every prefix rule.
-const NEGATION = /(^|[.;,()%\-–—])\s*(?:\d+%\s*)?(?:(?:made|produced|prepared|formulated|packed)\s+(?:with\s+)?|certified\s+|absolutely\s+|completely\s+|totally\s+|guaranteed\s+)?(?:contains\s+)?(?:no|non|not|never|none|free\s+(?:of|from)|without|zero|devoid\s+of|0g?\s+of)\b[^.;,()]*/gi;
+const NEGATION = /(^|[.;,()%\-–—])\s*(?:\d+%\s*)?(?:(?:made|produced|prepared|formulated|packed)\s+(?:with\s+)?|certified\s+|absolutely\s+|completely\s+|totally\s+|guaranteed\s+)?(?:(?:this product\s+|it\s+)?(?:does|do)\s+not\s+contain(?:\s+any)?|(?:contains\s+)?(?:no|non|not|never|none|free\s+(?:of|from)|without|zero|devoid\s+of|0g?\s+of))\b[^.;,()]*/gi;
 const NEGATION_SUFFIX = /\b[a-z][a-z0-9 '&-]{1,28}?[- ]free\b/gi;
 const stripNegations = t => t.replace(NEGATION, '$1 ').replace(NEGATION_SUFFIX, ' ');
 
@@ -87,13 +87,17 @@ const stripNegations = t => t.replace(NEGATION, '$1 ').replace(NEGATION_SUFFIX, 
 // `non` is deliberately absent from the head: "non-gmo", "non-dairy" and "nonfat" are adjectives
 // on real ingredients, and it was bare `non` in the old NEGATION pattern that erased
 // "Non-GMO Soybean Oil" down to nothing. `not` excludes "not from concentrate", which is a juice.
-const DENIAL_HEAD = /^(?:\d+%\s*)?(?:(?:made|produced|prepared|formulated|packed)\s+(?:with\s+)?|certified\s+|absolutely\s+|completely\s+|totally\s+|guaranteed\s+)?(?:contains\s+)?(?:no|not(?!\s+from\b)|never|none|free\s+(?:of|from)|without|zero|devoid\s+of|0\s*g?\s+of)\b/i;
+// A denial is also written as a sentence: "does not contain aspartame" was capped as if it held the sweetener
+// (60 where "aspartame-free" scores 96), and "this product does not contain peanuts" raised the peanut warning.
+const DENIAL_HEAD = /^(?:\d+%\s*)?(?:(?:made|produced|prepared|formulated|packed)\s+(?:with\s+)?|certified\s+|absolutely\s+|completely\s+|totally\s+|guaranteed\s+)?(?:(?:this product\s+|it\s+)?(?:does|do)\s+not\s+contain(?:\s+any)?\b|(?:contains\s+)?(?:no|not(?!\s+from\b)|never|none|free\s+(?:of|from)|without|zero|devoid\s+of|0\s*g?\s+of)\b)/i;
 const DENIAL_SUFFIX_ENTRY = /^[a-z][a-z0-9 '&-]{0,28}[- ]free$/i;
 // The same denials in each label language: "sans conservateurs", "ohne Zuckerzusatz", "bez
 // konserwantów" and Turkish "koruyucu içermez" stayed in the list as unreadable ingredients (90
 // where "oats, salt, no preservatives" scores 94), and fused "konservierungsstofffrei" likewise.
 const LOCAL_DENIAL_HEAD = /^(?:sans|sin|senza|ohne|zonder|utan|bez|sem|geen|ingen|kein(?:e[nr]?)?|aucun(?:e|s)?|ne contient (?:pas|aucun)(?: de| d['’])?|enth[äa]lt kein(?:e[nr]?)?|no contiene|non contiene|n[ãa]o cont[ée]m|bevat geen|inneh[åa]ller (?:inga|ej|inte)|nie zawiera)(?![a-zß-ÿ\u0100-\u017f])/i;
 const LOCAL_DENIAL_SUFFIX = /^[a-zß-ÿ\u0100-\u017f][a-zß-ÿ\u0100-\u017f '-]{0,40}\s(?:i[çc]ermez|yoktur|kullan[ıi]lmam[ıi][şs]t[ıi]r|eklenmemi[şs]tir)$|^[a-zäöüßåæø]{3,28}(?:frei|vrij|fri)$/i;
+// A claim that stands as a whole entry, with no ingredient to qualify (score(), typedClaim).
+const TYPED_CLAIM = /^(?:(?:certified\s+)?(?:usda\s+|eu\s+)?organic|bio|non[- ]?gmo(?: project verified)?|gmo[- ]free|fermented|sprouted|grass[- ]fed|pasture[- ]raised|wild[- ]caught|free[- ]range|cage[- ]free|regenerative(?:ly farmed)?|whole grain|probiotic|all[- ]natural)$/i;
 // "(non hydrogenated)" is a claim about the oil beside it, in any language.
 const CLAIM_ENTRY = /^(?:non[- ]?gmo|gmo[- ]free|all[- ]natural|kosher|halal|certified (?:(?:usda |eu )?organic|non[- ]?gmo(?: project verified)?|kosher|halal|vegan|gluten[- ]free|fair[- ]trade|biodynamic)|(?:first )?cold[- ]press(?:ed|ing)?|first press(?:ed|ing)?|extra virgin|unrefined|non[- ]?hydrogenated|unhydrogenated|non[- ]hydrog[ée]n[ée]e?s?|nicht geh[äa]rtet(?:e[snmr]?)?|no hidrogenad[oa]s?|n[ãa]o hidrogenad[oa]s?|non idrogenat[oaie]|niet gehydrogeneerde?|ej h[äa]rdad|oh[äa]rdad|nieuwodorniony|nie uwodorniony|hidrojenize olmayan)$/i;
 
@@ -422,6 +426,7 @@ const MARKERS = /[*°¹²³†‡#®™©℠]+/g;
 // "sugar^", "§" and "∆" (each read as nothing where "cane sugar" costs 15). Only at the ends, because inside
 // an entry "+" and "^" are part of what is written ("10^9 cfu").
 const EDGE_START = /^[\s*•\-–:"“”„«»‘’'`=~>+^§◊∆ª]+/;
+const FOOTNOTE_MARK = /^\s*[*°¹²³†‡#+^§◊∆ª]/;
 const EDGE_END = ' "“”„«»‘’\'`!?:;=~+^§◊∆ª';
 // A loop, not /[...]+$/, which tries every start position: a run of 6,000 colons would cost a second.
 function trimEnd(s) {
@@ -577,7 +582,8 @@ function expandEntry(raw, depth = 0, ids = { n: 0 }, parent = 0) {
   // lecithins (soy), flavouring: vanillin)" at the inner ")", so ", flavouring: vanillin)" stayed in
   // the parent entry and was charged there as an unspecified flavouring. A sub-ingredient's own
   // brackets are expanded the same way, a few levels deep; below that they are read flat as before.
-  const pieces = [{ ing: tidy(head), fam, parent }];
+  // `note`: the entry was written with a footnote mark in front ("*Organic"), as a label's own note is.
+  const pieces = [{ ing: tidy(head), fam, parent, ...(FOOTNOTE_MARK.test(head) ? { note: true } : {}) }];
   // UK labels drop the E from a code in a function word's bracket: "emulsifier (472e)", "raising
   // agents (503, 500)", "preservative (223)". Read there, the code is the E-number it names; anywhere
   // else a bare number stays a number.
@@ -657,8 +663,14 @@ const DECLARATION_ITEMS = /[,;]|\s(?:and|&|und|et|y|e|en|och|ve|oraz)\s/i;
 function allergenDeclaration(text) {
   const head = DECLARATION_HEAD.exec(text);
   if (!head || !db.allergens) return false;
+  // "Contains no nuts" denies what it names: read as a declaration it raised the tree nut warning.
+  if (isDenialEntry(text)) return false;
   const items = text.slice(head[0].length).replace(/\([^)]*\)/g, ' ').split(DECLARATION_ITEMS)
     .map(item => item.trim().replace(/[.:]$/, '')).filter(Boolean);
+  // An allergen line names sources (soy, wheat), never a capped ingredient. "Contains soybean oil." after a
+  // list, and "contains high fructose corn syrup" inside one, were set aside as allergen lines and the cap went
+  // with them (94 and NOVA 1 where the list scores 63 and 30). They are statements about what is in the food.
+  if (items.some(item => capsFor(item).length > 0)) return false;
   return items.length > 0 && items.length <= 14
     && items.every(item => NO_ALLERGEN.test(item) || db.allergens.ALLERGENS.some(a => a.m.test(item)));
 }
@@ -724,7 +736,10 @@ const LEAD_WORD = /^(?:(?:and|&|plus|with|including|also|added|or|und|oder|sowie
 function withoutLeadWord(ing) {
   if (ing.length > LONG_ENTRY || !LEAD_WORD.test(ing) || MAY_CONTAIN.test(ing) || LABEL_NOTE.test(ing) || isDenialEntry(ing) || allergenDeclaration(ing)) return ing;
   const rest = ing.replace(LEAD_WORD, '');
-  if (isFunctionWord(rest)) return ing;
+  // "Contains: sweeteners" is the statement printed beside the named ones. After a joining word the function
+  // word is an ingredient the label did not name: "oats, salt, and preservative" scored 90 where the list
+  // without "and" scores 78.
+  if (/^contains?\b/i.test(ing) && isFunctionWord(rest)) return ing;
   const read = text => recognised(withoutOrganic(text) || text);
   return chargeOf(withoutOrganic(rest) || rest) > chargeOf(ing) || (read(rest) && !read(ing)) ? rest : ing;
 }
@@ -735,12 +750,32 @@ function withoutLeadWord(ing) {
 // polysorbates are named, so one is dropped only when the rulebase then charges or reads more: "red 3",
 // "blue 1" and "vitamin d3" keep theirs.
 const FOOTNOTE_DIGIT = /^(.*[a-zß-ÿœ\u0100-\u017f)])\s?[1-9]$/i;
-function withoutFootnote(ing) {
+// The same mark after a name that ends in its own number: "red 401" is Red 40 with footnote 1, and scored 90
+// where "red 40" scores 18. Only a name, a space and a one- or two-digit number, so an E-number is never
+// shortened ("e 1422" is a modified starch and "e 142" a dye). Food lists only: on a personal-care label
+// "red 33" is a dye of its own, not Red 3 with a footnote.
+const FOOTNOTE_AFTER_NUMBER = /^(.*[a-zß-ÿœ\u0100-\u017f] \d{1,2})[1-9]$/i;
+function withoutFootnote(ing, food = true) {
   if (ing.length > LONG_ENTRY) return ing;
-  const m = FOOTNOTE_DIGIT.exec(ing);
+  const m = FOOTNOTE_DIGIT.exec(ing) || (food && FOOTNOTE_AFTER_NUMBER.exec(ing));
   if (!m) return ing;
   const rest = m[1];
   return chargeOf(rest) > chargeOf(ing) || (recognised(rest) && !recognised(ing)) ? rest : ing;
+}
+
+// What an ingredient is there for, written after it: "sugar added", "sugar added to promote color retention",
+// "dextrose for browning", "sodium benzoate as a preservative". A rule anchored at the end of the entry read
+// none of them (canned peaches with sugar scored 80 where the list scores 65; about 150 of the charged names
+// in the fixtures were lost this way). The clause is taken off only when the rulebase then charges or reads
+// more, so "color added" (a rule of its own), "vegetable oil for frying" and "ready to eat" stay as written.
+const PURPOSE_CLAUSE = /^(.{2,60}?)\s+(?:added(?:\s+(?:to|for|as)\s.*)?|(?:to|for|as)\s+\S.*)$/i;
+function withoutPurpose(ing) {
+  if (ing.length > LONG_ENTRY || !/\s(?:added|to|for|as)(?:\s|$)/i.test(ing) || MAY_CONTAIN.test(ing) || LABEL_NOTE.test(ing) || isDenialEntry(ing)) return ing;
+  const m = PURPOSE_CLAUSE.exec(ing);
+  if (!m) return ing;
+  const rest = m[1];
+  const read = text => recognised(withoutOrganic(text) || text);
+  return chargeOf(withoutOrganic(rest) || rest) > chargeOf(ing) || (read(rest) && !read(ing)) ? rest : ing;
 }
 
 // A word broken across two lines keeps its hyphen, and the line break then reads as a space:
@@ -824,7 +859,9 @@ function apart(text) {
   });
 }
 
-function parseEntries(text) {
+// `food`: false for a personal-care or supplement label (db/product-ratings.js), where the readings that
+// belong to food lists alone are left out.
+function parseEntries(text, food = true) {
   // "FD&C Red No. 40" and "Red #40" are how US labels print dyes. The full stop after "No" ended the
   // entry ("fd&c red no" / "40"), so the dye went unread; both now read as "no 40".
   const numbered = apart(text).replace(/\bno\.\s*(?=\d)/gi, 'no ').replace(/#\s*(?=\d)/g, 'no ');
@@ -849,9 +886,11 @@ function parseEntries(text) {
     strainRun = strain;
     for (const x of expandEntry(part, 0, ids)) {
       for (const e of splitConjunction(x)) {
-        const named = withoutLeadWord(e.ing);
+        const led = withoutLeadWord(e.ing);
+        const named = food ? withoutPurpose(led) : led;
         const bare = withoutOrganic(named);
-        out.push({ ing: withoutFootnote(withUmlauts(rejoinWrapped(bare || named))), pos, fam: e.fam, parent: e.parent, ...(bare ? { organic: true } : {}),
+        out.push({ ing: withoutFootnote(withUmlauts(rejoinWrapped(bare || named)), food), pos, fam: e.fam, parent: e.parent, ...(bare ? { organic: true } : {}),
+          ...(e.note ? { note: true } : {}),
           ...(e.unassessed ? { unassessed: true } : {}),
           ...(share != null ? { share } : {}), ...(minor ? { minor: true } : {}) });
       }
@@ -1033,7 +1072,7 @@ const HTML_TAG = new RegExp('<\\/?(?:a|abbr|address|article|aside|b|bdi|bdo|big|
   + '|legend|li|link|main|mark|meta|nav|noscript|ol|option|p|pre|q|s|samp|script|section|select|small|span|strike|strong|style|sub|summary'
   + '|sup|svg|table|tbody|td|textarea|tfoot|th|thead|title|tr|tt|u|ul|var|wbr)(?![a-z0-9-])[^<>]{0,200}>'
   + '|<\\/[a-z][^<>]{0,200}>|<[a-z][a-z0-9-]{0,40}\\s[^<>]{0,200}=[^<>]{0,200}>', 'gi');
-const ANGLE_TEXT = /<([a-z][^<>]{0,200})>/gi;
+const ANGLE_TEXT = /<([a-zß-ÿœ\u0100-\u017f][^<>]{0,200})>/gi;
 // A hyphen is printed in more than one character: U+2010, the non-breaking U+2011 a page uses to keep
 // "high-fructose" on one line, the figure dash, and an en dash set between two words with no space. The
 // rules are written with the keyboard hyphen, so "high-fructose corn syrup" written with U+2011 and "glucose-fructose syrup" with an en dash
@@ -1105,7 +1144,7 @@ function cleanText(value) {
 // ---------------------------------------------------------------- scoring
 // options: { weights, allergens, diets, avoidList }
 function score(product, options = {}) {
-  const rating = db.productRatings?.rate(product, options, parseEntries);
+  const rating = db.productRatings?.rate(product, options, text => parseEntries(text, false));
   if (rating) { rating.readable = isReadable(rating); return rating; }
   const W = db.categories ? db.categories.resolveWeights(options.weights) : {};
   // Ratings a model gave to ingredients no rule knows, kept with the saved reading (db/ai-ratings.js).
@@ -1120,7 +1159,7 @@ function score(product, options = {}) {
   // A hyphen left from a line break keeps its spaces in Open Food Facts text ("mono - i diglicerydy",
   // "glucose - fructosestroop", "zuurte - regelaar"), which no rule reads; it is closed up.
   const rawTxt = cleanText(product.ingredients_text || '').replace(/_+/g, '').replace(/[[{]/g, '(').replace(/[\]}]/g, ')')
-    .replace(/([a-zß-ÿœ\u0100-\u017f]) +- +([a-zß-ÿœ\u0100-\u017f])/gi, '$1-$2');
+    .replace(/([a-zß-ÿœ\u0100-\u017f]) +[-\u2013] +([a-zß-ÿœ\u0100-\u017f])/gi, '$1-$2');
   // Parse the list as written, then drop only the entries that are themselves denials. The
   // scoring surface is rebuilt from what survives, so caps and penalties see the real ingredients
   // and never see "no artificial colors". See DENIAL_ENTRY above for why this replaced running
@@ -1159,9 +1198,17 @@ function score(product, options = {}) {
   // Organic footnotes ("*Ingrédients issus de l'agriculture biologique") are set aside from scoring
   // but are claims printed on the regulated list, as "*organic" on its own already counted. So are
   // claim entries: "soybeans (non-GMO)" lost the bonus that "non-GMO soybeans" earns.
-  const notes = [...parsed.filter(e => LABEL_NOTE.test(e.ing) || CLAIM_ENTRY.test(e.ing)).map(e => e.ing),
+  // A claim typed into the list as an entry of its own ("…, organic, non-gmo, fermented, sprouted") is the
+  // seller's word, as a title is: appended to sugar and palm oil, eight such words raised 57 to 72. It counts
+  // as a title claim does (half, labelled unverified). A claim that qualifies an ingredient ("organic cane
+  // sugar", "soybeans (non-GMO)"), a footnote ("*Organic") and a note sentence are the label's own and count
+  // in full, as before.
+  const typedClaim = e => e.parent === 0 && !e.note && TYPED_CLAIM.test(e.ing);
+  const typedClaims = parsed.filter(typedClaim).map(e => e.ing).join(', ');
+  const notes = [...parsed.filter(e => (LABEL_NOTE.test(e.ing) || CLAIM_ENTRY.test(e.ing)) && !typedClaim(e)).map(e => e.ing),
     ...(parsed.some(e => e.organic) ? ['organic'] : [])].join(', ');
-  const bonusText = (notes ? txt + ', ' + notes : txt).replace(/\bcultured\s+(dextrose|celery|sugar|corn syrup|wheat|whey)\b[^,;.]*/gi, ' ');
+  const listed_ = typedClaims ? entries.filter(e => !typedClaim(e)).map(e => e.ing).join(', ') : txt;
+  const bonusText = (notes ? listed_ + ', ' + notes : listed_).replace(/\bcultured\s+(dextrose|celery|sugar|corn syrup|wheat|whey)\b[^,;.]*/gi, ' ');
 
   // Only the ingredient list is strong evidence. Seller-written surfaces — the marketing title AND
   // the feature bullets — are claims, worth half and labelled unverified. Bullets used to feed the
@@ -1171,7 +1218,7 @@ function score(product, options = {}) {
   // "Made without artificial colors" is an absence, and reading it as a presence condemned clean
   // products for their own marketing. This is where that pass belongs, and it used to be missing
   // here while running over the ingredient list instead.
-  const hayTitle = stripNegations((product.name || '') + ' ' + (product.labels || ''))
+  const hayTitle = stripNegations((product.name || '') + ' ' + (product.labels || '') + (typedClaims ? ' ' + typedClaims : ''))
     .toLowerCase().replace(NOT_REAL_BUTTER, '$1 spread');
 
   const prov = db.provenance;

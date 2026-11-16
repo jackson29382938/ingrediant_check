@@ -654,10 +654,15 @@ test('a joining word left in front of an entry does not hide the ingredient', ()
   assert.equal(score('Milch, Sahne, und Zucker').score, score('Milch, Sahne, Zucker').score);
   assert.equal(engine.parse('Milk, and organic cane sugar')[1], 'cane sugar', 'the organic word is still taken off');
   assert.ok(score('Milk, and organic cane sugar').good.length >= score('Milk, cane sugar').good.length);
-  // The word stays when taking it off reads nothing more: an E-number, a statement, a function word.
+  // The word stays when taking it off reads nothing more: an E-number, and the statement "contains sweeteners".
   assert.deepEqual(engine.parse('water, e 330'), ['water', 'e 330']);
   assert.deepEqual(reasons(score('water, contains sweeteners')), []);
-  assert.deepEqual(engine.parse('water, and emulsifier'), ['water', 'and emulsifier']);
+  assert.deepEqual(reasons(score('water, contains: sweeteners')), []);
+  // An additive the label did not name is still an ingredient after a joining word (90 against 78).
+  for (const word of ['preservative', 'stabilizer', 'emulsifier', 'color', 'Konservierungsstoff']) {
+    assert.equal(score(`Oats, salt, and ${word}`).score, score(`Oats, salt, ${word}`).score, word);
+  }
+  assert.deepEqual(engine.parse('water, and emulsifier'), ['water', 'emulsifier']);
   // "Contains:" in front of a list is a heading.
   assert.equal(score('Contains: sugar, salt').score, score('Sugar, salt').score);
 });
@@ -724,8 +729,74 @@ test('a list headed "Contains:" is a list when it holds a capped ingredient, and
   for (const line of ['Contains: Milk, Soy.', 'Contains wheat, milk, egg and soy.', 'CONTAINS: PEANUTS, TREE NUTS (ALMONDS), SOY LECITHIN', 'Allergens: milk, wheat gluten']) {
     assert.equal(score(line).readable, false, line);
   }
-  // After a list it is the allergen line it always was.
-  assert.equal(score('Oats, honey. Contains: soybean oil, wheat.').score, score('Oats, honey').score);
+  // After a list an allergen line is set aside as it always was.
+  assert.equal(score('Oats, honey. Contains: wheat, soy.').score, score('Oats, honey').score);
+});
+
+// ---- docs/AUDIT-2026-11-16.md: what 1.26.4 left
+
+test('a purpose written after an ingredient does not hide it', () => {
+  for (const [written, plain] of [['Milk, salt, sugar added', 'Milk, salt, sugar'],
+    ['Peaches, water, sugar added to promote color retention', 'Peaches, water, sugar'],
+    ['Oats, dextrose for browning, salt', 'Oats, dextrose, salt'], ['Oats, cane sugar as a sweetener, salt', 'Oats, cane sugar, salt']]) {
+    assert.equal(score(written).score, score(plain).score, written);
+    assert.deepEqual(engine.parse(written), engine.parse(plain), written);
+  }
+  // Left as written when taking the clause off reads nothing more, or a rule reads the phrase whole.
+  // (A rule that is not anchored reads the entry with its clause: corn syrup is capped either way.)
+  assert.equal(score('Oats, corn syrup to retain moisture, salt').score, score('Oats, corn syrup, salt').score);
+  for (const whole of ['color added', 'vegetable oil for frying', 'ready to eat', 'vitamin d3 added', 'salt added to enhance flavor', 'corn syrup to retain moisture']) {
+    assert.deepEqual(engine.parse(whole), [whole], whole);
+  }
+  assert.ok(costOf(score('Rice, salt, bht added to preserve freshness'), /bht/i) > 0);
+});
+
+test('a footnote digit after a name that ends in a number is dropped, and an E-number is never shortened', () => {
+  assert.equal(score('Oats, red 401, salt').score, score('Oats, red 40, salt').score);
+  assert.equal(score('Oats, yellow 51, salt').score, score('Oats, yellow 5, salt').score);
+  assert.equal(score('Oats, polysorbate 801, salt').score, score('Oats, polysorbate 80, salt').score);
+  for (const name of ['e 1422', 'e1422', 'e 142', 'e 1001', 'red 40', 'yellow 6', 'vitamin b12', 'polysorbate 60']) assert.deepEqual(engine.parse(name), [name], name);
+  // A personal-care label keeps its dyes as written: Red 33 is a dye of its own there.
+  const shampoo = engine.score({ name: 'Moisturizing Shampoo', ingredients_text: 'Water, Sodium Laureth Sulfate, Cocamidopropyl Betaine, Fragrance, Red 33, Yellow 10' });
+  assert.ok(!JSON.stringify(shampoo).toLowerCase().includes('red 3"'), 'Red 33 was read as Red 3');
+});
+
+test('"contains" before a capped ingredient is a statement about the food, not an allergen line', () => {
+  assert.equal(score('Oats, salt. Contains soybean oil.').score, score('Oats, salt, soybean oil').score);
+  assert.equal(score('Oats, contains high fructose corn syrup, salt').score, score('Oats, high fructose corn syrup, salt').score);
+  const flagged = score('Oats, salt. Contains soybean oil.', { allergens: ['soy'] });
+  assert.deepEqual(flagged.flags.map(f => f.id), ['soy'], 'the soy warning is kept');
+  // A source with no capped ingredient is still an allergen line.
+  for (const line of ['Contains: soy, wheat.', 'Contains milk and soy ingredients.', 'Contains: Tree Nuts (Almonds), Peanuts', 'Contains: sulphites']) {
+    assert.equal(score(`Oats, honey. ${line}`).score, score('Oats, honey').score, line);
+  }
+});
+
+test('a denial written as a sentence is a denial', () => {
+  for (const text of ['Oats, does not contain aspartame', 'Oats, this product does not contain red 40', 'Oats. Does not contain any high fructose corn syrup.', 'Oats, contains no artificial colors']) {
+    assert.equal(score(text).score, score('Oats').score, text);
+  }
+});
+
+test('a spaced en dash inside a comma list, and angle brackets round an accented word, are read', () => {
+  assert.equal(score('Oats, glucose \u2013 fructose syrup, salt').score, score('Oats, glucose-fructose syrup, salt').score);
+  assert.equal(score('Eau, <\u00e9mulsifiant>, sel').score, score('Eau, \u00e9mulsifiant, sel').score);
+});
+
+test('a claim typed as an entry of its own counts as a title claim does', () => {
+  const junk = 'Sugar, palm oil, corn starch, salt';
+  const typed = engine.score({ name: 'Candy', ingredients_text: `${junk}, organic, non-gmo, fermented, sprouted, grass-fed, pasture-raised, wild-caught` });
+  const titled = engine.score({ name: 'Organic Non-GMO Fermented Sprouted Grass-Fed Pasture-Raised Wild-Caught Candy', ingredients_text: junk });
+  assert.equal(typed.score, titled.score);
+  assert.ok(typed.good.filter(g => !g.organic).every(g => /unverified/.test(g.why)), JSON.stringify(typed.good));
+  // The label's own claims count in full: one that qualifies an ingredient, a footnote, a bracket, a note.
+  const full = score('Organic cane sugar, palm oil, salt').score;
+  for (const text of ['Cane sugar*, palm oil, salt. *Organic', 'Cane sugar (organic), palm oil, salt', 'Cane sugar*, palm oil, salt. *Certified organic ingredients']) {
+    assert.equal(score(text).score, full, text);
+  }
+  assert.ok(score('Cane sugar, palm oil, salt, organic').score < full);
+  // An oil's pressing is how the oil is named, and stays evidence from the list.
+  assert.equal(score('Olive oil, extra virgin').score, score('Extra virgin olive oil').score);
 });
 
 test('two lines with no comma stay one wrapped ingredient', () => {
