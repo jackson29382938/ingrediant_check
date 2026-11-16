@@ -280,7 +280,14 @@ const hitsAny = (rules, ing, pick = r => r) => rules.some(r => hits1(pick(r), in
 // A hyphen inside a phrase is often just a space: "modified corn-starch", "natural-flavors",
 // "soya-lecithin" escaped their rules. Rules are tried on both forms, because some need the hyphen
 // ("mono- und", "demi-écrémé", "L-cysteine") and the text itself is left as written.
-const spaced = s => (s.includes('-') ? s.replace(/([a-zß-ÿœ\u0100-\u017f])-(?=[a-zß-ÿœ\u0100-\u017f])/gi, '$1 ') : s);
+// The spaced form of the last entry asked about is kept: every rule asks for the same one in turn, and on an
+// entry too long for the lookup memo below each asked afresh (40,000 characters of "a-a-a-…" took a second).
+let spacedFrom = '', spacedText = '';
+const spaced = s => {
+  if (!s.includes('-')) return s;
+  if (s !== spacedFrom) { spacedText = s.replace(/([a-zß-ÿœ\u0100-\u017f])-(?=[a-zß-ÿœ\u0100-\u017f])/gi, '$1 '); spacedFrom = s; }
+  return spacedText;
+};
 const eitherForm = (re, s) => re.test(s) || (s.includes('-') && re.test(spaced(s)));
 
 // Which rules read an entry depends on the entry alone, and the same entries come round again and again:
@@ -411,8 +418,11 @@ const MARKERS = /[*°¹²³†‡#®™©℠]+/g;
 // colon or an exclamation mark after it. Each hid the ingredient from every rule anchored at that end
 // ('"sugar"', "sugar!" and "sugar:" were charged nothing; "sugar" costs 14). Only the ends are trimmed:
 // the apostrophe in "flocons d'avoine" and the colon in "emulsifier: lecithins" stay where they are.
-const EDGE_START = /^[\s*•\-–:"“”„«»‘’'`=~>]+/;
-const EDGE_END = ' "“”„«»‘’\'`!?:;=~';
+// Footnote marks other than the ones above sit at an end of the entry too: "cane sugar+", "cocoa butter◊",
+// "sugar^", "§" and "∆" (each read as nothing where "cane sugar" costs 15). Only at the ends, because inside
+// an entry "+" and "^" are part of what is written ("10^9 cfu").
+const EDGE_START = /^[\s*•\-–:"“”„«»‘’'`=~>+^§◊∆ª]+/;
+const EDGE_END = ' "“”„«»‘’\'`!?:;=~+^§◊∆ª';
 // A loop, not /[...]+$/, which tries every start position: a run of 6,000 colons would cost a second.
 function trimEnd(s) {
   let end = s.length;
@@ -422,7 +432,9 @@ function trimEnd(s) {
 // The share in front ("19,5% sucre", "46% flocons d'avoine"), and an ingredient heading left inside
 // the text ("Zutaten: Zucker"), hid the ingredient from rules anchored at the start of the entry.
 // "1% milk" and "2% milk" are a fat level, not a share, and the fat-reduced dairy rule reads them.
-const LEADING_SHARE = /^(?:\d+(?:[.,]\d+)?\s*%|%\s*\d+(?:[.,]\d+)?)\s+(?=\D)(?!(?:\S+\s+){0,2}(?:milk|milkfat|dairy|yogh?urt|cheese|kefir|cream|buttermilk|chocolate milk)\b)/;
+// The share is also written with a sign or in words, and with "of": "<2% sugar", "less than 2% sugar",
+// "2% of sugar". Each left the quantity on the entry and the sugar unread (90 where "sugar (<2%)" scores 68).
+const LEADING_SHARE = /^(?:[<>≤≥]\s*|(?:less than|under|up to)\s+)?(?:\d+(?:[.,]\d+)?\s*%|%\s*\d+(?:[.,]\d+)?)\s+(?:of\s+)?(?=\D)(?!(?:\S+\s+){0,2}(?:milk|milkfat|dairy|yogh?urt|cheese|kefir|cream|buttermilk|chocolate milk)\b)/;
 // The heading is not always followed by a colon. A page prints it on a line of its own and a label photo
 // loses the colon to OCR, so the list arrives as "INGREDIENTS SUGAR, WATER, SALT" and its first entry, the
 // one that weighs most, was "ingredients sugar": charged nothing (80 where the list scores 63, in every
@@ -617,6 +629,16 @@ function joinStatements(parts) {
     if (!may && !DECLARATION_HEAD.test(head)) { out.push(parts[i]); continue; }
     let end = i;
     while (end < parts.length - 1 && !parts.sentenceEnds.has(end)) end++;
+    // A seller sometimes heads the whole list "Contains:". When each item happens to hold an allergen's name
+    // ("Contains: Milk, Wheat Flour, Soybean Oil, Eggs") it read as an allergen line and the product went
+    // unrated. An allergen line names sources (soy, wheat), never a capped ingredient, so a heading with
+    // nothing else beside it and a capped item under it is the list. Without a capped item it stays a
+    // statement: "Contains: Milk, Soy" alone is an allergen line published in place of the list, and must
+    // not be scored as a two-ingredient food.
+    if (!may && i === 0 && end === parts.length - 1) {
+      const items = [parts[0].trimStart().replace(DECLARATION_HEAD, ''), ...parts.slice(1)];
+      if (items.some(item => capsFor(tidy(item.replace(/[()]/g, ' '))).length > 0)) { out.push(...items); break; }
+    }
     const joined = parts.slice(i, end + 1).join(', ');
     // A declaration is only an allergen line when every item in it names an allergen: "Contains: sugar,
     // salt" is a list, and keeps scoring as one.
@@ -670,14 +692,55 @@ const isCharged = p => penaltiesFor(withoutOrganic(p) || p).size > 0 || capsFor(
 const CONJUNCTION = /\s(?:and|or|&|und|oder|et|ou|e|o|y|i|en|och|eller|ve|veya|oraz|lub)\s|\s*\/\s*/i;
 function splitConjunction(e) {
   const ing = tidy(e.ing);
-  if (!CONJUNCTION.test(ing) || MAY_CONTAIN.test(ing) || LABEL_NOTE.test(ing) || allergenDeclaration(ing)) return [e];
-  if (PENALTIES.some(r => eitherForm(r.m, ing)) || capsFor(ing).length) return [e];
+  // A denial is one claim however many things it denies: "no artificial colors or preservatives".
+  if (!CONJUNCTION.test(ing) || MAY_CONTAIN.test(ing) || LABEL_NOTE.test(ing) || isDenialEntry(ing) || allergenDeclaration(ing)) return [e];
   const pieces = ing.split(new RegExp(CONJUNCTION.source, 'gi')).map(p => p.trim());
   if (pieces.length < 2 || !pieces.every(p => p.length > 1 && recognised(withoutOrganic(p) || p))) return [e];
-  // Only when the split exposes something charged: "orange juice and pulp" or "salt and pepper" stay one
-  // entry, since splitting them changes nothing but the list's length.
-  if (!pieces.some(isCharged)) return [e];
+  // A rule that reads the pair and neither half alone reads it whole ("mono- and diglycerides"), and the
+  // pair stays one entry. A rule that reads only one half used to keep the pair whole as well, and the
+  // other half was then never charged: "roasted peanuts and sugar" (how a peanut butter label opens),
+  // "wheat flour and sugar" and "citric acid and sugar" each lost the sugar (80 against 65, 75 against 54,
+  // 74 against 61).
+  const bare = pieces.map(p => withoutOrganic(p) || p);
+  const halves = new Set(bare.flatMap(p => [...penaltiesFor(p), ...capsFor(p)]));
+  const whole = new Set([...penaltiesFor(ing), ...capsFor(ing)]);
+  if ([...whole].some(rule => !halves.has(rule))) return [e];
+  // Only when the split exposes something charged that the pair hid: "orange juice and pulp", "salt and
+  // pepper" and "sodium benzoate and potassium sorbate" stay one entry, since splitting them changes
+  // nothing but the list's length.
+  if (![...halves].some(rule => !whole.has(rule))) return [e];
   return pieces.map(p => ({ ...e, ing: p }));
+}
+
+// A joining word left at the front of an entry: "milk, cream, and cane sugar" is how a list with a comma
+// before its last item reads, and the last entry arrived as "and cane sugar", which no rule anchored at the
+// start of an entry reads (90 where the list scores 65; 154 of 632 charged names in the fixtures lost their
+// charge). "With", "including" and "added" are left the same way. The word is taken off only when the
+// rulebase then charges or reads more than it did, the test a rejoined word passes, so "e 330" and an
+// ingredient that begins with one of these words stay as they are.
+// "Contains: sugar, salt" is a list with a heading (an allergen line is set aside before this, and kept).
+// Without the colon it is a statement: "contains sweeteners" is printed beside the named ones and costs nothing.
+const LEAD_WORD = /^(?:(?:and|&|plus|with|including|also|added|or|und|oder|sowie|mit|et|ou|avec|y|e|o|con|com|en|of|met|och|eller|med|ve|veya|ile|oraz|i|lub)\s+|contains?\s*[:\-–]\s*)(?=\S)/i;
+function withoutLeadWord(ing) {
+  if (ing.length > LONG_ENTRY || !LEAD_WORD.test(ing) || MAY_CONTAIN.test(ing) || LABEL_NOTE.test(ing) || isDenialEntry(ing) || allergenDeclaration(ing)) return ing;
+  const rest = ing.replace(LEAD_WORD, '');
+  if (isFunctionWord(rest)) return ing;
+  const read = text => recognised(withoutOrganic(text) || text);
+  return chargeOf(withoutOrganic(rest) || rest) > chargeOf(ing) || (read(rest) && !read(ing)) ? rest : ing;
+}
+
+// A footnote number set after the ingredient: "cane sugar1", or "cane sugar 1" once the <sup> round the
+// digit has gone. A superscript digit is a marker and is dropped (MARKERS); a plain one read as part of the
+// name, and the sugar was charged nothing (90 against 65). A digit is also how dyes, vitamins and
+// polysorbates are named, so one is dropped only when the rulebase then charges or reads more: "red 3",
+// "blue 1" and "vitamin d3" keep theirs.
+const FOOTNOTE_DIGIT = /^(.*[a-zß-ÿœ\u0100-\u017f)])\s?[1-9]$/i;
+function withoutFootnote(ing) {
+  if (ing.length > LONG_ENTRY) return ing;
+  const m = FOOTNOTE_DIGIT.exec(ing);
+  if (!m) return ing;
+  const rest = m[1];
+  return chargeOf(rest) > chargeOf(ing) || (recognised(rest) && !recognised(ing)) ? rest : ing;
 }
 
 // A word broken across two lines keeps its hyphen, and the line break then reads as a space:
@@ -769,7 +832,9 @@ function parseEntries(text) {
   // be flattened to a comma, so trace ingredients kept the weight of their list position; it is now
   // kept as a marker and every top-level entry after it is weighted as a minor ingredient. Only a
   // limit of two percent or less marks that block ("less than 5% of" is a plain separator).
-  const flat = joinStrains(numbered.replace(/\b(?:(?:contains )?(?:less than (\d+(?:\.\d+)?)% of|(\d+(?:\.\d+)?)% or less of)|and\/or)\b/gi,
+  // The limit is also written with a sign, and with a colon in place of "of": "<2% of: sugar, salt",
+  // "less than 2%: sugar". Neither was read, and the first ingredient after it kept the words (90 against 73).
+  const flat = joinStrains(numbered.replace(MINOR_BLOCK,
     (all, lessThan, orLess) => (lessThan ?? orLess) !== undefined && parseFloat(lessThan ?? orLess) <= MINOR_LIMIT ? `,${MINOR_MARK},` : ','))
     // "...of the following: sugar" left the lead-in glued to the first ingredient ("the following: sugar"),
     // which no anchored rule could read: that sugar was charged nothing.
@@ -784,8 +849,9 @@ function parseEntries(text) {
     strainRun = strain;
     for (const x of expandEntry(part, 0, ids)) {
       for (const e of splitConjunction(x)) {
-        const bare = withoutOrganic(e.ing);
-        out.push({ ing: withUmlauts(rejoinWrapped(bare || e.ing)), pos, fam: e.fam, parent: e.parent, ...(bare ? { organic: true } : {}),
+        const named = withoutLeadWord(e.ing);
+        const bare = withoutOrganic(named);
+        out.push({ ing: withoutFootnote(withUmlauts(rejoinWrapped(bare || named))), pos, fam: e.fam, parent: e.parent, ...(bare ? { organic: true } : {}),
           ...(e.unassessed ? { unassessed: true } : {}),
           ...(share != null ? { share } : {}), ...(minor ? { minor: true } : {}) });
       }
@@ -813,6 +879,8 @@ const weight = i => POSITION_WEIGHTS[i === 0 ? 0 : i <= 2 ? 1 : i <= 6 ? 2 : 3];
 const SHARE_TIERS = [[25, 0], [10, 1], [2, 2]];
 const MINOR_LIMIT = 2;
 const MINOR_MARK = '\u0001minor\u0001';
+const MINOR_BLOCK = new RegExp('(?:\\bcontains\\s+)?(?:\\bless than\\s+|<\\s*)(\\d+(?:\\.\\d+)?)\\s?%(?:\\s+of\\b|\\s*:)'
+  + '|(?:\\bcontains\\s+)?\\b(\\d+(?:\\.\\d+)?)\\s?% or less(?:\\s+of\\b|\\s*:)|\\band\\/or\\b', 'gi');
 const LEAD_IN = /\b(?:contains\s+)?(?:(?:one|any) or more of\s+|any of\s+|all of\s+)?the following(?:\s+ingredients?)?\s*:/gi;
 const shareWeight = pct => POSITION_WEIGHTS[(SHARE_TIERS.find(([min]) => pct >= min) || [0, 3])[1]];
 const entryWeight = e => {
@@ -956,7 +1024,21 @@ const LIGATURES = ['ff', 'fi', 'fl', 'ffi', 'ffl', 'st', 'st'];
 const sameLetters = text => text.normalize('NFC')
   .replace(/[\uff01-\uff5e]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
   .replace(/[\ufb00-\ufb06]/g, c => LIGATURES[c.charCodeAt(0) - 0xfb00]);
-const HTML_TAG = /<\/?[a-z][^<>]{0,200}>/gi;
+// Only the names of HTML elements are tags, with any closing tag and anything that carries an attribute.
+// Anything else in angle brackets is text the label printed
+// ("water <eau>", "<red 40>"): removed as a tag, the dye was charged nothing and the list still read as
+// complete (94 against 18). It is read as the bracket it is.
+const HTML_TAG = new RegExp('<\\/?(?:a|abbr|address|article|aside|b|bdi|bdo|big|blockquote|body|br|button|caption|center|cite|code|col|colgroup'
+  + '|dd|del|details|dfn|div|dl|dt|em|fieldset|figcaption|figure|font|footer|form|h[1-6]|head|header|hr|html|i|iframe|img|input|ins|kbd|label'
+  + '|legend|li|link|main|mark|meta|nav|noscript|ol|option|p|pre|q|s|samp|script|section|select|small|span|strike|strong|style|sub|summary'
+  + '|sup|svg|table|tbody|td|textarea|tfoot|th|thead|title|tr|tt|u|ul|var|wbr)(?![a-z0-9-])[^<>]{0,200}>'
+  + '|<\\/[a-z][^<>]{0,200}>|<[a-z][a-z0-9-]{0,40}\\s[^<>]{0,200}=[^<>]{0,200}>', 'gi');
+const ANGLE_TEXT = /<([a-z][^<>]{0,200})>/gi;
+// A hyphen is printed in more than one character: U+2010, the non-breaking U+2011 a page uses to keep
+// "high-fructose" on one line, the figure dash, and an en dash set between two words with no space. The
+// rules are written with the keyboard hyphen, so "high-fructose corn syrup" written with U+2011 and "glucose-fructose syrup" with an en dash
+// lost the cap (90 against 30) while every word still read. A spaced en dash stays a separator.
+const TYPED_HYPHEN = /[\u2010-\u2012]|(?<=[a-zß-ÿœ\u0100-\u017f])\u2013(?=[a-zß-ÿœ\u0100-\u017f])/gi;
 const HTML_ENTITY = /&(#x[0-9a-f]{1,6}|#\d{1,7}|[a-z]{2,8});/gi;
 const ENTITY_TEXT = { amp: '&', nbsp: ' ', quot: '"', apos: "'", lt: '<', gt: '>', ndash: '-', mdash: '-' };
 function entityText(whole, name) {
@@ -1013,8 +1095,8 @@ const commaList = text => dashedList(verticalList(text));
 function cleanText(value) {
   return commaList(sameLetters(String(value ?? '')
     .replace(LINE_BREAK_TAG, '\n')
-    .replace(HTML_TAG, ' ').replace(HTML_ENTITY, entityText)
-    .replace(INVISIBLE, '').replace(/[\u2028\u2029\u0085]/g, '\n')
+    .replace(HTML_TAG, ' ').replace(ANGLE_TEXT, '($1)').replace(HTML_ENTITY, entityText)
+    .replace(INVISIBLE, '').replace(TYPED_HYPHEN, '-').replace(/[\u2028\u2029\u0085]/g, '\n')
     .replace(/[，、،﹐﹑]/g, ',').replace(/[；؛]/g, ';').replace(/：/g, ':').replace(/％/g, '%')
     .replace(/[（［｛]/g, '(').replace(/[）］｝]/g, ')')
     .replace(/[•●▪◦‣⁃·｜|]/g, ',')));

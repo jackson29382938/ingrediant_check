@@ -46,8 +46,14 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // 2026-11-14.2 (1.26.2, with the above): a weight after an ingredient, two words run together, German written
   // without its umlauts and a dashed list of two or three items are read too. The panel vocabulary moved to
   // db/vocabulary.js unchanged, and that file is hashed from here on.
-  const RULES_REVISION = '2026-11-14.2';
-  const RULES_HASH = '4b47c492-282887';
+  // 2026-11-15.1 (1.26.4): six more formats that hid an ingredient are read (docs/AUDIT-2026-11-15.md): two
+  // ingredients joined by "and" where a rule reads one of them, a joining word in front of the last entry, a
+  // hyphen typed as U+2010, U+2011, U+2012 or an en dash, a footnote digit or mark after the name, text in angle
+  // brackets, and "less than 2%" written with a sign or a colon. A list headed "Contains:" that holds a capped
+  // ingredient is a list. Allergen warnings read bare "flour" and the other words the audit found missing, and no
+  // longer fire on "butter beans", "oyster mushrooms" or a "-free" claim. See docs/releases/1.26.4.md.
+  const RULES_REVISION = '2026-11-15.1';
+  const RULES_HASH = '66105159-287103';
   const _exports = AIRmodule('revision', { RULES_REVISION, RULES_HASH });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 })();

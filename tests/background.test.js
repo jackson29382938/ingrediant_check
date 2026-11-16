@@ -844,6 +844,30 @@ test('search following requires an open view, enabled preference and the origina
   const list=w.call('self.__session.sortedResults');assert.equal(list.sourceUrl,url);assert.equal(list.items.length,0);assert.equal(list.mode,'unitPrice');assert.equal(list.priceOnly,true);
 });
 
+// The worker stops after 30 idle seconds and the list page's port goes with it. The page no longer reconnects on a
+// timer (that restarted the worker every 31 seconds); the worker asks instead, and an open, showing page answers.
+test('a list that is open is found after the worker has slept, by asking it', async () => {
+  const url='https://www.amazon.com/s?k=milk',old='https://www.amazon.com/s?k=oats';
+  const sender={id:'ext',frameId:0,url,tab:{id:3,url}};
+  const fresh=()=>{const w=worker({});w.call(`self.__session={sortedResults:{runId:'old',sourceTabId:3,sourceUrl:'${old}',mode:'health',items:[{score:90}],loading:false}};chrome.storage.session={get:async()=>self.__session,set:async v=>Object.assign(self.__session,v)}`);return w;};
+  const follow=w=>w.call(`followSortedSearch({sourceUrl:'${url}'},${JSON.stringify(sender)})`);
+  // No port (a new worker), and a page answers the question.
+  const answered=fresh();
+  answered.call(`self.__asked=[];chrome.runtime.sendMessage=async m=>{self.__asked.push(m);return m.target==='sorted-view'?{view:'open'}:{ok:true}}`);
+  assert.equal((await follow(answered)).ok,true);
+  assert.deepEqual(JSON.parse(JSON.stringify(answered.call('self.__asked'))),[{target:'sorted-view',type:'viewOpen'}]);
+  // Nobody listening, a page that declines, and any other reply all mean no list is open.
+  for (const reply of [`async()=>{throw new Error('Could not establish connection. Receiving end does not exist.')}`,'async()=>undefined','async()=>({ok:true})','async()=>({view:"closed"})']) {
+    const w=fresh();w.call(`chrome.runtime.sendMessage=${reply}`);
+    assert.equal((await follow(w)).ok,false,reply);
+  }
+  // With a port held, nobody is asked.
+  const held=fresh();
+  held.call(`self.__asked=0;chrome.runtime.sendMessage=async()=>{self.__asked++;return undefined};sortedViews.add({})`);
+  assert.equal((await follow(held)).ok,true);
+  assert.equal(held.call('self.__asked'),0);
+});
+
 // "Update list" in the list itself: the reader changed the count or time limit and wants the search they are looking
 // at run again. That is their own request, so it runs for the address already listed and without the follow-searches
 // setting; everything else a follow checks (a view is open, the page's own tab and frame and origin) still applies.

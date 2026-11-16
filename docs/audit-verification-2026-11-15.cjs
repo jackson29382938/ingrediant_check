@@ -36,15 +36,15 @@ hidden('2', 'Milk, cream, cane sugar', 'Milk, cream, and cane sugar');
 hidden('2', 'Water, salt, citric acid, sugar', 'Water, salt, citric acid, and sugar');
 
 console.log('--- 3. typographic hyphens');
-hidden('3', 'Water, high-fructose corn syrup, salt', 'Water, high‑fructose corn syrup, salt');
-hidden('3', 'Water, glucose-fructose syrup, salt', 'Water, glucose–fructose syrup, salt');
+hidden('3', 'Water, high-fructose corn syrup, salt', 'Water, high\u2011fructose corn syrup, salt');
+hidden('3', 'Water, glucose-fructose syrup, salt', 'Water, glucose\u2013fructose syrup, salt');
 
 console.log('--- 4. footnote marks the parser does not strip');
 hidden('4', 'Oats, cane sugar, salt', 'Oats, cane sugar1, salt');
 hidden('4', 'Oats, cane sugar, salt', 'Oats, cane sugar<sup>1</sup>, salt');
 hidden('4', 'Oats, cane sugar, salt', 'Oats, cane sugar+, salt');
 hidden('4', 'Oats, cane sugar, salt', 'Oats, cane sugar^, salt');
-hidden('4', 'Oats, cane sugar, salt', 'Oats, cane sugar◊, salt');
+hidden('4', 'Oats, cane sugar, salt', 'Oats, cane sugar\u25ca, salt');
 
 console.log('--- 5. text in angle brackets is removed as an HTML tag');
 hidden('5', 'Oats, red 40, salt', 'Oats, <red 40>, salt');

@@ -727,12 +727,25 @@
     renderList();
   }
 
-  let viewPort, reconnect, viewClosed = false;
+  let viewPort, viewClosed = false;
   function connectView() {
     if (viewPort || viewClosed || (isPanel && document.visibilityState === 'hidden')) return;
-    try { const port = chrome.runtime.connect({name:'sorted-view'}); viewPort=port; port.onDisconnect.addListener(() => { if (viewPort !== port) return; viewPort=null; if (!viewClosed) reconnect=setTimeout(connectView,1000); }); } catch { /* test environments without ports */ }
+    // The port tells the worker a list is open and showing. When the worker stops (after 30 idle seconds) the
+    // port goes with it and is left down: reconnecting on a timer started the worker again every 31 seconds for
+    // as long as the list was open. A worker that needs to know asks (onViewQuestion below), and the page
+    // reconnects then.
+    try { const port = chrome.runtime.connect({name:'sorted-view'}); viewPort=port; port.onDisconnect.addListener(() => { if (viewPort === port) viewPort=null; }); } catch { /* test environments without ports */ }
   }
-  function disconnectView() { viewClosed=true; clearTimeout(reconnect); const port=viewPort; viewPort=null; port?.disconnect(); }
+  // From this extension's worker only (a message from a tab's content script carries sender.tab).
+  function onViewQuestion(msg, sender, reply) {
+    if (!msg || msg.target !== 'sorted-view' || msg.type !== 'viewOpen' || sender?.id !== chrome.runtime.id || sender.tab) return false;
+    if (viewClosed || (isPanel && document.visibilityState === 'hidden')) return false;
+    connectView();
+    reply({ view: 'open' });
+    return false;
+  }
+  chrome.runtime.onMessage?.addListener(onViewQuestion);
+  function disconnectView() { viewClosed=true; const port=viewPort; viewPort=null; port?.disconnect(); }
   window.addEventListener('pagehide', disconnectView);
   window.addEventListener('pageshow', () => { if (viewClosed) { viewClosed=false; connectView(); } });
   document.addEventListener('visibilitychange', () => {

@@ -621,6 +621,123 @@ test('"contains" followed by something that is not an allergen is still a list',
   assert.ok(costOf(score('Water, Sugar. Contains milk and natural flavor'), /flavo/i) > 0, 'a mixed line is not an allergen line');
 });
 
+// ---- docs/AUDIT-2026-11-15.md: six formats that still hid a charged ingredient
+
+test('two ingredients joined by a word are both charged when a rule reads only one of them', () => {
+  // The opening of a peanut butter label, and the pairs the audit measured.
+  for (const [joined, plain] of [['Roasted peanuts and sugar, salt', 'Roasted peanuts, sugar, salt'],
+    ['Wheat flour and sugar', 'Wheat flour, sugar'], ['Water, citric acid and sugar', 'Water, citric acid, sugar'],
+    ['Nonfat milk and dextrose', 'Nonfat milk, dextrose'], ['Water, cane sugar or soybeans', 'Water, cane sugar, soybeans']]) {
+    // The same entries, and the half the pair hid is charged. (The two halves share one place in the list,
+    // so the score need not be the comma list's to the point.)
+    assert.deepEqual(engine.parse(joined), engine.parse(plain), joined);
+    assert.ok(costOf(score(joined), /sugar|dextrose/i) > 0, `${joined}: the sweetener went uncharged`);
+    assert.ok(Math.abs(score(joined).score - score(plain).score) <= 3, joined);
+  }
+  // A rule that reads the pair, or a split that would expose nothing new, leaves the entry as written.
+  for (const whole of ['mono- and diglycerides', 'mono and diglycerides', 'natural and artificial flavors', 'salt and pepper',
+    'sodium benzoate and potassium sorbate', 'red 40 and blue 1', 'half and half', 'herbs and spices', 'canola or sunflower oil']) {
+    assert.deepEqual(engine.parse(whole), [whole], whole);
+  }
+  // A denial stays one claim however many things it denies.
+  assert.deepEqual(reasons(score('Oats, no artificial colors or preservatives')), []);
+});
+
+test('a joining word left in front of an entry does not hide the ingredient', () => {
+  const reference = score('Milk, cream, cane sugar');
+  for (const text of ['Milk, cream, and cane sugar', 'Milk, cream, & cane sugar', 'Milk, cream, with cane sugar',
+    'Milk, cream, including cane sugar', 'Milk, cream, added cane sugar', 'Milk, cream, also cane sugar']) {
+    assert.equal(score(text).score, reference.score, text);
+    assert.equal(engine.parse(text)[2], 'cane sugar', text);
+  }
+  assert.equal(score('Leche, nata y azúcar de caña').score, score('Leche, nata, azúcar de caña').score);
+  assert.equal(score('Milch, Sahne, und Zucker').score, score('Milch, Sahne, Zucker').score);
+  assert.equal(engine.parse('Milk, and organic cane sugar')[1], 'cane sugar', 'the organic word is still taken off');
+  assert.ok(score('Milk, and organic cane sugar').good.length >= score('Milk, cane sugar').good.length);
+  // The word stays when taking it off reads nothing more: an E-number, a statement, a function word.
+  assert.deepEqual(engine.parse('water, e 330'), ['water', 'e 330']);
+  assert.deepEqual(reasons(score('water, contains sweeteners')), []);
+  assert.deepEqual(engine.parse('water, and emulsifier'), ['water', 'and emulsifier']);
+  // "Contains:" in front of a list is a heading.
+  assert.equal(score('Contains: sugar, salt').score, score('Sugar, salt').score);
+});
+
+test('a hyphen typed as another character is the hyphen', () => {
+  for (const hyphen of ['\u2010', '\u2011', '\u2012', '\u2013']) {
+    assert.equal(score(`Water, high${hyphen}fructose corn syrup, salt`).score, score('Water, high-fructose corn syrup, salt').score, `U+${hyphen.charCodeAt(0).toString(16)}`);
+    assert.equal(score(`Water, glucose${hyphen}fructose syrup, salt`).score, score('Water, glucose-fructose syrup, salt').score);
+  }
+  assert.deepEqual(engine.parse('mono\u2011 and diglycerides'), ['mono- and diglycerides']);
+  // A spaced en dash still sets the items of a dashed list apart.
+  assert.equal(score('Oats \u2013 Sugar \u2013 Salt \u2013 Water').score, score('Oats, Sugar, Salt, Water').score);
+});
+
+test('a footnote mark after an ingredient does not hide it', () => {
+  const reference = score('Oats, cane sugar, salt');
+  for (const mark of ['1', ' 1', '<sup>1</sup>', '<sup>2</sup>', '+', '^', '\u00a7', '\u25ca', '\u2206', '\u00aa', '*+']) {
+    assert.equal(score(`Oats, cane sugar${mark}, salt`).score, reference.score, JSON.stringify(mark));
+  }
+  assert.equal(score('Oats, +cane sugar, salt').score, reference.score);
+  assert.equal(score('Cocoa mass1, cane sugar1, cocoa butter1').score, score('Cocoa mass, cane sugar, cocoa butter').score);
+  // A digit that is part of the name stays: dyes, vitamins, polysorbates, and a count inside an entry.
+  for (const name of ['red 3', 'blue 1', 'blue 2', 'yellow 5', 'yellow 6', 'green 3', 'vitamin b1', 'vitamin b6', 'vitamin d3',
+    'vitamin k2', 'omega 3', 'polysorbate 80', 'polysorbate 60', 'fd&c blue no 1', 'laureth 7', '10^9 cfu lactobacillus']) {
+    assert.deepEqual(engine.parse(name), [name], name);
+  }
+  assert.ok(costOf(score('Water, blue 1, salt'), /blue 1/i) > 0);
+});
+
+test('text in angle brackets is read, and only real markup is removed', () => {
+  assert.equal(score('Oats, <red 40>, salt').score, score('Oats, (red 40), salt').score);
+  assert.ok(costOf(score('Oats, <red 40>, salt'), /red 40/i) > 0);
+  assert.equal(score('Water <eau>, sugar <sucre>, red 40 <rouge 40>').score, score('Water (eau), sugar (sucre), red 40 (rouge 40)').score);
+  // Elements, closing tags and anything carrying an attribute are still markup.
+  assert.deepEqual(engine.parse('<span class="a">Oats</span>, <b>sugar</b>, <i>salt</i>'), ['oats', 'sugar', 'salt']);
+  assert.deepEqual(engine.parse('<p>Oats, sugar, </p><custom-row data-x="1">salt</custom-row>'), ['oats', 'sugar', 'salt']);
+  assert.deepEqual(engine.parse('Oats<br>Sugar<br/>Salt'), ['oats', 'sugar', 'salt']);
+});
+
+test('"less than" written with a sign, in words or with a colon is read as a quantity', () => {
+  const bracketed = score('Oats, sugar (<2%), salt');
+  for (const text of ['Oats, <2% sugar, salt', 'Oats, < 2% sugar, salt', 'Oats, less than 2% sugar, salt', 'Oats, \u22642% sugar, salt']) {
+    assert.equal(score(text).score, bracketed.score, text);
+    assert.equal(engine.parse(text)[1], 'sugar', text);
+  }
+  const block = score('Oats, less than 2% of: sugar, salt');
+  for (const text of ['Oats, less than 2%: sugar, salt', 'Oats, <2% of: sugar, salt', 'Oats, <2% of sugar, salt', 'Oats, contains <2% of sugar, salt', 'Oats, 2% or less: sugar, salt']) {
+    assert.equal(score(text).score, block.score, text);
+    assert.deepEqual(engine.parse(text), ['oats', 'sugar', 'salt'], text);
+  }
+  // A fat level is still not a share, and a sign after the ingredient was always read.
+  assert.deepEqual(engine.parse('2% milk, salt'), ['2% milk', 'salt']);
+  assert.equal(score('Oats, sugar <2%, salt').score, bracketed.score);
+});
+
+test('a list headed "Contains:" is a list when it holds a capped ingredient, and an allergen line otherwise', () => {
+  const headed = score('Contains: Milk, Wheat Flour, Soybean Oil, Eggs', { allergens: ['milk', 'egg', 'soy', 'wheat'] });
+  const plain = score('Milk, Wheat Flour, Soybean Oil, Eggs', { allergens: ['milk', 'egg', 'soy', 'wheat'] });
+  assert.equal(headed.readable, true);
+  assert.equal(headed.score, plain.score);
+  assert.deepEqual(headed.flags.map(f => f.id).sort(), plain.flags.map(f => f.id).sort());
+  // An allergen line published in place of the list names sources, never a capped ingredient: it is not a
+  // two-ingredient food and must not be shown a score.
+  for (const line of ['Contains: Milk, Soy.', 'Contains wheat, milk, egg and soy.', 'CONTAINS: PEANUTS, TREE NUTS (ALMONDS), SOY LECITHIN', 'Allergens: milk, wheat gluten']) {
+    assert.equal(score(line).readable, false, line);
+  }
+  // After a list it is the allergen line it always was.
+  assert.equal(score('Oats, honey. Contains: soybean oil, wheat.').score, score('Oats, honey').score);
+});
+
+test('two lines with no comma stay one wrapped ingredient', () => {
+  // The audit proposed reading two lines as two ingredients when that charges more. It would: "Almond\nFlour"
+  // becomes almonds and (wheat) flour, "Rice\nSyrup" rice and syrup. A wrapped name is far the commoner case.
+  for (const [wrapped, name] of [['Almond\nFlour', 'almond flour'], ['Coconut\nSugar', 'coconut sugar'], ['High Fructose\nCorn Syrup', 'high fructose corn syrup'],
+    ['Rice\nSyrup', 'rice syrup'], ['Peanut\nButter', 'peanut butter']]) {
+    assert.deepEqual(engine.parse(wrapped), [name], name);
+    assert.equal(score(wrapped).score, score(name).score, name);
+  }
+});
+
 test('the scoring policy publishes the share rules it applies', () => {
   assert.equal(engine.SCORING_POLICY.minorBlockLimit, 2);
   assert.equal(engine.SCORING_POLICY.minCoverage, engine.MIN_COVERAGE);

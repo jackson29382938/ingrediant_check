@@ -77,8 +77,9 @@ check('every chrome.runtime.sendMessage type in src is registered in the worker 
   for (const f of srcFiles) {
     const raw = fs.readFileSync(f, 'utf8');
     for (const m of raw.matchAll(/sendMessage\(\s*\{[^}]*\btype:\s*'([A-Za-z0-9_]+)'/g)) {
-      // Offscreen target messages are not worker allowlist types.
-      if (m[0].includes("target: 'ocr-offscreen'") || m[0].includes('target:"ocr-offscreen"')) continue;
+      // Messages the worker sends to a page carry a target and are not worker allowlist types: the offscreen
+      // OCR host, and the list page the worker asks whether it is open (background.js sortedViewOpen).
+      if (m[0].includes("target: 'ocr-offscreen'") || m[0].includes('target:"ocr-offscreen"') || m[0].includes("target: 'sorted-view'")) continue;
       used.add(m[1]);
     }
   }

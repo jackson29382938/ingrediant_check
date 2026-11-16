@@ -17,7 +17,7 @@ function reply(content, status = 200, headers = {}) {
     json: async () => ({ choices: [{ message: { content } }] }) };
 }
 
-function worker(initial, answer, { permission = true } = {}) {
+function worker(initial, answer, { permission = true, session = null, keepPause = false } = {}) {
   const data = structuredClone(initial);
   const calls = [];
   const event = { addListener() {} };
@@ -40,13 +40,15 @@ function worker(initial, answer, { permission = true } = {}) {
         async get(keys) { return structuredClone(keys == null ? data : Object.fromEntries([].concat(keys).map(k => [k, data[k]]))); },
         async set(values) { Object.assign(data, structuredClone(values)); },
         async remove(keys) { for (const k of [].concat(keys)) delete data[k]; },
-      }, sync: { async get() { return {}; }, async set() {} } },
+      }, sync: { async get() { return {}; }, async set() {} },
+      // chrome.storage.session: in memory, shared by every worker of one browser session (pass the same object).
+      ...(session ? { session: { async get(key) { return { [key]: session[key] }; }, async set(values) { Object.assign(session, values); } } } : {}) },
     },
   };
   sandbox.self = sandbox;
   const context = vm.createContext(sandbox);
   loadWorker(vm, context);
-  context.AIR.aiWorker.resetBackoff();
+  if (!keepPause) context.AIR.aiWorker.resetBackoff();
   context.AIR.aiWorker.setGap(0);
   return { data, calls, // Replies come from the worker's own realm; a JSON round trip makes them comparable with deepEqual.
     send: (msg, sender) => new Promise(resolve => { if (onMessage(msg, sender, value => resolve(value === undefined ? value : JSON.parse(JSON.stringify(value)))) !== true) resolve(undefined); }) };
@@ -124,6 +126,33 @@ test('a hostile or broken reply rates nothing it was not asked about, and "unkno
   const v = worker(on, () => ratingsReply([{ name: 'plimm', class: 'unknown', confidence: 0.9 }, { name: 'tarsk', class: 'sugar', confidence: 0.2 }, { name: 'vandrel', class: 'sweetener', confidence: 0.8 }]));
   assert.deepEqual((await v.send({ type: 'aiRateIngredients', names: ['plimm', 'tarsk', 'vandrel'] }, amazonTab)).ratings,
     { tarsk: { c: 'sugar', k: 0.2 }, vandrel: { c: 'sweetener', k: 0.8 } }, 'a low confidence is returned and the engine decides to ignore it');
+});
+
+// Chrome stops the worker after 30 idle seconds. The pause used to live in a variable, so the next worker
+// asked again at once and met the same 429 (docs/AUDIT-2026-11-15.md, finding 13).
+test('the pause after a rate limit outlives the worker that received it', async () => {
+  const session = {};
+  const first = worker(on, () => reply('', 429, { 'retry-after': '600' }), { session });
+  assert.equal((await first.send({ type: 'aiRateIngredients', names: ['plimm'] }, amazonTab)).reason, 'rate-limited');
+  assert.ok(session.aiBackoffUntil > Date.now() + 500 * 1000, 'the pause is kept for the browser session');
+  const next = worker(on, () => ratingsReply([{ name: 'plimm', class: 'sugar', confidence: 0.9 }]), { session, keepPause: true });
+  assert.equal((await next.send({ type: 'aiRateIngredients', names: ['plimm'] }, amazonTab)).reason, 'rate-limited');
+  assert.equal(next.calls.length, 0, 'a new worker sends nothing while the pause lasts');
+  // A stored value far in the future cannot pause the feature for longer than the longest pause allowed.
+  const absurd = { aiBackoffUntil: Date.now() + 365 * 24 * 60 * 60 * 1000 };
+  const capped = worker(on, () => ratingsReply([]), { session: absurd, keepPause: true });
+  await capped.send({ type: 'aiRateIngredients', names: ['plimm'] }, amazonTab);
+  assert.equal(capped.calls.length, 0);
+  // Once the time has passed the next worker asks again.
+  const later = worker(on, () => ratingsReply([{ name: 'plimm', class: 'sugar', confidence: 0.9 }]), { session: { aiBackoffUntil: Date.now() - 1000 }, keepPause: true });
+  await later.send({ type: 'aiRateIngredients', names: ['plimm'] }, amazonTab);
+  assert.equal(later.calls.length, 1);
+});
+
+test('a request gives up before Chrome would stop the worker for waiting on it', () => {
+  const source = require('node:fs').readFileSync(require('node:path').join(__dirname, '../src/worker/ai.js'), 'utf8');
+  const limit = Number(/const TIMEOUT_MS = (\d+);/.exec(source)[1]);
+  assert.ok(limit < 30000, `a fetch with no response for 30 seconds ends the worker; the limit is ${limit} ms`);
 });
 
 test('a rate limit pauses everything until it clears, and a bad key or no credit is named', async () => {

@@ -35,7 +35,9 @@
   const TTL_MS = 180 * 24 * 60 * 60 * 1000;
   const UNKNOWN_TTL_MS = 3 * 24 * 60 * 60 * 1000;
   const GAP_MS = 3500;                 // under the free tier's 20 requests a minute
-  const TIMEOUT_MS = 40000;
+  // Chrome stops a service worker whose fetch() has had no response for 30 seconds. A limit above that was never
+  // reached: the worker ended first, the page that asked got no reply, and the pause below was lost with it.
+  const TIMEOUT_MS = 25000;
   const MAX_IMAGES = 3;
   const DEFAULT_BACKOFF_MS = 60 * 1000;
   const MAX_BACKOFF_MS = 15 * 60 * 1000;
@@ -72,7 +74,26 @@
   ].join('\n');
 
   const serialTail = { p: Promise.resolve(), last: 0, gap: GAP_MS };
+  // The pause after a 429. Kept in session storage too, because this worker stops after 30 idle seconds and a
+  // pause held only in memory was forgotten long before a "retry after ten minutes" had passed.
+  const BACKOFF_KEY = 'aiBackoffUntil';
   let backoffUntil = 0;
+  let backoffRead = false;
+  async function pausedUntil() {
+    if (!backoffRead) {
+      backoffRead = true;
+      try {
+        const kept = Number((await chrome.storage.session.get(BACKOFF_KEY))[BACKOFF_KEY]);
+        if (Number.isFinite(kept) && kept > backoffUntil) backoffUntil = Math.min(kept, Date.now() + MAX_BACKOFF_MS);
+      } catch (e) { /* no session storage: the pause lasts as long as this worker does */ }
+    }
+    return backoffUntil;
+  }
+  function pauseUntil(when) {
+    backoffUntil = when;
+    backoffRead = true;
+    try { chrome.storage.session.set({ [BACKOFF_KEY]: when }).catch(() => {}); } catch (e) { /* no session storage */ }
+  }
 
   // One request at a time with a gap between them, so a page with many unknown words cannot hit the limit.
   function serial(work) {
@@ -101,7 +122,7 @@
     if (status === 402) return 'no-credits';
     if (status === 429) {
       const wait = Number(retryAfter);
-      backoffUntil = Date.now() + Math.min(MAX_BACKOFF_MS, Math.max(DEFAULT_BACKOFF_MS, Number.isFinite(wait) ? wait * 1000 : 0));
+      pauseUntil(Date.now() + Math.min(MAX_BACKOFF_MS, Math.max(DEFAULT_BACKOFF_MS, Number.isFinite(wait) ? wait * 1000 : 0)));
       return 'rate-limited';
     }
     return 'unavailable';
@@ -109,7 +130,7 @@
 
   // -> { ok: true, text } | { ok: false, reason }
   async function complete(key, body) {
-    if (Date.now() < backoffUntil) return { ok: false, reason: 'rate-limited' };
+    if (Date.now() < await pausedUntil()) return { ok: false, reason: 'rate-limited' };
     if ((await chrome.storage.local.get('enabled')).enabled === false) return { ok: false, reason: 'paused' };
     // Not networkRequest(): its 15 second limit is right for a barcode and too short for a vision model.
     const send = async payload => {
@@ -274,6 +295,6 @@
   root.AIR = root.AIR || {};
   root.AIR.aiWorker = { handle, rateIngredients, readLabels, test, PERMISSION, MODEL, KEY, CACHE_KEY, ENDPOINT,
     // For tests: clear the pause after a 429, and set the gap between requests.
-    resetBackoff() { backoffUntil = 0; serialTail.last = 0; },
+    resetBackoff() { pauseUntil(0); serialTail.last = 0; },
     setGap(ms) { serialTail.gap = ms; } };
 })(typeof globalThis !== 'undefined' ? globalThis : self);

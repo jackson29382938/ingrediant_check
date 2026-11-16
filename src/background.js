@@ -379,6 +379,19 @@ chrome.runtime.onConnect?.addListener(port => {
     if (list?.sourceTabId !== undefined) chrome.tabs.sendMessage(list.sourceTabId,{type:'sortFollow'}).catch(()=>{});
   }).catch(()=>{});
 });
+// A list page holds a port while it is open and showing. The port does not outlive this worker: Chrome stops an
+// idle worker after 30 seconds and the port goes with it. The page used to reconnect a second later, which
+// started the worker again, and so on for as long as the list stayed open: a start every 31 seconds, each one
+// loading every worker script and messaging the tab the list came from (measured with no debugger attached,
+// docs/AUDIT-2026-11-15.md finding 13). The page now leaves the port down, and a worker that needs to know asks:
+// a page that is open and showing answers and reconnects (src/options/sorted.js); nobody answering means no list.
+async function sortedViewOpen() {
+  if (sortedViews.size) return true;
+  try {
+    const answer = await chrome.runtime.sendMessage({ target: 'sorted-view', type: 'viewOpen' });
+    return !!answer && answer.view === 'open';
+  } catch (e) { return false; }   // no page is listening
+}
 function sameOrigin(a, b) {
   try { return new URL(String(a || '')).origin === new URL(String(b || '')).origin; } catch (e) { return false; }
 }
@@ -392,7 +405,7 @@ async function followSortedSearchOnce(msg, sender) {
   // `rerun`: the reader pressed "Update list" in the list itself (after changing the count or time limit). That is
   // their own request, so it runs for the address already listed and whether or not new searches are followed.
   const rerun = msg.rerun === true;
-  if (!sortedViews.size || conf.enabled === false || (conf.sortFollowSearch === false && !rerun)) return {ok:false};
+  if (conf.enabled === false || (conf.sortFollowSearch === false && !rerun) || !await sortedViewOpen()) return {ok:false};
   const url = self.AIR.db.sortedResults.sanitizeSourceUrl(msg.sourceUrl);
   const tab = chrome.tabs?.get ? await chrome.tabs.get(sender.tab?.id) : sender.tab;
   // `sender.url` is the address the frame loaded with. Amazon starts some searches without a page load
@@ -404,7 +417,7 @@ async function followSortedSearchOnce(msg, sender) {
   const actual = (tab && tab.url) || (sender.tab && sender.tab.url);
   if (!url || !isSortableSearchUrl(url) || tab?.id !== sender.tab?.id || actual !== url || !sameOrigin(sender.url, url) || sender.frameId !== 0) return {ok:false};
   const {sortedResults:list} = await chrome.storage.session.get('sortedResults');
-  if (!sortedViews.size || !list || list.sourceTabId !== tab.id || (!rerun && list.sourceUrl === url && !!list.priceOnly === (msg.priceOnly === true))) return {ok:false};
+  if (!list || list.sourceTabId !== tab.id || (!rerun && list.sourceUrl === url && !!list.priceOnly === (msg.priceOnly === true))) return {ok:false};
   const runId = crypto.randomUUID();
   const mode = msg.priceOnly === true ? 'unitPrice' : list.mode;
   await chrome.storage.session.set({sortedResults:{...list,runId,mode,sourceUrl:url,priceOnly:msg.priceOnly===true,unitEnabled:msg.unitEnabled!==false,unit:'',items:[],loading:true,status:'',t:Date.now()},sortUnit:'auto'});
@@ -845,7 +858,15 @@ const lookupMemo = new Map();   // key -> { t, row | null }
 let productsWork = Promise.resolve();
 let productsTimer = null;
 // After a failed send, only the quiet timer and the alarm retry; otherwise every tile would POST.
+// Kept in session storage as well: this worker stops after 30 idle seconds, and a pause held only in memory
+// was forgotten with it.
 let productsBackoff = false;
+const PRODUCTS_BACKOFF_KEY = 'productsBackoff';
+chrome.storage.session?.get(PRODUCTS_BACKOFF_KEY).then(kept => { if (kept && kept[PRODUCTS_BACKOFF_KEY] === true) productsBackoff = true; }, () => {});
+function setProductsBackoff(on) {
+  productsBackoff = on;
+  chrome.storage.session?.set({ [PRODUCTS_BACKOFF_KEY]: on }).catch(() => {});
+}
 function serializeProducts(work) {
   const result = productsWork.then(work);
   productsWork = result.catch(() => {});
@@ -940,7 +961,7 @@ async function sendProducts() {
   });
   // An older web app appends unknown kinds onto contributions and still says wrote: 1.
   const confirmed = result.ok && result.tab === C.TAB;
-  productsBackoff = !confirmed;
+  setProductsBackoff(!confirmed);
   if (!confirmed) return { ok: false, reason: result.reason || 'write-not-confirmed', queued: C.queueSize(queue) };
   upserts.forEach(k => delete queue.upserts[k]);
   pulls.forEach(k => delete queue.pulls[k]);

@@ -22,7 +22,10 @@ const ratings = require('../src/engine/db/product-ratings.js');
 const LENGTH = 6000;   // extract.js MAX_LEN, the longest list anything is handed
 const PIECES = ['1', '1,', '1.', ' ', ',', 'a', 'oil ', '(', 'ingredients\n', 'Ingredients: ', 'contains ',
   '-', '%', '\n', 'natural ', 'x ', '1 ', '€', 'fl oz ', 'kcal ', 'salt ',
-  '(a, ', 'may contain (', 'b (c), ', ')', 'arom'];
+  '(a, ', 'may contain (', 'b (c), ', ')', 'arom',
+  // A run of hyphenated letters is one entry too long for the lookup memo, and every rule asked for its
+  // spaced form afresh: 40,000 characters took a second (docs/AUDIT-2026-11-15.md, finding 12).
+  'a-', 'ab-cd ', 'and ', '<a ', 'sugar1 '];
 const INPUTS = PIECES.map(p => p.repeat(Math.ceil(LENGTH / p.length)).slice(0, LENGTH) + '!');
 // A quantity is read from the end of an entry, so a long run that ends the way a quantity does (a digit,
 // a percent sign, a separator and a number) must not be rescanned from every start position.
@@ -71,3 +74,10 @@ for (const [name, run] of Object.entries(PATHS)) {
     }
   });
 }
+
+test('a hyphenated run far longer than a label is scored without rescanning it for every rule', () => {
+  const started = process.hrtime.bigint();
+  engine.score({ ingredients_text: 'a-'.repeat(20000) });
+  const ms = Number(process.hrtime.bigint() - started) / 1e6;
+  assert.ok(ms < 400, `40,000 hyphenated characters took ${ms.toFixed(0)} ms`);
+});

@@ -1163,3 +1163,34 @@ test('refined wheat flour and maida are refined flour; a binding agent names its
   }
   assert.equal(score('water, e492').coverage, score('water, sorbitan tristearate').coverage);
 });
+
+// docs/AUDIT-2026-11-15.md, finding 7: words that name an allergen without its usual word, and the
+// look-alikes that raised a warning they should not.
+test('allergen warnings read the words the audit found missing, and not their look-alikes', () => {
+  const warned = (ingredient, id) => engine.score({ ingredients_text: `water, ${ingredient}, salt` }, { allergens: [id] }).flags.some(f => f.id === id);
+  const flagged = {
+    wheat: ['flour', 'enriched flour', 'enriched bleached flour', 'all-purpose flour', 'cake flour', 'unbleached flour', 'udon', 'egg noodles', 'pasta', 'cracker meal', 'atta', 'maida'],
+    treeNut: ['filberts', 'chestnuts', 'pignoli'],
+    fish: ['flounder', 'sole', 'dover sole', 'bass', 'isinglass', 'nam pla'],
+    milk: ['caseinates', 'sodium caseinate', 'lactoferrin', 'natural butter flavor', 'lactose-free milk', 'butter', 'cream'],
+    shellfish: ['langostino', 'barnacles', 'geoduck', 'glucosamine', 'chitosan', 'oysters', 'oyster sauce', 'scallops'],
+    sesame: ['tehina', 'til seeds', 'sim sim'],
+    soy: ['okara', 'kinako', 'bean curd', 'wheat-free tamari'],
+    egg: ['ovomucoid', 'ovotransferrin', 'vitellin', 'livetin', 'cage-free eggs'],
+    sulfite: ['sulphiting agents', 'sulfiting agents'],
+  };
+  for (const [id, words] of Object.entries(flagged)) for (const word of words) assert.ok(warned(word, id), `${word} should raise ${id}`);
+  const clear = {
+    wheat: ['rice flour', 'almond flour', 'coconut flour', 'chickpea flour', 'rice noodles', 'glass noodles', 'rice pasta', 'lentil pasta',
+      'pasta de cacao', 'pasta di nocciole', 'pasta de dientes', 'gluten-free oats', 'wheat-free tamari'],
+    treeNut: ['water chestnuts', 'horse chestnut extract'],
+    fish: ['pomodori secchi al sole', 'basswood honey'],
+    milk: ['butter beans', 'butter lettuce', 'cream of coconut', 'cream of tartar', 'cream of rice', 'artificial butter flavor', 'dairy-free chocolate'],
+    shellfish: ['oyster mushrooms', 'scallop squash', 'scalloped potatoes', 'vegan glucosamine', 'fungal chitosan'],
+    egg: ['egg-free noodles', 'eggplant'],
+    soy: ['soy-free seasoning'],
+  };
+  for (const [id, words] of Object.entries(clear)) for (const word of words) assert.ok(!warned(word, id), `${word} should not raise ${id}`);
+  // A flag never moves a score.
+  assert.equal(engine.score({ ingredients_text: 'enriched flour, water' }, { allergens: ['wheat'] }).score, engine.score({ ingredients_text: 'enriched flour, water' }).score);
+});
