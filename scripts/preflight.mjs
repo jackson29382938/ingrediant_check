@@ -9,6 +9,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 import { buildContentMatches, buildCartMatches, AMAZON_HOSTS } from './content-matches.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -201,9 +202,12 @@ check('every key resolves', () => {
     ...[...read('src/content/retailer.js').matchAll(/\bt\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
     ...[...read('src/content/sort.js').matchAll(/\b(?:t\(|label\('[^']*',)\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
     ...[...read('src/options/sorted.js').matchAll(/\bt\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
-    ...[...read('src/options/popup.html').matchAll(/data-i18n="([A-Za-z0-9_]+)"/g)].map(m => m[1]),
-    ...[...read('src/options/options.html').matchAll(/data-i18n(?:-placeholder|-aria)?="([A-Za-z0-9_]+)"/g)].map(m => m[1]),
-    ...[...read('src/options/report.html').matchAll(/data-i18n="([A-Za-z0-9_]+)"/g)].map(m => m[1]),
+    // Every extension page, and every attribute a key can sit in.
+    ...fs.readdirSync(path.join(root, 'src/options')).filter(name => name.endsWith('.html'))
+      .flatMap(name => [...read('src/options/' + name).matchAll(/data-i18n(?:-placeholder|-aria)?="([A-Za-z0-9_]+)"/g)].map(m => m[1])),
+    ...['src/options/history.js', 'src/options/history-dashboard.js', 'src/options/library.js']
+      .flatMap(file => [...read(file).matchAll(/\bt\(\s*'([A-Za-z0-9_]+)'\s*,/g)].map(m => m[1])),
+    ...[...read('src/options/welcome.js').matchAll(/\bmsg\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
     ...[...read('src/options/report.js').matchAll(/\bt\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
     ...[...read('src/options/popup.js').matchAll(/\bmsg\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
     ...[...read('src/options/settings.js').matchAll(/\bmsg\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
@@ -213,6 +217,26 @@ check('every key resolves', () => {
   const missing = [...used].filter(k => !(k in msgs));
   if (missing.length) throw new Error('missing: ' + missing.join(', '));
   return `${used.size} keys resolve against ${Object.keys(msgs).length} messages`;
+});
+
+// Goals and weights are named by the engine (categories.js) in English and looked up by id, with keys built
+// at run time (`presetLabel_${id}`), which the scan above cannot see. Every goal, goal group, weight and weight
+// group must have its messages, or a new one shows English to a German reader without any check failing.
+check('every goal and weight has its messages', () => {
+  const msgs = JSON.parse(read('_locales/en/messages.json'));
+  const require = createRequire(import.meta.url);
+  require(path.join(root, 'src/engine/db/_module.js'));
+  const cats = require(path.join(root, 'src/engine/categories.js'));
+  const groupKey = group => 'catGroup_' + String(group).replace(/[^A-Za-z0-9]+(.)?/g, (all, next) => (next ? next.toUpperCase() : '')).replace(/^./, c => c.toLowerCase());
+  const want = [
+    ...cats.PRESET_CATEGORIES.flatMap(c => [`presetCat_${c.id}`, `presetCatBlurb_${c.id}`]),
+    ...Object.entries(cats.PRESETS).flatMap(([id, p]) => [`presetLabel_${id}`, `presetNote_${id}`, ...(p.versus ? [`presetVersus_${id}`] : [])]),
+    ...cats.CATEGORIES.flatMap(c => [groupKey(c.group), `catLabel_${c.id}`, `catHelp_${c.id}`]),
+    ...['Gentle', 'Normal', 'Quick', 'Fast'].map(pace => 'histPace' + pace), ...['Purchased', 'Returned', 'Cancelled', 'Unknown'].map(state => 'histState' + state),
+  ];
+  const missing = [...new Set(want)].filter(k => !(k in msgs));
+  if (missing.length) throw new Error('missing: ' + missing.join(', '));
+  return `${new Set(want).size} goal and weight messages`;
 });
 
 // Chrome falls back to English for a missing key, silently: a German reader just sees English.
@@ -260,6 +284,9 @@ const SAME_AS_ENGLISH = {
     'unitName_100g', 'unitName_floz', 'unitName_100ml', 'unitName_ml',   // unit symbols
     'optLevelMinimal',   // "Minimal" is German too
     'catDeodorant', 'catShampoo',   // "Deodorant" and "Shampoo" are the German words
+    'optxDetails',       // "Details": the button on chrome://extensions, which German Chrome labels the same
+    'histPaceNormal',    // "normal" is German too
+    'presetCat_training',   // "Training" is the German word
   ],
 };
 check('a translation is not the English text', () => {

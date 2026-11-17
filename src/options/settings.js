@@ -16,6 +16,18 @@ function msg(key, fallback, sub) {
   return (out || fallback).replace(/\$(\d)/g, (m, i) => (subs[i - 1] != null ? subs[i - 1] : m));
 }
 
+// The names and sentences of goals and weights come from the engine (categories.js) in English. Each has a
+// message under its id, so a German reader is not shown them in English (docs/AUDIT-2026-11-16.md, finding 8).
+const groupKey = group => 'catGroup_' + String(group).replace(/[^A-Za-z0-9]+(.)?/g, (all, next) => (next ? next.toUpperCase() : '')).replace(/^./, c => c.toLowerCase());
+const catGroup = group => msg(groupKey(group), group);
+const catLabel = c => msg(`catLabel_${c.id}`, c.label);
+const presetCatLabel = cat => msg(`presetCat_${cat.id}`, cat.label);
+const presetCatBlurb = cat => msg(`presetCatBlurb_${cat.id}`, cat.blurb || '');
+const presetLabel = (id, preset) => msg(`presetLabel_${id}`, preset.label);
+const presetNote = (id, preset) => msg(`presetNote_${id}`, preset.note || '');
+const presetVersus = (id, preset) => (preset.versus ? msg(`presetVersus_${id}`, preset.versus) : '');
+const goalsLabel = ids => { const clean = CATS.sanitizeGoals(ids); return (clean.length ? clean : ['balanced']).map(id => presetLabel(id, CATS.PRESETS[id])).join(' + '); };
+
 (function localise() {
   if (!chrome.i18n || typeof chrome.i18n.getMessage !== 'function') return;
   for (const el of document.querySelectorAll('[data-i18n]')) {
@@ -168,20 +180,20 @@ function renderCategories() {
       lastGroup = c.group;
       const h = document.createElement('h2');
       h.className = 'cat-group';
-      h.textContent = c.group;
+      h.textContent = catGroup(c.group);
       host.appendChild(h);
     }
 
     const row = document.createElement('div');
     row.className = 'cat';
-    row.dataset.search = `${c.group} ${c.label} ${c.help} ${c.id}`.toLowerCase();
+    row.dataset.search = `${c.group} ${c.label} ${c.help} ${c.id} ${catGroup(c.group)} ${catLabel(c)} ${msg(`catHelp_${c.id}`, c.help)}`.toLowerCase();
     row.dataset.id = c.id;
     syncCatMeta(row, c.id);
 
     const label = document.createElement('div');
     const name = document.createElement('div');
     name.className = 'name';
-    name.textContent = c.label;
+    name.textContent = catLabel(c);
     const help = document.createElement('div');
     help.className = 'help';
     help.textContent = msg(`catHelp_${c.id}`, c.help);
@@ -196,7 +208,7 @@ function renderCategories() {
     slider.min = CATS.SIGNED && CATS.SIGNED.has(c.id) ? '-2' : '0'; slider.max = '2'; slider.step = 'any';
     slider.value = String(weightOf(c.id));
     slider.id = `w-${c.id}`;
-    slider.setAttribute('aria-label', `${c.label} weight`);
+    slider.setAttribute('aria-label', msg('catWeightAria', '$1 weight', catLabel(c)));
 
     const val = document.createElement('div');
     val.className = 'val';
@@ -258,7 +270,7 @@ function renderPresetCategories() {
     b.setAttribute('aria-selected', String(cat.id === presetCategory));
     // "Goals · 2": how many selected goals a tab holds, so goals picked on other tabs stay visible.
     const picks = currentGoals().ids.filter(g => CATS.PRESETS[g] && (CATS.PRESETS[g].category || 'everyday') === cat.id).length;
-    b.textContent = picks ? `${cat.label} · ${picks}` : cat.label;
+    b.textContent = picks ? `${presetCatLabel(cat)} · ${picks}` : presetCatLabel(cat);
     b.classList.toggle('has-picks', picks > 0);
     b.addEventListener('click', () => {
       presetCategory = cat.id;
@@ -272,7 +284,7 @@ function renderPresetCategories() {
   paintTabs(host, document.getElementById('presets'));
   const blurb = document.getElementById('presetCatBlurb');
   const active = presetCategories().find(c => c.id === presetCategory);
-  if (blurb) blurb.textContent = (active && active.blurb) || '';
+  if (blurb) blurb.textContent = active ? presetCatBlurb(active) : '';
 }
 
 function renderPresets() {
@@ -294,7 +306,7 @@ function renderPresets() {
     b.setAttribute('aria-pressed', String(goals.ids.includes(id) || (id === 'balanced' && !goals.ids.length && !goals.custom)));
     b.setAttribute('aria-describedby', 'presetNote');
     // The goal's sentence is the detail panel below, for the goal you point at or pick.
-    b.textContent = preset.label;
+    b.textContent = presetLabel(id, preset);
     b.addEventListener('click', () => applyPreset(id));
     b.addEventListener('focus', () => showPresetDetail(id));
     b.addEventListener('mouseenter', () => showPresetDetail(id));
@@ -307,7 +319,7 @@ function renderPresets() {
   });
   const blurb = document.getElementById('presetCatBlurb');
   const active = presetCategories().find(c => c.id === presetCategory);
-  if (blurb) blurb.textContent = (active && active.blurb) || '';
+  if (blurb) blurb.textContent = active ? presetCatBlurb(active) : '';
 
   paintPresetActive(goals);
   if (matchId && CATS.PRESETS[matchId] && CATS.PRESETS[matchId].category === presetCategory) {
@@ -336,16 +348,16 @@ function showPresetDetail(id, { previewOnly = false } = {}) {
   detail.hidden = false;
   if (title) {
     title.textContent = previewOnly
-      ? preset.label
-      : msg('optPresetOptimized', 'Optimized for') + ' · ' + preset.label;
+      ? presetLabel(id, preset)
+      : msg('optPresetOptimized', 'Optimized for') + ' · ' + presetLabel(id, preset);
   }
-  note.textContent = preset.note;
+  note.textContent = presetNote(id, preset);
   if (versus) {
     versus.innerHTML = '';
     if (preset.versus) {
       const strong = document.createElement('strong');
       strong.textContent = msg('optPresetVersus', 'How it differs');
-      versus.append(strong, document.createTextNode(' — ' + preset.versus));
+      versus.append(strong, document.createTextNode(' — ' + presetVersus(id, preset)));
     }
   }
 }
@@ -353,7 +365,7 @@ function showPresetDetail(id, { previewOnly = false } = {}) {
 function paintPresetActive(goals) {
   const name = document.getElementById('presetActiveName');
   if (!name) return;
-  const label = CATS.goalsLabel(goals.ids);
+  const label = goalsLabel(goals.ids);
   name.textContent = goals.custom
     ? `${msg('optPresetCustomLabel', 'Custom')}${goals.ids.length ? ` (${label})` : ''}`
     : label;

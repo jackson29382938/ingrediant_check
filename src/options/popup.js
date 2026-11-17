@@ -73,7 +73,9 @@ let popupPresetCategory = 'everyday';
 function paintPopupActive(goals) {
   const name = document.getElementById('presetActiveName');
   if (!name) return;
-  const label = CATS.goalsLabel(goals.ids);
+  // The goal names in the reader's language (the engine's own goalsLabel is English).
+  const picked = CATS.sanitizeGoals(goals.ids);
+  const label = (picked.length ? picked : ['balanced']).map(id => msg(`presetLabel_${id}`, CATS.PRESETS[id].label)).join(' + ');
   name.textContent = goals.custom
     ? `${msg('optPresetCustomLabel', 'Custom')}${goals.ids.length ? ` (${label})` : ''}`
     : label;
@@ -83,7 +85,8 @@ function paintPopupActive(goals) {
 // "Goals · 2": how many selected goals a tab holds, so goals picked on other tabs stay visible.
 function paintCategoryCount(tab, cat, goalIds) {
   const n = (goalIds || []).filter(id => CATS.PRESETS[id] && (CATS.PRESETS[id].category || 'everyday') === cat.id).length;
-  tab.textContent = n ? `${cat.label} · ${n}` : cat.label;
+  const name = msg(`presetCat_${cat.id}`, cat.label);
+  tab.textContent = n ? `${name} · ${n}` : name;
   tab.classList.toggle('has-picks', n > 0);
 }
 
@@ -134,8 +137,8 @@ function renderPresets(weights, goalIds = popupGoals) {
     b.className = 'preset';
     b.dataset.preset = id;
     b.setAttribute('aria-pressed', String(goals.ids.includes(id) || (id === 'balanced' && !goals.ids.length && !goals.custom)));
-    b.title = preset.note;
-    b.textContent = preset.label;
+    b.title = msg(`presetNote_${id}`, preset.note || '');
+    b.textContent = msg(`presetLabel_${id}`, preset.label);
     b.addEventListener('click', () => applyPreset(id));
     host.appendChild(b);
   }

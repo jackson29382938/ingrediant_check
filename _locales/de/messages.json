@@ -2396,5 +2396,1631 @@
   },
   "sortMenuButton": {
     "message": "Zutaten-Check sortieren"
+  },
+  "histIngredientCheckPurchaseHistory": {
+    "message": "Ingredient Check — Kaufverlauf"
+  },
+  "histYourPurchasePatterns": {
+    "message": "DEINE EINKAUFSMUSTER"
+  },
+  "histPurchaseHistoryTrends": {
+    "message": "Kaufverlauf und Trends"
+  },
+  "histSeeWhatChangesKeepThe": {
+    "message": "Sieh, was sich ändert. Die ursprünglichen Daten bleiben erhalten."
+  },
+  "histPurchaseHistoryNavigation": {
+    "message": "Navigation im Kaufverlauf"
+  },
+  "histInsights": {
+    "message": "Auswertung"
+  },
+  "histScoreDrivers": {
+    "message": "Einflussfaktoren"
+  },
+  "histImportedItems": {
+    "message": "Importierte Artikel"
+  },
+  "histScanOrders": {
+    "message": "Bestellungen einlesen"
+  },
+  "histPurchaseSettings": {
+    "message": "Kaufeinstellungen"
+  },
+  "histOnlyActualAmazonOrdersDrive": {
+    "message": "Nur tatsächliche Amazon-Bestellungen fließen in die Trends ein. Angesehene Produkte und Warenkörbe zählen nicht. Kaufbewertungen beruhen auf den Zutatenangaben, die beim Import verfügbar waren; sie können von der ursprünglichen Verpackung abweichen. Käufe sagen nichts darüber, was du gegessen hast."
+  },
+  "histPurchaseInsights": {
+    "message": "AUSWERTUNG DER KÄUFE"
+  },
+  "histYourPatternsAtAGlance": {
+    "message": "Deine Muster auf einen Blick"
+  },
+  "histEditGoalsWeights": {
+    "message": "Ziele und Gewichtungen bearbeiten"
+  },
+  "histScoreView": {
+    "message": "Bewertungsansicht"
+  },
+  "histRecordedScoresDefault": {
+    "message": "Gespeicherte Bewertungen (Standard)"
+  },
+  "histRecalculateWithCurrentGoalsWeights": {
+    "message": "Mit aktuellen Zielen und Gewichtungen neu berechnen"
+  },
+  "histAverageWeighting": {
+    "message": "Gewichtung des Durchschnitts"
+  },
+  "histEachProductEntryEqually": {
+    "message": "Jeder Produkteintrag gleich"
+  },
+  "histEachIdentifiedOrderEqually": {
+    "message": "Jede erkannte Bestellung gleich"
+  },
+  "histTimeline": {
+    "message": "Zeitverlauf"
+  },
+  "histMonthly": {
+    "message": "Monatlich"
+  },
+  "histYearly": {
+    "message": "Jährlich"
+  },
+  "histHowRecordedAndCurrentGoal": {
+    "message": "Worin sich gespeicherte und neu berechnete Bewertungen unterscheiden"
+  },
+  "histRecordedScoresStayUnchangedThe": {
+    "message": "Gespeicherte Bewertungen bleiben unverändert. Der Vergleich nutzt die heutigen Regeln und deine gespeicherten Ziele, Gewichtungen und Warnungen."
+  },
+  "histChangeThoseSettings": {
+    "message": "Diese Einstellungen ändern"
+  },
+  "histWarningsDiets": {
+    "message": "Warnungen und Ernährungsweisen"
+  },
+  "histAndThisViewUpdatesAutomatically": {
+    "message": "– diese Ansicht aktualisiert sich dann von selbst. Für ältere Einträge, zu denen nur der Zutatentext vorliegt, ist der Vergleich ungefähr: Nährwerte und Zertifikate von damals fehlen."
+  },
+  "histHowToReadTheseInsights": {
+    "message": "So liest du diese Auswertung"
+  },
+  "histPurchaseScoresNotAPersonal": {
+    "message": "Bewertungen deiner Käufe, keine Bewertung deiner Gesundheit"
+  },
+  "histRatingCoverage": {
+    "message": "Anteil bewerteter Einträge"
+  },
+  "histCoverageAndExcludedEntries": {
+    "message": "Abdeckung und ausgeschlossene Einträge"
+  },
+  "histPurchaseStatistics": {
+    "message": "Kaufstatistik"
+  },
+  "histHistoryFilters": {
+    "message": "Filter für den Verlauf"
+  },
+  "histSearchProducts": {
+    "message": "Produkte suchen"
+  },
+  "histNameOrProductId": {
+    "message": "Name oder Produkt-ID"
+  },
+  "histFrom": {
+    "message": "Von"
+  },
+  "histThrough": {
+    "message": "Bis"
+  },
+  "histStatus": {
+    "message": "Zustand"
+  },
+  "histAllStatuses": {
+    "message": "Alle Zustände"
+  },
+  "histPurchased": {
+    "message": "Gekauft"
+  },
+  "histReturned": {
+    "message": "Zurückgegeben"
+  },
+  "histCancelled": {
+    "message": "Storniert"
+  },
+  "histUnconfirmedExcluded": {
+    "message": "Unbestätigt / ausgeschlossen"
+  },
+  "histLabelSource": {
+    "message": "Quelle der Zutaten"
+  },
+  "histAllSources": {
+    "message": "Alle Quellen"
+  },
+  "histLabelPhotoOcr": {
+    "message": "Etikettenfoto (Texterkennung)"
+  },
+  "histNotRecorded": {
+    "message": "Nicht erfasst"
+  },
+  "histRating": {
+    "message": "Bewertung"
+  },
+  "histAllRatings": {
+    "message": "Alle Bewertungen"
+  },
+  "histRated": {
+    "message": "Bewertet"
+  },
+  "histLabelUnavailable": {
+    "message": "Keine Zutatenliste verfügbar"
+  },
+  "histRecordedWarningMatches": {
+    "message": "Gespeicherte Warnungstreffer"
+  },
+  "histMaximumScore": {
+    "message": "Höchste Bewertung"
+  },
+  "histSortItems": {
+    "message": "Artikel sortieren"
+  },
+  "histNewestFirst": {
+    "message": "Neueste zuerst"
+  },
+  "histOldestFirst": {
+    "message": "Älteste zuerst"
+  },
+  "histHighestScore": {
+    "message": "Beste Bewertung"
+  },
+  "histLowestScore": {
+    "message": "Schlechteste Bewertung"
+  },
+  "histLargestIncreaseInComparison": {
+    "message": "Größter Zuwachs im Vergleich"
+  },
+  "histResetFilters": {
+    "message": "Filter zurücksetzen"
+  },
+  "histYourHistoryStartsHere": {
+    "message": "Hier beginnt dein Verlauf"
+  },
+  "histImportConfirmedAmazonPurchasesTo": {
+    "message": "Importiere bestätigte Amazon-Käufe, um Muster in den Zutatenbewertungen zu sehen. Produkte anzusehen oder in den Warenkorb zu legen erzeugt keinen Kaufverlauf."
+  },
+  "histEnablePurchaseImport": {
+    "message": "Kaufimport einschalten"
+  },
+  "histScanOrderHistory": {
+    "message": "Bestellverlauf einlesen"
+  },
+  "histNoEntriesMatchTheseFilters": {
+    "message": "Kein Eintrag passt zu diesen Filtern"
+  },
+  "histTryAWiderDateRange": {
+    "message": "Versuche einen größeren Zeitraum, einen anderen Zustand oder „Filter zurücksetzen“ oben. Dein gespeicherter Verlauf wurde nicht gelöscht."
+  },
+  "histScoreOverTime": {
+    "message": "Bewertung im Zeitverlauf"
+  },
+  "histSeparateLinesPreserveRecordedScori": {
+    "message": "Getrennte Linien halten unterschiedliche Bewertungseinstellungen auseinander. Fehlende Zeiträume sind nicht null. Fokussiere einen Punkt, um seine Zahlen zu sehen."
+  },
+  "histScoreDistribution": {
+    "message": "Verteilung der Bewertungen"
+  },
+  "histProductEntriesInFiveScore": {
+    "message": "Produkteinträge in fünf Bewertungsstufen. Fehlende Bewertungen sind ausgenommen."
+  },
+  "histBiggestBonusesDeductions": {
+    "message": "Größte Zuschläge und Abzüge"
+  },
+  "histAdjustScoringWeights": {
+    "message": "Gewichtungen anpassen"
+  },
+  "histBreakdownBasis": {
+    "message": "Grundlage der Aufschlüsselung"
+  },
+  "histCurrentGoalsOnSavedLabels": {
+    "message": "Aktuelle Ziele auf gespeicherten Zutatenlisten (Standard)"
+  },
+  "histOriginalRecordedPointBreakdowns": {
+    "message": "Ursprünglich gespeicherte Punkteaufschlüsselung"
+  },
+  "histTotalNetPointsAcrossMatching": {
+    "message": "Summe der Nettopunkte über alle passenden gekauften Produkteinträge. Jeder Eintrag zählt einmal; Mengen werden nicht geschätzt. Zuschläge und Abzüge desselben Faktors heben sich gegenseitig auf. Bewertungsgrenzen zählen nur mit dem Abzug, den sie tatsächlich bewirkt haben. Verarbeitungsstufe und Anpassungen an der Untergrenze der Skala werden getrennt ausgewiesen. Diese Summen verwenden nicht die Durchschnittsgewichtung des Diagramms."
+  },
+  "histBiggestNetBonuses": {
+    "message": "Größte Zuschläge (netto)"
+  },
+  "histBiggestNetDeductions": {
+    "message": "Größte Abzüge (netto)"
+  },
+  "histAllPointContributors": {
+    "message": "Alle Punktefaktoren"
+  },
+  "histBonusPoints": {
+    "message": "Zuschlagspunkte"
+  },
+  "histDeductionPoints": {
+    "message": "Abzugspunkte"
+  },
+  "histNetPoints": {
+    "message": "Nettopunkte"
+  },
+  "histAffectedEntries": {
+    "message": "Betroffene Einträge"
+  },
+  "histIdentifiedOrders": {
+    "message": "Erkannte Bestellungen"
+  },
+  "histStatisticalDetailsErrorBars": {
+    "message": "Statistische Details und Fehlerbalken"
+  },
+  "histTimelineBars": {
+    "message": "Balken im Zeitverlauf"
+  },
+  "histNoBarsDefault": {
+    "message": "Keine Balken (Standard)"
+  },
+  "histMiddle50IqrDescriptiveSpread": {
+    "message": "Mittlere 50 % (IQR): beschreibende Streuung"
+  },
+  "histMinimumMaximumDescriptiveSpread": {
+    "message": "Minimum–Maximum: beschreibende Streuung"
+  },
+  "hist95ConfidenceIntervalOrderCluster": {
+    "message": "95-%-Konfidenzintervall: Schätzung nach Bestellungen"
+  },
+  "histConfidenceIntervalsUseAStudent": {
+    "message": "Konfidenzintervalle nutzen eine Student-t-Näherung mit Bestellungen als Clustern: Drei Produkte aus einer Bestellung sind keine drei unabhängigen Stichproben. Nötig sind mindestens zwei bewertete, erkannte Bestellungen und, für artikelgewichtete Durchschnitte, eine vollständige Zuordnung zu Bestellungen. Käufe sind keine Zufallsstichprobe; die Intervalle beschreiben nur und sind weder medizinische Aussagen noch Schätzungen der Etikettengenauigkeit noch Vorhersagen. Wiederholt gekaufte Produkte und Haushaltseinkäufe können trotzdem zusammenhängen."
+  },
+  "histOrderSummariesHowProductEntries": {
+    "message": "Bestellübersicht: wie sich Produkteinträge summieren"
+  },
+  "histPurchasedProductEntriesInThe": {
+    "message": "Gekaufte Produkteinträge in den aktuellen Filtern. Mengen und Packungsgrößen werden nicht geschätzt. Ältere Einträge ohne Bestellzuordnung stehen getrennt. Ab 500 Gruppen teilen sich die übrigen eine Sammelzeile, damit große Verläufe flüssig bleiben."
+  },
+  "histOrderGroup": {
+    "message": "Bestellgruppe"
+  },
+  "histDate": {
+    "message": "Datum"
+  },
+  "histProductEntries": {
+    "message": "Produkteinträge"
+  },
+  "histRatedEntries": {
+    "message": "Bewertete Einträge"
+  },
+  "histAverage100": {
+    "message": "Durchschnitt /100"
+  },
+  "histTimelineDataTable": {
+    "message": "Datentabelle zum Zeitverlauf"
+  },
+  "histPeriod": {
+    "message": "Zeitraum"
+  },
+  "histScoringSetup": {
+    "message": "Bewertungseinstellung"
+  },
+  "histRatedProductEntries": {
+    "message": "Bewertete Produkteinträge"
+  },
+  "histRecordedWarnings": {
+    "message": "Gespeicherte Warnungen"
+  },
+  "histFrequentlyPurchasedFoodProducts": {
+    "message": "Häufig gekaufte Lebensmittel"
+  },
+  "histEachEntryRepresentsADistinct": {
+    "message": "Jeder Eintrag steht für ein eigenes Produkt in einer Bestellung, nicht für dessen Menge oder Packungszahl. Zu einer Bestellung können mehrere Einträge gehören. Filter wirken auf die Diagramme und diese Tabelle; nur gekaufte Einträge fließen in die Trends ein."
+  },
+  "histOrderDate": {
+    "message": "Bestelldatum"
+  },
+  "histProduct": {
+    "message": "Produkt"
+  },
+  "histRecorded100": {
+    "message": "Gespeichert /100"
+  },
+  "histCurrentGoals100": {
+    "message": "Aktuelle Ziele /100"
+  },
+  "histChange": {
+    "message": "Änderung"
+  },
+  "histRatedOn": {
+    "message": "Bewertet am"
+  },
+  "histShowMoreItems": {
+    "message": "Weitere Artikel anzeigen"
+  },
+  "histImportOrRefreshPurchaseHistory": {
+    "message": "Kaufverlauf importieren oder aktualisieren"
+  },
+  "histEstablishYourAmazonHistory": {
+    "message": "Deinen Amazon-Verlauf aufbauen"
+  },
+  "histEnableImportIn": {
+    "message": "Schalte den Import ein unter"
+  },
+  "histThenScanAllAvailableOrders": {
+    "message": "und lies dann mit deiner Amazon-Anmeldung alle verfügbaren Bestellseiten und Jahresfilter ein. Dafür öffnet sich ein gewöhnlicher Amazon-Tab; er arbeitet weiter, während du andere Tabs nutzt. Chrome muss geöffnet bleiben. Anmeldeprüfungen oder nicht unterstützte Seiten halten den Vorgang an. Bereits importierte Käufe bleiben erhalten, wenn du pausierst oder abbrichst."
+  },
+  "histRunInABackgroundTab": {
+    "message": "In einem Hintergrund-Tab ausführen"
+  },
+  "histInitialEstimateRoughly1560": {
+    "message": "Erste Schätzung: etwa 15–60 Sekunden pro Seite mit rund 10 Bestellungen. Mit gespeicherten Zutatenlisten geht es deutlich schneller; fehlende Listen und das Lesen von Fotos können mehrere Minuten pro Seite dauern. Die Restzeit wird genauer, sobald Seiten fertig sind und weitere Jahre gefunden werden."
+  },
+  "histScanAllAmazonOrders": {
+    "message": "Alle Amazon-Bestellungen einlesen"
+  },
+  "histPauseScan": {
+    "message": "Einlesen pausieren"
+  },
+  "histResumeScan": {
+    "message": "Einlesen fortsetzen"
+  },
+  "histCancelScan": {
+    "message": "Einlesen abbrechen"
+  },
+  "histOpenScanTab": {
+    "message": "Tab des Einlesens öffnen"
+  },
+  "histOrderPageScanProgress": {
+    "message": "Fortschritt beim Einlesen der Bestellseiten"
+  },
+  "histOnlyConfirmedPurchasesContributeTo": {
+    "message": "Nur bestätigte Käufe fließen in die Trends ein. Mengen, Adressen, Zahlungsdaten und unverschlüsselte Bestellnummern werden nicht erfasst. Lokal lassen sich bis zu 10.000 einzelne Einträge aus Bestellung und Produkt speichern. Ältere Konto-Backends brauchen die erweiterte Verlaufskapazität, um mehr als 1.000 Einträge zu synchronisieren."
+  },
+  "histPurchaseImportAccountSyncOrder": {
+    "message": "Kaufimport, Kontosynchronisierung und Anzeige bei Bestellungen"
+  },
+  "histPurchaseSpecificSettings": {
+    "message": "Einstellungen für Käufe"
+  },
+  "histImportTheAmazonOrderPages": {
+    "message": "Amazon-Bestellseiten importieren, die ich öffne"
+  },
+  "histAutomaticallySyncMyPurchaseHistory": {
+    "message": "Meinen Kaufverlauf automatisch mit meinem Google-Konto synchronisieren"
+  },
+  "histSyncSendsProductNamesAnd": {
+    "message": "Die Synchronisierung sendet Produktnamen und -IDs, Kaufdaten, Zutatentext, verfügbare Nährwerte und Zertifikate, verschlüsselte Bestellgruppen, Bewertungen und ausgewählte Warnungstreffer an deinen angemeldeten Kontoeintrag im privaten Backend von Ingredient Check. Adressen, Preise, Zahlungsdaten und unverschlüsselte Bestellnummern werden nicht gespeichert. Der Verlauf ist von den Einstellungs-Backups getrennt."
+  },
+  "histOrderScoreDisplay": {
+    "message": "Anzeige der Bewertung bei Bestellungen"
+  },
+  "histWhereToPlaceOrderScores": {
+    "message": "Wo die Bewertung bei Bestellungen stehen soll"
+  },
+  "histOnTheProductImageDefault": {
+    "message": "Auf dem Produktbild (Standard)"
+  },
+  "histBesideTheProductTitle": {
+    "message": "Neben dem Produkttitel"
+  },
+  "histImagePlacementFallsBackTo": {
+    "message": "Fehlt bei einem Artikel das Produktbild, steht die Bewertung stattdessen am Titel; bei reinen Bildartikeln bleibt sie auch in der Titel-Einstellung auf dem Bild. Die Details beim Überfahren zeigen die gespeicherte Kaufbewertung."
+  },
+  "histSharedControlsLiveInSettings": {
+    "message": "Gemeinsame Optionen stehen in den Einstellungen:"
+  },
+  "histLabelPhotosBarcodeLookup": {
+    "message": "Etikettenfotos und Barcode-Suche"
+  },
+  "histFetchingSpeedSavedLabels": {
+    "message": "Abrufgeschwindigkeit und gespeicherte Zutatenlisten"
+  },
+  "histHoverDetails": {
+    "message": "Details beim Überfahren"
+  },
+  "histSyncNow": {
+    "message": "Jetzt synchronisieren"
+  },
+  "histOpenAmazonOrders": {
+    "message": "Amazon-Bestellungen öffnen"
+  },
+  "histExportHistory": {
+    "message": "Verlauf exportieren"
+  },
+  "histDeleteLocalAndAccountHistory": {
+    "message": "Verlauf lokal und im Konto löschen"
+  },
+  "optxLabels": {
+    "message": "Zutatenlisten"
+  },
+  "optxNotASafetyCheck": {
+    "message": "Keine Sicherheitsprüfung."
+  },
+  "optxWarningsComeOnlyFromThe": {
+    "message": "Warnungen stammen nur aus dem Zutatentext, den diese Erweiterung lesen konnte. Fehlt dieser Text, ist er veraltet oder in einer Sprache, die die Regeln nicht abdecken, erscheint keine Warnung – und das sieht genauso aus wie „kein Allergen“. Verlasse dich bei einer Allergie nie darauf. Lies die Verpackung."
+  },
+  "optxLabelReading": {
+    "message": "Zutatenlisten lesen"
+  },
+  "optxSharedByProductPagesSearch": {
+    "message": "Gilt für Produktseiten, Suchergebnisse, Warenkörbe und gekaufte Artikel."
+  },
+  "optxReadLabelPhotosOnThis": {
+    "message": "Etikettenfotos auf diesem Computer lesen"
+  },
+  "optxUsesLocalOcrWhenA": {
+    "message": "Nutzt die lokale Texterkennung, wenn ein lesbares Zutatenfoto vorhanden ist. Fotos werden nicht hochgeladen. Fehlende oder unlesbare Etiketten bleiben unbekannt."
+  },
+  "optxLookUpBarcodesInOpen": {
+    "message": "Barcodes bei Open Food Facts nachschlagen"
+  },
+  "optxRequiresChromePermissionSendsOnly": {
+    "message": "Braucht eine Chrome-Berechtigung. Gesendet wird nur der Barcode des Produkts an Open Food Facts; dein Kaufverlauf wird nicht gesendet."
+  },
+  "optxYourOwnUsdaFooddataCentral": {
+    "message": "Dein eigener Schlüssel für USDA FoodData Central (freiwillig)"
+  },
+  "optxASecondBarcodeDatabaseFor": {
+    "message": "Eine zweite Barcode-Datenbank für verpackte Lebensmittel aus den USA, die befragt wird, wenn Open Food Facts keine Zutatenliste hat. Ohne Schlüssel laufen Abfragen über den eigenen Nachschlagedienst von Ingredient Check, der den Schlüssel des Projekts verwendet; der Barcode geht also dort hindurch (schalte die gemeinsame Online-Datenbank aus, um das zu verhindern). Mit deinem eigenen kostenlosen Schlüssel (fdc.nal.usda.gov/api-key-signup) geht der Barcode stattdessen direkt an das USDA. Der Schlüssel bleibt in diesem Browser und ist weder Teil eines Backups noch einer Einstellungsdatei, der Chrome-Synchronisierung oder eines Problemberichts."
+  },
+  "optxTestKeyAndAccess": {
+    "message": "Schlüssel und Zugriff testen"
+  },
+  "optxRemoveKey": {
+    "message": "Schlüssel entfernen"
+  },
+  "optxLookUpBarcodesInUsda": {
+    "message": "Barcodes bei USDA FoodData Central nachschlagen"
+  },
+  "optxSendsOnlyTheProductBarcode": {
+    "message": "Sendet nur den Barcode des Produkts, nachdem Open Food Facts nichts Brauchbares gefunden hat, und nur solange die Barcode-Suche oben eingeschaltet ist. Mit eigenem Schlüssel ist zusätzlich die Chrome-Berechtigung für api.nal.usda.gov nötig. Ein Datensatz wird nur verwendet, wenn er denselben Barcode trägt."
+  },
+  "optxPurchaseImportAndOrderDisplay": {
+    "message": "Einstellungen für Kaufimport und Anzeige bei Bestellungen"
+  },
+  "optxPurchaseScoreDrivers": {
+    "message": "Einflussfaktoren der Kaufbewertungen"
+  },
+  "optxAiHelpOptional": {
+    "message": "KI-Hilfe (freiwillig)"
+  },
+  "optxUsesAFreeModelThrough": {
+    "message": "Nutzt ein kostenloses Modell über OpenRouter, mit deinem eigenen Schlüssel. Bewertungen funktionieren auch ohne, und die Hilfe bleibt aus, bis du einen Schlüssel einträgst und den Zugriff auf openrouter.ai erlaubst."
+  },
+  "optxOpenrouterApiKey": {
+    "message": "OpenRouter-API-Schlüssel"
+  },
+  "optxCreateAFreeKeyAt": {
+    "message": "Einen kostenlosen Schlüssel gibt es unter openrouter.ai/keys. Er bleibt in diesem Browser und ist weder Teil eines Backups noch einer Einstellungsdatei, der Chrome-Synchronisierung oder eines Problemberichts."
+  },
+  "optxRateIngredientsTheRulesDo": {
+    "message": "Zutaten bewerten, die die Regeln nicht kennen"
+  },
+  "optxSendsOnlyThoseIngredientNames": {
+    "message": "Sendet nur die Namen dieser Zutaten an OpenRouter (nicht das Produkt, den Shop, die Seite oder dich). Die Antwort fließt in die Bewertung ein und wird als „KI-Schätzung“ gezeigt. Sie kann eine Bewertung nur senken, nie anheben oder eine feste Obergrenze setzen, wiegt weniger als eine eingebaute Regel und gilt auf Produktseiten, die du öffnest. Kostenlose Modelle sind in der Anfragezahl begrenzt; deshalb wird jeder Name nur einmal angefragt und auf diesem Computer behalten."
+  },
+  "optxReadLabelPhotosWithAi": {
+    "message": "Etikettenfotos mit KI lesen, wenn die Texterkennung scheitert"
+  },
+  "optxWhenOnDeviceOcrFinds": {
+    "message": "Findet die Texterkennung auf dem Gerät in den Produktfotos keine Zutatenliste, wird die öffentliche Adresse von bis zu drei Fotos auf m.media-amazon.com an OpenRouter gesendet, damit ein Bildmodell die Liste lesen kann. Das Ergebnis wird nur verwendet, wenn es wie eine Zutatenliste aussieht; es bleibt auf diesem Computer und wird nie geteilt."
+  },
+  "optxOrderBadgePlacementAndPurchase": {
+    "message": "Position der Bewertung bei Bestellungen und Kaufimport"
+  },
+  "optxAmazonAccess": {
+    "message": "Zugriff auf Amazon"
+  },
+  "optxProductSearchAndCartPages": {
+    "message": "Nur Produkt-, Such- und Warenkorbseiten – nie dein Konto, deine Bestellungen oder die Kasse."
+  },
+  "optxWhenYouInstallIngredientCheck": {
+    "message": "Bei der Installation bittet Ingredient Check Chrome um Zugriff auf die unterstützten Amazon-Shops:"
+  },
+  "optxAmazonComAndTheOther": {
+    "message": "amazon.com und die übrigen unterstützten Amazon-Shops"
+  },
+  "optxItUsesThatAccessTo": {
+    "message": ". Mit diesem Zugriff liest die Erweiterung Produkt-, Such- und Warenkorbseiten und ruft Produktseiten für die beiden Optionen oben ab. Ihre Skripte laufen auf Produkt-, Such-, Kategorie- und Markenshop-Seiten sowie auf eng begrenzten Warenkorbseiten, nie in deinem Konto, bei deinen Bestellungen oder an der Kasse. Um den Zugriff einzuschränken, öffne"
+  },
+  "optxChoose": {
+    "message": ", wähle"
+  },
+  "optxUnderIngredientCheckAndChange": {
+    "message": "bei Ingredient Check und ändere"
+  },
+  "optxSiteAccess": {
+    "message": "Websitezugriff"
+  },
+  "optxInstantScoreRecall": {
+    "message": "Bewertungen sofort abrufen"
+  },
+  "optxShowSavedScoresFirstRecommended": {
+    "message": "Gespeicherte Bewertungen zuerst zeigen (empfohlen)"
+  },
+  "optxReuseFreshLocalRatingsInstead": {
+    "message": "Verwendet frische lokale Bewertungen, statt Produktseiten abzurufen. Wiederholte Produkte teilen sich eine Abfrage."
+  },
+  "optxKeepRecentReadingsInMemory": {
+    "message": "Zuletzt Gelesenes im Arbeitsspeicher halten (empfohlen)"
+  },
+  "optxAvoidRepeatedDiskReadsWhile": {
+    "message": "Vermeidet wiederholtes Lesen vom Datenträger, solange diese Seite offen ist. Begrenzt auf 256 Einträge und 2 MB; gespeicherte Bewertungen bleiben auf diesem Computer."
+  },
+  "optxRefreshStaleScoresInThe": {
+    "message": "Veraltete Bewertungen im Hintergrund auffrischen (empfohlen)"
+  },
+  "optxShowAnOlderSavedScore": {
+    "message": "Zeigt eine ältere gespeicherte Bewertung, während ihre Zutatenliste neu gelesen wird. Die Schalter für die automatische Bewertung, die Anfragegrenzen und die Pausen bei Händlern gelten weiter. Ausgeschaltet bleibt die gespeicherte Bewertung, bis ihre Schonfrist endet."
+  },
+  "optxExtraTimeToShowAn": {
+    "message": "Zusätzliche Zeit, in der eine ältere Bewertung gezeigt wird"
+  },
+  "optxNoneFreshScoresOnly": {
+    "message": "Keine – nur frische Bewertungen"
+  },
+  "optx7DaysRecommended": {
+    "message": "7 Tage (empfohlen)"
+  },
+  "optx30Days": {
+    "message": "30 Tage"
+  },
+  "optxAddedToTheFreshnessLimit": {
+    "message": "Kommt zur Frischegrenze oben hinzu. Ältere Bewertungen sind als gespeichert gekennzeichnet. Produktseiten lesen weiterhin ihre aktuelle Zutatenliste; die Momentaufnahmen im Kaufverlauf bleiben unverändert."
+  },
+  "optxCertificationTablesForWholeFoods": {
+    "message": "Zertifikatstabellen für unverarbeitete Lebensmittel (Bio, Weidehaltung, Herkunft) aus einer gemeinsamen Tabelle, die nur der Entwickler bearbeitet. Die Bewertung und deine Gewichtungen bleiben auf diesem Computer."
+  },
+  "optxOffKeepsEveryLookupOn": {
+    "message": "Aus: Jede Abfrage bleibt auf diesem Computer. An: Gesendet wird nur eine Anfrage nach den Zertifikatstabellen, einige Male am Tag – nie deine Einstellungen oder wer du bist."
+  },
+  "optxPurchaseHistoryTrendsAccountSync": {
+    "message": "Kaufverlauf, Trends und Kontosynchronisierung"
+  },
+  "optxOptInAmazonOrderImports": {
+    "message": "– freiwilliger Import von Amazon-Bestellungen; automatische Synchronisierung oder „Jetzt synchronisieren“."
+  },
+  "optxThisComputerSSettingsAlways": {
+    "message": "Die Einstellungen dieses Computers haben immer Vorrang. Eine Online-Kopie kommt nur zurück, wenn du auf „Wiederherstellen“ klickst (der Hauptschalter gehört nicht dazu)."
+  },
+  "optxChromeSOwnSyncPrivate": {
+    "message": "Chromes eigene Synchronisierung, nur für dich. Ist sie ausgeschaltet, bleibt die Kopie auf diesem Computer."
+  },
+  "optxOpenChromeProfileSettings": {
+    "message": "Chrome-Profileinstellungen öffnen"
+  },
+  "optxChromeSyncAndGoogleBackup": {
+    "message": "Chrome-Synchronisierung und Google-Backup sind getrennt: Bei jedem Speichern oder Wiederherstellen über Google wählst du ein Konto, und die Anmeldung hier meldet Chrome nicht an."
+  },
+  "optxManageYourGoogleAppConnections": {
+    "message": "Deine Google-App-Verknüpfungen verwalten"
+  },
+  "optxConfigureGoogleSignIn": {
+    "message": "Google-Anmeldung einrichten"
+  },
+  "optxUseThePublicOauthClient": {
+    "message": "Verwende die öffentliche OAuth-Client-ID, die der Betreiber der Datenbank eingerichtet hat. Trage die Weiterleitungsadresse unten in den Google-Cloud-Einstellungen dieses Clients ein. Ein Client-Geheimnis ist nicht nötig."
+  },
+  "optxGoogleOauthClientId": {
+    "message": "Google-OAuth-Client-ID"
+  },
+  "optxSaveSignInConfiguration": {
+    "message": "Anmeldekonfiguration speichern"
+  },
+  "optxCopyRedirectAddress": {
+    "message": "Weiterleitungsadresse kopieren"
+  },
+  "optxOpenGoogleCloudCredentials": {
+    "message": "Google-Cloud-Anmeldedaten öffnen"
+  },
+  "optxSendsOneRowPerScored": {
+    "message": "Sendet je bewertetem Produkt eine Zeile an die gemeinsame Datenbank: den gelesenen Zutatentext, seine Quelle, die ausgelösten Regeln und die Bewertung. Gebündelt."
+  },
+  "optxThisRecordsWhichProductsYou": {
+    "message": "Dabei wird festgehalten, welche Produkte du angesehen hast."
+  },
+  "optxNoNameAccountOrSession": {
+    "message": "Kein Name, kein Konto, keine Sitzungskennung und nichts von anderen Seiten. Die Daten gehen an die Datenbank von Ingredient Check, nicht an Dritte. Aus, solange du es nicht einschaltest."
+  },
+  "optxWithRateSearchResultsOn": {
+    "message": "Ist „Suchergebnisse bewerten“ eingeschaltet, entsteht auf einer Ergebnisseite eine Zeile pro Kachel."
+  },
+  "optxThatIsAMeaningfulTrace": {
+    "message": "Das ist eine aussagekräftige Spur deines Surfens. Jede Zeile reicht aus, um zu beurteilen, ob eine Bewertung stimmte – statt nur zu bemerken, wenn eine falsch aussieht."
+  },
+  "optxScoringIsEntirelyLocalThe": {
+    "message": "Die Bewertung läuft vollständig lokal: Die Regeln, deine Gewichtungen und jede Bewertung werden in deinem Browser berechnet. Es gibt keine Analyse und keine Telemetrie."
+  },
+  "optxEverythingThatCanBeSent": {
+    "message": "Alles, was gesendet werden kann"
+  },
+  "optxOnByDefaultTheStore": {
+    "message": "(standardmäßig an) – die Shop- und Produkt-IDs einer Suchseite und das, was von bewerteten Produkten gelesen wurde, gehen an das Apps Script von Ingredient Check. Die Tabelle dahinter ist privat. Nie deine Einstellungen."
+  },
+  "optxOnByDefaultAnd": {
+    "message": "(standardmäßig an) und"
+  },
+  "optxRequestProductPagesFromThe": {
+    "message": "– rufen Produktseiten des Amazon-Shops ab, in dem du gerade bist, mit deiner Amazon-Anmeldung; Amazon sieht sie also ungefähr so, als hättest du die Produkte selbst geöffnet. Drei gleichzeitig, höchstens 60 pro Ergebnisseite, und nur für Produkte, die noch nicht beantwortet sind. Beides findest du unter"
+  },
+  "optxSendsABarcodeToWorld": {
+    "message": "– sendet einen Barcode an world.openfoodfacts.org, wenn eine Seite einen hat, aber keine lesbaren Zutaten. Den Barcode und sonst nichts."
+  },
+  "optxBackUpMySettings": {
+    "message": "Meine Einstellungen sichern"
+  },
+  "optxOnByDefaultChromeS": {
+    "message": "(standardmäßig an) – Chromes eigene Synchronisierung, nur für dein Chrome-Konto."
+  },
+  "optxAsksGoogleForYourName": {
+    "message": "fragt Google nach deinem Namen, deiner E-Mail-Adresse und deinem Bild, um zu zeigen, wer angemeldet ist (nur auf diesem Computer gespeichert;"
+  },
+  "optxDeletesThemSavingACopy": {
+    "message": "löscht sie). „Kopie speichern“ legt deine Einstellungen in der Datenbank von Ingredient Check ab, unter einem Hash deiner Konto-ID und nur, wenn du darauf klickst."
+  },
+  "optxSendCertifications": {
+    "message": "Zertifikate senden"
+  },
+  "optxAndLooksWrongReportsProduct": {
+    "message": "und Meldungen über „Sieht falsch aus?“ – Produktkennungen und Zertifikatstext. Nie etwas über dich."
+  },
+  "optxSortResults": {
+    "message": "Ergebnisse sortieren"
+  },
+  "optxWith": {
+    "message": "– mit"
+  },
+  "optxRateThemFirst": {
+    "message": "Zuerst bewerten"
+  },
+  "optxTheSameProductPageRequests": {
+    "message": ", dieselben Produktseiten-Abrufe wie bei"
+  },
+  "optxRateSearchResults": {
+    "message": "Suchergebnisse bewerten"
+  },
+  "optxOffByDefaultAlsoRequests": {
+    "message": "(standardmäßig aus) ruft außerdem weitere Amazon-Suchseiten und Produktseiten ab, mit deiner Amazon-Anmeldung. Siehe"
+  },
+  "optxSortByScoreOrPrice": {
+    "message": "Nach Bewertung oder Preis pro Unze sortieren"
+  },
+  "optxRetailerPreviews": {
+    "message": "Händler-Vorschauen"
+  },
+  "optxAutomaticSearchRatingRequestsPubli": {
+    "message": "– die automatische Bewertung der Suche ruft öffentliche Produktseiten desselben Shops ab, ohne Cookies. Bewertungen bleiben lokal; nichts, was in der Vorschau gelesen wird, geht an Google oder die gemeinsame Datenbank. Schalte aus:"
+  },
+  "optxForSavedScoresOnly": {
+    "message": "für ausschließlich gespeicherte Bewertungen."
+  },
+  "optxNothingIsSentByThe": {
+    "message": "– die Erweiterung sendet nichts. Sie öffnet in deinem E-Mail-Programm einen Entwurf mit dem Shopnamen und der Website, die du eingegeben hast; ob du ihn abschickst, entscheidest du."
+  },
+  "optxOneRowPerScoredProduct": {
+    "message": "– eine Zeile je bewertetem Produkt, je Lesevorgang ohne Bewertung und je Klick auf „Sieht falsch aus?“. Hier wird tatsächlich festgehalten, welche Produkte gelesen wurden; siehe den Abschnitt oben."
+  },
+  "optxMakesNoNetworkRequestOf": {
+    "message": "stellt selbst keine Netzwerkanfrage, außer das Produktbild abzurufen, das die Seite ohnehin zeigt: Die Texterkennung wird mit der Erweiterung geliefert und läuft auf deinem Computer."
+  },
+  "optxTurnOffTheSharedDatabase": {
+    "message": "Schalte die gemeinsame Datenbank, das Backup und"
+  },
+  "optxLeaveTheOtherBoxesOff": {
+    "message": "aus und lass die übrigen Kästchen leer – dann stellt die Erweiterung von sich aus keine Netzwerkanfragen."
+  },
+  "optxAScoreReadsTheIngredient": {
+    "message": "Eine Bewertung liest die Zutatenliste anhand eines Regelwerks und deiner Gewichtungen. Sie ist eine Orientierung zu dem, was auf dem Etikett steht – keine Gesundheitsbewertung und keine medizinische, Ernährungs- oder Allergieberatung."
+  },
+  "optxTwoLimits": {
+    "message": "Zwei Grenzen"
+  },
+  "optxItCanOnlyJudgeWhat": {
+    "message": "Sie kann nur beurteilen, was sie lesen kann. Passt zu wenig einer Liste zu dem, was das Regelwerk kennt, wird gar keine Bewertung gezeigt statt einer selbstsicheren Vermutung."
+  },
+  "optxAmazonSIngredientTextIs": {
+    "message": "Amazons Zutatentext ist manchmal unvollständig, manchmal veraltet und manchmal für eine andere Größe oder Geschmacksrichtung des Produkts. Maßgeblich ist die Verpackung."
+  },
+  "welxIncludeMyAmazonPurchaseHistory": {
+    "message": "Meinen Amazon-Kaufverlauf einbeziehen"
+  },
+  "welxUsesYourGoalsAndWarning": {
+    "message": "Nutzt deine Ziele und Warnungen. „Fertig“ öffnet die Amazon-Bestellungen für einen geführten Import der ersten Seite. Nur tatsächliche Bestellungen fließen in die Trends ein. Damit wird auch die automatische Synchronisierung mit dem Google-Konto eingeschaltet: Produktnamen, Kaufdaten, Bewertungen, Zutatentext und Warnungstreffer. Keine Adressen und keine Zahlungsdaten. Im Kaufverlauf kannst du die Synchronisierung abschalten oder „Jetzt synchronisieren“ verwenden."
+  },
+  "welxBackUpWithGoogle": {
+    "message": "Mit Google sichern"
+  },
+  "welxOptionalSignInToBack": {
+    "message": "Freiwillig. Melde dich an, um deine Auswahl beim Abschluss in deinem Google-Konto zu sichern. Die Erweiterung funktioniert auch ohne Anmeldung."
+  },
+  "welxGoogleSignInSetupHelp": {
+    "message": "Hilfe zur Einrichtung der Google-Anmeldung"
+  },
+  "welxIfGoogleReportsARedirect": {
+    "message": "Meldet Google einen Fehler bei der Weiterleitungs-URI, muss der Entwickler genau diese Adresse bei den autorisierten Weiterleitungs-URIs des OAuth-Web-Clients eintragen:"
+  },
+  "welxCopyRedirectUrl": {
+    "message": "Weiterleitungsadresse kopieren"
+  },
+  "welxPurchaseHistorySync": {
+    "message": "Kaufverlauf und Synchronisierung"
+  },
+  "welxGoogleAccountBackupSettings": {
+    "message": "Einstellungen für das Backup im Google-Konto"
+  },
+  "libxLabelsSavedProductsIngredientCheck": {
+    "message": "Zutatenlisten und gespeicherte Produkte — Ingredient Check"
+  },
+  "optxDetails": {
+    "message": "Details"
+  },
+  "histReasonBackendCapacityUpdateRequired": {
+    "message": "Der Verlauf bleibt lokal gespeichert. Aktualisiere das Apps-Script-Backend, bevor du mehr als seine derzeitige Verlaufskapazität synchronisierst."
+  },
+  "histReasonPending": {
+    "message": "Neue Käufe sind lokal gespeichert und warten auf die automatische Synchronisierung."
+  },
+  "histReasonLocalOnly": {
+    "message": "Neue Käufe sind lokal gespeichert. Die automatische Synchronisierung ist aus; lade sie mit „Jetzt synchronisieren“ hoch."
+  },
+  "histReasonDeletePending": {
+    "message": "Das Löschen im Konto steht noch aus. Schließe es ab, bevor du den Import einschaltest."
+  },
+  "histReasonBackendUpdateRequired": {
+    "message": "Das Konto-Backend braucht die Aktualisierung für den Kaufverlauf. Dein Verlauf bleibt lokal; es wurden keine Kaufdaten gesendet."
+  },
+  "histReasonAccountChanged": {
+    "message": "Dieser lokale Verlauf gehört zu einem anderen Google-Konto. Melde dich mit jenem Konto an, bevor du seine Kontokopie synchronisierst oder löschst."
+  },
+  "histReasonNeedsSignInOrNetwork": {
+    "message": "Für die Synchronisierung sind die Google-Anmeldung und eine funktionierende Verbindung nötig. Dein lokaler Verlauf bleibt erhalten, und die automatische Synchronisierung versucht es erneut."
+  },
+  "histReasonHistoryFull": {
+    "message": "Die Grenze von 10.000 Einträgen ist erreicht. Exportiere deinen Verlauf, bevor du Einträge entfernst."
+  },
+  "histReasonOff": {
+    "message": "Import oder automatische Synchronisierung ist aus."
+  },
+  "histReasonDeleted": {
+    "message": "Der Verlauf wurde auf diesem Gerät und im angemeldeten Konto gelöscht."
+  },
+  "histOn": {
+    "message": "an"
+  },
+  "histOff": {
+    "message": "aus"
+  },
+  "histSharedSettings": {
+    "message": "Gemeinsame Einstellungen: Etikettenfotos $1 · Barcode-Suche $2 · Abruftempo $3 · Details beim Überfahren $4."
+  },
+  "histSignedIn": {
+    "message": "Angemeldet: $1"
+  },
+  "histNotSignedIn": {
+    "message": "Nicht angemeldet. Der Import funktioniert lokal; die Kontosynchronisierung wartet auf die Google-Anmeldung."
+  },
+  "histUnderAMinute": {
+    "message": "unter 1 Minute"
+  },
+  "histMinutes": {
+    "message": "$1 Minuten"
+  },
+  "histScanComplete": {
+    "message": "Einlesen abgeschlossen"
+  },
+  "histScanning": {
+    "message": "Wird eingelesen"
+  },
+  "histScanPaused": {
+    "message": "Einlesen pausiert"
+  },
+  "histScanCancelled": {
+    "message": "Einlesen abgebrochen"
+  },
+  "histScanPages": {
+    "message": "$1 · $2 Seiten importiert."
+  },
+  "histScanRemaining": {
+    "message": "Geschätzte Restzeit: $1–$2 für mindestens $3 bekannte verbleibende Seiten. Es können weitere Seiten gefunden werden."
+  },
+  "histNoScan": {
+    "message": "Es wurde noch kein vollständiger Verlauf eingelesen. Schalte den Import ein und starte dann das Einlesen."
+  },
+  "histDeletePending": {
+    "message": "Lokaler Verlauf gelöscht. Das Löschen im Konto steht noch aus; melde dich mit dem zugehörigen Google-Konto an und klicke auf „Jetzt synchronisieren“."
+  },
+  "histSynced": {
+    "message": "Synchronisiert: $1"
+  },
+  "histSyncIncomplete": {
+    "message": "Die Synchronisierung wurde nicht abgeschlossen. Der lokale Verlauf bleibt erhalten."
+  },
+  "histNoSyncYet": {
+    "message": "Noch keine Kontosynchronisierung."
+  },
+  "histScanProgressDone": {
+    "message": "Einlesen der Bestellseiten abgeschlossen"
+  },
+  "histScanProgressEstimate": {
+    "message": "Geschätzter Fortschritt beim Einlesen der Bestellseiten; die Gesamtzahl kann wachsen, wenn weitere Jahre gefunden werden"
+  },
+  "histScanNote": {
+    "message": "$1 Seiten fertig · $2 Bestellungen und $3 Produkteinträge verarbeitet (jeweils mit Wiederholungen). Seiten, die über mehrere Filter erneut besucht werden, können sich überschneiden; die bereinigten Kaufsummen stehen unten."
+  },
+  "histScanNoteEstimate": {
+    "message": "Der Fortschritt ist eine Schätzung und kann sinken, wenn weitere Seiten gefunden werden."
+  },
+  "histScanNoteNone": {
+    "message": "Starte das Einlesen, um den Fortschritt zu sehen."
+  },
+  "histNoSignInPermission": {
+    "message": "Die Berechtigung für die Google-Anmeldung wurde nicht erteilt."
+  },
+  "histWorking": {
+    "message": "Wird ausgeführt…"
+  },
+  "histDone": {
+    "message": "Fertig."
+  },
+  "histActionFailed": {
+    "message": "Diese Aktion konnte nicht abgeschlossen werden."
+  },
+  "histSignInCancelled": {
+    "message": "Google-Anmeldung abgebrochen. Der lokale Verlauf bleibt erhalten."
+  },
+  "histCouldNotFinish": {
+    "message": "Konnte nicht abgeschlossen werden. Prüfe deine Verbindung und die Einstellungen der Google-Anmeldung."
+  },
+  "histScanTabClosed": {
+    "message": "Der Tab des Einlesens wurde geschlossen. Mit „Fortsetzen“ öffnest du einen neuen."
+  },
+  "histConfirmDelete": {
+    "message": "Kaufverlauf auf diesem Gerät und in deinem angemeldeten Konto löschen? Der Import wird ausgeschaltet. Ohne Verbindung bleibt das Löschen im Konto ausstehend."
+  },
+  "histChartTrendLabel": {
+    "message": "Durchschnittliche Kaufbewertung im Zeitverlauf; die genauen Werte stehen in der Datentabelle zum Zeitverlauf."
+  },
+  "histChartNoRated": {
+    "message": "Kein bewerteter Kauf passt zu dieser Ansicht."
+  },
+  "histRecordedSetup": {
+    "message": "Gespeicherte Einstellung $1"
+  },
+  "histChartReadout": {
+    "message": "Überfahre oder fokussiere einen Punkt, um Durchschnitt und Abdeckung zu sehen."
+  },
+  "histPointLabel": {
+    "message": "$1: $2/100 · $3/$4 Produkteinträge bewertet · $5 erkannte Bestellungen · $6"
+  },
+  "histCurrentGoals": {
+    "message": "Aktuelle Ziele"
+  },
+  "histPointInterval": {
+    "message": "Intervall $1–$2"
+  },
+  "histChartBandsLabel": {
+    "message": "Anzahl bewerteter Produkteinträge je Bewertungsstufe"
+  },
+  "histBandEntriesLong": {
+    "message": "$1: $2 Produkteinträge"
+  },
+  "histBandEntries": {
+    "message": "$1: $2 Einträge"
+  },
+  "histQualityUsable": {
+    "message": "$1/$2 gekaufte Einträge haben eine brauchbare Bewertung ($3 % Abdeckung)."
+  },
+  "histQualityMissing": {
+    "message": "$1 fehlende Bewertungen sind aus den Durchschnitten ausgenommen und zählen nicht als null."
+  },
+  "histQualitySetups": {
+    "message": "$1 gespeicherte Bewertungseinstellungen sind im Gesamtdurchschnitt vermischt. Wechsle zu den aktuellen Zielen für einen einheitlichen Vergleich; die Linien im Zeitverlauf bleiben getrennt."
+  },
+  "histQualityApproximate": {
+    "message": "$1 Vergleiche beruhen auf älteren Daten, zu denen nur die Zutaten vorliegen."
+  },
+  "histNoConfirmed": {
+    "message": "Keine bestätigten Käufe in dieser Ansicht. Zurückgegebene, stornierte und unbestätigte Einträge fließen nicht in die Trends ein."
+  },
+  "histNothingToSummarize": {
+    "message": "Keine gekauften Einträge zum Zusammenfassen."
+  },
+  "histMeterLabel": {
+    "message": "$1 von $2 gekauften Einträgen bewertet"
+  },
+  "histCoverageMatching": {
+    "message": "$1 von $2 passenden gekauften Produkteinträgen bewertet · $3 erkannte Bestellungen"
+  },
+  "histCoverageUngrouped": {
+    "message": "bei $1 älteren Einträgen ist die Bestellzuordnung unbekannt (öffne ihre Bestellseiten erneut, um sie zu ergänzen)"
+  },
+  "histCoverageFull": {
+    "message": "Gesamter Verlauf: $1 gekaufte Produkteinträge in $2 erkannten Bestellungen. Stornierte, zurückgegebene und unbestätigte Einträge fließen nicht in die Trends ein."
+  },
+  "histShowingRecorded": {
+    "message": "Gezeigt werden die ursprünglich gespeicherten Bewertungen. Unterschiedliche Bewertungseinstellungen bleiben im Zeitverlauf getrennt."
+  },
+  "histShowingCurrent": {
+    "message": "Gezeigt werden lokal berechnete Vergleiche mit den aktuellen Zielen. $1 passende Einträge nutzen nur den Zutatentext. $2 ließen sich nicht neu berechnen. Die gespeicherten Bewertungen sind unverändert."
+  },
+  "histCurrentSetup": {
+    "message": "Aktuelle Einstellung:"
+  },
+  "histCustomWeights": {
+    "message": "eigene Gewichtungen"
+  },
+  "histMetricAverage": {
+    "message": "Durchschnittliche Bewertung"
+  },
+  "histHintOrders": {
+    "message": "Jede bewertete erkannte Bestellung gleich"
+  },
+  "histHintEntries": {
+    "message": "Jeder bewertete Produkteintrag gleich"
+  },
+  "histMetricOrders": {
+    "message": "Erkannte Bestellungen"
+  },
+  "histHintUngrouped": {
+    "message": "$1 Einträge ohne Zuordnung"
+  },
+  "histHintOrderGroups": {
+    "message": "Einzelne Bestellgruppen"
+  },
+  "histMetricEntries": {
+    "message": "Produkteinträge"
+  },
+  "histHintDistinct": {
+    "message": "$1 verschiedene Produkte; keine Mengen"
+  },
+  "histMetricCoverage": {
+    "message": "Anteil bewerteter Einträge"
+  },
+  "histHintRatedMissing": {
+    "message": "$1 bewertet · $2 fehlen"
+  },
+  "histDriversCurrent": {
+    "message": "Auswertung mit den aktuellen Zielen; die ursprünglichen Bewertungen bleiben unverändert."
+  },
+  "histDriversRecorded": {
+    "message": "Nur die ursprünglich gespeicherten Punkteaufschlüsselungen; ältere Bewertungen werden nicht nachgebildet."
+  },
+  "histDriversCovered": {
+    "message": "$1/$2 passende gekaufte Einträge haben eine brauchbare Aufschlüsselung. Summe der Verarbeitungsstufe: $3 Punkte. Anpassungen an der Untergrenze der Skala: $4 Punkte."
+  },
+  "histDriversApprox": {
+    "message": "Ältere Einträge ohne vollständige Daten werden nur anhand der Zutaten angenähert."
+  },
+  "histDriverRow": {
+    "message": "$1 Punkte · $2 · $3 Einträge / $4 erkannte Bestellungen"
+  },
+  "histNoContributors": {
+    "message": "Für diese Ansicht gibt es keine Faktoren."
+  },
+  "histStatSampleSize": {
+    "message": "Stichprobengröße"
+  },
+  "histStatMedian": {
+    "message": "Median (mittlerer Wert)"
+  },
+  "histStatSd": {
+    "message": "Standardabweichung (Stichprobe)"
+  },
+  "histStatQ1": {
+    "message": "25. Perzentil"
+  },
+  "histStatQ3": {
+    "message": "75. Perzentil"
+  },
+  "histStatMin": {
+    "message": "Kleinster Wert"
+  },
+  "histStatMax": {
+    "message": "Größter Wert"
+  },
+  "histStatInterval": {
+    "message": "95-%-Intervall"
+  },
+  "histUnavailable": {
+    "message": "Nicht verfügbar"
+  },
+  "histStatClusters": {
+    "message": "Bewertete Bestellungen (Cluster)"
+  },
+  "histStatsCountOrders": {
+    "message": "Die Stichprobengröße zählt die Mittelwerte bewerteter erkannter Bestellungen; Einträge ohne Zuordnung sind ausgenommen."
+  },
+  "histStatsCountEntries": {
+    "message": "Die Stichprobengröße zählt bewertete Produkteinträge."
+  },
+  "histStatsNote": {
+    "message": "Produkteinträge sind einzelne Produkte innerhalb einer Bestellung, keine gekauften Mengen oder Portionen. Fehlende Bewertungen sind nie null. Die Intervalle schätzen die Schwankung bewerteter Käufe anhand von Bestellungen als Clustern; sie messen weder die Genauigkeit der Texterkennung noch die Vollständigkeit von Etiketten noch einen medizinischen Nutzen. Fehlende Zutatenlisten können den Durchschnitt verzerren; prüfe den Anteil bewerteter Einträge, bevor du Zeiträume vergleichst."
+  },
+  "histStatsMixed": {
+    "message": "Der Gesamtdurchschnitt vermischt gespeicherte Einstellungen; der Zeitverlauf trennt sie."
+  },
+  "histStatsWarnings": {
+    "message": "Die Warnungen unten sind weiterhin die beim Import gespeicherten."
+  },
+  "histStatsNoInterval": {
+    "message": "Für ein Konfidenzintervall fehlt eine ausreichend vollständige Zuordnung zu Bestellungen."
+  },
+  "histSetupRow": {
+    "message": "Einstellung $1 · $2"
+  },
+  "histUngroupedLegacy": {
+    "message": "Ältere Einträge ohne Zuordnung"
+  },
+  "histOrderN": {
+    "message": "Bestellung $1"
+  },
+  "histMultipleUnknown": {
+    "message": "Mehrere / unbekannt"
+  },
+  "histOtherGroups": {
+    "message": "Weitere $1 Gruppen / Einträge ohne Zuordnung"
+  },
+  "histMultipleDates": {
+    "message": "Mehrere Daten"
+  },
+  "histTotalPurchased": {
+    "message": "Gekaufte Einträge gesamt"
+  },
+  "histUnknown": {
+    "message": "Unbekannt"
+  },
+  "histApprox": {
+    "message": "(ungefähr)"
+  },
+  "histSelectComparison": {
+    "message": "Vergleich wählen"
+  },
+  "histSourceNotRecorded": {
+    "message": "Nicht erfasst"
+  },
+  "histItemCount": {
+    "message": "$1 passende Einträge · $2 angezeigt"
+  },
+  "histFrequentRow": {
+    "message": "$1 — $2 Produkteinträge · $3 erkannte Bestellungen"
+  },
+  "histFrequentUngrouped": {
+    "message": "$1 ohne Zuordnung"
+  },
+  "histAnalysing": {
+    "message": "Gespeicherte Zutatenlisten werden lokal ausgewertet…"
+  },
+  "histCalculating": {
+    "message": "Vergleiche mit den aktuellen Zielen werden auf deinem Computer berechnet…"
+  },
+  "histPaceGentle": {
+    "message": "schonend"
+  },
+  "histPaceNormal": {
+    "message": "normal"
+  },
+  "histPaceQuick": {
+    "message": "zügig"
+  },
+  "histPaceFast": {
+    "message": "schnell"
+  },
+  "histStatePurchased": {
+    "message": "gekauft"
+  },
+  "histStateReturned": {
+    "message": "zurückgegeben"
+  },
+  "histStateCancelled": {
+    "message": "storniert"
+  },
+  "histStateUnknown": {
+    "message": "unbekannt"
+  },
+  "catWeightAria": {
+    "message": "Gewichtung für $1"
+  },
+  "sortedListTitle": {
+    "message": "Sortierte Liste — Ingredient Check"
+  },
+  "presetCat_everyday": {
+    "message": "Alltag"
+  },
+  "presetCatBlurb_everyday": {
+    "message": "Grundhaltungen dazu, wie streng Zutaten beurteilt werden."
+  },
+  "presetCat_goals": {
+    "message": "Körperziele"
+  },
+  "presetCatBlurb_goals": {
+    "message": "Ziele für die Körperzusammensetzung – aufbauen, abnehmen oder halten."
+  },
+  "presetCat_training": {
+    "message": "Training"
+  },
+  "presetCatBlurb_training": {
+    "message": "Abgestimmt darauf, wie hart du trainierst und welche Energie das verlangt."
+  },
+  "presetCat_style": {
+    "message": "Ernährungsstil"
+  },
+  "presetCatBlurb_style": {
+    "message": "Vorlieben bei Makronährstoffen und Zutatenarten (Eiweiß, Kohlenhydrate, Zucker)."
+  },
+  "presetLabel_balanced": {
+    "message": "Ausgewogen"
+  },
+  "presetNote_balanced": {
+    "message": "Die Standardwerte: Verarbeitung und Zusatzstoffe zählen am meisten; Fett und Gesamtzucker bleiben aus, bis du sie einschaltest. Belohnt Herkunft und kurze Listen."
+  },
+  "presetVersus_balanced": {
+    "message": "Die neutrale Ausgangslage. Nichts zu wählen ist dasselbe, wie dies zu wählen."
+  },
+  "presetLabel_generalWellbeing": {
+    "message": "Allgemeines Wohlbefinden"
+  },
+  "presetNote_generalWellbeing": {
+    "message": "Strengere Zutatenvorlieben: härter bei starker Verarbeitung, künstlichen Süßstoffen und Farbstoffen, Saatenölen und zugesetztem Zucker; belohnt Fermentiertes, Ballaststoffe und kurze Listen."
+  },
+  "presetVersus_generalWellbeing": {
+    "message": "Durchweg strenger als „Ausgewogen“. Zusammen mit „Abnehmen“ zieht es künstliche Süßstoffe wieder nach unten."
+  },
+  "presetLabel_conventional": {
+    "message": "Klassische Ernährungslehre"
+  },
+  "presetNote_conventional": {
+    "message": "Übliche Ernährungsempfehlungen: zählt gesättigtes Fett, Natrium und Gesamtzucker; belohnt Ballaststoffe, fettarme Milchprodukte und Anreicherung; Pflanzenöle und Vollkorn gelten als unbedenklich."
+  },
+  "presetVersus_conventional": {
+    "message": "Das einzige Alltagsziel, bei dem fettarme Milchprodukte und zugesetzte Vitamine Pluspunkte sind. Anders als „Abnehmen“ ist es nicht scharf gegen Zucker."
+  },
+  "presetLabel_additive": {
+    "message": "Zusatzstoffe meiden"
+  },
+  "presetNote_additive": {
+    "message": "Alles, was zugesetzt wurde: Farbstoffe, Süßstoffe, Konservierungsstoffe, Aromen (auch natürliche), Verdickungsmittel und Emulgatoren kosten deutlich mehr. Herkunftsboni schrumpfen, damit es in der Bewertung um Zusatzstoffe geht und nicht um Landwirtschaft."
+  },
+  "presetVersus_additive": {
+    "message": "Bei Zusatzstoffen strenger als jedes andere Ziel; Zucker, Getreide und Makronährstoffe bleiben nahe am Standard."
+  },
+  "presetLabel_wholeFood": {
+    "message": "Unverarbeitete Lebensmittel"
+  },
+  "presetNote_wholeFood": {
+    "message": "Kurze Listen und wenig Verarbeitung vor allem anderen: Isolate, Verdickungsmittel, Aromen und Anreicherung kosten mehr; unraffinierte Fette und traditionelle Zubereitung bringen mehr."
+  },
+  "presetVersus_wholeFood": {
+    "message": "Es geht um Listenlänge und industrielle Schritte – nicht um Makronährstoffe. „Viel Eiweiß“ und „Muskelaufbau“ sind bei Isolaten das Gegenteil."
+  },
+  "presetLabel_weightLoss": {
+    "message": "Abnehmen / Definieren"
+  },
+  "presetNote_weightLoss": {
+    "message": "Zutatenvorlieben fürs Abnehmen: fettreduzierte Milchprodukte sind ein kleines Plus, kalorienfreie Süßstoffe und Eiweißisolate ein noch kleineres, „natürliche Aromen“ zählen kaum. Zugesetzter Zucker, Honig und Sirupe kosten mehr; Ballaststoffe und Eiweiß werden belohnt, wenn Mengen angegeben sind. Kalorien werden nicht geschätzt und eine Gewichtsänderung nicht vorhergesagt."
+  },
+  "presetVersus_weightLoss": {
+    "message": "Das einzige Ziel, bei dem fettreduzierte Milchprodukte ein Plus sind und künstliche Süßstoffe milder bewertet werden (nicht freigegeben – ein Light-Getränk erreicht weiterhin keine Spitzenbewertung). Mit „Allgemeines Wohlbefinden“ dazu werden diese Süßstoffe wieder strenger bewertet."
+  },
+  "presetLabel_muscleGain": {
+    "message": "Muskelaufbau / Masse"
+  },
+  "presetNote_muscleGain": {
+    "message": "Es geht um Eiweiß: ein kräftiger Eiweißbonus, und Molken-, Kasein- und Erbsenprotein zählen zugunsten eines Produkts. Kohlenhydrate, Honig und Getreide werden nachsichtig bewertet; bei der Verarbeitung bleibt es ehrlich."
+  },
+  "presetVersus_muscleGain": {
+    "message": "Belohnt Isolate, wo „Unverarbeitete Lebensmittel“ sie bestraft. „Viel Eiweiß“ geht allein beim Eiweiß weiter; „Abnehmen“ ist das kalorienbewusste Gegenteil."
+  },
+  "presetLabel_maintenance": {
+    "message": "Gewicht halten"
+  },
+  "presetNote_maintenance": {
+    "message": "Gleichmäßig essen: milde Boni für Eiweiß und Ballaststoffe, leichte Signale für Natrium, Gesamtzucker und gesättigtes Fett und etwas mehr Gewicht auf der Verarbeitung."
+  },
+  "presetVersus_maintenance": {
+    "message": "Sanfter als „Klassische Ernährungslehre“; ohne Schlagseite zu Aufbau oder Abnehmen."
+  },
+  "presetLabel_recovery": {
+    "message": "Erholung / Ruhetag"
+  },
+  "presetNote_recovery": {
+    "message": "Darm und Regeneration: Fermentiertes, traditionelle Zubereitung und unraffinierte Fette bringen deutlich mehr; Saatenöle, Verdickungsmittel, Carrageen, Glutamat und Konservierungsstoffe kosten mehr."
+  },
+  "presetVersus_recovery": {
+    "message": "Das am stärksten auf den Darm ausgerichtete Ziel. Weder kohlenhydratarm noch so nachsichtig bei Kohlenhydraten wie „Ausdauer“."
+  },
+  "presetLabel_vitamins": {
+    "message": "Vitamine und Mineralstoffe"
+  },
+  "presetNote_vitamins": {
+    "message": "Zugesetzte Vitamine und Mineralstoffe – Vitamin D, B-Vitamine, Eisen, Folsäure, Kalzium – zählen zugunsten eines Produkts statt dagegen."
+  },
+  "presetVersus_vitamins": {
+    "message": "Bei der Anreicherung das Gegenteil von „Unverarbeitete Lebensmittel“. Lässt sich mit jedem anderen Ziel verbinden."
+  },
+  "presetLabel_strength": {
+    "message": "Krafttraining"
+  },
+  "presetNote_strength": {
+    "message": "Ein kräftiger Eiweißbonus, Eiweißpulver zählen leicht zugunsten eines Produkts; Kohlenhydrate etwas nachsichtiger; Verarbeitung nahe am Standard."
+  },
+  "presetVersus_strength": {
+    "message": "Zwischen „Unverarbeitete Lebensmittel“ (Isolate bestraft) und „Viel Eiweiß“ (Isolate belohnt). Weniger kohlenhydratfreundlich als „Ausdauer“."
+  },
+  "presetLabel_endurance": {
+    "message": "Laufen / Ausdauer"
+  },
+  "presetNote_endurance": {
+    "message": "Zutatenvorlieben für Ausdauersport: zugesetzter Zucker, Honig, Getreide und Natrium werden leicht gewichtet; Maissirup mit hohem Fruktosegehalt behält seine Obergrenze; Ballaststoffe werden für Trainingstage gelockert."
+  },
+  "presetVersus_endurance": {
+    "message": "Das bei Kohlenhydraten nachsichtigste Trainingsziel. „Viele Kohlenhydrate“ geht noch weiter; „Wenig Kohlenhydrate“ ist das Gegenteil."
+  },
+  "presetLabel_athlete": {
+    "message": "Sehr aktiv / Leistungssport"
+  },
+  "presetNote_athlete": {
+    "message": "Energie und Regeneration: ein starkes Eiweißsignal, Eiweißpulver ein leichtes Plus, Kohlenhydrate und Honig nachsichtig, Natrium wird nicht gezählt."
+  },
+  "presetVersus_athlete": {
+    "message": "Zwischen „Ausdauer“ (mehr Kohlenhydrate) und „Krafttraining“ (mehr Eiweiß). „Wenig Bewegung“ ist der entgegengesetzte Lebensstil."
+  },
+  "presetLabel_sedentary": {
+    "message": "Wenig Bewegung"
+  },
+  "presetNote_sedentary": {
+    "message": "Geringer Energiebedarf: deutlich strenger bei Zucker jeder Art, Verarbeitung, raffiniertem Getreide und Ölen; zählt Natrium und gesättigtes Fett; belohnt Ballaststoffe."
+  },
+  "presetVersus_sedentary": {
+    "message": "Unter den Trainingszielen „Abnehmen“ am nächsten, aber nicht kaloriengetrieben: Fettreduzierte Milchprodukte sind hier kein Plus."
+  },
+  "presetLabel_generalFitness": {
+    "message": "Allgemeine Fitness"
+  },
+  "presetNote_generalFitness": {
+    "message": "Im Alltag aktiv: Boni für Eiweiß und Ballaststoffe, etwas strenger bei Zucker und Verarbeitung, leichtes Natriumsignal."
+  },
+  "presetVersus_generalFitness": {
+    "message": "Ein Schritt von „Ausgewogen“ in Richtung „Gewicht halten“; weniger auf Makronährstoffe zugeschnitten als „Krafttraining“ oder „Ausdauer“."
+  },
+  "presetLabel_highProtein": {
+    "message": "Viel Eiweiß"
+  },
+  "presetNote_highProtein": {
+    "message": "Eiweiß pro Bissen: der höchste Eiweißbonus; Eiweißisolate und magere (fettreduzierte) Milchprodukte zählen zugunsten eines Produkts."
+  },
+  "presetVersus_highProtein": {
+    "message": "Belohnt Isolate stärker als jedes andere Ziel. „Muskelaufbau“ ist ähnlich, aber nachsichtig bei Kohlenhydraten."
+  },
+  "presetLabel_lowCarb": {
+    "message": "Wenig Kohlenhydrate"
+  },
+  "presetNote_lowCarb": {
+    "message": "Eine kohlenhydratarme Vorliebe: angegebene Kohlenhydratmenge, Zucker und raffiniertes Getreide zählen gegen die Bewertung; kalorienfreie Süßstoffe sind ein kleines Plus; vollfette Milchprodukte werden bevorzugt; gesättigtes Fett wird nicht gezählt."
+  },
+  "presetVersus_lowCarb": {
+    "message": "Das Gegenteil von „Ausdauer“ und „Viele Kohlenhydrate“. Bei natürlichem Zucker strenger als „Zuckerbewusst“."
+  },
+  "presetLabel_highCarb": {
+    "message": "Viele Kohlenhydrate / Leistung"
+  },
+  "presetNote_highCarb": {
+    "message": "Kohlenhydrate als Energie: Zucker, Honig und Getreide zählen kaum; fettreduzierte Milchprodukte sind ein kleines Plus (Platz für Kohlenhydrate); Maissirup mit hohem Fruktosegehalt behält seine Obergrenze."
+  },
+  "presetVersus_highCarb": {
+    "message": "Geht weiter als „Ausdauer“; das genaue Gegenteil von „Wenig Kohlenhydrate“."
+  },
+  "presetLabel_strictSugar": {
+    "message": "Zuckerbewusst"
+  },
+  "presetNote_strictSugar": {
+    "message": "Starke Zuckervorlieben über raffinierten Zucker, Honig und Ahornsirup, Frucht- und Milchzucker, Zuckeralkohole und künstliche Süßstoffe hinweg. Angegebener zugesetzter Zucker und Gesamtzucker werden bewertet, ohne dieselben Gramm doppelt zu zählen."
+  },
+  "presetVersus_strictSugar": {
+    "message": "Auf Zucker ausgerichtet. „Wenig Kohlenhydrate“ nutzt zusätzlich die angegebenen Gesamtkohlenhydrate."
+  },
+  "presetLabel_animalBased": {
+    "message": "Tierisch betont (Paul Saladino)"
+  },
+  "presetNote_animalBased": {
+    "message": "Fleisch, Innereien, tierische Fette, Roh- und Vollfettmilchprodukte, Obst und Honig. Saatenöle, Getreide, Hülsenfrüchte, Nüsse und Samen, Soja, fettreduzierte Milchprodukte, Eiweißisolate und Verarbeitung kosten alle deutlich mehr; Honig ist ein Plus; Fruchtzucker und gesättigtes Fett werden nicht gezählt."
+  },
+  "presetVersus_animalBased": {
+    "message": "Das einzige Ziel, das Nüsse, Samen und Hülsenfrüchte gegen ein Produkt zählt. Gemüse bleibt neutral."
+  },
+  "catGroup_processingLevel": {
+    "message": "Verarbeitungsgrad"
+  },
+  "catLabel_processing": {
+    "message": "Grad der Verarbeitung"
+  },
+  "catGroup_additives": {
+    "message": "Zusatzstoffe"
+  },
+  "catLabel_colour": {
+    "message": "Künstliche Farbstoffe"
+  },
+  "catLabel_artificialSweetener": {
+    "message": "Künstliche Süßstoffe"
+  },
+  "catLabel_sweetener": {
+    "message": "Zuckeralkohole und neuartige Süßungsmittel"
+  },
+  "catLabel_preservative": {
+    "message": "Konservierungsstoffe"
+  },
+  "catLabel_strongPreservative": {
+    "message": "BHA / BHT / TBHQ (synthetische Antioxidantien)"
+  },
+  "catLabel_flavour": {
+    "message": "Künstliche und nicht näher benannte Aromen"
+  },
+  "catLabel_naturalFlavour": {
+    "message": "„Natürliche Aromen“"
+  },
+  "catLabel_glutamate": {
+    "message": "Glutamat (MSG) und freie Glutamate"
+  },
+  "catLabel_texture": {
+    "message": "Emulgatoren und Verdickungsmittel"
+  },
+  "catLabel_carrageenan": {
+    "message": "Carrageen"
+  },
+  "catLabel_processingAid": {
+    "message": "Verarbeitungshilfsstoffe und Säureregulatoren"
+  },
+  "catGroup_fatsOils": {
+    "message": "Fette und Öle"
+  },
+  "catLabel_refinedOil": {
+    "message": "Raffinierte Saaten- und Pflanzenöle"
+  },
+  "catLabel_transFat": {
+    "message": "Teilgehärtetes Öl (Transfett)"
+  },
+  "catLabel_saturatedFat": {
+    "message": "Gesättigtes Fett"
+  },
+  "catGroup_sugars": {
+    "message": "Zucker"
+  },
+  "catLabel_sugar": {
+    "message": "Zugesetzter und raffinierter Zucker"
+  },
+  "catLabel_traditionalSweetener": {
+    "message": "Honig, Ahornsirup und traditionelle Süßungsmittel"
+  },
+  "catLabel_industrialSyrup": {
+    "message": "Maissirup mit hohem Fruktosegehalt"
+  },
+  "catLabel_naturalSugar": {
+    "message": "Natürlich enthaltener Zucker"
+  },
+  "catLabel_totalSugar": {
+    "message": "Gesamtzuckermenge"
+  },
+  "catGroup_grainsProteins": {
+    "message": "Getreide und Eiweiße"
+  },
+  "catLabel_grain": {
+    "message": "Raffiniertes Getreide und gemahlene Stärken"
+  },
+  "catLabel_gluten": {
+    "message": "Glutenhaltiges Getreide"
+  },
+  "catLabel_isolate": {
+    "message": "Isolierte und industrielle Eiweiße"
+  },
+  "catLabel_plantDefense": {
+    "message": "Nüsse, Samen und Hülsenfrüchte"
+  },
+  "catGroup_fortificationDairy": {
+    "message": "Anreicherung und Milchprodukte"
+  },
+  "catLabel_fortification": {
+    "message": "Zugesetzte Vitamine und Mineralstoffe"
+  },
+  "catLabel_dairyProcessing": {
+    "message": "Verarbeitung von Milchprodukten"
+  },
+  "catLabel_reducedFatDairy": {
+    "message": "Fettreduzierte Milchprodukte"
+  },
+  "catGroup_nutritionPanel": {
+    "message": "Nährwerttabelle"
+  },
+  "catLabel_addedSugar": {
+    "message": "Menge an zugesetztem Zucker"
+  },
+  "catLabel_carbohydrate": {
+    "message": "Kohlenhydrate gesamt"
+  },
+  "catLabel_sodium": {
+    "message": "Natriummenge"
+  },
+  "catLabel_fibre": {
+    "message": "Ballaststoffe"
+  },
+  "catLabel_protein": {
+    "message": "Eiweiß"
+  },
+  "catGroup_sourcingCertification": {
+    "message": "Herkunft und Zertifizierung"
+  },
+  "catLabel_organic": {
+    "message": "Bio-Angabe"
+  },
+  "catLabel_animalWelfare": {
+    "message": "Weidehaltung, Grasfütterung und Wildfang"
+  },
+  "catLabel_fermented": {
+    "message": "Fermentiert und lebende Kulturen"
+  },
+  "catLabel_unrefined": {
+    "message": "Wenig raffinierte Zutaten"
+  },
+  "catLabel_nonGmo": {
+    "message": "Ohne Gentechnik"
+  },
+  "catLabel_traditionalPrep": {
+    "message": "Traditionelle Zubereitung"
+  },
+  "catLabel_simplicity": {
+    "message": "Kurze Zutatenliste"
+  },
+  "catGroup_provenanceWholeFoods": {
+    "message": "Herkunftsnachweis (unverarbeitete Lebensmittel)"
+  },
+  "catLabel_provenanceVerified": {
+    "message": "Zertifikate unabhängiger Stellen"
+  },
+  "catLabel_provenanceClaimed": {
+    "message": "Herkunftsangaben ohne Zertifikat"
+  },
+  "catLabel_provenanceUnknown": {
+    "message": "Keine Herkunftsangabe"
+  },
+  "catLabel_hollowClaims": {
+    "message": "Nichtssagende Angaben kennzeichnen"
+  },
+  "catGroup_flags": {
+    "message": "Hinweise"
+  },
+  "catLabel_allergens": {
+    "message": "Allergenwarnungen"
+  },
+  "catLabel_avoidList": {
+    "message": "Eigene Vermeidungsliste"
+  },
+  "catHelp_processing": {
+    "message": "Wie stark das Produkt industriell verarbeitet ist, auf der NOVA-Skala von 1 bis 4. Das legt die Ausgangsbewertung fest, bevor einzelne Zutaten betrachtet werden. Meist das stärkste Einzelsignal."
+  },
+  "catHelp_colour": {
+    "message": "Synthetische Farbstoffe wie Rot 40 (Allurarot), Gelb 5 (Tartrazin) und Titandioxid. Setzt der Bewertung eine feste Obergrenze."
+  },
+  "catHelp_artificialSweetener": {
+    "message": "Sucralose, Aspartam, Acesulfam-K, Saccharin. Beim Standardgewicht 0,5 gilt eine mittlere Obergrenze. Strengeres Meiden bleibt eine freiwillige Vorliebe."
+  },
+  "catHelp_sweetener": {
+    "message": "Erythrit, Xylit, Maltit, Allulose, Steviaextrakt, Mönchsfrucht. Senke den Wert, wenn du diese bewusst verwendest. Unter 0 zählt es zugunsten des Produkts – ein Ziel kann das so einstellen."
+  },
+  "catHelp_preservative": {
+    "message": "Natriumbenzoat, Kaliumsorbat, Nitrite, Sulfite, EDTA und Ähnliches."
+  },
+  "catHelp_strongPreservative": {
+    "message": "Synthetische antioxidative Konservierungsstoffe, die eine feste Obergrenze setzen statt Punkte abzuziehen."
+  },
+  "catHelp_flavour": {
+    "message": "Künstliche Aromen, die bloße Angabe „Aroma“ und Geschmacksverstärker wie Vanillin und Maltol."
+  },
+  "catHelp_naturalFlavour": {
+    "message": "Eine nicht offengelegte Firmenmischung. Von künstlichen Aromen getrennt, damit ein Ziel, dem das gleichgültig ist (Abnehmen), die Punkte fast abschalten kann. Unter 0 zählt es zugunsten des Produkts – ein Ziel kann das so einstellen. Der Regler bewegt nur Punkte: Ein zugesetztes Aroma macht das Produkt weiterhin hochverarbeitet (NOVA 4), und das bestimmt die Ausgangsbewertung."
+  },
+  "catHelp_glutamate": {
+    "message": "Mononatriumglutamat, Hefeextrakt, hydrolysiertes Eiweiß, Dinatriuminosinat."
+  },
+  "catHelp_texture": {
+    "message": "Xanthan und Guarkernmehl, Mono- und Diglyceride, Polysorbate, Methylcellulose, modifizierte Stärke, Maltodextrin."
+  },
+  "catHelp_carrageenan": {
+    "message": "Wird getrennt von anderen Verdickungsmitteln behandelt, weil es mit Entzündungen im Darm in Verbindung gebracht wird. Setzt eine Obergrenze."
+  },
+  "catHelp_processingAid": {
+    "message": "Phosphate, industrielle Säuren, Trennmittel, Teigverbesserer, Aluminiumverbindungen."
+  },
+  "catHelp_refinedOil": {
+    "message": "Raps-, Soja-, Sonnenblumen-, Distel-, Mais- und Baumwollsaatöl sowie nicht näher benanntes „Pflanzenöl“. Beim Standardgewicht 0,5 gilt eine mittlere Obergrenze; strengere Ziele können das stärkere Meiden wiederherstellen. Das ist keine Einschätzung der Giftigkeit."
+  },
+  "catHelp_transFat": {
+    "message": "Industrielles Transfett. Die strengste Obergrenze im ganzen System."
+  },
+  "catHelp_saturatedFat": {
+    "message": "Standardmäßig AUS. Die klassische Ernährungslehre wertet gesättigtes Fett ab, andere Ansätze nicht. Erhöhe den Wert, wenn Butter, Sahne, Kokosöl und fettes Fleisch eine Bewertung senken sollen. Braucht Nährwertangaben mit angegebener Bezugsmenge (Gewicht oder Volumen)."
+  },
+  "catHelp_sugar": {
+    "message": "Rohrzucker, Dextrose, Glukosesirup, Agavendicksaft, Fruchtsaftkonzentrat. Zucker, der natürlich in ganzen Früchten oder Milchprodukten vorkommt, wird hier nie gezählt."
+  },
+  "catHelp_traditionalSweetener": {
+    "message": "Honig, Ahornsirup, Melasse, Kokosblüten- und Dattelzucker, Fruchtsaftkonzentrat. Standardmäßig nur leicht gewichtet. Unter 0 zählt es zugunsten des Produkts – ein Ziel kann das so einstellen."
+  },
+  "catHelp_industrialSyrup": {
+    "message": "Maissirup mit hohem Fruktosegehalt und Glukose-Fruktose-Sirup. Setzt eine Obergrenze statt Punkte abzuziehen."
+  },
+  "catHelp_naturalSugar": {
+    "message": "Standardmäßig AUS. Zucker aus ganzen Früchten, Datteln und Milchzucker. Erhöhe den Wert, wenn der Gesamtzucker unabhängig von seiner Quelle zählen soll."
+  },
+  "catHelp_totalSugar": {
+    "message": "Standardmäßig AUS. Bewertet Zucker pro 100 g oder 100 ml, unabhängig von der Zutat, aus der er stammt. Braucht eine angegebene Bezugsmenge (Gewicht oder Volumen); fehlende Mengen bleiben unbewertet."
+  },
+  "catHelp_gluten": {
+    "message": "Standardmäßig AUS. Freiwillige Zutatenvorliebe für Weizen, Gerste, Roggen und verwandte Getreide. Gluten allein ist kein Qualitätsmangel. Nutze zum Meiden von Gluten die Allergenwarnungen; eine Bewertung kann keine Sicherheit feststellen."
+  },
+  "catHelp_isolate": {
+    "message": "Sojaproteinisolat, Erbsenprotein, Molken- und Milchproteinisolat, texturiertes Pflanzenprotein, Kaseinat. Unter 0 zählt es zugunsten des Produkts – ein Ziel kann das so einstellen."
+  },
+  "catHelp_plantDefense": {
+    "message": "Standardmäßig AUS. Bohnen, Linsen, Erbsen, Erdnüsse, Soja, Schalenfrüchte und Samen. Nur das tierisch betonte Ziel schaltet dies ein."
+  },
+  "catHelp_fortification": {
+    "message": "Standardmäßig AUS. Zugesetzte Folsäure, reduziertes Eisen, Thiaminmononitrat, Vitamin D und Ähnliches. Anreicherung allein macht ein Produkt nicht hochverarbeitet; das Ziel „Vitamine“ wertet sie als Plus. Unter 0 zählt es zugunsten des Produkts – ein Ziel kann das so einstellen."
+  },
+  "catHelp_dairyProcessing": {
+    "message": "Standardmäßig AUS. Ultrahocherhitzte und homogenisierte Milchprodukte als freiwillige Verarbeitungsvorliebe. Rohmilch- und A2-Angaben bringen keinen automatischen Qualitätsbonus."
+  },
+  "catHelp_reducedFatDairy": {
+    "message": "Standardmäßig AUS. Entrahmte, fettarme und fettreduzierte Milch, Joghurt, Käse und Kefir. Eine Abnehm-Vorliebe kann das belohnen, ohne Kalorien zu schätzen. Unter 0 zählt es zugunsten des Produkts – ein Ziel kann das so einstellen."
+  },
+  "catHelp_addedSugar": {
+    "message": "Standardmäßig AUS. Nutzt die angegebenen Gramm zugesetzten Zuckers, auf 100 g oder 100 ml umgerechnet, wenn eine Bezugsmenge vorliegt. Ersetzt die Zuckerabzüge aus den Zutaten, sobald brauchbare Mengenangaben vorhanden sind. Fehlende Mengen bleiben unbekannt."
+  },
+  "catHelp_carbohydrate": {
+    "message": "Standardmäßig AUS. Eine freiwillige kohlenhydratarme Vorliebe anhand der angegebenen Gramm Kohlenhydrate. Braucht Nährwertangaben; aus Zutatennamen allein lässt sich der Kohlenhydratgehalt nicht ableiten."
+  },
+  "catHelp_sodium": {
+    "message": "Standardmäßig AUS. Bewertet Natrium pro 100 g oder 100 ml. Braucht eine angegebene Bezugsmenge (Gewicht oder Volumen); fehlende Mengen bleiben unbewertet."
+  },
+  "catHelp_fibre": {
+    "message": "Standardmäßig AUS. Vergibt Punkte für Ballaststoffe pro 100 g oder 100 ml. Braucht eine angegebene Bezugsmenge (Gewicht oder Volumen)."
+  },
+  "catHelp_protein": {
+    "message": "Standardmäßig AUS. Vergibt Punkte für Eiweiß pro 100 g oder 100 ml. Braucht eine angegebene Bezugsmenge (Gewicht oder Volumen)."
+  },
+  "catHelp_organic": {
+    "message": "Bio-Angaben bringen Punkte. Angaben, die nur im vom Verkäufer verfassten Titel oder in den Stichpunkten stehen, zählen halb und sind als unbestätigt gekennzeichnet; diese Bewertung prüft keine Zertifizierung."
+  },
+  "catHelp_animalWelfare": {
+    "message": "Herkunftsangaben dazu, wie ein Tier gehalten oder gefangen wurde."
+  },
+  "catHelp_fermented": {
+    "message": "Gesäuerte Milchprodukte, Kefir, Kimchi, Sauerkraut, Sauerteig. Konservierungssysteme, die lediglich das Wort „kultiviert“ verwenden, sind ausgenommen."
+  },
+  "catHelp_unrefined": {
+    "message": "Butter, Ghee, Rindertalg, Oliven-, Kokos- und Avocadoöl, kaltgepresste Öle und unraffiniertes Salz."
+  },
+  "catHelp_nonGmo": {
+    "message": "Das Siegel „Non-GMO Project Verified“ und gleichwertige Angaben."
+  },
+  "catHelp_traditionalPrep": {
+    "message": "Sauerteig, gekeimt, eingeweicht, trocken gereift und lange fermentiert."
+  },
+  "catHelp_simplicity": {
+    "message": "Belohnt erkannte unverarbeitete Lebensmittel aus einer einzigen Zutat. Die Länge der Liste allein ist kein Mangel."
+  },
+  "catHelp_provenanceVerified": {
+    "message": "Unabhängig geprüfte Standards – American Grassfed, Animal Welfare Approved, USDA Organic, die Stufen von Global Animal Partnership, MSC. Bei einem Lebensmittel aus einer einzigen Zutat wie Rinderhack liegt hier fast der gesamte tatsächliche Unterschied."
+  },
+  "catHelp_provenanceClaimed": {
+    "message": "Angaben auf dem Etikett, hinter denen keine Prüfung steht – „aus Weidehaltung“, „grasgefüttert“, „ohne Antibiotika“. Etwa halb so viel wert wie ein geprüftes Zertifikat. Stelle dies auf null, wenn nur geprüfte Angaben zählen sollen."
+  },
+  "catHelp_provenanceUnknown": {
+    "message": "Gilt nur für unverarbeitete tierische Lebensmittel ohne jede Herkunftsangabe. Ein fehlendes Zertifikat bedeutet Ungewissheit, keinen Nachweis einer bestimmten Erzeugung; diese freiwillige Vorliebe hält Punkte für Herkunftsnachweise zurück. Auf 0 gestellt, wird Fleisch ohne Angaben allein nach seinen Zutaten bewertet."
+  },
+  "catHelp_hollowClaims": {
+    "message": "Zeigt Angaben, die nach Qualität klingen, aber keine sind – „USDA Inspected“ (für jedes Fleisch vorgeschrieben), „ohne zugesetzte Hormone“ bei Schwein und Geflügel (ohnehin verboten), „natürlich“, „vom Bauernhof“. Wird nie bewertet, nur gekennzeichnet."
+  },
+  "catHelp_allergens": {
+    "message": "Kennzeichnet die Allergene, die du ausgewählt hast. Ändert die Bewertung nicht."
+  },
+  "catHelp_avoidList": {
+    "message": "Kennzeichnet jede Zutat, die du auf deine eigene Vermeidungsliste gesetzt hast. Ändert die Bewertung nicht."
   }
 }

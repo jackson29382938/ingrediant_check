@@ -207,7 +207,7 @@
     <a href="#sec-warnings" data-i18n="optNavWarnings">Warnings</a>
     <a href="#sec-avoid" data-level="1" data-i18n="optNavAvoid">Avoid</a>
     <a href="#sec-rate" data-level="1" data-i18n="optNavRate">Rate</a>
-    <a href="#sec-labels" data-level="2">Labels</a>
+    <a href="#sec-labels" data-level="2" data-i18n="optxLabels">Labels</a>
     <a href="#sec-sort" data-level="2" data-i18n="optNavSort">Sort</a>
     <a href="#sec-speed" data-level="3" data-i18n="optNavSpeed">Speed</a>
     <a href="#sec-appearance" data-level="1" data-i18n="optNavAppearance">Appearance</a>
@@ -242,7 +242,7 @@
     <details class="hint-more sec-lede"><summary data-i18n="optPresetsLede">Pick one or more goals; they combine. Click a selected goal to remove it; Balanced clears them all.</summary><p data-i18n="optNotePresets">Pick one goal or several. Their priorities combine; where goals overlap, their weights are averaged. A goal focused on a category takes priority over another goal’s incidental setting. Adjust how much each selected goal counts below. Some goals turn deductions into preference credits; hard score limits stay limits. Moving a category slider makes the active label Custom. Click a selected goal to remove it; Balanced clears them all.</p></details>
     <div class="preset-active" id="presetActive" aria-live="polite">
       <span class="preset-active-label" data-i18n="optPresetActive">Active</span>
-      <span class="preset-active-name" id="presetActiveName">Balanced</span>
+      <span class="preset-active-name" id="presetActiveName" data-i18n="sortedPresetBalanced">Balanced</span>
     </div>
     <div class="goal-mix" id="goalMix" hidden>
       <p class="goal-mix-title" data-i18n="optGoalMixTitle">How much each goal counts</p>
@@ -277,9 +277,9 @@
   <section id="sec-warnings">
     <h2 data-i18n="optWarningsH">Allergen warnings</h2>
     <p class="sec-lede" data-i18n="optNoteAllergen">Shown as warnings on the panel; they never change the score.</p>
-    <p class="callout"><strong>Not a safety check.</strong> Warnings come only from the ingredient text this extension could read.
+    <p class="callout"><strong data-i18n="optxNotASafetyCheck">Not a safety check.</strong> <span data-i18n="optxWarningsComeOnlyFromThe">Warnings come only from the ingredient text this extension could read.
       If that text is missing, out of date or in a language the rules do not cover, you will see no warning, which looks exactly like no
-      allergen. Never rely on this for an allergy. Read the package.</p>
+      allergen. Never rely on this for an allergy. Read the package.</span></p>
     <div class="chips" id="allergens"></div>
   </section>
 
@@ -298,27 +298,27 @@
   </section>
 
   <section id="sec-labels" data-level="2">
-    <h2>Label reading</h2>
-    <p class="sec-lede">Shared by product pages, search results, carts and purchased items.</p>
-    <div class="opt"><label class="sw"><input type="checkbox" id="ocrLabels" role="switch"><span class="sw-title">Read label photos on this computer</span></label><p class="sw-hint">Uses local OCR when a readable ingredient photo is available. Photos are not uploaded. Missing or unreadable labels remain unknown.</p></div>
-    <div class="opt"><label class="sw"><input type="checkbox" id="useOpenFoodFacts" role="switch"><span class="sw-title">Look up barcodes in Open Food Facts</span></label><p class="sw-hint">Requires Chrome permission. Sends only the product barcode to Open Food Facts; your purchase history is not sent.</p></div>
-    <div class="opt"><label for="usdaKey">Your own USDA FoodData Central key (optional)</label>
+    <h2 data-i18n="optxLabelReading">Label reading</h2>
+    <p class="sec-lede" data-i18n="optxSharedByProductPagesSearch">Shared by product pages, search results, carts and purchased items.</p>
+    <div class="opt"><label class="sw"><input type="checkbox" id="ocrLabels" role="switch"><span class="sw-title" data-i18n="optxReadLabelPhotosOnThis">Read label photos on this computer</span></label><p class="sw-hint" data-i18n="optxUsesLocalOcrWhenA">Uses local OCR when a readable ingredient photo is available. Photos are not uploaded. Missing or unreadable labels remain unknown.</p></div>
+    <div class="opt"><label class="sw"><input type="checkbox" id="useOpenFoodFacts" role="switch"><span class="sw-title" data-i18n="optxLookUpBarcodesInOpen">Look up barcodes in Open Food Facts</span></label><p class="sw-hint" data-i18n="optxRequiresChromePermissionSendsOnly">Requires Chrome permission. Sends only the product barcode to Open Food Facts; your purchase history is not sent.</p></div>
+    <div class="opt"><label for="usdaKey" data-i18n="optxYourOwnUsdaFooddataCentral">Your own USDA FoodData Central key (optional)</label>
       <input type="password" id="usdaKey" autocomplete="off" spellcheck="false">
-      <p class="sw-hint">A second barcode database for US packaged foods, tried when Open Food Facts has no ingredient list. Without a key, lookups go through Ingredient Check's own lookup service, which uses the project's key, so the barcode passes through it (turn off the shared online database to stop that). With your own free key (fdc.nal.usda.gov/api-key-signup) the barcode goes straight to USDA instead. The key stays in this browser and is not part of a backup, a settings file, Chrome sync or a problem report. <span id="usdaKeyStatus" class="status"></span></p>
-      <p><button type="button" id="usdaTest">Test key and access</button> <button type="button" id="usdaForget">Remove key</button> <span id="usdaTestStatus" class="status"></span></p></div>
-    <div class="opt"><label class="sw"><input type="checkbox" id="useUsda" role="switch"><span class="sw-title">Look up barcodes in USDA FoodData Central</span></label><p class="sw-hint">Sends only the product barcode, after Open Food Facts has found nothing usable, and only while barcode lookup above is on. With your own key it also needs Chrome permission for api.nal.usda.gov. A record is used only if it carries the same barcode.</p></div>
-    <p class="note"><a href="history.html#historySettings">Purchase import and order display settings</a> · <a href="history.html#driversHeading">Purchase score drivers</a></p>
+      <p class="sw-hint"><span data-i18n="optxASecondBarcodeDatabaseFor">A second barcode database for US packaged foods, tried when Open Food Facts has no ingredient list. Without a key, lookups go through Ingredient Check's own lookup service, which uses the project's key, so the barcode passes through it (turn off the shared online database to stop that). With your own free key (fdc.nal.usda.gov/api-key-signup) the barcode goes straight to USDA instead. The key stays in this browser and is not part of a backup, a settings file, Chrome sync or a problem report.</span> <span id="usdaKeyStatus" class="status"></span></p>
+      <p><button type="button" id="usdaTest" data-i18n="optxTestKeyAndAccess">Test key and access</button> <button type="button" id="usdaForget" data-i18n="optxRemoveKey">Remove key</button> <span id="usdaTestStatus" class="status"></span></p></div>
+    <div class="opt"><label class="sw"><input type="checkbox" id="useUsda" role="switch"><span class="sw-title" data-i18n="optxLookUpBarcodesInUsda">Look up barcodes in USDA FoodData Central</span></label><p class="sw-hint" data-i18n="optxSendsOnlyTheProductBarcode">Sends only the product barcode, after Open Food Facts has found nothing usable, and only while barcode lookup above is on. With your own key it also needs Chrome permission for api.nal.usda.gov. A record is used only if it carries the same barcode.</p></div>
+    <p class="note"><a href="history.html#historySettings" data-i18n="optxPurchaseImportAndOrderDisplay">Purchase import and order display settings</a> · <a href="history.html#driversHeading" data-i18n="optxPurchaseScoreDrivers">Purchase score drivers</a></p>
   </section>
 
   <section id="sec-ai" data-level="3">
-    <h2>AI help (optional)</h2>
-    <p class="sec-lede">Uses a free model through OpenRouter, with your own key. Scores work without it, and it is off until you add a key and allow access to openrouter.ai.</p>
-    <div class="opt"><label for="openrouterKey">OpenRouter API key</label>
+    <h2 data-i18n="optxAiHelpOptional">AI help (optional)</h2>
+    <p class="sec-lede" data-i18n="optxUsesAFreeModelThrough">Uses a free model through OpenRouter, with your own key. Scores work without it, and it is off until you add a key and allow access to openrouter.ai.</p>
+    <div class="opt"><label for="openrouterKey" data-i18n="optxOpenrouterApiKey">OpenRouter API key</label>
       <input type="password" id="openrouterKey" autocomplete="off" spellcheck="false">
-      <p class="sw-hint">Create a free key at openrouter.ai/keys. It stays in this browser, and is not part of a backup, a settings file, Chrome sync or a problem report. <span id="aiKeyStatus" class="status"></span></p>
-      <p><button type="button" id="aiTest">Test key and access</button> <button type="button" id="aiForget">Remove key</button> <span id="aiTestStatus" class="status"></span></p></div>
-    <div class="opt"><label class="sw"><input type="checkbox" id="aiRatings" role="switch"><span class="sw-title">Rate ingredients the rules do not recognise</span></label><p class="sw-hint">Sends only those ingredient names (not the product, store, page or you) to OpenRouter. The answer is used in the score and shown as an “AI estimate”. It can only lower a score, never raise it or set a hard cap, it is smaller than a built-in rule, and it applies on product pages you open. Free models are rate limited, so each name is asked about once and kept on this computer.</p></div>
-    <div class="opt"><label class="sw"><input type="checkbox" id="aiLabels" role="switch"><span class="sw-title">Read label photos with AI when OCR cannot</span></label><p class="sw-hint">When on-device OCR finds no ingredient list in the product photos, the public address of up to three photos on m.media-amazon.com is sent to OpenRouter so a vision model can read the list. It is used only if it looks like an ingredient list, is kept on this computer, and is never shared.</p></div>
+      <p class="sw-hint"><span data-i18n="optxCreateAFreeKeyAt">Create a free key at openrouter.ai/keys. It stays in this browser, and is not part of a backup, a settings file, Chrome sync or a problem report.</span> <span id="aiKeyStatus" class="status"></span></p>
+      <p><button type="button" id="aiTest" data-i18n="optxTestKeyAndAccess">Test key and access</button> <button type="button" id="aiForget" data-i18n="optxRemoveKey">Remove key</button> <span id="aiTestStatus" class="status"></span></p></div>
+    <div class="opt"><label class="sw"><input type="checkbox" id="aiRatings" role="switch"><span class="sw-title" data-i18n="optxRateIngredientsTheRulesDo">Rate ingredients the rules do not recognise</span></label><p class="sw-hint" data-i18n="optxSendsOnlyThoseIngredientNames">Sends only those ingredient names (not the product, store, page or you) to OpenRouter. The answer is used in the score and shown as an “AI estimate”. It can only lower a score, never raise it or set a hard cap, it is smaller than a built-in rule, and it applies on product pages you open. Free models are rate limited, so each name is asked about once and kept on this computer.</p></div>
+    <div class="opt"><label class="sw"><input type="checkbox" id="aiLabels" role="switch"><span class="sw-title" data-i18n="optxReadLabelPhotosWithAi">Read label photos with AI when OCR cannot</span></label><p class="sw-hint" data-i18n="optxWhenOnDeviceOcrFinds">When on-device OCR finds no ingredient list in the product photos, the public address of up to three photos on m.media-amazon.com is sent to OpenRouter so a vision model can read the list. It is used only if it looks like an ingredient list, is kept on this computer, and is never shared.</p></div>
   </section>
 
   <section id="sec-rate" data-level="1">
@@ -328,7 +328,7 @@
     <div class="opt"><label for="ratingStyle" data-i18n="optRatingStyle">Personal-care and supplement rating style</label>
       <select id="ratingStyle"><option value="evidence" data-i18n="styleEvidence">Evidence-based</option><option value="minimal" data-i18n="styleMinimal">Minimal ingredients</option><option value="preferences" data-i18n="stylePreferences">Preference-focused</option></select>
       <p class="sw-hint" data-i18n="optStyleHelp">Evidence-based uses disclosed category functions or Supplement Facts. Minimal favors fewer ingredients. Preference-focused uses your avoid list. These indices do not establish safety or effectiveness.</p></div>
-    <p class="note"><a href="history.html#historySettings">Order badge placement and purchase import</a></p>
+    <p class="note"><a href="history.html#historySettings" data-i18n="optxOrderBadgePlacementAndPurchase">Order badge placement and purchase import</a></p>
     <p class="sec-lede" data-i18n="optNoteRateSame">The same switches as in the toolbar popup.</p>
     <div class="opt">
       <label class="sw"><input type="checkbox" id="foodOnly" role="switch" checked aria-describedby="h-foodOnly"><span class="sw-title" data-i18n="optFoodOnly">Skip unsupported merchandise</span></label>
@@ -374,15 +374,15 @@
       </div>
     </div>
     <div class="opt">
-      <span class="sw-title">Amazon access</span>
-      <details class="hint-more"><summary>Product, search and cart pages only — never your account, orders or checkout.</summary>
-        <p id="amazonAccess">When you install Ingredient Check, it asks Chrome for access to the Amazon stores it supports:
-          <span id="amazonStores">amazon.com and the other supported Amazon stores</span>.
+      <span class="sw-title" data-i18n="optxAmazonAccess">Amazon access</span>
+      <details class="hint-more"><summary data-i18n="optxProductSearchAndCartPages">Product, search and cart pages only — never your account, orders or checkout.</summary>
+        <p id="amazonAccess"><span data-i18n="optxWhenYouInstallIngredientCheck">When you install Ingredient Check, it asks Chrome for access to the Amazon stores it supports:</span>
+          <span id="amazonStores" data-i18n="optxAmazonComAndTheOther">amazon.com and the other supported Amazon stores</span><span data-i18n="optxItUsesThatAccessTo">.
           It uses that access to read product, search and cart pages, and to request product pages for the two options above.
           Its scripts run on product, search, browse, brand-store and narrowly scoped cart pages, never on your account, orders
-          or checkout. To limit it, open <code>chrome://extensions</code>, choose <em>Details</em> under Ingredient Check, and
-          change <em>Site access</em>.</p>
-        <p id="targetAccess" data-level="2">Retailer previews rate search results and cart items from saved scores or public same-site product pages without cookies. Cart requests also omit the referrer. Automatic rating is on by default; turn it off for saved scores only. Two requests run at a time, within the Speed budget (20–60). Missing or blocked labels stay unavailable. Scores stay local; no cart data is shared. Score on hover applies to Amazon only.</p>
+          or checkout. To limit it, open</span> <code>chrome://extensions</code><span data-i18n="optxChoose">, choose</span> <em data-i18n="optxDetails">Details</em> <span data-i18n="optxUnderIngredientCheckAndChange">under Ingredient Check, and
+          change</span> <em data-i18n="optxSiteAccess">Site access</em>.</p>
+        <p id="targetAccess" data-level="2" data-i18n="optNoteTarget">Retailer previews rate search results and cart items from saved scores or public same-site product pages without cookies. Cart requests also omit the referrer. Automatic rating is on by default; turn it off for saved scores only. Two requests run at a time, within the Speed budget (20–60). Missing or blocked labels stay unavailable. Scores stay local; no cart data is shared. Score on hover applies to Amazon only.</p>
       </details>
     </div>
   </section>
@@ -465,17 +465,17 @@
       <label><input type="radio" name="speedMode" value="freshest" aria-describedby="spD-freshest"><span data-i18n="optSpeedFreshest">Most up to date</span></label>
       <p class="choice-d" id="spD-freshest" data-i18n="optSpeedFreshestD">Saved scores for 1 day. At most 60 product pages per results page. Never uses shared readings: reads every product page itself, so more requests go to Amazon.</p>
     </fieldset>
-    <h3 class="sub-h" id="recallH">Instant score recall</h3>
+    <h3 class="sub-h" id="recallH" data-i18n="optxInstantScoreRecall">Instant score recall</h3>
     <fieldset class="sort-choices" aria-labelledby="recallH">
-      <label><input type="checkbox" id="cacheFirst"> Show saved scores first (recommended)</label>
-      <p class="choice-d">Reuse fresh local ratings instead of requesting product pages. Repeated products share one lookup.</p>
-      <label><input type="checkbox" id="cacheMemory"> Keep recent readings in memory (recommended)</label>
-      <p class="choice-d">Avoid repeated disk reads while this page is open. Limited to 256 entries and 2 MB; saved scores remain on this computer.</p>
-      <label><input type="checkbox" id="cacheBackgroundRefresh"> Refresh stale scores in the background (recommended)</label>
-      <p class="choice-d">Show an older saved score while its label refreshes. Existing automatic-scoring switches, request limits and retailer pauses still apply. Turn off to keep that saved score until its grace period ends.</p>
-      <label for="cacheGraceDays">Extra time to show an older score</label>
-      <select id="cacheGraceDays"><option value="0">None — fresh scores only</option><option value="7">7 days (recommended)</option><option value="30">30 days</option></select>
-      <p class="choice-d">Added to the freshness limit above. Older ratings are marked as saved. Product pages still read their current labels; purchase-history snapshots stay unchanged.</p>
+      <label><input type="checkbox" id="cacheFirst"> <span data-i18n="optxShowSavedScoresFirstRecommended">Show saved scores first (recommended)</span></label>
+      <p class="choice-d" data-i18n="optxReuseFreshLocalRatingsInstead">Reuse fresh local ratings instead of requesting product pages. Repeated products share one lookup.</p>
+      <label><input type="checkbox" id="cacheMemory"> <span data-i18n="optxKeepRecentReadingsInMemory">Keep recent readings in memory (recommended)</span></label>
+      <p class="choice-d" data-i18n="optxAvoidRepeatedDiskReadsWhile">Avoid repeated disk reads while this page is open. Limited to 256 entries and 2 MB; saved scores remain on this computer.</p>
+      <label><input type="checkbox" id="cacheBackgroundRefresh"> <span data-i18n="optxRefreshStaleScoresInThe">Refresh stale scores in the background (recommended)</span></label>
+      <p class="choice-d" data-i18n="optxShowAnOlderSavedScore">Show an older saved score while its label refreshes. Existing automatic-scoring switches, request limits and retailer pauses still apply. Turn off to keep that saved score until its grace period ends.</p>
+      <label for="cacheGraceDays" data-i18n="optxExtraTimeToShowAn">Extra time to show an older score</label>
+      <select id="cacheGraceDays"><option value="0" data-i18n="optxNoneFreshScoresOnly">None — fresh scores only</option><option value="7" data-i18n="optx7DaysRecommended">7 days (recommended)</option><option value="30" data-i18n="optx30Days">30 days</option></select>
+      <p class="choice-d" data-i18n="optxAddedToTheFreshnessLimit">Added to the freshness limit above. Older ratings are marked as saved. Product pages still read their current labels; purchase-history snapshots stay unchanged.</p>
     </fieldset>
     <h3 class="sub-h" id="paceH" data-i18n="optPaceH">How fast to request product pages</h3>
     <p class="sec-lede" data-i18n="optPaceLede">Applies to scoring a results page and building the sorted list. Faster finishes sooner but looks more like automated traffic, so Amazon may refuse sooner; five refusals in a row pause everything.</p>
@@ -516,11 +516,11 @@
 
   <section id="sec-database" data-level="2">
     <h2 data-i18n="optDatabaseH">Shared online database</h2>
-    <p class="sec-lede">Certification tables for whole foods (organic, grass-fed, origin) from a shared spreadsheet that only the developer edits. Scoring and your weights stay on this computer.</p>
+    <p class="sec-lede" data-i18n="optxCertificationTablesForWholeFoods">Certification tables for whole foods (organic, grass-fed, origin) from a shared spreadsheet that only the developer edits. Scoring and your weights stay on this computer.</p>
     <p class="callout" id="endpointStatus" hidden></p>
     <div class="opt">
       <label class="sw"><input type="checkbox" id="sharedCache" role="switch" aria-describedby="h-sharedCache"><span class="sw-title" data-i18n="optSharedCache">Use the shared online database</span></label>
-      <p class="sw-hint" id="h-sharedCache">Off keeps every lookup on this computer. On sends only a request for the certification tables, a few times a day — never your settings or who you are.</p>
+      <p class="sw-hint" id="h-sharedCache" data-i18n="optxOffKeepsEveryLookupOn">Off keeps every lookup on this computer. On sends only a request for the certification tables, a few times a day — never your settings or who you are.</p>
     </div>
     <div class="opt" data-level="3">
       <label class="sw"><input type="checkbox" id="sharedProducts" role="switch" aria-describedby="h-sharedProducts"><span class="sw-title" data-i18n="optSharedProducts">Share product readings with other computers (experimental)</span></label>
@@ -536,16 +536,16 @@
   </section>
 
   <section id="sec-account" data-level="2">
-    <p><a href="history.html">Purchase history, trends &amp; account sync</a> — opt-in Amazon order imports; automatic sync or Sync now.</p>
+    <p><a href="history.html" data-i18n="optxPurchaseHistoryTrendsAccountSync">Purchase history, trends &amp; account sync</a> <span data-i18n="optxOptInAmazonOrderImports">— opt-in Amazon order imports; automatic sync or Sync now.</span></p>
     <h2 data-i18n="optSettingsOnlineH">Your settings online</h2>
-    <p class="sec-lede">This computer's settings always win. A copy online only comes back when you click Restore (not the master switch).</p>
+    <p class="sec-lede" data-i18n="optxThisComputerSSettingsAlways">This computer's settings always win. A copy online only comes back when you click Restore (not the master switch).</p>
     <div class="opt">
       <label class="sw"><input type="checkbox" id="settingsBackup" role="switch" aria-describedby="h-settingsBackup"><span class="sw-title" data-i18n="optBackup">Back up my settings to my Chrome account</span></label>
-      <p class="sw-hint" id="h-settingsBackup">Chrome's own sync, private to you. If sync is off, the copy stays on this computer.</p>
+      <p class="sw-hint" id="h-settingsBackup" data-i18n="optxChromeSOwnSyncPrivate">Chrome's own sync, private to you. If sync is off, the copy stays on this computer.</p>
       <div class="row">
         <button type="button" class="btn" id="restoreChrome" data-i18n="optRestoreChrome">Restore from my Chrome account</button>
         <button type="button" class="btn" id="checkBackups" data-i18n="optCheckBackups">Check my backups</button>
-        <button type="button" class="btn" id="openChromeProfile">Open Chrome profile settings</button>
+        <button type="button" class="btn" id="openChromeProfile" data-i18n="optxOpenChromeProfileSettings">Open Chrome profile settings</button>
         <span class="status" id="backupStatus"></span>
       </div>
       <ul id="backupCheck" aria-live="polite"></ul>
@@ -569,18 +569,18 @@
         </div>
       </div>
       <p class="status" id="accountStatus" role="status"></p>
-      <p class="note">Chrome sync and Google backup are separate: each Google save or restore lets you choose an account, and signing in here does not sign Chrome in.
-        <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener">Manage your Google app connections</a></p>
+      <p class="note"><span data-i18n="optxChromeSyncAndGoogleBackup">Chrome sync and Google backup are separate: each Google save or restore lets you choose an account, and signing in here does not sign Chrome in.</span>
+        <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener" data-i18n="optxManageYourGoogleAppConnections">Manage your Google app connections</a></p>
       <details class="more" id="accountSetup">
-        <summary>Configure Google sign-in</summary>
+        <summary data-i18n="optxConfigureGoogleSignIn">Configure Google sign-in</summary>
         <div class="stack">
-          <p>Use the public OAuth client ID configured by the database owner. Register the redirect address below in that client's Google Cloud settings. No client secret is needed.</p>
-          <label for="oauthClientId">Google OAuth client ID</label>
+          <p data-i18n="optxUseThePublicOauthClient">Use the public OAuth client ID configured by the database owner. Register the redirect address below in that client's Google Cloud settings. No client secret is needed.</p>
+          <label for="oauthClientId" data-i18n="optxGoogleOauthClientId">Google OAuth client ID</label>
           <input type="text" id="oauthClientId" autocomplete="off" spellcheck="false">
-          <button type="button" class="btn" id="saveAccountSetup">Save sign-in configuration</button>
+          <button type="button" class="btn" id="saveAccountSetup" data-i18n="optxSaveSignInConfiguration">Save sign-in configuration</button>
           <p id="accountRedirect"></p>
-          <button type="button" class="btn" id="copyAccountRedirect">Copy redirect address</button>
-          <a class="btn" href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Open Google Cloud credentials</a>
+          <button type="button" class="btn" id="copyAccountRedirect" data-i18n="optxCopyRedirectAddress">Copy redirect address</button>
+          <a class="btn" href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener" data-i18n="optxOpenGoogleCloudCredentials">Open Google Cloud credentials</a>
         </div>
       </details>
     </div>
@@ -588,11 +588,11 @@
 
   <section data-level="4">
     <h2 data-i18n="optDiagnosticsH">Accuracy diagnostics</h2>
-    <p class="sec-lede">Sends one row per scored product to the shared database: the ingredient text that was read, where it came from, which rules fired and the score. Batched.</p>
-    <p class="callout"><strong>This records which products you looked at.</strong> No name, account or session id, and nothing from any other page. It goes to the Ingredient Check database, not to any third party. Off unless you turn it on.</p>
+    <p class="sec-lede" data-i18n="optxSendsOneRowPerScored">Sends one row per scored product to the shared database: the ingredient text that was read, where it came from, which rules fired and the score. Batched.</p>
+    <p class="callout"><strong data-i18n="optxThisRecordsWhichProductsYou">This records which products you looked at.</strong> <span data-i18n="optxNoNameAccountOrSession">No name, account or session id, and nothing from any other page. It goes to the Ingredient Check database, not to any third party. Off unless you turn it on.</span></p>
     <div class="opt">
       <label class="sw"><input type="checkbox" id="sendDiagnostics" role="switch" aria-describedby="h-sendDiagnostics"><span class="sw-title" data-i18n="optSendDiag">Send scoring diagnostics to the shared database</span></label>
-      <details class="hint-more"><summary id="h-sendDiagnostics">With “Rate search results” on, a results page produces a row per tile.</summary><p>That is a meaningful trace of your browsing. Each row is enough to judge whether a score was right, rather than only noticing when one looks wrong.</p></details>
+      <details class="hint-more"><summary id="h-sendDiagnostics" data-i18n="optxWithRateSearchResultsOn">With “Rate search results” on, a results page produces a row per tile.</summary><p data-i18n="optxThatIsAMeaningfulTrace">That is a meaningful trace of your browsing. Each row is enough to judge whether a score was right, rather than only noticing when one looks wrong.</p></details>
       <div class="row">
         <button type="button" class="btn" id="flushDiagnostics" data-i18n="optFlush">Send queued rows now</button>
         <span class="status" id="diagStatus"></span>
@@ -602,41 +602,41 @@
 
   <section data-level="2">
     <h2 id="leavesH" data-i18n="optLeavesH">What leaves your computer</h2>
-    <p class="sec-lede">Scoring is entirely local: the rules, your weights and every score are computed in your browser. There is no analytics and no telemetry.</p>
-    <details class="more"><summary aria-describedby="leavesH">Everything that can be sent</summary>
+    <p class="sec-lede" data-i18n="optxScoringIsEntirelyLocalThe">Scoring is entirely local: the rules, your weights and every score are computed in your browser. There is no analytics and no telemetry.</p>
+    <details class="more"><summary aria-describedby="leavesH" data-i18n="optxEverythingThatCanBeSent">Everything that can be sent</summary>
     <ul class="leaves">
-      <li><strong>Shared online database</strong> (on by default) — the store and product IDs on a
+      <li><strong data-i18n="optDatabaseH">Shared online database</strong> <span data-i18n="optxOnByDefaultTheStore">(on by default) — the store and product IDs on a
         search page, and what was read off products you score, go to the Ingredient Check Apps
-        Script. The spreadsheet behind it is private. Never your settings.</li>
-      <li><strong>Rate search results and cart items</strong> (on by default) and <strong>Score on hover</strong>
-        — request product pages from the Amazon store you are on, using your Amazon sign-in, so
+        Script. The spreadsheet behind it is private. Never your settings.</span></li>
+      <li><strong data-i18n="popupAutoScore">Rate search results and cart items</strong> <span data-i18n="optxOnByDefaultAnd">(on by default) and</span> <strong data-i18n="popupHover">Score on hover</strong>
+        <span data-i18n="optxRequestProductPagesFromThe">— request product pages from the Amazon store you are on, using your Amazon sign-in, so
         Amazon sees them much as it would if you had opened the products yourself. Three at a time,
-        at most 60 per results page, and only for products not already answered. Both are under
-        <a href="#sec-rate">What to rate</a>.</li>
-      <li><strong>Open Food Facts fallback</strong> — sends a barcode to
+        at most 60 per results page, and only for products not already answered. Both are under</span>
+        <a href="#sec-rate" data-i18n="optRateH">What to rate</a>.</li>
+      <li><strong data-i18n="popupOff">Open Food Facts fallback</strong> <span data-i18n="optxSendsABarcodeToWorld">— sends a barcode to
         world.openfoodfacts.org when a page has one but no readable ingredients. The barcode and
-        nothing else.</li>
-      <li><strong>Back up my settings</strong> (on by default) — Chrome's own sync, for your Chrome
-        account only. <strong>Sign in with Google</strong> asks Google for your name, email and picture to show who is signed in (kept on this computer only; <strong>Sign out</strong> deletes them). Saving a copy stores your settings on the Ingredient Check
-        database keyed by a hash of your account id, only when you click it.</li>
-      <li><strong>Send certifications</strong> and "Looks wrong?" reports — product identifiers and
-        certification text. Never anything about you.</li>
-      <li><strong>Sort results</strong> — with <em>Rate them first</em>, the same product-page requests
-        as <strong>Rate search results</strong>. <strong>Load more results</strong> (off by default)
-        also requests further Amazon search pages and product pages, with your Amazon sign-in. See
-        <a href="#sec-sort">Sort by score or price per ounce</a>.</li>
-      <li><strong>Retailer previews</strong> — automatic search rating requests public product pages
+        nothing else.</span></li>
+      <li><strong data-i18n="optxBackUpMySettings">Back up my settings</strong> <span data-i18n="optxOnByDefaultChromeS">(on by default) — Chrome's own sync, for your Chrome
+        account only.</span> <strong data-i18n="optAccountSignIn">Sign in with Google</strong> <span data-i18n="optxAsksGoogleForYourName">asks Google for your name, email and picture to show who is signed in (kept on this computer only;</span> <strong data-i18n="optGoogleSignOut">Sign out</strong> <span data-i18n="optxDeletesThemSavingACopy">deletes them). Saving a copy stores your settings on the Ingredient Check
+        database keyed by a hash of your account id, only when you click it.</span></li>
+      <li><strong data-i18n="optxSendCertifications">Send certifications</strong> <span data-i18n="optxAndLooksWrongReportsProduct">and "Looks wrong?" reports — product identifiers and
+        certification text. Never anything about you.</span></li>
+      <li><strong data-i18n="optxSortResults">Sort results</strong> <span data-i18n="optxWith">— with</span> <em data-i18n="optxRateThemFirst">Rate them first</em><span data-i18n="optxTheSameProductPageRequests">, the same product-page requests
+        as</span> <strong data-i18n="optxRateSearchResults">Rate search results</strong>. <strong data-i18n="sortLoadMore">Load more results</strong> <span data-i18n="optxOffByDefaultAlsoRequests">(off by default)
+        also requests further Amazon search pages and product pages, with your Amazon sign-in. See</span>
+        <a href="#sec-sort" data-i18n="optxSortByScoreOrPrice">Sort by score or price per ounce</a>.</li>
+      <li><strong data-i18n="optxRetailerPreviews">Retailer previews</strong> <span data-i18n="optxAutomaticSearchRatingRequestsPubli">— automatic search rating requests public product pages
         from the same store, without cookies. Scores stay local; no preview readings go to Google
-        or the shared database. Turn off <em>Rate search results and cart items</em> for saved scores only.</li>
-      <li><strong>Request a store</strong> — nothing is sent by the extension. It opens a draft
-        in your email app with the store name and website you typed; you decide whether to send it.</li>
-      <li><strong>Accuracy diagnostics</strong> — one row per scored product, per scan that could not be
-        scored, and per “Looks wrong?” click. This one does record which products were scanned; see the section above.</li>
+        or the shared database. Turn off</span> <em data-i18n="popupAutoScore">Rate search results and cart items</em> <span data-i18n="optxForSavedScoresOnly">for saved scores only.</span></li>
+      <li><strong data-i18n="optRequestH">Request a store</strong> <span data-i18n="optxNothingIsSentByThe">— nothing is sent by the extension. It opens a draft
+        in your email app with the store name and website you typed; you decide whether to send it.</span></li>
+      <li><strong data-i18n="optDiagnosticsH">Accuracy diagnostics</strong> <span data-i18n="optxOneRowPerScoredProduct">— one row per scored product, per scan that could not be
+        scored, and per “Looks wrong?” click. This one does record which products were scanned; see the section above.</span></li>
     </ul>
-    <p class="note"><strong>Read label photos</strong> makes no network request of its own beyond fetching the
+    <p class="note"><strong data-i18n="popupOcr">Read label photos</strong> <span data-i18n="optxMakesNoNetworkRequestOf">makes no network request of its own beyond fetching the
       product image the page already shows: the OCR engine ships with the extension and runs on
-      your computer.</p>
-    <p class="note">Turn off the shared database, the backup and <strong>Rate search results and cart items</strong>, leave the other boxes off, and the extension makes no network requests of its own.</p>
+      your computer.</span></p>
+    <p class="note"><span data-i18n="optxTurnOffTheSharedDatabase">Turn off the shared database, the backup and</span> <strong data-i18n="popupAutoScore">Rate search results and cart items</strong><span data-i18n="optxLeaveTheOtherBoxesOff">, leave the other boxes off, and the extension makes no network requests of its own.</span></p>
     </details>
   </section>
 
@@ -677,11 +677,11 @@
 
   <section>
     <h2 id="scoreIsH" data-i18n="optScoreIsH">What a score is, and is not</h2>
-    <p class="sec-lede">A score reads the ingredient list against a rulebase and your weights. It is a guide to what is written on the label, not a health assessment, and not medical, dietary or allergy advice.</p>
-    <details class="more"><summary aria-describedby="scoreIsH">Two limits</summary>
+    <p class="sec-lede" data-i18n="optxAScoreReadsTheIngredient">A score reads the ingredient list against a rulebase and your weights. It is a guide to what is written on the label, not a health assessment, and not medical, dietary or allergy advice.</p>
+    <details class="more"><summary aria-describedby="scoreIsH" data-i18n="optxTwoLimits">Two limits</summary>
       <ul class="leaves">
-        <li>It can only judge what it can read. When too little of a list matches anything the rulebase knows, no score is shown at all rather than a confident guess.</li>
-        <li>Amazon's ingredient text is sometimes incomplete, sometimes out of date, and sometimes for a different size or flavour of the product. The package is the authority.</li>
+        <li data-i18n="optxItCanOnlyJudgeWhat">It can only judge what it can read. When too little of a list matches anything the rulebase knows, no score is shown at all rather than a confident guess.</li>
+        <li data-i18n="optxAmazonSIngredientTextIs">Amazon's ingredient text is sometimes incomplete, sometimes out of date, and sometimes for a different size or flavour of the product. The package is the authority.</li>
       </ul>
     </details>
   </section>

@@ -2396,5 +2396,1631 @@
   },
   "sortMenuButton": {
     "message": "Ingredient Check sort"
+  },
+  "histIngredientCheckPurchaseHistory": {
+    "message": "Ingredient Check — Purchase history"
+  },
+  "histYourPurchasePatterns": {
+    "message": "YOUR PURCHASE PATTERNS"
+  },
+  "histPurchaseHistoryTrends": {
+    "message": "Purchase history & trends"
+  },
+  "histSeeWhatChangesKeepThe": {
+    "message": "See what changes. Keep the original record."
+  },
+  "histPurchaseHistoryNavigation": {
+    "message": "Purchase history navigation"
+  },
+  "histInsights": {
+    "message": "Insights"
+  },
+  "histScoreDrivers": {
+    "message": "Score drivers"
+  },
+  "histImportedItems": {
+    "message": "Imported items"
+  },
+  "histScanOrders": {
+    "message": "Scan orders"
+  },
+  "histPurchaseSettings": {
+    "message": "Purchase settings"
+  },
+  "histOnlyActualAmazonOrdersDrive": {
+    "message": "Only actual Amazon orders drive trends. Viewed products and carts are excluded. Purchase ratings use the ingredient information available when imported, which may differ from the original package. Purchases do not tell us what you ate."
+  },
+  "histPurchaseInsights": {
+    "message": "PURCHASE INSIGHTS"
+  },
+  "histYourPatternsAtAGlance": {
+    "message": "Your patterns, at a glance"
+  },
+  "histEditGoalsWeights": {
+    "message": "Edit goals & weights"
+  },
+  "histScoreView": {
+    "message": "Score view"
+  },
+  "histRecordedScoresDefault": {
+    "message": "Recorded scores (default)"
+  },
+  "histRecalculateWithCurrentGoalsWeights": {
+    "message": "Recalculate with current goals & weights"
+  },
+  "histAverageWeighting": {
+    "message": "Average weighting"
+  },
+  "histEachProductEntryEqually": {
+    "message": "Each product entry equally"
+  },
+  "histEachIdentifiedOrderEqually": {
+    "message": "Each identified order equally"
+  },
+  "histTimeline": {
+    "message": "Timeline"
+  },
+  "histMonthly": {
+    "message": "Monthly"
+  },
+  "histYearly": {
+    "message": "Yearly"
+  },
+  "histHowRecordedAndCurrentGoal": {
+    "message": "How recorded and current-goal scores differ"
+  },
+  "histRecordedScoresStayUnchangedThe": {
+    "message": "Recorded scores stay unchanged. The comparison uses today's engine and your saved goals, weights and warning choices."
+  },
+  "histChangeThoseSettings": {
+    "message": "Change those settings"
+  },
+  "histWarningsDiets": {
+    "message": "Warnings & diets"
+  },
+  "histAndThisViewUpdatesAutomatically": {
+    "message": "and this view updates automatically. Older entries with only ingredient text have an approximate comparison without their original nutrition or certifications."
+  },
+  "histHowToReadTheseInsights": {
+    "message": "How to read these insights"
+  },
+  "histPurchaseScoresNotAPersonal": {
+    "message": "Purchase scores, not a personal health score"
+  },
+  "histRatingCoverage": {
+    "message": "Rating coverage"
+  },
+  "histCoverageAndExcludedEntries": {
+    "message": "Coverage and excluded entries"
+  },
+  "histPurchaseStatistics": {
+    "message": "Purchase statistics"
+  },
+  "histHistoryFilters": {
+    "message": "History filters"
+  },
+  "histSearchProducts": {
+    "message": "Search products"
+  },
+  "histNameOrProductId": {
+    "message": "Name or product ID"
+  },
+  "histFrom": {
+    "message": "From"
+  },
+  "histThrough": {
+    "message": "Through"
+  },
+  "histStatus": {
+    "message": "Status"
+  },
+  "histAllStatuses": {
+    "message": "All statuses"
+  },
+  "histPurchased": {
+    "message": "Purchased"
+  },
+  "histReturned": {
+    "message": "Returned"
+  },
+  "histCancelled": {
+    "message": "Cancelled"
+  },
+  "histUnconfirmedExcluded": {
+    "message": "Unconfirmed / excluded"
+  },
+  "histLabelSource": {
+    "message": "Label source"
+  },
+  "histAllSources": {
+    "message": "All sources"
+  },
+  "histLabelPhotoOcr": {
+    "message": "Label photo (OCR)"
+  },
+  "histNotRecorded": {
+    "message": "Not recorded"
+  },
+  "histRating": {
+    "message": "Rating"
+  },
+  "histAllRatings": {
+    "message": "All ratings"
+  },
+  "histRated": {
+    "message": "Rated"
+  },
+  "histLabelUnavailable": {
+    "message": "Label unavailable"
+  },
+  "histRecordedWarningMatches": {
+    "message": "Recorded warning matches"
+  },
+  "histMaximumScore": {
+    "message": "Maximum score"
+  },
+  "histSortItems": {
+    "message": "Sort items"
+  },
+  "histNewestFirst": {
+    "message": "Newest first"
+  },
+  "histOldestFirst": {
+    "message": "Oldest first"
+  },
+  "histHighestScore": {
+    "message": "Highest score"
+  },
+  "histLowestScore": {
+    "message": "Lowest score"
+  },
+  "histLargestIncreaseInComparison": {
+    "message": "Largest increase in comparison"
+  },
+  "histResetFilters": {
+    "message": "Reset filters"
+  },
+  "histYourHistoryStartsHere": {
+    "message": "Your history starts here"
+  },
+  "histImportConfirmedAmazonPurchasesTo": {
+    "message": "Import confirmed Amazon purchases to see ingredient-score patterns. Browsing products and adding items to a cart do not create purchase history."
+  },
+  "histEnablePurchaseImport": {
+    "message": "Enable purchase import"
+  },
+  "histScanOrderHistory": {
+    "message": "Scan order history"
+  },
+  "histNoEntriesMatchTheseFilters": {
+    "message": "No entries match these filters"
+  },
+  "histTryAWiderDateRange": {
+    "message": "Try a wider date range, another status, or Reset filters above. Your saved history has not been removed."
+  },
+  "histScoreOverTime": {
+    "message": "Score over time"
+  },
+  "histSeparateLinesPreserveRecordedScori": {
+    "message": "Separate lines preserve recorded scoring setups. Missing periods are not zero. Focus a point for its numbers."
+  },
+  "histScoreDistribution": {
+    "message": "Score distribution"
+  },
+  "histProductEntriesInFiveScore": {
+    "message": "Product entries in five score bands. Missing scores are excluded."
+  },
+  "histBiggestBonusesDeductions": {
+    "message": "Biggest bonuses & deductions"
+  },
+  "histAdjustScoringWeights": {
+    "message": "Adjust scoring weights"
+  },
+  "histBreakdownBasis": {
+    "message": "Breakdown basis"
+  },
+  "histCurrentGoalsOnSavedLabels": {
+    "message": "Current goals on saved labels (default)"
+  },
+  "histOriginalRecordedPointBreakdowns": {
+    "message": "Original recorded point breakdowns"
+  },
+  "histTotalNetPointsAcrossMatching": {
+    "message": "Total net points across matching purchased product entries. Each entry counts once; quantities are not inferred. Positive and negative occurrences of the same factor offset each other. Score limits count only their actual extra deduction. Processing bases and scale-floor adjustments are reported separately. These totals do not use the chart's average-weighting option."
+  },
+  "histBiggestNetBonuses": {
+    "message": "Biggest net bonuses"
+  },
+  "histBiggestNetDeductions": {
+    "message": "Biggest net deductions"
+  },
+  "histAllPointContributors": {
+    "message": "All point contributors"
+  },
+  "histBonusPoints": {
+    "message": "Bonus points"
+  },
+  "histDeductionPoints": {
+    "message": "Deduction points"
+  },
+  "histNetPoints": {
+    "message": "Net points"
+  },
+  "histAffectedEntries": {
+    "message": "Affected entries"
+  },
+  "histIdentifiedOrders": {
+    "message": "Identified orders"
+  },
+  "histStatisticalDetailsErrorBars": {
+    "message": "Statistical details & error bars"
+  },
+  "histTimelineBars": {
+    "message": "Timeline bars"
+  },
+  "histNoBarsDefault": {
+    "message": "No bars (default)"
+  },
+  "histMiddle50IqrDescriptiveSpread": {
+    "message": "Middle 50% (IQR): descriptive spread"
+  },
+  "histMinimumMaximumDescriptiveSpread": {
+    "message": "Minimum–maximum: descriptive spread"
+  },
+  "hist95ConfidenceIntervalOrderCluster": {
+    "message": "95% confidence interval: order-cluster estimate"
+  },
+  "histConfidenceIntervalsUseAStudent": {
+    "message": "Confidence intervals use a Student-t approximation with orders as clusters, so three products in one order are not three independent samples. They require at least two rated, identified orders and complete order grouping for item-weighted averages. Purchases are not a random sample; intervals are descriptive, not medical claims, label-accuracy estimates or predictions. Repeated products and household shopping can still be correlated."
+  },
+  "histOrderSummariesHowProductEntries": {
+    "message": "Order summaries: how product entries add up"
+  },
+  "histPurchasedProductEntriesInThe": {
+    "message": "Purchased product entries in the current filters. Quantities and pack sizes are not inferred. Older ungrouped entries are listed separately. Beyond 500 groups, remaining groups share an aggregate row so large histories stay responsive."
+  },
+  "histOrderGroup": {
+    "message": "Order group"
+  },
+  "histDate": {
+    "message": "Date"
+  },
+  "histProductEntries": {
+    "message": "Product entries"
+  },
+  "histRatedEntries": {
+    "message": "Rated entries"
+  },
+  "histAverage100": {
+    "message": "Average /100"
+  },
+  "histTimelineDataTable": {
+    "message": "Timeline data table"
+  },
+  "histPeriod": {
+    "message": "Period"
+  },
+  "histScoringSetup": {
+    "message": "Scoring setup"
+  },
+  "histRatedProductEntries": {
+    "message": "Rated product entries"
+  },
+  "histRecordedWarnings": {
+    "message": "Recorded warnings"
+  },
+  "histFrequentlyPurchasedFoodProducts": {
+    "message": "Frequently purchased food products"
+  },
+  "histEachEntryRepresentsADistinct": {
+    "message": "Each entry represents a distinct product in an order, not its quantity or pack count. Multiple entries can belong to one order. Filters apply to charts and this table; only purchased entries drive trends."
+  },
+  "histOrderDate": {
+    "message": "Order date"
+  },
+  "histProduct": {
+    "message": "Product"
+  },
+  "histRecorded100": {
+    "message": "Recorded /100"
+  },
+  "histCurrentGoals100": {
+    "message": "Current goals /100"
+  },
+  "histChange": {
+    "message": "Change"
+  },
+  "histRatedOn": {
+    "message": "Rated on"
+  },
+  "histShowMoreItems": {
+    "message": "Show more items"
+  },
+  "histImportOrRefreshPurchaseHistory": {
+    "message": "Import or refresh purchase history"
+  },
+  "histEstablishYourAmazonHistory": {
+    "message": "Establish your Amazon history"
+  },
+  "histEnableImportIn": {
+    "message": "Enable import in"
+  },
+  "histThenScanAllAvailableOrders": {
+    "message": ", then scan all available Orders pages and year filters using your Amazon sign-in. This opens one ordinary Amazon tab; it can work while you use other tabs. Chrome must stay open. Login checks or unsupported pages pause the scan. Imported purchases are kept when you pause or cancel."
+  },
+  "histRunInABackgroundTab": {
+    "message": "Run in a background tab"
+  },
+  "histInitialEstimateRoughly1560": {
+    "message": "Initial estimate: roughly 15–60 seconds per page of about 10 orders. Cached labels can be much faster; missing labels and photo reading can take several minutes per page. The remaining-time range updates after pages finish and more years are discovered."
+  },
+  "histScanAllAmazonOrders": {
+    "message": "Scan all Amazon orders"
+  },
+  "histPauseScan": {
+    "message": "Pause scan"
+  },
+  "histResumeScan": {
+    "message": "Resume scan"
+  },
+  "histCancelScan": {
+    "message": "Cancel scan"
+  },
+  "histOpenScanTab": {
+    "message": "Open scan tab"
+  },
+  "histOrderPageScanProgress": {
+    "message": "Order-page scan progress"
+  },
+  "histOnlyConfirmedPurchasesContributeTo": {
+    "message": "Only confirmed purchases contribute to trends. Quantities, addresses, payment details and raw order numbers are excluded. Up to 10,000 distinct order/product entries can be kept locally. Older account backends need the updated history capacity to sync more than 1,000 entries."
+  },
+  "histPurchaseImportAccountSyncOrder": {
+    "message": "Purchase import, account sync & order display"
+  },
+  "histPurchaseSpecificSettings": {
+    "message": "Purchase-specific settings"
+  },
+  "histImportTheAmazonOrderPages": {
+    "message": "Import the Amazon order pages I open"
+  },
+  "histAutomaticallySyncMyPurchaseHistory": {
+    "message": "Automatically sync my purchase history with my Google account"
+  },
+  "histSyncSendsProductNamesAnd": {
+    "message": "Sync sends product names and IDs, purchase dates, ingredient text, available nutrition and certifications, hashed order groups, ratings and selected warning matches to your authenticated account record in Ingredient Check's private backend. No addresses, prices, payment details or raw order numbers are stored. History is separate from settings backups."
+  },
+  "histOrderScoreDisplay": {
+    "message": "Order score display"
+  },
+  "histWhereToPlaceOrderScores": {
+    "message": "Where to place order scores"
+  },
+  "histOnTheProductImageDefault": {
+    "message": "On the product image (default)"
+  },
+  "histBesideTheProductTitle": {
+    "message": "Beside the product title"
+  },
+  "histImagePlacementFallsBackTo": {
+    "message": "Image placement falls back to the title when an item has no product image; title placement keeps an overlay for image-only items. Hover details use the saved purchase rating."
+  },
+  "histSharedControlsLiveInSettings": {
+    "message": "Shared controls live in Settings:"
+  },
+  "histLabelPhotosBarcodeLookup": {
+    "message": "Label photos & barcode lookup"
+  },
+  "histFetchingSpeedSavedLabels": {
+    "message": "Fetching speed & saved labels"
+  },
+  "histHoverDetails": {
+    "message": "Hover details"
+  },
+  "histSyncNow": {
+    "message": "Sync now"
+  },
+  "histOpenAmazonOrders": {
+    "message": "Open Amazon Orders"
+  },
+  "histExportHistory": {
+    "message": "Export history"
+  },
+  "histDeleteLocalAndAccountHistory": {
+    "message": "Delete local and account history"
+  },
+  "optxLabels": {
+    "message": "Labels"
+  },
+  "optxNotASafetyCheck": {
+    "message": "Not a safety check."
+  },
+  "optxWarningsComeOnlyFromThe": {
+    "message": "Warnings come only from the ingredient text this extension could read. If that text is missing, out of date or in a language the rules do not cover, you will see no warning, which looks exactly like no allergen. Never rely on this for an allergy. Read the package."
+  },
+  "optxLabelReading": {
+    "message": "Label reading"
+  },
+  "optxSharedByProductPagesSearch": {
+    "message": "Shared by product pages, search results, carts and purchased items."
+  },
+  "optxReadLabelPhotosOnThis": {
+    "message": "Read label photos on this computer"
+  },
+  "optxUsesLocalOcrWhenA": {
+    "message": "Uses local OCR when a readable ingredient photo is available. Photos are not uploaded. Missing or unreadable labels remain unknown."
+  },
+  "optxLookUpBarcodesInOpen": {
+    "message": "Look up barcodes in Open Food Facts"
+  },
+  "optxRequiresChromePermissionSendsOnly": {
+    "message": "Requires Chrome permission. Sends only the product barcode to Open Food Facts; your purchase history is not sent."
+  },
+  "optxYourOwnUsdaFooddataCentral": {
+    "message": "Your own USDA FoodData Central key (optional)"
+  },
+  "optxASecondBarcodeDatabaseFor": {
+    "message": "A second barcode database for US packaged foods, tried when Open Food Facts has no ingredient list. Without a key, lookups go through Ingredient Check's own lookup service, which uses the project's key, so the barcode passes through it (turn off the shared online database to stop that). With your own free key (fdc.nal.usda.gov/api-key-signup) the barcode goes straight to USDA instead. The key stays in this browser and is not part of a backup, a settings file, Chrome sync or a problem report."
+  },
+  "optxTestKeyAndAccess": {
+    "message": "Test key and access"
+  },
+  "optxRemoveKey": {
+    "message": "Remove key"
+  },
+  "optxLookUpBarcodesInUsda": {
+    "message": "Look up barcodes in USDA FoodData Central"
+  },
+  "optxSendsOnlyTheProductBarcode": {
+    "message": "Sends only the product barcode, after Open Food Facts has found nothing usable, and only while barcode lookup above is on. With your own key it also needs Chrome permission for api.nal.usda.gov. A record is used only if it carries the same barcode."
+  },
+  "optxPurchaseImportAndOrderDisplay": {
+    "message": "Purchase import and order display settings"
+  },
+  "optxPurchaseScoreDrivers": {
+    "message": "Purchase score drivers"
+  },
+  "optxAiHelpOptional": {
+    "message": "AI help (optional)"
+  },
+  "optxUsesAFreeModelThrough": {
+    "message": "Uses a free model through OpenRouter, with your own key. Scores work without it, and it is off until you add a key and allow access to openrouter.ai."
+  },
+  "optxOpenrouterApiKey": {
+    "message": "OpenRouter API key"
+  },
+  "optxCreateAFreeKeyAt": {
+    "message": "Create a free key at openrouter.ai/keys. It stays in this browser, and is not part of a backup, a settings file, Chrome sync or a problem report."
+  },
+  "optxRateIngredientsTheRulesDo": {
+    "message": "Rate ingredients the rules do not recognise"
+  },
+  "optxSendsOnlyThoseIngredientNames": {
+    "message": "Sends only those ingredient names (not the product, store, page or you) to OpenRouter. The answer is used in the score and shown as an “AI estimate”. It can only lower a score, never raise it or set a hard cap, it is smaller than a built-in rule, and it applies on product pages you open. Free models are rate limited, so each name is asked about once and kept on this computer."
+  },
+  "optxReadLabelPhotosWithAi": {
+    "message": "Read label photos with AI when OCR cannot"
+  },
+  "optxWhenOnDeviceOcrFinds": {
+    "message": "When on-device OCR finds no ingredient list in the product photos, the public address of up to three photos on m.media-amazon.com is sent to OpenRouter so a vision model can read the list. It is used only if it looks like an ingredient list, is kept on this computer, and is never shared."
+  },
+  "optxOrderBadgePlacementAndPurchase": {
+    "message": "Order badge placement and purchase import"
+  },
+  "optxAmazonAccess": {
+    "message": "Amazon access"
+  },
+  "optxProductSearchAndCartPages": {
+    "message": "Product, search and cart pages only — never your account, orders or checkout."
+  },
+  "optxWhenYouInstallIngredientCheck": {
+    "message": "When you install Ingredient Check, it asks Chrome for access to the Amazon stores it supports:"
+  },
+  "optxAmazonComAndTheOther": {
+    "message": "amazon.com and the other supported Amazon stores"
+  },
+  "optxItUsesThatAccessTo": {
+    "message": ". It uses that access to read product, search and cart pages, and to request product pages for the two options above. Its scripts run on product, search, browse, brand-store and narrowly scoped cart pages, never on your account, orders or checkout. To limit it, open"
+  },
+  "optxChoose": {
+    "message": ", choose"
+  },
+  "optxDetails": {
+    "message": "Details"
+  },
+  "optxUnderIngredientCheckAndChange": {
+    "message": "under Ingredient Check, and change"
+  },
+  "optxSiteAccess": {
+    "message": "Site access"
+  },
+  "optxInstantScoreRecall": {
+    "message": "Instant score recall"
+  },
+  "optxShowSavedScoresFirstRecommended": {
+    "message": "Show saved scores first (recommended)"
+  },
+  "optxReuseFreshLocalRatingsInstead": {
+    "message": "Reuse fresh local ratings instead of requesting product pages. Repeated products share one lookup."
+  },
+  "optxKeepRecentReadingsInMemory": {
+    "message": "Keep recent readings in memory (recommended)"
+  },
+  "optxAvoidRepeatedDiskReadsWhile": {
+    "message": "Avoid repeated disk reads while this page is open. Limited to 256 entries and 2 MB; saved scores remain on this computer."
+  },
+  "optxRefreshStaleScoresInThe": {
+    "message": "Refresh stale scores in the background (recommended)"
+  },
+  "optxShowAnOlderSavedScore": {
+    "message": "Show an older saved score while its label refreshes. Existing automatic-scoring switches, request limits and retailer pauses still apply. Turn off to keep that saved score until its grace period ends."
+  },
+  "optxExtraTimeToShowAn": {
+    "message": "Extra time to show an older score"
+  },
+  "optxNoneFreshScoresOnly": {
+    "message": "None — fresh scores only"
+  },
+  "optx7DaysRecommended": {
+    "message": "7 days (recommended)"
+  },
+  "optx30Days": {
+    "message": "30 days"
+  },
+  "optxAddedToTheFreshnessLimit": {
+    "message": "Added to the freshness limit above. Older ratings are marked as saved. Product pages still read their current labels; purchase-history snapshots stay unchanged."
+  },
+  "optxCertificationTablesForWholeFoods": {
+    "message": "Certification tables for whole foods (organic, grass-fed, origin) from a shared spreadsheet that only the developer edits. Scoring and your weights stay on this computer."
+  },
+  "optxOffKeepsEveryLookupOn": {
+    "message": "Off keeps every lookup on this computer. On sends only a request for the certification tables, a few times a day — never your settings or who you are."
+  },
+  "optxPurchaseHistoryTrendsAccountSync": {
+    "message": "Purchase history, trends & account sync"
+  },
+  "optxOptInAmazonOrderImports": {
+    "message": "— opt-in Amazon order imports; automatic sync or Sync now."
+  },
+  "optxThisComputerSSettingsAlways": {
+    "message": "This computer's settings always win. A copy online only comes back when you click Restore (not the master switch)."
+  },
+  "optxChromeSOwnSyncPrivate": {
+    "message": "Chrome's own sync, private to you. If sync is off, the copy stays on this computer."
+  },
+  "optxOpenChromeProfileSettings": {
+    "message": "Open Chrome profile settings"
+  },
+  "optxChromeSyncAndGoogleBackup": {
+    "message": "Chrome sync and Google backup are separate: each Google save or restore lets you choose an account, and signing in here does not sign Chrome in."
+  },
+  "optxManageYourGoogleAppConnections": {
+    "message": "Manage your Google app connections"
+  },
+  "optxConfigureGoogleSignIn": {
+    "message": "Configure Google sign-in"
+  },
+  "optxUseThePublicOauthClient": {
+    "message": "Use the public OAuth client ID configured by the database owner. Register the redirect address below in that client's Google Cloud settings. No client secret is needed."
+  },
+  "optxGoogleOauthClientId": {
+    "message": "Google OAuth client ID"
+  },
+  "optxSaveSignInConfiguration": {
+    "message": "Save sign-in configuration"
+  },
+  "optxCopyRedirectAddress": {
+    "message": "Copy redirect address"
+  },
+  "optxOpenGoogleCloudCredentials": {
+    "message": "Open Google Cloud credentials"
+  },
+  "optxSendsOneRowPerScored": {
+    "message": "Sends one row per scored product to the shared database: the ingredient text that was read, where it came from, which rules fired and the score. Batched."
+  },
+  "optxThisRecordsWhichProductsYou": {
+    "message": "This records which products you looked at."
+  },
+  "optxNoNameAccountOrSession": {
+    "message": "No name, account or session id, and nothing from any other page. It goes to the Ingredient Check database, not to any third party. Off unless you turn it on."
+  },
+  "optxWithRateSearchResultsOn": {
+    "message": "With “Rate search results” on, a results page produces a row per tile."
+  },
+  "optxThatIsAMeaningfulTrace": {
+    "message": "That is a meaningful trace of your browsing. Each row is enough to judge whether a score was right, rather than only noticing when one looks wrong."
+  },
+  "optxScoringIsEntirelyLocalThe": {
+    "message": "Scoring is entirely local: the rules, your weights and every score are computed in your browser. There is no analytics and no telemetry."
+  },
+  "optxEverythingThatCanBeSent": {
+    "message": "Everything that can be sent"
+  },
+  "optxOnByDefaultTheStore": {
+    "message": "(on by default) — the store and product IDs on a search page, and what was read off products you score, go to the Ingredient Check Apps Script. The spreadsheet behind it is private. Never your settings."
+  },
+  "optxOnByDefaultAnd": {
+    "message": "(on by default) and"
+  },
+  "optxRequestProductPagesFromThe": {
+    "message": "— request product pages from the Amazon store you are on, using your Amazon sign-in, so Amazon sees them much as it would if you had opened the products yourself. Three at a time, at most 60 per results page, and only for products not already answered. Both are under"
+  },
+  "optxSendsABarcodeToWorld": {
+    "message": "— sends a barcode to world.openfoodfacts.org when a page has one but no readable ingredients. The barcode and nothing else."
+  },
+  "optxBackUpMySettings": {
+    "message": "Back up my settings"
+  },
+  "optxOnByDefaultChromeS": {
+    "message": "(on by default) — Chrome's own sync, for your Chrome account only."
+  },
+  "optxAsksGoogleForYourName": {
+    "message": "asks Google for your name, email and picture to show who is signed in (kept on this computer only;"
+  },
+  "optxDeletesThemSavingACopy": {
+    "message": "deletes them). Saving a copy stores your settings on the Ingredient Check database keyed by a hash of your account id, only when you click it."
+  },
+  "optxSendCertifications": {
+    "message": "Send certifications"
+  },
+  "optxAndLooksWrongReportsProduct": {
+    "message": "and \"Looks wrong?\" reports — product identifiers and certification text. Never anything about you."
+  },
+  "optxSortResults": {
+    "message": "Sort results"
+  },
+  "optxWith": {
+    "message": "— with"
+  },
+  "optxRateThemFirst": {
+    "message": "Rate them first"
+  },
+  "optxTheSameProductPageRequests": {
+    "message": ", the same product-page requests as"
+  },
+  "optxRateSearchResults": {
+    "message": "Rate search results"
+  },
+  "optxOffByDefaultAlsoRequests": {
+    "message": "(off by default) also requests further Amazon search pages and product pages, with your Amazon sign-in. See"
+  },
+  "optxSortByScoreOrPrice": {
+    "message": "Sort by score or price per ounce"
+  },
+  "optxRetailerPreviews": {
+    "message": "Retailer previews"
+  },
+  "optxAutomaticSearchRatingRequestsPubli": {
+    "message": "— automatic search rating requests public product pages from the same store, without cookies. Scores stay local; no preview readings go to Google or the shared database. Turn off"
+  },
+  "optxForSavedScoresOnly": {
+    "message": "for saved scores only."
+  },
+  "optxNothingIsSentByThe": {
+    "message": "— nothing is sent by the extension. It opens a draft in your email app with the store name and website you typed; you decide whether to send it."
+  },
+  "optxOneRowPerScoredProduct": {
+    "message": "— one row per scored product, per scan that could not be scored, and per “Looks wrong?” click. This one does record which products were scanned; see the section above."
+  },
+  "optxMakesNoNetworkRequestOf": {
+    "message": "makes no network request of its own beyond fetching the product image the page already shows: the OCR engine ships with the extension and runs on your computer."
+  },
+  "optxTurnOffTheSharedDatabase": {
+    "message": "Turn off the shared database, the backup and"
+  },
+  "optxLeaveTheOtherBoxesOff": {
+    "message": ", leave the other boxes off, and the extension makes no network requests of its own."
+  },
+  "optxAScoreReadsTheIngredient": {
+    "message": "A score reads the ingredient list against a rulebase and your weights. It is a guide to what is written on the label, not a health assessment, and not medical, dietary or allergy advice."
+  },
+  "optxTwoLimits": {
+    "message": "Two limits"
+  },
+  "optxItCanOnlyJudgeWhat": {
+    "message": "It can only judge what it can read. When too little of a list matches anything the rulebase knows, no score is shown at all rather than a confident guess."
+  },
+  "optxAmazonSIngredientTextIs": {
+    "message": "Amazon's ingredient text is sometimes incomplete, sometimes out of date, and sometimes for a different size or flavour of the product. The package is the authority."
+  },
+  "welxIncludeMyAmazonPurchaseHistory": {
+    "message": "Include my Amazon purchase history"
+  },
+  "welxUsesYourGoalsAndWarning": {
+    "message": "Uses your goals and warning choices. Finish opens Amazon Orders for a guided first-page import. Only actual orders drive trends. Enabling this also enables automatic Google-account sync of product names, purchase dates, ratings, ingredient text and warning matches. No addresses or payment details. You can turn sync off or use Sync now in Purchase history."
+  },
+  "welxBackUpWithGoogle": {
+    "message": "Back up with Google"
+  },
+  "welxOptionalSignInToBack": {
+    "message": "Optional. Sign in to back up your choices to your Google account when you finish. You can use the extension without signing in."
+  },
+  "welxGoogleSignInSetupHelp": {
+    "message": "Google sign-in setup help"
+  },
+  "welxIfGoogleReportsARedirect": {
+    "message": "If Google reports a redirect URI error, the developer must add this exact URL to the OAuth Web client’s authorized redirect URIs:"
+  },
+  "welxCopyRedirectUrl": {
+    "message": "Copy redirect URL"
+  },
+  "welxPurchaseHistorySync": {
+    "message": "Purchase history & sync"
+  },
+  "welxGoogleAccountBackupSettings": {
+    "message": "Google account backup settings"
+  },
+  "libxLabelsSavedProductsIngredientCheck": {
+    "message": "Labels & saved products — Ingredient Check"
+  },
+  "histReasonBackendCapacityUpdateRequired": {
+    "message": "History is kept locally. Update the Apps Script backend before syncing more than its current history capacity."
+  },
+  "histReasonPending": {
+    "message": "New purchases are saved locally and waiting for automatic sync."
+  },
+  "histReasonLocalOnly": {
+    "message": "New purchases are saved locally. Automatic sync is off; use Sync now to upload them."
+  },
+  "histReasonDeletePending": {
+    "message": "Account deletion is still pending. Complete deletion before enabling import."
+  },
+  "histReasonBackendUpdateRequired": {
+    "message": "The account backend needs the purchase-history update. Your history remains local; no purchase data was sent."
+  },
+  "histReasonAccountChanged": {
+    "message": "This local history belongs to another Google account. Sign in to that account before syncing or deleting its account copy."
+  },
+  "histReasonNeedsSignInOrNetwork": {
+    "message": "Sync needs Google sign-in or a working connection. Your local history is kept, and automatic sync will retry."
+  },
+  "histReasonHistoryFull": {
+    "message": "The 10,000-entry limit has been reached. Export your history before removing entries."
+  },
+  "histReasonOff": {
+    "message": "Import or automatic sync is off."
+  },
+  "histReasonDeleted": {
+    "message": "History deleted from this device and the authenticated account."
+  },
+  "histOn": {
+    "message": "on"
+  },
+  "histOff": {
+    "message": "off"
+  },
+  "histSharedSettings": {
+    "message": "Shared settings: label photos $1 · barcode lookup $2 · fetching pace $3 · hover details $4."
+  },
+  "histSignedIn": {
+    "message": "Signed in: $1"
+  },
+  "histNotSignedIn": {
+    "message": "Not signed in. Import can work locally; account sync waits for Google sign-in."
+  },
+  "histUnderAMinute": {
+    "message": "under 1 minute"
+  },
+  "histMinutes": {
+    "message": "$1 minutes"
+  },
+  "histScanComplete": {
+    "message": "Scan complete"
+  },
+  "histScanning": {
+    "message": "Scanning"
+  },
+  "histScanPaused": {
+    "message": "Scan paused"
+  },
+  "histScanCancelled": {
+    "message": "Scan cancelled"
+  },
+  "histScanPages": {
+    "message": "$1 · $2 pages imported."
+  },
+  "histScanRemaining": {
+    "message": "Remaining estimate: $1–$2 for at least $3 known remaining pages. More pages may be discovered."
+  },
+  "histNoScan": {
+    "message": "No full-history scan started. Enable import, then start a scan."
+  },
+  "histDeletePending": {
+    "message": "Local history cleared. Account deletion is pending; sign in to its Google account and click Sync now."
+  },
+  "histSynced": {
+    "message": "Synced $1"
+  },
+  "histSyncIncomplete": {
+    "message": "Sync has not completed. Local history is kept."
+  },
+  "histNoSyncYet": {
+    "message": "No account sync yet."
+  },
+  "histScanProgressDone": {
+    "message": "Order-page scan complete"
+  },
+  "histScanProgressEstimate": {
+    "message": "Estimated order-page scan progress; total may grow as years are discovered"
+  },
+  "histScanNote": {
+    "message": "$1 pages finished · $2 order appearances · $3 product-entry appearances processed. Pages revisited across filters can overlap; deduplicated purchase totals are shown below."
+  },
+  "histScanNoteEstimate": {
+    "message": "Progress is an estimate and may decrease when more pages are discovered."
+  },
+  "histScanNoteNone": {
+    "message": "Start a scan to see progress."
+  },
+  "histNoSignInPermission": {
+    "message": "Google sign-in permission was not granted."
+  },
+  "histWorking": {
+    "message": "Working…"
+  },
+  "histDone": {
+    "message": "Done."
+  },
+  "histActionFailed": {
+    "message": "Could not complete this action."
+  },
+  "histSignInCancelled": {
+    "message": "Google sign-in cancelled. Local history is kept."
+  },
+  "histCouldNotFinish": {
+    "message": "Could not finish. Check your connection and Google sign-in settings."
+  },
+  "histScanTabClosed": {
+    "message": "The scan tab was closed. Resume to open another."
+  },
+  "histConfirmDelete": {
+    "message": "Delete purchase history from this device and your authenticated account? Import will be switched off. Offline account deletion will remain pending."
+  },
+  "histChartTrendLabel": {
+    "message": "Average purchase score over time; exact values are in the timeline data table."
+  },
+  "histChartNoRated": {
+    "message": "No rated purchases match this view."
+  },
+  "histRecordedSetup": {
+    "message": "Recorded setup $1"
+  },
+  "histChartReadout": {
+    "message": "Hover or focus a point to inspect its average and coverage."
+  },
+  "histPointLabel": {
+    "message": "$1: $2/100 · $3/$4 product entries rated · $5 identified orders · $6"
+  },
+  "histCurrentGoals": {
+    "message": "Current goals"
+  },
+  "histPointInterval": {
+    "message": "interval $1–$2"
+  },
+  "histChartBandsLabel": {
+    "message": "Number of rated product entries by score band"
+  },
+  "histBandEntriesLong": {
+    "message": "$1: $2 product entries"
+  },
+  "histBandEntries": {
+    "message": "$1: $2 entries"
+  },
+  "histQualityUsable": {
+    "message": "$1/$2 purchased entries have a usable score ($3% coverage)."
+  },
+  "histQualityMissing": {
+    "message": "$1 missing scores are excluded from averages, not counted as zero."
+  },
+  "histQualitySetups": {
+    "message": "$1 recorded scoring setups are mixed in the overall average. Switch to current goals for a consistent comparison; timeline lines remain separate."
+  },
+  "histQualityApproximate": {
+    "message": "$1 comparisons use older ingredient-only inputs."
+  },
+  "histNoConfirmed": {
+    "message": "No confirmed purchases in this view. Returned, cancelled and unconfirmed entries do not contribute to trends."
+  },
+  "histNothingToSummarize": {
+    "message": "No purchased entries to summarize."
+  },
+  "histMeterLabel": {
+    "message": "$1 of $2 purchased entries rated"
+  },
+  "histCoverageMatching": {
+    "message": "$1 of $2 matching purchased product entries rated · $3 identified orders"
+  },
+  "histCoverageUngrouped": {
+    "message": "$1 older entries have unknown order grouping (revisit their order pages to fill it)"
+  },
+  "histCoverageFull": {
+    "message": "Full history: $1 purchased product entries across $2 identified orders. Cancelled, returned and unconfirmed entries do not drive trends."
+  },
+  "histShowingRecorded": {
+    "message": "Showing the original recorded scores. Different scoring setups remain separate in the timeline."
+  },
+  "histShowingCurrent": {
+    "message": "Showing current-goal comparisons calculated locally. $1 matching entries use ingredient text only. $2 could not be recalculated. Recorded scores are unchanged."
+  },
+  "histCurrentSetup": {
+    "message": "Current setup:"
+  },
+  "histCustomWeights": {
+    "message": "custom weights"
+  },
+  "histMetricAverage": {
+    "message": "Average score"
+  },
+  "histHintOrders": {
+    "message": "Each rated identified order equally"
+  },
+  "histHintEntries": {
+    "message": "Each rated product entry equally"
+  },
+  "histMetricOrders": {
+    "message": "Identified orders"
+  },
+  "histHintUngrouped": {
+    "message": "$1 entries not grouped"
+  },
+  "histHintOrderGroups": {
+    "message": "Distinct order groups"
+  },
+  "histMetricEntries": {
+    "message": "Product entries"
+  },
+  "histHintDistinct": {
+    "message": "$1 distinct products; not quantities"
+  },
+  "histMetricCoverage": {
+    "message": "Rating coverage"
+  },
+  "histHintRatedMissing": {
+    "message": "$1 rated · $2 missing"
+  },
+  "histDriversCurrent": {
+    "message": "Current-goal analysis; original ratings stay unchanged."
+  },
+  "histDriversRecorded": {
+    "message": "Original recorded point breakdowns only; older scores are not reconstructed."
+  },
+  "histDriversCovered": {
+    "message": "$1/$2 matching purchased entries have usable breakdowns. Processing base total: $3 points. Scale-floor adjustments: $4 points."
+  },
+  "histDriversApprox": {
+    "message": "Older entries without full inputs use ingredient-only approximations."
+  },
+  "histDriverRow": {
+    "message": "$1 points · $2 · $3 entries / $4 identified orders"
+  },
+  "histNoContributors": {
+    "message": "No contributors available for this view."
+  },
+  "histStatSampleSize": {
+    "message": "Sample size"
+  },
+  "histStatMedian": {
+    "message": "Median"
+  },
+  "histStatSd": {
+    "message": "Sample SD"
+  },
+  "histStatQ1": {
+    "message": "25th percentile"
+  },
+  "histStatQ3": {
+    "message": "75th percentile"
+  },
+  "histStatMin": {
+    "message": "Minimum"
+  },
+  "histStatMax": {
+    "message": "Maximum"
+  },
+  "histStatInterval": {
+    "message": "95% interval"
+  },
+  "histUnavailable": {
+    "message": "Unavailable"
+  },
+  "histStatClusters": {
+    "message": "Rated order clusters"
+  },
+  "histStatsCountOrders": {
+    "message": "Sample size counts rated identified order means; ungrouped entries are excluded."
+  },
+  "histStatsCountEntries": {
+    "message": "Sample size counts rated product entries."
+  },
+  "histStatsNote": {
+    "message": "Product entries are distinct products within an order, not purchased quantities or servings. Missing scores are never zero. Intervals estimate variation in rated purchases using order clusters; they do not measure OCR accuracy, label completeness, or medical benefit. Missing labels can bias the average; check rating coverage before comparing periods."
+  },
+  "histStatsMixed": {
+    "message": "The overall average mixes recorded setups; the timeline separates them."
+  },
+  "histStatsWarnings": {
+    "message": "Warnings below remain those recorded at import."
+  },
+  "histStatsNoInterval": {
+    "message": "Not enough complete order grouping for a confidence interval."
+  },
+  "histSetupRow": {
+    "message": "Setup $1 · $2"
+  },
+  "histUngroupedLegacy": {
+    "message": "Ungrouped legacy entries"
+  },
+  "histOrderN": {
+    "message": "Order $1"
+  },
+  "histMultipleUnknown": {
+    "message": "Multiple / unknown"
+  },
+  "histOtherGroups": {
+    "message": "Other $1 groups / ungrouped entries"
+  },
+  "histMultipleDates": {
+    "message": "Multiple dates"
+  },
+  "histTotalPurchased": {
+    "message": "Total purchased entries"
+  },
+  "histUnknown": {
+    "message": "Unknown"
+  },
+  "histApprox": {
+    "message": "(approx.)"
+  },
+  "histSelectComparison": {
+    "message": "Select comparison"
+  },
+  "histSourceNotRecorded": {
+    "message": "Not recorded"
+  },
+  "histItemCount": {
+    "message": "$1 matching entries · $2 shown"
+  },
+  "histFrequentRow": {
+    "message": "$1 — $2 product entries · $3 identified orders"
+  },
+  "histFrequentUngrouped": {
+    "message": "$1 ungrouped"
+  },
+  "histAnalysing": {
+    "message": "Analysing saved labels locally…"
+  },
+  "histCalculating": {
+    "message": "Calculating current-goal comparisons on your computer…"
+  },
+  "histPaceGentle": {
+    "message": "gentle"
+  },
+  "histPaceNormal": {
+    "message": "normal"
+  },
+  "histPaceQuick": {
+    "message": "quick"
+  },
+  "histPaceFast": {
+    "message": "fast"
+  },
+  "histStatePurchased": {
+    "message": "purchased"
+  },
+  "histStateReturned": {
+    "message": "returned"
+  },
+  "histStateCancelled": {
+    "message": "cancelled"
+  },
+  "histStateUnknown": {
+    "message": "unknown"
+  },
+  "catWeightAria": {
+    "message": "$1 weight"
+  },
+  "sortedListTitle": {
+    "message": "Sorted list — Ingredient Check"
+  },
+  "presetCat_everyday": {
+    "message": "Everyday"
+  },
+  "presetCatBlurb_everyday": {
+    "message": "General philosophies for how strictly to judge ingredients."
+  },
+  "presetCat_goals": {
+    "message": "Body goals"
+  },
+  "presetCatBlurb_goals": {
+    "message": "Composition aims — building, cutting, or holding steady."
+  },
+  "presetCat_training": {
+    "message": "Training"
+  },
+  "presetCatBlurb_training": {
+    "message": "Tuned for how hard you train and what fuel that implies."
+  },
+  "presetCat_style": {
+    "message": "Diet style"
+  },
+  "presetCatBlurb_style": {
+    "message": "Macro and ingredient-style leanings (protein, carbs, sugar)."
+  },
+  "presetLabel_balanced": {
+    "message": "Balanced"
+  },
+  "presetNote_balanced": {
+    "message": "The defaults: processing and additives matter most; fat and total sugar stay off unless you turn them on. Rewards sourcing and short lists."
+  },
+  "presetVersus_balanced": {
+    "message": "The neutral baseline. Choosing nothing is the same as choosing this."
+  },
+  "presetLabel_generalWellbeing": {
+    "message": "General wellbeing"
+  },
+  "presetNote_generalWellbeing": {
+    "message": "Stricter ingredient preferences: harder on ultra-processing, artificial sweeteners and colours, seed oils and added sugar; rewards fermented foods, fibre and short lists."
+  },
+  "presetVersus_generalWellbeing": {
+    "message": "Stricter than Balanced across the board. Paired with Weight loss it pulls artificial sweeteners back down."
+  },
+  "presetLabel_conventional": {
+    "message": "Conventional nutrition"
+  },
+  "presetNote_conventional": {
+    "message": "Mainstream dietary guidance: counts saturated fat, sodium and total sugar; rewards fibre, low-fat dairy and fortification; treats vegetable oils and whole grains as fine."
+  },
+  "presetVersus_conventional": {
+    "message": "The only everyday goal where low-fat dairy and added vitamins are pluses. Unlike Weight loss, it is not aggressively anti-sugar."
+  },
+  "presetLabel_additive": {
+    "message": "Additive-averse"
+  },
+  "presetNote_additive": {
+    "message": "Everything that was added: colours, sweeteners, preservatives, flavourings (natural ones too), gums and emulsifiers cost much more. Sourcing bonuses shrink so the score is about additives, not farming."
+  },
+  "presetVersus_additive": {
+    "message": "Harder on additives than any other goal; leaves sugar, grains and macros near default."
+  },
+  "presetLabel_wholeFood": {
+    "message": "Whole-food focused"
+  },
+  "presetNote_wholeFood": {
+    "message": "Short lists and minimal processing above everything: isolates, gums, flavourings and fortification cost more; unrefined fats and traditional preparation earn more."
+  },
+  "presetVersus_wholeFood": {
+    "message": "About list length and industrial steps — not macros. High protein and Muscle gain are the opposite on isolates."
+  },
+  "presetLabel_weightLoss": {
+    "message": "Weight loss / cutting"
+  },
+  "presetNote_weightLoss": {
+    "message": "Ingredient preferences for a cutting goal: fat-reduced dairy is a modest plus, zero-calorie sweeteners and protein isolates a small one, \"natural flavors\" hardly count. Added sugar, honey and syrups cost more; fibre and protein are rewarded when quantities are published. This does not estimate calories or predict weight change."
+  },
+  "presetVersus_weightLoss": {
+    "message": "The only goal where fat-reduced dairy is a plus and artificial sweeteners are lifted (not freed — a diet drink still cannot score top marks). Add General wellbeing to pull those sweeteners back down."
+  },
+  "presetLabel_muscleGain": {
+    "message": "Muscle gain / bulking"
+  },
+  "presetNote_muscleGain": {
+    "message": "Protein is the point: a strong protein bonus, and whey, casein and pea protein count in a product's favour. Carbs, honey and grains are lenient; processing stays honest."
+  },
+  "presetVersus_muscleGain": {
+    "message": "Rewards isolates where Whole-food punishes them. High protein goes further on protein alone; Weight loss is the calorie-restricted opposite."
+  },
+  "presetLabel_maintenance": {
+    "message": "Maintenance"
+  },
+  "presetNote_maintenance": {
+    "message": "Steady eating: mild protein and fibre bonuses, light sodium, total-sugar and saturated-fat signals, and a little more weight on processing."
+  },
+  "presetVersus_maintenance": {
+    "message": "Gentler than Conventional nutrition; no bulk or cut bias."
+  },
+  "presetLabel_recovery": {
+    "message": "Recovery / rest day"
+  },
+  "presetNote_recovery": {
+    "message": "Gut and repair: fermented foods, traditional preparation and unrefined fats earn much more; seed oils, gums, carrageenan, MSG and preservatives cost more."
+  },
+  "presetVersus_recovery": {
+    "message": "The most gut-focused goal. Not a low-carb preset, and not carb-lenient like Endurance."
+  },
+  "presetLabel_vitamins": {
+    "message": "Vitamins & minerals"
+  },
+  "presetNote_vitamins": {
+    "message": "Added vitamins and minerals — vitamin D, B vitamins, iron, folic acid, calcium — count in a product's favour instead of against it."
+  },
+  "presetVersus_vitamins": {
+    "message": "The opposite of Whole-food on fortification. Combine it with any other goal."
+  },
+  "presetLabel_strength": {
+    "message": "Strength training"
+  },
+  "presetNote_strength": {
+    "message": "A strong protein bonus with protein powders counted slightly in a product's favour; carbs a little lenient; processing near default."
+  },
+  "presetVersus_strength": {
+    "message": "Between Whole-food (isolates punished) and High protein (isolates rewarded). Less carb-friendly than Endurance."
+  },
+  "presetLabel_endurance": {
+    "message": "Running / endurance"
+  },
+  "presetNote_endurance": {
+    "message": "Ingredient preferences for endurance: added sugar, honey, grains and sodium are weighted lightly; HFCS keeps its cap; fibre is eased for training days."
+  },
+  "presetVersus_endurance": {
+    "message": "The most carb-lenient training goal. High-carb goes further still; Low-carb is the opposite."
+  },
+  "presetLabel_athlete": {
+    "message": "High-activity / athlete"
+  },
+  "presetNote_athlete": {
+    "message": "Fuel and repair: a strong protein signal, protein powders a slight plus, carbs and honey lenient, sodium not counted."
+  },
+  "presetVersus_athlete": {
+    "message": "Between Endurance (more carbs) and Strength (more protein). Sedentary is the opposite lifestyle."
+  },
+  "presetLabel_sedentary": {
+    "message": "Sedentary / low-activity"
+  },
+  "presetNote_sedentary": {
+    "message": "Low energy demand: much stricter on sugar of every kind, processing, refined grains and oils; counts sodium and saturated fat; rewards fibre."
+  },
+  "presetVersus_sedentary": {
+    "message": "The closest training cousin to Weight loss, but not calorie-driven: fat-reduced dairy is not a plus here."
+  },
+  "presetLabel_generalFitness": {
+    "message": "General fitness"
+  },
+  "presetNote_generalFitness": {
+    "message": "Everyday active: protein and fibre bonuses, a little stricter on sugar and processing, light sodium."
+  },
+  "presetVersus_generalFitness": {
+    "message": "A step from Balanced toward Maintenance; not as macro-specific as Strength or Endurance."
+  },
+  "presetLabel_highProtein": {
+    "message": "High protein"
+  },
+  "presetNote_highProtein": {
+    "message": "Protein per bite: the maximum protein bonus; protein isolates and lean (fat-reduced) dairy count in a product's favour."
+  },
+  "presetVersus_highProtein": {
+    "message": "Rewards isolates more than any other goal. Muscle gain is similar but carb-lenient."
+  },
+  "presetLabel_lowCarb": {
+    "message": "Low-carb"
+  },
+  "presetNote_lowCarb": {
+    "message": "A low-carb preference: declared carbohydrate quantity, sugars and refined grains count against the score; zero-calorie sweeteners are a small plus; full-fat dairy is preferred; saturated fat is not counted."
+  },
+  "presetVersus_lowCarb": {
+    "message": "The opposite of Endurance and High-carb. Stricter on natural sugar than Sugar-conscious."
+  },
+  "presetLabel_highCarb": {
+    "message": "High-carb / performance"
+  },
+  "presetNote_highCarb": {
+    "message": "Carbohydrate as fuel: sugar, honey and grains barely count; fat-reduced dairy is a small plus (room for carbs); HFCS keeps its cap."
+  },
+  "presetVersus_highCarb": {
+    "message": "Further than Endurance; the exact opposite of Low-carb."
+  },
+  "presetLabel_strictSugar": {
+    "message": "Sugar-conscious"
+  },
+  "presetNote_strictSugar": {
+    "message": "Strong sugar preferences across refined sugars, honey and maple, fruit and dairy, sugar alcohols and artificial sweeteners. Declared added and total sugar are assessed without counting the same grams twice."
+  },
+  "presetVersus_strictSugar": {
+    "message": "Focused on sugars. Low-carb also uses declared total carbohydrate."
+  },
+  "presetLabel_animalBased": {
+    "message": "Animal-based (Paul Saladino)"
+  },
+  "presetNote_animalBased": {
+    "message": "Meat, organs, animal fats, raw and full-fat dairy, fruit and honey. Seed oils, grains, legumes, nuts and seeds, soy, fat-reduced dairy, protein isolates and processing all cost much more; honey is a plus; fruit sugar and saturated fat are not counted."
+  },
+  "presetVersus_animalBased": {
+    "message": "The only goal that counts nuts, seeds and legumes against a product. Vegetables are left neutral."
+  },
+  "catGroup_processingLevel": {
+    "message": "Processing level"
+  },
+  "catLabel_processing": {
+    "message": "Degree of processing"
+  },
+  "catHelp_processing": {
+    "message": "How industrially processed the product is, on the NOVA 1–4 scale. This sets the starting score before individual ingredients are considered. Usually the single strongest signal."
+  },
+  "catGroup_additives": {
+    "message": "Additives"
+  },
+  "catLabel_colour": {
+    "message": "Artificial colours"
+  },
+  "catHelp_colour": {
+    "message": "Synthetic dyes such as Red 40, Yellow 5, and titanium dioxide. Sets a hard ceiling on the score."
+  },
+  "catLabel_artificialSweetener": {
+    "message": "Artificial sweeteners"
+  },
+  "catHelp_artificialSweetener": {
+    "message": "Sucralose, aspartame, acesulfame potassium, saccharin. Uses a moderate ceiling at the default weight of 0.5. Stronger avoidance remains an optional preference."
+  },
+  "catLabel_sweetener": {
+    "message": "Sugar alcohols & novel sweeteners"
+  },
+  "catHelp_sweetener": {
+    "message": "Erythritol, xylitol, maltitol, allulose, stevia extract, monk fruit. Lower this if you use these deliberately. Below 0 it counts in favour of the product — a goal can set that."
+  },
+  "catLabel_preservative": {
+    "message": "Preservatives"
+  },
+  "catHelp_preservative": {
+    "message": "Sodium benzoate, potassium sorbate, nitrites, sulfites, EDTA and similar."
+  },
+  "catLabel_strongPreservative": {
+    "message": "BHA / BHT / TBHQ"
+  },
+  "catHelp_strongPreservative": {
+    "message": "Synthetic antioxidant preservatives that set a hard ceiling rather than a point penalty."
+  },
+  "catLabel_flavour": {
+    "message": "Artificial & unspecified flavourings"
+  },
+  "catHelp_flavour": {
+    "message": "Artificial flavours, bare \"flavouring\", and flavour enhancers such as vanillin and maltol."
+  },
+  "catLabel_naturalFlavour": {
+    "message": "\"Natural flavors\""
+  },
+  "catHelp_naturalFlavour": {
+    "message": "An undisclosed proprietary blend. Separate from artificial flavours so a goal that does not care about it (weight loss) can nearly switch its points off. Below 0 it counts in favour of the product — a goal can set that. The dial moves points only: an added flavouring still makes the product ultra-processed (NOVA 4), which sets its starting score."
+  },
+  "catLabel_glutamate": {
+    "message": "MSG & free glutamates"
+  },
+  "catHelp_glutamate": {
+    "message": "Monosodium glutamate, yeast extract, hydrolysed protein, disodium inosinate."
+  },
+  "catLabel_texture": {
+    "message": "Emulsifiers, gums & thickeners"
+  },
+  "catHelp_texture": {
+    "message": "Xanthan and guar gum, mono- and diglycerides, polysorbates, methylcellulose, modified starch, maltodextrin."
+  },
+  "catLabel_carrageenan": {
+    "message": "Carrageenan"
+  },
+  "catHelp_carrageenan": {
+    "message": "Treated separately from other thickeners because of its association with gut inflammation. Sets a ceiling."
+  },
+  "catLabel_processingAid": {
+    "message": "Processing aids & acidity regulators"
+  },
+  "catHelp_processingAid": {
+    "message": "Phosphates, industrial acids, anti-caking agents, dough conditioners, aluminium compounds."
+  },
+  "catGroup_fatsOils": {
+    "message": "Fats & oils"
+  },
+  "catLabel_refinedOil": {
+    "message": "Refined seed & vegetable oils"
+  },
+  "catHelp_refinedOil": {
+    "message": "Canola, soybean, sunflower, safflower, corn, cottonseed, and unspecified \"vegetable oil\". Default weight 0.5 uses a moderate ceiling; stricter goals can restore the stronger avoidance preference. This is not a toxicity estimate."
+  },
+  "catLabel_transFat": {
+    "message": "Partially hydrogenated oil (trans fat)"
+  },
+  "catHelp_transFat": {
+    "message": "Industrial trans fat. The most severe ceiling in the system."
+  },
+  "catLabel_saturatedFat": {
+    "message": "Saturated fat"
+  },
+  "catHelp_saturatedFat": {
+    "message": "OFF by default. Conventional nutrition guidance penalises saturated fat; other frameworks do not. Raise this if you want butter, cream, coconut oil and fatty meat to lower a score. Requires nutrition data with a declared mass or volume basis."
+  },
+  "catGroup_sugars": {
+    "message": "Sugars"
+  },
+  "catLabel_sugar": {
+    "message": "Added & refined sugars"
+  },
+  "catHelp_sugar": {
+    "message": "Cane sugar, dextrose, glucose syrup, agave, fruit juice concentrate. Sugar occurring naturally in whole fruit or dairy is never counted here."
+  },
+  "catLabel_traditionalSweetener": {
+    "message": "Honey, maple & traditional sweeteners"
+  },
+  "catHelp_traditionalSweetener": {
+    "message": "Honey, maple syrup, molasses, coconut and date sugar, fruit juice concentrate. A light touch by default. Below 0 it counts in favour of the product — a goal can set that."
+  },
+  "catLabel_industrialSyrup": {
+    "message": "High-fructose corn syrup"
+  },
+  "catHelp_industrialSyrup": {
+    "message": "HFCS and glucose-fructose syrup. Sets a ceiling rather than a point penalty."
+  },
+  "catLabel_naturalSugar": {
+    "message": "Naturally occurring sugars"
+  },
+  "catHelp_naturalSugar": {
+    "message": "OFF by default. Sugar from whole fruit, dates, and dairy lactose. Raise this if you want total sugar counted regardless of source."
+  },
+  "catLabel_totalSugar": {
+    "message": "Total sugar quantity"
+  },
+  "catHelp_totalSugar": {
+    "message": "OFF by default. Scores sugar per 100g or 100ml, independent of ingredient source. Requires a declared mass or volume basis; missing amounts remain unassessed."
+  },
+  "catGroup_grainsProteins": {
+    "message": "Grains & proteins"
+  },
+  "catLabel_grain": {
+    "message": "Refined grains & milled starches"
+  },
+  "catLabel_gluten": {
+    "message": "Gluten-containing grains"
+  },
+  "catHelp_gluten": {
+    "message": "OFF by default. Optional ingredient preference for wheat, barley, rye and related grains. Gluten alone is not a quality defect. Use allergen warnings for gluten avoidance; a score cannot establish safety."
+  },
+  "catLabel_isolate": {
+    "message": "Isolated & industrial proteins"
+  },
+  "catHelp_isolate": {
+    "message": "Soy protein isolate, pea protein, whey and milk protein isolate, textured vegetable protein, caseinate. Below 0 it counts in favour of the product — a goal can set that."
+  },
+  "catLabel_plantDefense": {
+    "message": "Nuts, seeds & legumes"
+  },
+  "catHelp_plantDefense": {
+    "message": "OFF by default. Beans, lentils, peas, peanuts, soy, tree nuts and seeds. Only the animal-based goal turns this on."
+  },
+  "catGroup_fortificationDairy": {
+    "message": "Fortification & dairy"
+  },
+  "catLabel_fortification": {
+    "message": "Added vitamins & minerals"
+  },
+  "catHelp_fortification": {
+    "message": "OFF by default. Added folic acid, reduced iron, thiamin mononitrate, vitamin D and similar. Fortification alone does not establish ultra-processing; the vitamins goal makes it a plus. Below 0 it counts in favour of the product — a goal can set that."
+  },
+  "catLabel_dairyProcessing": {
+    "message": "Dairy processing"
+  },
+  "catHelp_dairyProcessing": {
+    "message": "OFF by default. Ultra-pasteurised and homogenised dairy as an optional processing preference. Raw milk and A2 claims earn no automatic quality bonus."
+  },
+  "catLabel_reducedFatDairy": {
+    "message": "Fat-reduced dairy"
+  },
+  "catHelp_reducedFatDairy": {
+    "message": "OFF by default. Skim, low-fat, reduced-fat and nonfat milk, yogurt, cheese and kefir. A weight-loss preference can reward it, without estimating calories. Below 0 it counts in favour of the product — a goal can set that."
+  },
+  "catGroup_nutritionPanel": {
+    "message": "Nutrition panel"
+  },
+  "catLabel_addedSugar": {
+    "message": "Added sugar quantity"
+  },
+  "catHelp_addedSugar": {
+    "message": "OFF by default. Uses declared added-sugar grams, normalized to 100g or 100ml when a basis is available. Replaces ingredient sugar deductions when usable quantity data exists. Missing quantity stays unknown."
+  },
+  "catLabel_carbohydrate": {
+    "message": "Total carbohydrate"
+  },
+  "catHelp_carbohydrate": {
+    "message": "OFF by default. An optional low-carb preference based on declared carbohydrate grams. Requires nutrition data; ingredient names alone cannot establish carb content."
+  },
+  "catLabel_sodium": {
+    "message": "Sodium quantity"
+  },
+  "catHelp_sodium": {
+    "message": "OFF by default. Scores sodium per 100g or 100ml. Requires a declared mass or volume basis; missing amounts remain unassessed."
+  },
+  "catLabel_fibre": {
+    "message": "Dietary fibre"
+  },
+  "catHelp_fibre": {
+    "message": "OFF by default. Awards points for fibre per 100g or 100ml. Requires a declared mass or volume basis."
+  },
+  "catLabel_protein": {
+    "message": "Protein"
+  },
+  "catHelp_protein": {
+    "message": "OFF by default. Awards points for protein per 100g or 100ml. Requires a declared mass or volume basis."
+  },
+  "catGroup_sourcingCertification": {
+    "message": "Sourcing & certification"
+  },
+  "catLabel_organic": {
+    "message": "Organic claim"
+  },
+  "catHelp_organic": {
+    "message": "Organic claims earn credit. Claims found only in the seller-written title or bullets count at half weight and are labelled unverified; this score does not verify certification."
+  },
+  "catLabel_animalWelfare": {
+    "message": "Pasture-raised, grass-fed & wild-caught"
+  },
+  "catHelp_animalWelfare": {
+    "message": "Sourcing claims about how an animal was raised or caught."
+  },
+  "catLabel_fermented": {
+    "message": "Fermented & live cultures"
+  },
+  "catHelp_fermented": {
+    "message": "Cultured dairy, kefir, kimchi, sauerkraut, sourdough. Preservative systems that merely use the word \"cultured\" are excluded."
+  },
+  "catLabel_unrefined": {
+    "message": "Minimally refined ingredients"
+  },
+  "catHelp_unrefined": {
+    "message": "Butter, ghee, tallow, olive, coconut and avocado oil, cold-pressed oils, and unrefined salt."
+  },
+  "catLabel_nonGmo": {
+    "message": "Non-GMO"
+  },
+  "catHelp_nonGmo": {
+    "message": "Non-GMO Project verification and equivalent claims."
+  },
+  "catLabel_traditionalPrep": {
+    "message": "Traditional preparation"
+  },
+  "catHelp_traditionalPrep": {
+    "message": "Sourdough, sprouted, soaked, dry-aged, and long-fermented preparation."
+  },
+  "catLabel_simplicity": {
+    "message": "Short ingredient list"
+  },
+  "catHelp_simplicity": {
+    "message": "Rewards recognized single-ingredient whole foods. List length alone is not a defect."
+  },
+  "catGroup_provenanceWholeFoods": {
+    "message": "Provenance (whole foods)"
+  },
+  "catLabel_provenanceVerified": {
+    "message": "Third-party certifications"
+  },
+  "catHelp_provenanceVerified": {
+    "message": "Independently audited standards — American Grassfed, Animal Welfare Approved, USDA Organic, Global Animal Partnership steps, MSC. For a single-ingredient food like ground beef this is where nearly all the real variation lives."
+  },
+  "catLabel_provenanceClaimed": {
+    "message": "Uncertified sourcing claims"
+  },
+  "catHelp_provenanceClaimed": {
+    "message": "Label claims with no audit behind them — \"grass-fed\", \"pasture-raised\", \"no antibiotics\". Worth roughly half a verified certification. Lower this to zero if you only want to credit audited claims."
+  },
+  "catLabel_provenanceUnknown": {
+    "message": "No sourcing information"
+  },
+  "catHelp_provenanceUnknown": {
+    "message": "Applies only to whole animal foods that make no sourcing claim at all. Missing certification is uncertainty, not proof of a production method; this optional preference reserves points for sourcing evidence. Set to 0 to score unlabelled meat purely on its ingredients."
+  },
+  "catLabel_hollowClaims": {
+    "message": "Flag meaningless claims"
+  },
+  "catHelp_hollowClaims": {
+    "message": "Surfaces claims that sound like quality signals but are not — \"USDA Inspected\" (mandatory for all meat), \"no hormones added\" on pork and poultry (already illegal), \"natural\", \"farm-raised\". Never scored, only flagged."
+  },
+  "catGroup_flags": {
+    "message": "Flags"
+  },
+  "catLabel_allergens": {
+    "message": "Allergen warnings"
+  },
+  "catHelp_allergens": {
+    "message": "Flags the allergens you select in the panel. Does not change the score."
+  },
+  "catLabel_avoidList": {
+    "message": "Personal avoid list"
+  },
+  "catHelp_avoidList": {
+    "message": "Flags any ingredient you have added to your own avoid list. Does not change the score."
   }
 }

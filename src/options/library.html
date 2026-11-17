@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Labels & saved products — Ingredient Check</title><link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="library.css"><link rel="stylesheet" href="simple-ui.css">
+<title data-i18n="libxLabelsSavedProductsIngredientCheck">Labels & saved products — Ingredient Check</title><link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="library.css"><link rel="stylesheet" href="simple-ui.css">
 </head>
 <body data-ui-page="library"><main>
 <header><h1 data-i18n="libraryTitle">Labels & saved products</h1></header>
@@ -10,7 +10,7 @@
 <label for="labelText" data-i18n="labelIngredients">Ingredients</label><textarea id="labelText" maxlength="6000" rows="4" required></textarea>
 <details><summary data-i18n="labelExtra">Allergen statements & nutrition (optional)</summary>
 <label for="labelAdvisory" data-i18n="labelAdvisory">Contains / may contain statements</label><textarea id="labelAdvisory" rows="2" maxlength="6000"></textarea>
-<div class="fields"><label><span data-i18n="labelBasis">Amounts are per</span><select id="labelBasis"><option value="100g">100 g</option><option value="100ml">100 ml</option></select></label>
+<div class="fields"><label><span data-i18n="labelBasis">Amounts are per</span><select id="labelBasis"><option value="100g">100 g</option><option value="100ml" data-i18n="unitName_100ml">100 ml</option></select></label>
 <label><span data-i18n="labelProtein">Protein (g)</span><input type="number" id="protein" min="0" max="100" step="any"></label>
 <label><span data-i18n="labelFibre">Fibre (g)</span><input type="number" id="fibre" min="0" max="100" step="any"></label>
 <label><span data-i18n="labelSugar">Total sugar (g)</span><input type="number" id="sugar" min="0" max="100" step="any"></label>

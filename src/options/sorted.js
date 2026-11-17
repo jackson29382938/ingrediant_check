@@ -56,6 +56,7 @@
     try { text = (chrome.i18n && chrome.i18n.getMessage(key, args)) || ''; } catch (e) { /* no locale */ }
     return text || fallback.replace(/\$(\d)/g, (m, n) => (args[n - 1] != null ? args[n - 1] : m));
   };
+  document.title = t('sortedListTitle', document.title);
 
   // ---------------------------------------------------------------- the unit prices are shown in
   // The reader's choice for this list: 'auto' (the unit most listings are priced in, worked out by the Amazon

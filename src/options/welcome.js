@@ -67,13 +67,13 @@ function renderGoals() {
     const entries = CATS.presetsInCategory(cat.id).filter(([id]) => id !== 'balanced');
     if (!entries.length) continue;
     const h = document.createElement('h2');
-    h.textContent = cat.label;
+    h.textContent = msg(`presetCat_${cat.id}`, cat.label);
     const row = document.createElement('div');
     row.className = 'chips';
     for (const [id, preset] of entries) {
-      row.appendChild(chip(preset.label, picked.goals.includes(id), on => {
+      row.appendChild(chip(msg(`presetLabel_${id}`, preset.label), picked.goals.includes(id), on => {
         toggleIn(picked.goals, id, on);
-        note.textContent = on ? preset.note : '';
+        note.textContent = on ? msg(`presetNote_${id}`, preset.note || '') : '';
         paintGoalSummary();
       }));
     }
@@ -84,7 +84,7 @@ function renderGoals() {
 function paintGoalSummary() {
   const summary = document.getElementById('goalSummary');
   if (picked.goals.length) {
-    summary.textContent = `${msg('welGoalsSelected', 'Selected goals')} (${picked.goals.length}): ${CATS.goalsLabel(picked.goals)}`;
+    summary.textContent = `${msg('welGoalsSelected', 'Selected goals')} (${picked.goals.length}): ${(CATS.sanitizeGoals(picked.goals).length ? CATS.sanitizeGoals(picked.goals) : ['balanced']).map(id => msg(`presetLabel_${id}`, CATS.PRESETS[id].label)).join(' + ')}`;
   } else {
     summary.textContent = CATS.describeGoals(startWeights, startGoals, startImportance).custom
       ? msg('welGoalsCustom', 'Your custom weights are kept unless you change goals.')
