@@ -7,8 +7,8 @@ import { fileURLToPath } from 'node:url';
 const modules = path.resolve(process.argv[2] || 'node_modules');
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let source = fs.readFileSync(path.join(modules, 'dompurify/dist/purify.js'), 'utf8');
-const hash = 'acefba6ebc9733869f60c80b519eaefad1691ea56022c54a3e6cbe74286d8d46';
-if (createHash('sha256').update(source).digest('hex') !== hash) throw new Error('DOMPurify 3.4.16 upstream checksum mismatch');
+const hash = 'cac62f2012e9727b99287dfc355a25e843667356754a1a01c008c1fb9e001c9f';
+if (createHash('sha256').update(source).digest('hex') !== hash) throw new Error('DOMPurify 3.4.18 upstream checksum mismatch');
 const legacy = '\t\t\tif (!doc || !doc.documentElement) {\n\t\t\t\tdoc = implementation.createDocument(NAMESPACE, "template", null);\n\t\t\t\ttry {\n\t\t\t\t\tdoc.documentElement.innerHTML = IS_EMPTY_INPUT ? emptyHTML : dirtyPayload;\n\t\t\t\t} catch (_) {}\n\t\t\t}';
 if (source.split(legacy).length !== 2) throw new Error('DOMPurify fallback changed');
 // Panels use HTML only and supported browsers all implement DOMParser. Fail closed if parsing

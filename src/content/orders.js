@@ -321,6 +321,9 @@
     else if (changes.purchaseHistory && currentConf) { historyRecords = currentConf.historyOwner && currentConf.googleProfile?.email && currentConf.historyOwner !== currentConf.googleProfile.email.toLowerCase() ? [] : H.merge([], changes.purchaseHistory.newValue); if (currentSummary) currentSummary(); else note(banner?.dataset.airText || ''); }
     else if (Object.keys(changes).some(k => /^(s|p):amazon\.com:/.test(k))) void cacheChanged(changes).catch(() => { note('A saved product rating could not be added to history. Open History & sync settings and refresh this page.'); });
   });
-  setInterval(() => { if (location.href !== lastURL) { lastURL = location.href; reset(); } }, 1000);
+  // The address changes without a page load. The Navigation API says when; the timer is only for a browser without it.
+  const moved = () => { if (location.href !== lastURL) { lastURL = location.href; reset(); } };
+  if (typeof navigation !== 'undefined' && navigation && typeof navigation.addEventListener === 'function') navigation.addEventListener('currententrychange', moved);
+  else setInterval(moved, 1000);
   void run();
 })(typeof globalThis !== 'undefined' ? globalThis : self);

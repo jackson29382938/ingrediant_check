@@ -50,6 +50,7 @@
   let observerRoot = null;
   let urlTimer = null;
   let navWired = false;
+  let navEvents = false;   // the Navigation API reports address changes, so no timer is needed
   let lastUrl = location.href;
 
   function startObserving() {
@@ -149,20 +150,22 @@
   function watchNavigation() {
     if (!navWired) {
       addEventListener('popstate', onNavigated);
-      // Prefer the Navigation API when present; keep the poll as a fallback for Amazon soft nav.
+      // The Navigation API reports each move once it is committed ("currententrychange": a push, a replace, a
+      // step back). It used to be heard at "navigate", before the address had changed, with a timer comparing
+      // the address every interval as well for as long as the tab stayed open. The timer is now only for a
+      // browser without the API.
       try {
         if (typeof navigation !== 'undefined' && navigation
             && typeof navigation.addEventListener === 'function') {
-          navigation.addEventListener('navigate', () => {
-            queueMicrotask(() => {
-              if (location.href !== lastUrl) onNavigated();
-            });
+          navigation.addEventListener('currententrychange', () => {
+            if (location.href !== lastUrl) onNavigated();
           });
+          navEvents = true;
         }
       } catch (e) { /* Navigation API unavailable */ }
       navWired = true;
     }
-    if (urlTimer) return;
+    if (navEvents || urlTimer) return;
     urlTimer = setInterval(() => {
       if (location.href !== lastUrl) onNavigated();
     }, URL_POLL_MS);

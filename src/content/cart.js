@@ -247,7 +247,10 @@
   const keys = ['enabled', 'badges', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'autoScoreSearch', 'pointsEnabled', 'hoverBreakdown', 'weights', 'allergens', 'diets', 'avoidList', 'ocrLabels', 'useOpenFoodFacts', 'useUsda', 'speedMode', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'sheetIndexRev', 'producerIndexRev', 'theme', 'palette'];
   function load() { chrome.storage.local.get([...keys, 'xp'], o => { raw = o || {}; settings = A.db.prefs.sanitizeToggles(raw); prefs = A.db.prefs.sanitizeScoring(raw); xp = P.sanitize(raw.xp); A.db.theme.use(raw); reset(); }); }
   const observer = new MutationObserver(schedule); observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['href', 'hidden', 'aria-hidden'] });
-  setInterval(() => { if (url !== location.href) reset(); }, 1000);
+  // The address changes without a page load. The Navigation API says when; the timer is only for a browser without it.
+  const moved = () => { if (url !== location.href) reset(); };
+  if (typeof navigation !== 'undefined' && navigation && typeof navigation.addEventListener === 'function') navigation.addEventListener('currententrychange', moved);
+  else setInterval(moved, 1000);
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
     if (keys.some(k => changes[k])) load();

@@ -556,8 +556,11 @@
 
   // Target and Walmart are single-page apps: moving from the home page to results, or from results to a
   // product, changes the address without loading a page. The script is injected on the public routes a
-  // search starts from (manifest.json), and this notices each move within half a second.
-  setInterval(() => { if (location.href !== state.url) { state.manual = null; reset(); } }, 500);
+  // search starts from (manifest.json), and this notices each move.
+  // The Navigation API reports each move as it is committed; the half-second timer is only for a browser without it.
+  const moved = () => { if (location.href !== state.url) { state.manual = null; reset(); } };
+  if (typeof navigation !== 'undefined' && navigation && typeof navigation.addEventListener === 'function') navigation.addEventListener('currententrychange', moved);
+  else setInterval(moved, 500);
 
   const KEYS = ['enabled', 'badges', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'weights', 'allergens', 'diets', 'avoidList',
     'sheetIndexRev', 'producerIndexRev', 'speedMode', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'autoScoreSearch', 'panelOpen', 'theme', 'palette',

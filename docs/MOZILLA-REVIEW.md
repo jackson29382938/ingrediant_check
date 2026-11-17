@@ -22,7 +22,7 @@ language data are vendored; product label images are processed on the user's mac
   global lookup are replaced with direct globalThis access, available in all supported browsers.
 - Two wasm-feature-detect comma-expression calls are expressed through lexical arrow wrappers
   to avoid the analyzer's "Unexpected callable" bug. Their feature probes and order are unchanged.
-- DOMPurify 3.4.16's legacy innerHTML parsing fallback is removed. The supported HTML DOMParser
+- DOMPurify 3.4.18's legacy innerHTML parsing fallback is removed. The supported HTML DOMParser
   path and all sanitization rules remain intact; a failed parse returns null and the panel refuses
   to mount it. Non-HTML namespace parsing through the legacy fallback is intentionally unsupported.
 - The Node-only scoring loader uses module.require. Browser scoring and cache revisions are
@@ -35,7 +35,7 @@ and refuse to patch unexpected source. The OCR script also checks exact build-to
 
 ```sh
 npm install --prefix /tmp/ic-vendor-tools --no-package-lock --ignore-scripts \
-  tesseract.js@5.1.1 terser@5.44.0 acorn@8.19.0 dompurify@3.4.16
+  tesseract.js@5.1.1 terser@5.44.0 acorn@8.19.0 dompurify@3.4.18
 node scripts/build-ocr-vendor.mjs /tmp/ic-vendor-tools/node_modules
 node scripts/build-panel-sanitizer.mjs /tmp/ic-vendor-tools/node_modules
 git diff --exit-code -- vendor
