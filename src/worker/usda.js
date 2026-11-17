@@ -87,11 +87,11 @@
   // How to ask: the reader's own key and permission (direct), else Ingredient Check's script unless the reader
   // switched the shared database off or this build has no script (script).
   async function config(toggle) {
-    const conf = await chrome.storage.local.get(['enabled', 'useUsda', 'sharedCache', KEY]);
+    const conf = await chrome.storage.local.get(['enabled', 'useUsda', 'sharedCache']);
     const toggles = root.AIR.db.prefs.sanitizeToggles(conf);
     if (!toggles.enabled) return { ok: false, reason: 'paused' };
     if (toggle && !toggles.useUsda) return { ok: false, reason: 'not-enabled' };
-    const key = typeof conf[KEY] === 'string' ? conf[KEY].trim() : '';
+    const key = (await root.AIR.vault.get(KEY)).trim();
     const hasKey = KEY_FORMAT.test(key);
     if (hasKey && await chrome.permissions.contains(PERMISSION)) return { ok: true, mode: 'direct', key };
     const url = toggles.sharedCache ? root.AIR.db.prefs.endpoint() : '';

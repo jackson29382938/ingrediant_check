@@ -437,7 +437,7 @@ function wireAccount() {
 
 if (typeof startSettingsPage === 'function') startSettingsPage();
 
-// AI help (src/worker/ai.js). The key is stored under `openrouterKey`, which no backup, export or sync
+// AI help (src/worker/ai.js). The key is stored in the vault under `openrouterKey`, which no backup, export or sync
 // carries and which is never shown again once saved. Each switch needs the optional openrouter.ai
 // permission, requested here from the click, and the permission is dropped when both are off.
 /* exported wireAi */
@@ -446,8 +446,9 @@ function wireAi() {
   if (!keyBox) return;
   const KEY = 'openrouterKey', permission = { origins: ['https://openrouter.ai/*'] };
   const ids = ['aiRatings', 'aiLabels'];
-  const paintKey = () => chrome.storage.local.get(KEY, o => {
-    const saved = typeof o[KEY] === 'string' && o[KEY].length > 0;
+  // The key is kept in the vault (worker/vault.js), which a store page's content script cannot read.
+  const paintKey = () => AIR.vault.get(KEY).then(key => {
+    const saved = key.length > 0;
     say('aiKeyStatus', saved ? 'A key is saved.' : 'No key saved.', 'ok');
     keyBox.placeholder = saved ? 'Saved — paste a new key to replace it' : 'sk-or-…';
     const forget = document.getElementById('aiForget');
@@ -459,10 +460,10 @@ function wireAi() {
     keyBox.value = '';
     if (!value) return;
     if (!/^[\x21-\x7e]{16,256}$/.test(value)) { say('aiKeyStatus', 'That does not look like an OpenRouter key.', 'error'); return; }
-    persist({ [KEY]: value }, ok => { if (ok) { flash(msg('optSaved', 'Saved')); paintKey(); } });
+    AIR.vault.set(KEY, value).then(ok => { if (ok) { flash(msg('optSaved', 'Saved')); paintKey(); } }, () => say('aiKeyStatus', 'The key could not be saved.', 'error'));
   });
   document.getElementById('aiForget')?.addEventListener('click', () => {
-    chrome.storage.local.remove(KEY, () => { void chrome.runtime.lastError; paintKey(); say('aiTestStatus', ''); });
+    AIR.vault.remove(KEY).then(() => { paintKey(); say('aiTestStatus', ''); }, () => {});
   });
   document.getElementById('aiTest')?.addEventListener('click', () => {
     say('aiTestStatus', 'Testing…');
@@ -509,8 +510,8 @@ function wireUsda() {
   const keyBox = document.getElementById('usdaKey');
   if (!keyBox) return;
   const KEY = 'usdaKey', permission = { origins: ['https://api.nal.usda.gov/*'] };
-  const paintKey = () => chrome.storage.local.get(KEY, o => {
-    const saved = typeof o[KEY] === 'string' && o[KEY].length > 0;
+  const paintKey = () => AIR.vault.get(KEY).then(key => {
+    const saved = key.length > 0;
     say('usdaKeyStatus', saved ? 'A key is saved.' : 'No key saved.', 'ok');
     keyBox.placeholder = saved ? 'Saved — paste a new key to replace it' : '';
     const forget = document.getElementById('usdaForget');
@@ -522,10 +523,10 @@ function wireUsda() {
     keyBox.value = '';
     if (!value) return;
     if (!/^[A-Za-z0-9]{16,64}$/.test(value)) { say('usdaKeyStatus', 'That does not look like a FoodData Central key.', 'error'); return; }
-    persist({ [KEY]: value }, ok => { if (ok) { flash(msg('optSaved', 'Saved')); paintKey(); } });
+    AIR.vault.set(KEY, value).then(ok => { if (ok) { flash(msg('optSaved', 'Saved')); paintKey(); } }, () => say('usdaKeyStatus', 'The key could not be saved.', 'error'));
   });
   document.getElementById('usdaForget')?.addEventListener('click', () => {
-    chrome.storage.local.remove(KEY, () => { void chrome.runtime.lastError; paintKey(); say('usdaTestStatus', ''); });
+    AIR.vault.remove(KEY).then(() => { paintKey(); say('usdaTestStatus', ''); }, () => {});
   });
   document.getElementById('usdaTest')?.addEventListener('click', () => {
     say('usdaTestStatus', 'Testing…');
@@ -539,10 +540,10 @@ function wireUsda() {
   const box = document.getElementById('useUsda');
   if (!box) return;
   // On means the switch is on and, if the reader saved their own key, that Chrome still grants the host.
-  const read = () => chrome.storage.local.get(['useUsda', KEY], raw => {
-    const own = typeof raw[KEY] === 'string' && raw[KEY].length > 0;
+  const read = () => chrome.storage.local.get(['useUsda'], raw => AIR.vault.get(KEY).then(key => {
+    const own = key.length > 0;
     chrome.permissions.contains(permission, granted => { box.checked = PREFS.sanitizeToggles(raw).useUsda && (!own || granted); });
-  });
+  }));
   read();
   chrome.storage.onChanged.addListener(changes => { if (changes.useUsda) read(); });
   box.addEventListener('change', () => {
@@ -555,8 +556,8 @@ function wireUsda() {
     });
     if (!enabled) { save(false); return; }
     // The host permission is only for the reader's own key; without one, lookups go through the project's script.
-    chrome.storage.local.get(KEY, o => {
-      if (!(typeof o[KEY] === 'string' && o[KEY].length > 0)) { save(true); return; }
+    AIR.vault.get(KEY).then(key => {
+      if (!key) { save(true); return; }
       chrome.permissions.request(permission, granted => {
         const error = chrome.runtime.lastError;
         if (error || !granted) { save(false); return; }

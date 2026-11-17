@@ -14,8 +14,11 @@ if (typeof importScripts === 'function') {
     'engine/db/ingestible.js', 'engine/db/prefs.js', 'engine/db/theme.js',
     'engine/db/ocr-text.js', 'engine/db/ai-ratings.js', 'engine/db/product-cache.js', 'engine/db/shopping.js', 'engine/db/storefronts.js', 'stores/registry.js', 'engine/db/sorted-results.js',
     'engine/db/speed.js', 'engine/db/unit-price.js',
-    'engine/db/activity.js', 'options/google-auth.js', 'worker/messages.js', 'worker/ai.js', 'worker/usda.js', 'worker/sheet-store.js', 'engine/db/purchase-history.js', 'worker/purchase-history.js', 'engine/db/history-scan.js', 'worker/history-scan.js');
+    'engine/db/activity.js', 'options/google-auth.js', 'worker/messages.js', 'worker/vault.js', 'worker/ai.js', 'worker/usda.js', 'worker/sheet-store.js', 'engine/db/purchase-history.js', 'worker/purchase-history.js', 'engine/db/history-scan.js', 'worker/history-scan.js');
 }
+
+// A key an older build kept in chrome.storage.local, which store pages can read, moves to the vault (worker/vault.js).
+self.AIR.vault?.migrate().catch(() => {});
 
 const OFF_ENDPOINT = 'https://world.openfoodfacts.org/api/v2/product/';
 const OFF_FIELDS = 'product_name,brands,ingredients_text,ingredients_text_en,labels_tags,nova_group,additives_tags,product_type,categories_tags,pnns_groups_1,categories,nutriments,nutrition_data_per';

@@ -9,8 +9,9 @@
 // What is sent: for ratings, only the ingredient NAMES (up to 24 words copied from a label), never the
 // product, the store, the page, the reader's settings or anything that identifies them. For a label photo,
 // only the public product-image address on m.media-amazon.com; OpenRouter's provider fetches it. The key
-// lives in chrome.storage.local under `openrouterKey`, which is not one of the settings a backup, an
-// export, Chrome sync or a report carries, and only this worker reads it.
+// lives in the vault (worker/vault.js: IndexedDB in the extension's own origin, which a store page's content
+// script cannot read) under `openrouterKey`. It is not one of the settings a backup, an export, Chrome sync or
+// a report carries, and only this worker and the settings page that saves it read it.
 //
 // The model is `openrouter/free`: OpenRouter's router over its free models, which picks one that can take
 // the request (an image, structured output). Free models are rate limited and come and go, so every answer
@@ -107,11 +108,11 @@
   }
 
   async function config(toggle) {
-    const conf = await chrome.storage.local.get(['enabled', 'aiRatings', 'aiLabels', KEY]);
+    const conf = await chrome.storage.local.get(['enabled', 'aiRatings', 'aiLabels']);
     const toggles = root.AIR.db.prefs.sanitizeToggles(conf);
     if (!toggles.enabled) return { ok: false, reason: 'paused' };
     if (toggle && !toggles[toggle]) return { ok: false, reason: 'not-enabled' };
-    const key = typeof conf[KEY] === 'string' ? conf[KEY].trim() : '';
+    const key = (await root.AIR.vault.get(KEY)).trim();
     if (!/^[\x21-\x7e]{16,256}$/.test(key)) return { ok: false, reason: 'no-key' };
     if (!await chrome.permissions.contains(PERMISSION)) return { ok: false, reason: 'no-permission' };
     return { ok: true, key };
