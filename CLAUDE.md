@@ -63,7 +63,11 @@ Rules that are easy to break:
   headed "Contains:". Where the text cannot say which reading is right (a rejoined word, a put-back space,
   an umlaut, a short dashed list, a joining word, a trailing digit) the new reading is taken only when the
   rulebase then charges or reads more than it did; keep that test when you add another. Two lines with no
-  comma stay one wrapped ingredient: splitting them reads "Almond\nFlour" as almonds and wheat flour.
+  comma stay one wrapped ingredient: splitting them reads "Almond\nFlour" as almonds and wheat flour. Also covered:
+  a purpose after the ingredient ("sugar added to …"), a footnote digit after a dye ("red 401"), "contains" before a capped
+  ingredient (an allergen line names sources, never a capped ingredient), a denial written as a sentence, and a claim
+  typed as an entry of its own (a title claim, worth half). A unit price reads a pack however the title writes it
+  (`packsIn` in `db/unit-price.js`); add a store's wording there, with a test in `tests/unit-sort.test.js`.
 - **Words no rule charges live in `db/vocabulary.js`** (`COMMON_PANEL`). It only decides what counts as
   read, but that can still move a score, so it is hashed like the other rule files. A new rule file must be
   listed before `score.js` in `manifest.json` (five groups), `src/options/{library,history}.html` and the
@@ -122,6 +126,12 @@ Rules that are easy to break:
   `tests/workflow-pins.test.js` fails on a tag. The comment above `jobs:` in `test.yml` says how to update one.
   A workflow that can write to the repository (`release.yml`) installs and downloads nothing, and every
   `npm install` of a tool carries `--ignore-scripts`; the same test fails otherwise.
+- A page's visible text carries a localisation key (`data-i18n`, or `t()` in its script), with a German string:
+  `tests/page-text.test.js` fails otherwise, and preflight checks that every goal and weight has its messages. The
+  engine's own English names are looked up by id (`presetLabel_<id>`, `catLabel_<id>`), not displayed directly.
+- The OpenRouter and USDA keys live in the vault (`worker/vault.js`, IndexedDB), never in `chrome.storage.local`, which a
+  content script on any store can read. No content script loads the vault or names a key (`tests/vault.test.js`).
+  Content scripts hear address changes from `navigation` (`currententrychange`), not from a timer.
 - The service worker stops after 30 idle seconds. Anything it must remember longer (a rate-limit pause) goes in
   `chrome.storage.session` as well as a variable, a `fetch` gives up before 30 seconds, and an extension page does
   not reconnect a dropped port on a timer: the worker asks (`sortedViewOpen` in `background.js`).

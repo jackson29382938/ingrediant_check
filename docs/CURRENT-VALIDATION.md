@@ -1,54 +1,40 @@
 # Current validation
 
-Source version: **1.19.2**. This maintenance release bounds unit-price parsing on long numeric
-input and refuses fluid unit prices when pack and item counts conflict. See
-[1.19.2 release notes](releases/1.19.2.md). The scoring rules and score revision are unchanged.
+Source version: **1.26.5**. The checks below were run on the commit that carries this version, in a cloud
+session with Chromium (the preinstalled build, no network to the stores). See the
+[1.26.5 release notes](releases/1.26.5.md) and the audits that led to it
+([2026-11-15](AUDIT-2026-11-15.md), [2026-11-16](AUDIT-2026-11-16.md)). This file is rewritten at each release;
+older records are in the release notes and in [docs/history](history/).
 
-## Checks run on 1.19.2
+## Checks run on 1.26.5
 
 | Check | Result |
 | --- | --- |
-| `npm test` | 1,261 passed (1,232 parallel and 29 serial); zero failed or skipped |
-| `npm run lint` | Passed with `--max-warnings 0` |
-| `npm run preflight` | Passed: manifest, scripts, 660 English/German locale messages and release-note checks |
-| `npm run pack` | Chrome and Firefox 1.19.2 packages built, about 3.9 MB each |
-| Chromium harness | All content/UI scenarios passed in `HARNESS_CONTENT_ONLY=1` mode; full unpacked-extension smoke timed out waiting for the service worker in installed Chrome |
+| `npm test` | All passed: the parallel files and the serial files that time a parse |
+| `npm run test:coverage` | Scoring engine at or above its floors (97% of lines, 90% of branches) |
+| `npm run lint` | Passed with `--max-warnings 0` (ESLint 10.15.0) |
+| `npm run preflight` | Passed: manifest, scripts, content-script weight, every key against 1,257 English and German messages, every goal and weight message |
+| `npm run pack` | Chrome and Firefox 1.26.5 packages built |
+| `npm run harness:ci` (real Chromium, installed extension) | Passed |
+| `npm run retailers:check` | Passed |
+| `npm run website:check` | Passed |
+| axe-core on the eight extension pages and seven website pages, light and dark, desktop and phone width | No issues |
+| Extension pages in a German-locale browser | No visible English text |
+| Service worker with the sorted list open, no debugger attached | Stays stopped after 30 idle seconds |
 
-The unit-price hostile-input regression completes in about 33 ms locally against its 400 ms limit.
-Fixture coverage and automated tests establish implementation behavior; they do not prove live
-retailer coverage or independent nutrition/health-score accuracy.
+The CI workflow runs the tests on Node 20, 22 and 24, the Chromium and Firefox harnesses, and the Firefox package
+lint on every push.
 
-## Live retailer smoke checks
+## What this does not establish
 
-The unpacked extension was exercised on public pages in Playwright Chromium on 2026-10-30. These
-were smoke tests, not exhaustive journeys; no accounts were used and no bot challenge was bypassed.
-
-- Product scores appeared on Target, Safeway, Albertsons and Instacart; Instacart search also showed
-  numeric score badges.
-- Amazon returned HTTP 503 for search and no score panel on the attempted product page.
-- Walmart showed a “Robot or human?” challenge; the test stopped there.
-- Costco search did not yield a verified score. The previous checker could select an unrelated
-  product when no scored result existed; 1.19.2 now requires an oat-related result before using a
-  Costco search link as its product sample. A direct public product route still needs live recheck.
-- Kroger, Dillons, Fry’s, Ralphs, King Soopers, Smith’s, Fred Meyer, QFC and Harris Teeter failed
-  navigation with `ERR_HTTP2_PROTOCOL_ERROR` in this environment.
-
-The 15-retailer fixture harness is controlled test data, not live-site validation. Store layouts,
-anti-bot responses and network access can change; blocked checks are not counted as successful.
+Fixture coverage and automated tests establish implementation behaviour. They do not prove live retailer
+coverage, OCR accuracy on real photos, or independent nutrition or health-score accuracy.
 
 ## External evidence still required
 
-- Independent nutrition or dietitian review against packaging-verified, held-out labels and a
-  predeclared rubric. The scoring corpus and passing tests do not establish clinical validity.
-- Live checks for retailers blocked by transport errors or bot challenges, and a Costco product
-  route that exposes a readable ingredient label.
-- Deployment owner verification of Apps Script properties. The checked-in template keeps shared
-  product reads/writes closed unless `PRODUCTS_OPEN=true`; the deployed setting and sheet were not
-  accessible during this review.
+- Independent nutrition or dietitian review against packaging-verified, held-out labels and a predeclared
+  rubric. The scoring corpus and passing tests do not establish clinical validity.
+- Live checks of each retailer's pages: store layouts, anti-bot responses and network access change, and a
+  blocked check is not counted as a success.
+- Deployment owner verification of the Apps Script properties and the deployed web app version.
 - Browser-store publication and Mozilla signing remain publisher actions.
-
-## Historical baseline
-
-The prior 1.18.1 verification record is retained in
-[the 1.18.1 release notes](releases/1.18.1.md) and dated audits. Those results are not the current
-1.19.2 verification.

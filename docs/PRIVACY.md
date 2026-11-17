@@ -152,8 +152,8 @@ repository, is readable by everyone and gets deactivated by USDA). By default th
 Check Apps Script, which holds the project's key as a script property, asks USDA, and returns only the records
 that carry that barcode; turning off the *Shared online database* stops this. If you would rather the barcode went
 straight to USDA, paste your own free key (from fdc.nal.usda.gov/api-key-signup) and allow Chrome's optional
-permission for `api.nal.usda.gov`. That key is stored in its own browser storage key and is not part of a backup,
-settings file, Chrome sync or problem report; only the service worker reads it. The shared `DEMO_KEY` is not used. A record is accepted only when it carries the barcode that was asked for, and the panel says
+permission for `api.nal.usda.gov`. That key is kept in the extension's own database (IndexedDB, which a store page's content scripts cannot read, unlike the settings storage) and is not part of a backup,
+settings file, Chrome sync or problem report; only the service worker and the settings page that saves it read it. A key saved by a version before 1.26.5 moves there on the first start. The shared `DEMO_KEY` is not used. A record is accepted only when it carries the barcode that was asked for, and the panel says
 the label was matched by barcode via USDA FoodData Central, not read from the page.
 
 ## AI help (optional)
@@ -162,9 +162,9 @@ Settings → *AI help* offers two features that use a free model through [OpenRo
 Both are **off** until you paste your own OpenRouter API key, turn a switch on and allow Chrome's optional
 permission for `openrouter.ai`. Nothing is sent before then, and scoring without them is unchanged.
 
-- **The key** is stored in this browser under its own storage key. It is not part of the Chrome or Google
-  settings backup, a settings file, a problem report or any export, and only the extension's service worker
-  reads it. *Remove key* deletes it. Because you supply it, OpenRouter's terms and its free-tier rate limits are
+- **The key** is kept in the extension's own database in this browser (IndexedDB, out of reach of the scripts that run on store pages). It is not part of the Chrome or Google
+  settings backup, a settings file, a problem report or any export, and only the extension's service worker and the
+  settings page that saves it read it. A key saved before 1.26.5 moves there on the first start. *Remove key* deletes it. Because you supply it, OpenRouter's terms and its free-tier rate limits are
   between you and OpenRouter; the free models route to third-party providers who may log requests.
 - **Rating unfamiliar ingredients** sends only ingredient *names* the built-in rules do not recognise. The
   model chooses one class from a fixed list (for example "emulsifier, gum or thickener"); the extension, not
