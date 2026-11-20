@@ -434,7 +434,7 @@ function trimEnd(s) {
 // "1% milk" and "2% milk" are a fat level, not a share, and the fat-reduced dairy rule reads them.
 // The share is also written with a sign or in words, and with "of": "<2% sugar", "less than 2% sugar",
 // "2% of sugar". Each left the quantity on the entry and the sugar unread (90 where "sugar (<2%)" scores 68).
-const LEADING_SHARE = /^(?:[<>≤≥]\s*|(?:less than|under|up to)\s+)?(?:\d+(?:[.,]\d+)?\s*%|%\s*\d+(?:[.,]\d+)?)\s+(?:of\s+)?(?=\D)(?!(?:\S+\s+){0,2}(?:milk|milkfat|dairy|yogh?urt|cheese|kefir|cream|buttermilk|chocolate milk)\b)/;
+const LEADING_SHARE = /^(?:[<>≤≥]\s*|(?:less than|under|up to)\s+)?(?:\d+(?:[.,]\d+)?\s*(?:%|per ?cent)|%\s*\d+(?:[.,]\d+)?)\s+(?:of\s+)?(?=\D)(?!(?:\S+\s+){0,2}(?:milk|milkfat|dairy|yogh?urt|cheese|kefir|cream|buttermilk|chocolate milk)\b)/;
 // The heading is not always followed by a colon. A page prints it on a line of its own and a label photo
 // loses the colon to OCR, so the list arrives as "INGREDIENTS SUGAR, WATER, SALT" and its first entry, the
 // one that weighs most, was "ingredients sugar": charged nothing (80 where the list scores 63, in every
@@ -588,7 +588,8 @@ function expandEntry(raw, depth = 0, ids = { n: 0 }, parent = 0) {
       const one = tidy(child.replace(/[()]/g, ' '));
       if (BARE_AMOUNT.test(one)) continue;   // "sugar (5g)": the quantity of the entry outside the bracket
       if (child.includes('(')) { pieces.push({ ing: one, fam: ++ids.n, parent: fam, unassessed: true }); continue; }
-      const bare = codes ? one.split(/\s*(?:&|\/|\band\b|\bund\b|\bet\b|\by\b|\be\b|\bi\b|\ben\b|\boch\b|\bve\b)\s*/) : [one];
+      // "322 i" (from "322(i)") splits at the Catalan and Polish "i" into "322" and nothing; the nothing is dropped.
+      const bare = (codes ? one.split(/\s*(?:&|\/|\band\b|\bund\b|\bet\b|\by\b|\be\b|\bi\b|\ben\b|\boch\b|\bve\b)\s*/) : [one]).filter(Boolean);
       if (codes && bare.length && bare.every(c => E_CODE.test(c))) for (const c of bare) pieces.push({ ing: `e${c}`, fam: ++ids.n, parent: fam });
       else pieces.push({ ing: one, fam: ++ids.n, parent: fam });
     }
@@ -762,18 +763,35 @@ function chargeOf(ing) {
   for (const c of capsFor(ing)) ceiling = Math.min(ceiling, c.cap);
   return points + (100 - ceiling);
 }
+// Judging a wrap by the whole entry made the work grow with (wraps × length): every rule read all of it again for
+// each wrap, past the lookup memo's length. 6,000 characters of "ab- ab- …" took 11 seconds on the store page's own
+// thread (docs/AUDIT-2026-11-19.md, finding 7). An entry longer than the memo is not one ingredient, so there a wrap
+// is judged by the text around it (short enough to be remembered), and only by a heavier charge: whether a fragment
+// of a run-on entry is "recognised" says nothing. Shorter entries are judged whole, as before.
+const REJOIN_WINDOW = 50;
+const REJOIN_TRIES = 64;
 function rejoinWrapped(ing) {
   if (!/-\s/.test(ing)) return ing;
   const re = new RegExp(WRAPPED_WORD.source, 'gi');
-  let out = ing, m;
-  while ((m = re.exec(out))) {
+  const whole = ing.length <= MEMO_ENTRY_LENGTH;
+  let out = ing, m, tries = 0;
+  while ((m = re.exec(out)) && tries++ < REJOIN_TRIES) {
     const before = out.slice(0, m.index), after = out.slice(m.index + m[0].length);
-    const readings = [m[1] + m[2], `${m[1]} ${m[2]}`].map(word => before + word + after);
-    const charged = chargeOf(out);
-    const better = readings.find(r => chargeOf(r) > charged) || readings.find(r => recognised(r) && !recognised(out));
-    if (!better) continue;
-    out = better;
-    re.lastIndex = Math.max(0, better.length - after.length);
+    const words = [m[1] + m[2], `${m[1]} ${m[2]}`];
+    let word;
+    if (whole) {
+      const charged = chargeOf(out);
+      const readings = words.map(w => before + w + after);
+      const at = readings.findIndex(r => chargeOf(r) > charged);
+      word = at >= 0 ? words[at] : !recognised(out) ? words.find((w, i) => recognised(readings[i])) : undefined;
+    } else {
+      const head = before.slice(-REJOIN_WINDOW), tail = after.slice(0, REJOIN_WINDOW);
+      const charged = chargeOf(head + m[0] + tail);
+      word = words.find(w => chargeOf(head + w + tail) > charged);
+    }
+    if (!word) continue;
+    out = before + word + after;
+    re.lastIndex = before.length + word.length;
   }
   return out;
 }
@@ -827,7 +845,14 @@ function apart(text) {
 function parseEntries(text) {
   // "FD&C Red No. 40" and "Red #40" are how US labels print dyes. The full stop after "No" ended the
   // entry ("fd&c red no" / "40"), so the dye went unread; both now read as "no 40".
-  const numbered = apart(text).replace(/\bno\.\s*(?=\d)/gi, 'no ').replace(/#\s*(?=\d)/g, 'no ');
+  // Indian (FSSAI) and Codex labels number an additive "INS 102" where EU labels print "E102": the same number, and
+  // "colour (INS 102)" lost the tartrazine cap, 49 where the named dye scores 18 (docs/AUDIT-2026-11-19.md, finding 4).
+  const numbered = apart(text).replace(/\bno\.\s*(?=\d)/gi, 'no ').replace(/#\s*(?=\d)/g, 'no ')
+    .replace(/\bins[- ]?(?:no\.?\s*)?(?=[1-9]\d{2,3}[a-f]?(?!\d))/gi, 'E')
+    // The class of an additive in brackets after its number ("E500(ii)", "322(i)"), as UK, Australian and Indian labels
+    // print it, became an entry of its own that nothing reads: "Raising agents (500(ii), 503(ii)), sugar" was a third
+    // read, under the gate. The numeral stays with its number, as E_CODE reads "500 ii".
+    .replace(/(\b(?:e[- ]?)?[1-9]\d{2,3}[a-f]?)\s?\((i{1,3}|iv|vi{0,3}|ix)\)/gi, '$1 $2');
   // "Contains 2% or less of:" opens the block US labels use for everything below two percent. It used to
   // be flattened to a comma, so trace ingredients kept the weight of their list position; it is now
   // kept as a marker and every top-level entry after it is weighted as a minor ingredient. Only a
@@ -835,7 +860,7 @@ function parseEntries(text) {
   // The limit is also written with a sign, and with a colon in place of "of": "<2% of: sugar, salt",
   // "less than 2%: sugar". Neither was read, and the first ingredient after it kept the words (90 against 73).
   const flat = joinStrains(numbered.replace(MINOR_BLOCK,
-    (all, lessThan, orLess) => (lessThan ?? orLess) !== undefined && parseFloat(lessThan ?? orLess) <= MINOR_LIMIT ? `,${MINOR_MARK},` : ','))
+    (all, lessThan, orLess) => (lessThan ?? orLess) !== undefined && amountOf(lessThan ?? orLess) <= MINOR_LIMIT ? `,${MINOR_MARK},` : ','))
     // "...of the following: sugar" left the lead-in glued to the first ingredient ("the following: sugar"),
     // which no anchored rule could read: that sugar was charged nothing.
     .replace(LEAD_IN, ',');
@@ -879,8 +904,12 @@ const weight = i => POSITION_WEIGHTS[i === 0 ? 0 : i <= 2 ? 1 : i <= 6 ? 2 : 3];
 const SHARE_TIERS = [[25, 0], [10, 1], [2, 2]];
 const MINOR_LIMIT = 2;
 const MINOR_MARK = '\u0001minor\u0001';
-const MINOR_BLOCK = new RegExp('(?:\\bcontains\\s+)?(?:\\bless than\\s+|<\\s*)(\\d+(?:\\.\\d+)?)\\s?%(?:\\s+of\\b|\\s*:)'
-  + '|(?:\\bcontains\\s+)?\\b(\\d+(?:\\.\\d+)?)\\s?% or less(?:\\s+of\\b|\\s*:)|\\band\\/or\\b', 'gi');
+const NUMBER_WORDS = { one: 1, two: 2, three: 3, four: 4, five: 5 };
+const amountOf = value => NUMBER_WORDS[String(value).toLowerCase()] ?? parseFloat(value);
+// "Percent" written as a word, and the number as a word ("contains two percent or less of"), as some US labels print
+// it: the block was not recognised and the next ingredient was charged nothing (docs/AUDIT-2026-11-19.md, finding 5).
+const MINOR_BLOCK = new RegExp('(?:\\bcontains\\s+)?(?:\\bless than\\s+|<\\s*)(\\d+(?:\\.\\d+)?|one|two|three|four|five)\\s?(?:%|per ?cent)(?:\\s+of\\b|\\s*:)'
+  + '|(?:\\bcontains\\s+)?\\b(\\d+(?:\\.\\d+)?|one|two|three|four|five)\\s?(?:%|per ?cent) or less(?:\\s+of\\b|\\s*:)|\\band\\/or\\b', 'gi');
 const LEAD_IN = /\b(?:contains\s+)?(?:(?:one|any) or more of\s+|any of\s+|all of\s+)?the following(?:\s+ingredients?)?\s*:/gi;
 const shareWeight = pct => POSITION_WEIGHTS[(SHARE_TIERS.find(([min]) => pct >= min) || [0, 3])[1]];
 const entryWeight = e => {
@@ -1021,7 +1050,18 @@ const INVISIBLE = /[\u00ad\u061c\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u
 // used, because it would also turn the footnote mark in "sugar¹" into a digit glued to the word. Run
 // after the entities are decoded and the full-width punctuation below has been given its meaning.
 const LIGATURES = ['ff', 'fi', 'fl', 'ffi', 'ffl', 'st', 'st'];
-const sameLetters = text => text.normalize('NFC')
+// A Cyrillic or Greek letter that looks Latin, inside a word written in Latin letters: "сane sugar" with a Cyrillic
+// "с" read as a word no rule knows, 90 where the plain list scores 65, and 378 of 449 charged names lost their charge
+// to one such letter (docs/AUDIT-2026-11-19.md, finding 8). No label mixes the alphabets inside a word, so a word
+// that does is folded to Latin; a word written wholly in Cyrillic or Greek is left as it is.
+const LOOK_ALIKE = { 'а': 'a', 'в': 'b', 'е': 'e', 'ё': 'e', 'к': 'k', 'м': 'm', 'н': 'h', 'о': 'o', 'р': 'p', 'с': 'c', 'т': 't', 'у': 'y', 'х': 'x',
+  'і': 'i', 'ї': 'i', 'ј': 'j', 'ѕ': 's', 'һ': 'h', 'ԁ': 'd', 'ԛ': 'q', 'ԝ': 'w', 'ӏ': 'l', 'А': 'A', 'В': 'B', 'Е': 'E', 'К': 'K', 'М': 'M', 'Н': 'H',
+  'О': 'O', 'Р': 'P', 'С': 'C', 'Т': 'T', 'У': 'Y', 'Х': 'X', 'І': 'I', 'Ј': 'J', 'Ѕ': 'S', 'α': 'a', 'ο': 'o', 'ρ': 'p', 'ν': 'v', 'ι': 'i', 'κ': 'k',
+  'Α': 'A', 'Β': 'B', 'Ε': 'E', 'Ζ': 'Z', 'Η': 'H', 'Ι': 'I', 'Κ': 'K', 'Μ': 'M', 'Ν': 'N', 'Ο': 'O', 'Ρ': 'P', 'Τ': 'T', 'Υ': 'Y', 'Χ': 'X' };
+const MIXED_WORD = /[\p{L}\p{M}]*[\u0370-\u03ff\u0400-\u052f][\p{L}\p{M}]*/gu;
+const latinLetters = text => (/[\u0370-\u03ff\u0400-\u052f]/.test(text) ? text.replace(MIXED_WORD, word =>
+  (/[a-z]/i.test(word) ? word.replace(/[\u0370-\u03ff\u0400-\u052f]/g, c => LOOK_ALIKE[c] || c) : word)) : text);
+const sameLetters = text => latinLetters(text.normalize('NFC'))
   .replace(/[\uff01-\uff5e]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
   .replace(/[\ufb00-\ufb06]/g, c => LIGATURES[c.charCodeAt(0) - 0xfb00]);
 // Only the names of HTML elements are tags, with any closing tag and anything that carries an attribute.
@@ -1038,7 +1078,9 @@ const ANGLE_TEXT = /<([a-z][^<>]{0,200})>/gi;
 // "high-fructose" on one line, the figure dash, and an en dash set between two words with no space. The
 // rules are written with the keyboard hyphen, so "high-fructose corn syrup" written with U+2011 and "glucose-fructose syrup" with an en dash
 // lost the cap (90 against 30) while every word still read. A spaced en dash stays a separator.
-const TYPED_HYPHEN = /[\u2010-\u2012]|(?<=[a-zß-ÿœ\u0100-\u017f])\u2013(?=[a-zß-ÿœ\u0100-\u017f])/gi;
+// The minus sign (U+2212) and the small hyphen-minus are what some PDF exports print for a hyphen: "high−fructose
+// corn syrup" lost its cap, 90 where the plain list scores 30 (docs/AUDIT-2026-11-19.md, finding 8).
+const TYPED_HYPHEN = /[\u2010-\u2012]|(?<=[a-zß-ÿœ\u0100-\u017f])[\u2013\u2212\ufe63](?=[a-zß-ÿœ\u0100-\u017f])/gi;
 const HTML_ENTITY = /&(#x[0-9a-f]{1,6}|#\d{1,7}|[a-z]{2,8});/gi;
 const ENTITY_TEXT = { amp: '&', nbsp: ' ', quot: '"', apos: "'", lt: '<', gt: '>', ndash: '-', mdash: '-' };
 function entityText(whole, name) {
@@ -1079,7 +1121,9 @@ const LINE_BREAK_TAG = /<\s*(?:br|\/li|\/p|\/div|\/tr)\b[^<>]{0,200}>/gi;
 // A spaced hyphen inside a comma list is left alone: there it is a word broken at a line end
 // ("mono - i diglicerydy"), which score() closes up.
 const DASHED_MIN_ITEMS = 4;
-const SPACED_SEPARATOR = /[ \u00a0]+[-–—/][ \u00a0]+|\t+/;
+// An em dash with no space round it does the same job ("Oats—sugar—salt" scored 90; docs/AUDIT-2026-11-19.md, finding 8).
+// Only the em dash: a hyphen or an en dash between two letters belongs to a word.
+const SPACED_SEPARATOR = /[ \u00a0]+[-–—/][ \u00a0]+|\t+|(?<=[A-Za-zÀ-ÖØ-öø-ÿœ\u0100-\u017f])—(?=[A-Za-zÀ-ÖØ-öø-ÿœ\u0100-\u017f])/;
 function dashedList(text) {
   if (LIST_SEPARATORS.test(text) || !SPACED_SEPARATOR.test(text)) return text;
   const items = text.split(new RegExp(SPACED_SEPARATOR.source, 'g')).map(item => item.trim()).filter(Boolean);

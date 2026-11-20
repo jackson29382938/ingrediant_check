@@ -47,8 +47,10 @@ for (const entry of ['Sweetened condensed milk', 'Chocolate milk', 'Ice cream', 
 hidden('1', 'Milk, sugar, coffee', 'Sweetened condensed milk, coffee');
 
 console.log('--- 2a. a sugar or sweetener no rule reads');
-for (const [plain, written] of [['sugar', 'muscovado'], ['sugar', 'jaggery'], ['sugar', 'panela'], ['sugar', 'rapadura'], ['sugar', 'sucanat'],
-  ['sugar', 'turbinado'], ['glucose-fructose syrup', 'isoglucose'], ['dextrose', 'dextrose monohydrate'], ['fructose', 'fruit sugar'],
+// Jaggery, panela, rapadura and sucanat are cane juice boiled down unrefined: 1.27.0 charges them as the traditional
+// sweeteners are charged (coconut sugar), not as refined sugar, so that is what they are compared with.
+for (const [plain, written] of [['sugar', 'muscovado'], ['coconut sugar', 'jaggery'], ['coconut sugar', 'panela'], ['coconut sugar', 'rapadura'],
+  ['coconut sugar', 'sucanat'], ['sugar', 'turbinado'], ['glucose-fructose syrup', 'isoglucose'], ['dextrose', 'dextrose monohydrate'], ['fructose', 'fruit sugar'],
   ['sugar', 'trehalose'], ['sugar', 'isomaltulose'], ['acesulfame K', 'acesulphame K'], ['reb A', 'rebaudioside A'],
   ['monk fruit extract', 'luo han guo'], ['sucralose', 'thaumatin'], ['sucralose', 'neohesperidin DC'], ['maltodextrin', 'dextrin']])
   hidden('2a', `Oats, ${plain}, salt`, `Oats, ${written}, salt`);
@@ -66,7 +68,7 @@ hidden('2', 'Whole grain oats, cocoa, cane sugar, brown sugar, dextrose, fructos
 console.log('--- 3. the same additive under a second name');
 for (const [plain, written] of [['modified food starch', 'food starch-modified'], ['E1422', 'acetylated distarch adipate'],
   ['E1442', 'hydroxypropyl distarch phosphate'], ['soybean oil', 'soya oil'], ['corn oil', 'maize oil'], ['sunflower oil', 'sunflower seed oil'],
-  ['sweetener', 'artificial sweetener'], ['red 40', 'red dye 40'], ['red 40', 'red dye #40'], ['disodium phosphate', 'sodium acid pyrophosphate'],
+  ['sucralose', 'artificial sweetener'], ['red 40', 'red dye 40'], ['red 40', 'red dye #40'], ['disodium phosphate', 'sodium acid pyrophosphate'],
   ['sodium tripolyphosphate', 'sodium hexametaphosphate'], ['powdered cellulose', 'cellulose powder'], ['textured soy protein', 'textured wheat protein'],
   ['wheat flour', 'all-purpose flour'], ['wheat flour', 'plain flour'], ['mono- and diglycerides', 'sucrose esters of fatty acids']])
   hidden('3', `Oats, ${plain}, salt`, `Oats, ${written}, salt`);
@@ -78,8 +80,10 @@ hidden('4', 'Sugar, wheat flour, artificial colour', 'Sugar, wheat flour, permit
 hidden('4', 'Wheat flour, glucose syrup, salt', 'Wheat flour, liquid glucose, salt');
 
 console.log('--- 5. "percent" written as a word');
-hidden('5', 'Oats, sugar, salt', 'Oats, contains 2 percent or less of sugar, salt');
-hidden('5', 'Oats, sugar, salt', 'Oats, contains less than 2 percent of sugar, salt');
+// Compared with the same block written with "%": both weigh the ingredient as a minor one, by design.
+hidden('5', 'Oats, contains 2% or less of sugar, salt', 'Oats, contains 2 percent or less of sugar, salt');
+hidden('5', 'Oats, contains less than 2% of sugar, salt', 'Oats, contains less than 2 percent of sugar, salt');
+hidden('5', 'Oats, contains 2% or less of sugar, salt', 'Oats, contains two percent or less of sugar, salt');
 
 console.log('--- 6. allergen and diet warnings');
 for (const [id, entry] of [['wheat', 'soy sauce'], ['wheat', 'teriyaki sauce'], ['sesame', 'hummus'], ['milk', 'white chocolate'],

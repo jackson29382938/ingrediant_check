@@ -19,14 +19,14 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
 
   // ---------------------------------------------------------------- hard caps
   const CAPS = [
-    { m: /\b(red\s*(no\.?\s*)?40|allura red|e[- ]?129|rojo\s*40|rouge\s*40)\b/i, cat: 'colour', cap: 18, why: 'Red 40 artificial colour' },
-    { m: /\b(red\s*(no\.?\s*)?3|erythrosine|e[- ]?127)\b/i,          cat: 'colour', cap: 18, why: 'Red 3 artificial colour' },
-    { m: /\b(yellow\s*(no\.?\s*)?5|tartrazine|tartrazina|e[- ]?102|amarillo\s*5|jaune\s*5)\b/i, cat: 'colour', cap: 18, why: 'Yellow 5 artificial colour' },
-    { m: /\b(yellow\s*(no\.?\s*)?6|sunset yellow|e[- ]?110|amarillo\s*6|jaune\s*6)\b/i, cat: 'colour', cap: 18, why: 'Yellow 6 artificial colour' },
-    { m: /\b(blue\s*(no\.?\s*)?1|brilliant blue|e[- ]?133|azul\s*1|bleu\s*1)\b/i, cat: 'colour', cap: 18, why: 'Blue 1 artificial colour' },
-    { m: /\b(blue\s*(no\.?\s*)?2|indigotine|indigo carmine|e[- ]?132)\b/i, cat: 'colour', cap: 18, why: 'Blue 2 artificial colour' },
-    { m: /\bcitrus red\s*(no\.?\s*)?2\b/i,                      cat: 'colour', cap: 18, why: 'Citrus Red 2 — permitted in the US only on orange peel' },
-    { m: /\b(green\s*(no\.?\s*)?3|fast green)\b/i,              cat: 'colour', cap: 18, why: 'Green 3 artificial colour' },
+    { m: /\b(red\s*(?:dye\s*)?(no\.?\s*)?40|allura red|e[- ]?129|rojo\s*40|rouge\s*40)\b/i, cat: 'colour', cap: 18, why: 'Red 40 artificial colour' },
+    { m: /\b(red\s*(?:dye\s*)?(no\.?\s*)?3|erythrosine|e[- ]?127)\b/i,          cat: 'colour', cap: 18, why: 'Red 3 artificial colour' },
+    { m: /\b(yellow\s*(?:dye\s*)?(no\.?\s*)?5|tartrazine|tartrazina|e[- ]?102|amarillo\s*5|jaune\s*5)\b/i, cat: 'colour', cap: 18, why: 'Yellow 5 artificial colour' },
+    { m: /\b(yellow\s*(?:dye\s*)?(no\.?\s*)?6|sunset yellow|e[- ]?110|amarillo\s*6|jaune\s*6)\b/i, cat: 'colour', cap: 18, why: 'Yellow 6 artificial colour' },
+    { m: /\b(blue\s*(?:dye\s*)?(no\.?\s*)?1|brilliant blue|e[- ]?133|azul\s*1|bleu\s*1)\b/i, cat: 'colour', cap: 18, why: 'Blue 1 artificial colour' },
+    { m: /\b(blue\s*(?:dye\s*)?(no\.?\s*)?2|indigotine|indigo carmine|e[- ]?132)\b/i, cat: 'colour', cap: 18, why: 'Blue 2 artificial colour' },
+    { m: /\bcitrus red\s*(?:dye\s*)?(no\.?\s*)?2\b/i,                      cat: 'colour', cap: 18, why: 'Citrus Red 2 — permitted in the US only on orange peel' },
+    { m: /\b(green\s*(?:dye\s*)?(no\.?\s*)?3|fast green)\b/i,              cat: 'colour', cap: 18, why: 'Green 3 artificial colour' },
     // Azo dyes sold in the EU and not the US. E102, E104, E110, E122, E124 and E129 carry a
     // mandatory "may have an adverse effect on activity and attention in children" warning there.
     { m: /\bquinoline yellow\b|\be[- ]?104\b/i,                     cat: 'colour', cap: 18, why: 'Quinoline yellow (E104) artificial colour' },
@@ -37,7 +37,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\bbrilliant black\b|\bblack pn\b|\be[- ]?151\b/i,       cat: 'colour', cap: 18, why: 'Brilliant black (E151) artificial colour' },
     { m: /\bbrown ht\b|\be[- ]?155\b/i,                            cat: 'colour', cap: 18, why: 'Brown HT (E155) artificial colour' },
     { m: /\btitanium dioxide\b|\be[- ]?171\b|\bdi[óo]xido de titanio\b|\bdioxyde de titane\b/i, cat: 'colour', cap: 18, why: 'Titanium dioxide — banned as a food additive in the EU' },
-    { m: /\bartificial colou?rs?\b|\bcolorantes?\s+artificiales?\b|\bcolorants?\s+artificiels?\b/i, cat: 'colour', cap: 20, why: 'Artificial colour' },
+    { m: /\bartificial colou?rs?\b|\bsynthetic (?:food )?colou?r(?:s|ings?)?\b|\bcolorantes?\s+artificiales?\b|\bcolorants?\s+artificiels?\b/i, cat: 'colour', cap: 20, why: 'Artificial colour' },
     // Caramel colour in each label language: "sockerkulör", "Zuckerkulör" and "caramello semplice"
     // were read as nothing, so a cola scored like sparkling water where "caramel colour" caps it.
     { m: /\bcaramel colou?r(ing)?\b|\be[- ]?150[a-d]?\b|\bcolor(ante)? caramelo\b|\bcolorant caramel\b|\bcaramel (?:ordinaire|de sulfite caustique|ammoniacal|au sulfite d['’]ammonium)\b|\b(?:caustic sul(?:ph|f)ite|sul(?:ph|f)ite ammonia|ammonia) caramel\b|\bcouleur caramel\b|(?<![a-zß-ÿ\u0100-\u017f])(?:sockerkul[öo]r|zuckerkul[öo]r|zuckercouleur|karamellf[äa]rg|karamelkleur|karmel (?:amoniakalno(?:-siarczynowy)?|siarczynowy|zwyk[łl]y)|(?:amonyum s[üu]lfit|kostik s[üu]lfit|sade) karamel|karamel renklendirici)(?![a-zß-ÿ\u0100-\u017f])|\bcaramello (?:semplice|solfitico|ammoniacale|caustico)\b|\bcorante caramelo\b/i, cat: 'colour', cap: 30, why: 'Caramel colour' },
@@ -58,7 +58,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\bsoya? protein (isolate|concentrate)\b|\baislado de prote[íi]na de soja\b|\bisolat de prot[ée]ine de soja\b|\bsojaproteinisolat\b|\bisolato di proteine di soia\b|\bprote[íi]na isolada de soja\b|\bge[iï]soleerd(?:e)?\s+sojaprote[iï]ne\b|\bsoja[- ]?eiwitisolaat\b/i, pts: 22, why: 'Soy protein isolate — isolated protein' },
     { m: /\bpea protein( isolate| concentrate)?\b|\bprot[ée]ines? de pois\b|\bprote[íi]nas? de guisante\b|\berbsenprotein\b|\berwteneiwit\b|\bproteine di pisello\b|\bprote[íi]na de ervilha\b|(?<![a-zß-ÿ\u0100-\u017f])[äa]rtprotein\b|\bbia[łl]ko grochu\b|\bbezelye proteini\b/i, pts: 18, why: 'Pea protein isolate' },
     { m: /\brice protein( isolate)?\b/i,             pts: 15, why: 'Rice protein isolate' },
-    { m: /\btextured (vegetable|soy) protein\b|\btvp\b/i, pts: 22, why: 'Textured vegetable protein' },
+    { m: /\btextur(?:ed|i[sz]ed) (?:vegetable|soya?|wheat|pea|plant) proteins?\b|\btvp\b/i, pts: 22, why: 'Textured vegetable protein' },
     { m: /\bwheat protein isolate\b|\bvital wheat gluten\b|\bwheat gluten\b/i, pts: 18, why: 'Isolated wheat gluten' },
     { m: /\bhydroly[sz]ed (soy |soya |vegetable |plant |wheat |corn |maize |pea |rice )?proteins?\b|\bprote[íi]nas?(?: vegetal(?:es)?)?(?: de (?:soja|trigo|ma[íi]z|guisante|arroz|milho|ervilha))? hidroli[sz]ad[ao]s?\b|\bprot[ée]ines?(?: v[ée]g[ée]tales?)?(?: de (?:soja|bl[ée]|ma[ïi]s|pois|riz))? hydrolys[ée]e?s?(?![a-zß-ÿ\u0100-\u017f])|\bhydrolysiertes? (?:pflanzliches |soja|weizen|mais|erbsen|pflanzen)?(?:eiwei(?:ß|ss)|protein)(?![a-zß-ÿ\u0100-\u017f])|\bprotein[ae](?: vegetal[ei])?(?: di (?:soia|frumento|mais|piselli|riso))? idrolizzat[ae]\b|\bgehydrolyseerde? (?:plantaardige |soja-?|tarwe-?|mais-?|erwten-?)?(?:eiwit(?:ten)?|prote[iï]nen?)(?![a-zß-ÿ\u0100-\u017f])|\bhydrolyser(?:ad|at|ade) (?:vegetabiliskt |soja|vete|majs|ärt)?protein(?![a-zß-ÿ\u0100-\u017f])|(?<![a-zß-ÿ\u0100-\u017f])hydrolizowane bia[łl]ko(?: ro[śs]linne| sojowe| pszenne)?(?![a-zß-ÿ\u0100-\u017f])|(?<![a-zß-ÿ\u0100-\u017f])hidrolize (?:bitkisel |soya |bu[ğg]day |m[ıi]s[ıi]r )?protein(?:i)?(?![a-zß-ÿ\u0100-\u017f])/i, pts: 18, why: 'Hydrolyzed protein — a hidden glutamate source' },
     { m: /\bwhey protein (isolate|concentrate|hydrolysate)\b|\bkoncentrat bia[łl]ek serwatkowych\b|\bizolat bia[łl]ek serwatkowych\b|\bconcentrado de prote[íi]nas? de soro\b|\bprot[ée]ines? de lactos[ée]rum\b|\bmolkenprotein(?:konzentrat|isolat)?\b|\bweiprote[iï]ne\b|\bvassleprotein(?:koncentrat)?\b|\bprote[íi]nas? de suero\b|\bproteine del siero\b|\bpeyniralt[ıi] suyu proteini\b/i, pts: 10, why: 'Whey protein isolate — processed dairy fraction' },
@@ -67,6 +67,10 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     // Collagen peptides are deliberately absent: they are an isolated protein, but not an
     // industrial one in the sense the rest of this table is about. A pts:0 entry used to sit here,
     // which tag() filters out, so it never reached the panel in any form.
+    // Not a cut of meat but a paste pressed from carcasses; it read as NOVA 1 chicken (docs/AUDIT-2026-11-19.md, finding 1).
+    { m: /\bmechanically (?:separated|deboned|recovered) (?:chicken|turkey|pork|beef|poultry|meat|fish)\b|\bmechanically separated\b|\badvanced meat recovery\b/i, pts: 15, why: 'Mechanically separated meat — a paste recovered from carcasses' },
+    // Cheese melted down and re-set with emulsifying salts, or made without cheese at all.
+    { m: /\b(?:imitation|processed|process|analogue) (?:american )?cheese\b|\bcheese (?:analogue|food|product)s?\b|\bpasteuri[sz]ed process(?:ed)? (?:american |cheddar |swiss )?cheese\b|\bamerican cheese\b/i, pts: 12, why: 'Processed cheese — remade with emulsifying salts' },
     { m: /\bsoy leghemoglobin\b/i,                   pts: 20, why: 'Soy leghemoglobin — genetically engineered heme' },
     { m: /\begg white (protein )?(powder|solids)\b|\bdried egg whites?\b|\bblancs? d['’] ?(?:œ|oe)ufs? en poudre|\bclaras? de huevo en polvo|\balbume d['’] ?uovo in polvere|\bclaras? de ovo em p[óo]|\beiklarpulver\b|\bkippeneiwitpoeder\b|(?<![a-zß-ÿœ\u0100-\u017f])[äa]ggvitepulver\b|\bbia[łl]k(?:o|a) jaj(?:a)? w proszku|\byumurta ak[ıi] tozu/i, pts: 4, why: 'Dried egg white' },
   ];
@@ -122,10 +126,14 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\bpolyglycerol polyricinoleate\b|\bpgpr\b|\be[- ]?476\b|\bpolyricinol[ée]ate de polyglyc[ée]rol\b|\bpolirricinoleato de poliglicerol\b|\bpoliricinoleato di poliglicerolo\b|\bpolyglycerin[- ]?polyricinoleat\b|\bpolyglycerol[- ]?polyricinole(?:aa|a)t\b|\bpolirycynooleinian poliglicerolu\b|\bpoligliserol polirisinolat\b|\bpoligliserol poliricinoleat\b/i,
       pts: 11, why: 'PGPR — castor-oil emulsifier standing in for cocoa butter' },
     { m: /\b(sodium|calcium) stearoyl[- ]2?[- ]?lactylate\b|\bsslr?\b|\be[- ]?48[12]\b/i,   pts: 11, why: 'Sodium stearoyl lactylate' },
-    { m: /\b(hydroxypropyl )?methylcellulose\b|\bhpmc\b|\be[- ]?46[1-5]\b/i,              pts: 13, why: 'Methylcellulose — industrial binder' },
-    { m: /\b(carboxymethyl ?)?cellulose gum\b|\be[- ]?46[6-9]\b/i, pts: 12, why: 'Cellulose gum' },
+    // Emulsifiers that were read by nothing, under their names or their E-numbers (docs/AUDIT-2026-11-19.md, finding 3).
+    { m: /\bsucrose esters?(?: of fatty acids)?\b|\bsucroglycerides?\b|\be[- ]?47[34]\b/i,            pts: 12, why: 'Sucrose esters — synthetic emulsifier' },
+    { m: /\bpolyglycerol esters?(?: of (?:fatty acids|interesterified ricinoleic acid))?\b|\be[- ]?475\b/i, pts: 12, why: 'Polyglycerol esters — synthetic emulsifier' },
+    { m: /\bsorbitan (?:mono|tri)?(?:stearate|laurate|oleate|palmitate)\b|\be[- ]?49[1-5]\b/i,          pts: 12, why: 'Sorbitan ester — synthetic emulsifier' },
+    { m: /\b(hydroxypropyl )?methylcellulose\b|\bhpmc\b|\bhypromellose\b|\be[- ]?46[1-5]\b/i,              pts: 13, why: 'Methylcellulose — industrial binder' },
+    { m: /\b(carboxymethyl ?)?cellulose gum\b|\bcmc\b|\be[- ]?46[6-9]\b/i, pts: 12, why: 'Cellulose gum' },
     { m: /\bmicrocrystalline cellulose\b|\be[- ]?460\b/i,            pts: 10, why: 'Microcrystalline cellulose — texture agent' },
-    { m: /\bpowdered cellulose\b/i,                    pts: 10, why: 'Powdered cellulose' },
+    { m: /\bpowdered cellulose\b|\bcellulose (?:powder|fib(?:er|re)s?)\b|^cellulose$|\bwood (?:pulp|cellulose)\b/i,                    pts: 10, why: 'Powdered cellulose' },
     { m: /\bxanthan gum\b|\bgoma xantana\b|\bgomme xanthane\b|\bxanthan\b|\bxantangummi\b|\bxanthaangom\b|\bguma ksantanowa\b|\bksantan gam[ıi]?(?![a-zß-ÿ\u0100-\u017f])|\be[- ]?415\b/i,                  pts: 9,  why: 'Xanthan gum' },
     { m: /\bguar gum\b|\bguar gam[ıi]?(?![a-zß-ÿ\u0100-\u017f])|\bgoma (?:de )?guar\b|\bgomme (de )?guar\b|\bguarkernmehl\b|\bguargom\b|\bguarpitmeel\b|\bguarkärnmjöl\b|\bguma guar\b|\bgomma (?:di )?guar\b|\be[- ]?412\b/i,                     pts: 8,  why: 'Guar gum' },
     { m: /\bgellan gum\b|\bgoma gellan\b|\bgomme gellane\b|\bgellangummi\b|\bgomma (?:di )?gellano?\b|\bgoma gelana\b|\bgellangom\b|\bgellan\b|\bjellan\b|\be[- ]?418\b/i, pts: 9,  why: 'Gellan gum' },
@@ -137,8 +145,10 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     // "Lecithin" with no source, or E322 — which is most EU chocolate. Between the two lecithins
     // above, because the source is exactly what the label declined to say.
     { m: /^(?:lecithins?|lecitin[ae]s?|l[ée]cithines?|lecithine?n?|lecitin(?:er)?|lecytyn[ay]?|lesitin(?:ler)?)$|\be[- ]?322\b/i, pts: 7,  why: 'Lecithin — emulsifier, source not stated' },
-    { m: /\bmodified (food |corn |maize |potato |tapioca |wheat |rice |waxy maize )?starch\b|\be[- ]?14[0-5]\d\b|\balmid[óo]n modificado\b|\bamidon (?:de (?:ma[ïi]s|bl[ée]|pomme de terre|tapioca|riz) )?modifi[ée](?![a-zß-ÿ\u0100-\u017f])|\bmodifizierte st[äa]rke\b|\bamido modificato\b|\bamido modificado\b|\bgemodificeerd zetmeel\b|\bmodifierad (?:majs|potatis|vete|tapioka)?st[äa]rkelse\b|\bskrobia (?:kukurydziana |ziemniaczana |pszenna |tapiokowa )?modyfikowana\b|\bmodyfikowana skrobia\b|\bmodifiye (?:m[ıi]s[ıi]r |patates |bu[ğg]day )?ni[şs]asta(?:s[ıi])?(?![a-zß-ÿ\u0100-\u017f])/i, pts: 14, why: 'Modified starch — chemically altered' },
+    { m: /\bmodified (food |corn |maize |potato |tapioca |wheat |rice |waxy maize )?starch\b|\b(?:food )?starch[- ]+modified\b|\b(?:acetylated |hydroxypropyl(?:ated)? |phosphated )?(?:mono|di)starch (?:phosphate|adipate|glycerol)\b|\b(?:acetylated|oxidi[sz]ed|hydroxypropyl(?:ated)?) starch\b|\bstarch acetate\b|\b(?:sodium )?starch (?:sodium )?octenyl ?succinate\b|\be[- ]?14[0-5]\d\b|\balmid[óo]n modificado\b|\bamidon (?:de (?:ma[ïi]s|bl[ée]|pomme de terre|tapioca|riz) )?modifi[ée](?![a-zß-ÿ\u0100-\u017f])|\bmodifizierte st[äa]rke\b|\bamido modificato\b|\bamido modificado\b|\bgemodificeerd zetmeel\b|\bmodifierad (?:majs|potatis|vete|tapioka)?st[äa]rkelse\b|\bskrobia (?:kukurydziana |ziemniaczana |pszenna |tapiokowa )?modyfikowana\b|\bmodyfikowana skrobia\b|\bmodifiye (?:m[ıi]s[ıi]r |patates |bu[ğg]day )?ni[şs]asta(?:s[ıi])?(?![a-zß-ÿ\u0100-\u017f])/i, pts: 14, why: 'Modified starch — chemically altered' },
     { m: /\bmaltod[eé]xtrin[ae]?\b|\bmaltodestrina\b|\bmaltodextrine\b|\bmaltodekstryna\b|\bmaltodekstrin\b|(?<=[a-zß-ÿ\u0100-\u017f]{3})maltodextrin[ae]?(?![a-zß-ÿ\u0100-\u017f])/i,  pts: 18, why: 'Maltodextrin — starch-derived bulking agent' },
+    // Dextrin is the starch E1400 already charged as modified starch; under its name it was read by nothing.
+    { m: /^(?:(?:corn|maize|tapioca|potato|wheat|white|yellow|roasted) )?dextrins?$/i,  pts: 14, why: 'Dextrin — roasted, broken-down starch' },
     { m: /\bcarboxymethyl\b|(?:natrium|sodium ?)carboxymethyl|\bcarboxym[ée]thylcellulose\b|\bcarboximetilcelulosa\b|\bcarbossimetilcellulosa\b|\bkarboksymetyloceluloza\b|\bkarboksimetil sel[üu]loz\b|\bcarboximetilcelulose\b/i,                         pts: 11, why: 'Carboxymethyl derivative' },
     { m: /\bpropylene glycol\b|\be[- ]?1520\b/i,                      pts: 14, why: 'Propylene glycol' },
     { m: /\bglycerin(e)?\b|\bglyc[ée]rol\b|\bglicerina\b|\bglyc[ée]rine\b|\bglicerolo\b|\bglycerine\b|\bgliser(?:ol|in)\b|\bglicerol\b|\be[- ]?422\b/i, pts: 6,  why: 'Glycerin humectant' },
@@ -160,7 +170,12 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\bpotassium metabisul(?:ph|f)ite\b|(?<![a-zß-ÿ\u0100-\u017f])(?:kalium(?:meta)?(?:bi|di)?sulfi(?:t|et)[a-z]*|(?:m[ée]ta)?bisulfite de potassium|(?:meta)?bis?sulfito (?:de |di )?pot[áa]s(?:io|sio|ico)|metabisolfito di potassio|potasyum (?:meta)?bis[üu]lfit)(?![a-zß-ÿ\u0100-\u017f])/i, pts: 12, why: 'Potassium metabisulfite' },
     { m: /\bnatamycin\b|\be[- ]?235\b/i,                              pts: 10, why: 'Natamycin' },
     { m: /\bnisin\b|\be[- ]?234\b/i,                                  pts: 8,  why: 'Nisin' },
-    { m: /\bpolyphosphates?\b|\bsodium (tri)?polyphosphate\b|\b(di|tri)phosphates?\b|\b\w*(?:di|tri|poly)(?:phosphat|fosfa|fosfor(?!owy))\w*|\bpolifosfat\w*|\be[- ]?45[0-2]\b/i, pts: 12, why: 'Polyphosphate' },
+    // Preservatives no rule named, by name or E-number (docs/AUDIT-2026-11-19.md, finding 3).
+    { m: /\bethoxyquin\b|\be[- ]?324\b/i,                                                          pts: 12, why: 'Ethoxyquin — synthetic antioxidant' },
+    { m: /\bdimethyl dicarbonate\b|\bvelcorin\b|\be[- ]?242\b/i,                                       pts: 10, why: 'Dimethyl dicarbonate — beverage preservative' },
+    { m: /\b(?:ethyl )?laur(?:ic|oyl) arginate\b|\be[- ]?243\b/i,                                         pts: 8,  why: 'Lauric arginate — preservative' },
+    { m: /\b(?:sodium )?(?:methyl|ethyl) ?paraben\b|(?<!propyl ?)\bparabens?\b|\be[- ]?21[4589]\b/i,                 pts: 12, why: 'Paraben preservative' },
+    { m: /\bpolyphosphates?\b|\bsodium (tri)?polyphosphate\b|\b\w*(?:pyro|meta)phosphates?\b|\bsapp\b|\bstpp\b|\b(di|tri)phosphates?\b|\b\w*(?:di|tri|poly)(?:phosphat|fosfa|fosfor(?!owy))\w*|\bpolifosfat\w*|\be[- ]?45[0-2]\b/i, pts: 12, why: 'Polyphosphate' },
   ];
 
   // ---------------------------------------------------------------- acids, anticaking, misc aids
@@ -175,6 +190,13 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\bcalcium silicate\b|\be[- ]?552\b/i,                       pts: 8,  why: 'Calcium silicate' },
     { m: /\bsodium alumino?silicate\b|\be[- ]?55[4-6]\b|\be[- ]?173\b|\balumin(i)?um (compound|phosphate|sulfate|silicate|powder)\b/i, pts: 12, why: 'Aluminium compound' },
     { m: /\bmagnesium stearate\b|\be[- ]?572\b/i,                     pts: 7,  why: 'Magnesium stearate' },
+    { m: /\bdimethyl ?polysiloxane\b|\bpolydimethylsiloxane\b|\bsimethicone\b|\banti-?foam(?:ing)?(?: agents?)?\b|\be[- ]?900[ab]?\b/i, pts: 10, why: 'Dimethylpolysiloxane — silicone anti-foaming agent' },
+    { m: /\bshellac\b|\bconfectioner['’]?s glaze\b|\b(?:pharmaceutical|resinous) glaze\b|\be[- ]?904\b/i, pts: 6,  why: 'Shellac glaze' },
+    // Processing aids at the doses they are used: they mark a processed food, not an ultra-processed one, so a
+    // plain "chicken, water, sodium lactate" stays out of NOVA 4 (docs/AUDIT-2026-11-19.md, finding 3).
+    { m: /\b(?:sodium )?erythorbate\b|\berythorbic acid\b|\bisoascorbic acid\b|\be[- ]?31[56]\b/i,     pts: 6,  why: 'Sodium erythorbate — cure accelerator for processed meat' },
+    { m: /\bhexylresorcinol\b|\be[- ]?586\b/i,                                                           pts: 8,  why: '4-Hexylresorcinol — anti-browning agent' },
+    { m: /\b(?:sodium|potassium|calcium) lactate\b|\be[- ]?32[5-7]\b/i,                                    pts: 4,  why: 'Lactate — preservative and humectant' },
     { m: /\btripotassium phosphate\b|\be[- ]?340\b/i,                 pts: 10, why: 'Tripotassium phosphate' },
     { m: /\bdipotassium phosphate\b/i,                  pts: 9,  why: 'Dipotassium phosphate' },
     { m: /\b(disodium|trisodium|monocalcium|dicalcium|tricalcium|monosodium|monopotassium|calcium|sodium|potassium) phosphates?\b|\btri(?:calcium|kalcium|calcio|kalsiyum)[- ]?(?:fosfaat|phosphat|fosfat)\b|\b(?:di|tri|mono)?(?:kalium|natrium|calcium|kalcium)(?:phosphate?n?|fosfaat|fosfaten|fosfat(?:er)?)\b|\bfosfat[io]s? d[ie] (?:potassio|sodio|calcio|pot[áa]ssio|s[óo]dio|c[áa]lcio)\b|\bfosfatos? (?:di|tri|mono)?(?:pot[áa]sicos?|s[óo]dicos?|c[áa]lcicos?)\b|\bphosphates? (?:de |d['’] ?)(?:potassium|sodium|calcium)\b|\b(?:fosfato tric[áa]lcico|phosphate tricalcique|fosforan tr[óo]jwapniowy)\b|\be[- ]?339\b|\be[- ]?341\b/i, pts: 9, why: 'Phosphate additive' },
@@ -184,6 +206,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     { m: /\bl[- ]?cysteine\b|\be[- ]?92[01]\b/i,                         pts: 10, why: 'L-cysteine dough conditioner' },
     { m: /\benzymes?\b/i, exemptIfText: /\b(cultured|cheese|milk|rennet|yogh?urt)\b/i, pts: 3, why: 'Processing enzymes' },
     { m: /^alcohol$|\bethyl alcohol\b|\bethanol\b/i,     pts: 6,  why: 'Added alcohol (preservative / solvent)' },
+  { m: /\bbuffered vinegar\b/i,                      pts: 6,  why: 'Buffered vinegar — a preservative under a kitchen name' },
   { m: /\bcultured dextrose\b/i,                      pts: 9,  why: 'Cultured dextrose — a preservative in disguise' },
   // Celery powder is nitrite. It is cultured specifically to convert its natural nitrate, and USDA
   // labelling rules then permit "uncured — no nitrates or nitrites added". The chemistry reaching
@@ -244,8 +267,10 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   const GRAINS = [
     { m: /\b(?:enriched|fortified) (wheat |bleached |unbleached |white )?flour\b/i, pts: 15, why: 'Enriched flour — stripped, then synthetically re-dosed' },
     // "Refined wheat flour" is the same refined flour as "refined flour"; Indian labels call it maida.
-    { m: /\b(bleached|refined|white) (?:wheat )?flour\b|\bmaida\b/i,     pts: 14, why: 'Refined white flour' },
-    { m: /\bwheat flour\b|\bharina(?:\s+integral)?\s+de\s+trigo\b(?!\s+(?:sarraceno|mourisco))|\bfarine(?:\s+(?:compl[èe]te|int[ée]grale))?\s+de\s+bl[ée](?!\s*noir)(?:$|[^a-z])|\b(?:vollkorn)?weizenmehl\b|\bvollkornweizenmehl\b|\bfarina(?:\s+integrale)?\s+di\s+(?:grano|frumento)\b(?!\s+saraceno)|\bfarinha(?:\s+integral)?\s+de\s+trigo\b(?!\s+(?:sarraceno|mourisco))|\b(?:volkoren\s?)?tarwe(?:meel|bloem)\b|\bfarine\s+(?:compl[èe]te\s+)?de\s+froment\b|\bvetemj[öo]l\b|\bm[ąa]ka\s+pszenna(?:\s+pe[łl]noziarnista)?\b|\bpszenna\s+m[ąa]ka\b|\bbu[ğg]day\s+unu\b/i, pts: 12, why: 'Wheat flour' },
+    { m: /\b(bleached|refined|white) (?:(?:all[- ]purpose|plain|bread|cake|pastry) )?(?:wheat )?flour\b|\bmaida\b/i,     pts: 14, why: 'Refined white flour' },
+    // Flour by its kitchen name is wheat flour: "all-purpose" and "plain" (UK) name the same food, and were charged
+    // nothing (docs/AUDIT-2026-11-19.md, finding 3). Like unbleached wheat flour it is processed, not refined white flour.
+    { m: /\bwheat flour\b|(?<!(?:whole[- ]?(?:wheat|grain)|wholemeal|gluten[- ]free|almond|coconut|rice|oat|chickpea|cassava|tapioca|sorghum|buckwheat|spelt|rye|corn) )\b(?:all[- ]purpose|plain|bread|cake|pastry|self[- ]rais(?:e|ing)|self[- ]rising) (?:wheat )?flour\b|\bharina(?:\s+integral)?\s+de\s+trigo\b(?!\s+(?:sarraceno|mourisco))|\bfarine(?:\s+(?:compl[èe]te|int[ée]grale))?\s+de\s+bl[ée](?!\s*noir)(?:$|[^a-z])|\b(?:vollkorn)?weizenmehl\b|\bvollkornweizenmehl\b|\bfarina(?:\s+integrale)?\s+di\s+(?:grano|frumento)\b(?!\s+saraceno)|\bfarinha(?:\s+integral)?\s+de\s+trigo\b(?!\s+(?:sarraceno|mourisco))|\b(?:volkoren\s?)?tarwe(?:meel|bloem)\b|\bfarine\s+(?:compl[èe]te\s+)?de\s+froment\b|\bvetemj[öo]l\b|\bm[ąa]ka\s+pszenna(?:\s+pe[łl]noziarnista)?\b|\bpszenna\s+m[ąa]ka\b|\bbu[ğg]day\s+unu\b/i, pts: 12, why: 'Wheat flour' },
     { m: /\bwheat\b|\btrigo\b(?!\s+(?:sarraceno|mourisco))|\bbl[ée](?!\s*noir)(?:$|[^a-z])|\bweizen\b|\bfrumento\b|\bfroment\b|\btarwe\b|\bvete\w*|\bpszen(?:ica|icy|n[aey]|nego|nej)\b|\bfullkorns(?:durum)?vete\w*|\btarwe\w*|\bweizen\w*|\bbu[ğg]day\b/i, pts: 9,  why: 'Wheat', gluten: true },
     { m: /\bbarley\b|\bcebada\b|\borge\b|\bgerste\b|\borzo\b|\bcevada\b|\bgerst\b|\bgerste(?:nmalz|mout)\w*|\bgerstemout\w*|\bgersten?(?:vlokken|bloem|meel|flocken|mehl|graupen|gr[üu]tze)\w*|\bkornmalt\b|\bj[ęe]czmie[ńn](?![a-z\u0100-\u017f])|\bj[ęe]czmienn(?:a|e|y|ego|ej)(?![a-z\u0100-\u017f])|\barpa\b/i, pts: 8,  why: 'Barley', gluten: true },
     { m: grain(/\brye\b|\bcenteno\b|\bseigle\b|\broggen\b|\bsegale\b|\bcenteio\b|\brogge\b|\br[åa]gmj[öo]l\b|(?:^|[^a-z])[żz]yt(?:o|nia|ni)\b|(?:^|[^a-z\u0100-\u017f])[çc]avdar\b/i, [

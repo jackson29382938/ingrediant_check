@@ -166,7 +166,10 @@
   @media (max-width: 860px) {
     body { padding: 16px 14px 72px; }
     .layout { grid-template-columns: minmax(0, 1fr); gap: 12px; }
-    .jump { position: sticky; top: 0; z-index: 2; display: flex; gap: 6px; overflow-x: auto; margin: 0 -14px; padding: 8px 14px; background: var(--page); }
+    /* The row scrolls sideways at phone width; the faded edge says there is more (docs/AUDIT-2026-11-19.md, finding 10), and the
+       end padding lets the last chip scroll clear of the fade. */
+    .jump { position: sticky; top: 0; z-index: 2; display: flex; gap: 6px; overflow-x: auto; margin: 0 -14px; padding: 8px 40px 8px 14px; background: var(--page);
+      -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
     .jump a { flex: none; border: 1px solid var(--line); background: var(--card); }
     section { padding: 16px 16px; scroll-margin-top: 64px; }
   }

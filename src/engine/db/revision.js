@@ -52,8 +52,18 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // brackets, and "less than 2%" written with a sign or a colon. A list headed "Contains:" that holds a capped
   // ingredient is a list. Allergen warnings read bare "flour" and the other words the audit found missing, and no
   // longer fire on "butter beans", "oyster mushrooms" or a "-free" claim. See docs/releases/1.26.4.md.
-  const RULES_REVISION = '2026-11-15.1';
-  const RULES_HASH = '1f4a8078-287099';
+  // 2026-11-20.1 (1.27.0): the names an ingredient is sold under (docs/AUDIT-2026-11-19.md). About ninety sugars,
+  // sweeteners, starches, oils, dyes, emulsifiers and preservatives are charged under their second names, British,
+  // Indian and EU spellings, legal names and INS numbers, as their usual names are. A food named after a whole food
+  // but made into something else (sweetened condensed milk, ice cream, mechanically separated chicken, processed
+  // cheese) is no longer NOVA 1. "Percent" in words, a minus sign, an unspaced em dash, a look-alike letter and an
+  // additive's class in brackets ("E500(ii)") are read. Plain sorghum is no longer charged as syrup, nor
+  // hydrogenated starch hydrolysate as hydrogenated oil. A bare "syrup" no longer counts as read. Allergen warnings
+  // read soy sauce, hummus, mayo and the other compound foods the audit found, and a plant-made or "-free" food no
+  // longer raises the warning it denies. A long run of hyphen-wrapped words is judged near each wrap, not whole.
+  // See docs/releases/1.27.0.md.
+  const RULES_REVISION = '2026-11-20.1';
+  const RULES_HASH = 'e474248e-298903';
   const _exports = AIRmodule('revision', { RULES_REVISION, RULES_HASH });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 })();

@@ -182,6 +182,16 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
       : ''}`;
   }
 
+  // The words no rule read, by name. The footer gave only a share ("90% of the list recognised"), so nobody could tell
+  // which tenth went unread, and an unread sweetener looked the same as a clean list (docs/AUDIT-2026-11-19.md, finding 9).
+  const UNREAD_SHOWN = 8;
+  function unreadHTML(result) {
+    const names = Array.isArray(result.unrecognised) ? result.unrecognised.filter(n => typeof n === 'string' && n.trim()) : [];
+    if (!names.length || typeof result.coverage !== 'number' || result.coverage >= 1) return '';
+    const shown = names.slice(0, UNREAD_SHOWN).join(', ') + (names.length > UNREAD_SHOWN ? ', …' : '');
+    return `<p class="disclaim unread">${esc(t('unreadNames', 'Not recognised, so not scored: $1', shown))}</p>`;
+  }
+
   function assessmentHTML(result) {
     const factors = result.nutritionAssessment || [];
     const missing = factors.filter(f => f.status !== 'assessed');
@@ -311,6 +321,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
             · ${esc(sourceLabel(meta))}${meta.report === false ? ''
               : ` · <button class="report" type="button">${esc(t('reportLink', 'Looks wrong?'))}</button>`}</span>
         </div>
+        ${unreadHTML(result)}
         <p class="disclaim">${esc(t('disclaimer',
           'A guide to what is on the label, not health advice. Ingredient text can be incomplete or out of date — check the package before you rely on this.'))}</p>
       </div>

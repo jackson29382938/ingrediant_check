@@ -53,7 +53,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
     // joinStrains below). A kefir that names its twelve strains is not an unreadable label.
     'bifidobacteri(?:um|a)|bifidus|lactobacill(?:us|i)|lactococcus|lacticaseibacillus|leuconostoc|saccharomyces|streptococcus thermophilus|probiotics?|live (?:and )?active cultures',
     '[a-z] (?:' + STRAIN_SPECIES + ')',
-    'honey|maple|molasses|syrup',
+    // Not a bare "syrup": it made every syrup no rule charges count as read, so "fructose syrup" showed 100% read and
+    // free, and AI help, which only sees unread entries, never saw it (docs/AUDIT-2026-11-19.md, findings 2 and 9).
+    'honey|maple|molasses',
     // Fortification vocabulary, which real cereal panels are full of. Without it a fortified product
     // reads as barely recognisable: Kellogg's Frosted Flakes measured 44% coverage against live
     // Amazon text, uncomfortably close to the 34% floor for a list the engine reads perfectly well.

@@ -767,3 +767,60 @@ test('warming the engine up is idle, once, and invisible', async () => {
   assert.deepEqual(score('Oats, Sugar, Natural Flavors'), before, 'scoring after the warm-up is unchanged');
   assert.deepEqual(engine.parse('Oats, Sugar'), ['oats', 'sugar']);
 });
+
+// docs/AUDIT-2026-11-19.md, findings 4, 5 and 8: an additive number, a share and a character each written another way.
+test('an INS number is the E-number it names, and its class in brackets stays with it', () => {
+  // Indian (FSSAI) and Codex labels write "INS 102": "colour (INS 102)" lost the tartrazine cap, 49 against 18.
+  for (const [ins, e] of [['colour (INS 102)', 'colour (E102)'], ['colour (INS150d)', 'colour (E150d)'], ['emulsifier (INS 471)', 'emulsifier (E471)']]) {
+    assert.equal(score(`Sugar, wheat flour, ${ins}`).score, score(`Sugar, wheat flour, ${e}`).score, ins);
+  }
+  assert.equal(score('Sugar, wheat flour, colour (INS 102)').score, score('Sugar, wheat flour, tartrazine').score);
+  // "E500(ii)" and "322(i)" made an entry of the numeral that nothing reads: "Raising agents (500(ii), 503(ii)),
+  // sugar" was a third read, under the readable gate.
+  for (const text of ['Raising agents (500(ii), 503(ii)), sugar', 'Raising agents (E500(ii), E503(ii)), sugar', 'Raising agents (INS 500(ii), INS 503(ii)), sugar']) {
+    const r = score(text);
+    assert.equal(r.coverage, 1, text);
+    assert.ok(engine.parse(text).every(e => !/^i+$/.test(e)), text);
+  }
+  assert.deepEqual(engine.parse('Water, emulsifier (322(i)), sugar'), ['water', 'emulsifier', 'e322', 'sugar']);
+  assert.equal(score('Water, stabiliser (E450(i)), sugar').score, score('Water, stabiliser (E450), sugar').score);
+  // A word that only starts like "ins" is left alone.
+  assert.deepEqual(engine.parse('Insulin, water'), ['insulin', 'water']);
+});
+
+test('"percent" in words opens the minor block as "%" does', () => {
+  const block = score('Oats, contains 2% or less of sugar, salt');
+  for (const text of ['Oats, contains 2 percent or less of sugar, salt', 'Oats, contains two percent or less of sugar, salt',
+    'Oats, contains less than 2 percent of sugar, salt', 'Oats, 2 per cent or less of: sugar, salt']) {
+    assert.equal(score(text).score, block.score, text);
+    assert.deepEqual(engine.parse(text), ['oats', 'sugar', 'salt'], text);
+  }
+  // A leading share in words is a share.
+  assert.deepEqual(engine.parse('Water, 10 percent juice, sugar'), ['water', 'juice', 'sugar']);
+  // "Five percent or less" is above the two-percent limit and stays a plain separator.
+  assert.notEqual(score('Oats, contains five percent or less of sugar, salt').score, block.score);
+});
+
+test('a minus sign, an unspaced em dash and a look-alike letter do not hide an ingredient', () => {
+  assert.equal(score('Water, high−fructose corn syrup, salt').score, score('Water, high-fructose corn syrup, salt').score);
+  assert.equal(score('Water, glucose﹣fructose syrup, salt').cap, score('Water, glucose-fructose syrup, salt').cap);
+  // An em dash with no spaces separates as a spaced one does, under the same test: short lists only when read and charged.
+  assert.deepEqual(engine.parse('Oats—sugar—salt'), ['oats', 'sugar', 'salt']);
+  assert.deepEqual(engine.parse('Peanut butter—creamy'), ['peanut butter—creamy']);
+  // One Cyrillic or Greek letter inside a Latin word is the Latin letter; a word wholly in another alphabet is untouched.
+  for (const [mixed, plain] of [['сane sugar', 'cane sugar'], ['sugаr', 'sugar'], ['pαlm oil', 'palm oil'], ['rеd 40', 'red 40']]) {
+    assert.equal(score(`Oats, ${mixed}, salt`).score, score(`Oats, ${plain}, salt`).score, plain);
+  }
+  assert.deepEqual(engine.parse('сахар, вода'), ['сахар', 'вода']);
+});
+
+// docs/AUDIT-2026-11-19.md, finding 7: an entry too long to be one ingredient is judged near each wrap, not whole.
+test('a word broken at a hyphen inside a run-on entry is still read where it charges', () => {
+  // An OCR pass that lost the commas leaves the whole label as one entry; the trans fat inside it must still be found.
+  const runOn = 'Enriched flour wheat flour niacin reduced iron thiamin mononitrate riboflavin folic acid sugar partially hydro- genated soybean oil salt leavening baking soda';
+  assert.ok(runOn.length > 120);
+  assert.equal(score(runOn).cap, score(runOn.replace('hydro- genated', 'hydrogenated')).cap);
+  assert.match(engine.parse(runOn)[0], /partially hydrogenated soybean oil/);
+  // A wrap that charges nothing more is left as written there.
+  assert.match(engine.parse(`${runOn.replace('partially hydro- genated', 'plain')} mono- and diglycerides`)[0], /mono- and diglycerides/);
+});

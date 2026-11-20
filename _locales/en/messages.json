@@ -51,6 +51,14 @@
       }
     }
   },
+  "unreadNames": {
+    "message": "Not recognised, so not scored: $NAMES$",
+    "placeholders": {
+      "names": {
+        "content": "$1"
+      }
+    }
+  },
   "footBase": {
     "message": "base $N$",
     "placeholders": {

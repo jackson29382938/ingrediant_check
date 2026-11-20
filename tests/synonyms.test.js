@@ -1194,3 +1194,32 @@ test('allergen warnings read the words the audit found missing, and not their lo
   // A flag never moves a score.
   assert.equal(engine.score({ ingredients_text: 'enriched flour, water' }, { allergens: ['wheat'] }).score, engine.score({ ingredients_text: 'enriched flour, water' }).score);
 });
+
+// docs/AUDIT-2026-11-19.md, finding 6: compound foods whose allergen is not in their name, and plant-made foods and
+// "-free" claims that raised the warning they deny.
+test('a compound food raises its allergen, and a food made without it does not', () => {
+  const warned = (ingredient, id) => engine.score({ ingredients_text: `water, ${ingredient}, salt` }, { allergens: [id] }).flags.some(f => f.id === id);
+  const diet = (ingredient, id) => engine.score({ ingredients_text: `water, ${ingredient}, salt` }, { diets: [id] }).flags.some(f => f.id === id);
+  const flagged = {
+    wheat: ['soy sauce', 'teriyaki sauce', 'shoyu', 'beer', 'pale ale', 'stout', "brewer's yeast", 'roux'],
+    sesame: ['hummus', 'houmous', 'furikake', 'dukkah'],
+    milk: ['white chocolate', 'dahi', 'malai', 'khoya', 'non-dairy creamer', 'lactose-free milk'],
+    egg: ['mayo', 'hollandaise', 'custard'],
+    fish: ['imitation crab', 'caesar dressing', 'crab sticks'],
+    peanut: ['satay sauce'],
+    soy: ['gochujang', 'doenjang', 'hoisin sauce', 'teriyaki', 'gluten-free soy sauce'],
+    sulfite: ['wine', 'red wine vinegar', 'sherry', 'dried apricots'],
+  };
+  for (const [id, words] of Object.entries(flagged)) for (const word of words) assert.ok(warned(word, id), `${word} should raise ${id}`);
+  const clear = {
+    wheat: ['root beer', 'ginger ale', 'ginger beer', 'kale', 'tamari', 'gluten-free soy sauce', 'gluten-free beer'],
+    milk: ['vegan cheese', 'dairy-free cheese', 'plant-based cheese', 'vegan butter', 'plant-based milk'],
+    egg: ['egg-free mayonnaise', 'vegan mayo', 'custard powder'],
+    sulfite: ['unsulphured dried apricots'],
+  };
+  for (const [id, words] of Object.entries(clear)) for (const word of words) assert.ok(!warned(word, id), `${word} should not raise ${id}`);
+  // A claim clears only what it names: egg-free noodles are still wheat.
+  assert.ok(warned('egg-free noodles', 'wheat'));
+  for (const word of ['vegan cheese', 'plant-based milk', 'vegan mayo']) assert.ok(!diet(word, 'vegan'), word);
+  assert.ok(diet('cheese', 'vegan'));
+});

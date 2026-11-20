@@ -63,15 +63,22 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // flavor", "beef stock" and "milk chocolate" all read as NOVA 1 whole foods (96 Excellent for a
   // lone "Milk chocolate" entry) until the lookaheads below were added, and "peanut butter" was
   // dairy.
-  const DERIVED = '(?!\\s+(?:flavou?r(?:ing|ed)?|stock|broth|bouillon|base|fat|extract|powder|solids|substitute|replacer|protein|seasoning|chocolate|sauce|oil)s?\\b)';
+  const DERIVED = '(?!\\s+(?:flavou?r(?:ing|ed)?|stock|broth|bouillon|base|fat|extract|powder|solids|substitute|replacer|protein|seasoning|chocolate|sauce|oil|nugget|hot ?dog|frank|frankfurter|wiener|sausage|patt(?:y|ie)|burger|jerky|rind|product|food|coating|topping|spread|analogue|loaf)s?\\b)';
+  // Words in front of the noun that say the food was made into something else. The open prefix below read
+  // "mechanically separated chicken", "processed cheese" and "imitation shrimp" as NOVA 1 whole foods, and
+  // "sweetened condensed milk", "chocolate milk" and "ice cream" as plain milk and cream (docs/AUDIT-2026-11-19.md,
+  // finding 1). The dairy list also stops sweetened and dessert forms; "frozen" is there and not for meat, because
+  // frozen chicken is still chicken and frozen yogurt is a dessert.
+  const MADE_INTO = '(?![\\w\' -]*\\b(?:mechanically (?:separated|deboned|recovered)|imitation|process(?:ed)?|breaded|battered|fried|coated|candied|analog(?:ue)?|vegan|plant[- ]based|meatless|meat[- ]?free|dairy[- ]?free|non[- ]?dairy|reconstituted|restructured|textured|formed|corned)\\b)';
+  const SWEET_DAIRY = '(?![\\w\' -]*\\b(?:sweetened|condensed|chocolate|flavou?red|malted|ice|frozen|whipped|sugar(?:ed)?|vanilla|strawberry|caramel|mocha|toffee|fudge|honey|american|spreadable)\\b)';
   const NOT_DAIRY = '(?<!(?:peanut|almond|cashew|sunflower|seed|nut|cocoa|cacao|shea|apple|soy|soya|coconut|oat|rice|hemp|pea|macadamia|pistachio|walnut|hazelnut|pecan|sesame) )';
   const WHOLE = [
     // Minimal dairy treatment and declared fat percentages do not make milk ultra-processed.
     new RegExp('^(?:(?:ultra[- ]pasteuri[sz]ed|pasteuri[sz]ed|homogeni[sz]ed|non[- ]?fat|fat[- ]free|low[- ]?fat|skim(?:med)?|semi[- ]skimmed|whole|full[- ](?:fat|cream)|organic|grade a|fresh|filtered|raw|uht|[0-9]+(?:\\.[0-9]+)?%)\\s+)*(?:milk|cream|kefir|yogh?urt|cheese|butter)\\b' + DERIVED, 'i'),
-    new RegExp('^[\\w\' -]{0,28}\\b(beef|bison|lamb|mutton|goat|venison|elk|pork|chicken|turkey|duck)\\b' + DERIVED, 'i'),
-    new RegExp('^[\\w\' -]{0,24}\\b(salmon|tuna|sardines?|anchov(y|ies)|mackerel|cod|halibut|trout|herring|shrimp|oysters?|mussels?)\\b' + DERIVED, 'i'),
+    new RegExp('^' + MADE_INTO + '[\\w\' -]{0,28}\\b(beef|bison|lamb|mutton|goat|venison|elk|pork|chicken|turkey|duck)\\b' + DERIVED, 'i'),
+    new RegExp('^' + MADE_INTO + '[\\w\' -]{0,24}\\b(salmon|tuna|sardines?|anchov(y|ies)|mackerel|cod|halibut|trout|herring|shrimp|oysters?|mussels?)\\b' + DERIVED, 'i'),
     /^(organic |pasture[- ]?raised )*(eggs?|egg yolks?|egg whites?)$/i,
-    new RegExp('^[\\w\' -]{0,24}' + NOT_DAIRY + '\\b(milk|cream|butter|ghee|yogh?urt|kefir|cheese|cheddar|mozzarella|parmesan)\\b' + DERIVED + '(?!\\s+of\\s+tartar)', 'i'),
+    new RegExp('^' + MADE_INTO + SWEET_DAIRY + '[\\w\' -]{0,24}' + NOT_DAIRY + '\\b(milk|cream|butter|ghee|yogh?urt|kefir|cheese|cheddar|mozzarella|parmesan)\\b' + DERIVED + '(?!\\s+of\\s+tartar)', 'i'),
     /^(beef |chicken |pork )?(liver|heart|kidney|bone marrow|tripe|sweetbreads)\b/i,
     /^(organic )?(water|sea salt|salt)$/i,
     new RegExp('^(?:sel(?: marin| de mer| de gu[ée]rande| fin)?|fleur de sel|sal(?: marina| de mar| marinho)?|sale(?: marino)?|(?:speise|meer)?salz|(?:zee|keuken)?zout|(?:hav)?salt|s[óo]l(?: morska)?|(?:deniz |kaya )?tuzu?|flor de sal)$', 'i'),

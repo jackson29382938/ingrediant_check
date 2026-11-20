@@ -25,7 +25,10 @@ const PIECES = ['1', '1,', '1.', ' ', ',', 'a', 'oil ', '(', 'ingredients\n', 'I
   '(a, ', 'may contain (', 'b (c), ', ')', 'arom',
   // A run of hyphenated letters is one entry too long for the lookup memo, and every rule asked for its
   // spaced form afresh: 40,000 characters took a second (docs/AUDIT-2026-11-15.md, finding 12).
-  'a-', 'ab-cd ', 'and ', '<a ', 'sugar1 '];
+  'a-', 'ab-cd ', 'and ', '<a ', 'sugar1 ',
+  // A word broken at a hyphen with a space or line break after it, which rejoinWrapped tries both ways: each try
+  // read the whole entry again, and 6,000 characters of "ab- " took 11 seconds (docs/AUDIT-2026-11-19.md, finding 7).
+  'ab- ', 'hydro- genated ', 'aaaaaaaaaaaa-\n'];
 const INPUTS = PIECES.map(p => p.repeat(Math.ceil(LENGTH / p.length)).slice(0, LENGTH) + '!');
 // A quantity is read from the end of an entry, so a long run that ends the way a quantity does (a digit,
 // a percent sign, a separator and a number) must not be rescanned from every start position.

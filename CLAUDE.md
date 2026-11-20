@@ -59,12 +59,20 @@ Rules that are easy to break:
   joined by "or" or a slash, a list set out with spaced dashes or tabs, a weight after an ingredient, two
   words run together, German written without its umlauts, two ingredients joined by "and" where a rule
   reads one of them, a joining word in front of an entry, a hyphen typed as another character, a footnote
-  digit or mark after the name, text in angle brackets, a share written with a sign or a colon, and a list
-  headed "Contains:". Where the text cannot say which reading is right (a rejoined word, a put-back space,
+  digit or mark after the name, text in angle brackets, a share written with a sign or a colon, a list
+  headed "Contains:", an INS number, an additive's class in brackets ("E500(ii)"), "percent" written as a word, a
+  minus sign typed for a hyphen, an em dash with no spaces between items, and a Cyrillic or Greek look-alike letter
+  inside a Latin word. Where the text cannot say which reading is right (a rejoined word, a put-back space,
   an umlaut, a short dashed list, a joining word, a trailing digit) the new reading is taken only when the
   rulebase then charges or reads more than it did; keep that test when you add another. Two lines with no
   comma stay one wrapped ingredient: splitting them reads "Almond\nFlour" as almonds and wheat flour.
-- **Words no rule charges live in `db/vocabulary.js`** (`COMMON_PANEL`). It only decides what counts as
+- **A name is a format too.** The same ingredient under a second name, a British, Indian or EU spelling, a legal
+  name, an E- or INS number or a "syrup"/"solids"/"monohydrate" form must charge what its usual name charges:
+  add the name to the rule and a row to `tests/name-equivalence.test.js`. A word in front of a whole-food noun
+  that says it was made into something else ("sweetened condensed milk", "mechanically separated chicken",
+  "processed cheese") keeps it out of `labels.WHOLE` and `sugars.FREE`.
+- **Words no rule charges live in `db/vocabulary.js`** (`COMMON_PANEL`). Keep generic words out of it: a bare
+  "syrup" made every syrup no rule charges count as read, which hid it from the coverage line and from AI help. It only decides what counts as
   read, but that can still move a score, so it is hashed like the other rule files. A new rule file must be
   listed before `score.js` in `manifest.json` (five groups), `src/options/{library,history}.html` and the
   `tests/*.html` harness pages, and in `RULE_SOURCES` in `tests/rules-revision.test.js`.

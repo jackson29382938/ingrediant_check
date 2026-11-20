@@ -51,6 +51,14 @@
       }
     }
   },
+  "unreadNames": {
+    "message": "Nicht erkannt und daher nicht bewertet: $NAMES$",
+    "placeholders": {
+      "names": {
+        "content": "$1"
+      }
+    }
+  },
   "footBase": {
     "message": "Basis $N$",
     "placeholders": {

@@ -37,6 +37,14 @@
       "why": "Caseinate — chemically extracted milk protein"
     },
     {
+      "input": "mechanically separated chicken",
+      "why": "Mechanically separated meat — a paste recovered from carcasses"
+    },
+    {
+      "input": "processed cheese",
+      "why": "Processed cheese — remade with emulsifying salts"
+    },
+    {
       "input": "soy leghemoglobin",
       "why": "Soy leghemoglobin — genetically engineered heme"
     },
@@ -141,6 +149,18 @@
       "why": "Sodium stearoyl lactylate"
     },
     {
+      "input": "sucrose esters of fatty acids",
+      "why": "Sucrose esters — synthetic emulsifier"
+    },
+    {
+      "input": "polyglycerol esters of fatty acids",
+      "why": "Polyglycerol esters — synthetic emulsifier"
+    },
+    {
+      "input": "sorbitan tristearate",
+      "why": "Sorbitan ester — synthetic emulsifier"
+    },
+    {
       "input": "methylcellulose",
       "why": "Methylcellulose — industrial binder"
     },
@@ -201,6 +221,10 @@
       "why": "Maltodextrin — starch-derived bulking agent"
     },
     {
+      "input": "dextrin",
+      "why": "Dextrin — roasted, broken-down starch"
+    },
+    {
       "input": "carboxymethylcellulose",
       "why": "Carboxymethyl derivative"
     },
@@ -255,6 +279,22 @@
     {
       "input": "nisin",
       "why": "Nisin"
+    },
+    {
+      "input": "ethoxyquin",
+      "why": "Ethoxyquin — synthetic antioxidant"
+    },
+    {
+      "input": "dimethyl dicarbonate",
+      "why": "Dimethyl dicarbonate — beverage preservative"
+    },
+    {
+      "input": "lauric arginate",
+      "why": "Lauric arginate — preservative"
+    },
+    {
+      "input": "methylparaben",
+      "why": "Paraben preservative"
     },
     {
       "input": "sodium polyphosphate",
@@ -333,6 +373,26 @@
       "why": "Magnesium stearate"
     },
     {
+      "input": "dimethylpolysiloxane",
+      "why": "Dimethylpolysiloxane — silicone anti-foaming agent"
+    },
+    {
+      "input": "confectioner's glaze",
+      "why": "Shellac glaze"
+    },
+    {
+      "input": "sodium erythorbate",
+      "why": "Sodium erythorbate — cure accelerator for processed meat"
+    },
+    {
+      "input": "hexylresorcinol",
+      "why": "4-Hexylresorcinol — anti-browning agent"
+    },
+    {
+      "input": "sodium lactate",
+      "why": "Lactate — preservative and humectant"
+    },
+    {
       "input": "tripotassium phosphate",
       "why": "Tripotassium phosphate"
     },
@@ -367,6 +427,10 @@
     {
       "input": "alcohol",
       "why": "Added alcohol (preservative / solvent)"
+    },
+    {
+      "input": "buffered vinegar",
+      "why": "Buffered vinegar — a preservative under a kitchen name"
     },
     {
       "input": "cultured dextrose",
@@ -545,6 +609,14 @@
       "why": "Beet sugar"
     },
     {
+      "input": "muscovado",
+      "why": "Refined added sugar"
+    },
+    {
+      "input": "sugar syrup",
+      "why": "Sugar syrup"
+    },
+    {
       "input": "powdered sugar",
       "why": "Powdered sugar"
     },
@@ -585,6 +657,14 @@
       "why": "Tapioca syrup"
     },
     {
+      "input": "oat syrup",
+      "why": "Starch syrup"
+    },
+    {
+      "input": "trehalose",
+      "why": "Isolated sugar"
+    },
+    {
       "input": "barley malt syrup",
       "why": "Barley malt syrup"
     },
@@ -595,6 +675,14 @@
     {
       "input": "honey powder",
       "why": "Honey powder — processed, not raw"
+    },
+    {
+      "input": "sweetened condensed milk",
+      "why": "Sweetened condensed milk — about half of it is added sugar"
+    },
+    {
+      "input": "ice cream",
+      "why": "Sweetened dairy"
     },
     {
       "input": "honey",
@@ -611,6 +699,18 @@
     {
       "input": "coconut sugar",
       "why": "Coconut sugar"
+    },
+    {
+      "input": "jaggery",
+      "why": "Unrefined cane sugar"
+    },
+    {
+      "input": "birch syrup",
+      "why": "Birch syrup — concentrated sweetener"
+    },
+    {
+      "input": "carob syrup",
+      "why": "Carob syrup — concentrated sweetener"
     },
     {
       "input": "date sugar",
@@ -671,6 +771,14 @@
     {
       "input": "allulose",
       "why": "Allulose"
+    },
+    {
+      "input": "tagatose",
+      "why": "Tagatose"
+    },
+    {
+      "input": "thaumatin",
+      "why": "Thaumatin — intense sweetener"
     },
     {
       "input": "stevia extract",
@@ -913,6 +1021,14 @@
     {
       "input": "advantame",
       "why": "Advantame — artificial sweetener"
+    },
+    {
+      "input": "neohesperidin DC",
+      "why": "Neohesperidin DC — artificial sweetener"
+    },
+    {
+      "input": "artificial sweetener",
+      "why": "Artificial sweetener (unnamed) — artificial sweetener"
     },
     {
       "input": "cyclamate",
