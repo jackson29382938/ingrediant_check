@@ -1,0 +1,680 @@
+[
+  {
+    "file": "016000275683.jpg",
+    "confidence": 32,
+    "truth": "Whole Grain Corn, Sugar, Corn Meal, Corn Syrup, Canola and/or Rice Bran Oil, Cocoa Processed with Alkali, Salt, Fructose, Baking Soda, Caramel Color, Natural Flavor",
+    "ocrBlock": null,
+    "expected": {
+      "score": 30,
+      "readable": true,
+      "coverage": 1,
+      "flags": [],
+      "bad": [
+        {
+          "c": -13,
+          "why": "Refined added sugar",
+          "ing": "sugar",
+          "cat": "sugar",
+          "refined": true
+        },
+        {
+          "c": -7,
+          "why": "Corn flour or starch",
+          "ing": "corn meal",
+          "cat": "grain"
+        },
+        {
+          "c": -6,
+          "why": "\"Natural flavors\" — an undisclosed flavour blend",
+          "ing": "natural flavor",
+          "cat": "naturalFlavour"
+        },
+        {
+          "c": -1,
+          "why": "Isolated fructose",
+          "ing": "fructose",
+          "cat": "sugar",
+          "refined": true
+        },
+        {
+          "c": -3,
+          "cap": true,
+          "why": "Caramel colour — caps score at 30"
+        }
+      ],
+      "parsed": 12
+    },
+    "actual": null
+  },
+  {
+    "file": "028400064057.jpg",
+    "confidence": 51,
+    "truth": "Corn, Vegetable Oil (Corn, Canola, and/or Sunflower Oil), and Salt",
+    "ocrBlock": null,
+    "expected": {
+      "score": 63,
+      "readable": true,
+      "coverage": 1,
+      "flags": [],
+      "bad": [
+        {
+          "c": -17,
+          "cap": true,
+          "why": "Canola/rapeseed oil — refined seed oil — caps score at 63"
+        }
+      ],
+      "parsed": 6
+    },
+    "actual": null
+  },
+  {
+    "file": "038000138416.jpg",
+    "confidence": 87,
+    "truth": "DRIED POTATOES, VEGETABLE OIL (CORN, COTTONSEED, HIGH OLEIC SOYBEAN, AND/OR SUNFLOWER OIL), DEGERMINATED YELLOW CORN FLOUR, CORNSTARCH, RICE FLOUR, MALTODEXTRIN, MONO- AND DIGLYCERIDES, SALT, WHEAT STARCH",
+    "ocrBlock": "DRIED POTATOES, VEGETABLE OIL (CORN, COTTONSEED, HIGH OLEIC SOYBEAN, ANO/OR SUNFLOWER OIL), DEGERMINATED YELLOW CORN FLOUR, CORNSTARCH, RICE FLOUR, MALTODEXTRIN, MONO- AND DIGLYCERIDES, SALT, WHEAT STARCH CONTAINS WHEAT INGREDIENTS. INGREDIENTES: PAPAS SECAS, ACEITE VEGETAL (MAIZ, SEMILLA DE ALGODON, SOYA ALTO OLEICO, ¥/O ACEITE DE GIRASOL), HARINA DE MAIZ AMARILLO DESGERMINADO, MAICENA, HARINA DE ARROZ, MALTODEXTRINA, MONO Y DIGLICERIDOS, SAL, ALMIDON DE TRIGO. CONTIENE INGREDIENTES DE TRIGO",
+    "expected": {
+      "score": 36,
+      "readable": true,
+      "coverage": 0.8461538461538461,
+      "flags": [
+        {
+          "kind": "allergen",
+          "id": "soy",
+          "label": "Soy",
+          "ingredient": "high oleic soybean",
+          "evidence": "ingredient",
+          "evidenceText": "high oleic soybean"
+        },
+        {
+          "kind": "allergen",
+          "id": "wheat",
+          "label": "Wheat / gluten",
+          "ingredient": "wheat starch",
+          "evidence": "ingredient",
+          "evidenceText": "wheat starch"
+        }
+      ],
+      "bad": [
+        {
+          "c": -13,
+          "why": "Maltodextrin — starch-derived bulking agent",
+          "ing": "maltodextrin",
+          "cat": "texture"
+        },
+        {
+          "c": -7,
+          "why": "Corn flour or starch",
+          "ing": "degerminated yellow corn flour",
+          "cat": "grain"
+        },
+        {
+          "c": -2,
+          "why": "Mono- and diglycerides — emulsifier",
+          "ing": "mono- and diglycerides",
+          "cat": "texture"
+        },
+        {
+          "c": -2,
+          "why": "Rice flour",
+          "ing": "rice flour",
+          "cat": "grain"
+        },
+        {
+          "c": "CAP",
+          "why": "Sunflower oil — refined seed oil — score already below cap of 63"
+        }
+      ],
+      "parsed": 13
+    },
+    "actual": {
+      "score": 36,
+      "readable": true,
+      "coverage": 0.8076923076923077,
+      "flags": [
+        {
+          "kind": "allergen",
+          "id": "soy",
+          "label": "Soy",
+          "ingredient": "high oleic soybean",
+          "evidence": "ingredient",
+          "evidenceText": "high oleic soybean"
+        },
+        {
+          "kind": "allergen",
+          "id": "wheat",
+          "label": "Wheat / gluten",
+          "ingredient": "wheat starch contains wheat ingredients",
+          "evidence": "ingredient",
+          "evidenceText": "wheat starch contains wheat ingredients"
+        }
+      ],
+      "bad": [
+        {
+          "c": -13,
+          "why": "Maltodextrin — starch-derived bulking agent",
+          "ing": "maltodextrin",
+          "cat": "texture"
+        },
+        {
+          "c": -7,
+          "why": "Corn flour or starch",
+          "ing": "degerminated yellow corn flour",
+          "cat": "grain"
+        },
+        {
+          "c": -2,
+          "why": "Mono- and diglycerides — emulsifier",
+          "ing": "mono- and diglycerides",
+          "cat": "texture"
+        },
+        {
+          "c": -2,
+          "why": "Rice flour",
+          "ing": "rice flour",
+          "cat": "grain"
+        },
+        {
+          "c": "CAP",
+          "why": "Sunflower oil — refined seed oil — score already below cap of 63"
+        }
+      ],
+      "parsed": 26
+    }
+  },
+  {
+    "file": "044000032029.jpg",
+    "confidence": 57,
+    "truth": "UNBLEACHED ENRICHED FLOUR (WHEAT FLOUR, NIACIN, REDUCED IRON, THIAMINE MONONITRATE [VITAMIN B1], RIBOFLAVIN [VITAMIN B2], FOLIC ACID), SUGAR, PALM AND/OR CANOLA OIL, COCOA (PROCESSED WITH ALKALI), HIGH FRUCTOSE CORN SYRUP, LEAVENING (BAKING SODA AND/OR CALCIUM PHOSPHATE), CORNSTARCH, SALT, SOY LECITHIN, VANILLIN - AN ARTIFICIAL FLAVOR, CHOCOLATE",
+    "ocrBlock": "UNBLEACHED ENRICHED FLOUR (WHEAT FLOUR, IAGIN, REDUCED IRON, THIAMINE MONOMTRATE ‘ami ay, NNBOFLAVN (TAM ta, FOLIC ACID), SUGAR, PALM. AND/ CANOLA OL COA Pa SEO WITH AURAL), GH FRUCTOSE CORN, SYRUR, LEAVEMNG (GAKING SODA AKO/OR CALCIUM PHOSPHATE), CORNSTARCH, SAL, SOY LECITHIN, VANILLIN = AN ARTIFICIAL FLAVOR, CHOCOLATE",
+    "expected": {
+      "score": 20,
+      "readable": true,
+      "coverage": 0.9130434782608695,
+      "flags": [
+        {
+          "kind": "allergen",
+          "id": "soy",
+          "label": "Soy",
+          "ingredient": "soy lecithin",
+          "evidence": "ingredient",
+          "evidenceText": "soy lecithin"
+        },
+        {
+          "kind": "allergen",
+          "id": "wheat",
+          "label": "Wheat / gluten",
+          "ingredient": "unbleached enriched flour",
+          "evidence": "ingredient",
+          "evidenceText": "unbleached enriched flour"
+        }
+      ],
+      "bad": [
+        {
+          "c": -12,
+          "why": "Enriched flour — stripped, then synthetically re-dosed",
+          "ing": "unbleached enriched flour",
+          "cat": "grain"
+        },
+        {
+          "c": -10,
+          "why": "Refined added sugar",
+          "ing": "sugar",
+          "cat": "sugar",
+          "refined": true
+        },
+        {
+          "c": -5,
+          "why": "Phosphate additive",
+          "ing": "calcium phosphate",
+          "cat": "processingAid"
+        },
+        {
+          "c": -5,
+          "why": "Artificial flavour",
+          "ing": "vanillin-an artificial flavor",
+          "cat": "flavour"
+        },
+        {
+          "c": -3,
+          "why": "Wheat flour",
+          "ing": "wheat flour",
+          "cat": "grain"
+        },
+        {
+          "c": -3,
+          "why": "Soy lecithin — soy-derived emulsifier",
+          "ing": "soy lecithin",
+          "cat": "texture"
+        },
+        {
+          "c": -1,
+          "why": "Corn flour or starch",
+          "ing": "cornstarch",
+          "cat": "grain"
+        },
+        {
+          "c": -1,
+          "why": "Vanillin — synthetic vanilla",
+          "ing": "vanillin-an artificial flavor",
+          "cat": "flavour"
+        },
+        {
+          "c": "CAP",
+          "why": "High-fructose corn syrup — score already below cap of 30"
+        }
+      ],
+      "parsed": 23
+    },
+    "actual": {
+      "score": 18,
+      "readable": true,
+      "coverage": 0.75,
+      "flags": [
+        {
+          "kind": "allergen",
+          "id": "soy",
+          "label": "Soy",
+          "ingredient": "soy lecithin",
+          "evidence": "ingredient",
+          "evidenceText": "soy lecithin"
+        },
+        {
+          "kind": "allergen",
+          "id": "wheat",
+          "label": "Wheat / gluten",
+          "ingredient": "unbleached enriched flour",
+          "evidence": "ingredient",
+          "evidenceText": "unbleached enriched flour"
+        }
+      ],
+      "bad": [
+        {
+          "c": -11,
+          "why": "Enriched flour — stripped, then synthetically re-dosed",
+          "ing": "unbleached enriched flour",
+          "cat": "grain"
+        },
+        {
+          "c": -11,
+          "why": "Refined added sugar",
+          "ing": "sugar",
+          "cat": "sugar",
+          "refined": true
+        },
+        {
+          "c": -5,
+          "why": "Phosphate additive",
+          "ing": "gaking soda ako/or calcium phosphate",
+          "cat": "processingAid"
+        },
+        {
+          "c": -5,
+          "why": "Soy lecithin — soy-derived emulsifier",
+          "ing": "soy lecithin",
+          "cat": "texture"
+        },
+        {
+          "c": -5,
+          "why": "Artificial flavour",
+          "ing": "vanillin = an artificial flavor",
+          "cat": "flavour"
+        },
+        {
+          "c": -3,
+          "why": "Wheat flour",
+          "ing": "wheat flour",
+          "cat": "grain"
+        },
+        {
+          "c": -1,
+          "why": "Corn flour or starch",
+          "ing": "cornstarch",
+          "cat": "grain"
+        },
+        {
+          "c": -1,
+          "why": "Vanillin — synthetic vanilla",
+          "ing": "vanillin = an artificial flavor",
+          "cat": "flavour"
+        },
+        {
+          "c": "CAP",
+          "why": "Canola/rapeseed oil — refined seed oil — score already below cap of 63"
+        }
+      ],
+      "parsed": 20
+    }
+  },
+  {
+    "file": "5449000000996.jpg",
+    "confidence": 23,
+    "truth": "Carbonated Water, Sugar, Colour (Caramel E150d), Acid (Phosphoric Acid), Natural Flavourings, Caffeine Flavouring",
+    "ocrBlock": null,
+    "expected": {
+      "score": 27,
+      "readable": true,
+      "coverage": 0.875,
+      "flags": [],
+      "bad": [
+        {
+          "c": -12,
+          "why": "Refined added sugar",
+          "ing": "sugar",
+          "cat": "sugar",
+          "refined": true
+        },
+        {
+          "c": -10,
+          "why": "\"Natural flavors\" — an undisclosed flavour blend",
+          "ing": "natural flavourings",
+          "cat": "naturalFlavour"
+        },
+        {
+          "c": -9,
+          "why": "Phosphoric acid — acidity regulator",
+          "ing": "phosphoric acid",
+          "cat": "processingAid"
+        },
+        {
+          "c": -2,
+          "why": "Unspecified flavouring",
+          "ing": "caffeine flavouring",
+          "cat": "flavour"
+        },
+        {
+          "c": "CAP",
+          "why": "Caramel colour — score already below cap of 30"
+        }
+      ],
+      "parsed": 8
+    },
+    "actual": null
+  },
+  {
+    "file": "737628064502.jpg",
+    "confidence": 91,
+    "truth": "RICE NOODLES (RICE, WATER), SEASONING PACKET (PEANUT, SUGAR, SALT, CORN STARCH, SPICES [CHILI, CINNAMON, PEPPER, CUMIN, CLOVE], HYDROLYZED SOY PROTEIN, GREEN ONIONS, CITRIC ACID, PEANUT OIL, SESAME OIL, NATURAL FLAVOR)",
+    "ocrBlock": "RICE NOODLES (RICE, WATER) SEASONING PACKET (PEANUT, SUGAR, SALT, CORN STARCH, SPICES [CHILI, CINNAMON, PEPPER, CUMIN, CLOVE], HYDROLYZED SO¥ PROTEIN, GREEN ONIONS, CITRIC ACID, PEANUT OIL, SESAME OIL, NATURAL FLAVOR). THIS PRODUCT CONTAINS PEANUTS. IMPORTED BY : EPICUREAN INTERNATIONAL. INC. P.O. BOX 13242, BERKELEY, CA 94712-4242 USA",
+    "expected": {
+      "score": 19,
+      "readable": true,
+      "coverage": 0.95,
+      "flags": [
+        {
+          "kind": "allergen",
+          "id": "peanut",
+          "label": "Peanut",
+          "ingredient": "peanut",
+          "evidence": "ingredient",
+          "evidenceText": "peanut"
+        },
+        {
+          "kind": "allergen",
+          "id": "soy",
+          "label": "Soy",
+          "ingredient": "hydrolyzed soy protein",
+          "evidence": "ingredient",
+          "evidenceText": "hydrolyzed soy protein"
+        },
+        {
+          "kind": "allergen",
+          "id": "sesame",
+          "label": "Sesame",
+          "ingredient": "sesame oil",
+          "evidence": "ingredient",
+          "evidenceText": "sesame oil"
+        }
+      ],
+      "bad": [
+        {
+          "c": -13,
+          "why": "Hydrolyzed protein — a hidden glutamate source",
+          "ing": "hydrolyzed soy protein",
+          "cat": "isolate"
+        },
+        {
+          "c": -10,
+          "why": "\"Natural flavors\" — an undisclosed flavour blend",
+          "ing": "natural flavor",
+          "cat": "naturalFlavour"
+        },
+        {
+          "c": -10,
+          "why": "Refined added sugar",
+          "ing": "sugar",
+          "cat": "sugar",
+          "refined": true
+        },
+        {
+          "c": -5,
+          "why": "Corn flour or starch",
+          "ing": "corn starch",
+          "cat": "grain"
+        },
+        {
+          "c": -3,
+          "why": "Citric acid — acidity regulator",
+          "ing": "citric acid",
+          "cat": "processingAid"
+        },
+        {
+          "c": "CAP",
+          "why": "Peanut oil — refined seed oil — score already below cap of 63"
+        }
+      ],
+      "parsed": 20
+    },
+    "actual": {
+      "score": 22,
+      "readable": true,
+      "coverage": 0.72,
+      "flags": [
+        {
+          "kind": "allergen",
+          "id": "peanut",
+          "label": "Peanut",
+          "ingredient": "peanut",
+          "evidence": "ingredient",
+          "evidenceText": "peanut"
+        },
+        {
+          "kind": "allergen",
+          "id": "sesame",
+          "label": "Sesame",
+          "ingredient": "sesame oil",
+          "evidence": "ingredient",
+          "evidenceText": "sesame oil"
+        }
+      ],
+      "bad": [
+        {
+          "c": -13,
+          "why": "\"Natural flavors\" — an undisclosed flavour blend",
+          "ing": "natural flavor",
+          "cat": "naturalFlavour"
+        },
+        {
+          "c": -13,
+          "why": "Refined added sugar",
+          "ing": "sugar",
+          "cat": "sugar",
+          "refined": true
+        },
+        {
+          "c": -7,
+          "why": "Corn flour or starch",
+          "ing": "corn starch",
+          "cat": "grain"
+        },
+        {
+          "c": -5,
+          "why": "Citric acid — acidity regulator",
+          "ing": "citric acid",
+          "cat": "processingAid"
+        },
+        {
+          "c": "CAP",
+          "why": "Peanut oil — refined seed oil — score already below cap of 63"
+        }
+      ],
+      "parsed": 25
+    }
+  },
+  {
+    "file": "7622210449283.jpg",
+    "confidence": 54,
+    "truth": "Céréale 50 % (Farine de BLÉ 34,8 %, farine de BLÉ complète 15,2 %), sucre, huiles végétales (palme, colza), cacao maigre en poudre 4,5 %, sirop de glucose, amidon de BLÉ, poudres à lever (carbonates d’ammonium, carbonates de sodium), émulsifiant (lécithines de SOJA), sel, LAIT écrémé en poudre, perméat de lactosérum (de LAIT), arômes",
+    "ocrBlock": null,
+    "expected": {
+      "score": 27,
+      "readable": true,
+      "coverage": 0.9473684210526315,
+      "flags": [
+        {
+          "kind": "allergen",
+          "id": "milk",
+          "label": "Milk",
+          "ingredient": "lait écrémé en poudre",
+          "evidence": "ingredient",
+          "evidenceText": "lait écrémé en poudre"
+        },
+        {
+          "kind": "allergen",
+          "id": "soy",
+          "label": "Soy",
+          "ingredient": "lécithines de soja",
+          "evidence": "ingredient",
+          "evidenceText": "lécithines de soja"
+        },
+        {
+          "kind": "allergen",
+          "id": "wheat",
+          "label": "Wheat / gluten",
+          "ingredient": "farine de blé",
+          "evidence": "ingredient",
+          "evidenceText": "farine de blé"
+        }
+      ],
+      "bad": [
+        {
+          "c": -11,
+          "why": "Wheat flour",
+          "ing": "farine de blé",
+          "cat": "grain"
+        },
+        {
+          "c": -12,
+          "why": "Refined added sugar",
+          "ing": "sucre",
+          "cat": "sugar",
+          "refined": true
+        },
+        {
+          "c": -4,
+          "why": "Unspecified flavouring",
+          "ing": "arômes",
+          "cat": "flavour"
+        },
+        {
+          "c": -3,
+          "why": "Soy lecithin — soy-derived emulsifier",
+          "ing": "lécithines de soja",
+          "cat": "texture"
+        },
+        {
+          "c": -3,
+          "why": "Glucose syrup",
+          "ing": "sirop de glucose",
+          "cat": "sugar",
+          "refined": true
+        },
+        {
+          "c": "CAP",
+          "why": "Canola/rapeseed oil — refined seed oil — score already below cap of 63"
+        }
+      ],
+      "parsed": 19
+    },
+    "actual": null
+  },
+  {
+    "file": "kefir.jpg",
+    "confidence": 67,
+    "truth": "PASTEURIZED LOWFAT MILK, CANE SUGAR, NONFAT MILK, NATURAL STRAWBERRY FLAVOR, NATURAL FLAVORS, PECTIN, VEGETABLE JUICE (FOR COLOR), VITAMIN A PALMITATE, VITAMIN D3, CULTURES",
+    "ocrBlock": "PASTEURIZED LOWFAT MILK, CANE SUGAR, NONFAT MILK, NATURAL STRAWBERRY FLAVOR, NATURAL FLAVORS, PECTIN, VEGETABLE UICE (FOR COLOR), VITAMIN A. PALMITATE, VITAMIN D3, CULTURES",
+    "expected": {
+      "score": 33,
+      "readable": true,
+      "coverage": 0.9090909090909091,
+      "flags": [
+        {
+          "kind": "allergen",
+          "id": "milk",
+          "label": "Milk",
+          "ingredient": "pasteurized lowfat milk",
+          "evidence": "ingredient",
+          "evidenceText": "pasteurized lowfat milk"
+        }
+      ],
+      "bad": [
+        {
+          "c": -13,
+          "why": "Cane sugar",
+          "ing": "cane sugar",
+          "cat": "sugar",
+          "refined": true
+        },
+        {
+          "c": -11,
+          "why": "\"Natural flavor\" — undisclosed proprietary flavour compound",
+          "ing": "natural strawberry flavor",
+          "cat": "naturalFlavour"
+        },
+        {
+          "c": -3,
+          "why": "\"Natural flavors\" — an undisclosed flavour blend",
+          "ing": "natural flavors",
+          "cat": "naturalFlavour"
+        }
+      ],
+      "parsed": 11
+    },
+    "actual": {
+      "score": 33,
+      "readable": true,
+      "coverage": 0.75,
+      "flags": [
+        {
+          "kind": "allergen",
+          "id": "milk",
+          "label": "Milk",
+          "ingredient": "pasteurized lowfat milk",
+          "evidence": "ingredient",
+          "evidenceText": "pasteurized lowfat milk"
+        }
+      ],
+      "bad": [
+        {
+          "c": -13,
+          "why": "Cane sugar",
+          "ing": "cane sugar",
+          "cat": "sugar",
+          "refined": true
+        },
+        {
+          "c": -11,
+          "why": "\"Natural flavor\" — undisclosed proprietary flavour compound",
+          "ing": "natural strawberry flavor",
+          "cat": "naturalFlavour"
+        },
+        {
+          "c": -3,
+          "why": "\"Natural flavors\" — an undisclosed flavour blend",
+          "ing": "natural flavors",
+          "cat": "naturalFlavour"
+        }
+      ],
+      "parsed": 12
+    }
+  }
+]

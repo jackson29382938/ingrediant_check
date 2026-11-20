@@ -1,0 +1,20 @@
+
+> ui:check
+> node scripts/ui-review.mjs
+
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+locator.fill: Error: strict mode violation: getByLabel('Find a setting', { exact: true }) resolved to 2 elements:
+    1) <section role="search" class="ui-settings-tools" aria-label="Find a setting">…</section> aka getByRole('search', { name: 'Find a setting' })
+    2) <input type="search" autocomplete="off" id="ui-settings-search"/> aka getByRole('searchbox', { name: 'Find a setting' })
+
+Call log:
+[2m  - waiting for getByLabel('Find a setting', { exact: true })[22m
+
+    at /workspace/ingrediant_check/scripts/ui-review.mjs:63:66 {
+  log: [ "  - waiting for getByLabel('Find a setting', { exact: true })" ]
+}
+
+Node.js v24.19.0

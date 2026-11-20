@@ -1,0 +1,41 @@
+--- 1. two ingredients joined by "and" where a rule reads one of them
+fixed       1: "Roasted peanuts and sugar, salt" scores 63; "Roasted peanuts, sugar, salt" scores 65
+fixed       1: "Wheat flour and sugar" scores 52; "Wheat flour, sugar" scores 54
+fixed       1: "Water, citric acid and sugar" scores 61; "Water, citric acid, sugar" scores 61
+fixed       1: "Nonfat milk and dextrose" scores 63; "Nonfat milk, dextrose" scores 65
+--- 2. "and" before the last ingredient
+fixed       2: "Milk, cream, and cane sugar" scores 65; "Milk, cream, cane sugar" scores 65
+fixed       2: "Water, salt, citric acid, and sugar" scores 63; "Water, salt, citric acid, sugar" scores 63
+--- 3. typographic hyphens
+fixed       3: "Water, high‑fructose corn syrup, salt" scores 30; "Water, high-fructose corn syrup, salt" scores 30
+fixed       3: "Water, glucose–fructose syrup, salt" scores 30; "Water, glucose-fructose syrup, salt" scores 30
+--- 4. footnote marks the parser does not strip
+fixed       4: "Oats, cane sugar1, salt" scores 65; "Oats, cane sugar, salt" scores 65
+fixed       4: "Oats, cane sugar<sup>1</sup>, salt" scores 65; "Oats, cane sugar, salt" scores 65
+fixed       4: "Oats, cane sugar+, salt" scores 65; "Oats, cane sugar, salt" scores 65
+fixed       4: "Oats, cane sugar^, salt" scores 65; "Oats, cane sugar, salt" scores 65
+fixed       4: "Oats, cane sugar◊, salt" scores 65; "Oats, cane sugar, salt" scores 65
+--- 5. text in angle brackets is removed as an HTML tag
+fixed       5: "Oats, <red 40>, salt" scores 18; "Oats, red 40, salt" scores 18
+--- 6. "less than" written with a sign or without "of"
+fixed       6: "Oats, <2% sugar, salt" scores 68; "Oats, sugar (<2%), salt" scores 68
+fixed       6: "Oats, less than 2%: sugar, salt" scores 73; "Oats, less than 2% of sugar, salt" scores 73
+--- 7. allergen warnings
+fixed       7 missed: "enriched flour" raises wheat warning
+fixed       7 missed: "all-purpose flour" raises wheat warning
+fixed       7 missed: "udon" raises wheat warning
+fixed       7 missed: "filberts" raises treeNut warning
+fixed       7 missed: "chestnuts" raises treeNut warning
+fixed       7 missed: "flounder" raises fish warning
+fixed       7 missed: "sole" raises fish warning
+fixed       7 missed: "caseinates" raises milk warning
+fixed       7 missed: "langostino" raises shellfish warning
+fixed       7 missed: "tehina" raises sesame warning
+fixed       7 false alarm: "butter beans" raises no milk warning
+fixed       7 false alarm: "cream of coconut" raises no milk warning
+fixed       7 false alarm: "oyster mushrooms" raises no shellfish warning
+fixed       7 false alarm: "gluten-free oats" raises no wheat warning
+--- 12. time on a long hyphenated run (no label is this long; a hostile page can be)
+            40,000 characters scored in 114 ms
+
+0 of 30 checks reproduce.

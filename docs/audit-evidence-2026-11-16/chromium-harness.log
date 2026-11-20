@@ -1,0 +1,90 @@
+
+> harness:ci
+> node scripts/harness-ci.mjs
+
+  ok  panel oats → 98 via nic-ingredients-content · certifications "USDA Organic, Kosher" · nutrition
+  ok  panel shampoo → not food
+  ok  panel none → paste / failure
+  ok  panel sanitizer → executable input removed, shadow styles preserved
+  ok  panel → every state meets text contrast
+  ok  lifecycle food → {"panelState":"scored","extractCalls":1,"extractsDuringChurn":0}
+  ok  lifecycle shampoo → not-food, extractCalls 0
+  ok  ocr smoke → vendored Tesseract worker started (no Amazon)
+  ok  popup compare → 28 vs 96 (5 cached, B→74)
+  ok  Compare → Instacart/Kroger saved scores survive an app-version change, appear in picker, and link to public products
+  ok  popup goals → two goals on two tabs combine; the clicked tab stays open; tabs count their picks
+  ok  popup names Amazon requests up front (auto-rate, hover, access link)
+  ok  popup → Target tab card from the content script's reply: THIS PAGE · TARGET 96 Excellent Processed · Boulder Canyon Avocado Oil Chips
+  ok  sort menu → 2 options in Amazon's list; a pick opens the panel (Amazon's page untouched), sends 8 listings with price per ounce; keyboard works; off removes it; the unit entry renames itself to the unit most listings show and sends that default
+  ok  sorted list → priority bar re-ranks (health, price per ounce, a mix); "Why it scored" dropdown and hover pop-up; Open in new tab beside Back to Amazon search; unsafe link and image dropped; named and readable in light and dark
+  ok  settings → auto-rate and hover switches, 21 stores from the manifest, auto-rate on by default, saves off
+  ok  settings → store list from the registry; request draft previewed, trimmed to the site, refused when invalid
+  ok  settings → sort: rate first / off / 100 by default; saves load more, count clamped to 500, missing → end
+  ok  settings → price per ounce on, "clear weight", speed Balanced by default; each saves; off disables its choices
+  ok  settings → instant recall defaults, independent switches, grace and persistence after reload
+  ok  settings → certification database on; shared readings off by default; product exchange remains closed pending trust verification
+  ok  settings → a weight per goal once two are picked; moving one saves it and re-averages the dials, and the goals stay selected
+  ok  settings → import applies an export; an oversized file is refused and the picker cleared
+  ok  settings → category opt-out and rating style persist after reload
+  ok  personal care → real product/search/cart scripts, three styles, cache refresh, mixed-category summary, missing supplement facts and pause
+  ok  Google sign-in setup → public client saved; local redirect https://makjklodcnakffeaghipcgenpcipfcpn.chromiumapp.org/
+  ok  Chrome profile backup → Unicode list fits real quota; sort, speed and goals survive restore/reload
+  ok  extension → service worker started with every module; 6 pages open without errors, unnamed controls or low contrast (light and dark); goal tabs work by keyboard; setup saves what was picked
+  ok  real popup → every level boots and updates through Chrome storage; pending checkbox writes preserve level changes; hidden values and legacy full view survive
+  ok  real closed-shadow panel → forced light/dark beat the OS, System follows both OS schemes, CVD score colours render, store styles stay unchanged; live Chrome toolbar palettes match
+  ok  real extension → 15 retailer previews: uncached search scans, safe badge placement, product scores, late labels and cached search (intercepted fixtures, no retailer network)
+  ok  Costco image-only badge → unchanged card height, outside image link, missing label marked unavailable
+  cart checking www.target.com
+  cart checking www.walmart.com
+  cart checking www.costco.com
+  cart checking www.instacart.com
+  cart checking www.kroger.com
+  cart checking www.frysfood.com
+  cart checking www.ralphs.com
+  cart checking www.kingsoopers.com
+  cart checking www.smithsfoodanddrug.com
+  cart checking www.fredmeyer.com
+  cart checking www.qfc.com
+  cart checking www.harristeeter.com
+  cart checking www.dillons.com
+  cart checking www.safeway.com
+  cart checking www.albertsons.com
+  ok  carts → 15 retailer stores: cold/cached ratings, a click on a rating opens the product, added/removed rows, mixed food/non-food carts, no quantity/total changes, no cookies/referrer, checkout boundaries
+  ok  Amazon cart (real markup) → a number shows why on hover and opens the product on click, as on a results page; active lines rated on their titles, average and points shown, saved/rail/carousel/footer untouched, mini cart on the post-Add-to-Cart page, checkout not read
+  ok cart label recovery → four exact public label captures score, cookie warnings survive, saved inputs replay/heal without requests, barcode/photo fallbacks respect toggles and product identity
+  recall checking target search hold
+  recall checking target search no-background
+  recall checking target search no-automatic
+  recall checking target search fresh-only
+  recall checking target search no-recall
+  recall checking target cart hold
+  recall checking target cart no-background
+  recall checking target cart no-automatic
+  recall checking target cart fresh-only
+  recall checking target cart no-recall
+  recall checking amazon search hold
+  recall checking amazon search no-background
+  recall checking amazon search no-automatic
+  recall checking amazon search fresh-only
+  recall checking amazon search no-recall
+  recall checking amazon cart hold
+  recall checking amazon cart no-background
+  recall checking amazon cart no-automatic
+  recall checking amazon cart fresh-only
+  recall checking amazon cart no-recall
+  ok  instant recall → search/cart saved scores during held refresh, one request for repeated products, refresh switches, fresh-only grace and updated scores
+  ok purchase dashboard → order/item totals, charts, progress, equal-order weighting, filters/sorts, current goals without snapshot writes, error bars and mobile dark layout
+  ok full history → background year/pagination scan, progressive ratings, bounded image overlays, hover/focus snapshot details, placement setting, pause/resume and deduplication
+  ok orders → scores with import off, compact conditional graph and calendar averages, cached scores before held requests, automatic cache updates, bounded image badges, barcode/OCR controls; opt-in saving, deduplication, returns, older pages, account sync, offline retention and deletion (fixtures)
+  ok shopping → standalone text/photo/barcode checking, named local shortlists, evidence/nutrient comparison, read-only goal preview, budget/score/evidence filters and narrow barcode permission
+  ok  qfc, harristeeter, dillons, safeway, albertsons → product routes, public labels, cold/cached searches, pagination, SPA navigation, changed labels, recycled cards and unclipped badges
+  ok  kroger, frys, ralphs, kingsoopers, smiths, fredmeyer → product routes, public labels, cold/cached searches, pagination, SPA navigation, changed labels, recycled cards and unclipped badges
+  ok  extension on saved Amazon pages → oats scored (toolbar 98), shampoo rated as a gray label index, 2 results rated through the badge queue, a click on a number opens the product
+  ok non-food sorting → volume/count prices, no health menu/controls/scores, no product requests
+  ok panel follow → new source-tab query updates automatically, also when only the address changes or results arrive late; opt-out preserves the old list
+  ok same-day grocery → linked/h3 titles past a hidden add-to-cart heading, visible cold score badges and three scored sort results
+  ok same-day layouts → a title that is only a link with unfamiliar classes: three visible score badges and three named, scored rows in the list
+  ok same-day layouts → an ASIN carried only as data-csa-c-item-id: three visible score badges and three named, scored rows in the list
+  ok same-day layouts → a carousel card that only links to a product is not a listing: no badge, no request
+
+harness CI passed (no Amazon network, no page errors)

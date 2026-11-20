@@ -1,0 +1,168 @@
+[
+  {
+    "file": "popup",
+    "scheme": "light",
+    "overflow": false,
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "file": "options",
+    "scheme": "light",
+    "overflow": false,
+    "violations": [],
+    "incomplete": [
+      "color-contrast"
+    ]
+  },
+  {
+    "file": "welcome",
+    "scheme": "light",
+    "overflow": false,
+    "violations": [],
+    "incomplete": [
+      "aria-prohibited-attr",
+      "color-contrast"
+    ]
+  },
+  {
+    "file": "history",
+    "scheme": "light",
+    "overflow": false,
+    "violations": [
+      {
+        "id": "scrollable-region-focusable",
+        "impact": "serious",
+        "description": "Ensure elements that have scrollable content are accessible by keyboard",
+        "nodes": [
+          {
+            "target": [
+              "section[aria-labelledby=\"entries\"] > .table"
+            ],
+            "summary": "Fix any of the following:\n  Element should have focusable content\n  Element should be focusable"
+          }
+        ]
+      }
+    ],
+    "incomplete": [
+      "aria-prohibited-attr",
+      "color-contrast",
+      "th-has-data-cells"
+    ]
+  },
+  {
+    "file": "report",
+    "scheme": "light",
+    "overflow": false,
+    "violations": [],
+    "incomplete": [
+      "color-contrast"
+    ]
+  },
+  {
+    "file": "sorted",
+    "scheme": "light",
+    "overflow": false,
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "file": "sidepanel",
+    "scheme": "light",
+    "overflow": false,
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "file": "library",
+    "scheme": "light",
+    "overflow": false,
+    "violations": [],
+    "incomplete": [
+      "color-contrast"
+    ]
+  },
+  {
+    "file": "popup",
+    "scheme": "dark",
+    "overflow": false,
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "file": "options",
+    "scheme": "dark",
+    "overflow": false,
+    "violations": [],
+    "incomplete": [
+      "color-contrast"
+    ]
+  },
+  {
+    "file": "welcome",
+    "scheme": "dark",
+    "overflow": false,
+    "violations": [],
+    "incomplete": [
+      "aria-prohibited-attr",
+      "color-contrast"
+    ]
+  },
+  {
+    "file": "history",
+    "scheme": "dark",
+    "overflow": false,
+    "violations": [
+      {
+        "id": "scrollable-region-focusable",
+        "impact": "serious",
+        "description": "Ensure elements that have scrollable content are accessible by keyboard",
+        "nodes": [
+          {
+            "target": [
+              "section[aria-labelledby=\"entries\"] > .table"
+            ],
+            "summary": "Fix any of the following:\n  Element should have focusable content\n  Element should be focusable"
+          }
+        ]
+      }
+    ],
+    "incomplete": [
+      "aria-prohibited-attr",
+      "color-contrast",
+      "th-has-data-cells"
+    ]
+  },
+  {
+    "file": "report",
+    "scheme": "dark",
+    "overflow": false,
+    "violations": [],
+    "incomplete": [
+      "color-contrast"
+    ]
+  },
+  {
+    "file": "sorted",
+    "scheme": "dark",
+    "overflow": false,
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "file": "sidepanel",
+    "scheme": "dark",
+    "overflow": false,
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "file": "library",
+    "scheme": "dark",
+    "overflow": false,
+    "violations": [],
+    "incomplete": [
+      "color-contrast"
+    ]
+  }
+]

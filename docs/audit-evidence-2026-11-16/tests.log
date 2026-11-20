@@ -1,0 +1,2251 @@
+
+> test
+> node scripts/run-tests.mjs
+
+
+# in parallel: 90 files
+✔ the rule modules expose their patterns to this check (2.10705ms)
+✔ no pattern puts \b against an accented letter (2.876834ms)
+✔ explicit letter classes include ß (1.128316ms)
+✔ with the switch off the page never asks (141.54026ms)
+✔ a list that scores is shown at once, and shown again only when the ratings move the score (5.839825ms)
+✔ an answer that changes nothing leaves the panel alone but keeps the ratings (2.431632ms)
+✔ a list under the coverage gate is held while the model answers, then scored if the ratings made it readable (3.287173ms)
+✔ a refused or empty answer does not score an unreadable list, and is not asked for twice (4.585461ms)
+✔ an answer for a page the reader has left is dropped (2.368548ms)
+✔ personal-care indices and manual pastes are never sent (4.760181ms)
+✔ without ratings nothing changes: an empty or missing map scores exactly as before (176.254861ms)
+✔ the closed vocabulary: every class maps to an existing category, or to none, and never adds points (0.315389ms)
+✔ a rating counts the entry as read, charges it a labelled amount, and the panel still adds up (2.046379ms)
+✔ a model can only charge: no combination of ratings raises a score (9.550206ms)
+✔ a rule always wins: a rating for an entry a rule recognises is ignored (1.052403ms)
+✔ a low-confidence answer is no answer (1.071882ms)
+✔ the reader's own weight scales an AI charge, and weight 0 removes it (1.747676ms)
+✔ limits per product: a list of strange words is not a list of defects (3.741628ms)
+✔ a list the coverage gate refused becomes readable when its unfamiliar words are rated, never otherwise (2.845867ms)
+✔ allergen, diet and avoid-list flags never read a rating (26.455718ms)
+✔ keyOf and sanitize heal anything a stored map can hold (5.542473ms)
+✔ parseReply reads a class id and a number for the names asked about, and nothing else (0.650376ms)
+✔ toAsk keeps what the engine could not read, once, minus what is already rated (0.294898ms)
+✔ ratings stay on this computer: a shared or outgoing row carries none, a local one keeps them (1.875246ms)
+✔ a label a model transcribed is kept local and never taken from the shared tab (0.249861ms)
+✔ a saved score that used ratings is retired by the switch, and one that did not is not (0.750305ms)
+✔ only the pages meant to ask can ask: Amazon tabs for ratings and labels, the settings page for the key check (34.446167ms)
+✔ nothing is sent unless the reader switched it on, gave a key and granted the host (60.923438ms)
+✔ ratings: only the ingredient names are sent, the answer is cached, and it is asked once (7.815289ms)
+✔ a hostile or broken reply rates nothing it was not asked about, and "unknown" is remembered briefly (13.470459ms)
+✔ the pause after a rate limit outlives the worker that received it (19.817017ms)
+✔ a request gives up before Chrome would stop the worker for waiting on it (0.355048ms)
+✔ a rate limit pauses everything until it clears, and a bad key or no credit is named (22.924233ms)
+✔ a model without structured output is asked again without the schema (4.939958ms)
+✔ label photos: only the product-image CDN, only a list that looks like a list, and each photo once (43.472701ms)
+✔ the key check reports success, and the key lives in one storage key that no backup reads (18.214197ms)
+✔ supplement facts preserve serving information only from the facts area (11.328949ms)
+✔ Amazon expanded Facts supplement the summary with fat, trans fat and carbohydrate (4.051258ms)
+✔ Amazon nutrition tables convert declared units and reject percent-only amounts (0.808171ms)
+✔ Amazon full Facts table works when no summary table is published (1.330716ms)
+✔ a mismatched declared product ID blocks ingredients and barcode extraction (0.324041ms)
+✔ selected Amazon variant ASIN takes precedence over its parent canonical URL (0.425983ms)
+✔ canonical-only product identity mismatch declines a substitute product (0.240067ms)
+✔ Amazon per-100g table amounts retain their basis despite a per-serving summary (0.819777ms)
+✔ Amazon dual-basis table is declined instead of selecting an arbitrary amount column (0.420034ms)
+✔ Amazon expanded Facts serving declaration supplies the basis without a summary widget (0.615834ms)
+✔ Amazon ingredient section stops before preparation suggestions in the same wrapper (1.222616ms)
+✔ Amazon section-boundary handling preserves all ingredient paragraphs and cross-contact warning (1.305099ms)
+✔ Amazon separate allergen widget keeps cross-contact warnings apart from ingredients (3.859012ms)
+✔ Amazon advisory sibling survives unreadable ingredients for barcode/photo fallback (1.158221ms)
+✔ allergen widgets outside the product nutrition card do not supply product advisory (0.357681ms)
+✔ every place that lists the Amazon storefronts lists the same ones (5.332231ms)
+✔ the worker accepts a page on each listed storefront and nothing that only looks like one (2.10039ms)
+displayed rows sum to the score — default weights
+  ok  live-amazon-us-product-2026-10-01
+  ok  live-amazon-uk-product-2026-10-01
+  ok  live-target-product-2026-10-01
+  ok  organic-whole-milk
+  ok  a2-grassfed-milk
+  ok  ultra-pasteurized-skim
+  ok  whole-milk-yogurt
+  ok  wild-sockeye-salmon
+  ok  atlantic-salmon-color-added
+  ok  commodity-ground-beef
+  ok  aga-grassfed-beef
+  ok  grassfed-butter
+  ok  extra-virgin-olive-oil
+  ok  refined-coconut-oil
+  ok  rolled-oats
+  ok  raw-honey
+  ok  pasture-raised-eggs
+  ok  soy-sauce
+  ok  sprouted-ezekiel-bread
+  ok  sourdough-bread
+  ok  white-sandwich-bread
+  ok  breakfast-cereal
+  ok  soy-protein-bar
+  ok  soda-hfcs
+  ok  diet-soda
+  ok  toaster-pastry
+  ok  potato-chips-plain
+  ok  potato-chips-avocado-oil
+  ok  peanut-butter-simple
+  ok  peanut-butter-industrial
+  ok  canned-tomatoes
+  ok  pasta-sauce-sugary
+  ok  chicken-broth
+  ok  bone-broth-clean
+  ok  deli-turkey-nitrite
+  ok  uncured-bacon
+  ok  almond-milk-gums
+  ok  greek-yogurt-fruit
+  ok  dates-only
+  ok  larabar-fruit-nut
+  ok  granola-bar-industrial
+  ok  sea-salt
+  ok  apple-cider-vinegar
+  ok  soda-natural-flavors
+  ok  ranch-dressing-disclosed
+  ok  cheddar-annatto-color
+  ok  eu-chocolate-e-numbers
+  ok  eu-diet-soda-e-numbers
+  ok  gummies-eu-azo-colours
+  ok  organic-cane-sugar-bag
+  ok  sandwich-bread-mono-diglycerides
+  ok  es-named-chocolate
+  ok  es-wheat-bread
+  ok  de-citric-vanillin
+  ok  non-gmo-soybean-oil
+  ok  non-gmo-canola-oil
+  ok  spanish-junk-panel
+  ok  english-junk-panel
+  ok  gibberish-ingredient
+  ok  cold-pressed-sunflower-oil
+  ok  refined-sunflower-oil
+
+…and under non-default weights
+  ok  all off (61 products)
+  ok  all doubled (61 products)
+  ok  preset:balanced (61 products)
+  ok  preset:generalWellbeing (61 products)
+  ok  preset:conventional (61 products)
+  ok  preset:additive (61 products)
+  ok  preset:wholeFood (61 products)
+  ok  preset:weightLoss (61 products)
+  ok  preset:muscleGain (61 products)
+  ok  preset:maintenance (61 products)
+  ok  preset:recovery (61 products)
+  ok  preset:vitamins (61 products)
+  ok  preset:strength (61 products)
+  ok  preset:endurance (61 products)
+  ok  preset:athlete (61 products)
+  ok  preset:sedentary (61 products)
+  ok  preset:generalFitness (61 products)
+  ok  preset:highProtein (61 products)
+  ok  preset:lowCarb (61 products)
+  ok  preset:highCarb (61 products)
+  ok  preset:strictSugar (61 products)
+  ok  preset:animalBased (61 products)
+
+score stays inside its own bounds
+  ok  all off
+  ok  all doubled
+  ok  preset:balanced
+  ok  preset:generalWellbeing
+  ok  preset:conventional
+  ok  preset:additive
+  ok  preset:wholeFood
+  ok  preset:weightLoss
+  ok  preset:muscleGain
+  ok  preset:maintenance
+  ok  preset:recovery
+  ok  preset:vitamins
+  ok  preset:strength
+  ok  preset:endurance
+  ok  preset:athlete
+  ok  preset:sedentary
+  ok  preset:generalFitness
+  ok  preset:highProtein
+  ok  preset:lowCarb
+  ok  preset:highCarb
+  ok  preset:strictSugar
+  ok  preset:animalBased
+
+row-level guarantees
+  ok  no displayed row is worth zero points
+  ok  an earned bonus never displays as nothing
+  ok  the binding cap has a numeric deduction and respects its ceiling
+  ok  turning a category off removes its rows entirely
+  ok  refined whole-food fats do not earn the unrefined or simplicity bonuses
+  ok  sourcing and raw-dairy bonuses match the product type and evidence
+  ok  a cap that goals moved names its default weight
+
+0 known failure(s) against open defects: none
+all passed
+✔ tests/arithmetic.test.js (1722.630796ms)
+✔ a marketing qualifier in front of a sweetener does not remove its penalty (307.127891ms)
+✔ pack and case wording is not evidence against food (9.348547ms)
+✔ a sparkling-water search does not stand down on its own result titles (0.409438ms)
+✔ a published list survives a trailing logistics sentence (1.995764ms)
+✔ nut butters, plant milks and cream of tartar are not dairy (93.223347ms)
+✔ a product derived from a whole food is not classed as the whole food (7.305352ms)
+✔ plain flour is processed, not ultra-processed; sugar and oil earn no whole-food bonus (37.73276ms)
+✔ the same chocolate scores the same in five languages (15.847631ms)
+✔ decimal percentages and "contains less than" do not create junk entries (1.249075ms)
+✔ one oil produces one cap row (3.404718ms)
+✔ nutrition values parse with decimal commas and added sugar reads its own row (6.20704ms)
+✔ placeholder words inside a real list do not refuse the list; a placeholder instead of one still does (0.38427ms)
+✔ English heading variants sellers write find the list; the heading alone is not a list (6.505353ms)
+✔ a function word in parentheses beside a named additive is a disclosure, not a second additive (556.581428ms)
+✔ a function word with nothing readable beside it is still an undisclosed additive (5.520741ms)
+✔ the qualifier strip never charges the same flavour twice (36.841286ms)
+✔ cane sugar costs what sugar costs, once (5.239674ms)
+✔ an additive named by E-number scores like its English name (29.909779ms)
+✔ the EU azo colours that carry a warning label set a ceiling (3.212262ms)
+✔ E322 is charged as lecithin of unstated source, between soy and sunflower (1.267012ms)
+✔ maltodextrin, maltitol and maltose are not wheat (1.755337ms)
+✔ sweet potato is not a nightshade, a Cornish hen is not corn, rice bran oil is keto (5.497025ms)
+✔ vegan and vegetarian flags see the animals labels actually name (79.517479ms)
+✔ the three EU-only allergens exist and read four languages (0.387155ms)
+✔ dairy is detected in Spanish, French, German and Italian, and plant milks are not (1.613246ms)
+✔ accented words have boundaries: blé, œuf, maní, épeautre (0.469257ms)
+✔ real groceries no longer read as equipment, apparel or skincare from the title alone (7.256619ms)
+✔ the non-food titles those guards protected still read as non-food (0.58507ms)
+✔ penalty rows carry their category and the refined-sugar mark (4.587214ms)
+✔ the paste box does not take focus when the failure card mounts (0.600371ms)
+✔ hover and auto-score arm on public shopping pages and skip the main product on its own page (96.931461ms)
+✔ milk thistle and crab apple are plants, not milk or shellfish; real milk and crab still flag (6.974741ms)
+✔ allergens hidden in ingredient names are flagged (a missed flag looks like "clear") (14.570894ms)
+✔ the allergen declaration words themselves are flagged, in every label language (45.888539ms)
+✔ animal ingredients in every label language conflict with vegetarian and vegan (120.821804ms)
+✔ additives in the spellings US labels print: "FD&C Red No. 40", "#40", spelled-out TBHQ, bromated flour, propylparaben (17.497822ms)
+✔ indigo carmine, Citrus Red 2 and an unnamed sugar alcohol are read (1.991178ms)
+✔ simultaneous diagnostics preserve every row (84.53382ms)
+✔ a row arriving during a successful flush survives (14.395954ms)
+✔ disabled diagnostics and master pause prevent queued sends (59.549187ms)
+✔ HTTP success without a confirmed write retains the batch (23.210167ms)
+✔ diagnostic outcomes require a compatible backend before any row is uploaded (14.734747ms)
+✔ new diagnostics clear only after a schema-aware receipt and retain stable IDs on retry (21.112962ms)
+✔ updating an old diagnostic backend can be retried immediately without losing queued outcomes (45.442001ms)
+✔ turning diagnostics off during a capability check prevents the pending upload (5.452169ms)
+✔ offscreen document can be recreated after Chrome closes it (10.191419ms)
+✔ queued diagnostics receive a stable row id (8.540968ms)
+✔ flush posts a batch id and clears after a duplicate acknowledgement (4.209924ms)
+✔ stored maps cannot return inherited properties as certifications (6.145819ms)
+✔ pageScore paints and clears the toolbar badge for a tab (9.160097ms)
+✔ a personal-care index paints the toolbar badge gray, not a quality color (7.060438ms)
+✔ master pause blocks every passive background entry point (6.594505ms)
+✔ contributions and reports require a confirmed single-row write (63.482921ms)
+✔ postRecord rejects non-Apps-Script endpoints even if storage held them (6.259649ms)
+✔ pausing aborts an active background response body (7.345832ms)
+✔ the housekeeping alarm is created once and never re-timed on worker restart (27.025375ms)
+✔ OCR fetch URLs must be Amazon product images (41.698961ms)
+✔ message allowlist is inverted: page / settings / offscreen / deny-unknown (30.624941ms)
+✔ provenance comes from the endpoint, never from a sheet URL, and revisions follow content (18.552319ms)
+✔ offline: an unconfigured build or the shared database switched off makes no request (88.554322ms)
+✔ an oversized or malformed provenance reply keeps the previous copy (50.158658ms)
+✔ lookup: one request for all tiles, stale rows dropped, answers memoised (11.12805ms)
+✔ writes are batched: no POST per tile, one POST when the batch fills, no retry storm (55.037645ms)
+✔ install drops the pasted-URL era keys (12.54145ms)
+✔ settings back up to the Chrome account, sanitized and split under the 8 KB item cap (10.961022ms)
+✔ a backup is never applied on its own: local settings stay in force (10.517663ms)
+✔ account save and restore carry a token and the sanitized backup only (4.886148ms)
+✔ only the settings page can send settings messages; the popup and pages cannot (3.645285ms)
+✔ the sender rule does not stop the alarm flush or a full batch (9.258463ms)
+✔ the housekeeping sweep keeps scores and readings as long as the speed setting says (21.806031ms)
+✔ shared product readings stay off until the reader turns them on (13.758638ms)
+✔ turning shared product readings off drops what was waiting to upload (9.447073ms)
+[Ingredient Check] backupToChrome: quota
+[Ingredient Check] backupToChrome: quota
+✔ Open Food Facts: simultaneous lookups for one barcode send one request (8.070028ms)
+✔ Open Food Facts: a failed lookup is not remembered, and the food check stays per caller (7.9302ms)
+✔ Open Food Facts: "no such product" is remembered for three days, a failure is not (38.995216ms)
+✔ the diagnostics status answers even when storage fails (7.395025ms)
+✔ toolbar badge colours keep white text readable (WCAG AA, 4.5:1) (5.404207ms)
+✔ Open Food Facts: allergen markup (_WHEAT_) is stripped from the text the page shows and saves (8.410964ms)
+✔ backup stages alternate banks, preserves the last copy on failure, and records recovery (52.284205ms)
+✔ Google save requires confirmed account receipt; restore sanitizes without persisting the token (15.331194ms)
+✔ failed pointer commit leaves the prior backup readable after staged parts were written (18.159625ms)
+✔ closed build prevents shared product reads and writes even with a saved opt-in (12.746795ms)
+✔ barcode lookup never contacts Open Food Facts without its Chrome host permission (45.052333ms)
+✔ retailer previews can update toolbar scores but cannot invoke network or account handlers (14.077571ms)
+✔ disabling Chrome backup during staging preserves the last committed copy (14.939772ms)
+✔ toolbar uses stored colour-blind palette and readable text at all five band thresholds (30.843922ms)
+✔ palette changes repaint existing tab badges without another page-score message (63.177346ms)
+✔ worker restart recovers numeric badges already held by Chrome without rescanning or persisting tab records (5.908346ms)
+✔ a pending Chrome badge read cannot resurrect a cleared or newly scored badge (14.248592ms)
+✔ a late startup settings read cannot replace a newly selected toolbar palette (6.422085ms)
+✔ automatic Google backup checks token identity and consent after authentication (79.539761ms)
+✔ housekeeping retains both readings and scores throughout recall grace (6.998351ms)
+✔ purchase sync uploads only records that differ from the remote copy (10.231486ms)
+✔ search following requires an open view, enabled preference and the original source tab (7.14623ms)
+✔ a list that is open is found after the worker has slept, by asking it (64.12342ms)
+✔ a re-run starts the listed search again, but only from the page that is listed (9.148346ms)
+✔ search following works after a search that did not load a page, and still refuses another origin or frame (9.928615ms)
+✔ a handler whose work fails still answers its sender, and leaves a trace (8.513027ms)
+✔ the housekeeping sweep reads the cache keys, not the purchase history, where the browser can list keys (10.024628ms)
+✔ importing what is already stored writes nothing; a changed or new purchase is written (42.04803ms)
+✔ the import behaves as the full comparison did, over many histories and batches (520.450225ms)
+✔ a click on a badge beside the title link is handed to that link, and nothing else sees it (4.583369ms)
+✔ modifier keys carry over, so Ctrl or Cmd click opens a new tab as it does on the title (2.89485ms)
+✔ a badge inside the link is left to the browser: no second click, nothing prevented (2.9611ms)
+✔ Enter on a focused badge opens the product, even when the badge is inside the link; other keys do not (1.89829ms)
+✔ the link is the visible one to the same product: hidden copies and other products are skipped (2.983142ms)
+✔ a store badge names its product itself; the link is found in the nearest element around it that has one (2.668865ms)
+✔ a cart badge is a badge too, and anything else is ignored (1.494631ms)
+a product name published as ingredients is refused
+  ok  the live Lifeway case
+  ok  pack specs with no title
+  ok  name plus size
+  ok  count and cfu claims
+
+a real list is still read, even when it echoes the title
+  ok  the actual Lifeway label
+  ok  single-ingredient whole food
+  ok  two ingredients, both in the title
+  ok  peanut butter
+  ok  a list that merely mentions a weight
+
+the blurb and the label do not score alike
+  ok  scoring the blurb would have been 50+ points wrong
+
+fat-reduced dairy covers the nouns dairy actually comes as
+  ok  Cultured lowfat kefir
+  ok  Low fat cottage cheese, salt
+  ok  Part-skim mozzarella cheese
+  ok  Reduced-fat sour cream, cultures
+  ok  Nonfat buttermilk
+
+all passed
+✔ tests/blurb.test.js (257.825471ms)
+✔ grocery enhancement leaves the separately maintained store adapters unchanged (2.96153ms)
+✔ modern Albertsons banner routes accept only public store-bound product IDs (0.803213ms)
+✔ manifest actually injects the enhancement on modern products and trailing-slash searches (0.227869ms)
+✔ observed public Next Flight oats/chips declarations score without a rendered h1 (9.549477ms)
+✔ public model rejects stale IDs, mixed catalogs, missing identity and unavailable catalog entries (2.935201ms)
+✔ canonical and page wrapper mismatches refuse identity-bound labels (0.588254ms)
+✔ duplicate disagreeing public models and conflicting ingredients stay unknown (1.6285ms)
+✔ script text, malformed Flight data, unresolved references and marketing do not become ingredients (3.031273ms)
+✔ observed nested nutrient quantities convert explicit units and never substitute daily percentages (0.937153ms)
+✔ conflicting, invalid and ambiguous nutrition quantities remain unknown independently (0.866728ms)
+✔ visible product label replaces hydration text without including dialogs or recommendations (2.096064ms)
+✔ recommended and hidden declarations inside the product area cannot replace its public label (1.064522ms)
+✔ report capture recognizes modern products while refusing private-looking slugs (1.509012ms)
+✔ observed Kroger banner cards mount outside truncated links and preserve actual product URLs (2.370161ms)
+✔ modern Safeway/Albertsons search links stay on their own origin and accept filters/pagination (0.771436ms)
+✔ mixed cards, hidden controls and recommendations cannot receive a bottom-five search score (3.424738ms)
+✔ image-only bottom-five cards use corner badges outside image links (1.279681ms)
+✔ Chrome API object is preserved exactly (2.602827ms)
+✔ Firefox preserves callback APIs and Promise APIs and maps sidebar without losing arguments (1.552947ms)
+✔ browser manifests retain all store matches and use explicit Firefox background/sidebar fields (13.760422ms)
+✔ Mozilla URLs are accepted only for the actual extension origin, with account handlers restricted (4.429421ms)
+✔ Firefox content scripts boot with their restricted API surface (2.473565ms)
+✔ Firefox avoids missing-message console errors while preserving translated substitutions (0.803805ms)
+✔ Firefox profile backup cannot upload without native data-sharing consent (4.20058ms)
+✔ Firefox console checks separate only the exact native inactive-page diagnostic (1.130695ms)
+✔ Firefox native RuntimeMessage actor teardown is separated without hiding application failures (0.365313ms)
+✔ Firefox native "resolved after context unloaded" is separated only when it is exactly that message (0.415407ms)
+✔ Firefox concurrent OCR requests wait for a loaded host and can retry a failed load (1.685915ms)
+✔ published cart label is readable: Amazon Grocery, Cut Watermelon, 32 Oz (83.466529ms)
+✔ published cart label is readable: Navitas Organics Pomegranate Powder – Organic Juice Powder - For Smoothies, Desserts, Dips & More – Antioxidant Support - USDA Organic, Non GMO, Kosher, Gluten Free, Vegan (8oz. Bag, 45 Servings) (79.638492ms)
+✔ published cart label is readable: Amazon Grocery, Original Sandwich Cookies, 14.3 Oz (Previously Happy Belly, Packaging May Vary) (26.050421ms)
+✔ published cart label is readable: Zorrer Premium Jujube Dates, 16 oz, Red Dates, Sun-Dried, No Added Sugar (1.209697ms)
+✔ literal, encoded and numeric label breaks keep cookie ingredients separate from cross-contact warnings (4.264795ms)
+✔ certified ingredient qualifiers retain real ingredients and do not make unknown foods readable (3.25137ms)
+✔ recognized fruit names and botanical aliases retain one identity without hiding other bracket ingredients (8.399989ms)
+✔ short ingredient photos recover jujubes and common single foods without accepting OCR noise (3.129118ms)
+✔ Amazon: cart line identity and route exclude private data and unrelated links (7.920106ms)
+✔ Target: cart line identity and route exclude private data and unrelated links (2.454627ms)
+✔ Walmart: cart line identity and route exclude private data and unrelated links (2.060932ms)
+✔ Costco: cart line identity and route exclude private data and unrelated links (1.834896ms)
+✔ Instacart: cart line identity and route exclude private data and unrelated links (1.912891ms)
+✔ Kroger: cart line identity and route exclude private data and unrelated links (1.92521ms)
+✔ Fry’s: cart line identity and route exclude private data and unrelated links (0.840378ms)
+✔ Ralphs: cart line identity and route exclude private data and unrelated links (1.085232ms)
+✔ King Soopers: cart line identity and route exclude private data and unrelated links (0.947438ms)
+✔ Smith’s: cart line identity and route exclude private data and unrelated links (0.802642ms)
+✔ Fred Meyer: cart line identity and route exclude private data and unrelated links (1.057ms)
+✔ QFC: cart line identity and route exclude private data and unrelated links (0.49782ms)
+✔ Harris Teeter: cart line identity and route exclude private data and unrelated links (0.563467ms)
+✔ Dillons: cart line identity and route exclude private data and unrelated links (1.251039ms)
+✔ Safeway: cart line identity and route exclude private data and unrelated links (1.143188ms)
+✔ Albertsons: cart line identity and route exclude private data and unrelated links (1.307933ms)
+✔ cart drawers work on product/search pages; stray cart-like cards do not (0.683776ms)
+✔ two cart lines of the same product can each display a rating without titles absorbing badges (1.198321ms)
+✔ all Amazon locales and retailer-specific cart routes are scoped (0.345904ms)
+✔ Amazon cart markup accepts title-slug product links and skips saved-for-later items (0.263121ms)
+✔ semantic cart rows support markup without retailer test attributes and exclude hidden rows (0.324302ms)
+✔ Amazon cart page: the active lines are rated by their visible title, and nothing else on the page is (3.790681ms)
+✔ Amazon cart page: a long title (full text plus the cut-off copy) does not drop the line (3.420782ms)
+✔ Amazon mini cart (the page after Add to Cart, and the slide-out cart) rates its lines, not the confirmation image or the carousels (1.654698ms)
+✔ Amazon cart rows must be active lines: a saved-for-later line inside the active list is skipped (0.43113ms)
+✔ on any store, rows inside carousels, suggestions, "buy it again" and footers are not cart lines (2.366315ms)
+✔ colour-blind score cues remain separated under simulated protanopia (1.604684ms)
+✔ colour-blind score cues remain separated under simulated deuteranopia (1.020767ms)
+✔ colour-blind score cues remain separated under simulated tritanopia (0.26253ms)
+✔ all toolbar palettes retain readable score numbers, including bright colour-blind fills (1.263662ms)
+✔ enabled off aborts in-flight tile requests and suppresses late replies (28.969808ms)
+✔ badges off aborts in-flight tile requests and suppresses late replies (3.851011ms)
+✔ autoScoreSearch off aborts in-flight tile requests and suppresses late replies (6.006554ms)
+✔ a scheduled tile job does not start after pause (3.851953ms)
+✔ resetting the search invalidates replies even when scoring stays enabled (4.581887ms)
+✔ manual ingredients survive a preference rescore and clear on navigation (5.859876ms)
+✔ navigation removes the old loading panel and renders the new product (5.381315ms)
+✔ navigation removes the old fail panel and renders the new product (4.642857ms)
+✔ navigation removes the old scored panel and renders the new product (3.484467ms)
+✔ leaving a product page tears the panel down and does not rescore (3.524616ms)
+✔ tile fetch failures stay in seen and pause auto-score after N 403s (2.395148ms)
+✔ an aborted tile fetch does not count toward the throttle pause (1.365469ms)
+✔ navigation clears the throttle pause (1.18478ms)
+✔ JP/AR hosts skip English OCR and surface a locale decline (1.862217ms)
+✔ manual paste declines low-coverage text instead of scoring it (1.097841ms)
+✔ manual scores are available to this tab but never stored as search scores (1.416034ms)
+✔ a tile answered by product data on this computer needs no lookup and no Amazon fetch (5.318952ms)
+✔ local misses go to the shared cache in one lookup, count a pull, and are kept locally (3.893174ms)
+✔ with the food gate on, a not-food row paints nothing and fetches nothing (1.936026ms)
+✔ a live tile read is kept locally and queued for the shared cache (2.568576ms)
+✔ without the opt-in, tiles and product pages never ask for or upload shared readings (3.857421ms)
+✔ an unreadable product page is answered by a saved reading before OCR or the paste box (2.21449ms)
+✔ a saved reading shows first, then the label photo is read again and a different reading replaces it (2.837585ms)
+✔ the same reading, or a re-read that fails, leaves the saved score in place (4.224456ms)
+✔ speed: "Most up to date" reads pages itself instead of asking the shared database (1.518786ms)
+✔ speed: "Fresher" re-reads a product saved 10 days ago; Balanced still uses it (2.730827ms)
+✔ a shared reading answers an unreadable page and counts a pull; a miss falls through to OCR (2.688254ms)
+✔ tiles answered without a fetch do not use up the auto-score budget (1.319531ms)
+✔ carousel cards with no title are never armed for auto-score (1.478357ms)
+✔ the first automatic fetch explains itself once, and its button turns auto-rating off (1.381903ms)
+✔ OK dismisses the notice for good without touching the setting (1.083199ms)
+✔ no notice once seen, for hover scoring, or while paused (3.958551ms)
+✔ a score from a saved reading survives the next Amazon page update (1.447461ms)
+✔ a product the badges are already requesting is not requested again for the sorted list (20.010568ms)
+✔ the sorted list and the badges share three request slots (5.612298ms)
+✔ Amazon refusing the badges pauses the sorted list too, and the reverse (4.868483ms)
+✔ the sorted list's product pages count toward the per-results-page budget (2.533443ms)
+✔ the sorted list's time limit stops rating without a request and says why (1.900143ms)
+✔ the reader's request pace sets how many product pages are in flight (11.565762ms)
+✔ one product page view asks Open Food Facts once, however often Amazon updates the page (1.491966ms)
+✔ changing the speed setting reworks the badges already on the page (1.115657ms)
+✔ a failed product-page request is not held: the next caller asks again (1.505467ms)
+✔ a list read from the label photo keeps the nutrition numbers the page published (1.431857ms)
+✔ late additives beyond the old 320-character prefix invalidate the Amazon page score (1.442313ms)
+✔ late Nutrition Facts hydration updates the Amazon score without changing ingredients (1.260913ms)
+✔ Amazon hydration observer detects text-node updates as well as inserted nodes (0.989881ms)
+✔ search product readings retain declared cross-contact warnings (0.989179ms)
+✔ an Amazon product redirect never records a different product under the requested ASIN (1.026906ms)
+✔ a product response without a product title never scores or enters the cache (1.270287ms)
+✔ old Amazon product DOM during soft navigation cannot score or trigger barcode lookup (1.013276ms)
+✔ a connected Amazon tile reused for another ASIN cannot receive a stale score (1.56865ms)
+✔ a delayed local cache reply cannot badge an Amazon tile whose ASIN changed (1.030141ms)
+✔ Amazon observes product ID attribute changes while ignoring its own badge attributes (1.140394ms)
+✔ saved Amazon ingredients use newly published nutrition and allergy warnings without renewing age (1.557434ms)
+✔ shortcut: the page starts gathering for the list the worker made, and answers that it did (7.615214ms)
+✔ shortcut: only this extension's worker may start a list, and only with a plain run id (2.712871ms)
+✔ shortcut: a page where Ingredient Check stands down does not answer, so the worker can say why (1.440601ms)
+✔ shortcut: a second key press supersedes the first list (3.600129ms)
+✔ Amazon Fresh arms titled carousel cards without a data-asin, using only same-store links (5.206655ms)
+corpus — calibration bands
+  ok  live-amazon-us-product-2026-10-01: scored 89 (Good), expected 50-100
+  ok  live-amazon-uk-product-2026-10-01: scored 35 (Poor), expected 0-40
+  ok  live-target-product-2026-10-01: scored 98 (Excellent), expected 75-100
+  ok  organic-whole-milk: scored 94 (Excellent), expected 80-100
+  ok  a2-grassfed-milk: scored 99 (Excellent), expected 90-100
+  ok  ultra-pasteurized-skim: scored 90 (Excellent), expected 75-95
+  ok  whole-milk-yogurt: scored 96 (Excellent), expected 75-100
+  ok  wild-sockeye-salmon: scored 99 (Excellent), expected 90-100
+  ok  atlantic-salmon-color-added: scored 67 (Mediocre), expected 60-92
+  ok  commodity-ground-beef: scored 86 (Good), expected 70-90
+  ok  aga-grassfed-beef: scored 99 (Excellent), expected 85-100
+  ok  grassfed-butter: scored 96 (Excellent), expected 85-100
+  ok  extra-virgin-olive-oil: scored 96 (Excellent), expected 85-100
+  ok  refined-coconut-oil: scored 90 (Excellent), expected 80-100
+  ok  rolled-oats: scored 98 (Excellent), expected 88-100
+  ok  raw-honey: scored 85 (Good), expected 80-100
+  ok  pasture-raised-eggs: scored 98 (Excellent), expected 85-100
+  ok  soy-sauce: scored 48 (Poor), expected 30-70
+  ok  sprouted-ezekiel-bread: scored 65 (Mediocre), expected 55-80
+  ok  sourdough-bread: scored 78 (Good), expected 50-85
+  ok  white-sandwich-bread: scored 27 (Poor), expected 3-35
+  ok  breakfast-cereal: scored 45 (Poor), expected 10-50
+  ok  soy-protein-bar: scored 18 (Avoid), expected 3-40
+  ok  soda-hfcs: scored 30 (Poor), expected 3-30
+  ok  diet-soda: scored 30 (Poor), expected 3-30
+  ok  toaster-pastry: scored 18 (Avoid), expected 3-30
+  ok  potato-chips-plain: scored 63 (Mediocre), expected 50-70
+  ok  potato-chips-avocado-oil: scored 94 (Excellent), expected 70-100
+  ok  peanut-butter-simple: scored 94 (Excellent), expected 80-100
+  ok  peanut-butter-industrial: scored 36 (Poor), expected 25-70
+  ok  canned-tomatoes: scored 88 (Good), expected 75-100
+  ok  pasta-sauce-sugary: scored 36 (Poor), expected 15-50
+  ok  chicken-broth: scored 45 (Poor), expected 25-60
+  ok  bone-broth-clean: scored 74 (Mediocre), expected 70-100
+  ok  deli-turkey-nitrite: scored 29 (Poor), expected 20-65
+  ok  uncured-bacon: scored 24 (Avoid), expected 20-65
+  ok  almond-milk-gums: scored 34 (Poor), expected 25-70
+  ok  greek-yogurt-fruit: scored 33 (Poor), expected 10-45
+  ok  dates-only: scored 98 (Excellent), expected 88-100
+  ok  larabar-fruit-nut: scored 94 (Excellent), expected 75-100
+  ok  granola-bar-industrial: scored 5 (Avoid), expected 3-25
+  ok  sea-salt: scored 90 (Excellent), expected 85-100
+  ok  apple-cider-vinegar: scored 96 (Excellent), expected 80-100
+  ok  soda-natural-flavors: scored 44 (Poor), expected 35-55
+  ok  ranch-dressing-disclosed: scored 29 (Poor), expected 10-35
+  ok  cheddar-annatto-color: scored 80 (Good), expected 75-92
+  ok  eu-chocolate-e-numbers: scored 32 (Poor), expected 22-45
+  ok  eu-diet-soda-e-numbers: scored 28 (Poor), expected 3-30
+  ok  gummies-eu-azo-colours: scored 18 (Avoid), expected 3-25
+  ok  organic-cane-sugar-bag: scored 81 (Good), expected 74-85
+  ok  sandwich-bread-mono-diglycerides: scored 22 (Avoid), expected 10-35
+  ok  es-named-chocolate: scored 31 (Poor), expected 22-45
+  ok  es-wheat-bread: scored 30 (Poor), expected 10-45
+  ok  de-citric-vanillin: scored 29 (Poor), expected 20-55
+
+corpus — defect cases
+  ok  non-gmo-soybean-oil: scored 63 (Mediocre), expected 50-65
+  ok  non-gmo-canola-oil: scored 46 (Poor), expected 35-65
+  ok  spanish-junk-panel: scored 5 (Avoid), expected 3-30
+  ok  english-junk-panel: scored 5 (Avoid), expected 3-30
+  ok  gibberish-ingredient: scored 90 (Excellent), expected 3-100
+  ok  cold-pressed-sunflower-oil: scored 78 (Good), expected 40-100
+  ok  refined-sunflower-oil: scored 63 (Mediocre), expected 50-65
+
+corpus — recognition coverage
+  ok  live-amazon-us-product-2026-10-01: 100%
+  ok  live-amazon-uk-product-2026-10-01: 100%
+  ok  live-target-product-2026-10-01: 100%
+  ok  organic-whole-milk: 100%
+  ok  a2-grassfed-milk: 100%
+  ok  ultra-pasteurized-skim: 100%
+  ok  whole-milk-yogurt: 100%
+  ok  wild-sockeye-salmon: 100%
+  ok  atlantic-salmon-color-added: 100%
+  ok  commodity-ground-beef: 100%
+  ok  aga-grassfed-beef: 100%
+  ok  grassfed-butter: 100%
+  ok  extra-virgin-olive-oil: 100%
+  ok  refined-coconut-oil: 100%
+  ok  rolled-oats: 100%
+  ok  raw-honey: 100%
+  ok  pasture-raised-eggs: 100%
+  ok  soy-sauce: 100%
+  ok  sprouted-ezekiel-bread: 100%
+  ok  sourdough-bread: 100%
+  ok  white-sandwich-bread: 100%
+  ok  breakfast-cereal: 100%
+  ok  soy-protein-bar: 100%
+  ok  soda-hfcs: 100%
+  ok  diet-soda: 100%
+  ok  toaster-pastry: 89%
+  ok  potato-chips-plain: 100%
+  ok  potato-chips-avocado-oil: 100%
+  ok  peanut-butter-simple: 100%
+  ok  peanut-butter-industrial: 100%
+  ok  canned-tomatoes: 100%
+  ok  pasta-sauce-sugary: 88%
+  ok  chicken-broth: 100%
+  ok  bone-broth-clean: 100%
+  ok  deli-turkey-nitrite: 88%
+  ok  uncured-bacon: 100%
+  ok  almond-milk-gums: 92%
+  ok  greek-yogurt-fruit: 100%
+  ok  dates-only: 100%
+  ok  larabar-fruit-nut: 100%
+  ok  granola-bar-industrial: 100%
+  ok  sea-salt: 100%
+  ok  apple-cider-vinegar: 100%
+  ok  soda-natural-flavors: 100%
+  ok  ranch-dressing-disclosed: 93%
+  ok  cheddar-annatto-color: 100%
+  ok  eu-chocolate-e-numbers: 100%
+  ok  eu-diet-soda-e-numbers: 100%
+  ok  gummies-eu-azo-colours: 100%
+  ok  organic-cane-sugar-bag: 100%
+  ok  sandwich-bread-mono-diglycerides: 100%
+  ok  es-named-chocolate: 100%
+  ok  es-wheat-bread: 100%
+  ok  de-citric-vanillin: 100%
+  ok  non-gmo-soybean-oil: 100%
+  ok  non-gmo-canola-oil: 100%
+  ok  spanish-junk-panel: 100% — readable, so it gets scored
+  ok  english-junk-panel: 100%
+  ok  gibberish-ingredient: 0% — correctly unreadable
+  ok  cold-pressed-sunflower-oil: 100%
+  ok  refined-sunflower-oil: 100%
+
+corpus — invariants between paired products
+  ok  negation must not launder a capped oil: non-gmo-soybean-oil=63 vs english-junk-panel=5 — a Non-GMO seed oil must still respect the default moderate ceiling
+  ok  language must not change the verdict: spanish-junk-panel=5 vs english-junk-panel=5 — the same product in two languages must score alike
+  ok  unrefined oil must beat refined: cold-pressed-sunflower-oil=78 vs refined-sunflower-oil=63 — oils.UNREFINED is meant to soften the cap
+  ok  audited beef must beat silent commodity beef: aga-grassfed-beef=99 vs commodity-ground-beef=86 — certifications are where the real variation lives
+  ok  clean chips must beat seed-oil chips: potato-chips-avocado-oil=94 vs potato-chips-plain=63 — avocado oil vs safflower oil is the whole difference
+  ok  "uncured" must not beat honest nitrite by much: uncured-bacon=24 vs deli-turkey-nitrite=29 — celery powder IS nitrite; the label wording is the only difference
+
+0 known failure(s) against open defects: none
+all passed
+✔ tests/corpus.test.js (282.471344ms)
+✔ Costco recognizes old and modern products without mixing subdomains or schemes (1.670362ms)
+✔ Costco does not extract private or nonproduct pages even when they contain labels (1.97879ms)
+✔ Costco search detection accepts only supported public routes on its own host (1.376705ms)
+✔ Costco captured public product exposes identity and breadcrumbs while leaving absent labels unknown (2.034473ms)
+✔ Costco captured initial search does not turn a header advertisement into a search result (1.098122ms)
+✔ Costco second live grocery sample remains unknown without assuming coffee has a single ingredient (1.490885ms)
+✔ Costco hydrated fixture cards separate title badge anchors from image and card containers (1.6829ms)
+✔ Costco skips mixed-product cards instead of borrowing a title across item IDs (0.776523ms)
+✔ Costco accepts a mixed card only after hydration resolves all links to one product (1.092653ms)
+✔ Costco card title links take precedence over generic image labels and decoration (0.420425ms)
+✔ Costco card image fallback must belong to its own product link (0.597588ms)
+✔ Costco card headings inside foreign links cannot name a different product (0.396199ms)
+✔ Costco nested ProductTile wrappers do not blend independent product identities (0.469237ms)
+✔ Costco image-only cards request corner placement without inserting badges inside image links (0.294558ms)
+✔ Costco badge text does not become part of product identity on a later search pass (0.536127ms)
+✔ Costco same-origin public product URL helper strips search tracking and rejects invalid origins or IDs (0.459943ms)
+✔ Costco product panel anchor stays outside the immediate title and wishlist flex row (0.212276ms)
+✔ Costco search ignores off-store links and navigation even when they have valid item IDs (0.375047ms)
+✔ Costco recommendations and sponsored sections cannot hide the actual search result with the same ID (0.396259ms)
+✔ Costco declared labels retain multiword ingredients and never infer absent nutrition (1.30585ms)
+✔ Costco stale canonical identity cannot reuse a prior page label (0.221068ms)
+✔ Costco direct Product URL identity catches stale SPA labels independently of warehouse SKU (1.333981ms)
+✔ Costco structured identity resumes when deferred Product URL catches up with the route (0.607803ms)
+✔ Costco unrelated or incomplete structured metadata does not invent ingredients or block a valid DOM declaration (2.611199ms)
+✔ Costco scoped public product title outranks unrelated page headings (0.494044ms)
+✔ Costco recommendation product metadata cannot override current-page structured identity (1.054406ms)
+✔ Costco ingredient-looking image alt, marketing and serialized script data stay unscored (0.416559ms)
+the evidence travels with the answer
+  ok  the scored text is on the row
+  ok  the rules that fired are on the row
+  ok  which path produced the text is recorded
+  ok  only non-default weights are recorded, so a row is reproducible
+
+scans that produced no score, and reader feedback
+  ok  a normal row is outcome "scored" with no feedback
+  ok  a declined scan keeps the product and leaves the score cells empty
+  ok  a "Looks wrong?" click records the evidence and the feedback
+  ok  an unknown outcome falls back to "scored" rather than polluting the column
+
+nothing about the person is on the row
+  ok  no identifiers beyond the product
+  ok  the row has exactly the declared columns
+
+one row survives whatever a page throws at it
+  ok  missing data does not throw or produce undefined cells
+  ok  long fields are bounded
+  ok  newlines never break the row
+
+the sheet and the extension agree on the columns
+  ok  apps-script.gs declares the same columns in the same order
+
+all passed
+✔ tests/diagnostics.test.js (319.101783ms)
+ingestible.assess
+  ok  grocery oats pass
+  ok  international store-brand milk passes on nutrition panel
+  ok  shampoo is rejected
+  ok  beauty department is enough even without a cosmetic word
+  ok  drug facts reject medicine
+  ok  essential oil is not food
+  ok  olive oil food is not treated as essential oil
+  ok  title prefilter skips shampoo but not generic oats
+  ok  food titles are not treated as kitchen equipment
+  ok  real kitchen equipment is still skipped
+ingestible.assessTitle — the cheap path
+  ok  a title alone can reject, with a reason worth showing
+  ok  common non-food titles are caught without any page context
+  ok  an ambiguous title is NOT rejected on the title alone
+Open Food Facts filter
+  ok  explicit beauty product_type is rejected
+  ok  missing product_type with no beauty categories is accepted
+  ok  en:shampoos category is rejected
+extract() honors foodOnly
+  ok  foodOnly on: shampoo does not parse ingredients
+  ok  foodOnly off: shampoo ingredients are parsed
+  ok  food product still extracts when foodOnly is on
+  ok  manufacturing allergen advisories stay out of ingredients but remain available for flags
+looksLikeIngredients accepts short whole foods
+  ok  short and long single-ingredient phrases are accepted
+  ok  headings and logistics copy are still rejected
+  ok  EU ingredient headings are recognised as headings
+  ok  line-sweep heading matches localised labels
+  ok  inline Ingredients: lists extract from detail bullets
+  ok  short whole-food text extracts from the nutrition card
+  ok  manual paste accepts a real list and rejects a stub
+  ok  scored panel offers a copy action and coverage warning
+  ok  not-food card uses the settings explanation
+settings prefs reach the scorer
+  ok  allergen and avoid-list settings flag a food without changing the score
+  ok  sugar weight setting changes the score
+  ok  non-food searches and titles in every store language stand down; foods in those languages do not
+
+all passed
+✔ tests/food-gate.test.js (589.035801ms)
+✔ Weight loss: fat-reduced dairy becomes a modest plus, natural flavors barely count (336.287642ms)
+✔ full-fat dairy first: the nonfat milk after it is neither a plus nor a penalty (68.920304ms)
+✔ fat-reduced dairy still counts when it leads, or only milk fractions or plant milks come first (15.464956ms)
+✔ Vitamins & minerals: added vitamins count in favour (1.944744ms)
+✔ goal rewards are capped at +20 and never lift a product past a hard cap (3.772616ms)
+✔ several goals combine: overlapping dials average, others stay default (1.870465ms)
+✔ Weight loss lifts the artificial-sweetener cap; adding General wellbeing pulls it back down (6.388514ms)
+✔ Animal-based: nuts, seeds and legumes count against, honey counts for; off for everyone else (7.482917ms)
+✔ Animal-based: soy lecithin and soy oil are not legumes in any language the stores use (145.272911ms)
+✔ signed categories clamp to -2..2, everything else to 0..2 (1.15316ms)
+✔ toggling and describing goals; goals travel with exports (2.840302ms)
+✔ goals can be weighted: the one that counts more wins where they disagree; 1 each is a plain average (4.286488ms)
+✔ goal importance is sanitised, saved, exported and matched (2.881273ms)
+✔ Balanced is a baseline, never a hidden extra goal in imports or labels (0.378602ms)
+✔ Google redirect must match the extension, random state, and bearer token shape (5.485956ms)
+✔ Google auth flow generates a fresh state and returns only an ephemeral token (7.900426ms)
+✔ Google configuration errors are not reported as user cancellation (0.595573ms)
+✔ Google redirect rejects duplicate OAuth fields, unexpected query parameters and expired tokens (2.216558ms)
+✔ a silent token asks Google for no window and never shows a picker (1.419826ms)
+✔ the Google profile is reduced to an email, a name and a picture from Google image hosts (0.921087ms)
+✔ public grocery nutrition capture contains declarations without executable or tracking scripts (8.103357ms)
+✔ all eleven grocery enhancements keep the top-five pipelines intact (0.226205ms)
+✔ kroger: both search route forms are injected and discover unclipped product cards (2.574288ms)
+✔ kroger: product labels, exact nutrition and identity checks survive the search enhancement (28.768526ms)
+✔ kroger: recycled cards replace the old product URL and never accept foreign/private links (1.549688ms)
+✔ frys: both search route forms are injected and discover unclipped product cards (0.726567ms)
+✔ frys: product labels, exact nutrition and identity checks survive the search enhancement (30.431492ms)
+✔ frys: recycled cards replace the old product URL and never accept foreign/private links (1.342531ms)
+✔ ralphs: both search route forms are injected and discover unclipped product cards (0.661742ms)
+✔ ralphs: product labels, exact nutrition and identity checks survive the search enhancement (16.717714ms)
+✔ ralphs: recycled cards replace the old product URL and never accept foreign/private links (1.715063ms)
+✔ kingsoopers: both search route forms are injected and discover unclipped product cards (0.676083ms)
+✔ kingsoopers: product labels, exact nutrition and identity checks survive the search enhancement (10.369719ms)
+✔ kingsoopers: recycled cards replace the old product URL and never accept foreign/private links (0.701771ms)
+✔ smiths: both search route forms are injected and discover unclipped product cards (0.788029ms)
+✔ smiths: product labels, exact nutrition and identity checks survive the search enhancement (12.086775ms)
+✔ smiths: recycled cards replace the old product URL and never accept foreign/private links (0.555494ms)
+✔ fredmeyer: both search route forms are injected and discover unclipped product cards (0.435175ms)
+✔ fredmeyer: product labels, exact nutrition and identity checks survive the search enhancement (9.045495ms)
+✔ fredmeyer: recycled cards replace the old product URL and never accept foreign/private links (0.54608ms)
+✔ skip links and other relative non-product links on a results page are never product tiles (0.859975ms)
+✔ a modal that sets aria-hidden on the rendered page does not hide its results (0.627991ms)
+✔ twelve grocery adapters isolate hosts, public products, IDs and same-origin product URLs (5.769026ms)
+✔ Instacart product and item routes and Albertsons canonical formats remain store bound (0.514743ms)
+✔ public grocery search routes expose queries without accepting private paths (0.8088ms)
+✔ Kroger family reads observed declaration, advisory and exact nutrient quantities independently (12.687587ms)
+✔ missing, conflicting or ambiguous nutrition values remain unknown (10.596877ms)
+✔ stale canonical or direct Product identities cannot supply declarations or nutrition (2.93353ms)
+✔ recommendation and hidden declarations cannot supply main-product ingredients or nutrition (2.433719ms)
+✔ grocery searches deduplicate title and image links and exclude unrelated mixed cards (1.172219ms)
+✔ malformed JSON and missing visible labels never become ingredient script text (0.841949ms)
+✔ grocery allergen declarations keep positive warnings separate from negated claims (0.563846ms)
+✔ observed public oats declaration and nutrition works across all nine Kroger-family banners (90.95618ms)
+✔ Instacart: a page nothing rendered is read from its page state, bound to the product in the URL (1.104639ms)
+✔ Instacart: another item's state, a malformed state, or a wrong shape reads nothing (0.839155ms)
+✔ Instacart: a label the page shows wins over the page state, and other stores never read it (0.45187ms)
+✔ Instacart: an oversized or ingredient-less state is refused (0.37039ms)
+✔ a modal that marks the page aria-hidden does not hide a product that is on screen (0.260436ms)
+every harness fixture reaches the state the page shows
+  ok  oats
+  ok  flakes
+  ok  chips
+  ok  beef
+  ok  shampoo
+  ok  unreadable
+  ok  spanish
+  ok  none
+
+the page and these assertions read the same fixtures
+  ok  every fixture in the JSON is covered here
+
+all passed
+✔ tests/harness.test.js (333.502256ms)
+✔ scan URLs only retain safe Amazon order filters and numeric pagination (1.809113ms)
+✔ scan discovers year filters, actual Next links and empty-page evidence (5.943205ms)
+✔ scan starts only with opt-in and creates an inactive ordinary tab (1.908901ms)
+✔ scan rejects forged page reports and advances once after importing the current page (4.279106ms)
+✔ scan pauses on account changes, login redirects and unreadable layouts (4.726229ms)
+✔ scan resumes the saved URL and completes empty history without deleting imported purchases (1.119591ms)
+✔ scan estimate changes with page count and measured duration (0.292844ms)
+✔ full shows every row the product panel shows, compact the biggest few, both link to the product (2.498035ms)
+✔ no saved reading: the badge score and a pointer to the product, never invented reasons (0.320745ms)
+✔ hover opens after the configured delay with the breakdown of the saved reading (7.590362ms)
+✔ the card closes when the pointer leaves (after a grace), on Esc, and on a click anywhere; a click never pins it open (7.694973ms)
+✔ a cart line's number opens the same card: the cart badge class, the line's ASIN, the badge's own score (4.04189ms)
+✔ keyboard focus opens at once; the setting off leaves badges alone (1.582978ms)
+✔ scores are integers on the published scale, for every goal preset (206.982543ms)
+✔ scoring is deterministic and never mutates its input (23.685827ms)
+✔ adding a penalised ingredient to the end of a list never raises the score (118.571612ms)
+✔ moving a penalised ingredient earlier in the list never raises the score (64.748927ms)
+✔ no generated text can crash scoring or run away (1294.290548ms)
+✔ an empty or unreadable list is never readable, whatever number it scores (2.351698ms)
+✔ isReadable agrees with the published gate and rejects malformed results (0.246275ms)
+✔ a declared share outranks list position (1.98912ms)
+✔ share tiers mirror the four position weights (5.067876ms)
+✔ shares written in front, after, with decimal commas and with bounds are all read (3.824342ms)
+✔ the separator in front of a declared share does not hide the ingredient (4.314749ms)
+✔ a share alone in its bracket is the entry's declared quantity (3.8768ms)
+✔ a European label reads by its declared quantities (1.431924ms)
+✔ the characters a list is written with do not decide whether an ingredient is charged (4.842772ms)
+✔ a line wrapped inside one ingredient is not split into two (0.834448ms)
+✔ a word broken across two lines by a hyphen is charged as the word (54.225882ms)
+✔ a hyphen that belongs to the text is left where it is (4.401557ms)
+✔ a compound broken at a hyphen reads as the compound (2.371437ms)
+✔ a list with one ingredient per line is read as a list (4.494436ms)
+✔ the paste box accepts a vertical list as it accepts a comma list (2.987921ms)
+✔ line breaks stay line wraps when the text is not a vertical list (0.574001ms)
+✔ entities and tags cannot smuggle in an ingredient or a marker (0.986794ms)
+✔ the encoding a word arrives in does not decide whether it is charged (4.338805ms)
+✔ stray punctuation round an entry does not hide the ingredient (5.859831ms)
+✔ a heading without its colon does not hide the first ingredient (16.736943ms)
+✔ "or" and a slash between two ingredients do not hide either of them (5.091651ms)
+✔ a list set out with spaced dashes, slashes or tabs is read as a list (7.271824ms)
+✔ a weight written after an ingredient does not hide it (5.046364ms)
+✔ two words run together are read as the ingredient they name (3.842509ms)
+✔ an umlaut written as two letters is the umlaut (9.371899ms)
+✔ the panel vocabulary is its own rule file, and still only decides what counts as read (0.813747ms)
+✔ a remembered answer is the answer a fresh engine gives (1337.401756ms)
+✔ a share is ignored when it is not a quantity (2.259901ms)
+✔ sub-ingredients take the share of the entry that declares them (3.6478ms)
+✔ entries after "contains 2% or less of" weigh as minor ingredients (36.637095ms)
+✔ "of the following:" lead-ins do not hide the first ingredient behind them (4.594524ms)
+✔ only a limit of two percent or less opens the minor block (3.90398ms)
+✔ a marker inside brackets cannot demote the rest of the list (1.103948ms)
+✔ a minor entry never weighs more than the same entry would by position (0.4049ms)
+✔ the label's allergen line is not an ingredient list (5.497804ms)
+✔ an allergen line still raises the allergen flag and the avoid list (2.023571ms)
+✔ "contains" followed by something that is not an allergen is still a list (2.146103ms)
+✔ two ingredients joined by a word are both charged when a rule reads only one of them (7.158186ms)
+✔ a joining word left in front of an entry does not hide the ingredient (7.406144ms)
+✔ a hyphen typed as another character is the hyphen (13.487633ms)
+✔ a footnote mark after an ingredient does not hide it (14.848311ms)
+✔ text in angle brackets is read, and only real markup is removed (2.115848ms)
+✔ "less than" written with a sign, in words or with a colon is read as a quantity (33.242992ms)
+✔ a list headed "Contains:" is a list when it holds a capped ingredient, and an allergen line otherwise (3.083262ms)
+✔ two lines with no comma stay one wrapped ingredient (1.818657ms)
+✔ the scoring policy publishes the share rules it applies (0.243721ms)
+✔ reasons never carry an internal marker (1.638099ms)
+✔ warming the engine up is idle, once, and invisible (4.700732ms)
+✔ allergen and diet words in Swedish, Polish, Dutch and Portuguese are flagged (77.416269ms)
+✔ Turkish allergen and diet words are flagged; coconut, almond milk and vegetable cream are not (1.832912ms)
+✔ plant milks and butters, lactic acid and look-alike words are not (0.614653ms)
+✔ keto, corn and nightshade read every label language; nut flours and sweet potato stay clear (0.978883ms)
+✔ buckwheat and the Italian flours of other grains are not wheat (0.676354ms)
+✔ egg by its local names; lactic acid, cream of tartar, nutmeg and milk are not what they look like (0.711527ms)
+✔ ß is a letter: "weiß" is not Dutch whey, and Swiss "ss" spellings keep their flags (0.597898ms)
+✔ words that only look like an allergen or a meat, from the samples (1.029749ms)
+✔ fish by species, sulfite salts in compounds, and Dutch egg compounds (1.027075ms)
+✔ crustaceans and molluscs by species; words with another meaning stay clear (1.112101ms)
+✔ tree nuts by their local and compound names, pine nuts, and nut sweets (0.601754ms)
+✔ cheeses, fresh cheeses and dairy compounds by name; soy, sesame, mustard, celery and lupin forms (0.643485ms)
+✔ wheat products named without "wheat"; German malt is not Polish mussels (1.241083ms)
+✔ vegetarian: carmine, rennet, animal fat, tallow, collagen, gelatine and sausages in each language (1.143077ms)
+✔ vegan: bee products, shellac, lanolin and L-cysteine; pork-free: local pork words (0.76067ms)
+✔ nightshades and corn in each language, and their look-alikes (1.029208ms)
+✔ every corpus entry declares its language and evidence (1.334552ms)
+✔ the documented evidence table matches the corpus (0.630556ms)
+✔ the coverage gate stays where the corpus was calibrated (0.769603ms)
+✔ a list in an unsupported language is declined, or scored like its English twin (209.389906ms)
+✔ Swedish, Polish and Turkish twins are read and score exactly like English (23.468699ms)
+✔ clean lists in unsupported languages are declined rather than called clean (1.390415ms)
+✔ everyday words from real labels are read in every store language, and notes are not ingredients (56.914814ms)
+✔ a hidden add-to-cart heading ahead of the title is not the title (2.128601ms)
+✔ a control heading is skipped even where the page shows it, and so is wording that is never a title (0.987426ms)
+✔ on the live page a heading with no box loses to one that has a box; a parsed page has no layout to ask (0.183812ms)
+✔ odd markup never costs the tile its title (0.334677ms)
+✔ a card that draws its title as plain text in a link to its own product is still a listing (1.072623ms)
+✔ the last-resort title never takes a link to another product, a control, a hidden link, wording or a carousel card (1.697972ms)
+✔ a card with a real heading never reaches the last-resort rule (0.159867ms)
+✔ a page with no data-asin at all takes each card's ASIN from its item id, outermost element only (0.341958ms)
+✔ a page that already has data-asin elements is never touched (1.03067ms)
+ingredient headings
+  ok  recognises "Ingredients"
+  ok  recognises "Ingredienser"
+  ok  recognises "İçindekiler"
+  ok  recognises "Icindekiler"
+  ok  recognises "原材料"
+  ok  recognises "Skład"
+  ok  recognises "Składniki"
+  ok  recognises "Bestandteile"
+
+OCR readiness
+  ok  US/SE/TR still allow English OCR
+  ok  JP and Arabic stores decline English OCR
+
+failure copy names the locale decline
+  ok  panel failure card mentions the skipped OCR
+
+all passed
+✔ tests/locale.test.js (88.023437ms)
+a capped ingredient still caps behind a denial adjective
+  ok  soybean oil
+  ok  canola oil
+  ok  sunflower oil
+  ok  corn oil
+  ok  cottonseed oil
+  ok  vegetable oil
+  ok  partially hydrogenated soybean oil
+  ok  high fructose corn syrup
+  ok  corn syrup
+  ok  sucralose
+  ok  aspartame
+  ok  acesulfame potassium
+  ok  saccharin
+  ok  red 40
+  ok  yellow 5
+  ok  blue 1
+  ok  titanium dioxide
+  ok  caramel color
+  ok  carrageenan
+  ok  BHA
+  ok  BHT
+  ok  TBHQ
+  ok  potassium bromate
+
+a denial phrase is still not read as a presence
+  ok  "contains no artificial colors"
+  ok  "made with no preservatives"
+  ok  "made without artificial flavors"
+  ok  "free from artificial colors"
+  ok  "absolutely no msg"
+  ok  "100% free of high fructose corn syrup"
+  ok  "no artificial colours"
+  ok  "msg free"
+  ok  "gluten free"
+  ok  "zero trans fat"
+
+ingredients that merely start with a denial-like prefix survive
+  ok  "non-dairy" is an ingredient, not a denial
+  ok  "nonfat" has no word boundary after "non"
+  ok  a juice, not a denial
+  ok  plain word starting with "no"
+  ok  plain word starting with "n"
+
+the unrefined qualifier softens rather than launders
+  ok  cold-pressed seed oil lands between the cap and a clean score
+  ok  a qualifier on one oil does not lift the cap on another
+
+the two surfaces stay separate
+  ok  a title denial does not condemn, an ingredient adjective does not launder
+
+all passed
+✔ tests/negation.test.js (283.970447ms)
+serving weight is read from the size, not from the rows beneath it
+  ok  parenthetical grams
+  ok  millilitres, for drinks
+  ok  servings-per-container follows
+  ok  space before the unit
+  ok  no declared weight — must stay unknown
+  ok  no declared weight, fat follows
+
+normalisation is refused when it would produce impossible food
+  ok  a bad serving weight does not multiply everything by a hundred
+  ok  nothing out-salts pure salt
+  ok  a real serving weight still normalises
+
+serving size is what makes two identical foods comparable
+  ok  the same cereal scores alike at 28g and 55g declared servings
+  ok  a German nutrition panel is readable
+
+missing data is not zero
+  ok  no panel means no nutrition rows at all
+  ok  a panel with only one readable field is discarded
+
+number formats
+  ok  a US thousands comma is a thousands separator, a decimal comma still a decimal
+  ok  an EU "kJ / kcal" energy line reads the kcal, not the kilojoules
+  ok  EU salt stands in for sodium only when no sodium is given
+  ok  an EU panel declared per 100 g is scored and labelled per 100g
+  ok  Dutch, Swedish, Polish, Turkish and Portuguese panels are readable
+
+all passed
+✔ tests/nutrition.test.js (186.864653ms)
+Amazon image URLs
+  ok  thumbnail becomes a high-resolution original
+  ok  a video poster is never a label
+  ok  a non-Amazon url yields nothing
+  ok  only m.media-amazon.com /images/I/ URLs are fetchable
+  ok  candidates are de-duplicated by image id
+  ok  a document with no images is handled
+
+pulling the list out of real OCR output
+  ok  the ingredient block is recovered
+  ok  the allergen line is left out of the list
+  ok  the nutrition table is left out of the list
+  ok  text with no INGREDIENTS heading yields nothing
+  ok  a heading with nothing usable after it yields nothing
+  ok  a long additive list keeps its tail
+  ok  Spanish INGREDIENTES headings are recognised
+  ok  German Zutaten and French Ingrédients headings are recognised
+
+choosing between images
+  ok  the image carrying a real list wins
+  ok  nothing is chosen when no image has a list
+  ok  the acceptance test can veto a block
+
+pinned OCR transcripts (EU, dark photo, ingredients-on-back)
+  ok  EU label: the ingredient block is recovered
+  ok  EU label: ALLERGEN / CONTAINS stay out of the list
+  ok  EU label: nutrition is left out of the list
+  ok  dark / hard photo: the ingredient block is recovered
+  ok  dark / hard photo: ALLERGEN / CONTAINS stay out of the list
+  ok  dark / hard photo: nutrition is left out of the list
+  ok  dark / hard photo: tidyOcr turns vertical bars into I
+  ok  ingredients on the back: the ingredient block is recovered
+  ok  ingredients on the back: ALLERGEN / CONTAINS stay out of the list
+  ok  ingredients on the back: nutrition is left out of the list
+  ok  ingredients-on-back: the back image wins over the nutrition-only front
+  ok  a nutrition-only front yields no list
+
+end to end: the OCR text scores like the real label
+  ok  the Lifeway label scores the same from OCR as from Open Food Facts
+  ok  label photos in every store language end the list where the label does
+
+all passed
+✔ tests/ocr.test.js (228.025874ms)
+✔ deadline terminates stalled recognition and the next job gets a fresh worker (34.320934ms)
+✔ late worker startup is disposed without replacing the next job worker (9.163266ms)
+✔ master cancellation stops active and queued OCR jobs (7.874112ms)
+✔ an idle page tears the engine down and asks to be closed (2.347095ms)
+✔ only the service worker may ask the OCR host for anything (2.0267ms)
+✔ compact overview omits empty periods and ignores missing, future and excluded ratings (2.723454ms)
+✔ daily, Monday-based weekly and calendar-month averages use eligible product entries (8.757745ms)
+✔ a period without purchases is omitted independently, including week/month boundaries (0.537709ms)
+✔ block pages are recognised by what the stores print, not by a word in a product name (1.135656ms)
+✔ an error status, another content type or an oversize length is refused before the body is read (1.332338ms)
+✔ a body with no length cannot be buffered past the limit, and an abort stops the read (0.378392ms)
+✔ multi-byte text split across chunks decodes whole (1.028617ms)
+✔ publicDocument parses a page, and marks a block page so the caller can stop (0.759178ms)
+US product snapshot — oats
+  ok  extracts the published oats list
+  ok  food gate lets the grocery oats page through
+
+US product snapshot — shampoo
+  ok  food gate refuses shampoo even though a list is published
+  ok  with personal care on, the saved shampoo page is read and rated as a shampoo
+  ok  with the category switch off, the saved shampoo page is skipped as before
+  ok  with the food gate off, extract still finds the shampoo list
+
+SE product snapshot — havregryn
+  ok  Ingredienser heading is read from the expander sibling
+  ok  Swedish grocery crumbs pass the food gate
+
+US search snapshot — organic rolled oats
+  ok  search department + query are a food search
+  ok  result titles are not a non-food majority
+  ok  extract() on a search page does not invent a product list
+
+Turkish heading (inline, same loader)
+  ok  İçindekiler is recognised as an ingredient heading
+
+"See nutrition panel" placeholder (live Lay's, B0005Z6FYA)
+  ok  placeholder is rejected and the feature-bullet list is read instead
+
+all passed
+✔ tests/pages.test.js (152.186375ms)
+✔ a Drug Facts block is read as the active ingredient followed by the inactive list (51.711227ms)
+✔ a Drug Facts table flattened to text keeps its active ingredient (14.841328ms)
+✔ a label that names only its active ingredient is flagged partial (1.158451ms)
+✔ INCI joins and translations do not hide or merge ingredients (1.083088ms)
+✔ real label formats are readable and rated (192.417882ms)
+✔ a label without the category function is declined, and says what it needed (0.946613ms)
+✔ prose and gibberish in the ingredient box are not recognized as ingredients (2.767992ms)
+✔ documented cautions are charged once each, and only where they apply (0.933343ms)
+✔ Supplement Facts amounts above an adult upper limit are found (8.445135ms)
+✔ amounts that cannot be compared to a limit without guessing are left alone (1.253197ms)
+✔ the upper-limit rows charge each nutrient once, to a floor, and explain themselves (24.592544ms)
+✔ a Supplement Facts panel is usable only with a serving and an active amount (4.520358ms)
+✔ minimal counts what a supplement adds to its actives, not the actives (1.726328ms)
+✔ every style and every label stays inside 0..100 and adds up (40.956023ms)
+✔ the category lists in the caches agree with the rating module (1.671617ms)
+✔ a long multivitamin panel survives the reading cache (0.306504ms)
+✔ the documented upper limits are the limits the rubric applies (0.413462ms)
+✔ every name and sentence an index shows is in the English and German catalogs (4.784931ms)
+✔ the setting a not-food panel points to is named as the settings page names it (2.959506ms)
+✔ a script that names an index loads the module that names it, before it runs (0.32356ms)
+✔ the neutral color is gray, readable, and the same in every palette (0.89744ms)
+✔ the panel draws an index in gray and captions it with its category and style (69.461865ms)
+✔ the breakdown card for a saved index keeps the category when no reading is kept (0.444589ms)
+✔ Supplement Facts are collapsed with the details, not printed above the score (3.173613ms)
+✔ a cart of one personal-care category is averaged and named for it, not banded (0.317871ms)
+✔ only good ratings earn points: 20 at 90 or more, 10 at 75 or more, nothing below (0.938721ms)
+✔ a cart earns for each good line once; reopening it the same day earns nothing (0.858453ms)
+✔ the same product earns again after a week, not before (0.213617ms)
+✔ a product listed twice in one cart earns once, and the same id in two stores is two products (0.305994ms)
+✔ a line with no key, or a score that is not a number, earns nothing and breaks nothing (0.810751ms)
+✔ what was seen is bounded: expired entries go first, then the oldest beyond the cap (6.157215ms)
+✔ stored data is never trusted: junk becomes zero points and an empty history (0.342427ms)
+✔ a clock that moved back does not hand out points twice (0.201879ms)
+✔ levels: each one costs 100 times its number in points (0.588502ms)
+✔ Minimal keeps the essentials; Standard and up show every control the popup has today (2.853539ms)
+✔ a switch that makes requests stays outside "More", with its line saying so (0.200046ms)
+✔ a popup link never points into a Settings section that the same level would hide (0.402396ms)
+✔ every popup control still exists, so the stored values keep loading and saving whatever is shown (0.30371ms)
+✔ applyLevel hides what the level does not reach, and shows it again when the level rises (2.751828ms)
+✔ an unknown level behaves as Minimal rather than breaking, and the Settings button reads the same at every level (3.458064ms)
+✔ an install from before levels existed keeps the full popup; a fresh one gets Standard (0.547591ms)
+✔ the popup listens for level changes before its write guard, and never writes the level itself (0.198905ms)
+✔ the popup body has a fixed width, not one measured from its own viewport (0.929547ms)
+✔ popup.js only narrows the popup, and only to the width the window has (0.281768ms)
+toggles
+  ok  unknown and non-boolean values fall back to defaults
+  ok  false is kept for on-by-default keys
+
+scoring
+  ok  weights are clamped and unknown ids dropped
+  ok  avoid list is capped and de-duplicated
+  ok  defaults fill a missing or garbage object
+
+import / export
+  ok  export is stamped and re-imports identically
+  ok  a random JSON file is refused
+  ok  a legacy file without _format still imports if it looks like settings
+
+endpoint
+  ok  only an Apps Script /exec URL is ever used as the endpoint
+  ok  the build ships with no invented endpoint or OAuth client
+  ok  Chrome backup and lookup choices default on; sharing extras default off
+
+settings level and display
+  ok  an unknown level falls back to the default; display values are bounded
+  ok  an install from before the level existed keeps every setting visible; a fresh one gets Standard
+  ok  every data-level in the settings page is a real level, and the picker lists each level once
+
+request pace
+  ok  pace is bounded: unknown falls back to Normal and nothing exceeds five at once
+
+every setting is saved
+  ok  the backup carries every setting, including level, pace, sort depth, time limit and remembered priorities
+  ok  a file without a group leaves those stored settings alone instead of resetting them
+  ok  an exported file re-imports every setting
+
+backup
+  ok  a backup is the sanitized export plus toggles, never the master switch or stray keys
+  ok  a backup round-trips through chrome.storage.sync items and is re-sanitized on the way in
+  ok  apps-script.gs knows every kind the extension sends
+  ok  Unicode backups fit byte quotas, retain every term, and detect incomplete sync
+  ok  legacy backups restore and leave unspecified workflow preferences untouched
+  ok  comma and newline avoid entries stay separate across imports
+  ok  all final setup defaults are on and explicit opt-outs are retained
+
+all passed
+✔ tests/prefs.test.js (84.890464ms)
+▶ goal-based scoring presets
+  ✔ exports a category list that covers every preset (0.943869ms)
+  ✔ keeps the classic preset ids so existing imports and tests still resolve (0.137764ms)
+  ✔ includes the requested goal / training / style presets (0.300796ms)
+  ✔ clamps every preset weight into the slider range (0.659827ms)
+  ✔ resolves balanced to the engine defaults (1.043617ms)
+  ✔ matchPreset returns Custom (null) after a single dial drifts (2.158799ms)
+  ✔ highProtein rewards protein more than strength or muscleGain (0.284592ms)
+  ✔ endurance is more carb-lenient than lowCarb (0.234617ms)
+  ✔ weightLoss tightens sugar relative to maintenance (0.383348ms)
+  ✔ presetsInCategory and listPresets stay in sync (0.31043ms)
+✔ goal-based scoring presets (33.441036ms)
+✔ a kefir that names its strains is read, and scores exactly like its list without them (195.640141ms)
+✔ each strain is one entry, and a run of strains shares one position (1.092879ms)
+✔ the period, run-together and colon forms join too; a lone letter before a non-species does not (1.937191ms)
+✔ twenty strains are not a "very long ingredient list" (2.283824ms)
+✔ stale by age: fresh under 30 days, due for a rescan at 30 (1.490699ms)
+✔ stale by pulls: 99 is fresh, 100 is stale, whichever comes first (0.172505ms)
+✔ sanitize keeps the columns and bounded engine input, and nothing else (4.754696ms)
+✔ sanitize rejects private, malformed, future and textless rows (1.782832ms)
+✔ a cached read scores exactly like the live read, under any weights (348.134133ms)
+✔ mergeQueue: newest scan wins per key, pulls add up only for the same scan (0.806064ms)
+✔ cached product readings preserve separately published cross-contact warnings (1.291864ms)
+✔ older product rows that discarded advisory text must be reread (0.226566ms)
+✔ malformed or oversized advisory text cannot become a partial cached warning (0.294206ms)
+✔ recognizes the requested product types without treating food as personal care (6.042264ms)
+✔ personal-care reviews report disclosed ingredients and preference matches without a score (2.430732ms)
+✔ food rules cannot rate identified personal-care products (96.61238ms)
+✔ declines ambiguous combinations and accessories (0.701008ms)
+✔ claims the products the feature is for, as they are titled on real listings (6.807689ms)
+✔ leaves food, pets, vehicles, medicine and unsupported cosmetics alone (0.983637ms)
+✔ only a recognized product opens the merchandise filter (0.153457ms)
+✔ a Supplement Facts panel makes a supplement of a title that does not say so (0.118976ms)
+✔ all supported categories rate under all three styles with transparent arithmetic (25.50142ms)
+✔ evidence and missing-data states do not reward unknown labels or guess supplement doses (51.606055ms)
+✔ minimal index changes with disclosed list length, preferences with explicit avoid terms only (17.575785ms)
+✔ rating changes retire cached scores and survive settings and product-reading round trips (2.546053ms)
+✔ food stays invariant under the new styles and opt-out (126.636183ms)
+✔ mixed categories cannot contribute to one cart average or score ranking (1.493112ms)
+✔ captured public labels have traceable intact responses and reviewed multilingual allergen expectations (201.067584ms)
+✔ free-from label notes cannot create a wheat flag or erase actual ingredients and cross-contact declarations (3.21868ms)
+✔ health summary distinguishes missing scores, excluded purchases and scoring rule revisions (10.302948ms)
+✔ multiple product entries sum within distinct orders without treating entries as quantities (0.923799ms)
+✔ snapshots preserve original full inputs and order grouping through older backend replies (1.001374ms)
+✔ current-goal comparison is separate, coverage gated, and cannot change snapshots (0.263731ms)
+✔ filters and score sorts keep missing ratings missing and support status/date/text bounds (0.59372ms)
+✔ median and IQR use interpolation; confidence requires enough complete order clusters (0.449255ms)
+✔ periods keep original scoring setups separate but combine current comparisons (0.308808ms)
+✔ score drivers net opposing contributions, count entries/orders once and exclude returns (0.967474ms)
+✔ breakdown snapshots require exact arithmetic and retain their original recording (0.706136ms)
+✔ current score drivers gate missing/low coverage labels without changing recorded data (0.426272ms)
+✔ real engine snapshots reconcile every corpus score including limits and floors (984.91361ms)
+✔ a scorer result must carry the engine's readable verdict to be used (0.876899ms)
+✔ source filters distinguish captured evidence from legacy records without changing scores (0.327215ms)
+✔ orders reader accepts explicit cards and ignores recommendation links, addresses and actions (9.794454ms)
+✔ visible item cancellations and completed returns override purchase status; return buttons do not (7.71264ms)
+✔ missing order identities/dates and mixed or cross-origin product identities stay unknown (2.249734ms)
+✔ order dates reject impossible dates without aborting the page (0.323198ms)
+✔ multi-product shipment tiles remain separate purchases and ignore buy-again recommendations (5.791102ms)
+✔ deduplication preserves first score and settings but updates later return status (1.774409ms)
+✔ an unavailable label can gain its first valid snapshot; later revisits do not replace it (0.325863ms)
+✔ trends exclude returns/cancellations and missing scores rather than counting them as zero (13.563029ms)
+✔ history schema strips sensitive/unrecognized fields and invalid records (0.494593ms)
+✔ history capacity fails explicitly instead of silently deleting older purchases (285.801782ms)
+✔ order import messages require the top-level exact order page; sync stays extension-only (3.77249ms)
+✔ settings imports and backups cannot enable or carry purchase history (8.065282ms)
+✔ backend history schema matches the extension schema exactly (0.331311ms)
+✔ terminal return or cancellation cannot be undone by a stale generic Delivered status (1.032801ms)
+✔ legacy order pagination ref paths are accepted without widening into private routes (1.19399ms)
+✔ actual order carousels and image-only compact tiles are imported; recommendation carousels are not (48.76871ms)
+✔ hidden compact products and conflicting declared ASINs cannot borrow order identities (4.949465ms)
+✔ camping tables and knee braces are non-food without misclassifying groceries or vitamins (26.185505ms)
+✔ multi-product shipment wrappers are split only at distinct image-bearing product tiles (11.274157ms)
+✔ recorded source and rule revision survive later imports under a different scorer (0.365712ms)
+✔ history import requires opt-in; repeat page imports merge instead of duplicating (11.7353ms)
+✔ older backend capability check prevents every token or history POST (2.106752ms)
+✔ Google account switch and wrong silent-token account cannot upload local history (3.688306ms)
+✔ automatic sync respects its switch, while Sync now still works (3.361141ms)
+✔ cross-device pull merges before upload and never overwrites a saved first snapshot (13.240601ms)
+✔ offline and unconfirmed writes preserve local history and a retry alarm (5.202599ms)
+✔ remote deletion epoch prevents a stale device from re-uploading old purchases (1.553242ms)
+✔ offline deletion clears local data, disables collection and retains explicit pending deletion (1.992883ms)
+✔ server authenticates each history read/write and isolates accounts (10.588591ms)
+✔ server deduplicates retry after lost acknowledgement and clears only the caller account (4.81788ms)
+✔ server rejects malformed or oversized batches without touching private rows (2.113802ms)
+✔ same-email Google identities cannot transfer history to a different verified subject (2.493395ms)
+✔ account deletion verifies the bound subject before clearing the remote copy (5.487757ms)
+✔ history reads cannot race with a locked account clear (4.509838ms)
+✔ large histories require advertised backend capacity before private account requests (73.443682ms)
+✔ Google verification runs outside the global sheet lock without trusting body identity (11.165726ms)
+✔ diagnostic protocol advertises and confirms outcomes support, and refuses future schemas (2.283885ms)
+✔ retry after append but before acknowledgement never duplicates data (1.644066ms)
+✔ duplicate protection survives well beyond the old 400-row and 80-batch limits (47.894946ms)
+✔ concurrent requests are refused until the lock is released (2.49014ms)
+✔ legacy dedup history is respected during migration (1.437049ms)
+✔ products: older scans never overwrite newer rows; newer scans replace and reset pulls (2.502498ms)
+✔ products: a pull counts only against the scan the reader saw, and batches are bounded (2.809493ms)
+✔ lookup returns only the rows asked for, parsed, without taking the write lock (1.605559ms)
+✔ products are closed until the owner opens them: nothing stored, nothing served (2.373237ms)
+✔ products: a scan stamped ahead of the receiver clock is stored at the receiver time (1.008695ms)
+✔ GET ?kind=provenance serves the first tab and the producers tab as text (1.080531ms)
+✔ accounts: a verified token opens only its own row, keyed by a hash, never the email (3.822594ms)
+✔ each request logs one line for load measurement, with no payload in it (1.338203ms)
+✔ Google client can be configured by owner script property without accepting another app (2.170346ms)
+✔ owner purge closes exchange and removes only the requested product (0.950299ms)
+✔ Google account tokens reject conflicting audiences and expired token metadata (6.530288ms)
+✔ deployment template uses the same public OAuth client as the extension (4.005606ms)
+✔ a sheet from before outcome/feedback keeps its rowIds and gains the new columns (2.289053ms)
+✔ a report or contribution must name a product, and no cell can be larger than the cap (3.021968ms)
+✔ duplicate protection reads only the newest rows, however long the sheet grows (3.91388ms)
+✔ a verified token is not verified again within a minute, and the cache never holds the token (3.515079ms)
+✔ anonymous posts share a per-minute allowance, and over it they are told to retry without touching the sheet (1.399985ms)
+✔ the row allowance counts diagnostics rows, not only posts (1.519221ms)
+✔ signed-in kinds and product lookups are not counted against the anonymous allowance (1.631217ms)
+✔ reports, contributions and diagnostics keep a rolling window: the oldest rows go first (1.18798ms)
+✔ the account and history tabs have no cap: they belong to signed-in users (0.761329ms)
+✔ the drift report flags a jump in unreadable pages overall and per store, and stays quiet otherwise (8.895763ms)
+✔ the drift report ignores rows too old to compare and thin samples (4.35959ms)
+✔ recent actions: short, no query strings, repeats folded, capped (7.05819ms)
+✔ page address: path and search term only (0.334195ms)
+✔ settings come through the sanitizers: no token, no cache contents, no stray keys (0.993112ms)
+✔ a report: the reader's words, then the details, each part can be left out (1.825875ms)
+✔ the email draft goes to the developer, CRLF, cut when very long, asks for the attachment (0.468915ms)
+✔ the report file: one escaped HTML page, only a real image embedded (1.072749ms)
+✔ retailer IDs reject foreign hosts, private routes and malformed identifiers (2.41812ms)
+✔ Walmart accepts current-product embedded declaration and leaves nutrition unknown (5.087984ms)
+✔ sanitized live Walmart capture reads the declared current product (0.831705ms)
+✔ Walmart rejects stale SPA data and mismatched canonical products (0.867508ms)
+✔ Walmart malformed or oversized boot data falls back to a declared DOM label (45.103653ms)
+✔ Costco reads a visible label and refuses mismatched canonical products (1.247873ms)
+✔ missing labels and marketing text never become ingredient declarations (0.559721ms)
+✔ search adapters deduplicate product links and ignore off-store recommendations (1.081876ms)
+✔ Walmart and Target collection routes accept public storefronts and exclude account, cart and checkout (1.4551ms)
+✔ present invalid, foreign or empty canonical fails product identity (4.348945ms)
+✔ Contains-prefixed ingredient declarations remain independently readable (2.596264ms)
+✔ adjacent headings and recommendation sections cannot become product labels (3.454087ms)
+✔ oversized declarations are rejected without scoring a truncated prefix (2.132065ms)
+✔ Target rejects oversized declarations instead of losing late additives (4.268336ms)
+✔ shared retailer labels retain multiparagraph declarations and stop before directions (1.73153ms)
+✔ semantic definition/table labels are read without inventing marketing ingredients (3.135434ms)
+✔ hidden variants and account forms cannot supply a current-product label (2.085766ms)
+✔ declared allergens and cross-contact statements survive without changing ingredient text (114.038122ms)
+✔ duplicate contradictory canonicals do not approve a wrong product label (0.364231ms)
+✔ positive warning clauses cannot inherit explicitly negated allergens (0.3101ms)
+✔ retailer runner watches scored labels without repeated rendering or writes (236.578179ms)
+✔ opt-in grocery lifecycle restores an unchanged score panel discarded by hydration (53.015559ms)
+✔ retailer runner replaces cached and toolbar scores after same-URL label hydration (23.223945ms)
+✔ retailer runner refuses an unparsed label instead of publishing a default score (17.761626ms)
+✔ retailer warning-only hydration refreshes flags without changing the ingredient score (52.69323ms)
+✔ published retailer beauty department prevents scoring edible-sounding hair butter (4.768899ms)
+✔ a body butter in the beauty department waits for its label instead of being turned away (3.1388ms)
+✔ a body butter with an open label is rated as a moisturizer, never as food (19.907181ms)
+✔ "Open the score panel" opens a retailer product panel too, only when asked and only for a score (25.908549ms)
+✔ a non-food product page does not start rating its recommendations (28.626674ms)
+✔ always-rate stores rate results with global badge switches off but still honor pause (5.8411ms)
+✔ always-rate stores process all discovered results beyond the default fetch allowance (192.951203ms)
+✔ retailer search rates a previously unopened product and caches its score (2.412502ms)
+✔ public reads preserve same-origin sessions only for adapters that opt in (2.893455ms)
+✔ retailer search displays unavailable status when the public product page has no declared list (1.672212ms)
+✔ retailer search rejects a foreign origin redirect without caching a score (1.538183ms)
+✔ retailer search rejects a wrong product redirect without caching a score (1.423253ms)
+✔ retailer search repeated passes join one request and reuse its finished score (3.180352ms)
+✔ retailer search aborts pending product reads when enabled is disabled (2.038256ms)
+✔ retailer search aborts pending product reads when badges is disabled (2.737033ms)
+✔ retailer search aborts pending product reads when autoScoreSearch is disabled (1.948783ms)
+✔ retailer search navigation aborts old-page requests and ignores their replies (2.439141ms)
+✔ retailer search a recycled product card never receives the previous product score (2.3171ms)
+✔ retailer badges are placed beside the product title without adding a grid card child (1.841433ms)
+✔ retailer search fetch work has bounded concurrency (12.511492ms)
+✔ retailer search stops queued public requests after rate limit (6.262217ms)
+✔ retailer search stops queued public requests after forbidden (1.599695ms)
+✔ retailer search rejects non-HTML and oversized responses without inventing ratings (2.837011ms)
+✔ retailer automatic-rating opt-out keeps status visible without requesting pages (1.316694ms)
+✔ a retailer search enumerates tiles a bounded number of times per pass (3.946419ms)
+✔ HTTP-200 Press and Hold challenges stop the remaining retailer queue (1.595709ms)
+✔ a saved score from other settings is scored again from its saved label, with no product-page request (2.840877ms)
+✔ a saved score is fetched again when its reading cannot be reused (4.248387ms)
+✔ with saved scores switched off a saved reading is not reused either (1.649779ms)
+✔ a challenge redirect to a non-product URL stops the remaining retailer queue (1.728847ms)
+✔ a search that is not about food keeps the sort in price-only mode, with no badge and no product-page request (2.666398ms)
+✔ a food search updates the sort in the ordinary mode (2.065316ms)
+✔ a non-food results page with no listings yet does not show the sort (1.209525ms)
+✔ every supported store has a sample here, a search route, an adapter and a card reader (1.626435ms)
+✔ the worker's idea of a search page is each adapter's own, for every store (1.575068ms)
+✔ each store's real product ids are accepted in its own list, and nothing off the store is (4.170781ms)
+✔ a list may show pictures from the store's own site and the CDNs named for it, no others (0.247297ms)
+✔ a store that numbers its pages gets the next one by number or by offset, keeping the rest of the search (4.166325ms)
+✔ the page's own next link is followed; a disabled, foreign, same-page or non-search link is not (3.085059ms)
+✔ a listing returned as a bare link is read from the widest wrapper that holds only that product (1.427649ms)
+✔ a listing is turned into the list's fields: units per family, the store's own link, its page, stars and reviews (4.760297ms)
+✔ Walmart and Target are injected on the public pages a search starts from, not only on results (1.523031ms)
+✔ no Walmart or Target route that holds an account, cart or checkout is added to the retailer script (1.641878ms)
+✔ the sort panel is loaded after the store adapters and before the runner that calls it, and nowhere else (0.196151ms)
+✔ a card states its price once: a was-price, a savings line or a unit price never replace it (0.430389ms)
+✔ a price range has no single price to sort on, and a card with no price has none (0.150614ms)
+✔ stars and review counts are read from the accessible text a card carries (0.510348ms)
+✔ Walmart reads the exact price from its screen-reader node, and the unit price from the card text (5.740622ms)
+✔ pictures are taken from the retailer image host only (0.614682ms)
+✔ Target's real captured results mark exactly their three advertisements as Sponsored (7.823593ms)
+✔ Target reads price, unit price and rating from a card, and a card with none stays unpriced (2.524668ms)
+✔ an ordinary Target title that ends in the word does not make a different card an ad (0.758415ms)
+✔ review reproductions now satisfy the corrected extraction, product and Orders contracts (393.48338ms)
+✔ nested codes retain parents, optional E prefixes and decimal ingredient shares (208.699065ms)
+✔ long and depth-limited entries cannot produce a readable partial score (4.714579ms)
+✔ known date varieties are recognized without relying on an organic claim (3.055325ms)
+✔ organic sourcing applies to the leading animal food and is never rewarded twice (6.229968ms)
+✔ nutrition quantities use explicit bases and reject contradictory mass compositions (3.792039ms)
+✔ certification snapshots survive cache and history round trips without aliasing (4.086486ms)
+✔ fallback nutrition retains explicit volume/mass basis and converts sodium grams to mg (1.069728ms)
+✔ displayed dimensions add up under all presets without rewriting the score (36.663174ms)
+rules revision
+  ok  RULES_REVISION is a dated string
+  ok  RULES_HASH matches the rule sources on disk
+  ok  prose does not move the hash and code does
+  ok  the score cache fingerprints on the revision
+
+all passed
+✔ tests/rules-revision.test.js (85.258026ms)
+every source file parses
+  ok  src/background.js
+  ok  src/browser-compat.js
+  ok  src/browser-platform-firefox.js
+  ok  src/browser-platform.js
+  ok  src/content/badge-link.js
+  ok  src/content/cart.js
+  ok  src/content/extract.js
+  ok  src/content/hover-card.js
+  ok  src/content/main.js
+  ok  src/content/order-hover.js
+  ok  src/content/orders.js
+  ok  src/content/page.js
+  ok  src/content/panel.js
+  ok  src/content/product.js
+  ok  src/content/retailer-sort.js
+  ok  src/content/retailer.js
+  ok  src/content/search.js
+  ok  src/content/sort.js
+  ok  src/content/walmart-space.js
+  ok  src/engine/categories.js
+  ok  src/engine/db/_module.js
+  ok  src/engine/db/activity.js
+  ok  src/engine/db/additives.js
+  ok  src/engine/db/ai-ratings.js
+  ok  src/engine/db/allergens.js
+  ok  src/engine/db/diagnostics.js
+  ok  src/engine/db/history-scan.js
+  ok  src/engine/db/ingestible.js
+  ok  src/engine/db/labels.js
+  ok  src/engine/db/ocr-text.js
+  ok  src/engine/db/oils.js
+  ok  src/engine/db/order-overview.js
+  ok  src/engine/db/points.js
+  ok  src/engine/db/prefs.js
+  ok  src/engine/db/product-cache.js
+  ok  src/engine/db/product-ratings.js
+  ok  src/engine/db/provenance.js
+  ok  src/engine/db/purchase-analytics.js
+  ok  src/engine/db/purchase-history.js
+  ok  src/engine/db/revision.js
+  ok  src/engine/db/score-cache.js
+  ok  src/engine/db/shopping.js
+  ok  src/engine/db/sorted-results.js
+  ok  src/engine/db/speed.js
+  ok  src/engine/db/storefronts.js
+  ok  src/engine/db/sugars.js
+  ok  src/engine/db/theme.js
+  ok  src/engine/db/unit-price.js
+  ok  src/engine/db/vocabulary.js
+  ok  src/engine/score.js
+  ok  src/offscreen/ocr.js
+  ok  src/options/google-auth.js
+  ok  src/options/history-dashboard.js
+  ok  src/options/history.js
+  ok  src/options/library.js
+  ok  src/options/popup.js
+  ok  src/options/report-data.js
+  ok  src/options/report.js
+  ok  src/options/settings-database.js
+  ok  src/options/settings-stores.js
+  ok  src/options/settings.js
+  ok  src/options/simple-ui.js
+  ok  src/options/sorted.js
+  ok  src/options/store-request.js
+  ok  src/options/tabs.js
+  ok  src/options/welcome.js
+  ok  src/stores/amazon-orders.js
+  ok  src/stores/cart.js
+  ok  src/stores/costco.js
+  ok  src/stores/grocery-pages.js
+  ok  src/stores/grocery.js
+  ok  src/stores/label-reader.js
+  ok  src/stores/registry.js
+  ok  src/stores/target.js
+  ok  src/stores/walmart.js
+  ok  src/worker/ai.js
+  ok  src/worker/history-scan.js
+  ok  src/worker/messages.js
+  ok  src/worker/purchase-history.js
+  ok  src/worker/sheet-store.js
+  ok  src/worker/usda.js
+
+manifest matches what is on disk
+  ok  every declared content script exists
+  ok  every engine file is loaded somewhere
+  ok  every chrome.runtime.sendMessage type in src is registered in the worker allowlist
+  ok  settings messages are sent only from the settings page
+  ok  content scripts split page / product / search before main
+  ok  db files load before the engine that consumes them
+  ok  store description is within the 132-character limit
+
+HTML pages point at files that exist, and carry no inline handlers
+  ok  src/options/options.html
+  ok  src/options/popup.html
+  ok  src/options/welcome.html
+  ok  src/offscreen/ocr.html
+
+the vendored OCR engine is complete
+  ok  every file tesseract needs is present
+  ok  OCR internals are not web-accessible
+  ok  a harness page that runs main.js loads every Amazon content script, in manifest order
+  ok  identity is available for explicit Google sign-in without a mandatory permission
+  ok  content scripts are limited to product and search paths
+
+every rule points at a category that exists
+  ok  penalty and cap rules
+  ok  bonus rules
+  ok  every category is reachable by at least one rule or the engine itself
+
+localisation keys resolve
+  ok  manifest __MSG_ references exist
+  ok  every t() key in panel.js exists
+  ok  every data-i18n key in the popup exists
+  ok  every data-i18n key in the settings page exists
+  ok  every extension page translates its aria labels and placeholders, and every locale has the keys
+  ok  every msg() key in settings.js exists
+  ok  the panel uses a closed shadow root
+  ok  the popup surfaces existing weight presets
+  ok  every msg() key in popup.js exists
+  ok  search.js throttle and verdict keys exist
+  ok  catHelp_* keys match a scoring category
+  ok  the localised description still fits the store limit
+  ok  every message has a non-empty string
+  ok  Amazon access and the actual auto-rating default are disclosed where users look
+
+all passed
+✔ tests/sanity.test.js (2522.558138ms)
+✔ NOVA stays constant across preferences for every corpus label (709.922629ms)
+✔ cache rejects expired, mismatched, incomplete, and manual records (0.83564ms)
+✔ routine releases retain compatible scores but changes to rules, extraction, preferences or age do not (0.392272ms)
+✔ a future extraction-contract bump cannot retain unstamped legacy or prior-contract scores (2.968975ms)
+✔ comparison includes every active registered domain and rejects unknown stores (2.183099ms)
+✔ listScores returns valid s: entries newest first and skips off: / stale (0.353645ms)
+✔ fingerprints track weights, food gate, provenance revisions; OCR/OFF only for those sources (0.696583ms)
+✔ storedKeys lists keys without reading values when Chrome can, and falls back when it cannot (0.358622ms)
+✔ listScores follows the speed setting age it is given (0.528484ms)
+✔ listScores includes Amazon and all retailer previews (0.461805ms)
+✔ recall only relaxes age within the chosen grace; fresh hits never refresh (0.4784ms)
+✔ bounded memory reader reuses batches, respects opt-out and invalidates writes/deletes (2.30542ms)
+✔ an invalidation during disk read does not repopulate memory with an old reading (0.160648ms)
+✔ a saved food score and a saved personal-care index are retired only by their own settings (0.900516ms)
+✔ a saved entry is checked against the fingerprint of its own kind (0.284212ms)
+✔ a saved personal-care index is not a food rating (0.145015ms)
+✔ a score the weights or rules have moved past can be rescored from its saved reading, not refetched (0.627431ms)
+✔ a saved reading is never reused for another product, an unreadable record, or a source the reader has switched off (0.791134ms)
+✔ every penalties rule has an explicitly reviewed witness (30.723335ms)
+✔ penalties 0: Soy protein isolate — isolated protein (82.115645ms)
+✔ penalties 1: Pea protein isolate (5.288347ms)
+✔ penalties 2: Rice protein isolate (0.825235ms)
+✔ penalties 3: Textured vegetable protein (0.774449ms)
+✔ penalties 4: Isolated wheat gluten (0.737113ms)
+✔ penalties 5: Hydrolyzed protein — a hidden glutamate source (0.616365ms)
+✔ penalties 6: Whey protein isolate — processed dairy fraction (0.484068ms)
+✔ penalties 7: Milk protein isolate (1.712601ms)
+✔ penalties 8: Caseinate — chemically extracted milk protein (0.742151ms)
+✔ penalties 9: Soy leghemoglobin — genetically engineered heme (0.705878ms)
+✔ penalties 10: Dried egg white (0.56663ms)
+✔ penalties 11: Artificial flavour (0.593ms)
+✔ penalties 12: "Natural flavors" — an undisclosed flavour blend (0.949078ms)
+✔ penalties 13: "Natural flavor" — undisclosed proprietary flavour compound (0.686879ms)
+✔ penalties 14: Artificial flavour compound (0.630596ms)
+✔ penalties 15: Unspecified flavouring (0.517648ms)
+✔ penalties 16: Artificial flavour (0.537257ms)
+✔ penalties 17: "Natural flavors" — an undisclosed flavour blend (0.576615ms)
+✔ penalties 18: "Natural flavor" — undisclosed proprietary flavour compound (0.545099ms)
+✔ penalties 19: Artificial flavour compound (0.490097ms)
+✔ penalties 20: Unspecified flavouring (0.468505ms)
+✔ penalties 21: Unspecified flavouring (0.421976ms)
+✔ penalties 22: MSG (1.221823ms)
+✔ penalties 23: Yeast extract — added flavouring (0.515164ms)
+✔ penalties 24: Ribonucleotide flavour enhancer (0.555164ms)
+✔ penalties 25: Vanillin — synthetic vanilla (0.382568ms)
+✔ penalties 26: Ethyl vanillin (0.470688ms)
+✔ penalties 27: Liquid smoke flavouring (0.658136ms)
+✔ penalties 28: Torula yeast — glutamate source (0.410409ms)
+✔ penalties 29: Maltol flavour enhancer (0.367595ms)
+✔ penalties 30: Mono- and diglycerides — emulsifier (1.444814ms)
+✔ penalties 31: Polysorbate — emulsifier (0.569636ms)
+✔ penalties 32: DATEM dough conditioner (0.464209ms)
+✔ penalties 33: PGPR — castor-oil emulsifier standing in for cocoa butter (0.446532ms)
+✔ penalties 34: Sodium stearoyl lactylate (0.55241ms)
+✔ penalties 35: Methylcellulose — industrial binder (0.492701ms)
+✔ penalties 36: Cellulose gum (0.545199ms)
+✔ penalties 37: Microcrystalline cellulose — texture agent (0.685487ms)
+✔ penalties 38: Powdered cellulose (0.648422ms)
+✔ penalties 39: Xanthan gum (0.503747ms)
+✔ penalties 40: Guar gum (0.421275ms)
+✔ penalties 41: Gellan gum (0.526151ms)
+✔ penalties 42: Locust bean gum (0.464819ms)
+✔ penalties 43: Tara gum (0.675402ms)
+✔ penalties 44: Gum arabic (0.435286ms)
+✔ penalties 45: Soy lecithin — soy-derived emulsifier (0.508184ms)
+✔ penalties 46: Sunflower lecithin (0.560451ms)
+✔ penalties 47: Lecithin — emulsifier, source not stated (1.09868ms)
+✔ penalties 48: Modified starch — chemically altered (0.403379ms)
+✔ penalties 49: Maltodextrin — starch-derived bulking agent (0.382317ms)
+✔ penalties 50: Carboxymethyl derivative (0.531419ms)
+✔ penalties 51: Propylene glycol (0.398672ms)
+✔ penalties 52: Glycerin humectant (0.393855ms)
+✔ penalties 53: Synthetic nitrite — curing preservative (0.390329ms)
+✔ penalties 54: Sodium benzoate (0.418281ms)
+✔ penalties 55: Potassium sorbate (0.803192ms)
+✔ penalties 56: Sorbic acid (0.43142ms)
+✔ penalties 57: Calcium propionate (0.381466ms)
+✔ penalties 58: Sodium propionate (0.461956ms)
+✔ penalties 59: EDTA — a chelating agent (0.333545ms)
+✔ penalties 60: Sulfites (0.427174ms)
+✔ penalties 61: Potassium metabisulfite (0.445101ms)
+✔ penalties 62: Natamycin (0.447464ms)
+✔ penalties 63: Nisin (0.415647ms)
+✔ penalties 64: Polyphosphate (2.468472ms)
+✔ penalties 65: Unnamed preservative (0.567021ms)
+✔ penalties 66: Unnamed colour (0.592309ms)
+✔ penalties 67: Unnamed emulsifier (0.414135ms)
+✔ penalties 68: Unnamed stabiliser or thickener (0.570998ms)
+✔ penalties 69: Unnamed acidity regulator (1.752641ms)
+✔ penalties 70: Unnamed flavour enhancer (0.486432ms)
+✔ penalties 71: Unnamed sweetener (0.438631ms)
+✔ penalties 72: Unnamed antioxidant (0.411952ms)
+✔ penalties 73: Phosphoric acid — acidity regulator (0.412732ms)
+✔ penalties 74: Citric acid — acidity regulator (1.541287ms)
+✔ penalties 75: Malic acid (0.443047ms)
+✔ penalties 76: Fumaric acid (0.409498ms)
+✔ penalties 77: Industrial lactic acid (0.445932ms)
+✔ penalties 78: Acetic acid (0.474474ms)
+✔ penalties 79: Silicon dioxide anticaking agent (0.467333ms)
+✔ penalties 80: Calcium silicate (0.526932ms)
+✔ penalties 81: Aluminium compound (0.320956ms)
+✔ penalties 82: Magnesium stearate (0.513432ms)
+✔ penalties 83: Tripotassium phosphate (0.542484ms)
+✔ penalties 84: Dipotassium phosphate (0.586109ms)
+✔ penalties 85: Phosphate additive (0.57928ms)
+✔ penalties 86: Sodium aluminium phosphate (0.585328ms)
+✔ penalties 87: Calcium sulfate (0.618397ms)
+✔ penalties 88: Ammonium salt dough conditioner (0.636173ms)
+✔ penalties 89: L-cysteine dough conditioner (1.067374ms)
+✔ penalties 90: Processing enzymes (1.229314ms)
+✔ penalties 91: Added alcohol (preservative / solvent) (0.690194ms)
+✔ penalties 92: Cultured dextrose — a preservative in disguise (0.841669ms)
+✔ penalties 93: Celery powder — nitrite by another name, which is what "uncured" means here (0.610606ms)
+✔ penalties 94: Synthetic thiamine (0.794459ms)
+✔ penalties 95: Synthetic riboflavin (0.529956ms)
+✔ penalties 96: Folic acid — the synthetic form, not folate (0.58629ms)
+✔ penalties 97: Elemental iron fortification (0.569945ms)
+✔ penalties 98: Synthetic B6 (0.617937ms)
+✔ penalties 99: Cyanocobalamin — the synthetic B12 form (0.577567ms)
+✔ penalties 100: Zinc oxide fortification (0.58622ms)
+✔ penalties 101: Synthetic niacin (1.023879ms)
+✔ penalties 102: Calcium carbonate fortification (0.367475ms)
+✔ penalties 103: Synthetic vitamin C (0.380975ms)
+✔ penalties 104: Synthetic vitamin A (0.351311ms)
+✔ penalties 105: Tocopherol antioxidant (0.490638ms)
+✔ penalties 106: Added vitamin D (0.623696ms)
+✔ penalties 107: Added iodine (0.344451ms)
+✔ penalties 108: Sodium selenite (0.499561ms)
+✔ penalties 109: Enriched flour — stripped, then synthetically re-dosed (0.736813ms)
+✔ penalties 110: Refined white flour (0.332664ms)
+✔ penalties 111: Wheat flour (0.329749ms)
+✔ penalties 112: Wheat (0.392493ms)
+✔ penalties 113: Barley (0.451941ms)
+✔ penalties 114: Rye (0.396788ms)
+✔ penalties 115: Durum semolina (0.384881ms)
+✔ penalties 116: Spelt (0.343509ms)
+✔ penalties 117: Triticale (0.359694ms)
+✔ penalties 118: Malted barley (0.400794ms)
+✔ penalties 119: Corn flour or starch (0.345682ms)
+✔ penalties 120: Oat flour (0.297241ms)
+✔ penalties 121: Rice flour (0.293976ms)
+✔ penalties 122: Soy flour (0.378912ms)
+✔ penalties 123: Chickpea flour (0.3434ms)
+✔ penalties 124: Lentil flour (0.35044ms)
+✔ penalties 125: Potato starch (0.442336ms)
+✔ penalties 126: Tapioca starch (0.380654ms)
+✔ penalties 127: Wheat fraction (0.523596ms)
+✔ penalties 128: Ultra-pasteurized dairy (0.78796ms)
+✔ penalties 129: Homogenized dairy (0.944642ms)
+✔ penalties 130: Fat-reduced dairy (0.516446ms)
+✔ penalties 131: Refined added sugar (1.323904ms)
+✔ penalties 132: Refined added sugar (0.346534ms)
+✔ penalties 133: Cane sugar (0.412071ms)
+✔ penalties 134: Brown sugar (0.590196ms)
+✔ penalties 135: Beet sugar (0.549155ms)
+✔ penalties 136: Powdered sugar (0.590175ms)
+✔ penalties 137: Invert sugar (0.507843ms)
+✔ penalties 138: Dextrose (0.445501ms)
+✔ penalties 139: Glucose syrup (0.44474ms)
+✔ penalties 140: Isolated fructose (0.356799ms)
+✔ penalties 141: Sucrose (0.346374ms)
+✔ penalties 142: Maltose (0.382047ms)
+✔ penalties 143: Agave — among the highest-fructose sweeteners (0.380644ms)
+✔ penalties 144: Rice syrup (0.351031ms)
+✔ penalties 145: Tapioca syrup (0.346594ms)
+✔ penalties 146: Barley malt syrup (0.422687ms)
+✔ penalties 147: Caramel (0.43138ms)
+✔ penalties 148: Honey powder — processed, not raw (0.49231ms)
+✔ penalties 149: Honey — concentrated sweetener, light touch (0.308918ms)
+✔ penalties 150: Maple syrup — concentrated sweetener (0.336339ms)
+✔ penalties 151: Molasses (0.405772ms)
+✔ penalties 152: Coconut sugar (0.35041ms)
+✔ penalties 153: Date sugar (0.328407ms)
+✔ penalties 154: Sorghum syrup (0.961877ms)
+✔ penalties 155: Fruit juice concentrate — sugar stripped of its fruit (2.195117ms)
+✔ penalties 156: Legumes — lectins and phytates (0.600711ms)
+✔ penalties 157: Tree nuts — phytates and oxalates (0.47177ms)
+✔ penalties 158: Seeds — phytates and plant defence compounds (0.453172ms)
+✔ penalties 159: Erythritol (0.587071ms)
+✔ penalties 160: Xylitol (0.592309ms)
+✔ penalties 161: Maltitol (0.51242ms)
+✔ penalties 162: Sorbitol (0.551979ms)
+✔ penalties 163: Mannitol (0.557547ms)
+✔ penalties 164: Isomalt (0.530597ms)
+✔ penalties 165: Lactitol (0.518679ms)
+✔ penalties 166: Sugar alcohol (unnamed) (0.872835ms)
+✔ penalties 167: Allulose (0.556726ms)
+✔ penalties 168: Stevia extract — refined, not the leaf (0.577086ms)
+✔ penalties 169: Monk fruit extract (0.675723ms)
+✔ penalties 170: Isolated fiber syrup (0.706528ms)
+✔ penalties 171: Isolated inulin (0.497508ms)
+✔ penalties 172: Polydextrose (0.61387ms)
+✔ every caps rule has an explicitly reviewed witness (0.180868ms)
+✔ caps 0: Partially hydrogenated oil (artificial trans fat) (1.770567ms)
+✔ caps 1: Canola/rapeseed oil — refined seed oil (0.799206ms)
+✔ caps 2: Soybean oil — refined seed oil (0.682422ms)
+✔ caps 3: Sunflower oil — refined seed oil (0.731195ms)
+✔ caps 4: Safflower oil — refined seed oil (0.684505ms)
+✔ caps 5: Corn oil — refined seed oil (0.55894ms)
+✔ caps 6: Cottonseed oil — refined seed oil (0.583476ms)
+✔ caps 7: Grapeseed oil — refined seed oil (1.13247ms)
+✔ caps 8: Rice bran oil — refined seed oil (0.637817ms)
+✔ caps 9: Peanut oil — refined seed oil (0.58623ms)
+✔ caps 10: Refined sesame oil — refined seed oil (0.571508ms)
+✔ caps 11: Unspecified "vegetable oil" — refined seed oil (0.516296ms)
+✔ caps 12: Unspecified oil blend — refined seed oil (0.507753ms)
+✔ caps 13: Vegetable shortening — refined seed oil (0.470078ms)
+✔ caps 14: Margarine — refined seed oil (0.572289ms)
+✔ caps 15: Interesterified fat — refined seed oil (0.462226ms)
+✔ caps 16: Hydrogenated oil — refined seed oil (0.483558ms)
+✔ caps 17: High-oleic industrial seed oil — refined seed oil (7.466563ms)
+✔ caps 18: Red 40 artificial colour (0.57278ms)
+✔ caps 19: Red 3 artificial colour (0.862169ms)
+✔ caps 20: Yellow 5 artificial colour (0.531419ms)
+✔ caps 21: Yellow 6 artificial colour (0.484849ms)
+✔ caps 22: Blue 1 artificial colour (0.953995ms)
+✔ caps 23: Blue 2 artificial colour (0.594232ms)
+✔ caps 24: Citrus Red 2 — permitted in the US only on orange peel (0.571628ms)
+✔ caps 25: Green 3 artificial colour (0.648082ms)
+✔ caps 26: Quinoline yellow (E104) artificial colour (0.362167ms)
+✔ caps 27: Carmoisine (E122) artificial colour (0.901007ms)
+✔ caps 28: Ponceau 4R (E124) artificial colour (0.382858ms)
+✔ caps 29: Patent blue V (E131) artificial colour (0.452201ms)
+✔ caps 30: Green S (E142) artificial colour (0.819916ms)
+✔ caps 31: Brilliant black (E151) artificial colour (1.049267ms)
+✔ caps 32: Brown HT (E155) artificial colour (0.352372ms)
+✔ caps 33: Titanium dioxide — banned as a food additive in the EU (1.062477ms)
+✔ caps 34: Artificial colour (0.594723ms)
+✔ caps 35: Caramel colour (0.443218ms)
+✔ caps 36: Carrageenan — thickener (0.460002ms)
+✔ caps 37: BHA preservative (0.329529ms)
+✔ caps 38: BHT preservative (0.349869ms)
+✔ caps 39: TBHQ preservative (2.295586ms)
+✔ caps 40: Propyl gallate (0.474955ms)
+✔ caps 41: Propylparaben — banned as a food additive in the EU (0.466011ms)
+✔ caps 42: Potassium bromate — banned in the EU, UK, and Canada (0.403429ms)
+✔ caps 43: Azodicarbonamide — the "yoga mat" dough conditioner (0.450198ms)
+✔ caps 44: Olestra (0.408796ms)
+✔ caps 45: Brominated vegetable oil (0.497469ms)
+✔ caps 46: High-fructose corn syrup (0.522876ms)
+✔ caps 47: Corn syrup (0.389047ms)
+✔ caps 48: Glucose-fructose syrup (0.636234ms)
+✔ caps 49: Sucralose — artificial sweetener (0.503868ms)
+✔ caps 50: Aspartame — artificial sweetener (0.371872ms)
+✔ caps 51: Acesulfame potassium — artificial sweetener (0.436648ms)
+✔ caps 52: Saccharin — artificial sweetener (0.390269ms)
+✔ caps 53: Neotame — artificial sweetener (0.595813ms)
+✔ caps 54: Advantame — artificial sweetener (1.262784ms)
+✔ caps 55: Cyclamate — artificial sweetener (0.8699ms)
+✔ every bonuses rule has an explicitly reviewed witness (0.070464ms)
+✔ bonuses 0: 100% grass-fed / grass-finished (2.936166ms)
+✔ bonuses 1: Pasture-raised (1.327079ms)
+✔ bonuses 2: Wild-caught (1.11915ms)
+✔ bonuses 3: Organic label claim (0.733929ms)
+✔ bonuses 4: Raw / unpasteurised dairy (0.701331ms)
+✔ bonuses 5: Regeneratively farmed (0.472331ms)
+✔ bonuses 6: Fermented / live cultures (2.329235ms)
+✔ bonuses 7: Minimally refined cooking fat (0.628753ms)
+✔ bonuses 8: A2 dairy (0.621062ms)
+✔ bonuses 9: Sourdough / sprouted grain (0.492902ms)
+✔ bonuses 10: Non-GMO claim (0.479021ms)
+✔ bonuses 11: Unrefined salt (0.933886ms)
+✔ bonuses 12: Heritage / heirloom breed (1.407909ms)
+✔ bonuses 13: Dry-aged / traditionally cured (1.07806ms)
+✔ bonuses 14: Cold-pressed / unrefined (0.577417ms)
+✔ every nutrition contributor has a measurable, correctly directed effect (4.000155ms)
+✔ every preset and every two-goal combination preserve bounds, arithmetic and caps (5193.037446ms)
+✔ neutral defaults and stricter preferences remain distinct (2.194015ms)
+✔ fortification and dried egg whites alone do not establish ultra-processing (22.896582ms)
+✔ nutrition inputs are immutable and presets cannot retain another score’s basis (5.121599ms)
+✔ invalid nutrition cannot create rewards or exaggerated deductions (1.217937ms)
+✔ measured added sugar replaces ingredient deductions and is not counted twice (1.112971ms)
+✔ allergen and avoid preferences control warnings without moving the score (1.278387ms)
+✔ duplicate goals and inherited names cannot add votes or weights (0.604847ms)
+✔ every certification is reviewed for applicability, evidence strength and bounded credit (4.762486ms)
+✔ the same beverage is compared per 100ml across serving sizes and cached legacy data (1.035036ms)
+✔ many recognized whole foods do not create a list-length defect (1.120583ms)
+✔ dairy preferences agree with preset purposes and do not reward raw-milk claims (1.52958ms)
+✔ preset direction is reflected in actual foods with measured nutrition (4.240843ms)
+✔ every hollow marketing signal remains non-scoring (2.242407ms)
+  active?  lookups  badged  hover  auto   case
+  QUIET         0       0      0     0     a search for running shoes
+  QUIET         0       0      0     0     a search inside i=fashion
+  QUIET         0       0      0     0     a non-food department with an unrelated food card
+  QUIET         0       0      0     0     a brand search returning shoes
+  RUNS          0       0      7     7     a food card among merchandise results
+  RUNS          0       0      6     6     a search for organic oats
+  RUNS          0       0      6     6     a cookware word inside i=grocery
+
+all passed
+✔ tests/search-gate-integration.test.js (542.659244ms)
+department is the strongest signal
+  ok  stands down in i=fashion
+  ok  stands down in i=fashion-womens
+  ok  stands down in i=shoes
+  ok  stands down in i=electronics
+  ok  stands down in i=computers
+  ok  stands down in i=toys-and-games
+  ok  stands down in i=tools
+  ok  stands down in i=automotive
+  ok  stands down in i=beauty
+  ok  stands down in i=pets
+  ok  stands down in i=office-products
+  ok  stands down in i=videogames
+  ok  stands down in i=stripbooks
+  ok  stands down in i=furniture
+  ok  stands down in i=kitchen
+  ok  stands down in i=appliances
+  ok  stands down in i=sporting
+  ok  runs in i=grocery
+  ok  runs in i=amazonfresh
+  ok  runs in i=wholefoods
+  ok  runs in i=gourmet-food
+  ok  runs in i=beverages
+
+the visible dropdown label covers the shapes where i= is absent
+  ok  Clothing, Shoes & Jewelry stands down
+  ok  Grocery & Gourmet Food runs
+
+query text, consulted only when the department says nothing
+  ok  stands down for "running shoes"
+  ok  stands down for "nike sneakers"
+  ok  stands down for "shampoo"
+  ok  stands down for "laptop"
+  ok  stands down for "cast iron skillet"
+  ok  stands down for "instant pot"
+  ok  stands down for "dog food"
+  ok  stands down for "lavender essential oil"
+  ok  stands down for "ibuprofen"
+  ok  stands down for "wireless headphones"
+  ok  stands down for "lego star wars"
+  ok  stands down for "queen mattress"
+  ok  stands down for "motor oil"
+  ok  runs for "organic rolled oats"
+  ok  runs for "grass fed ground beef"
+  ok  runs for "olive oil"
+  ok  runs for "protein powder"
+  ok  runs for "greek yogurt"
+  ok  runs for "almond butter"
+  ok  runs for "coffee"
+  ok  runs for "sourdough bread"
+  ok  runs for "kirkland signature"
+  ok  runs for "electrolyte powder"
+  ok  runs for "collagen peptides"
+  ok  runs for "baby formula"
+
+Amazon's own results settle a search that names no category
+  ok  a page of shoes stands the extension down
+  ok  a page of groceries does not
+  ok  a thin sample concludes nothing
+  ok  a mixed page keeps running
+
+the new merchandise rule must not catch food
+  ok  "Chobani Greek Yogurt" is still food
+  ok  "Kettle Brand Potato Chips" is still food
+  ok  "Ghirardelli Chocolate Bar" is still food
+  ok  "Celestial Seasonings Herbal Tea" is still food
+  ok  "Bobs Red Mill Almond Flour" is still food
+  ok  "Vital Farms Pasture-Raised Eggs" is still food
+  ok  "Organic Medjool Dates" is still food
+  ok  "Nutella Hazelnut Spread" is still food
+  ok  "Table Water Crackers" is still food
+  ok  "Vegetable Broth" is still food
+  ok  "Cookie Dough Ice Cream" is still food
+  ok  "HP 15.6" Laptop" is merchandise
+  ok  "Sony WH-1000XM5 Headphones" is merchandise
+  ok  "Queen Size Mattress" is merchandise
+  ok  "LEGO Star Wars Millennium Falcon" is merchandise
+  ok  "DeWalt Cordless Drill" is merchandise
+
+turning the setting off is the user's call, not the gate's
+  ok  assessSearch is advisory only — main.js checks state.foodOnly first
+
+all passed
+✔ tests/search-gate.test.js (63.97466ms)
+✔ a delayed toggle read cannot undo a newer OCR checkbox change (7.846278ms)
+✔ Google account operation locks Chrome restore and client configuration until request completes (31.283372ms)
+✔ Google restore remains locked until local state is refreshed and reload executes (3.689056ms)
+✔ signing into a different Google account clears the previous backup link (2.057784ms)
+✔ Chrome restore persistence failure releases locks without reloading or claiming success (2.82233ms)
+✔ unconfigured account endpoints cannot trigger Google auth through synthetic button clicks (1.471394ms)
+✔ restore guard cancels debounced scoring saves, drains pending writes and suppresses pagehide writes (1.850277ms)
+✔ failed pending local writes still unblock restore waiting and preserve write-count state (40.029385ms)
+✔ settings startup read failure suppresses pagehide writes of default preferences (2.126637ms)
+✔ a committed restore reloads immediately under its write guard if the follow-up read fails (3.216985ms)
+✔ late failed Chrome sync reads cannot overwrite a newer successful backup state (7.114062ms)
+✔ signing in shows who is signed in at the top, hides the sign-in prompt, and keeps the profile on this computer (1.593326ms)
+✔ the database not being set up is reported separately: sign-in still shows as a success (2.604837ms)
+✔ a profile Google will not share does not fail the sign-in (2.674991ms)
+✔ a signed-in reader is shown on load, and signing out clears only the profile (2.053719ms)
+✔ Check my backups: this browser and a matching Chrome profile copy are reported as all matching (5.535323ms)
+✔ Check my backups: a Chrome profile copy that is behind names exactly the settings that differ (16.817336ms)
+✔ Check my backups: no backup yet, still syncing and unreadable are each said plainly (6.497807ms)
+✔ Check my backups: when signed in it also fetches and compares the Google copy, without applying it (5.6379ms)
+✔ Check my backups: a Google copy that is behind is named, and a failed sign-in is reported (6.362155ms)
+✔ Check my backups: running it twice replaces the report instead of stacking it (27.63752ms)
+✔ the Google status line says when automatic saving starts, when it last ran, and when it has paused (5.344895ms)
+✔ the status line follows the worker: a new result repaints it, and signing out clears the link (1.74467ms)
+✔ shortcuts: the settings page shows the keys Chrome has assigned, and "not set" for an empty one (1.262364ms)
+✔ shortcuts: coming back from chrome://extensions/shortcuts repaints the list, and the button opens that page (1.067394ms)
+✔ shortcuts: a browser without the commands API leaves the page working (1.015237ms)
+✔ Check my backups: a database that does not answer is reported, not silently skipped (3.889504ms)
+✔ the automatic-saving switch lives with the signed-in controls, so it is not offered before signing in (0.562445ms)
+✔ importing a settings file never turns on a switch that sends data, but applies everything else (2.328798ms)
+✔ the sharing checkboxes follow storage when a restore or another page changes them (2.742502ms)
+✔ "Saved" and errors go to a toast outside every level-gated section, announced to screen readers (1.100244ms)
+✔ every radio group on the settings and setup pages has an accessible name (0.725187ms)
+✔ every aria-describedby and aria-labelledby on the settings page and the popup names an element that exists (1.851168ms)
+✔ a link into a section the level hides raises the level just enough, says so, and scrolls there (1.674836ms)
+✔ a link to a section the level already shows changes nothing but the scroll (0.993705ms)
+✔ no link, an unknown anchor, or an anchor with no level never moves the level (4.378691ms)
+✔ appearance: the controls show the stored choices and the swatches show each palette (8.146203ms)
+✔ appearance: choosing a scheme or palette saves only that setting (1.536891ms)
+✔ appearance: the accent previews while the picker is open, saves when it closes, and says when it was adjusted (12.569681ms)
+✔ appearance: the section is on the settings page at Simple, its accent row at Standard, and the controls are named (1.314762ms)
+✔ every setting has a test value that really differs from its default after sanitizing (9.481987ms)
+✔ the set of settings is exactly the one written down here (0.281288ms)
+✔ every control on the settings page is a saved setting, or is listed here as not one (0.964432ms)
+✔ Chrome profile: every setting, changed one at a time, is in the profile backup and survives a restore (108.53722ms)
+✔ Chrome profile: a different Chrome profile never sees this profile's backup (12.415281ms)
+✔ Chrome profile: the backup fits Chrome sync limits even with everything set and a full avoid list (21.621098ms)
+✔ Chrome profile: switching the backup off keeps the last copy; switching it on writes again at once (15.325672ms)
+[Ingredient Check] backupToChrome: sync is unavailable
+✔ Chrome profile: a failed write keeps the old copy and says so; the next change recovers (9.703185ms)
+✔ Chrome profile: the master switch is never carried, so a restore cannot leave a computer paused (10.066054ms)
+✔ Google: before this computer has saved or restored once, nothing is written automatically (10.119032ms)
+✔ Google: Save writes the whole settings copy to the Gmail account and shows it saved (12.808055ms)
+✔ Google: every setting, changed one at a time while signed in, reaches the Gmail copy automatically (175.995116ms)
+✔ Google: a burst of changes is saved once, a few seconds later, with the latest values (10.853112ms)
+✔ Google: when Google needs the reader again, saving pauses with a clear status and opens no window (15.136271ms)
+✔ Google: an older linked browser pauses autosave until the user chooses a copy (27.75931ms)
+✔ Google: a competing write after the automatic check is rejected under the sheet lock (11.044156ms)
+✔ Google: the identity permission being withdrawn pauses saving the same way (7.973146ms)
+✔ Google: automatic saving can be turned off, and signing out stops it (15.165264ms)
+✔ Google: an unreachable database is reported and never loses the local settings (11.205385ms)
+✔ Google: a second computer restores the Gmail copy, matches it exactly, and then saves automatically (33.20123ms)
+✔ Google: two Gmail accounts never see each other's settings (20.960578ms)
+✔ Google: a token that was not issued to this extension is refused and changes nothing (4.659977ms)
+✔ Google: the saved copy never carries sign-in details, caches or the master switch (13.229801ms)
+✔ Google: the copy stays within the size one spreadsheet cell holds, even with everything set (14.361801ms)
+✔ both copies agree with each other and with the browser after a long mixed session (64.354418ms)
+✔ account messages carry a Google token, so only the pages meant to send them are heard (7.642666ms)
+✔ Check my backups can read the Google copy but never changes this computer (12.245499ms)
+✔ Google: a second save cannot start while the first is in flight, so the copy ends with the latest values (13.137974ms)
+✔ Google: if Chrome suspends the worker and its timer is lost, the alarm still saves the change (9.776664ms)
+✔ Chrome profile: the same alarm fallback keeps the profile backup too (6.468263ms)
+✔ fallback alarms are cleared once a save is done, so a change is never saved twice (13.993194ms)
+✔ an unsigned or unlinked computer does not keep a Google alarm waiting (8.101979ms)
+✔ a Google save that failed on the network keeps its alarm for one more try, which then succeeds (11.196942ms)
+✔ Chrome profile: turning the backup off clears its alarm instead of leaving it to fire (8.943868ms)
+✔ first-run setup on a second computer cannot overwrite the Gmail copy another computer saved (14.373468ms)
+✔ saved inputs preserve vertical labels, nutrition and sourcing for score replay (83.302378ms)
+✔ budget, score and evidence constraints run independently, keeping unknown amounts distinct (1.131129ms)
+✔ warning filters exclude detected matches and treat unknown or partial checks explicitly (5.341881ms)
+✔ allergen evidence distinguishes ingredients, declarations and mixed cross-contact advisories without changing points (4.81673ms)
+✔ saved records reject invalid IDs and untrusted links and remove retailer tracking parameters (0.908669ms)
+✔ changing warning choices makes cached warning matches unknown until assessed again (1.011231ms)
+✔ durable shortlist entries are separate from caches and history, and concurrent product saves do not overwrite each other (0.789643ms)
+✔ only the own label-checker page gains explicit barcode lookup, without account/import privileges (1.594087ms)
+✔ best score first; listings without a score last; ties keep Amazon's order (1.741115ms)
+✔ money parsing matches the Cost Sorter (0.971142ms)
+✔ sort settings are bounded (0.622484ms)
+✔ the sorted list admits only Amazon links and Amazon images, bounded and typed (17.375565ms)
+✔ price per ounce: the Cost Sorter's own cases (4.645107ms)
+✔ price per ounce: Amazon's unit price wins; the setting decides the rest (0.400054ms)
+✔ price per ounce on the owner's kefir search (2026-09-25): fluid ounces, FZ, counts, nutrient grams (1.359048ms)
+✔ priorities: presets, bounds, missing values last, ties in Amazon's order (1.051702ms)
+✔ the speed setting: Balanced is exactly the old behaviour (1.511534ms)
+✔ the list keeps price per ounce, rating and reviews, bounded (0.605289ms)
+✔ who may ask: Amazon tabs and the supported stores' tabs; the list pages send no messages at all (24.588849ms)
+✔ choosing a menu option opens the side panel before anything else, then stores an empty list (5.798057ms)
+✔ the list reopens with the priorities last set for that menu option, unless remembering is off (17.328766ms)
+✔ priorities are kept per menu option, bounded, and unknown options dropped (0.261067ms)
+✔ shortcut: the worker listens for the two commands the manifest declares (4.141378ms)
+✔ shortcut: the health sort opens the side panel first, then tells the page to start gathering (10.93865ms)
+✔ shortcut: the price shortcut sorts by price per ounce (4.693628ms)
+✔ shortcut: it does nothing off search pages, and ignores commands it does not know (15.536845ms)
+✔ shortcut: with nobody to answer on the page, the panel says why instead of staying on "loading" (29.241791ms)
+✔ shortcut: price per ounce switched off says so and sends nothing to the page (10.715658ms)
+✔ shortcut: no side panel (older Chrome) opens the list in a tab and still starts gathering (5.156675ms)
+✔ shortcut: it starts from the priorities the reader last set for that option, like the menu (6.309567ms)
+✔ shortcut: pressing it twice starts a newer list; only the newest run id is told to the page (9.411933ms)
+✔ no side panel: the reply says so and the content script opens a tab instead (4.565718ms)
+✔ updates are re-checked, and only the newest run from its own tab lands (4.66114ms)
+✔ a supported store's list: its own ids, links and pictures only, decided by the sending tab's address (4.797332ms)
+✔ a store's shortcut opens the panel and asks that tab to start (8.167495ms)
+✔ why it scored: bounded rows, points or CAP, only for a scored listing (0.659158ms)
+✔ price-only priorities cannot retain health weights or fall back to health sorting (0.127089ms)
+✔ same-day grocery is an explicit food department without weakening other department checks (8.630132ms)
+✔ empty, whitespace-only and missing names are refused (3.391385ms)
+✔ names are length-limited and restricted to name characters (3.151558ms)
+✔ whitespace and line breaks in a name collapse, so nothing can add a mail header (1.817067ms)
+✔ the website is optional and cut down to its origin (2.67384ms)
+✔ malformed, non-web, private and oversized addresses are refused (0.94251ms)
+✔ the draft is addressed to the maintainer, fully percent-encoded, and holds only the two fields (0.656736ms)
+✔ supported stores are not requested again; planned ones are noted (0.759057ms)
+✔ a supported store is exactly the hosts the manifest grants (1.417875ms)
+✔ a preview store runs through a content script only, with no host permission (9.799804ms)
+✔ a planned store has no permission and no content script (0.382188ms)
+✔ statuses are known and docs/STORES.md agrees with the registry (2.064154ms)
+✔ host lookup matches subdomains, not look-alikes (0.57937ms)
+✔ "Report a problem" captures only public pages of implemented stores (1.838529ms)
+✔ two devices can stage writes in the same bank without corrupting either committed backup (20.369159ms)
+✔ sync read retries if a new pointer arrives between header and chunk delivery (4.143962ms)
+✔ chocolate twins match English flavour, lecithin and sugar keys (167.481638ms)
+✔ high-frequency additive synonyms hit the same English reasons (76.168727ms)
+✔ gluten-grain synonyms keep the same explicit-preference penalty as English (11.745597ms)
+✔ seed-oil synonyms still cap like the English name (13.29708ms)
+✔ a Spanish bread list is not flattered relative to its English twin (2.787699ms)
+✔ Portuguese and Dutch bread twins stay near the English score (2.766968ms)
+✔ Swedish and Polish twins match English reasons, score and NOVA (116.173767ms)
+✔ Swedish and Polish oils, sugars and preservatives hit the English rules (47.518184ms)
+✔ Turkish twins match English reasons, score and NOVA (18.605761ms)
+✔ Turkish oils, sugars, preservatives and function words hit the English rules (18.904094ms)
+✔ flavourings are charged once, in every spelling (10.692965ms)
+✔ UK wordings are charged like their US twins (10.806753ms)
+✔ Open Food Facts allergen markup does not hide rules or allergens (1.258778ms)
+✔ an ingredient declared with its share is charged like the bare ingredient (3.996443ms)
+✔ a "may contain" statement warns but is not scored, in every store language (28.041719ms)
+✔ "function: additive" reads like "function (additive)" (5.059391ms)
+✔ plural oils, flavour plurals, fortification and accented spellings read like English (14.982453ms)
+✔ words from real labels in every store language score like their English twins (31.713231ms)
+✔ bracketed sources, square brackets and marked-up compounds from real labels read like English (8.214986ms)
+✔ cane sugar, leading shares, headings left in the list and fat levels, from real labels (8.955705ms)
+✔ single foods, fibre isolates and processing markers read the same in every language (NOVA parity) (4.818393ms)
+✔ meat, fish, eggs and milk in every label language are whole foods with a sourcing question (8.893944ms)
+✔ minimal dairy and processing words keep the same classification across languages (3.228623ms)
+✔ sourcing claims in every label language earn the bonus their English twins earn (9.972925ms)
+✔ sourdough and sprouting in every label language halve the grain charge as in English (0.784254ms)
+✔ local flour and starch names are charged like their English twins (5.790857ms)
+✔ the grains in brackets after "may contain" warn but are not charged (3.554056ms)
+✔ flavour compounds ("Vanillearoma", "vaniljarom", "vanilya aroması") are charged like English (6.215918ms)
+✔ whole milk ahead of skimmed milk waives the fat-reduced charge in every label language (5.924145ms)
+✔ brackets inside brackets are read by depth (1.007616ms)
+✔ a function word in a sub-list is named by its own bracket, not by its siblings (1.978136ms)
+✔ a claim in brackets still earns its bonus (1.295714ms)
+✔ caramel colour in every label language caps like "caramel colour" (3.173222ms)
+✔ sulphites, PGPR and gum acacia are charged in English and every label language (6.708819ms)
+✔ sulphite caramels are caramel colour, not a sulphite preservative (1.160142ms)
+✔ words from bilingual real labels score like their English twins (round 3) (9.665709ms)
+✔ salt, sugar, vinegar, cream, butter and honey are culinary ingredients in every label language (3.681336ms)
+✔ an organic word before or after the ingredient does not hide it (4.02122ms)
+✔ "non-hydrogenated" is not hydrogenated, in any language (4.124132ms)
+✔ hydrolysed protein is charged whatever sits between the words (3.899309ms)
+✔ a denial in any label language is dropped like "no preservatives" (3.163176ms)
+✔ peanuts, the other nuts and seeds are whole foods in every label language (5.25343ms)
+✔ an allergen bracket that repeats its parent is not a second ingredient (3.44276ms)
+✔ a flavouring named in its bracket or after its colon is not unspecified (3.282173ms)
+✔ fruit and dairy sugar reads every label language, with the weight on and off (8.796619ms)
+✔ vegetables and prepared nuts are whole foods in every label language (5.974049ms)
+✔ concentrated and clarified butter earn the cooking-fat bonus in every label language (2.93718ms)
+✔ fat-reduced dairy in any word order, and whole-milk powders that waive it (3.804888ms)
+✔ "soaked" earns the traditional-preparation bonus in every label language (1.631301ms)
+✔ words from a second sample of real labels score like their English twins (12.961983ms)
+✔ oligofructose and fructo-oligosaccharides are the inulin isolate they are made from (3.691661ms)
+✔ everyday words from the second sample are read, and semi-skimmed milk is charged (5.378885ms)
+✔ a hyphen or an apostrophe inside a phrase does not hide it (3.114744ms)
+✔ words from a third sample of real labels score like their English twins (8.694658ms)
+✔ more words from the third sample, and two English gaps (9.663466ms)
+✔ a bare code in a function word’s bracket is the E-number it names (4.139455ms)
+✔ English everyday words from the samples are read; a pressing claim is not an ingredient (3.449902ms)
+✔ "-ing agent" wordings of the function words are the unnamed additive (4.126136ms)
+✔ local gelling agents and "agent" wordings read as their English function words (7.030928ms)
+✔ everyday spices, vegetables, raising agents and food colours from the third sample read as their English twins (29.471863ms)
+✔ buckwheat is not charged as wheat; local dried egg white and niacin are (7.903684ms)
+✔ Swiss "ss" spelling of semolina is charged like "Grieß" (0.77493ms)
+✔ an unnamed flavour enhancer is charged and ultra-processed; a named one is charged once, as itself (5.404323ms)
+✔ bare "organic" is an organic claim, never "USDA Organic"; a verified certification replaces it (1.150378ms)
+✔ an unnamed sweetener is charged like the mildest named one, unless the list names a sweetener anywhere (5.633903ms)
+✔ the cosmetic additives that cap the score also mark it ultra-processed; seed oils and preservatives do not (2.133417ms)
+✔ organic earns credit while ingredient ceilings remain binding (3.100253ms)
+✔ sweetener names in each language, and two joined by a conjunction (11.0405ms)
+✔ glucose-fructose syrup written with "and" in each language is the industrial syrup (5.805248ms)
+✔ two ingredients joined by "and" are split when a half is charged; compounds stay whole (3.282794ms)
+✔ from the bilingual pairs: rice flour, barley, lecithin, silica, tocopherols, malted barley and polyphosphates (13.373354ms)
+✔ facility and shared-equipment statements are not ingredients, and still raise their allergen flags (1.722076ms)
+✔ refined wheat flour and maida are refined flour; a binding agent names its additive after a colon (3.670569ms)
+✔ allergen warnings read the words the audit found missing, and not their look-alikes (54.93818ms)
+✔ Target public hydration exposes the exact child ingredients and explicit nutrition without opening an accordion (15.205643ms)
+✔ Target public hydration never borrows a parent, sibling, foreign buy URL, or different query product (6.561701ms)
+✔ Target contradictory current-product declarations and ambiguous prepared nutrition remain unknown (3.11872ms)
+✔ Target search fallback reads unwrapped title links and excludes hidden variants (2.400534ms)
+✔ Target public declared quantities preserve comparison signs and later allergens (0.948509ms)
+✔ product ids come from /p/…/-/A-<TCIN> only (5.8064ms)
+✔ search pages and their query (2.972313ms)
+✔ grocery product with the label open: list, crumbs and nutrition are read (live capture) (149.327596ms)
+✔ non-food product with the label collapsed: nothing to read, and the food gate refuses it (2.496286ms)
+✔ fresh produce has no label section at all (2.181869ms)
+✔ search tiles: id, title and badge anchor for every result (live capture) (3.340959ms)
+✔ layout changes (synthetic): other heading tags still read; a renamed section reads nothing (2.895599ms)
+✔ runner: personal-care labels use the ingredient review, not food scoring or score cache (12.50807ms)
+✔ runner: a Target product page is scored locally, cached for this computer, and never fetched (21.286421ms)
+✔ runner: shampoo is refused as non-food; "Score anyway" then asks for the collapsed label (4.563574ms)
+✔ runner: a missing label waits for the page, then fails honestly with Target named (5.563269ms)
+✔ runner: search badges come only from this computer's cache; nothing is requested (41.030873ms)
+✔ runner: the master switch off means nothing on the page (3.204567ms)
+✔ nutrition rows read thousands commas and decimals (1.212951ms)
+✔ runner: search badges keep a saved score as long as the speed setting says (23.187463ms)
+✔ Target removes invalid badges and clears the toolbar on SPA navigation (27.777759ms)
+✔ Target rejects stale canonical product labels and foreign product links (24.186346ms)
+✔ Target uses explicit serving weights and volumes without guessing cups or pieces (7.259317ms)
+✔ Target nutrition conflicts remain unknown instead of overwriting values from another panel (0.751887ms)
+✔ Target missing ingredients cannot consume the next label heading or warning text (1.031201ms)
+✔ Target badges identify the visible title rather than an unrelated first product link (0.542044ms)
+✔ Target refuses labels with a foreign or invalid declared canonical identity (0.780579ms)
+✔ fresh Target public HTML keeps its grocery label collapsed until the visitor opens it (3.149115ms)
+✔ a Target product opened before shows its saved score while the label is still collapsed (3.887341ms)
+✔ a saved reading from older settings is scored again for the panel, and kept under the current settings (4.103492ms)
+✔ a saved reading is not shown when it cannot be reused, or when the live page has its own label (29.303723ms)
+✔ Target keeps collapsed accordions actionable despite auxiliary text and retained hidden labels (0.871104ms)
+✔ Target multi-column nutrition rows cannot mix serving and container quantities (0.349239ms)
+✔ Target ingredient extraction retains later paragraphs and loose text until the next label heading (1.376264ms)
+✔ Target separately exposes allergen and cross-contact warnings without nutrition or unrelated cautions (15.215328ms)
+✔ Target department provenance recognizes nonfood categories while preserving published crumbs (4.89749ms)
+✔ Target cannot borrow a known serving basis for a different unconvertible panel (0.193587ms)
+✔ Target contradictory canonical identities and hidden search variants stay unscored (0.33671ms)
+✔ Target category carousel uses the rendered product title and ignores its image link (0.237543ms)
+✔ the appearance settings are sanitized: unknown values fall back, the accent is a lower-case #rrggbb (2.143992ms)
+✔ contrast maths matches the WCAG definition (0.355388ms)
+✔ every score palette reads: text on its fill and on white (light), and on the dark surfaces (dark) (0.470809ms)
+✔ the colour-blind palette has no red-green axis: best and worst never sit on a hue the common deficiencies merge (0.230893ms)
+✔ band() picks the right step at each threshold and follows the palette (0.290181ms)
+✔ inline badges use the selected palette on the requested surface (0.219716ms)
+✔ the panel and every score paint site read the reader's palette through BAND_COLOR (1.403153ms)
+✔ whatever accent is picked, text in it reads on every surface, on its own tint, and the fill text reads on the fill (512.959261ms)
+✔ the default accent sets nothing, so the stylesheets' own fallbacks give today's colours (0.780088ms)
+✔ applyVars sets and removes the properties on an element (0.72015ms)
+✔ force() switches only the dark rules, and puts them back for "match my system" (0.737455ms)
+✔ every dark rule in the extension is spelled the way force() recognises, and no CSS uses color-mix (1.73111ms)
+✔ every theme variable in a stylesheet carries today's colour as its fallback (0.989969ms)
+✔ no script that reads the theme is missing from a page that loads the panel (0.709002ms)
+✔ an extension page boots from the last colours it saw, then from storage, and a content script never restyles the store page (9.781922ms)
+✔ any unit in a family converts to any other, and the families never convert into each other (8.233393ms)
+✔ a UK gallon is bigger than a US gallon, and the store key works as well as the host (0.327496ms)
+✔ a size and a displayed unit price read the store key as they read the host (2.738515ms)
+✔ Amazon's own unit, per count included, is read and its unit remembered (2.188519ms)
+✔ the old per-ounce functions never return a price per count (0.271523ms)
+✔ item counts are read from pack words and count words, and refused when they disagree (0.212626ms)
+✔ a listing is priced in every family it can supply (0.712768ms)
+✔ conflicting fluid pack and item counts are not used to calculate a unit price (4.334995ms)
+✔ the missing-price setting still decides how much of the card is read (3.793482ms)
+✔ the likely unit is the one most listings are already priced in (3.257716ms)
+✔ a tie goes to the family more listings can be priced in, then to weight, volume, count (0.308057ms)
+✔ servings come from the label line, and only when it says how many (0.386424ms)
+✔ the list gate keeps every unit price, bounded and typed (1.212741ms)
+✔ ranking follows the chosen family, and a listing that cannot be priced in it goes last (2.210061ms)
+✔ prices compare by ratio, so the unit chosen within a family never changes the order (0.164164ms)
+✔ one unit table: every unit has a family, a size, and a name (0.172836ms)
+✔ without the property the script says so, spends nothing, and a bad barcode never reaches USDA (11.59951ms)
+✔ the key goes to USDA in a header, the barcode in the query, and only matching, trimmed records come back (3.368641ms)
+✔ an answer is kept six hours; a miss is kept too; a changed barcode is a new question (1.774184ms)
+✔ an upstream refusal is reported as a status only: no body, no key (3.285848ms)
+✔ at most 600 upstream requests an hour: a flood uses up the budget, not the owner's key (59.293945ms)
+✔ no other request kind can read the property: a contribution cannot be coaxed into returning it (5.761784ms)
+✔ the lookup is a read: it does not spend the per-minute allowance that anonymous writes share, and is listed as accepted (11.329319ms)
+✔ the query lists the padded forms FoodData Central stores: 12, 13 and 14 digits, once each (8.981504ms)
+✔ parseSearch: a record counts only for its own barcode, and carries its ingredients and per-100 g numbers (24.434645ms)
+✔ parseSearch: the newest matching record wins, a basis is needed for numbers, pet food is refused, "Pet" milk is food (12.348031ms)
+✔ Open Food Facts is asked first: a usable answer there means USDA is never contacted (23.800213ms)
+✔ with nothing at Open Food Facts, USDA answers: one request with the key in a header, kept 30 days, asked once (5.712791ms)
+✔ a wrong-barcode or empty answer is a miss, kept 3 days; a refusal is not kept (18.314875ms)
+✔ a rate limit pauses USDA until it clears, and offline is only a miss (15.599649ms)
+✔ nothing is sent unless the switch and barcode lookup are on, and the reader has a way to ask (70.138585ms)
+✔ with the reader's own key and permission the barcode goes straight to USDA, and the script is not used (8.545967ms)
+✔ without a key the barcode goes through Ingredient Check's script, which holds the project key: nothing secret is in the request (22.418351ms)
+✔ a saved key without its host permission falls back to the script instead of failing (14.189415ms)
+✔ the script is a courier, not a source of truth: a record for another barcode is refused, errors and a busy script are only a miss (158.441898ms)
+✔ Open Food Facts calling a product not food is final, and a pet product is refused for a food-only caller (15.97769ms)
+✔ the key check: settings page only, names why it failed, and the key lives in a key no backup reads (90.756845ms)
+✔ a saved reading is usable only while its source's switches are on, and is labelled with the database that answered (4.973813ms)
+✔ the direct query pads like the script: stripped digits are never searched (5.121283ms)
+✔ Walmart empty and malformed embedded declarations fall back to the current visible label (16.091668ms)
+✔ Walmart declarations decode retailer HTML entities without executing markup (0.507994ms)
+✔ Walmart encoded markup remains text and invalid code points never crash reading (1.13802ms)
+✔ Walmart markup cleanup preserves ingredient quantities written with comparison symbols (431.316049ms)
+✔ Walmart rejects overlong embedded labels instead of scoring a truncated declaration (2.582404ms)
+✔ Walmart identity accepts scalar IDs and rejects coerced arrays or other products (0.608544ms)
+✔ Walmart coherent boot data with a malformed or absent product never authenticates a stale DOM label (1.45495ms)
+✔ Walmart does not read unrelated embedded product data on non-product routes (0.424801ms)
+✔ Walmart malformed display metadata never becomes stringified object text (1.702708ms)
+✔ Walmart memoized model refreshes when a reused SPA script changes (0.802261ms)
+✔ Walmart SPA transitions never mix identity-bound ingredients with an old title or nutrient table (0.638918ms)
+✔ Walmart aligned headings still allow current DOM declarations and nutrition (34.734336ms)
+✔ Walmart search accepts its own trailing-slash route and rejects foreign pages (0.989639ms)
+✔ Walmart canonical host redirects accept only the same public product over HTTPS (0.217273ms)
+✔ Walmart duplicate organic cards each receive an anchor without duplicating links within a card (8.708709ms)
+✔ Walmart image-only search links use their own accessible names and deduplicate products (3.68778ms)
+✔ Walmart search refuses hidden/navigation/promotional links and never borrows another product image (5.172909ms)
+✔ Walmart public overlay-link cards expose their own visible title and safe badge container (11.21494ms)
+✔ Walmart search rejects reused cards containing contradictory product IDs (1.933461ms)
+✔ Walmart item-ID cards inside forms use the sibling title rather than the overlay link (0.755903ms)
+✔ Walmart standalone sponsored labels exclude only the advertised card, including duplicate organic items (3.512705ms)
+✔ Walmart public product URL stays on the current origin and drops tracking or private-route input (2.304522ms)
+✔ Walmart carousel badges go in the visible title beside the overlay link (0.669864ms)
+✔ an ordinary grid has nothing to hide (11.645409ms)
+✔ the visible Sponsored label marks its own card, in any case and with the usual suffixes (52.086997ms)
+✔ a screen-reader sentence that ends in the disclosure marks the card; the word inside a title does not (2.808259ms)
+✔ a label wrapped in extra elements, with an icon beside it, still marks the card (0.931693ms)
+✔ an accessible name ending in the disclosure marks the card (the way Target and Walmart write it) (2.198213ms)
+✔ a click-through via Walmart's ad tracker is an ad, even with no label and no product link of its own (3.788024ms)
+✔ placement attributes mark a card and a whole module (1.463543ms)
+✔ a banner or video ad that is not one product card is hidden by its label, without taking organic results with it (1.719602ms)
+✔ a Savings banner sharing a wrapper with category and filter controls hides only the banner (1.355022ms)
+✔ the grid, the page and organic cards are never hidden, however the ad is wrapped (2.453211ms)
+✔ words that merely contain "sponsored" or "ad" never hide an organic result (1.896886ms)
+✔ only one slot per ad, and it is the OUTERMOST card: nested cards never leave an empty cell behind (8.588881ms)
+✔ a page with nothing but one ad still hides just that ad, not the page chrome (5.713282ms)
+✔ setup recommendations start checked and preserve existing opt-outs (14.74526ms)
+✔ Finish requests barcode permission and saves independent comma-separated avoid entries (7.646772ms)
+✔ denied barcode permission stays in setup and can finish with the opt-out (46.703785ms)
+✔ comma-separated avoid phrases produce distinct product warnings (407.316437ms)
+✔ typed avoid entries and chip removals stay synchronized (2.415376ms)
+✔ rerunning setup preserves weighted goal priorities and their active description (2.780177ms)
+✔ Google setup signs in optionally and backs up only after choices are saved (22.511297ms)
+✔ Google cancellation, permission denial and backend failure keep setup usable (49.71022ms)
+✔ setup blocks navigation and duplicate operations while Google sign-in is pending (2.223982ms)
+✔ retrying sign-in cannot back up with an earlier account token after permission denial (1.276933ms)
+✔ local save failure keeps setup open and prevents account backup until retry succeeds (3.629047ms)
+✔ Skip clears the pending Google token and reports a failed setup-status save (2.010783ms)
+✔ Finish keeps saved choices safe while Google backup is pending or throws (2.371133ms)
+✔ setup startup storage failure cannot replace existing choices with defaults (0.96138ms)
+✔ keyboard: Enter moves through every step to Finish, saving the same choices a click would (3.390761ms)
+✔ keyboard: B goes back, and does nothing on the first step (1.152226ms)
+✔ keyboard: Shift+S skips setup; a plain S never does (11.625599ms)
+✔ keyboard: 1 to 5 pick the level, and the steps that follow change with it (4.903147ms)
+✔ keyboard: Enter is left alone where it already means something, and Ctrl/Cmd+Enter always moves on (1.284344ms)
+✔ keyboard: on a choice chip Space toggles (the browser does that) and Enter moves on instead of toggling again (8.81662ms)
+✔ keyboard: single-letter and number keys are ignored while typing, and with Ctrl, Cmd or Alt held (7.527528ms)
+✔ keyboard: a key another handler already took is left alone (3.626834ms)
+✔ keyboard: the buttons announce their shortcuts and the page lists them (2.958042ms)
+✔ setup never replaces a Google copy that already exists; it says so and leaves the choice to Settings (66.372991ms)
+✔ setup that cannot tell whether a Google copy exists writes nothing (3.618171ms)
+✔ setup purchase-history opt-in enables automatic sync and opens only the normal Orders page (2.819104ms)
+✔ rerunning setup preserves an existing manual-only history-sync choice (1.492166ms)
+✔ the workflows run actions (0.917264ms)
+✔ an action from another repository is pinned to a commit, with its version beside it (0.710204ms)
+✔ one action is pinned to one commit everywhere (0.333219ms)
+✔ a workflow that may write to the repository downloads no packages (1.631725ms)
+✔ tools are installed without running their packages' install scripts (1.478996ms)
+ℹ tests 1393
+ℹ suites 1
+ℹ pass 1393
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 56183.770315
+
+# alone (wall-clock limits): 2 files
+✔ engine.score stays fast on hostile input (1347.0473ms)
+✔ extract.looksLikeIngredients stays fast on hostile input (6.31402ms)
+✔ extract.nutritionFacts stays fast on hostile input (8.421096ms)
+✔ extract.extract (text sweeps) stays fast on hostile input (21.702455ms)
+✔ allergens.detect stays fast on hostile input (256.417738ms)
+✔ ingestible.looksNonFoodFromTitle stays fast on hostile input (2.195749ms)
+✔ ingestible.assessSearch stays fast on hostile input (1.569721ms)
+✔ ocrText.tidyOcr stays fast on hostile input (3.353604ms)
+✔ ocrText.ingredientsFromOcr stays fast on hostile input (1.507669ms)
+✔ unitPrice.unitPriceFor stays fast on hostile input (7.353167ms)
+✔ sortedResults.parseMoney stays fast on hostile input (2.588118ms)
+✔ ingestible.classifyProduct stays fast on hostile input (0.673099ms)
+✔ ingestible.prepareLabel stays fast on hostile input (3.547084ms)
+✔ ingestible.personalCareReview stays fast on hostile input (10.934432ms)
+✔ productRatings.declaredAmounts stays fast on hostile input (4.981684ms)
+✔ engine.score (personal care) stays fast on hostile input (454.633097ms)
+✔ engine.score (supplement) stays fast on hostile input (3.515016ms)
+✔ a hyphenated run far longer than a label is scored without rescanning it for every rule (106.402434ms)
+✔ every Amazon store the manifest serves has a storefront (46.119456ms)
+✔ listing prices parse the way each store writes them (1.539416ms)
+✔ Amazon's unit prices parse per store, and commas are decimals where the store says so (15.755365ms)
+✔ package sizes in titles read decimal commas on comma-decimal stores only (10.324639ms)
+✔ the list shows per ounce on amazon.com and per 100 g / 100 ml on metric stores (1.142682ms)
+✔ the sort options are on only where the tests cover the store (0.46097ms)
+✔ Amazon's sort menu is found by its values in any language (12.3554ms)
+✔ the sort menu stays out of stores the tests do not cover (35.969518ms)
+✔ a listing's price comes from Amazon's whole and fraction parts, else the store's own format (20.709184ms)
+✔ ratings and review counts read in each store's wording (6.092524ms)
+✔ price and size parsing stays linear on long runs of digits (20.988648ms)
+✔ UK imperial pints and litres agree; US pints remain US units (40.759429ms)
+ℹ tests 30
+ℹ suites 0
+ℹ pass 30
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3052.866344

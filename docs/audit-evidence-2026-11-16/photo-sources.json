@@ -1,0 +1,66 @@
+[
+  {
+    "file": "016000275683.jpg",
+    "sourceUrl": "https://images.openfoodfacts.org/images/products/001/600/027/5683/ingredients_en.8.400.jpg",
+    "product": "Cocoa puffs",
+    "sha256": "e1486aa309f6af8ddc276b556ab7d4fb7dca70bc984d052cf499f792f279ff8e",
+    "captured": "2026-11-16",
+    "localPhotoPath": "/workspace/extension-audit/2026-11-16/photos/016000275683.jpg"
+  },
+  {
+    "file": "028400064057.jpg",
+    "sourceUrl": "https://images.openfoodfacts.org/images/products/002/840/006/4057/ingredients_en.3.400.jpg",
+    "product": "Tostitos Bite Size Tortilla Chips 13 Ounce Plastic Bag",
+    "sha256": "53b6965002c92d61cfd3214f1bfc3d4b87ca1873aa7353bf5f51853b41d7aafa",
+    "captured": "2026-11-16",
+    "localPhotoPath": "/workspace/extension-audit/2026-11-16/photos/028400064057.jpg"
+  },
+  {
+    "file": "038000138416.jpg",
+    "sourceUrl": "https://images.openfoodfacts.org/images/products/003/800/013/8416/ingredients_en.141.400.jpg",
+    "product": "Original Potato Crisps",
+    "sha256": "ec43bbcf785e41c5ddb17f4617e50728105a99af97885d0958083bf3100d7030",
+    "captured": "2026-11-16",
+    "localPhotoPath": "/workspace/extension-audit/2026-11-16/photos/038000138416.jpg"
+  },
+  {
+    "file": "044000032029.jpg",
+    "sourceUrl": "https://images.openfoodfacts.org/images/products/004/400/003/2029/ingredients_en.10.400.jpg",
+    "product": "oreo cookies shelf",
+    "sha256": "15d28d12a38a40a93bca6d449813132caa57005cd5bb6e7e080c96e7c74610ca",
+    "captured": "2026-11-16",
+    "localPhotoPath": "/workspace/extension-audit/2026-11-16/photos/044000032029.jpg"
+  },
+  {
+    "file": "5449000000996.jpg",
+    "sourceUrl": "https://images.openfoodfacts.org/images/products/544/900/000/0996/ingredients_en.1172.400.jpg",
+    "product": "Coca-Cola Original",
+    "sha256": "9b3bbccbed71e6d6812819b89f961d23bfc57fd01e3f789f809b485313510984",
+    "captured": "2026-11-16",
+    "localPhotoPath": "/workspace/extension-audit/2026-11-16/photos/5449000000996.jpg"
+  },
+  {
+    "file": "737628064502.jpg",
+    "sourceUrl": "https://images.openfoodfacts.org/images/products/073/762/806/4502/ingredients_en.10.400.jpg",
+    "product": "Thai peanut noodle kit includes stir-fry rice noodles & thai peanut seasoning",
+    "sha256": "6922fde4db2a34f07a19638e71ef1bdaef4412afb5bfa6d2ca6cf27ae2768131",
+    "captured": "2026-11-16",
+    "localPhotoPath": "/workspace/extension-audit/2026-11-16/photos/737628064502.jpg"
+  },
+  {
+    "file": "7622210449283.jpg",
+    "sourceUrl": "https://images.openfoodfacts.org/images/products/762/221/044/9283/ingredients_fr.690.400.jpg",
+    "product": "Prince",
+    "sha256": "b8f1bb5e79a50a8876f146a35c59dddd02c55f47126cee074e614cbaf9de98f6",
+    "captured": "2026-11-16",
+    "localPhotoPath": "/workspace/extension-audit/2026-11-16/photos/7622210449283.jpg"
+  },
+  {
+    "file": "kefir.jpg",
+    "sourceUrl": "https://m.media-amazon.com/images/I/514iQ-HJVEL._SL1600_.jpg",
+    "product": "Lifeway strawberry kefir",
+    "sha256": "1d854bd35d056f8c707fdb6d53a8376631063a3b04a291a39489fb73c33171ef",
+    "captured": "2026-11-16",
+    "localPhotoPath": "/workspace/extension-audit/2026-11-16/photos/kefir.jpg"
+  }
+]

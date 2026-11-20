@@ -1,0 +1,30 @@
+[
+  {
+    "label": "status",
+    "seconds": 2.0,
+    "bodyAndStatus": "{\"ok\":true,\"service\":\"ingredient-check\",\"diagnosticsSchema\":2,\"accounts\":true,\"history\":true,\"historySchema\":1,\"historyCapacity\":10000,\"accepts\":[\"lookup\",\"usda\",\"products\",\"diagnostics\",\"report\",\"account\",\"accountGet\",\"historyGet\",\"historyPut\",\"historyClear\",\"contribution\"]}\n200",
+    "error": "",
+    "exit": 0
+  },
+  {
+    "label": "empty-lookup",
+    "seconds": 2.15,
+    "bodyAndStatus": "{\"ok\":true,\"rows\":[],\"closed\":true}\n200",
+    "error": "",
+    "exit": 0
+  },
+  {
+    "label": "invalid-account",
+    "seconds": 1.4,
+    "bodyAndStatus": "{\"ok\":false,\"error\":\"Error: no token\"}\n200",
+    "error": "",
+    "exit": 0
+  },
+  {
+    "label": "invalid-history",
+    "seconds": 1.42,
+    "bodyAndStatus": "{\"ok\":false,\"error\":\"Error: no token\"}\n200",
+    "error": "",
+    "exit": 0
+  }
+]

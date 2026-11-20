@@ -1,0 +1,25 @@
+
+> retailers:check
+> node scripts/retailer-sort-harness.mjs
+
+ok 1 Walmart: search typed on the home page (no page load) -> extension active, 5 ads of 5 different markups hidden and never rated, organic results badged
+ok 2 Walmart: pausing shows every ad again exactly as the page rendered it (and removes the sort button); resuming hides them and re-rates
+ok 3 Walmart: an ad inserted after load is hidden within two frames when quiet, and within 2 frame(s) during a burst of page changes
+ok 4 Walmart: hovering a rating on the page shows why it scored that way, and it goes away again
+ok 5 Walmart: the badge and existing sort menu follow forced dark and light settings
+ok 6 Walmart: the page gets an "Ingredient Check sort" menu with Amazon's two entries and wording
+ok 7 Walmart: Price per ounce, 3 results pages read (22 results, no ads) -> 0.095 < 0.1 < 0.13 < 0.13 < 0.18 ...; page 4 empty -> "has no more results"
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+page.waitForSelector: Timeout 5000ms exceeded.
+Call log:
+[2m  - waiting for locator('.why-pop') to be visible[22m
+
+    at /workspace/ingrediant_check/scripts/retailer-sort-harness.mjs:233:16 {
+  log: [ "  - waiting for locator('.why-pop') to be visible" ],
+  name: 'TimeoutError'
+}
+
+Node.js v24.19.0
