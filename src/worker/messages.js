@@ -24,7 +24,7 @@ var PAGE_MESSAGE_TYPES = new Set([
 // message, so neither is affected. tests/sanity.test.js fails if another page starts sending one.
 var SETTINGS_MESSAGE_TYPES = new Set([
   'flushDiagnostics', 'diagnosticsStatus', 'refreshSheet',
-  'accountSave', 'accountLoad', 'accountFetch', 'aiTest', 'aiNanoStatus', 'usdaTest',
+  'accountSave', 'accountLoad', 'accountFetch', 'aiTest', 'usdaTest',
 ]);
 var SHORTLIST_MESSAGE_TYPES = new Set(['shortlistSave', 'shortlistRemove']);
 var SORTED_MESSAGE_TYPES = new Set(['stopSortedList']);

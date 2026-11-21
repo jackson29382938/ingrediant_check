@@ -1,7 +1,18 @@
 # Current validation
 
-**Candidate** 1.28.0. The [codebase audit](AUDIT-2026-11-21-FULL.md) records the 1.27.0
+**Source version** 1.28.1. The [codebase audit](AUDIT-2026-11-21-FULL.md) records the 1.27.0
 baseline, fixes and regression coverage. The scoring revision stays `2026-11-20.1`.
+
+## Automated verification
+
+- The Node suite covers score arithmetic, parser invariants, consent, cache/state transitions,
+  purchase-history replay, and the Apps Script relay. The engine coverage run also enforces its
+  line, branch, and function floors.
+- Browser fixtures exercise the unpacked extension, including keyboard navigation, shortlist
+  export and final-slot concurrency, OCR review, carts, purchase history, and the retailer
+  sort controls. The website check covers navigation and both themes at mobile and desktop sizes.
+- Both browser packages build from the same source. Preflight checks the manifest, locale keys,
+  vendor assets and schema alignment. Firefox packaging passes WebExtension lint.
 
 ## Live-site and service evidence
 
