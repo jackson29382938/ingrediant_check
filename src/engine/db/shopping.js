@@ -97,7 +97,37 @@
       });
     }
   }
-  const api = { evidence, cleanEvidence, describe, warningLabel, warningProfile, sourceLabel, matches, cleanInput, cleanSaved, list, save, offerSave, PREFIX, MAX };
+  function cleanerSwaps(target, candidates, { minGain = 10, limit = 3, family } = {}) {
+    if (!target || typeof target.score !== 'number' || !Array.isArray(candidates) || !candidates.length) return [];
+    const targetKey = target.asin || target.url || '';
+    const targetCat = target.category || 'food';
+    const targetStyle = target.ratingStyle || 'food';
+    const U = root.AIR.db?.unitPrice;
+    const unitOf = item => {
+      const fromFamily = family && U ? U.priceIn(item, family) : null;
+      if (Number.isFinite(fromFamily)) return fromFamily;
+      return Number.isFinite(item.unitPrice) && item.unitPrice > 0 ? item.unitPrice : null;
+    };
+    const targetUnit = unitOf(target);
+    const out = [];
+    for (const c of candidates) {
+      if (!c || typeof c.score !== 'number') continue;
+      const key = c.asin || c.url || '';
+      if (key && key === targetKey) continue;
+      if ((c.category || 'food') !== targetCat || (c.ratingStyle || 'food') !== targetStyle) continue;
+      const scoreDelta = Math.round(c.score - target.score);
+      if (scoreDelta < minGain) continue;
+      const candUnit = unitOf(c);
+      const unitPriceDelta = (targetUnit != null && candUnit != null) ? Number((candUnit - targetUnit).toFixed(4)) : null;
+      out.push({ product: c, scoreDelta, unitPriceDelta, _unit: candUnit });
+    }
+    out.sort((a, b) => (b.product.score - a.product.score)
+      || ((a._unit ?? Infinity) - (b._unit ?? Infinity))
+      || ((a.product.listingPrice ?? Infinity) - (b.product.listingPrice ?? Infinity))
+      || String(a.product.title || '').localeCompare(String(b.product.title || '')));
+    return out.slice(0, Math.max(0, limit)).map(({ product, scoreDelta, unitPriceDelta }) => ({ product, scoreDelta, unitPriceDelta }));
+  }
+  const api = { evidence, cleanEvidence, describe, warningLabel, warningProfile, sourceLabel, matches, cleanerSwaps, cleanInput, cleanSaved, list, save, offerSave, PREFIX, MAX };
   root.AIR = root.AIR || {}; root.AIR.db = root.AIR.db || {}; root.AIR.db.shopping = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

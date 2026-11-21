@@ -2396,5 +2396,36 @@
   },
   "sortMenuButton": {
     "message": "Ingredient Check sort"
+  },
+  "optCouldNotLoad": {
+    "message": "Could not load your settings. Reload this page before making changes."
+  },
+  "sortedPresetValueClean": {
+    "message": "Best value clean"
+  },
+  "sortedTitleValueCleanUnit": {
+    "message": "Best value clean: health and price per $FIRST$",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "sortedBestValue": {
+    "message": "Best value"
+  },
+  "sortedBestValueTip": {
+    "message": "No other listing in this list beats it on both score and unit price."
+  },
+  "sortedCleanerSwap": {
+    "message": "Cleaner swap (+$FIRST$ pts): $SECOND$",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      },
+      "second": {
+        "content": "$2"
+      }
+    }
   }
 }

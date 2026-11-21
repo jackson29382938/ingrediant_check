@@ -66,7 +66,10 @@ function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true, pro
         return { getResponseCode: () => reply.status, getContentText: () => reply.text };
       }
       tokenChecks++;
-      const info = tokens[decodeURIComponent(url.split('access_token=')[1])];
+      const authHeader = options && options.headers && (options.headers.Authorization || options.headers.authorization);
+      const bearer = typeof authHeader === 'string' && /^Bearer\s+(.+)$/i.test(authHeader) ? authHeader.replace(/^Bearer\s+/i, '') : null;
+      const token = bearer || (String(url).includes('access_token=') ? decodeURIComponent(url.split('access_token=')[1]) : '');
+      const info = tokens[token];
       return { getResponseCode: () => (info ? 200 : 400), getContentText: () => JSON.stringify(info || {}) };
     } },
     // The script cache: values with the lifetime they were given, so a test can let them lapse.

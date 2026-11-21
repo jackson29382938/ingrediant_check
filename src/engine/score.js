@@ -320,7 +320,7 @@ const penaltiesFor = remembered(ing => {
   const groups = new Set([...hit].map(r => r.group));
   const stripped = unqualified(ing);
   for (const r of PENALTIES) {
-    if (!hit.has(r) && !groups.has(r.group) && r.m.test(stripped)) hit.add(r);
+    if (!hit.has(r) && !groups.has(r.group) && eitherForm(r.m, stripped)) hit.add(r);
   }
   return hit;
 });
@@ -670,7 +670,7 @@ function allergenDeclaration(text) {
 const ORGANIC_WORD = '(?:organic|bio|biologique|biologiques|biol[óo]gic[oa]s?|biologic[oaie]|biologiche|biologisch(?:e[mnrs]?)?'
   + '|ecol[óo]gic[oa]s?|eco|[öo]ko|ekologisk[at]?|ekologiczn[a-zęąó]*|organik|kbA)';
 const ORGANIC_EDGE = new RegExp(`^(?:${ORGANIC_WORD}[- ]\\s*)+|(?:\\s+${ORGANIC_WORD})+$`, 'gi');
-const BIO_FUSED = /^bio(?!t[iy]n|log|flav|cult|kult|akt|act|fib|fib|sph|mass|gas|eth|dyn|chem|synt|top|tech|degr|sol)(?=[a-zß-ÿ\u0100-\u017f]{4,}$)/i;
+const BIO_FUSED = /^bio(?!t[iy]n|log|flav|cult|kult|akt|act|fib|sph|mass|gas|eth|dyn|chem|synt|top|tech|degr|sol)(?=[a-zß-ÿ\u0100-\u017f]{4,}$)/i;
 function withoutOrganic(ing) {
   if (ing.length > 80 || !/bio|org|eco|[öo]ko|eko|kba/i.test(ing)) return null;
   // A claim or a note is read whole ("certified organic", "*ingrédients biologiques").
@@ -734,7 +734,7 @@ function withoutLeadWord(ing) {
 // name, and the sugar was charged nothing (90 against 65). A digit is also how dyes, vitamins and
 // polysorbates are named, so one is dropped only when the rulebase then charges or reads more: "red 3",
 // "blue 1" and "vitamin d3" keep theirs.
-const FOOTNOTE_DIGIT = /^(.*[a-zß-ÿœ\u0100-\u017f)])\s?[1-9]$/i;
+const FOOTNOTE_DIGIT = /^(.*[a-zß-ÿœ\u0100-\u017f)])\s?(?:[1-9]|1\d)$/i;
 function withoutFootnote(ing) {
   if (ing.length > LONG_ENTRY) return ing;
   const m = FOOTNOTE_DIGIT.exec(ing);
@@ -960,9 +960,11 @@ function normaliseNutrition(raw) {
   if (hasGrams) {
     const normalizedFat = Number.isFinite(raw.fat) && raw.fat >= 0 ? raw.fat * factor : null;
     const fat = normalizedFat ?? values.saturatedFat ?? 0;
+    // Scale FDA label rounding tolerance (~0.5g per macro) with 100/serving so small servings stay valid.
+    const macroTolerance = Math.max(2, Math.min(20, 1.5 * factor));
     if ((values.sugar != null && values.carbs != null && values.sugar > values.carbs + 2)
       || (normalizedFat != null && values.saturatedFat != null && values.saturatedFat > normalizedFat + 2)
-      || fat + (values.carbs ?? values.sugar ?? 0) + (values.protein || 0) > 102) return {values:{},basis:'invalid'};
+      || fat + (values.carbs ?? values.sugar ?? 0) + (values.protein || 0) > 100 + macroTolerance) return {values:{},basis:'invalid'};
   }
   return {values, basis:hasGrams ? 'per 100g' : 'per 100ml'};
 }
@@ -1096,6 +1098,7 @@ function cleanText(value) {
   return commaList(sameLetters(String(value ?? '')
     .replace(LINE_BREAK_TAG, '\n')
     .replace(HTML_TAG, ' ').replace(ANGLE_TEXT, '($1)').replace(HTML_ENTITY, entityText)
+    .replace(LINE_BREAK_TAG, '\n').replace(HTML_TAG, ' ').replace(ANGLE_TEXT, '($1)')
     .replace(INVISIBLE, '').replace(TYPED_HYPHEN, '-').replace(/[\u2028\u2029\u0085]/g, '\n')
     .replace(/[，、،﹐﹑]/g, ',').replace(/[；؛]/g, ';').replace(/：/g, ':').replace(/％/g, '%')
     .replace(/[（［｛]/g, '(').replace(/[）］｝]/g, ')')
@@ -1368,9 +1371,12 @@ function score(product, options = {}) {
   // penalised or capped there is nothing for "fermented" or "sea salt" to be a better version of,
   // so those claims stand down. Organic is the exception, by the owner's rule: organic always earns
   // its benefit, so organic cane sugar or honey scores above the conventional one.
-  const capsHit = CAPS.filter(c => eitherForm(c.m, txt));
+  const capsSeen = new Set();
+  for (const i of list) for (const c of capsFor(i)) capsSeen.add(c);
+  const capsHit = CAPS.filter(c => capsSeen.has(c));
   const allPenalised = list.length > 0
-    && list.every(i => hits.some(h => h.ing === i && h.cat !== 'naturalSugar') || capsFor(i).some(c => capsHit.includes(c)));
+    && list.every(i => hits.some(h => h.ing === i && h.cat !== 'naturalSugar') || capsFor(i).some(c => capsSeen.has(c)));
+  const cookingFatRule = labels.BONUSES.find(f => f.requiresUnrefinedFat);
   let bonus = 0, titleBonus = 0;
   for (const b of labels.BONUSES) {
     if (allPenalised && b.cat !== 'organic') continue;
@@ -1385,7 +1391,6 @@ function score(product, options = {}) {
       product.provenanceRecord && product.provenanceRecord.producerRegistry && product.provenanceRecord.producerRegistry.certifications || '',
     ].join(' '), kindInfo.kind).some(c => c.id === 'organic');
     if (verifiedOrganic && provenanceApplies) continue;
-    const cookingFatRule = labels.BONUSES.find(f => f.requiresUnrefinedFat);
     const pressClaim = [bonusText, product.name || '', product.labels || '', product.certifications || '', ...list]
       .some(source => b.m.test(source) && /press|prens|spremitur|gepresst|pressad|tłoczon|s[ıi]k/i.test(source));
     const cookingFatEvidence = [bonusText, product.name || '', product.labels || '', product.certifications || ''].some(source =>

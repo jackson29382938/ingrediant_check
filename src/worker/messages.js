@@ -41,10 +41,11 @@ var RETAILER_HOST = /^(?:www\.)?(?:target\.com|walmart\.com|costco\.com|instacar
 function isOwnExtension(sender) {
   const id = chrome.runtime && chrome.runtime.id;
   if (!id || !sender) return false;
-  return !sender.id || sender.id === id;
+  return sender.id === id;
 }
 
 function isAmazonTabSender(sender) {
+  if (sender && sender.frameId !== undefined && sender.frameId !== 0) return false;
   const raw = sender && sender.tab && sender.tab.url;
   if (!raw) return false;
   try { return AMAZON_HOST.test(new URL(raw).hostname); }
@@ -52,6 +53,7 @@ function isAmazonTabSender(sender) {
 }
 
 function isRetailerTabSender(sender) {
+  if (sender && sender.frameId !== undefined && sender.frameId !== 0) return false;
   const raw = sender && sender.tab && sender.tab.url;
   if (!raw) return false;
   try { return RETAILER_HOST.test(new URL(raw).hostname); }

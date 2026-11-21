@@ -93,6 +93,42 @@
     $('itemCount').textContent = `${rows.length} matching entries · ${Math.min(limit, rows.length)} shown`; $('moreItems').hidden = rows.length <= limit;
     const counts = new Map(); for (const r of rows.filter(r => r.record.state === 'purchased')) { const c = counts.get(r.record.asin) || { name: r.record.name, entries: 0, orders: new Set(), unknown: 0 }; c.entries++; if (r.record.orderKey) c.orders.add(r.record.orderKey); else c.unknown++; counts.set(r.record.asin, c); }
     $('products').replaceChildren(); for (const c of [...counts.values()].sort((a, b) => b.entries - a.entries).slice(0, 10)) $('products').append(el('li', `${c.name} — ${c.entries} product entries · ${c.orders.size} identified orders${c.unknown ? ` · ${c.unknown} ungrouped` : ''}`));
+    if ($('reformulationsSection') && $('reformulations')) {
+      const changes = typeof A.detectReformulations === 'function' ? A.detectReformulations(rows) : [];
+      $('reformulationsSection').hidden = !changes.length;
+      $('reformulations').replaceChildren();
+      if (changes.length) {
+        if ($('reformulationsNote')) $('reformulationsNote').textContent = `${changes.length} ingredient-list ${changes.length === 1 ? 'change' : 'changes'} detected across repeat purchases in this view. Compare the package before reordering.`;
+        for (const ch of changes.slice(0, 50)) {
+          const li = el('li');
+          const link = el('a', ch.name || ch.asin);
+          link.href = `https://www.amazon.com/dp/${encodeURIComponent(ch.asin)}`;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          li.append(link);
+          const meta = el('div');
+          meta.className = 'reformulation-meta';
+          meta.append(el('span', `${ch.fromDate} → ${ch.toDate}`));
+          if (ch.fromScore !== null && ch.toScore !== null) {
+            const sign = ch.delta > 0 ? '+' : '';
+            const badge = el('span', `${fmt(ch.fromScore)} → ${fmt(ch.toScore)} (${sign}${fmt(ch.delta)})`);
+            badge.className = `reformulation-delta ${ch.scoreDropped ? 'drop' : ch.delta > 0 ? 'rise' : ''}`.trim();
+            meta.append(badge);
+          }
+          li.append(meta);
+          const details = el('details');
+          details.append(el('summary', 'Compare ingredient lists'));
+          const diff = el('div');
+          diff.className = 'reformulation-diff';
+          const prevP = el('p'); prevP.append(el('strong', `Earlier (${ch.fromDate}): `), ch.fromIngredients);
+          const currP = el('p'); currP.append(el('strong', `Later (${ch.toDate}): `), ch.toIngredients);
+          diff.append(prevP, currP);
+          details.append(diff);
+          li.append(details);
+          $('reformulations').append(li);
+        }
+      }
+    }
   }
   async function update(raw) {
     conf = raw; calculating = $('scoreView').value === 'current' || $('driverBasis').value === 'current'; $('trends').closest('section').setAttribute('aria-busy', String(calculating)); const turn = ++generation, opts = options(), scoring = AIR.db.prefs.sanitizeScoring(conf), key = JSON.stringify(scoring);

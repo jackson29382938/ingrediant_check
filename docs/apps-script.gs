@@ -146,6 +146,8 @@ function usdaQuery(digits) {
   });
   return forms.join(' ');
 }
+var USDA_MISS_CACHE_SECONDS = 1800;
+var CACHE_VALUE_MAX_BYTES = 95000;
 function usdaLookup(code) {
   var digits = usdaDigits(code);
   if (digits.length < 7 || digits.length > 14) return json({ ok: false, error: 'invalid barcode' });
@@ -154,7 +156,10 @@ function usdaLookup(code) {
   var cache = CacheService.getScriptCache();
   // 'usda2:': answers cached before the zero-padding fix (usdaQuery) were empty for most barcodes.
   var held = cache.get('usda2:' + digits);
-  if (held) return json({ ok: true, foods: JSON.parse(held) });
+  if (held) {
+    var cachedFoods = safeParseJson(held);
+    if (Array.isArray(cachedFoods)) return json({ ok: true, foods: cachedFoods });
+  }
   var hour = 'usdaBudget:' + Math.floor(Date.now() / 3600000);
   var used = Number(cache.get(hour) || 0);
   if (used >= USDA_HOURLY_BUDGET) return json({ ok: false, error: 'busy; retry later' });
@@ -163,7 +168,9 @@ function usdaLookup(code) {
     { method: 'get', headers: { 'X-Api-Key': key }, muteHttpExceptions: true });
   var status = res.getResponseCode();
   if (status !== 200) return json({ ok: false, error: status === 429 ? 'busy; retry later' : 'upstream ' + status });
-  var found = JSON.parse(res.getContentText()).foods;
+  var parsed = safeParseJson(res.getContentText());
+  if (!parsed || typeof parsed !== 'object') return json({ ok: false, error: 'upstream invalid json' });
+  var found = parsed.foods;
   var foods = [];
   (Array.isArray(found) ? found : []).forEach(function (f) {
     if (!f || typeof f !== 'object' || usdaDigits(f.gtinUpc) !== digits || typeof f.ingredients !== 'string') return;
@@ -177,7 +184,10 @@ function usdaLookup(code) {
       }).map(function (n) { return { nutrientId: Number(n.nutrientId), value: Number(n.value) }; }),
     });
   });
-  cache.put('usda2:' + digits, JSON.stringify(foods), USDA_CACHE_SECONDS);
+  var serialized = JSON.stringify(foods);
+  if (serialized.length <= CACHE_VALUE_MAX_BYTES) {
+    cache.put('usda2:' + digits, serialized, foods.length ? USDA_CACHE_SECONDS : USDA_MISS_CACHE_SECONDS);
+  }
   return json({ ok: true, foods: foods });
 }
 
@@ -219,7 +229,8 @@ function handlePost(e, seen) {
   var acquired = false;
   var waitingAt = Date.now(), acquiredAt = 0;
   try {
-    acquired = lock.tryLock(15000);
+    // Stay well below the extension's 22s client timeout so Apps Script never commits after abort.
+    acquired = lock.tryLock(8000);
     lockTiming.waitMs = Date.now() - waitingAt;
     acquiredAt = Date.now();
     if (!acquired) return json({ ok: false, error: 'busy; retry later' });
@@ -397,8 +408,8 @@ function accountId(token) {
   var cacheKey = cache ? 'token:' + hexDigest('ingredient-check-token:' + token) : '';
   var known = cache ? cache.get(cacheKey) : null;
   if (known) return known;
-  var res = UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo?access_token=' + encodeURIComponent(token),
-    { muteHttpExceptions: true });
+  var res = UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo',
+    { method: 'get', headers: { Authorization: 'Bearer ' + token }, muteHttpExceptions: true });
   if (res.getResponseCode() !== 200) throw new Error('token rejected');
   var info = JSON.parse(res.getContentText());
   // A token issued to some other app must not open this user's row.
@@ -492,11 +503,15 @@ function writeHistory(token, payload, identity) {
   });
   var records = H.merge(old.filter(function(r) { return r.observedAt > cleared; }), payload.records.filter(function(r) { return r.observedAt > cleared; }));
   var sheet = sheetFor('purchase-history', HISTORY_COLUMNS);
+  var toAppend = [];
   records.forEach(function(r) {
     if (!wanted[r.key] || previous[r.key] === JSON.stringify(r)) return;
     var row = ["'" + id, "'" + r.key, "'" + JSON.stringify(r)];
-    if (at[r.key]) sheet.getRange(at[r.key], 1, 1, 3).setValues([row]); else sheet.appendRow(row);
+    if (at[r.key]) sheet.getRange(at[r.key], 1, 1, 3).setValues([row]); else toAppend.push(row);
   });
+  if (toAppend.length) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, toAppend.length, HISTORY_COLUMNS.length).setValues(toAppend);
+  }
   SpreadsheetApp.flush();
   return json({ ok: true, kind: 'historyPut', count: records.length });
 }
@@ -595,13 +610,14 @@ function writeRows(tabName, columns, rows, existingSheet) {
       // input from a web page, so it is quoted rather than parsed.
       if (typeof v === 'string') {
         if (v.length > CELL_MAX) v = v.slice(0, CELL_MAX);
-        if (/^[\s\u0000-\u001f]*[=+\-@]/.test(v)) return "'" + v;
+        if (/^[\s\u0000-\u001f]*[=+\-@']/.test(v)) return "'" + v;
       }
       return v === undefined || v === null ? '' : v;
     });
   });
-  trimToCap(sheet, TAB_ROW_CAPS[tabName], values.length);
+  // Append before trimming so deleteRows never attempts to delete all non-frozen rows.
   sheet.getRange(sheet.getLastRow() + 1, 1, values.length, columns.length).setValues(values);
+  trimToCap(sheet, TAB_ROW_CAPS[tabName], 0);
   SpreadsheetApp.flush();
   return json({ ok: true, wrote: values.length, tab: tabName });
 }

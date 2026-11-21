@@ -40,7 +40,7 @@ async function networkRequest(url, options, read) {
   if (conf.enabled === false) throw new Error('paused');
   const controller = new AbortController();
   networkControllers.add(controller);
-  const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]);
+  const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(22000)]);
   try {
     const res = await fetch(url, { ...options, signal });
     return await read(res);
@@ -274,8 +274,13 @@ async function refreshActionBadges() {
       const revision = actionRevisions.get(tab.id) || 0;
       try {
         const text = await chrome.action.getBadgeText({ tabId: tab.id });
+        let isIndex = false;
+        if (chrome.action.getBadgeBackgroundColor) {
+          const bg = await chrome.action.getBadgeBackgroundColor({ tabId: tab.id }).catch(() => null);
+          if (Array.isArray(bg) && bg[0] === 86 && bg[1] === 89 && bg[2] === 89) isIndex = true;
+        }
         if (paletteRevision !== badgePaletteRevision || revision !== (actionRevisions.get(tab.id) || 0) || actionStates.has(tab.id)) return;
-        if (/^\d{1,3}$/.test(text) && Number(text) <= 100) paintActionBadge(tab.id, Number(text));
+        if (/^\d{1,3}$/.test(text) && Number(text) <= 100) paintActionBadge(tab.id, Number(text), undefined, isIndex);
       } catch (e) { /* Closed tab. */ }
     }));
   } catch (e) { /* Chrome may be shutting down. */ }
@@ -396,9 +401,12 @@ function sameOrigin(a, b) {
   try { return new URL(String(a || '')).origin === new URL(String(b || '')).origin; } catch (e) { return false; }
 }
 let sortedFollowChain = Promise.resolve();
-function followSortedSearch(msg, sender) {
-  const task = sortedFollowChain.catch(() => {}).then(() => followSortedSearchOnce(msg, sender));
+function serializeSorted(work) {
+  const task = sortedFollowChain.catch(() => {}).then(work);
   sortedFollowChain = task; return task;
+}
+function followSortedSearch(msg, sender) {
+  return serializeSorted(() => followSortedSearchOnce(msg, sender));
 }
 async function followSortedSearchOnce(msg, sender) {
   const conf = await chrome.storage.local.get(['enabled','sortFollowSearch']);
@@ -433,18 +441,20 @@ function openSortedPanel(msg, sender, reply) {
   } catch (e) { opening = Promise.reject(e); }
   const mode = msg.mode === 'unitPrice' ? 'unitPrice' : 'health';
   const unitEnabled = msg.unitEnabled !== false;
-  const runId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  const runId = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
   const list = {
     runId, mode, unitEnabled, priceOnly: msg.priceOnly === true, unit: '', loading: true, status: '', items: [],
     sourceUrl: R.sanitizeSourceUrl(msg.sourceUrl), sourceTabId: tab.id, sourceWindowId: tab.windowId, t: Date.now(),
   };
   // The priorities the reader last set for this menu option, when they asked to keep them.
-  const saving = chrome.storage.local.get(['sortRemember', 'sortPriorities']).catch(() => ({})).then(conf => {
+  const saving = serializeSorted(() => chrome.storage.local.get(['sortRemember', 'sortPriorities']).catch(() => ({})).then(conf => {
     const kept = self.AIR.db.prefs.sanitizeToggles(conf).sortRemember && R.sanitizePriorities(conf).sortPriorities[mode];
     // `sortUnit` is the unit the reader picked in the panel for this list; every list starts on 'auto',
     // the unit most of its listings are priced in (content/sort.js sends it with each update).
     return chrome.storage.session.set({ sortedResults: list, sortUnit: 'auto', sortWeights: R.sanitizeWeights(kept || R.presetFor(mode), { unitEnabled }) });
-  });
+  }));
   Promise.allSettled([opening, saving]).then(([opened, saved]) => {
     if (saved.status !== 'fulfilled') { reply({ ok: false, reason: 'no-session-storage' }); return; }
     reply(opened.status === 'fulfilled' ? { ok: true, runId }
@@ -471,12 +481,14 @@ function isSortableSearchUrl(raw) {
   return isAmazonSearchUrl(raw) || !!(self.AIR.stores && self.AIR.stores.searchStore(raw));
 }
 
-async function endSortedList(runId, key, fallback) {
-  const { sortedResults: list } = await chrome.storage.session.get('sortedResults');
-  if (!list || list.runId !== runId) return;
-  let text = fallback;
-  try { text = chrome.i18n.getMessage(key) || fallback; } catch (e) { /* no locale */ }
-  await chrome.storage.session.set({ sortedResults: { ...list, loading: false, status: self.AIR.db.sortedResults.sanitizeStatus(text), t: Date.now() } });
+function endSortedList(runId, key, fallback) {
+  return serializeSorted(async () => {
+    const { sortedResults: list } = await chrome.storage.session.get('sortedResults');
+    if (!list || list.runId !== runId) return;
+    let text = fallback;
+    try { text = chrome.i18n.getMessage(key) || fallback; } catch (e) { /* no locale */ }
+    await chrome.storage.session.set({ sortedResults: { ...list, loading: false, status: self.AIR.db.sortedResults.sanitizeStatus(text), t: Date.now() } });
+  });
 }
 
 function sortFromCommand(command, tab) {
@@ -502,19 +514,21 @@ chrome.commands?.onCommand?.addListener((command, tab) => sortFromCommand(comman
 
 // A newer list (another choice, in this tab or another) wins: updates for an older run are refused
 // and the content script stops working on it.
-async function updateSortedResults(msg, sender) {
-  const R = self.AIR.db.sortedResults;
-  const { sortedResults: list } = await chrome.storage.session.get('sortedResults');
-  const tabId = sender && sender.tab && sender.tab.id;
-  if (!list || !msg.runId || list.runId !== msg.runId || list.sourceTabId !== tabId) return { ok: false, stale: true };
-  // What the list may link to and show is decided by the address of the tab that sent it, never by the message.
-  const scope = R.scopeFor(sender.tab.url);
-  if (!scope) return { ok: false, reason: 'unsupported-page' };
-  const items = R.sanitizeResults(msg.items, scope);
-  await chrome.storage.session.set({ sortedResults: {
-    ...list, items: msg.priceOnly === true ? items.map(p => ({...p, score:null, verdict:'', source:'unrated', why:null})) : items, priceOnly: msg.priceOnly === true, unit: R.sanitizeUnitId(msg.unit), loading: msg.loading === true, status: R.sanitizeStatus(msg.status), t: Date.now(),
-  } });
-  return { ok: true, count: items.length };
+function updateSortedResults(msg, sender) {
+  return serializeSorted(async () => {
+    const R = self.AIR.db.sortedResults;
+    const { sortedResults: list } = await chrome.storage.session.get('sortedResults');
+    const tabId = sender && sender.tab && sender.tab.id;
+    if (!list || !msg.runId || list.runId !== msg.runId || list.sourceTabId !== tabId) return { ok: false, stale: true };
+    // What the list may link to and show is decided by the address of the tab that sent it, never by the message.
+    const scope = R.scopeFor(sender.tab.url);
+    if (!scope) return { ok: false, reason: 'unsupported-page' };
+    const items = R.sanitizeResults(msg.items, scope);
+    await chrome.storage.session.set({ sortedResults: {
+      ...list, items: msg.priceOnly === true ? items.map(p => ({...p, score:null, verdict:'', source:'unrated', why:null})) : items, priceOnly: msg.priceOnly === true, unit: R.sanitizeUnitId(msg.unit), loading: msg.loading === true, status: R.sanitizeStatus(msg.status), t: Date.now(),
+    } });
+    return { ok: true, count: items.length };
+  });
 }
 
 // Housekeeping. This used to run only on chrome.runtime.onStartup, and browsers routinely go weeks
@@ -537,6 +551,7 @@ ensureHousekeepingAlarm();
 chrome.alarms.onAlarm.addListener(a => {
   if (a.name === BACKUP_ALARM) { backupToChrome().catch(quietly('backupToChrome')); return; }
   if (a.name === GOOGLE_ALARM) { googleAutoSave().catch(quietly('googleAutoSave')); return; }
+  if (a.name === PRODUCTS_ALARM) { flushProducts().catch(quietly('flushProducts')); return; }
   if (a.name !== HOUSEKEEPING) return;
   sweepCache().catch(quietly('sweepCache'));
   // A partial batch would otherwise sit until enough new products were scored to fill it.
@@ -753,6 +768,7 @@ const DIAG_KEY = 'diagQueue';
 const DIAG_BATCH = 12;
 const DIAG_MAX = 300;
 const DIAG_SCHEMA = 2;
+const DIAG_CAP_KEY = 'diagnosticCapability';
 let diagnosticCapability = null;
 
 // Storage read/modify/write and network flushes must share one queue. Otherwise simultaneous
@@ -813,9 +829,16 @@ async function sendDiagnostics() {
     const needsSchema = queue.some(row => row.outcome || row.feedback);
     if (needsSchema) {
       if (!diagnosticCapability || diagnosticCapability.url !== safe || diagnosticCapability.until < Date.now()) {
+        const kept = await chrome.storage.session?.get(DIAG_CAP_KEY).catch(() => null);
+        if (kept && kept[DIAG_CAP_KEY] && kept[DIAG_CAP_KEY].url === safe && kept[DIAG_CAP_KEY].until >= Date.now()) {
+          diagnosticCapability = kept[DIAG_CAP_KEY];
+        }
+      }
+      if (!diagnosticCapability || diagnosticCapability.url !== safe || diagnosticCapability.until < Date.now()) {
         const status = await networkRequest(safe, { credentials: 'omit', cache: 'no-store' }, res => res.ok ? res.json() : null);
         const schema = status?.service === 'ingredient-check' && Number.isSafeInteger(status.diagnosticsSchema) ? status.diagnosticsSchema : 0;
         diagnosticCapability = { url: safe, until: schema >= DIAG_SCHEMA ? Date.now() + 60000 : 0, schema };
+        chrome.storage.session?.set({ [DIAG_CAP_KEY]: diagnosticCapability }).catch(() => {});
       }
       if (diagnosticCapability.schema < DIAG_SCHEMA) {
         await chrome.storage.local.set({ diagLastError: 'backend-update-required' });
@@ -856,13 +879,15 @@ const MEMO_MS = 10 * 60 * 1000;
 const MEMO_MAX = 5000;
 const lookupMemo = new Map();   // key -> { t, row | null }
 let productsWork = Promise.resolve();
+const PRODUCTS_ALARM = 'ic-products-flush';
 let productsTimer = null;
 // After a failed send, only the quiet timer and the alarm retry; otherwise every tile would POST.
 // Kept in session storage as well: this worker stops after 30 idle seconds, and a pause held only in memory
 // was forgotten with it.
 let productsBackoff = false;
 const PRODUCTS_BACKOFF_KEY = 'productsBackoff';
-chrome.storage.session?.get(PRODUCTS_BACKOFF_KEY).then(kept => { if (kept && kept[PRODUCTS_BACKOFF_KEY] === true) productsBackoff = true; }, () => {});
+const productsBackoffReady = chrome.storage.session?.get(PRODUCTS_BACKOFF_KEY)
+  .then(kept => { if (kept && kept[PRODUCTS_BACKOFF_KEY] === true) productsBackoff = true; }, () => {}) || Promise.resolve();
 function setProductsBackoff(on) {
   productsBackoff = on;
   chrome.storage.session?.set({ [PRODUCTS_BACKOFF_KEY]: on }).catch(() => {});
@@ -883,6 +908,7 @@ async function sharedProductsEndpoint() {
 
 function dropProductsQueue() {
   clearTimeout(productsTimer);
+  chrome.alarms?.clear?.(PRODUCTS_ALARM);
   return serializeProducts(() => chrome.storage.local.remove([PRODUCTS_KEY]));
 }
 
@@ -932,9 +958,11 @@ function queueProducts(msg) {
     await chrome.storage.local.set({ [PRODUCTS_KEY]: queue });
     // A row this device just uploaded is the freshest answer for it; no need to ask again.
     for (const row of Object.values(queue.upserts)) lookupMemo.set(row.key, { t: Date.now(), row });
+    await productsBackoffReady;
     const queued = C.queueSize(queue);
     clearTimeout(productsTimer);
     if (queued >= PRODUCTS_BATCH && !productsBackoff) return sendProducts();
+    chrome.alarms?.create?.(PRODUCTS_ALARM, { delayInMinutes: 1 });
     productsTimer = setTimeout(() => { flushProducts().catch(quietly('flushProducts')); }, PRODUCTS_QUIET_MS);
     return { ok: true, queued };
   });
@@ -967,7 +995,7 @@ async function sendProducts() {
   pulls.forEach(k => delete queue.pulls[k]);
   const left = C.queueSize(queue);
   if (left) await chrome.storage.local.set({ [PRODUCTS_KEY]: queue });
-  else await chrome.storage.local.remove([PRODUCTS_KEY]);
+  else { await chrome.storage.local.remove([PRODUCTS_KEY]); chrome.alarms?.clear?.(PRODUCTS_ALARM); }
   return { ok: true, sent: upserts.length + pulls.length, queued: left };
 }
 

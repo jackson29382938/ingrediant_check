@@ -216,6 +216,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
     health: Object.freeze({ health: 10, unitPrice: 0, price: 0, rating: 0, reviews: 0 }),
     unitPrice: Object.freeze({ health: 0, unitPrice: 10, price: 0, rating: 0, reviews: 0 }),
     balanced: Object.freeze({ health: 6, unitPrice: 4, price: 0, rating: 2, reviews: 1 }),
+    valueClean: Object.freeze({ health: 7, unitPrice: 7, price: 0, rating: 0, reviews: 0 }),
     price: Object.freeze({ health: 0, unitPrice: 0, price: 10, rating: 0, reviews: 0 }),
     rating: Object.freeze({ health: 0, unitPrice: 0, price: 0, rating: 7, reviews: 3 }),
   });
@@ -293,13 +294,25 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
       .map(({ product, match, missing }) => ({ product, match, missing }));
   }
 
+  // Score-vs-unit-price Pareto frontier: returns products where no other candidate has both a higher
+  // ingredient score and a lower unit price (best value clean picks).
+  function paretoFront(products, { family } = {}) {
+    const unitOf = p => (family ? UP().priceIn(p, family) : p && p.unitPrice > 0 ? p.unitPrice : null);
+    const candidates = (Array.isArray(products) ? products : [])
+      .map(p => ({ p, score: finiteScore(p && p.score), unit: unitOf(p) }))
+      .filter(c => c.score != null && c.unit != null && c.unit > 0);
+    return candidates.filter(a => !candidates.some(b =>
+      b !== a && b.score >= a.score && b.unit <= a.unit && (b.score > a.score || b.unit < a.unit)
+    )).sort((a, b) => b.score - a.score || a.unit - b.unit).map(c => c.p);
+  }
+
   // The list's status line, as plain text.
   const sanitizeStatus = raw => str(raw, 300);
 
   const _exports = AIRmodule('sortedResults', {
     MAX_RESULTS, COUNT_MIN, COUNT_MAX, TIME_LIMITS, SORT_DEFAULTS, FACTORS, WEIGHT_MAX, PRESETS,
     sortByScore, parseMoney, sanitizeSort, sanitizeProduct, sanitizeResults, sanitizeSourceUrl, scopeFor, AMAZON_SCOPE,
-    sanitizeWeights, sanitizePriorities, PRIORITY_MODES, presetFor, factorValues, rank, sanitizeStatus, sanitizeWhy,
+    sanitizeWeights, sanitizePriorities, PRIORITY_MODES, presetFor, factorValues, rank, paretoFront, sanitizeStatus, sanitizeWhy,
     sanitizeUnitPrices, sanitizeUnitChoice, sanitizeUnitId,
   });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;

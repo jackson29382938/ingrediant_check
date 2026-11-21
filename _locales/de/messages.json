@@ -2396,5 +2396,36 @@
   },
   "sortMenuButton": {
     "message": "Zutaten-Check sortieren"
+  },
+  "optCouldNotLoad": {
+    "message": "Deine Einstellungen konnten nicht geladen werden. Lade diese Seite neu, bevor du Änderungen vornimmst."
+  },
+  "sortedPresetValueClean": {
+    "message": "Bestes Preis-Gesundheits-Verhältnis"
+  },
+  "sortedTitleValueCleanUnit": {
+    "message": "Bestes Preis-Gesundheits-Verhältnis: Gesundheit und Preis pro $FIRST$",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "sortedBestValue": {
+    "message": "Beste Wahl"
+  },
+  "sortedBestValueTip": {
+    "message": "Kein anderes Angebot in dieser Liste ist zugleich besser bewertet und günstiger pro Einheit."
+  },
+  "sortedCleanerSwap": {
+    "message": "Saubere Alternative (+$FIRST$ Pkt.): $SECOND$",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      },
+      "second": {
+        "content": "$2"
+      }
+    }
   }
 }

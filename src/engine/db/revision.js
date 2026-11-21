@@ -52,8 +52,11 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // brackets, and "less than 2%" written with a sign or a colon. A list headed "Contains:" that holds a capped
   // ingredient is a list. Allergen warnings read bare "flour" and the other words the audit found missing, and no
   // longer fire on "butter beans", "oyster mushrooms" or a "-free" claim. See docs/releases/1.26.4.md.
-  const RULES_REVISION = '2026-11-15.1';
-  const RULES_HASH = '1f4a8078-287099';
+  // 2026-11-20.1 (1.26.4 audit fixes): qualifier-stripped entries de-hyphenate via eitherForm, capsHit runs per
+  // entry, HTML entities decode before a second tag/angle-bracket pass, two-digit footnotes 10-19 are handled,
+  // and small-serving nutrition panels scale their rounding tolerance with 100/serving.
+  const RULES_REVISION = '2026-11-20.1';
+  const RULES_HASH = '5490dd02-287369';
   const _exports = AIRmodule('revision', { RULES_REVISION, RULES_HASH });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 })();

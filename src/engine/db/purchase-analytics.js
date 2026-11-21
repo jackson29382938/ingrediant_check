@@ -95,6 +95,44 @@
     }
     return [...groups.values()].sort((a, b) => a.month.localeCompare(b.month) || a.setup.localeCompare(b.setup)).map(g => ({ ...g, ...stats(g.rows, options.weighting) }));
   }
-  const api = { project, stats, filter, periods, quantile, drivers, quality }; root.AIR = root.AIR || {}; root.AIR.db = root.AIR.db || {}; root.AIR.db.purchaseAnalytics = api;
+  function detectReformulations(records) {
+    const byProduct = new Map();
+    const norm = text => String(text || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    for (const raw of Array.isArray(records) ? records : []) {
+      const r = raw && raw.record ? raw.record : raw;
+      if (!r || r.state !== 'purchased' || !r.asin || !r.date) continue;
+      const text = norm(r.ingredients || (r.input && r.input.ingredients_text));
+      if (!text) continue;
+      const key = `${r.store || 'amazon.com'}:${r.asin}`;
+      const list = byProduct.get(key) || [];
+      list.push({ record: r, text, score: Number.isFinite(r.score) ? r.score : null });
+      byProduct.set(key, list);
+    }
+    const changes = [];
+    for (const [, list] of byProduct) {
+      if (list.length < 2) continue;
+      list.sort((a, b) => a.record.date.localeCompare(b.record.date) || (a.record.observedAt || 0) - (b.record.observedAt || 0));
+      for (let i = 1; i < list.length; i++) {
+        const prev = list[i - 1], curr = list[i];
+        if (prev.text === curr.text) continue;
+        const delta = prev.score !== null && curr.score !== null ? curr.score - prev.score : null;
+        changes.push({
+          asin: curr.record.asin,
+          store: curr.record.store || 'amazon.com',
+          name: curr.record.name || prev.record.name || '',
+          fromDate: prev.record.date,
+          toDate: curr.record.date,
+          fromScore: prev.score,
+          toScore: curr.score,
+          delta,
+          scoreDropped: delta !== null && delta < 0,
+          fromIngredients: prev.record.ingredients || prev.record.input?.ingredients_text || '',
+          toIngredients: curr.record.ingredients || curr.record.input?.ingredients_text || '',
+        });
+      }
+    }
+    return changes.sort((a, b) => b.toDate.localeCompare(a.toDate) || a.asin.localeCompare(b.asin));
+  }
+  const api = { project, stats, filter, periods, quantile, drivers, quality, detectReformulations }; root.AIR = root.AIR || {}; root.AIR.db = root.AIR.db || {}; root.AIR.db.purchaseAnalytics = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

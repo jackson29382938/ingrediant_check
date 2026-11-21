@@ -370,7 +370,7 @@ check('Amazon access and the actual auto-rating default are disclosed where user
   // settings page without the switch beside its explanation, under-states what the extension can do.
   const hosts = JSON.parse(read('manifest.json')).host_permissions;
   const privacy = read('docs/PRIVACY.md');
-  const stores = hosts.map(h => (h.match(/^\*:\/\/\*\.amazon(\.[a-z.]+)\/\*$/) || [])[1]);
+  const stores = hosts.map(h => (h.match(/^(?:\*|https):\/\/\*\.amazon(\.[a-z.]+)\/\*$/) || [])[1]);
   assert.ok(stores.every(Boolean), `unexpected host permission: ${hosts.join(', ')}`);
   // Named as "amazon.com" or, further along the list, as ".co.uk," / ".com.br and" / ".co.jp)".
   const named = tld => {

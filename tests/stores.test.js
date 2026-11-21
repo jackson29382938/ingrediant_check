@@ -9,7 +9,7 @@ const stores = require('../src/stores/registry.js');
 const root = path.join(__dirname, '..');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
 const granted = [...manifest.host_permissions, ...(manifest.optional_host_permissions || [])];
-const covers = (domain) => granted.some(p => p === `*://*.${domain}/*`);
+const covers = (domain) => granted.some(p => p === `https://*.${domain}/*` || p === `*://*.${domain}/*`);
 const scripted = (domain) => manifest.content_scripts.some(cs => cs.matches.some(m => {
   const host = (m.match(/^[*a-z]+:\/\/([^/]+)\//) || [])[1] || '';
   return host === domain || host.endsWith('.' + domain);
@@ -17,7 +17,7 @@ const scripted = (domain) => manifest.content_scripts.some(cs => cs.matches.some
 
 test('a supported store is exactly the hosts the manifest grants', () => {
   const amazon = stores.STORES.find(s => s.id === 'amazon');
-  assert.deepEqual(amazon.domains.map(d => `*://*.${d}/*`), manifest.host_permissions);
+  assert.deepEqual(amazon.domains.map(d => `https://*.${d}/*`), manifest.host_permissions);
 });
 
 test('a preview store runs through a content script only, with no host permission', () => {
@@ -32,7 +32,7 @@ test('a preview store runs through a content script only, with no host permissio
   const target = manifest.content_scripts.find(cs => cs.matches.includes('https://www.target.com/p/*'));
   assert.ok(target.matches.includes('https://target.com/p/*'));
   assert.ok(target.matches.every(match => !/(?:^|\/)(?:cart|checkout|account|login)(?:[/*?]|$)/.test(new URL(match.replace('*', 'sample')).pathname)));
-  assert.equal(target.exclude_globs, undefined);
+  assert.ok(Array.isArray(target.exclude_globs) && target.exclude_globs.some(g => g.includes('/checkout')) && target.exclude_globs.some(g => g.includes('/account')));
   // And it loads none of Amazon's pipeline: no page fetches, no shared database, no OCR.
   for (const f of ['src/content/main.js', 'src/content/search.js', 'src/content/product.js', 'src/engine/db/product-cache.js', 'src/engine/db/ocr-text.js']) {
     assert.ok(!target.js.includes(f), `Target loads ${f}`);

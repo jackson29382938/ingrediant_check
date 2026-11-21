@@ -78,6 +78,7 @@
   const PRESET_TEXT = {
     health: () => t('sortedPresetHealth', 'Healthiest'),
     unitPrice: () => t('sortedPresetUnitPer', 'Cheapest per $1', unitName(unit())),
+    valueClean: () => t('sortedPresetValueClean', 'Best value clean'),
     balanced: () => t('sortedPresetBalanced', 'Balanced'),
     price: () => t('sortedPresetPrice', 'Lowest price'),
     rating: () => t('sortedPresetRating', 'Best rated'),
@@ -85,6 +86,7 @@
   const HEADING_TEXT = {
     health: () => t('sortedTitleHealth', 'Healthiest first'),
     unitPrice: () => t('sortedTitleUnitPer', 'Lowest price per $1 first', unitName(unit())),
+    valueClean: () => t('sortedTitleValueCleanUnit', 'Best value clean: health and price per $1', unitName(unit())),
     balanced: () => t('sortedTitleBalancedUnit', 'Balanced: health, price per $1 and rating', unitName(unit())),
     price: () => t('sortedTitlePrice', 'Lowest price first'),
     rating: () => t('sortedTitleRating', 'Best rated first'),
@@ -131,7 +133,8 @@
   }
   const unitEnabled = () => !saved || saved.unitEnabled !== false;
   const activePreset = () => Object.keys(R.PRESETS).find(id => {
-    if (saved?.priceOnly && ['health','balanced'].includes(id)) return false;
+    if (saved?.priceOnly && ['health', 'balanced', 'valueClean'].includes(id)) return false;
+    if (!unitEnabled() && ['unitPrice', 'valueClean'].includes(id)) return false;
     const p = R.sanitizeWeights(R.PRESETS[id], { unitEnabled: unitEnabled(), healthEnabled: !saved?.priceOnly });
     return R.FACTORS.every(f => p[f] === weights[f]);
   }) || 'custom';
@@ -410,7 +413,7 @@
     const active = activePreset();
     for (const b of ui.presets.children) {
       b.setAttribute('aria-pressed', String(b.dataset.preset === active));
-      b.hidden = (b.dataset.preset === 'unitPrice' && !unitEnabled()) || (!!saved?.priceOnly && ['health', 'balanced'].includes(b.dataset.preset));
+      b.hidden = (['unitPrice', 'valueClean'].includes(b.dataset.preset) && !unitEnabled()) || (!!saved?.priceOnly && ['health', 'balanced', 'valueClean'].includes(b.dataset.preset));
       b.textContent = PRESET_TEXT[b.dataset.preset]();
     }
     ui.title.textContent = HEADING_TEXT[active]();
@@ -584,6 +587,10 @@
     if (product.listingPrice != null) facts.append(node('span', 'fact', money(product.listingPrice)));
     if (product.ratingValue != null) facts.append(node('span', 'fact', `★ ${product.ratingValue.toLocaleString(store().locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`));
     if (product.reviewCount != null) facts.append(node('span', 'fact', t('sortedReviews', '$1 reviews', count.format(product.reviewCount))));
+    const bestValue = node('span', 'fact best-value', t('sortedBestValue', 'Best value'));
+    bestValue.title = t('sortedBestValueTip', 'No other listing in this list beats it on both score and unit price.');
+    bestValue.hidden = true;
+    facts.append(bestValue);
     const match = node('span', 'fact match', '');
     facts.append(match);
     content.append(facts);
@@ -606,6 +613,10 @@
     meta.append(missing);
     content.append(meta);
 
+    const swap = node('p', 'cleaner-swap', '');
+    swap.hidden = true;
+    content.append(swap);
+
     if (!saved?.priceOnly && typeof product.score === 'number') {
       const details = node('details', 'why-details');
       details.append(node('summary', '', t('sortedWhyHead', 'Why it scored $1', product.score)));
@@ -613,7 +624,7 @@
       content.append(details);
     }
     article.append(content);
-    return { article, rank, match, missing };
+    return { article, rank, match, missing, bestValue, swap, swapKey: '' };
   }
 
   // key -> { sig, article, rank, match, missing }. A listing whose data, store or price-per-ounce
@@ -643,7 +654,7 @@
     // Re-checked on read too: session storage is shared with every extension page.
     const items = R.sanitizeResults(saved && saved.items, scope());
     if (saved?.priceOnly) weights = R.sanitizeWeights(weights, {unitEnabled:unitEnabled(), healthEnabled:false});
-    for (const id of ['health', 'balanced']) { const b = ui.presets.querySelector(`[data-preset="${id}"]`); if (b) b.hidden = !!saved?.priceOnly; }
+    for (const id of ['health', 'balanced', 'valueClean']) { const b = ui.presets.querySelector(`[data-preset="${id}"]`); if (b) b.hidden = !!saved?.priceOnly || (id === 'valueClean' && !unitEnabled()); }
     const loading = !!(saved && saved.loading);
     ui.back.hidden = !R.sanitizeSourceUrl(saved && saved.sourceUrl);
     ui.back.textContent = said('sortedBack', 'Back to Amazon search', 'sortedBackStore', 'Back to $1 search');
@@ -687,6 +698,8 @@
     if (saved?.priceOnly) { filters.minScore = ''; filters.complete = false; filters.noMatches = false; }
     const eligible = AIR.db.shopping ? items.filter(product => AIR.db.shopping.matches(product, filters)) : items;
     const ranked = R.rank(eligible, weights, { unitEnabled: unitEnabled(), family: family() });
+    const paretoKeys = new Set(!saved?.priceOnly && unitEnabled() && eligible.length >= 2 && typeof R.paretoFront === 'function'
+      ? R.paretoFront(eligible, { family: family() }).map(p => p.asin || p.url) : []);
     ui.filterCount.textContent = eligible.length === items.length ? '' : t('filterCount', '$1 of $2 products match. Clear filters to show all.', eligible.length, items.length);
     const multi = R.FACTORS.filter(f => weights[f] > 0).length > 1;
     ui.subtitle.textContent = saved?.priceOnly ? t('sortedSubtitlePriceOnly', '$1 listings · price comparison only; no ingredient lookups', items.length) : loading
@@ -698,15 +711,36 @@
     let at = ui.list.firstElementChild;
     ranked.forEach(({ product, match, missing }, index) => {
       const view = viewFor(product);
-      shown.add(product.asin || product.url);
+      const key = product.asin || product.url;
+      shown.add(key);
       const rankText = `${index + 1}.`;
       if (view.rank.textContent !== rankText) view.rank.textContent = rankText;
+      view.bestValue.hidden = !paretoKeys.has(key);
       const matchText = multi ? t('sortedMatch', 'Match $1', match) : '';
       if (view.match.textContent !== matchText) view.match.textContent = matchText;
       view.match.hidden = !multi;
       const missingText = missing.map(f => MISSING_TEXT[f]()).join(', ');
       if (view.missing.textContent !== missingText) view.missing.textContent = missingText;
       view.missing.hidden = !missing.length;
+      const topSwap = (!saved?.priceOnly && typeof product.score === 'number' && product.score < 60 && AIR.db.shopping?.cleanerSwaps)
+        ? AIR.db.shopping.cleanerSwaps(product, eligible, { minGain: 15, limit: 1, family: family() })[0] : null;
+      const nextSwapKey = topSwap ? `${topSwap.product.asin || topSwap.product.url}|${topSwap.scoreDelta}` : '';
+      if (view.swapKey !== nextSwapKey) {
+        view.swapKey = nextSwapKey;
+        view.swap.textContent = '';
+        if (topSwap) {
+          const title = (topSwap.product.title || `${scope().name} listing`).slice(0, 72);
+          const swapLabel = t('sortedCleanerSwap', 'Cleaner swap (+$1 pts): $2', topSwap.scoreDelta, title);
+          if (topSwap.product.url) {
+            const link = node('a', '', swapLabel);
+            link.href = topSwap.product.url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            view.swap.append(link);
+          } else view.swap.textContent = swapLabel;
+          view.swap.hidden = false;
+        } else view.swap.hidden = true;
+      }
       if (at === view.article) at = at.nextElementSibling;
       else ui.list.insertBefore(view.article, at);
     });

@@ -35,16 +35,20 @@ function msg(key, fallback, sub) {
 const state = PREFS.sanitizeScoring({});
 let saveTimer = null;
 let writing = false;
+let scoringDirty = false;
 let restoringSettings = false;
 let settingsReady = false;
 let pendingWrites = 0;
+const pendingKeys = new Map();
 const restoreWaiters = [];
 
 // A restore must follow pending local saves and suppress old scoring writes until reload.
 AIR.settingsRestore = {
   begin() {
     restoringSettings = true;
+    scoringDirty = false;
     clearTimeout(saveTimer);
+    saveTimer = null;
     return new Promise(resolve => {
       if (!pendingWrites) resolve();
       else restoreWaiters.push(resolve);
@@ -63,8 +67,10 @@ function flash(msg, kind) {
 }
 
 function persist(values, done) {
+  const keys = Object.keys(values || {});
   pendingWrites++;
   writing = true;
+  for (const k of keys) pendingKeys.set(k, (pendingKeys.get(k) || 0) + 1);
   // Which settings changed, for "Report a problem"'s recent actions (names and short values only).
   if (AIR.db.activity) {
     AIR.db.activity.log('settings', Object.entries(values || {}).map(([k, v]) =>
@@ -73,6 +79,10 @@ function persist(values, done) {
   chrome.storage.local.set(values, () => {
     pendingWrites--;
     writing = pendingWrites > 0;
+    for (const k of keys) {
+      const left = (pendingKeys.get(k) || 1) - 1;
+      if (left <= 0) pendingKeys.delete(k); else pendingKeys.set(k, left);
+    }
     if (!pendingWrites) restoreWaiters.splice(0).forEach(resolve => resolve());
     if (chrome.runtime.lastError) {
       flash(msg('optCouldNotSave', 'Could not save') + ' — ' + chrome.runtime.lastError.message, 'error');
@@ -89,8 +99,14 @@ function scoringPayload() {
 
 function save({ immediate = false } = {}) {
   if (restoringSettings) return;
+  scoringDirty = true;
   clearTimeout(saveTimer);
-  const write = () => persist(scoringPayload(), ok => { if (ok) flash(msg('optSaved', 'Saved')); });
+  saveTimer = null;
+  const write = () => {
+    scoringDirty = false;
+    saveTimer = null;
+    persist(scoringPayload(), ok => { if (ok) flash(msg('optSaved', 'Saved')); });
+  };
   if (immediate) write(); else saveTimer = setTimeout(write, 250);
 }
 
@@ -341,7 +357,7 @@ function showPresetDetail(id, { previewOnly = false } = {}) {
   }
   note.textContent = preset.note;
   if (versus) {
-    versus.innerHTML = '';
+    versus.textContent = '';
     if (preset.versus) {
       const strong = document.createElement('strong');
       strong.textContent = msg('optPresetVersus', 'How it differs');
@@ -525,14 +541,15 @@ function wireFileActions() {
       }
       applyScoring(parsed.prefs);
       renderAll();
-      save({ immediate: true });
+      clearTimeout(saveTimer);
+      saveTimer = null;
+      scoringDirty = false;
       // Everything else the file holds (switches, sort, speed, display); the controls follow storage.
       const scoringKeys = Object.keys(PREFS.sanitizeScoring({}));
       // Not the switches that send data off this computer: those stay as this reader set them.
       const rest = Object.fromEntries(Object.entries(parsed.values || {})
         .filter(([k]) => !scoringKeys.includes(k) && !PREFS.SHARING_KEYS.includes(k)));
-      if (Object.keys(rest).length) persist(rest);
-      flash(msg('optImported', 'Imported'));
+      persist({ ...scoringPayload(), ...rest }, ok => { if (ok) flash(msg('optImported', 'Imported')); });
     } catch (e) {
       flash(msg('optImportFailed', 'That file could not be read'), 'error');
     } finally {
@@ -666,7 +683,7 @@ function bindToggle(id, onPaint) {
     chrome.storage.local.get(id, o => { if (turn === revision) show(PREFS.sanitizeToggles(o)[id]); });
   };
   read();
-  chrome.storage.onChanged.addListener(changes => { if (changes[id]) read(); });
+  chrome.storage.onChanged.addListener((changes, area) => { if (area && area !== 'local') return; if (changes[id]) read(); });
   box.addEventListener('change', () => {
     // A slow startup/storage read must not undo a checkbox the reader just changed.
     revision++;
@@ -679,13 +696,27 @@ function bindToggle(id, onPaint) {
 function wireLabelReading() {
   bindToggle('ocrLabels');
   const box = document.getElementById('useOpenFoodFacts'), permission = { origins: ['https://world.openfoodfacts.org/*'] };
-  const read = () => chrome.storage.local.get('useOpenFoodFacts', raw => {
-    chrome.permissions.contains(permission, granted => { box.checked = PREFS.sanitizeToggles(raw).useOpenFoodFacts && granted; });
+  let revision = 0;
+  const read = () => {
+    const turn = ++revision;
+    chrome.storage.local.get('useOpenFoodFacts', raw => {
+      chrome.permissions.contains(permission, granted => {
+        if (turn === revision) box.checked = PREFS.sanitizeToggles(raw).useOpenFoodFacts && granted;
+      });
+    });
+  };
+  read();
+  chrome.storage.onChanged.addListener((changes, area) => { if (area && area !== 'local') return; if (changes.useOpenFoodFacts) read(); });
+  chrome.permissions?.onRemoved?.addListener(removed => {
+    if ((removed && removed.origins || []).some(o => o.includes('world.openfoodfacts.org'))) read();
   });
-  read(); chrome.storage.onChanged.addListener(changes => { if (changes.useOpenFoodFacts) read(); });
   box.addEventListener('change', () => {
+    revision++;
     const enabled = box.checked; box.disabled = true;
-    const save = value => persist({ useOpenFoodFacts: value }, ok => { box.checked = value; box.disabled = false; if (ok) flash(value ? 'Saved' : enabled ? 'Chrome did not grant Open Food Facts access.' : 'Saved'); });
+    const save = value => persist({ useOpenFoodFacts: value }, ok => {
+      box.checked = value; box.disabled = false;
+      if (ok) flash(value ? msg('optSaved', 'Saved') : enabled ? msg('popupOffDenied', 'Chrome did not grant Open Food Facts access.') : msg('optSaved', 'Saved'));
+    });
     if (!enabled) { chrome.permissions.remove(permission, () => { void chrome.runtime.lastError; save(false); }); return; }
     chrome.permissions.request(permission, granted => {
       const error = chrome.runtime.lastError;
@@ -696,10 +727,10 @@ function wireLabelReading() {
 }
 
 // "Amazon access" names the stores from the manifest, so the list cannot drift from what Chrome
-// actually granted. "*://*.amazon.co.uk/*" -> "amazon.co.uk".
+// actually granted. "https://*.amazon.co.uk/*" (or legacy "*://*.amazon.co.uk/*") -> "amazon.co.uk".
 function amazonStores(manifest) {
   return ((manifest && manifest.host_permissions) || [])
-    .map(p => (String(p).match(/^\*:\/\/\*\.(amazon\.[a-z.]+)\/\*$/) || [])[1])
+    .map(p => (String(p).match(/^(?:\*|https?):\/\/\*\.(amazon\.[a-z.]+)\/\*$/) || [])[1])
     .filter(Boolean);
 }
 
@@ -761,7 +792,8 @@ function wireSort() {
     persist(v, ok => { if (ok) flash(msg('optSaved', 'Saved')); });
   };
   chrome.storage.local.get(keys, paint);
-  chrome.storage.onChanged.addListener(changes => {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area && area !== 'local') return;
     if (keys.some(k => changes[k])) chrome.storage.local.get(keys, paint);
   });
   radios.forEach(r => r.addEventListener('change', () => save()));
@@ -784,7 +816,7 @@ function wireSort() {
     };
     bindToggle('unitPrice', on => unitRadios.forEach(r => { r.disabled = !on; }));
     chrome.storage.local.get('unitMissing', paintUnit);
-    chrome.storage.onChanged.addListener(changes => { if (changes.unitMissing) paintUnit({ unitMissing: changes.unitMissing.newValue }); });
+    chrome.storage.onChanged.addListener((changes, area) => { if (area && area !== 'local') return; if (changes.unitMissing) paintUnit({ unitMissing: changes.unitMissing.newValue }); });
     unitRadios.forEach(r => r.addEventListener('change', () => {
       const v = U.sanitizeUnit({ unitMissing: (unitRadios.find(x => x.checked) || {}).value });
       persist(v, ok => { if (ok) flash(msg('optSaved', 'Saved')); });
@@ -802,7 +834,7 @@ function wireSpeed() {
     radios.forEach(r => { r.checked = r.value === speedMode; });
   };
   chrome.storage.local.get('speedMode', paint);
-  chrome.storage.onChanged.addListener(changes => { if (changes.speedMode) paint({ speedMode: changes.speedMode.newValue }); });
+  chrome.storage.onChanged.addListener((changes, area) => { if (area && area !== 'local') return; if (changes.speedMode) paint({ speedMode: changes.speedMode.newValue }); });
   radios.forEach(r => r.addEventListener('change', () => {
     const v = SP.sanitizeSpeed({ speedMode: (radios.find(x => x.checked) || {}).value });
     persist(v, ok => { if (ok) flash(msg('optSaved', 'Saved')); });
@@ -814,7 +846,8 @@ function wireSpeed() {
     if (el.type === 'checkbox') el.checked = clean[key]; else el.value = String(clean[key]);
   } };
   chrome.storage.local.get(recallKeys, paintRecall);
-  chrome.storage.onChanged.addListener(changes => {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area && area !== 'local') return;
     if (recallKeys.some(key => changes[key])) chrome.storage.local.get(recallKeys, paintRecall);
   });
   recallKeys.forEach(key => document.getElementById(key)?.addEventListener('change', event => {
@@ -826,7 +859,7 @@ function wireSpeed() {
   const paces = [...document.querySelectorAll('input[name="ratePace"]')];
   const paintPace = o => { const { ratePace } = SP.sanitizePace(o); paces.forEach(r => { r.checked = r.value === ratePace; }); };
   chrome.storage.local.get('ratePace', paintPace);
-  chrome.storage.onChanged.addListener(changes => { if (changes.ratePace) paintPace({ ratePace: changes.ratePace.newValue }); });
+  chrome.storage.onChanged.addListener((changes, area) => { if (area && area !== 'local') return; if (changes.ratePace) paintPace({ ratePace: changes.ratePace.newValue }); });
   paces.forEach(r => r.addEventListener('change', () => {
     persist(SP.sanitizePace({ ratePace: (paces.find(x => x.checked) || {}).value }), ok => { if (ok) flash(msg('optSaved', 'Saved')); });
   }));
@@ -848,7 +881,8 @@ function wireBreakdown() {
   };
   const keys = ['breakdownDetail', 'breakdownDelayMs'];
   chrome.storage.local.get(keys, paint);
-  chrome.storage.onChanged.addListener(changes => {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area && area !== 'local') return;
     if (keys.some(k => changes[k])) chrome.storage.local.get(keys, paint);
   });
   // Only this section's own keys: sanitizeDisplay returns every display key, defaults included.
@@ -893,7 +927,8 @@ function wireLevel() {
     if (raised) flash(msg('optLevelRaised', 'Showing more settings so you can see this section.'));
     if (target && typeof target.scrollIntoView === 'function') target.scrollIntoView();
   });
-  chrome.storage.onChanged.addListener(changes => {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area && area !== 'local') return;
     if (changes.settingsLevel) applyLevel(PREFS.sanitizeDisplay({ settingsLevel: changes.settingsLevel.newValue }).settingsLevel);
   });
   for (const r of document.querySelectorAll('input[name="settingsLevel"]')) {
@@ -915,7 +950,8 @@ function wirePanelAndHover() {
   const paint = ms => { if (val) val.textContent = `${(ms / 1000).toFixed(1)} s`; };
   const show = o => { const ms = PREFS.sanitizeDisplay(o).scoreHoverDelayMs; delay.value = String(ms); paint(ms); };
   chrome.storage.local.get('scoreHoverDelayMs', show);
-  chrome.storage.onChanged.addListener(changes => {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area && area !== 'local') return;
     if (changes.scoreHoverDelayMs) show({ scoreHoverDelayMs: changes.scoreHoverDelayMs.newValue });
   });
   delay.addEventListener('input', () => paint(Number(delay.value)));
@@ -938,7 +974,7 @@ function wirePoints() {
     status.textContent = total ? msg('optPointsStatus', 'Level $1 · $2 XP', [P.level(total).level, total]) : msg('optPointsNone', 'No points yet.');
   };
   chrome.storage.local.get('xp', paint);
-  chrome.storage.onChanged.addListener(changes => { if (changes.xp) chrome.storage.local.get('xp', paint); });
+  chrome.storage.onChanged.addListener((changes, area) => { if (area && area !== 'local') return; if (changes.xp) chrome.storage.local.get('xp', paint); });
   reset.addEventListener('click', () => {
     if (!window.confirm(msg('optPointsResetConfirm', 'Reset your points and level to zero?'))) return;
     chrome.storage.local.remove('xp', () => flash(msg('optPointsResetDone', 'Points reset')));
@@ -972,7 +1008,8 @@ function wireAppearance() {
   };
   const save = values => persist(values, ok => { if (ok) flash(msg('optSaved', 'Saved')); });
   chrome.storage.local.get(keys, paint);
-  chrome.storage.onChanged.addListener(changes => {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area && area !== 'local') return;
     if (keys.some(k => changes[k])) chrome.storage.local.get(keys, paint);
   });
   for (const name of ['theme', 'palette']) {
@@ -1015,7 +1052,7 @@ function wireShortcuts() {
 function startSettingsPage() {
   chrome.storage.local.get(['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly', 'ratingStyle', 'personalCareEnabled'], o => {
     if (chrome.runtime.lastError) {
-      document.getElementById('status').textContent = 'Could not load your settings. Reload this page before making changes.';
+      document.getElementById('status').textContent = msg('optCouldNotLoad', 'Could not load your settings. Reload this page before making changes.');
       document.getElementById('status').className = 'status toast error';
       return;
     }
@@ -1072,18 +1109,23 @@ function startSettingsPage() {
 
 window.addEventListener('pagehide', () => {
   clearTimeout(saveTimer);
-  if (settingsReady && !restoringSettings) persist(scoringPayload());
+  saveTimer = null;
+  if (settingsReady && !restoringSettings && scoringDirty) {
+    scoringDirty = false;
+    persist(scoringPayload());
+  }
 });
 
 // Stay in sync if the popup flips the same keys while this page is open.
-chrome.storage.onChanged.addListener(changes => {
-  if (writing) return;
-  if (changes.foodOnly) {
+const SCORING_SYNC_KEYS = ['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'ratingStyle', 'personalCareEnabled'];
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area && area !== 'local') return;
+  if (changes.foodOnly && !pendingKeys.has('foodOnly')) {
     state.foodOnly = changes.foodOnly.newValue !== false;
     const fo = document.getElementById('foodOnly');
     if (fo) fo.checked = state.foodOnly;
   }
-  if (changes.weights || changes.goals || changes.goalImportance || changes.allergens || changes.diets || changes.avoidList || changes.ratingStyle || changes.personalCareEnabled) {
+  if (SCORING_SYNC_KEYS.some(k => changes[k] && !pendingKeys.has(k))) {
     chrome.storage.local.get(['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'foodOnly', 'ratingStyle', 'personalCareEnabled'], o => {
       applyScoring(o);
       renderAll();

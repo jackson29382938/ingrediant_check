@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "1.26.4",
+  "version": "1.27.0",
   "minimum_chrome_version": "116",
   "description": "__MSG_appDescription__",
   "permissions": [
@@ -13,27 +13,27 @@
     "activeTab"
   ],
   "host_permissions": [
-    "*://*.amazon.com/*",
-    "*://*.amazon.co.uk/*",
-    "*://*.amazon.ca/*",
-    "*://*.amazon.com.au/*",
-    "*://*.amazon.ie/*",
-    "*://*.amazon.in/*",
-    "*://*.amazon.sg/*",
-    "*://*.amazon.ae/*",
-    "*://*.amazon.sa/*",
-    "*://*.amazon.de/*",
-    "*://*.amazon.fr/*",
-    "*://*.amazon.es/*",
-    "*://*.amazon.it/*",
-    "*://*.amazon.nl/*",
-    "*://*.amazon.se/*",
-    "*://*.amazon.pl/*",
-    "*://*.amazon.com.be/*",
-    "*://*.amazon.com.tr/*",
-    "*://*.amazon.com.mx/*",
-    "*://*.amazon.com.br/*",
-    "*://*.amazon.co.jp/*"
+    "https://*.amazon.com/*",
+    "https://*.amazon.co.uk/*",
+    "https://*.amazon.ca/*",
+    "https://*.amazon.com.au/*",
+    "https://*.amazon.ie/*",
+    "https://*.amazon.in/*",
+    "https://*.amazon.sg/*",
+    "https://*.amazon.ae/*",
+    "https://*.amazon.sa/*",
+    "https://*.amazon.de/*",
+    "https://*.amazon.fr/*",
+    "https://*.amazon.es/*",
+    "https://*.amazon.it/*",
+    "https://*.amazon.nl/*",
+    "https://*.amazon.se/*",
+    "https://*.amazon.pl/*",
+    "https://*.amazon.com.be/*",
+    "https://*.amazon.com.tr/*",
+    "https://*.amazon.com.mx/*",
+    "https://*.amazon.com.br/*",
+    "https://*.amazon.co.jp/*"
   ],
   "optional_permissions": [
     "identity"
@@ -1773,6 +1773,13 @@
         "src/stores/registry.js",
         "src/stores/cart.js",
         "src/content/cart.js"
+      ],
+      "exclude_globs": [
+        "*://*/checkout*",
+        "*://*/account*",
+        "*://*/orders*",
+        "*://*/login*",
+        "*://*/signin*"
       ]
     },
     {

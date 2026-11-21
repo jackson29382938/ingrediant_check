@@ -167,6 +167,10 @@ test('restore guard cancels debounced scoring saves, drains pending writes and s
   await waiting;
   assert.equal(finished, true);
   p.run('AIR.settingsRestore.complete()');
+  // Untouched pagehide does not spuriously overwrite storage; a pending scoring save does flush.
+  p.context.window.pagehide();
+  assert.equal(p.writes.length, 2);
+  p.run('save()');
   p.context.window.pagehide();
   assert.equal(p.writes.length, 3);
 });
