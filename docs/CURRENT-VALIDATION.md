@@ -1,6 +1,6 @@
 # Current validation
 
-**Source version** 1.28.1. The [codebase audit](AUDIT-2026-11-21-FULL.md) records the 1.27.0
+**Source version** 1.28.2. The [codebase audit](AUDIT-2026-11-21-FULL.md) records the 1.27.0
 baseline, fixes and regression coverage. The scoring revision stays `2026-11-20.1`.
 
 ## Automated verification

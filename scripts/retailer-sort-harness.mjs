@@ -321,7 +321,7 @@ try {
     interrupted = await until(async () => { const s = await sortedState(); return s && s.runId !== shorter.runId && !s.loading ? s : null; }, 'stopped list');
     assert.equal(interrupted.items.length, 13, 'stopping preserves the first page');
     assert.match(interrupted.status, /Stopped loading results/);
-    assert.equal(await resize.getByRole('button', { name: 'Stop loading results' }).isVisible(), false);
+    await resize.getByRole('button', { name: 'Stop loading results' }).waitFor({ state: 'hidden' });
   } finally {
     walmartPagingHold = null;
     releasePaging();
