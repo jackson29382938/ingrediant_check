@@ -38,7 +38,9 @@ See [purchase history](PURCHASE-HISTORY.md).
 ## Earlier live check, 2026-10-06 (first five stores)
 
 `npm run live-check -- <store...>` (`scripts/live-check.mjs`) loads the unpacked extension in Chrome for Testing,
-signed out, opens each store's live search page and a food product page, and records what the extension did.
+signed out, opens each store's live search page and a food product page, and records transport, product
+identity, label extraction and scoring separately. The probe does not independently exercise warning
+accuracy or interactive sorting.
 It never solves or bypasses a bot check. Results:
 
 | Store | Search results page | Food product page | Notes |
@@ -286,16 +288,15 @@ the ten predefined search summaries listed in [the release notes](releases/1.21.
 still comes first. These summaries occupy only residual columns and describe actual loaded products,
 ratings, prices and label progress; missing values remain unknown. Pausing restores the original page.
 
-While Ingredient Check is enabled, Walmart search hides sponsored cards/modules and automatically
-rates discovered organic results, including results loaded later. Walmart search always shows its
-rating badges regardless of the global **Rate every search result** and **Result badges** switches;
-other stores retain those preferences. Pausing the extension removes badges and restores hidden ads.
-Public product-page reads run at most two at a time and stop when the store blocks or rate-limits
-requests. Missing readable ingredient declarations show **Label unavailable**, never an estimated
-score from the title. Search URLs with a trailing slash are supported too.
+Starting with 1.28.0, Walmart honors **Rate search results and cart items** and **Result badges**.
+It continues hiding sponsored cards while Ingredient Check is enabled, even when badges or
+automatic rating are off. The retailer sort menu remains available with badges off. Automatic
+product-page reads use Walmart's same-site cookies, run at most two at a time within the Speed
+budget, and stop when the store blocks or rate-limits requests. Missing ingredient declarations
+show **Label unavailable**. Search URLs with a trailing slash are supported too.
 
 `HARNESS_CHROME=/path/to/chromium npm run walmart:check` exercises the real content scripts and
-scoring engine with intercepted pages: 65 uncached beef results, sponsored exclusions, late cards,
+scoring engine with intercepted pages: the search request budget, sponsored exclusions, late cards,
 recycled cards, pause/resume, and missing declarations. This is fixture validation, not a live-site
 check. The managed cloud environment blocks Walmart network access and unpacked extension installs.
 

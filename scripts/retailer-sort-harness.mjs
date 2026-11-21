@@ -40,7 +40,8 @@ const context = await chromium.launchPersistentContext(profile, {
     '--host-resolver-rules=MAP * ~NOTFOUND'],
 });
 const fetched = [], pagesFetched = [], errors = [];
-await context.route('**/*', route => {
+let walmartPagingHold;
+await context.route('**/*', async route => {
   const url = new URL(route.request().url());
   if (url.protocol === 'chrome-extension:') return route.continue();   // the extension's own pages and scripts
   if (/(?:^|\.)(?:walmartimages\.com|scene7\.com)$/.test(url.hostname)) {
@@ -48,7 +49,13 @@ await context.route('**/*', route => {
   }
   if (/^(?:www\.)?walmart\.com$/.test(url.hostname)) {
     if (/^\/ip\//.test(url.pathname)) fetched.push(url.pathname.match(/(\d{5,15})\/?$/)?.[1]);
-    if (url.pathname === '/search' && url.searchParams.has('page')) pagesFetched.push(`walmart:${url.searchParams.get('page')}`);
+    if (url.pathname === '/search' && url.searchParams.has('page')) {
+      pagesFetched.push(`walmart:${url.searchParams.get('page')}`);
+      if (walmartPagingHold) {
+        await walmartPagingHold;
+        return route.abort().catch(() => {});
+      }
+    }
     return route.fulfill({ contentType: 'text/html; charset=utf-8', body: walmartPage(url.href) });
   }
   if (/^(?:www\.)?target\.com$/.test(url.hostname)) {
@@ -228,13 +235,18 @@ try {
   ok(`Walmart: Price per ounce, 3 results pages read (22 results, no ads) -> ${unitsOf(list).slice(0, 5).join(' < ')} ...; page 4 empty -> "has no more results"`);
 
   // Hovering a score on the list page: the notes, as on Amazon.
+  await wmList.setViewportSize({ width: 420, height: 230 });
   const chip = wmList.locator('article.product .score-chip').nth(1);
+  assert((await chip.boundingBox()).y >= 230, 'score starts below the viewport');
   await chip.hover();
   await wmList.waitForSelector('.why-pop', { timeout: 5000 });
   const why = await wmList.locator('.why-pop').textContent();
   assert(/Why it scored 96/.test(why), why);
   await shot(wmList, '05b-walmart-list-hover-notes');
+  await wmList.keyboard.press('Escape');
+  await wmList.waitForSelector('.why-pop', { state: 'detached' });
   await wmList.mouse.move(2, 2);
+  await wmList.setViewportSize({ width: 1440, height: 900 });
   ok(`Walmart: hovering a score on the list shows why it scored that way ("${why.replace(/\s+/g, ' ').slice(0, 60)}…")`);
 
   // The unit picker re-ranks what was gathered; per pound keeps the order within the weight family.
@@ -298,8 +310,25 @@ try {
   const saved = await worker.evaluate(() => chrome.storage.local.get(['sortLoadMore', 'sortCount', 'sortTimeLimit']));
   assert.deepEqual(saved, { sortLoadMore: true, sortCount: 12, sortTimeLimit: 120 }, 'only the count (and load-more, which a count needs) was saved');
   await resize.fill('#depth-count', '30');
+  let releasePaging;
+  walmartPagingHold = new Promise(resolve => { releasePaging = resolve; });
+  const beforePaging = pagesFetched.length;
+  let interrupted;
+  try {
+    await resize.getByRole('button', { name: 'Update list' }).click();
+    await until(async () => pagesFetched.length > beforePaging, 'Walmart next-page request in progress');
+    await resize.getByRole('button', { name: 'Stop loading results' }).click();
+    interrupted = await until(async () => { const s = await sortedState(); return s && s.runId !== shorter.runId && !s.loading ? s : null; }, 'stopped list');
+    assert.equal(interrupted.items.length, 13, 'stopping preserves the first page');
+    assert.match(interrupted.status, /Stopped loading results/);
+    assert.equal(await resize.getByRole('button', { name: 'Stop loading results' }).isVisible(), false);
+  } finally {
+    walmartPagingHold = null;
+    releasePaging();
+  }
+  ok('Walmart: stopping a pending next-page request keeps the partial list and clears its busy state');
   await resize.getByRole('button', { name: 'Update list' }).click();
-  const longer = await until(async () => { const s = await sortedState(); return s && s.runId !== shorter.runId && !s.loading && s.items.length ? s : null; }, 'the list run again with 30');
+  const longer = await until(async () => { const s = await sortedState(); return s && s.runId !== interrupted.runId && !s.loading && s.items.length ? s : null; }, 'the list run again with 30');
   assert.equal(longer.items.length, 22, 'and back to 30: all 22 again');
   await shot(resize, '06a-walmart-list-compare-up-to');
   await resize.close();

@@ -172,13 +172,18 @@
   function openSettings() {
     chrome.tabs.create({ url: chrome.runtime.getURL('src/options/options.html#sec-sort') }).catch(() => {});
   }
-  function stopRating() {
-    logUi('Stop rating');
-    if (!saved || !Number.isInteger(saved.sourceTabId)) return;
-    try {
-      chrome.tabs.sendMessage(saved.sourceTabId, { type: 'sortStop', runId: saved.runId }, () => void chrome.runtime.lastError);
-    } catch (e) { /* the tab is gone */ }
+  async function stopLoading() {
+    const runId = saved?.runId;
+    if (!runId || !saved.loading) return;
     ui.stop.disabled = true;
+    try {
+      const answer = await chrome.runtime.sendMessage({ type: 'stopSortedList', runId });
+      if (answer?.ok) return;
+    } catch { /* the worker may have restarted */ }
+    if (saved?.runId === runId && saved.loading) {
+      ui.status.textContent = t('sortedStopFailed', 'Could not stop loading. Try again.');
+      ui.stop.disabled = false;
+    }
   }
 
   // ---------------------------------------------------------------- the page, built once
@@ -208,7 +213,7 @@
       const panelButton = button('button secondary', t('sortedOpenPanel', 'Open side panel'), () => openSidePanel(panelButton));
       actions.append(panelButton);
     }
-    ui.stop = button('button secondary', t('sortedStop', 'Stop rating'), stopRating);
+    ui.stop = button('button secondary', t('sortedStop', 'Stop loading results'), stopLoading);
     actions.append(ui.stop);
     actions.append(button('button tertiary', t('sortedSettings', 'Settings'), openSettings));
     header.append(actions);
@@ -476,7 +481,7 @@
   // Hovering or focusing a score shows why, in one shared pop-up.
   // The pop-up stays while the pointer moves from the score onto it, so its reasons can be read and
   // scrolled (WCAG 1.4.13, content on hover must be hoverable); Escape or leaving both closes it.
-  let pop = null;
+  let pop = null, popChip = null;
   let hideTimer = 0;
   function leaveSoon() { clearTimeout(hideTimer); hideTimer = setTimeout(hideWhy, 150); }
   function showWhy(chip, product) {
@@ -488,8 +493,14 @@
     pop.id = 'why-pop';
     pop.append(node('p', 'why-pop-head', t('sortedWhyHead', 'Why it scored $1', product.score)), whyList(product.why));
     document.body.append(pop);
+    popChip = chip;
     chip.setAttribute('aria-describedby', 'why-pop');
-    const r = chip.getBoundingClientRect();
+    positionWhy();
+  }
+  function positionWhy() {
+    if (!pop) return;
+    const r = popChip.getBoundingClientRect();
+    if (!popChip.isConnected || r.bottom <= 0 || r.top >= innerHeight) { hideWhy(); return; }
     const width = Math.min(320, document.documentElement.clientWidth - 16);
     pop.style.width = `${width}px`;
     pop.style.left = `${Math.max(8, Math.min(r.left, document.documentElement.clientWidth - width - 8)) + scrollX}px`;
@@ -501,10 +512,12 @@
     clearTimeout(hideTimer);
     if (pop) pop.remove();
     pop = null;
-    document.querySelectorAll('[aria-describedby="why-pop"]').forEach(el => el.removeAttribute('aria-describedby'));
+    popChip?.removeAttribute('aria-describedby');
+    popChip = null;
   }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') hideWhy(); });
-  addEventListener('scroll', hideWhy, { passive: true });
+  addEventListener('scroll', positionWhy, { passive: true });
+  addEventListener('resize', positionWhy);
 
   function chipFor(product) {
     const score = node('div', 'score');
@@ -659,8 +672,11 @@
     ui.back.hidden = !R.sanitizeSourceUrl(saved && saved.sourceUrl);
     ui.back.textContent = said('sortedBack', 'Back to Amazon search', 'sortedBackStore', 'Back to $1 search');
     ui.list.setAttribute('aria-label', said('sortedListAria', 'Amazon listings ranked by your priorities', 'sortedListAriaStore', '$1 listings ranked by your priorities'));
-    ui.stop.hidden = !loading || !!saved?.priceOnly;
-    if (!loading) ui.stop.disabled = false;
+    ui.stop.hidden = !loading;
+    if (ui.stop.dataset.runId !== saved?.runId) {
+      ui.stop.dataset.runId = saved?.runId || '';
+      ui.stop.disabled = false;
+    }
     ui.status.textContent = R.sanitizeStatus(saved && saved.status);
     root.setAttribute('aria-busy', String(loading));
     ui.empty.textContent = '';
@@ -697,7 +713,7 @@
     for (const [key, { row }] of Object.entries(ui.filters)) row.hidden = !!saved?.priceOnly && key !== 'maxPrice';
     if (saved?.priceOnly) { filters.minScore = ''; filters.complete = false; filters.noMatches = false; }
     const eligible = AIR.db.shopping ? items.filter(product => AIR.db.shopping.matches(product, filters)) : items;
-    const ranked = R.rank(eligible, weights, { unitEnabled: unitEnabled(), family: family() });
+    const ranked = R.rank(eligible, weights, { unitEnabled: unitEnabled(), family: family(), healthEnabled: !saved?.priceOnly });
     const paretoKeys = new Set(!saved?.priceOnly && unitEnabled() && eligible.length >= 2 && typeof R.paretoFront === 'function'
       ? R.paretoFront(eligible, { family: family() }).map(p => p.asin || p.url) : []);
     ui.filterCount.textContent = eligible.length === items.length ? '' : t('filterCount', '$1 of $2 products match. Clear filters to show all.', eligible.length, items.length);
@@ -724,7 +740,7 @@
       view.missing.hidden = !missing.length;
       const topSwap = (!saved?.priceOnly && typeof product.score === 'number' && product.score < 60 && AIR.db.shopping?.cleanerSwaps)
         ? AIR.db.shopping.cleanerSwaps(product, eligible, { minGain: 15, limit: 1, family: family() })[0] : null;
-      const nextSwapKey = topSwap ? `${topSwap.product.asin || topSwap.product.url}|${topSwap.scoreDelta}` : '';
+      const nextSwapKey = topSwap ? JSON.stringify([topSwap.product.url, topSwap.product.title, topSwap.scoreDelta]) : '';
       if (view.swapKey !== nextSwapKey) {
         view.swapKey = nextSwapKey;
         view.swap.textContent = '';

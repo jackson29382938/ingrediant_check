@@ -33,6 +33,10 @@ test('warning filters exclude detected matches and treat unknown or partial chec
   assert.equal(S.matches({}, { noMatches: true }), false);
   assert.equal(S.matches({}, { noMatches: true, unknown: 'include' }), true);
   assert.equal(S.matches({ evidence: { ...assessed, coverage: 0.5 } }, { noMatches: true }), false);
+  for (const source of ['label-ocr', 'label-ai', 'ocr']) {
+    assert.equal(S.matches({ evidence: { ...assessed, source } }, { noMatches: true }), false);
+    assert.equal(S.matches({ evidence: { ...assessed, source } }, { noMatches: true, unknown: 'include' }), true);
+  }
   const match = S.evidence(engine.score({ ingredients_text: 'oats, milk' }, { allergens: ['milk'] }));
   assert.equal(S.matches({ evidence: match }, { noMatches: true, unknown: 'include' }), false);
   assert.equal(S.matches({ evidence: { ...match, coverage: 0.5 } }, { noMatches: true, unknown: 'include' }), false);
@@ -68,11 +72,29 @@ test('durable shortlist entries are separate from caches and history, and concur
   const data = { purchaseHistory: ['private'], 's:amazon.com:B000000001': { score: 98 } }, reads = [];
   const area = { getKeys: async () => Object.keys(data), get: async keys => { reads.push(keys); return Object.fromEntries(keys.filter(k => k in data).map(k => [k, data[k]])); }, set: async rows => Object.assign(data, rows) };
   const raw = { id: 'product:amazon.com:B000000001', input: { ingredients_text: 'oats' }, list: 'Breakfast' };
-  await Promise.all([S.save(area, raw), S.save(area, { ...raw, id: 'product:amazon.com:B000000002' })]);
+  assert.deepEqual(await Promise.all([S.write(area, [raw]), S.write(area, [{ ...raw, id: 'product:amazon.com:B000000002' }])]), [{ ok: true }, { ok: true }]);
   delete data['s:amazon.com:B000000001'];
   assert.equal((await S.list(area)).length, 2);
   assert.ok(reads.every(keys => keys.every(k => k.startsWith(S.PREFIX))));
   assert.deepEqual(data.purchaseHistory, ['private']);
+});
+test('one worker writer enforces the shortlist limit, recovers overflow and permits updates', async () => {
+  const product = i => ({ id: 'product:amazon.com:B' + String(i).padStart(9, '0'), input: { ingredients_text: 'oats' }, savedAt: i + 1 });
+  const data = Object.fromEntries(Array.from({ length: S.MAX - 1 }, (_, i) => [S.PREFIX + product(i).id, product(i)]));
+  const area = { getKeys: async () => Object.keys(data), get: async keys => Object.fromEntries(keys.map(k => [k, data[k]])),
+    set: async rows => Object.assign(data, rows), remove: async key => { delete data[key]; } };
+  assert.equal((await S.write(area, [product(199), product(200)])).reason, 'shortlist-full', 'a two-product save is atomic');
+  const outcomes = await Promise.all([S.write(area, [product(199)]), S.write(area, [product(200)])]);
+  assert.deepEqual(outcomes, [{ ok: true }, { ok: false, reason: 'shortlist-full' }]);
+  data[S.PREFIX + product(200).id] = product(200);
+  const listed = await S.list(area);
+  assert.equal(listed.length, S.MAX + 1);
+  assert.equal(listed[0].id, product(200).id);
+  assert.equal((await S.write(area, [{ ...listed[0], name: 'Updated' }])).ok, true);
+  await S.write(area, null, product(0).id);
+  await S.write(area, null, product(1).id);
+  assert.equal((await S.write(area, [product(201)])).ok, true);
+  assert.equal((await S.list(area)).length, S.MAX);
 });
 test('only the own label-checker page gains explicit barcode lookup, without account/import privileges', () => {
   const context = vm.createContext({ URL, Set, chrome: { runtime: { id: 'ours', getURL: path => 'chrome-extension://ours/' + path } } });
@@ -81,4 +103,13 @@ test('only the own label-checker page gains explicit barcode lookup, without acc
   assert.equal(context.allowMessage({ type: 'lookupBarcode' }, sender), true);
   for (const type of ['purchaseImport', 'productsQueue', 'accountSave', 'ocrLabels']) assert.equal(context.allowMessage({ type }, sender), false);
   assert.equal(context.allowMessage({ type: 'lookupBarcode' }, { ...sender, url: 'https://example.com/src/options/library.html' }), false);
+  assert.equal(context.allowMessage({ type: 'shortlistRemove' }, sender), true);
+  const url = 'https://www.amazon.com/dp/B000000001';
+  const tab = { ...sender, frameId: 0, tab: { url }, url };
+  const save = { type: 'shortlistSave', rows: [{ id: 'product:amazon.com:B000000001' }] };
+  assert.equal(context.allowMessage(save, tab), true);
+  assert.equal(context.allowMessage(save, { ...tab, frameId: 1 }), false);
+  assert.equal(context.allowMessage(save, { ...tab, url: 'https://www.amazon.com/dp/B000000002' }), false);
+  assert.equal(context.allowMessage({ ...save, rows: [{ id: 'product:walmart.com:12345' }] }, tab), false);
+  assert.equal(context.allowMessage({ type: 'shortlistRemove' }, tab), false);
 });

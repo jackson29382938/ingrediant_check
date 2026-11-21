@@ -1,6 +1,8 @@
 // Descriptive purchase statistics. Recorded snapshots are never mutated.
 (function(root) {
   const setupOf = record => JSON.stringify([record.version || '', record.profile || '', record.rulesRevision || null]);
+  const sourceOf = source => source === 'ocr' ? 'label-ocr'
+    : ['label-ocr', 'label-ai', 'open-food-facts', 'usda-fdc'].includes(source) ? source : source ? 'page' : 'unknown';
   function quality(rows, mode = 'recorded') {
     const purchased = rows.filter(r => r.record.state === 'purchased');
     const rated = purchased.filter(r => Number.isFinite(r.score));
@@ -70,7 +72,7 @@
     const selected = rows.filter(r => (!options.search || `${r.record.name} ${r.record.asin}`.toLowerCase().includes(options.search.toLowerCase()))
       && (!options.from || r.record.date >= options.from) && (!options.to || r.record.date <= options.to)
       && (!options.status || options.status === 'all' || r.record.state === options.status)
-      && (!options.source || options.source === 'all' || (options.source === 'unknown' ? !r.record.source : options.source === 'page' ? !!r.record.source && !['label-ocr', 'open-food-facts', 'usda-fdc', 'ocr'].includes(r.record.source) : r.record.source === options.source))
+      && (!options.source || options.source === 'all' || sourceOf(r.record.source) === options.source)
       && (options.rating !== 'rated' || r.score !== null) && (options.rating !== 'missing' || r.score === null)
       && (options.rating !== 'flagged' || r.record.flags.length)
       && (options.min === '' || options.min === undefined || (r.score !== null && r.score >= Number(options.min)))
@@ -97,15 +99,18 @@
   }
   function detectReformulations(records) {
     const byProduct = new Map();
-    const norm = text => String(text || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    const norm = text => String(text || '').normalize('NFKC').toLowerCase()
+      .replace(/^\s*(?:ingredients?|zutaten|ingrédients|ingredientes)\s*:\s*/iu, '')
+      .replace(/\s+/g, ' ').replace(/\s*([,;()])\s*/g, '$1').replace(/[.\s]+$/, '').trim();
     for (const raw of Array.isArray(records) ? records : []) {
       const r = raw && raw.record ? raw.record : raw;
       if (!r || r.state !== 'purchased' || !r.asin || !r.date) continue;
-      const text = norm(r.ingredients || (r.input && r.input.ingredients_text));
-      if (!text) continue;
+      const ingredients = r.input?.ingredients_text || r.ingredients || '';
+      const text = norm(ingredients);
+      if (!text || ['label-ocr', 'label-ai'].includes(sourceOf(r.source))) continue;
       const key = `${r.store || 'amazon.com'}:${r.asin}`;
       const list = byProduct.get(key) || [];
-      list.push({ record: r, text, score: Number.isFinite(r.score) ? r.score : null });
+      list.push({ record: r, text, ingredients, score: Number.isFinite(r.score) ? r.score : null });
       byProduct.set(key, list);
     }
     const changes = [];
@@ -114,8 +119,9 @@
       list.sort((a, b) => a.record.date.localeCompare(b.record.date) || (a.record.observedAt || 0) - (b.record.observedAt || 0));
       for (let i = 1; i < list.length; i++) {
         const prev = list[i - 1], curr = list[i];
-        if (prev.text === curr.text) continue;
-        const delta = prev.score !== null && curr.score !== null ? curr.score - prev.score : null;
+        if (prev.text === curr.text || prev.record.date === curr.record.date) continue;
+        const comparable = prev.record.profile && prev.record.version && setupOf(prev.record) === setupOf(curr.record);
+        const delta = comparable && prev.score !== null && curr.score !== null ? curr.score - prev.score : null;
         changes.push({
           asin: curr.record.asin,
           store: curr.record.store || 'amazon.com',
@@ -126,8 +132,8 @@
           toScore: curr.score,
           delta,
           scoreDropped: delta !== null && delta < 0,
-          fromIngredients: prev.record.ingredients || prev.record.input?.ingredients_text || '',
-          toIngredients: curr.record.ingredients || curr.record.input?.ingredients_text || '',
+          fromIngredients: prev.ingredients,
+          toIngredients: curr.ingredients,
         });
       }
     }

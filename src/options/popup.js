@@ -7,8 +7,9 @@ const KEYS = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'hoverBreakdow
 // checkbox inert: it never loaded its stored value and never wrote one.
 const TOGGLE_KEYS = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'hoverBreakdown', 'hoverScore', 'unitPrice', 'ocrLabels'];
 const OFF_PERMISSION = { origins: ['https://world.openfoodfacts.org/*'] };
-let pendingWrites = 0;
-let writing = false;
+const pendingKeys = new Map();
+let currentWindowId = null;
+try { chrome.windows?.getCurrent?.(w => { void chrome.runtime.lastError; if (w && Number.isInteger(w.id)) currentWindowId = w.id; }); } catch { /* no windows API */ }
 
 const cleanToggles = raw => PREFS.sanitizeToggles(raw);
 // How old a saved score may be under the speed setting (1 to 90 days), as the pages themselves use.
@@ -21,11 +22,13 @@ function say(msg) {
 }
 
 function persist(values, done) {
-  pendingWrites++;
-  writing = true;
+  const keys = Object.keys(values || {});
+  for (const k of keys) pendingKeys.set(k, (pendingKeys.get(k) || 0) + 1);
   chrome.storage.local.set(values, () => {
-    pendingWrites--;
-    writing = pendingWrites > 0;
+    for (const k of keys) {
+      const left = (pendingKeys.get(k) || 1) - 1;
+      if (left <= 0) pendingKeys.delete(k); else pendingKeys.set(k, left);
+    }
     if (chrome.runtime.lastError) {
       say(msg('popupCouldNotSave', 'Could not save.'));
       if (done) done(false);
@@ -252,11 +255,12 @@ function isOn(key, value) {
   return cleanToggles({ [key]: value })[key];
 }
 
-function msg(key, fallback, sub) {
+function msg(key, fallback, ...subs) {
+  const args = subs.filter(v => v != null).map(String);
   let out = '';
-  try { out = chrome.i18n && chrome.i18n.getMessage(key, sub != null ? [String(sub)] : []) || ''; }
+  try { out = chrome.i18n && chrome.i18n.getMessage(key, args) || ''; }
   catch (e) { /* missing key or not in an extension page */ }
-  return out || fallback;
+  return out || String(fallback || '').replace(/\$(\d)/g, (m, n) => (args[n - 1] != null ? args[n - 1] : m));
 }
 
 // One palette and one set of NOVA labels, owned by the panel. The copies that used to live here
@@ -403,11 +407,35 @@ function paintPageScore() {
       const source = hit.source === 'manual-paste' ? msg('srcShortPasted', 'Pasted label (this tab)')
         : hit.source === 'food-override' ? msg('srcShortOverride', 'Food filter overridden (this tab)')
         : hit.source === 'label-ocr' ? msg('srcShortOcr', 'Label photo')
+        : hit.source === 'label-ai' ? msg('srcAiPhoto', 'AI transcription of a product photo')
+        : hit.source === 'usda-fdc' ? msg('srcShortUsda', 'USDA FoodData Central')
         : hit.source === 'open-food-facts' ? msg('srcShortBarcode', 'Open Food Facts') : msg('srcShortPage', 'Product page');
       sub.textContent = [cardLead(hit), hit.name, source, hit.provenanceSource].filter(Boolean).join(' · ');
       meta.append(verdict, sub);
       row.append(num, meta);
       card.append(kicker, row);
+      if (!isIndex(hit) && typeof hit.score === 'number' && hit.score < 60 && AIR.db.shopping?.cleanerSwaps && chrome.storage.session?.get) {
+        chrome.storage.session.get('sortedResults', sess => {
+          void chrome.runtime.lastError;
+          const sorted = sess?.sortedResults, rule = AIR.db.sortedResults;
+          const sourceUrl = rule?.sanitizeSourceUrl(sorted?.sourceUrl);
+          if (!sourceUrl || !row.isConnected || CACHE.normalizeStore(new URL(sourceUrl).hostname) !== CACHE.normalizeStore(hit.store)) return;
+          const scope = rule.scopeFor(sourceUrl);
+          if (scope?.kind !== 'amazon') return;
+          const items = rule.sanitizeResults(sorted.items, scope);
+          const swap = AIR.db.shopping.cleanerSwaps({ asin, score: hit.score, category: 'food', ratingStyle: 'food' }, items, { minGain: 15, limit: 1 })[0];
+          if (!swap) return;
+          const p = document.createElement('p');
+          p.className = 'ps-swap';
+          const label = msg('popupCleanerSwap', 'Cleaner swap (+$1 pts): $2', swap.scoreDelta, (swap.product.title || swap.product.asin || '').slice(0, 56));
+          if (swap.product.url && /^https:\/\//.test(swap.product.url)) {
+            const a = document.createElement('a');
+            a.href = swap.product.url; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = label;
+            p.append(a);
+          } else p.textContent = label;
+          card.append(p);
+        });
+      }
     });
   });
 }
@@ -442,7 +470,7 @@ function paintCompareCard(hit) {
   sub.className = 'ps-sub';
   sub.textContent = [cardLead(hit), hit.name, hit.asin].filter(Boolean).join(' · ');
   card.append(num, verdict, sub);
-  if (hit.evidence && AIR.db.shopping) { const ev = document.createElement('p'); ev.className = 'ps-sub'; ev.textContent = AIR.db.shopping.describe(hit.evidence, (key, fallback) => msg(key, fallback)); card.append(ev); }
+  if (hit.evidence && AIR.db.shopping) { const ev = document.createElement('p'); ev.className = 'ps-sub'; ev.textContent = AIR.db.shopping.describe(hit.evidence, msg); card.append(ev); }
   const store = AIR.stores.storeForHost(hit.store);
   if (store) {
     const origin = `https://www.${CACHE.normalizeStore(hit.store)}`;
@@ -553,31 +581,41 @@ function paintWhy(on) {
     : msg('popupShowWhy', 'Why these matter');
 }
 
-chrome.storage.onChanged.addListener(changes => {
-  // The popup never writes the level, so the writing guard below must not swallow a change to it.
-  if (changes.settingsLevel || changes.onboarded) chrome.storage.local.get(['settingsLevel', 'onboarded'], o => applyLevel(PREFS.levelOf(o)));
-  if (writing) return;
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area && area !== 'local') return;
+  const ext = Object.fromEntries(Object.entries(changes).filter(([k]) => !pendingKeys.has(k)));
+  if (!Object.keys(ext).length) return;
+  if (ext.settingsLevel || ext.onboarded) chrome.storage.local.get(['settingsLevel', 'onboarded'], o => applyLevel(PREFS.levelOf(o)));
   for (const key of TOGGLE_KEYS) {
-    if (!changes[key]) continue;
+    if (!ext[key]) continue;
     const input = document.getElementById(key);
     if (!input) continue;
-    input.checked = isOn(key, changes[key].newValue);
+    input.checked = isOn(key, ext[key].newValue);
     if (key === 'enabled') paintMaster(input.checked);
   }
-  if (changes.useOpenFoodFacts) {
+  if (ext.useOpenFoodFacts) {
     const fallback = document.getElementById('useOpenFoodFacts');
-    if (fallback && !fallback.disabled) fallback.checked = isOn('useOpenFoodFacts', changes.useOpenFoodFacts.newValue);
+    if (fallback && !fallback.disabled) fallback.checked = isOn('useOpenFoodFacts', ext.useOpenFoodFacts.newValue);
   }
-  if (changes.weights || changes.goals || changes.goalImportance) chrome.storage.local.get(['weights', 'goals', 'goalImportance'], o => {
+  if (ext.weights || ext.goals || ext.goalImportance) chrome.storage.local.get(['weights', 'goals', 'goalImportance'], o => {
     popupImportance = PREFS.sanitizeScoring({ goalImportance: o.goalImportance }).goalImportance;
     renderPresets(o.weights, o.goals);
   });
-  if (changes.popupShowWhy) paintWhy(changes.popupShowWhy.newValue === true);
-  if (Object.keys(changes).some(k => /^(s|p|off):/.test(k) || ['weights', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'avoidList', 'ocrLabels', 'useOpenFoodFacts', 'sheetIndexRev', 'producerIndexRev', 'compareA', 'compareB'].includes(k))) {
+  if (ext.popupShowWhy) paintWhy(ext.popupShowWhy.newValue === true);
+  if (Object.keys(ext).some(k => /^(s|p|off):/.test(k) || ['weights', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'avoidList', 'ocrLabels', 'useOpenFoodFacts', 'sheetIndexRev', 'producerIndexRev', 'compareA', 'compareB'].includes(k))) {
     paintCacheCount();
     paintPageScore();
     paintCompare();
   }
+});
+
+document.getElementById('openSidePanel')?.addEventListener('click', () => {
+  const openTab = () => chrome.tabs.create({ url: chrome.runtime.getURL('src/options/sorted.html') });
+  if (AIR.platform && (AIR.browser?.firefox || Number.isInteger(currentWindowId))) {
+    try { AIR.platform.openPanel({ windowId: currentWindowId }).then(() => window.close(), openTab); return; }
+    catch { /* fall through to sorted tab */ }
+  }
+  openTab();
 });
 
 document.getElementById('openSettings').addEventListener('click', e => {

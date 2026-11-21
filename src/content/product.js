@@ -125,13 +125,16 @@
       confidence: meta.confidence,
       via: meta.via,
       provenanceSource: meta.provenanceSource,
+      uncertain: meta.uncertain,
+      nutrition: meta.input?.nutrition || data.nutrition,
       capturedAt: meta.t || Date.now(),
+      sourceRecordDate: meta.input?.sourceRecordDate,
     }), meta.report === false ? null : reporter(data, result, meta));
-    if (meta.input) root.AIR.db.shopping?.offerSave(shadow, { id: `product:${location.hostname.replace(/^www\./, '')}:${key}`, name: meta.title || data.title, input: meta.input, source: meta.via, url: location.href, savedScore: result.score, capturedAt: meta.t || Date.now() });
+    if (meta.input) root.AIR.db.shopping?.offerSave(shadow, { id: `product:${location.hostname.replace(/^www\./, '')}:${key}`, name: meta.title || data.title, input: meta.input, source: meta.via, url: location.href, savedScore: result.score, capturedAt: meta.t || Date.now(), sourceRecordDate: meta.input.sourceRecordDate });
     if (state.panelOpen) root.AIR.panel.openCard(host);
-    cacheScore(key, result, meta.cacheName || data.title, meta.via, meta.provenanceSource, meta.t);
+    cacheScore(key, result, meta.cacheName || data.title, meta.via, meta.provenanceSource, meta.t, meta.input?.sourceRecordDate);
     if (meta.input && meta.remember !== false && meta.via !== 'manual-paste' && meta.via !== 'food-override') {
-      P().rememberProduct(key, { input: meta.input, via: meta.via, confidence: meta.confidence,
+      P().rememberProduct(key, { input: meta.input, via: meta.via, confidence: meta.confidence, t: meta.t,
         food: !(data.ingestible && data.ingestible.ok === false) }, { share: meta.share !== false });
     }
     publishActionBadge(result);
@@ -317,6 +320,7 @@
           labels: `${data.labels || ''} ${fallback.labels || ''}`,
           ingredients_text: fallback.ingredients_text,
           nutrition: data.nutrition || fallback.nutrition,
+          sourceRecordDate: fallback.sourceRecordDate,
         });
         const result = root.AIR.engine.score(input, state.prefs);
         presentResult(host, data, key, result, {
@@ -324,6 +328,7 @@
           title: data.title || fallback.name,
           confidence: 0.55,
           via: root.AIR.db.productCache.barcodeVia(fallback),
+          t: fallback.capturedAt,
           text: fallback.ingredients_text,
           cacheName: data.title || fallback.name,
           textSig: fallback.ingredients_text.slice(0, 320),
@@ -348,6 +353,8 @@
     const use = (row, shared) => {
       if (ocrReadingBlocked(row.data.via)) { miss(); return; }
       if ((row.data.via === 'label-ocr' || row.data.via === 'ocr') && !state.ocrLabels) { miss(); return; }
+      if ((row.data.via === 'label-ocr' || row.data.via === 'ocr')
+          && root.AIR.db.ocrText?.uncertainWords?.(row.data.text).some(item => item.garbled)) { miss(); return; }
       if (row.data.via === 'label-ai' && !aiLabelsOn()) { miss(); return; }
       if (!root.AIR.db.prefs.barcodeReadingAllowed(row.data.via, state.cacheOptions || {})) { miss(); return; }
       done();
@@ -439,8 +446,8 @@
       chrome.runtime.sendMessage({ type: 'lookupBarcode', code: data.upc, foodOnly: state.foodOnly }, fallback => {
         void chrome.runtime.lastError;
         const text = fallback && fallback.ingredients_text;
-        const used = text && offer(pageInput(data, { name: fallback.name || data.title, labels: `${data.labels || ''} ${fallback.labels || ''}`, ingredients_text: text, nutrition: data.nutrition || fallback.nutrition }),
-          { title: data.title || fallback.name, confidence: 0.55, via: root.AIR.db.productCache.barcodeVia(fallback), text, textSig: text.slice(0, 320), cacheName: data.title || fallback.name });
+        const used = text && offer(pageInput(data, { name: fallback.name || data.title, labels: `${data.labels || ''} ${fallback.labels || ''}`, ingredients_text: text, nutrition: data.nutrition || fallback.nutrition, sourceRecordDate: fallback.sourceRecordDate }),
+          { title: data.title || fallback.name, confidence: 0.55, via: root.AIR.db.productCache.barcodeVia(fallback), t: fallback.capturedAt, text, textSig: text.slice(0, 320), cacheName: data.title || fallback.name });
         if (!used) photo();
       });
     } catch (e) { photo(); }
@@ -506,6 +513,13 @@
 
   const aiLabelsOn = () => P().state.cacheOptions.aiLabels === true;
 
+  function photoInput(data, read) {
+    return pageInput(data, {
+      ingredients_text: read.text,
+      advisory_text: [data.advisoryText, read.advisory].filter(Boolean).join('. '),
+    });
+  }
+
   // The label photo, read by a vision model (worker/ai.js) because the on-device OCR could not read it or is
   // off. What comes back is only used if the OCR extraction finds an ingredient list in it, exactly as for OCR
   // text, and the reading is kept on this computer alone (via 'label-ai' is never shared or accepted shared).
@@ -515,16 +529,23 @@
     if (!urls.length) { none({ ocrOutcome: 'no-images' }); return; }
     const requestId = ++state.requestId;
     host.dataset.airState = 'loading';
-    root.AIR.panel.mount(host, root.AIR.panel.renderLoading({ ...data, ocr: true }));
+    root.AIR.panel.mount(host, root.AIR.panel.renderLoading({ ...data, ocr: true, aiPhoto: true }));
     try {
       chrome.runtime.sendMessage({ type: 'aiReadLabels', urls }, res => {
         void chrome.runtime.lastError;
         if (requestId !== state.requestId || state.lastKey !== key || !host.isConnected) return;
+        if (!aiLabelsOn()) { host.dataset.airState = ''; none({}); return; }
         const best = res && res.ok && root.AIR.db.ocrText.bestBlock(res.results,
           t => root.AIR.extract.looksLikeIngredients(t, data.title));
-        if (!best) { host.dataset.airState = ''; none({ ocrOutcome: res && res.ok ? 'no-match' : 'error' }); return; }
-        const input = pageInput(data, { ingredients_text: best.text });
-        presentResult(host, data, key, root.AIR.engine.score(input, state.prefs), {
+        if (!best) {
+          host.dataset.airState = '';
+          none({ ocrOutcome: data.ocrOutcome === 'uncertain' ? 'uncertain' : res && res.ok ? 'no-match' : 'error' });
+          return;
+        }
+        const input = photoInput(data, best);
+        const result = root.AIR.engine.score(input, state.prefs);
+        if (!root.AIR.engine.isReadable(result)) { host.dataset.airState = ''; none({ ocrOutcome: 'no-match' }); return; }
+        presentResult(host, data, key, result, {
           input, title: data.title, confidence: 0.5, via: 'label-ai',
           text: best.text, textSig: best.text.slice(0, 320), ocrAttempted: true, aiAttempted: true, share: false,
         });
@@ -545,7 +566,6 @@
     const requestId = ++state.requestId;
     host.dataset.airState = 'loading';
     root.AIR.panel.mount(host, root.AIR.panel.renderLoading({ ...data, ocr: true }));
-    const started = Date.now();
     const giveUp = extra => {
       host.dataset.airState = '';
       if (aiLabelsOn() && !data.aiAttempted) { tryAiLabel(host, { ...data, ocrAttempted: true, ...extra }, key, urls); return; }
@@ -560,19 +580,24 @@
         clearTimeout(stillReading);
         void chrome.runtime.lastError;
         if (requestId !== state.requestId || state.lastKey !== key || !host.isConnected) return;
-        const best = res && res.ok && root.AIR.db.ocrText.bestBlock(res.results,
-          t => root.AIR.extract.looksLikeIngredients(t, data.title));
-        if (!best) { giveUp({ ocrOutcome: res && res.ok ? 'no-match' : 'error' }); return; }
+        if (!state.ocrLabels) { giveUp({}); return; }
+        let garbled = false;
+        const best = res && res.ok && root.AIR.db.ocrText.bestBlock(res.results, (text, read) => {
+          if (!root.AIR.extract.looksLikeIngredients(text, data.title)) return false;
+          if (read.uncertain.some(item => item.garbled)) { garbled = true; return false; }
+          const result = root.AIR.engine.score(photoInput(data, read), state.prefs);
+          return root.AIR.engine.isReadable(result) ? result.coverage : false;
+        });
+        if (!best) { giveUp({ ocrOutcome: garbled ? 'uncertain' : res && res.ok ? 'no-match' : 'error' }); return; }
 
-        const input = pageInput(data, { ingredients_text: best.text });
+        const input = photoInput(data, best);
         const result = root.AIR.engine.score(input, state.prefs);
         presentResult(host, data, key, result, {
           input,
-          title: data.title, confidence: 0.7, via: 'label-ocr',
+          title: data.title, confidence: Number.isFinite(best.confidence) ? best.confidence / 100 : 0, via: 'label-ocr',
           text: best.text, textSig: best.text.slice(0, 320),
-          ocrAttempted: true,
+          ocrAttempted: true, uncertain: best.uncertain, share: !best.uncertain?.length,
         });
-        void started;
       });
     } catch (e) { clearTimeout(stillReading); giveUp({}); }
   }

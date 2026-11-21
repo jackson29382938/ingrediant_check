@@ -226,7 +226,7 @@
     const result = root.AIR.engine.score(root.AIR.db.productCache.toInput(row), state.prefs);
     if (unreadable(result)) { paintBadge(tile, 'unreadable'); return true; }
     paintBadge(tile, result);
-    cacheScore(asin, result, row.data.title, row.data.via || 'search-tile', '', Date.parse(row.scanned_at));
+    cacheScore(asin, result, row.data.title, row.data.via || 'search-tile', '', Date.parse(row.scanned_at), row.data.sourceRecordDate);
     return true;
   }
 
@@ -418,8 +418,8 @@
     return b;
   }
 
-  function throttleCopy(key, fallback) {
-    try { return (chrome.i18n && chrome.i18n.getMessage(key)) || fallback; }
+  function throttleCopy(key, fallback, ...subs) {
+    try { return (chrome.i18n && chrome.i18n.getMessage(key, subs.map(String))) || fallback; }
     catch (e) { return fallback; }
   }
 

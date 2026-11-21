@@ -294,16 +294,20 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
       .map(({ product, match, missing }) => ({ product, match, missing }));
   }
 
-  // Score-vs-unit-price Pareto frontier: returns products where no other candidate has both a higher
-  // ingredient score and a lower unit price (best value clean picks).
+  // Compare only like score styles and price units, and only when there is another comparable listing.
   function paretoFront(products, { family } = {}) {
     const unitOf = p => (family ? UP().priceIn(p, family) : p && p.unitPrice > 0 ? p.unitPrice : null);
-    const candidates = (Array.isArray(products) ? products : [])
-      .map(p => ({ p, score: finiteScore(p && p.score), unit: unitOf(p) }))
-      .filter(c => c.score != null && c.unit != null && c.unit > 0);
-    return candidates.filter(a => !candidates.some(b =>
-      b !== a && b.score >= a.score && b.unit <= a.unit && (b.score > a.score || b.unit < a.unit)
-    )).sort((a, b) => b.score - a.score || a.unit - b.unit).map(c => c.p);
+    const groups = new Map();
+    for (const p of Array.isArray(products) ? products : []) {
+      const score = finiteScore(p?.score), unit = unitOf(p);
+      if (score == null || !Number.isFinite(unit) || unit <= 0) continue;
+      const key = `${p.category || 'food'}:${p.ratingStyle || 'food'}:${family || p.unitKind || ''}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push({ p, score, unit });
+    }
+    return [...groups.values()].filter(group => group.length > 1).flatMap(group =>
+      group.filter(a => !group.some(b => b.score >= a.score && b.unit <= a.unit && (b.score > a.score || b.unit < a.unit)))
+    ).sort((a, b) => b.score - a.score || a.unit - b.unit).map(c => c.p);
   }
 
   // The list's status line, as plain text.

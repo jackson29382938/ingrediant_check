@@ -255,8 +255,9 @@
     const assessed = done || (input && root.AIR.engine.score(input, prefs));
     const matches = assessed && root.AIR.engine.isReadable(assessed) && assessed.score === score;
     const why = matches ? whyOf(assessed) : null;
-    // Retailer cache entries written before shopping evidence loaded here can still carry a full label.
-    const evidence = hit.evidence || (matches ? root.AIR.db.shopping?.evidence(assessed, { source: hit.source, capturedAt: hit.t, prefs }) : null);
+    const evidence = matches
+      ? root.AIR.db.shopping?.evidence(assessed, { ...hit.evidence, source: hit.source, capturedAt: hit.t, prefs }) || hit.evidence
+      : hit.evidence;
     return { score, evidence, verdict, category, ratingStyle, source: 'scored', why, servings: servingsFor(input) };
   }
   // id -> { score, verdict, source, why }, from this computer only: a saved score still valid under the current
@@ -275,7 +276,7 @@
         const again = refit(hit, id);
         if (again) { hit = again.hit; assessed = again.result; refits[CACHE.key(STORE, id)] = hit; saved = CACHE.recall(hit, context); }
       }
-      if (saved && !saved.refresh && Number.isFinite(hit.score)) {
+      if (saved && (!saved.refresh || !state.autoScoreSearch) && Number.isFinite(hit.score)) {
         out.set(id, scoreRow(hit, state.prefs, assessed));
         continue;
       }
@@ -294,7 +295,7 @@
     const { state, readProductScore } = runner();
     const out = new Map();
     let next = 0, done = 0, stopped = '', fetches = 0, lastStart = 0;
-    const halted = () => token !== run || !!stopped || !state.enabled || timeUp();
+    const halted = () => token !== run || !!stopped || !state.enabled || !state.autoScoreSearch || timeUp();
     const throttled = () => t('sortThrottledStore', '$1 stopped answering product pages, so rating paused.', storeName);
     async function worker() {
       while (next < ids.length && !halted()) {
@@ -559,7 +560,7 @@
     const rateAllowed = !pricesOnly && settings.sortMissing === 'rate-first' && state.autoScoreSearch;
     if (rateAllowed && noScore().length && token === run) {
       const ids = noScore();
-      const budget = () => (state.fetchLimit >= Number.MAX_SAFE_INTEGER ? Infinity : state.fetchLimit * pagesInList);
+      const budget = () => state.fetchLimit * pagesInList;
       const rated = await rateByProductPage(ids, products, token, (done, total, got) => {
         for (const [id, s] of got) scores.set(id, s);
         publish(token, list(), true, t('sortRatingMore', 'Rating listings without a score: $1 of $2…', done, total));
@@ -599,8 +600,7 @@
       return false;
     }
     if (!msg || msg.type !== 'sortStop') return false;
-    const fromList = own && fromListPage(sender);
-    if (!fromList || (msg.runId && msg.runId !== runId)) return false;
+    if (!own || msg.target !== 'sort-source' || !msg.runId || msg.runId !== runId) return false;
     run++;
     for (const controller of controllers) controller.abort();
     controllers.clear();

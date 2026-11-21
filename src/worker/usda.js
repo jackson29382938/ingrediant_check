@@ -35,6 +35,7 @@
   const PET = /\b(?:pet|dog|cat|puppy|kitten|bird|fish)\s+(?:food|treats?|supplies)\b/i;
   // FoodData Central nutrient ids -> the engine's nutrition fields. Branded values are per 100 g or 100 ml.
   const NUTRIENTS = { sodium: 1093, saturatedFat: 1258, sugar: 2000, addedSugar: 1235, fibre: 1079, protein: 1003, carbs: 1005, fat: 1004 };
+  const recordDate = food => root.AIR.db.shopping.sourceRecordDate(food.modifiedDate) || root.AIR.db.shopping.sourceRecordDate(food.publishedDate);
 
   let backoffUntil = 0;
   const inFlight = new Map();
@@ -55,7 +56,8 @@
     const out = { [basis]: 100 };
     for (const [field, id] of Object.entries(NUTRIENTS)) {
       const found = food.foodNutrients.find(n => n && Number(n.nutrientId) === id);
-      const value = found && Number(found.value);
+      const raw = found?.value;
+      const value = typeof raw === 'number' || (typeof raw === 'string' && raw.trim()) ? Number(raw) : NaN;
       if (Number.isFinite(value) && value >= 0) out[field] = value;
     }
     return Object.keys(out).length > 1 ? out : null;
@@ -68,7 +70,7 @@
     const matches = json.foods.filter(f => f && typeof f === 'object' && digits(f.gtinUpc) === want
       && typeof f.ingredients === 'string' && f.ingredients.trim());
     if (!matches.length) return null;
-    matches.sort((a, b) => String(b.modifiedDate || b.publishedDate || '').localeCompare(String(a.modifiedDate || a.publishedDate || '')));
+    matches.sort((a, b) => recordDate(b).localeCompare(recordDate(a)));
     const food = matches[0];
     const category = String(food.foodCategory || '').slice(0, 120);
     if (foodOnly && PET.test(category + ' ' + String(food.description || ''))) {
@@ -77,9 +79,11 @@
     const text = food.ingredients.replace(/\s+/g, ' ').replace(/[\s.]+$/, '').trim().slice(0, MAX_TEXT);
     const name = [food.brandName || food.brandOwner, food.description].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim().slice(0, 200);
     const nutrition = nutritionFromFdc(food);
+    const sourceRecordDate = recordDate(food);
     return {
       ingredients_text: text, labels: '', nova_group: null, name: name || null, product_type: 'food',
       categories_tags: [], categories: category, pnns_groups_1: '', source: 'usda-fdc',
+      ...(sourceRecordDate ? { sourceRecordDate } : {}),
       ...(nutrition ? { nutrition } : {}),
     };
   }
@@ -120,32 +124,32 @@
       const url = `${ENDPOINT}?query=${encodeURIComponent(queryFor(query))}&dataType=Branded&pageSize=10`;
       const res = await networkRequest(url, { credentials: 'omit', referrerPolicy: 'no-referrer', headers: { 'X-Api-Key': cfg.key } },
         async r => ({ status: r.status, json: r.ok ? await r.json() : null }));
-      return res.json ? { ok: true, json: res.json } : { ok: false, reason: failure(res.status) };
+      return Array.isArray(res.json?.foods) ? { ok: true, json: res.json } : { ok: false, reason: failure(res.status) };
     } catch (e) {
       return { ok: false, reason: String(e && e.message) === 'paused' ? 'paused' : 'unavailable' };
     }
   }
 
-  // The reading for a barcode, or null (no key, switched off, no such product, offline). `manual`: the reader
-  // pressed Look up in the library, so the switch is not asked, as for Open Food Facts.
-  async function lookup(code, { manual = false, foodOnly = true, networkRequest } = {}) {
+  // The reading for a barcode, or null (no key, switched off, no such product, offline).
+  async function lookup(code, { foodOnly = true, networkRequest } = {}) {
     const want = digits(code);
     if (!want || want.length < 7 || want.length > 14 || typeof networkRequest !== 'function') return null;
-    const cfg = await config(manual ? null : 'useUsda');
+    const cfg = await config('useUsda');
     if (!cfg.ok) return null;
     // 'usda2:': misses saved before the zero-padding fix (queryFor) were wrong for most barcodes.
     const cacheKey = `usda2:${want}`;
     const held = (await chrome.storage.local.get(cacheKey))[cacheKey];
-    if (held && Number.isFinite(held.t) && Date.now() - held.t < (held.data ? TTL_MS : MISS_TTL_MS)) {
-      return held.data ? afterFoodCheck(held.data, foodOnly) : null;
+    if (held && Number.isFinite(held.t) && held.t <= Date.now() && Date.now() - held.t < (held.data ? TTL_MS : MISS_TTL_MS)) {
+      return held.data ? afterFoodCheck({ ...held.data, capturedAt: held.t }, foodOnly) : null;
     }
     if (!inFlight.has(cacheKey)) {
       inFlight.set(cacheKey, (async () => {
         const reply = await search(cfg, want, networkRequest);
         if (!reply.ok) return null;                       // not cached: a refusal says nothing about the barcode
         const data = parseSearch(reply.json, want, { foodOnly: false });
-        await chrome.storage.local.set({ [cacheKey]: data ? { t: Date.now(), data } : { t: Date.now() } }).catch(() => {});
-        return data;
+        const capturedAt = Date.now();
+        await chrome.storage.local.set({ [cacheKey]: data ? { t: capturedAt, data } : { t: capturedAt } }).catch(() => {});
+        return data ? { ...data, capturedAt } : null;
       })().finally(() => inFlight.delete(cacheKey)));
     }
     const data = await inFlight.get(cacheKey);

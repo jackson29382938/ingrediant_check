@@ -67,6 +67,7 @@ test('parseSearch: a record counts only for its own barcode, and carries its ing
   const { parseSearch } = vm.runInContext('AIR.usdaWorker', worker(on, () => OFF_MISSING).context);
   const got = JSON.parse(JSON.stringify(parseSearch({ foods: [food()] }, UPC)));
   assert.equal(got.source, 'usda-fdc');
+  assert.equal(got.sourceRecordDate, '2024-03-01');
   assert.equal(got.ingredients_text, 'POTATOES, VEGETABLE OIL (SUNFLOWER, CORN), SALT');
   assert.equal(got.name, 'ACME POTATO CHIPS');
   assert.deepEqual(got.nutrition, { servingGrams: 100, sodium: 590, saturatedFat: 3.5, sugar: 1.2, protein: 6.5, fat: 31, carbs: 53, fibre: 3.1 });
@@ -87,9 +88,13 @@ test('parseSearch: the newest matching record wins, a basis is needed for number
   const { parseSearch } = vm.runInContext('AIR.usdaWorker', worker(on, () => OFF_MISSING).context);
   const newest = parseSearch({ foods: [food({ ingredients: 'OLD', modifiedDate: '2020-01-01' }), food({ ingredients: 'NEW', modifiedDate: '2025-01-01' })] }, UPC);
   assert.equal(newest.ingredients_text, 'NEW');
+  const published = parseSearch({ foods: [food({ modifiedDate: '2025-02-30', publishedDate: '2023-02-28' })] }, UPC);
+  assert.equal(published.sourceRecordDate, '2023-02-28');
+  assert.equal(parseSearch({ foods: [food({ modifiedDate: '9999-12-31' })] }, UPC).sourceRecordDate, undefined);
   assert.equal(parseSearch({ foods: [food({ servingSizeUnit: 'oz' })] }, UPC).nutrition, undefined, 'no basis, no numbers');
   assert.equal(parseSearch({ foods: [food({ servingSizeUnit: 'ml' })] }, UPC).nutrition.servingMl, 100);
   assert.equal(parseSearch({ foods: [food({ foodNutrients: [{ nutrientId: 1093, value: -5 }, { nutrientId: 1003, value: 'x' }] })] }, UPC).nutrition, undefined);
+  assert.equal(parseSearch({ foods: [food({ foodNutrients: [{ nutrientId: 1093, value: null }, { nutrientId: 1003, value: ' ' }, { nutrientId: 2000, value: false }] })] }, UPC).nutrition, undefined);
   const dog = parseSearch({ foods: [food({ description: 'ADULT DOG FOOD', foodCategory: 'Pet Food' })] }, UPC);
   assert.equal(dog.rejected, 'not-food');
   assert.ok(parseSearch({ foods: [food({ description: 'ADULT DOG FOOD' })] }, UPC, { foodOnly: false }).ingredients_text);
@@ -119,9 +124,29 @@ test('with nothing at Open Food Facts, USDA answers: one request with the key in
   assert.ok(!call.url.includes(KEY), 'the key is never in a URL');
   assert.equal(call.options.credentials, 'omit');
   assert.equal(call.options.referrerPolicy, 'no-referrer');
-  assert.deepEqual((await lookup(w)).ingredients_text, got.ingredients_text);
+  const cached = await lookup(w);
+  assert.equal(cached.ingredients_text, got.ingredients_text);
+  assert.equal(cached.capturedAt, got.capturedAt);
+  assert.equal(cached.capturedAt, w.data['usda2:28400064057'].t);
   assert.equal(w.usda().length, 1, 'answered from this computer');
   assert.ok(w.data['usda2:28400064057'].t > 0);
+});
+
+test('USDA date remains distinct from capture through the local product and saved evidence paths', async () => {
+  const w = worker(on, routeOnly(() => res({ foods: [food({ modifiedDate: '2017-07-14' })] })));
+  const found = await lookup(w);
+  const { productCache, shopping } = w.context.AIR.db;
+  const row = productCache.fromScan({ store: 'amazon.com', asin: 'B00LOAW7U6', input: found, via: found.source, t: found.capturedAt });
+  assert.equal(productCache.sanitize(row).data.sourceRecordDate, undefined, 'shared rows cannot claim a local source date');
+  const local = productCache.sanitizeLocal(row);
+  assert.equal(productCache.toInput(local).sourceRecordDate, '2017-07-14');
+  const saved = shopping.cleanSaved({ id: 'product:amazon.com:B00LOAW7U6', input: productCache.toInput(local), source: local.data.via, capturedAt: Date.parse(local.scanned_at), sourceRecordDate: local.data.sourceRecordDate });
+  const evidence = shopping.cleanEvidence(shopping.evidence({ coverage: 1, readable: true }, saved));
+  assert.equal(evidence.sourceRecordDate, '2017-07-14');
+  assert.equal(evidence.capturedAt, found.capturedAt);
+  assert.match(shopping.describe(evidence), /USDA record dated .*2017.*Compare with the package.*Captured /);
+  assert.doesNotMatch(shopping.describe({ ...evidence, sourceRecordDate: new Date().toISOString().slice(0, 10) }), /Older database record/);
+  assert.equal(shopping.cleanEvidence({ ...evidence, source: 'page' }).sourceRecordDate, undefined);
 });
 
 test('a wrong-barcode or empty answer is a miss, kept 3 days; a refusal is not kept', async () => {
@@ -129,6 +154,10 @@ test('a wrong-barcode or empty answer is a miss, kept 3 days; a refusal is not k
   assert.equal(await lookup(miss), null);
   assert.equal(await lookup(miss), null);
   assert.equal(miss.usda().length, 1, 'a miss is not asked again at once');
+  const malformed = worker(on, routeOnly(() => res({ error: 'unavailable' })));
+  assert.equal(await lookup(malformed), null);
+  assert.equal(await lookup(malformed), null);
+  assert.equal(malformed.usda().length, 2, 'malformed successful HTTP response is not a negative match');
   for (const status of [400, 403]) {
     const w = worker(on, routeOnly(() => res({}, status)));
     assert.equal(await lookup(w), null);
@@ -161,9 +190,13 @@ test('nothing is sent unless the switch and barcode lookup are on, and the reade
     assert.equal(await lookup(w), null, label);
     assert.equal(w.usda().length + w.script().length, 0, `${label}: no request`);
   }
-  // The library's explicit Look up does not ask the switch, as for Open Food Facts.
+  // The Library click authorizes Open Food Facts. USDA still requires its own switch.
+  const sender = { id: 'ext', url: 'chrome-extension://ext/src/options/library.html' };
   const library = worker({ ...on, useUsda: false }, route);
-  const got = await library.send({ type: 'lookupBarcode', code: UPC, foodOnly: true }, { id: 'ext', url: 'chrome-extension://ext/src/options/library.html' });
+  assert.equal(await library.send({ type: 'lookupBarcode', code: UPC, foodOnly: true }, sender), null);
+  assert.equal(library.usda().length + library.script().length, 0);
+  const optedIn = worker({ ...on, useOpenFoodFacts: false }, route);
+  const got = await optedIn.send({ type: 'lookupBarcode', code: UPC, foodOnly: true }, sender);
   assert.equal(got.source, 'usda-fdc');
 });
 

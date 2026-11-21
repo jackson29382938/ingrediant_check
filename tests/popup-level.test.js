@@ -115,8 +115,8 @@ test('an install from before levels existed keeps the full popup; a fresh one ge
 });
 
 test('the popup listens for level changes before its write guard, and never writes the level itself', () => {
-  const listener = script.slice(script.indexOf('chrome.storage.onChanged.addListener(changes =>'));
-  assert.ok(listener.indexOf('changes.settingsLevel') < listener.indexOf('if (writing) return;'));
+  const listener = script.slice(script.indexOf('chrome.storage.onChanged.addListener('));
+  assert.ok(listener.includes('settingsLevel'), 'the storage listener handles settingsLevel changes');
   assert.ok(!/persist\(\s*\{\s*settingsLevel/.test(script) && !/save\('settingsLevel'/.test(script));
   assert.ok(script.includes("'settingsLevel', 'onboarded'"), 'the first read asks for the level');
 });

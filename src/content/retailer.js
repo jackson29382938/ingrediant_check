@@ -39,12 +39,6 @@
     state.badges = toggles.badges;
     state.foodOnly = toggles.foodOnly;
     state.autoScoreSearch = toggles.autoScoreSearch;
-    // Walmart results always show ratings while the extension is enabled. Keep the
-    // global switches intact for other stores and honor the extension's pause switch.
-    if (adapter.alwaysRateSearch) {
-      state.badges = true;
-      state.autoScoreSearch = true;
-    }
     state.panelOpen = toggles.panelOpen;
     state.hoverBreakdown = toggles.hoverBreakdown;
     const { breakdownDelayMs, breakdownDetail } = PREFS.sanitizeDisplay(o);
@@ -57,7 +51,6 @@
       sheetIndexRev: o.sheetIndexRev, producerIndexRev: o.producerIndexRev };
     // How old a saved score may be: the speed setting's age (1 to 90 days), as on Amazon.
     state.fetchLimit = root.AIR.db.speed ? root.AIR.db.speed.profile(o.speedMode).autoFetches : 60;
-    if (adapter.alwaysRateSearch) state.fetchLimit = Number.MAX_SAFE_INTEGER;
     state.maxAgeMs = root.AIR.db.speed ? root.AIR.db.speed.profile(o.speedMode).maxAgeMs : CACHE.TTL_MS;
   }
 
@@ -174,7 +167,7 @@
       badge({ status: 'fail' });
       return;
     }
-    show(host, P.render(result, { title: data.title, confidence: via === 'manual-paste' ? 1 : 0.95, via, report: false }), 'scored');
+    show(host, P.render(result, { title: data.title, confidence: via === 'manual-paste' ? 1 : 0.95, via, nutrition: input.nutrition, report: false }), 'scored');
     root.AIR.db.shopping?.offerSave(P.shadowOf(host), { id: `product:${STORE}:${data.id}`, name: data.title, input, source: via, url: location.href, savedScore: result.score, capturedAt: Date.now() });
     const entry = cacheEntry(data.id, result, data.title, via === 'manual-paste' ? 'manual-paste' : (via === 'food-override' ? 'food-override' : 'page'), input);
     badge({ ...entry });
@@ -333,6 +326,8 @@
   // { status: 'not-food' } for a product outside food scoring, or undefined when it is no longer wanted;
   // throws Error('unavailable') for a page that gave no readable label, Error('blocked') for a challenge page.
   async function readProductScore(id, signal, alive = () => true, listingUrl) {
+    const allowed = () => state.enabled && state.autoScoreSearch && !signal.aborted && alive();
+    if (!allowed()) return;
     const href = root.AIR.retailerLabels.listingProductUrl(adapter, id, location, listingUrl);
     if (!href) throw new Error('unavailable');
     const url = new URL(href);
@@ -340,7 +335,7 @@
       credentials: adapter.publicCredentials === 'same-origin' ? 'same-origin' : 'omit',
       headers: { Accept: 'text/html' }, signal,
     });
-    if (!alive() || signal.aborted) return undefined;
+    if (!allowed()) return;
     if ([403, 429, 503].includes(response.status)) state.throttled = true;
     const final = new URL(response.url || url.href);
     // Walmart redirects to a challenge URL before serving the verification page.
@@ -351,7 +346,7 @@
     if ((final.origin !== url.origin && !adapter.acceptsProductRedirect?.(url, final, id))
       || adapter.productId(final.href) !== id) throw new Error('unavailable');
     const doc = await publicDocument(response, signal);
-    if (!alive() || signal.aborted) return undefined;
+    if (!allowed()) return;
     const data = adapter.readProduct(doc, final);
     data.supplementFacts = data.supplementFacts || root.AIR.retailerLabels?.supplementFacts?.(doc) || '';
     if (data.id !== id || !data.ingredients) throw new Error('unavailable');
@@ -440,7 +435,11 @@
     }
     if (!state.searchAllowed && isListingPage(location)) root.AIR.retailerSort?.reset(true);
     state.searchAllowed = true;
-    if (!state.badges || !tiles.length) return false;
+    if (!tiles.length) return false;
+    if (!state.badges) {
+      if (isListingPage(location)) root.AIR.retailerSort?.update(tiles.map(tile => ({ tile })));
+      return true;
+    }
     const generation = state.generation;
     const keys = tiles.map(x => CACHE.key(STORE, x.id));
     CACHE.readLocal(keys, state.raw, got => {
@@ -565,6 +564,8 @@
   chrome.storage.local.get(KEYS, o => { readSettings(o || {}); reset(); });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area && area !== 'local') return;
+    if (changes.autoScoreSearch?.newValue === false) state.autoScoreSearch = false;
+    if (changes.enabled?.newValue === false) state.enabled = false;
     if (!KEYS.some(k => changes[k])) {
       if (Object.keys(changes).some(k => k.startsWith(`s:${STORE}:`)) && ratesTiles()) pass();
       return;

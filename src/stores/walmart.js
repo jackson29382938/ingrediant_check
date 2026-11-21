@@ -302,7 +302,7 @@
     return { ...L.listingFacts(card, { priceNode, imageHost: /(?:^|\.)walmartimages\.com$/i }), sponsored: false };
   }
   const adapter = { id: 'walmart', name: 'Walmart', matchesHost, productId, productUrl, remountPanel: true,
-    alwaysRateSearch: true, hideSponsored, restoreSponsored, sponsoredSlots, readListing,
+    hideSponsored, restoreSponsored, sponsoredSlots, readListing,
     storeHost: 'walmart.com', paging: { param: 'page', first: 1 },
     acceptsProductRedirect, publicCredentials: 'same-origin',
     isProductPage: loc => !!productId(loc.href), isSearchPage: loc => matchesHost(loc.hostname) && /^\/search\/?$/.test(loc.pathname),

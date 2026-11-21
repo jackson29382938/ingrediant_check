@@ -1061,7 +1061,13 @@
     "message": "Ein neuer Tab konnte nicht geöffnet werden. Versuche es noch einmal aus Chrome."
   },
   "sortedStop": {
-    "message": "Bewertung stoppen"
+    "message": "Laden der Ergebnisse stoppen"
+  },
+  "sortedStopped": {
+    "message": "Das Laden der Ergebnisse wurde gestoppt."
+  },
+  "sortedStopFailed": {
+    "message": "Das Laden konnte nicht gestoppt werden. Versuche es erneut."
   },
   "sortedSettings": {
     "message": "Einstellungen"
@@ -2047,7 +2053,7 @@
     "message": "Barcode nachschlagen"
   },
   "barcodePrivacy": {
-    "message": "Mit deiner Erlaubnis wird nur der Barcode an Open Food Facts gesendet."
+    "message": "Mit deiner Erlaubnis wird nur der Barcode an Open Food Facts gesendet. USDA wird nur abgefragt, wenn die Ersatzsuche in den Einstellungen aktiviert ist."
   },
   "barcodeLookup": {
     "message": "Barcode suchen"
@@ -2090,6 +2096,18 @@
   },
   "removeSaved": {
     "message": "Entfernen"
+  },
+  "removeFailed": {
+    "message": "Dieses Produkt konnte nicht entfernt werden. Versuche es erneut."
+  },
+  "shortlistFull": {
+    "message": "Die Einkaufslisten sind voll (200 Produkte). Entferne einen Eintrag, bevor du einen weiteren hinzufügst."
+  },
+  "exportShortlist": {
+    "message": "Gespeicherte Produkte exportieren"
+  },
+  "shortlistExportFailed": {
+    "message": "Export fehlgeschlagen. Versuche es erneut."
   },
   "saveFailed": {
     "message": "Speichern fehlgeschlagen – erneut versuchen"
@@ -2183,6 +2201,15 @@
   },
   "evidenceUnknown": {
     "message": "Keine Etikettendaten gespeichert"
+  },
+  "evidenceSourceRecordDate": {
+    "message": "USDA-Datensatz vom $1"
+  },
+  "evidenceOlderSourceRecord": {
+    "message": "Älterer Datenbankeintrag. Vergleiche ihn mit der Verpackung."
+  },
+  "evidenceCapturedDate": {
+    "message": "Erfasst am $1"
   },
   "evidenceEntered": {
     "message": "Eingegebenes Etikett"
@@ -2427,5 +2454,113 @@
         "content": "$2"
       }
     }
+  },
+  "nutritionLensAddedSugar": {
+    "message": "Zuges. Zucker $FIRST$ g",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "nutritionLensSugar": {
+    "message": "Zucker $FIRST$ g",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "nutritionLensSodium": {
+    "message": "Natrium $FIRST$ mg",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "nutritionLensFiber": {
+    "message": "Ballaststoffe $FIRST$ g",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "nutritionLensProtein": {
+    "message": "Eiweiß $FIRST$ g",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "nutritionLensAria": {
+    "message": "Nährwert-Überblick ($FIRST$)",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "popupOpenSidePanel": {
+    "message": "Seitenleiste"
+  },
+  "popupCleanerSwap": {
+    "message": "Saubere Alternative (+$FIRST$ Pkt.): $SECOND$",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      },
+      "second": {
+        "content": "$2"
+      }
+    }
+  },
+  "libraryDropHint": {
+    "message": "Etikettenfoto hierher ziehen, Screenshot einfügen (Strg/Cmd+V) oder Datei wählen."
+  },
+  "libraryExportSaved": {
+    "message": "Gespeicherte Produkte exportieren (JSON)"
+  },
+  "libraryExported": {
+    "message": "$FIRST$ gespeicherte Produkte exportiert",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "libraryNoSavedExport": {
+    "message": "Keine gespeicherten Produkte zum Exportieren."
+  },
+  "srcAiPhoto": {
+    "message": "KI-Transkription eines Produktfotos"
+  },
+  "photoWords": {
+    "message": "Prüfe diese unsicheren Wörter anhand der Verpackung: $FIRST$.",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "photoUnverified": {
+    "message": "Fototranskriptionen können Zutaten und Allergenhinweise übersehen. Prüfe die Verpackung."
+  },
+  "loadingAiPhotoBody": {
+    "message": "Die öffentliche Adresse des Etikettenfotos wird zur Transkription an OpenRouter gesendet."
+  },
+  "failOcrUncertain": {
+    "message": "Die Fototranskription enthält unklare Wörter. Prüfe die Verpackung, bevor du die Zutaten eingibst. "
+  },
+  "photoNeedsList": {
+    "message": "Keine Zutatenliste gefunden. Ersetze den erkannten Text durch die vollständige Zutatenliste. Verwende für einen neuen Scan ein scharfes, aufrecht ausgerichtetes englisches Etikett."
+  },
+  "photoConfirm": {
+    "message": "Ich habe die Zutaten und Allergenhinweise mit der Verpackung abgeglichen."
+  },
+  "photoConfirmNeeded": {
+    "message": "Gleiche die Zutaten und Allergenhinweise vor der Bewertung mit der Verpackung ab."
   }
 }

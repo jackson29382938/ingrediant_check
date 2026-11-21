@@ -158,7 +158,7 @@ test('restore guard cancels debounced scoring saves, drains pending writes and s
   p.writes[0].cb();
   await tick();
   assert.equal(finished, false);
-  assert.equal(p.run('writing'), true);
+  assert.equal(p.run('pendingWrites'), 1);
   p.context.window.pagehide();
   p.run('save({ immediate: true })');
   p.flushTimers();
@@ -184,7 +184,7 @@ test('failed pending local writes still unblock restore waiting and preserve wri
   delete p.context.chrome.runtime.lastError;
   await waiting;
   assert.equal(p.run('pendingWrites'), 0);
-  assert.equal(p.run('writing'), false);
+  assert.equal(p.run('pendingKeys.size'), 0);
   p.run('AIR.settingsRestore.complete()');
   p.run('save({ immediate: true })');
   assert.equal(p.writes.length, 2);

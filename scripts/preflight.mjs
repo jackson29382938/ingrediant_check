@@ -184,12 +184,16 @@ check('OCR assets are not web-accessible', () => {
 });
 
 console.log('\ndiagnostics');
-check('extension and Apps Script agree on columns', () => {
-  const cols = JSON.parse(read('docs/apps-script.gs').match(/var DIAGNOSTIC_COLUMNS = (\[[\s\S]*?\]);/)[1]);
+check('extension and Apps Script agree on columns and schema version', () => {
+  const gs = read('docs/apps-script.gs');
+  const cols = JSON.parse(gs.match(/var DIAGNOSTIC_COLUMNS = (\[[\s\S]*?\]);/)[1]);
   const src = read('src/engine/db/diagnostics.js');
   const mine = JSON.parse('[' + src.match(/const COLUMNS = \[([\s\S]*?)\];/)[1].replace(/'/g, '"').replace(/,\s*$/, '') + ']');
   if (JSON.stringify(cols) !== JSON.stringify(mine)) throw new Error('column drift — values would land under wrong headers');
-  return `${cols.length} columns aligned`;
+  const gsVer = Number((gs.match(/var BACKEND_SCHEMA_VERSION = (\d+);/) || [])[1]);
+  const extVer = Number((src.match(/const BACKEND_SCHEMA_VERSION = (\d+);/) || [])[1]);
+  if (!gsVer || gsVer !== extVer) throw new Error(`schema version drift: extension=${extVer}, apps-script=${gsVer}`);
+  return `${cols.length} columns aligned, schema v${extVer}`;
 });
 
 console.log('\nlocalisation');
@@ -203,6 +207,8 @@ check('every key resolves', () => {
     ...[...read('src/options/sorted.js').matchAll(/\bt\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
     ...[...read('src/options/popup.html').matchAll(/data-i18n="([A-Za-z0-9_]+)"/g)].map(m => m[1]),
     ...[...read('src/options/options.html').matchAll(/data-i18n(?:-placeholder|-aria)?="([A-Za-z0-9_]+)"/g)].map(m => m[1]),
+    ...[...read('src/options/library.html').matchAll(/data-i18n(?:-placeholder|-aria)?="([A-Za-z0-9_]+)"/g)].map(m => m[1]),
+    ...[...read('src/options/library.js').matchAll(/\bt\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
     ...[...read('src/options/report.html').matchAll(/data-i18n="([A-Za-z0-9_]+)"/g)].map(m => m[1]),
     ...[...read('src/options/report.js').matchAll(/\bt\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),
     ...[...read('src/options/popup.js').matchAll(/\bmsg\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1]),

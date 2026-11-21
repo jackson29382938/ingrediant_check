@@ -94,11 +94,12 @@
     const counts = new Map(); for (const r of rows.filter(r => r.record.state === 'purchased')) { const c = counts.get(r.record.asin) || { name: r.record.name, entries: 0, orders: new Set(), unknown: 0 }; c.entries++; if (r.record.orderKey) c.orders.add(r.record.orderKey); else c.unknown++; counts.set(r.record.asin, c); }
     $('products').replaceChildren(); for (const c of [...counts.values()].sort((a, b) => b.entries - a.entries).slice(0, 10)) $('products').append(el('li', `${c.name} — ${c.entries} product entries · ${c.orders.size} identified orders${c.unknown ? ` · ${c.unknown} ungrouped` : ''}`));
     if ($('reformulationsSection') && $('reformulations')) {
-      const changes = typeof A.detectReformulations === 'function' ? A.detectReformulations(rows) : [];
+      const changes = A.detectReformulations(rows);
       $('reformulationsSection').hidden = !changes.length;
       $('reformulations').replaceChildren();
       if (changes.length) {
-        if ($('reformulationsNote')) $('reformulationsNote').textContent = `${changes.length} ingredient-list ${changes.length === 1 ? 'change' : 'changes'} detected across repeat purchases in this view. Compare the package before reordering.`;
+        const shown = changes.length > 50 ? ' Showing the 50 most recent differences.' : '';
+        $('reformulationsNote').textContent = `${changes.length} recorded label ${changes.length === 1 ? 'difference' : 'differences'} across repeat purchases in this view. Check the package to confirm a recipe change.${shown}`;
         for (const ch of changes.slice(0, 50)) {
           const li = el('li');
           const link = el('a', ch.name || ch.asin);
@@ -109,7 +110,7 @@
           const meta = el('div');
           meta.className = 'reformulation-meta';
           meta.append(el('span', `${ch.fromDate} → ${ch.toDate}`));
-          if (ch.fromScore !== null && ch.toScore !== null) {
+          if (ch.delta !== null) {
             const sign = ch.delta > 0 ? '+' : '';
             const badge = el('span', `${fmt(ch.fromScore)} → ${fmt(ch.toScore)} (${sign}${fmt(ch.delta)})`);
             badge.className = `reformulation-delta ${ch.scoreDropped ? 'drop' : ch.delta > 0 ? 'rise' : ''}`.trim();
@@ -120,6 +121,15 @@
           details.append(el('summary', 'Compare ingredient lists'));
           const diff = el('div');
           diff.className = 'reformulation-diff';
+          details.addEventListener('toggle', function summarize() {
+            if (!details.open) return;
+            details.removeEventListener('toggle', summarize);
+            const before = new Set(AIR.engine.parse(ch.fromIngredients)), after = new Set(AIR.engine.parse(ch.toIngredients));
+            const removed = [...before].filter(ingredient => !after.has(ingredient));
+            const added = [...after].filter(ingredient => !before.has(ingredient));
+            if (added.length) diff.prepend(el('p', 'Newly listed: ' + added.join(', ')));
+            if (removed.length) diff.prepend(el('p', 'No longer listed: ' + removed.join(', ')));
+          });
           const prevP = el('p'); prevP.append(el('strong', `Earlier (${ch.fromDate}): `), ch.fromIngredients);
           const currP = el('p'); currP.append(el('strong', `Later (${ch.toDate}): `), ch.toIngredients);
           diff.append(prevP, currP);

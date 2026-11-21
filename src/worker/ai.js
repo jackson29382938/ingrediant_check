@@ -129,11 +129,13 @@
   }
 
   // -> { ok: true, text } | { ok: false, reason }
-  async function complete(key, body) {
+  async function complete(toggle, key, body) {
     if (Date.now() < await pausedUntil()) return { ok: false, reason: 'rate-limited' };
-    if ((await chrome.storage.local.get('enabled')).enabled === false) return { ok: false, reason: 'paused' };
-    // Not networkRequest(): its 15 second limit is right for a barcode and too short for a vision model.
+    // Work may have waited behind another request. Check again before every outbound payload.
     const send = async payload => {
+      const current = await config(toggle);
+      if (!current.ok) return { blocked: current };
+      if (current.key !== key) return { blocked: { ok: false, reason: 'key-changed' } };
       const res = await fetch(ENDPOINT, {
         method: 'POST', credentials: 'omit', referrerPolicy: 'no-referrer',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, 'X-Title': 'Ingredient Check' },
@@ -143,10 +145,12 @@
     };
     try {
       let res = await send(body);
+      if (res.blocked) return res.blocked;
       // A router may land on a model without structured output: ask once more without the schema.
       if ((res.status === 400 || res.status === 422) && body.response_format) {
         const { response_format: dropped, ...plain } = body; void dropped;
         res = await send(plain);
+        if (res.blocked) return res.blocked;
       }
       if (!res.json) return { ok: false, reason: failure(res.status, res.retryAfter) };
       const content = res.json.choices && res.json.choices[0] && res.json.choices[0].message && res.json.choices[0].message.content;
@@ -201,7 +205,7 @@
       if (rating) ratings[key] = rating;
     }
     if (!missing.length) return { ok: true, ratings };
-    const reply = await serial(() => complete(cfg.key, {
+    const reply = await serial(() => complete('aiRatings', cfg.key, {
       model: MODEL, temperature: 0, max_tokens: 1500,
       messages: [{ role: 'system', content: RATING_SYSTEM }, { role: 'user', content: JSON.stringify({ ingredients: missing }) }],
       response_format: { type: 'json_schema', json_schema: { name: 'ingredient_ratings', strict: true, schema: {
@@ -220,6 +224,7 @@
   }
 
   // ------------------------------------------------------------ label photos
+  let labelWrite = Promise.resolve();
   // -> { ok, results: [{ url, text }] }, the shape the OCR path answers with, so the page treats both alike.
   async function readLabels(urls) {
     const cfg = await config('aiLabels');
@@ -229,7 +234,6 @@
     if (!allowed.length) return { ok: false, reason: 'no-images' };
     const results = [];
     let failed = '';
-    let labelWrite = Promise.resolve();
     const readLabelCache = async () => {
       const stored = (await chrome.storage.local.get(LABEL_CACHE_KEY))[LABEL_CACHE_KEY];
       return stored && typeof stored === 'object' && !Array.isArray(stored) ? stored : {};
@@ -255,14 +259,14 @@
         if (held.text && ocr.ingredientsFromOcr(held.text)) { results.push({ url, text: held.text }); break; }
         continue;
       }
-      const reply = await serial(() => complete(cfg.key, {
+      const reply = await serial(() => complete('aiLabels', cfg.key, {
         model: MODEL, temperature: 0, max_tokens: 1800,
         messages: [{ role: 'system', content: LABEL_SYSTEM }, { role: 'user', content: [
           { type: 'text', text: 'Transcribe the ingredient list on this label.' },
           { type: 'image_url', image_url: { url } },
         ] }],
       }));
-      if (!reply.ok) { failed = reply.reason; if (/^(?:rate-limited|bad-key|no-credits|paused)$/.test(failed)) break; continue; }
+      if (!reply.ok) { failed = reply.reason; if (failed !== 'unavailable') break; continue; }
       const text = reply.text.trim();
       // Only a block the OCR extraction accepts is a label: prose, a refusal or a description has no
       // "Ingredients" heading and is dropped here, which is the whole of the check on a hallucinated reply.
@@ -277,7 +281,7 @@
   async function test() {
     const cfg = await config(null);
     if (!cfg.ok) return cfg;
-    const reply = await serial(() => complete(cfg.key, {
+    const reply = await serial(() => complete(null, cfg.key, {
       model: MODEL, temperature: 0, max_tokens: 20,
       messages: [{ role: 'user', content: 'Reply with the single word: ok' }],
     }));

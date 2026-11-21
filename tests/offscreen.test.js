@@ -22,12 +22,39 @@ function setup(createWorker) {
     } } },
   });
   vm.runInContext(fs.readFileSync(require.resolve('../src/offscreen/ocr.js'), 'utf8'), context);
-  return { run: () => vm.runInContext('ocrImages(["https://m.media-amazon.com/images/I/514iQ-HJVEL._SL1600_.jpg"])', context),
+  const image = 'https://m.media-amazon.com/images/I/514iQ-HJVEL._SL1600_.jpg';
+  return { run: (urls = [image]) => vm.runInContext(`ocrImages(${JSON.stringify(urls)})`, context),
     expire: () => timers.values().next().value(),
     pending: () => timers.size, sent,
     cancel: (sender = WORKER) => listener({ target: 'ocr-offscreen', type: 'cancelOcr' }, sender, () => {}),
     message: (msg, sender) => { let answer; const async = listener({ target: 'ocr-offscreen', ...msg }, sender, r => { answer = r; }); return { async, answer: () => answer }; } };
 }
+test('OCR tries later label images and keeps word-level confidence', async () => {
+  let image = 0;
+  const w = setup(async () => ({ terminate() {}, recognize: async (_blob, _opts, outputs) => {
+    assert.equal(outputs.tsv, true);
+    if (++image === 1) return { data: { text: 'Ingredients: BEHOLD SNACK' } };
+    return { data: { text: 'Ingredients: oats, salt, SO¥', confidence: 91, tsv:
+      '5\t1\t1\t1\t1\t2\t100\t90\t20\t20\t66.5\tSO¥' } };
+  } }));
+  const results = await w.run(['first', 'second']);
+  assert.equal(results.length, 2);
+  assert.equal(results[1].words[0].text, 'SO¥');
+  assert.equal(results[1].words[0].confidence, 66.5);
+});
+
+test('the OCR time limit returns completed images, while a manual cancellation discards them', async () => {
+  for (const stop of ['expire', 'cancel']) {
+    let image = 0;
+    const w = setup(async () => ({ terminate() {}, recognize: () => ++image === 1
+      ? Promise.resolve({ data: { text: 'Ingredients: oats' } }) : new Promise(() => {}) }));
+    const result = w.run(['first', 'second']);
+    await turn();
+    w[stop]();
+    assert.equal((await result).length, stop === 'expire' ? 1 : 0);
+  }
+});
+
 test('deadline terminates stalled recognition and the next job gets a fresh worker', async () => {
   let created = 0, terminated = 0;
   const w = setup(async () => {

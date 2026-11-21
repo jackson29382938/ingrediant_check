@@ -4,6 +4,7 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const vm = require('node:vm');
 const { receiver } = require('./receiver-harness.js');
 
 // A made-up key: the real one is only ever a script property.
@@ -67,6 +68,9 @@ test('an upstream refusal is reported as a status only: no body, no key', () => 
 
 test('at most 600 upstream requests an hour: a flood uses up the budget, not the owner\'s key', () => {
   const r = receiver({ usdaKey: KEY, usdaFetch: () => ok([]) });
+  const clock = vm.runInContext('Date', r.context);
+  const hour = Math.floor(Date.now() / 3600000) * 3600000;
+  clock.now = () => hour;
   let busy = 0;
   for (let i = 0; i < 650; i++) { const reply = ask(r, String(1000000000000 + i)); if (reply.error === 'busy; retry later') busy++; }
   assert.equal(r.usdaCalls.length, 600);
@@ -74,6 +78,36 @@ test('at most 600 upstream requests an hour: a flood uses up the budget, not the
   // A barcode already answered is still served while the budget is spent.
   assert.equal(ask(r, '1000000000000').ok, true);
   assert.equal(r.usdaCalls.length, 600);
+  r.expireCache();
+  assert.equal(ask(r, '1000000000000').error, 'busy; retry later', 'eviction cannot reset the durable budget');
+  clock.now = () => hour + 3600000;
+  assert.equal(ask(r, '1000000000000').ok, true, 'the next UTC hour has its own budget');
+  assert.equal(r.usdaCalls.length, 601);
+});
+
+test('quota lock contention still serves cached records and sends no unreserved request', () => {
+  const r = receiver({ usdaKey: KEY, usdaFetch: () => ok([food()]) });
+  assert.equal(ask(r).ok, true);
+  r.setLocked(true);
+  assert.equal(ask(r).ok, true);
+  assert.equal(ask(r, '036000291452').error, 'busy; retry later');
+  assert.equal(r.usdaCalls.length, 1);
+});
+
+test('relay keeps publication date and ignores absent nutrient values', () => {
+  const r = receiver({ usdaKey: KEY, usdaFetch: () => ok([food({ publishedDate: '2023-02-01', foodNutrients: [
+    { nutrientId: 1093, value: null }, { nutrientId: 1003, value: '' }, { nutrientId: 1258, value: false },
+    { nutrientId: 2000, value: 0 },
+  ] })]) });
+  const [record] = ask(r).foods;
+  assert.equal(record.publishedDate, '2023-02-01');
+  assert.deepEqual(record.foodNutrients, [{ nutrientId: 2000, value: 0 }]);
+});
+
+test('a multibyte label too large for the cache is still returned', () => {
+  const r = receiver({ usdaKey: KEY, usdaFetch: () => ok(Array.from({ length: 10 }, () => food({ ingredients: '大豆'.repeat(3000) }))) });
+  assert.equal(ask(r).foods.length, 10);
+  assert.equal(r.cache.has('usda2:' + UPC.replace(/^0+/, '')), false);
 });
 
 test('no other request kind can read the property: a contribution cannot be coaxed into returning it', () => {

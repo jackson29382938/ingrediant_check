@@ -80,12 +80,21 @@ function imageCandidates(doc, limit = 8) {
   return out;
 }
 
-// The block a label prints under Ingredients / Zutaten / Ingredientes / …. Polish "Skład" only with
-// its colon: bare, it starts "składowania" (storage). Same heading set as
-// extract.js. Longer locale forms come before English `ingredients?` so INGREDIENTES is not
-// truncated to INGREDIENTE + leftover "S:", nor INGREDIENTI to INGREDIENT + "I:". Turkish puts the
-// allergen before "içerebilir" (may contain), so the list ends at the sentence that says it.
-const BLOCK = /(?:ingredientes|ingredienti|ingredi[eë]nten|ingr[eé]dients?|zutaten|sk[łl]adniki|sk[łl]ad(?=\s*:)|ingredienser|[iİ][çc]indekiler|原材料|ingredients?)\s*[:.-]?\s*([\s\S]{4,6000}?)(?=\s*(?:ALLERGEN|CONTAINS\s*:|MAY\s+CONTAIN|DISTRIBUTED|MANUFACTURED|PRODUCED\s+(?:BY|FOR)|PACKED\s+(?:BY|FOR)|KEEP\s+(?:REFRIGERATED|FROZEN)|REFRIGERATE|NUTRITION|N[ÄA]HRWERT|VALEURS\s+NUTRITIONNELLES|BEST\s+(?:BY|BEFORE)|QUESTIONS|WWW\.|HTTP|KANN\s+SPUREN|PEUT\s+CONTENIR|[ÀA]\s+CONSERVER|PUEDE\s+CONTENER|INFORMACI[ÓO]N\s+NUTRICIONAL|PU[ÒO]\s+CONTENERE|VALORI\s+NUTRIZIONALI|CONSERVARE|KAN\s+SPOREN|BEWAREN|VOEDINGSWAARDE|PODE\s+CONTER|INFORMA[ÇC][ÃA]O\s+NUTRICIONAL|KAN\s+INNEH[ÅA]LLA|F[ÖO]RVARA|N[ÄA]RINGSV[ÄA]RDE|MO[ŻZ]E\s+ZAWIERA|PRZECHOWYWA|WARTO[ŚS][ĆC]\s+OD[ŻZ]YWCZA|\.\s+[^.,]{1,40}?\s+[İI][ÇC]EREB[İI]L[İI]R|BES[İI]N\s+DE[ĞG]ERLER|SER[İI]N\s+VE|$))/i;
+// Match the printed heading as a word, or as a Japanese heading next to the list.
+const HEADING = String.raw`(?:(?<![\p{L}\p{N}])(?:ingredientes|ingredienti|ingredi[eë]nten|ingr[eé]dients?|zutaten|sk[łl]adniki|sk[łl]ad(?=\s*:)|ingredienser|[iİ][çc]indekiler)(?![\p{L}\p{N}])|原材料)`;
+const AMOUNT = String.raw`\s*(?:(?:LESS\s+THAN|UP\s+TO|NOT\s+MORE\s+THAN)\s+)?\d`;
+const ADVISORY = [
+  String.raw`\b(?:ALLERGENS?(?:\s+INFORMATION)?\s*:|CONTAINS\s*:(?!${AMOUNT}))`,
+  String.raw`\b(?:MAY\s+CONTAIN|KANN\s+SPUREN|PEUT\s+CONTENIR|PUEDE\s+CONTENER|PU[ÒO]\s+CONTENERE|KAN\s+SPOREN|PODE\s+CONTER|KAN\s+INNEH[ÅA]LLA|MO[ŻZ]E\s+ZAWIERA)\b`,
+  String.raw`(?<=[.\n])[ \t]*(?:THIS\s+PRODUCT\s+)?\b(?:CONTAINS|CONTIENE)\b(?![ \t]*:?${AMOUNT})`,
+].join('|');
+const OTHER_SECTION = String.raw`\b(?:IMPORTED\s+BY|DISTRIBUTED|MANUFACTURED|PRODUCED\s+(?:BY|FOR)|PACKED\s+(?:BY|FOR)|KEEP\s+(?:REFRIGERATED|FROZEN)|REFRIGERATE|NUTRITION(?:AL)?(?:\s+(?:FACTS|INFORMATION|VALUES?|DECLARATION|PANEL)|(?=[ \t]*[:(]))|N[ÄA]HRWERT\w*|VALEURS\s+NUTRITIONNELLES|BEST\s+(?:BY|BEFORE)|QUESTIONS|HTTP|[ÀA]\s+CONSERVER|INFORMACI[ÓO]N\s+NUTRICIONAL|VALORI\s+NUTRIZIONALI|CONSERVARE|BEWAREN|VOEDINGSWAARDE\w*|INFORMA[ÇC][ÃA]O\s+NUTRICIONAL|F[ÖO]RVARA\w*|N[ÄA]RINGSV[ÄA]RDE\w*|PRZECHOWYWA\w*|WARTO[ŚS][ĆC]\s+OD[ŻZ]YWCZA|BES[İI]N\s+DE[ĞG]ERLER|SER[İI]N\s+VE)\b|\bWWW\.|\.\s+[^.,]{1,40}?\s+[İI][ÇC]EREB[İI]L[İI]R`;
+const START = new RegExp(HEADING + String.raw`\s*[:.\-–：]?\s*`, 'iu');
+const NEXT_HEADING = String.raw`(?:[.;/\n][ \t]*)${HEADING}(?=\s*[:\-–：]|[ \t]*\n)`;
+const NEXT_SECTION = new RegExp(`(${ADVISORY})|${OTHER_SECTION}|${NEXT_HEADING}`, 'iu');
+const NEXT_ADVISORY = new RegExp(ADVISORY, 'iu');
+const TRANSLATION = new RegExp(NEXT_HEADING, 'iu');
+const ADVISORY_END = new RegExp(OTHER_SECTION, 'iu');
 
 // OCR noise that is safe to remove: it never carries meaning, and leaving it in only lowers the
 // recognition coverage the engine measures. Nothing here rewrites a WORD into another word —
@@ -101,33 +110,73 @@ function tidyOcr(text) {
     .trim();
 }
 
-function ingredientsFromOcr(text) {
-  const flat = String(text || '').replace(/\r/g, '');
-  const m = flat.match(BLOCK);
-  if (!m) return null;
-  const body = tidyOcr(m[1]);
-  // Real single-ingredient labels can be shorter than eight characters (the reported
-  // Zorrer label is 'Jujubes'). Keep short known foods; short OCR noise stays unavailable.
+function labelFromOcr(text) {
+  const flat = String(text || '').slice(0, 24000).replace(/\r/g, '');
+  const match = START.exec(flat);
+  if (!match) return null;
+  const tail = flat.slice(match.index + match[0].length);
+  const boundary = NEXT_SECTION.exec(tail);
+  const end = boundary?.index ?? tail.length;
+  if (end > 6000) return null;
+  const body = tidyOcr(tail.slice(0, end));
+  // A real single-ingredient label can be shorter than eight characters.
   if (body.length < 8 && !/^(?:jujubes?|milk|oats|salt|water|rice|corn|sugar|eggs|dates?|cocoa|cacao|flour)$/i.test(body)) return null;
-  return body;
+  const remainder = tail.slice(end).split(TRANSLATION, 1)[0];
+  const advisoryStart = boundary?.[1] ? 0 : remainder.search(NEXT_ADVISORY);
+  const rest = advisoryStart < 0 ? '' : remainder.slice(advisoryStart).trim();
+  const next = rest.search(ADVISORY_END);
+  const advisory = tidyOcr(rest.slice(0, next < 0 ? 6000 : Math.min(6000, next)))
+    .replace(/^ALLERGENS?(?:\s+INFORMATION)?\s*:\s*(?=CONTAINS|MAY CONTAIN)/i, '')
+    .replace(/^THIS\s+PRODUCT\s+(?=CONTAINS)/i, '');
+  return { text: body, advisory };
 }
 
-// Given [{ url, text }] from the OCR pass, the best candidate is the one whose extracted block a
-// real ingredient parser will accept. Longer wins ties: a label photographed straight-on yields
-// more of the list than one at an angle.
+const ingredientsFromOcr = text => labelFromOcr(text)?.text ?? null;
+
+// OCR's aggregate score hides individual mistakes such as "SO¥" in a mostly legible list.
+const WORD = /[\p{L}\p{N}¥€$¢@|]+(?:[-’'][\p{L}\p{N}¥€$¢@|]+)*/gu;
+const BROKEN = /[\p{L}][¥€$¢@]|[¥€$¢@][\p{L}]/u;
+const wordKey = word => word.replace(/\|/g, 'I').toLowerCase();
+
+function uncertainWords(text, words = []) {
+  const low = new Map();
+  for (const { text: word, confidence } of Array.isArray(words) ? words : []) {
+    if (!Number.isFinite(confidence) || confidence < 0 || confidence >= 70) continue;
+    for (const part of word.match(WORD) || []) {
+      const key = wordKey(part);
+      low.set(key, Math.min(confidence, low.get(key) ?? Infinity));
+    }
+  }
+  const candidates = new Map();
+  for (const word of text.match(WORD) || []) {
+    const garbled = BROKEN.test(word);
+    const confidence = low.get(wordKey(word));
+    if (garbled || (confidence != null && /\p{L}{2}/u.test(word))) candidates.set(wordKey(word), { word, confidence, garbled });
+  }
+  return [...candidates.values()].sort((a, b) => Number(b.garbled) - Number(a.garbled) || (a.confidence ?? 100) - (b.confidence ?? 100)).slice(0, 12);
+}
+
+// A caller can give a validated coverage score, or simply approve the block.
 function bestBlock(results, accept) {
-  let best = null;
+  let best = null, bestQuality = -1;
   for (const r of results || []) {
-    const body = ingredientsFromOcr(r && r.text);
-    if (!body) continue;
-    if (typeof accept === 'function' && !accept(body)) continue;
-    if (!best || body.length > best.text.length) best = { url: r.url, text: body };
+    const label = labelFromOcr(r?.text);
+    if (!label) continue;
+    const uncertain = uncertainWords(`${label.text} ${label.advisory}`, r.words);
+    const candidate = { ...label, url: r.url, uncertain, confidence: r.confidence };
+    const approved = typeof accept === 'function' ? accept(label.text, candidate) : true;
+    if (approved === false || approved == null) continue;
+    const quality = Number.isFinite(approved) ? approved : 0;
+    if (!best || quality > bestQuality || (quality === bestQuality && label.text.length > best.text.length)) {
+      best = candidate;
+      bestQuality = quality;
+    }
   }
   return best;
 }
 
 const _exports = AIRmodule('ocrText', {
-  hiResUrl, imageCandidates, ingredientsFromOcr, bestBlock, tidyOcr, IMAGE_ID,
+  hiResUrl, imageCandidates, ingredientsFromOcr, labelFromOcr, bestBlock, uncertainWords, tidyOcr, IMAGE_ID,
   isAllowedOcrUrl, allowedOcrUrls,
 });
 if (typeof module !== 'undefined' && module.exports) module.exports = _exports;

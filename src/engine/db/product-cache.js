@@ -10,7 +10,7 @@
 // shape again because it cannot load this file; the field bounds live here only, and are applied
 // every time a row is read back.
 
-if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('./_module.js'); require('./ai-ratings.js'); }
+if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('./_module.js'); require('./ai-ratings.js'); require('./shopping.js'); }
 
 (function () {
   const TAB = 'products';
@@ -74,6 +74,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
       ...(typeof src.category === 'string' && /^(?:toothpaste|mouthwash|deodorant|shampoo|conditioner|body-wash|moisturizer|supplement)$/.test(src.category) ? { category: src.category } : {}),
     };
     if (src.inputSchema === INPUT_SCHEMA) out.inputSchema = INPUT_SCHEMA;
+    const date = local && out.via === 'usda-fdc' && AIR.db.shopping?.sourceRecordDate(src.sourceRecordDate);
+    if (date) out.sourceRecordDate = date;
     const provenance = cleanProvenance(src.provenanceRecord);
     if (provenance) out.provenanceRecord = provenance;
     if (local && AIR.db.aiRatings) {
@@ -139,6 +141,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
       nutrition: d.nutrition ? { ...d.nutrition } : undefined, ingredients_text: d.text, supplement_facts: d.supplement_facts, advisory_text: d.advisory_text,
       ...(d.inputSchema === INPUT_SCHEMA ? { inputSchema: INPUT_SCHEMA } : {}),
       ...(d.provenanceRecord ? { provenanceRecord: cleanProvenance(d.provenanceRecord) } : {}),
+      ...(d.sourceRecordDate ? { sourceRecordDate: d.sourceRecordDate } : {}),
       ...(d.aiRatings ? { aiRatings: { ...d.aiRatings } } : {}),
     };
   }
@@ -147,7 +150,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
   function fromScan({ store, asin, status = 'ok', input = {}, via = '', confidence = 0, food = true, t = Date.now() }, now = Date.now()) {
     return sanitize({
       store, asin, status, scanned_at: t, pulls: 0,
-      data: { inputSchema: INPUT_SCHEMA, provenanceRecord: input.provenanceRecord, title: input.name, category: input.category || AIR.db.ingestible?.classifyProduct?.(input.name).category, text: input.ingredients_text, labels: input.labels,
+      data: { inputSchema: INPUT_SCHEMA, provenanceRecord: input.provenanceRecord, sourceRecordDate: input.sourceRecordDate, title: input.name, category: input.category || AIR.db.ingestible?.classifyProduct?.(input.name).category, text: input.ingredients_text, labels: input.labels,
         certifications: input.certifications, supplement_facts: input.supplement_facts, nutrition: input.nutrition, advisory_text: typeof input.advisory_text === 'string' ? input.advisory_text : '', aiRatings: input.aiRatings, via, confidence, food },
     }, now, { local: true });
   }

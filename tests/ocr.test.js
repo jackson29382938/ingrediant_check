@@ -243,5 +243,45 @@ check('label photos in every store language end the list where the label does', 
     '"składowania" (storage) is not the Skład heading');
 });
 
+check('captured photos separate translations and retain allergen statements', () => {
+  const captures = require('../docs/audit-evidence-2026-11-16/ocr.json');
+  const read = file => captures.find(row => row.file === file + '.jpg');
+  const crisps = ocr.labelFromOcr(read('038000138416').text);
+  assert.match(crisps.text, /WHEAT STARCH$/);
+  assert.doesNotMatch(crisps.text, /INGREDIENTES|CONTAINS/);
+  assert.equal(crisps.advisory, 'CONTAINS WHEAT INGREDIENTS');
+  const noodles = read('737628064502');
+  assert.equal(noodles.confidence, 91);
+  const label = ocr.labelFromOcr(noodles.text);
+  assert.match(label.text, /SO¥/);
+  assert.match(label.text, /NATURAL FLAVOR\)$/);
+  assert.equal(label.advisory, 'CONTAINS PEANUTS');
+  const uncertain = ocr.uncertainWords(label.text, [{ text: 'PROTEIN,', confidence: 52 }, { text: 'P.O.', confidence: 9 }]);
+  assert.deepEqual(uncertain.map(word => word.word), ['SO¥', 'PROTEIN']);
+  const corrected = engine.score({ ingredients_text: label.text.replace('SO¥', 'SOY'), advisory_text: label.advisory },
+    { allergens: ['peanut', 'sesame', 'soy'] });
+  assert.deepEqual(corrected.flags.filter(f => f.kind === 'allergen').map(f => f.id).sort(), ['peanut', 'sesame', 'soy']);
+  assert.equal(ocr.labelFromOcr(read('7622210449283').text), null);
+});
+
+check('candidate quality takes precedence over length and low-coverage images can be skipped', () => {
+  const images = [
+    { url: 'first', text: 'Ingredients: NAME OF THIS PRODUCT' },
+    { url: 'second', text: 'Ingredients: oats, salt, glorb, flurn, tronk, gloop, lort' },
+    { url: 'third', text: 'Ingredients: oats, salt' },
+  ];
+  const best = ocr.bestBlock(images, text => {
+    const result = engine.score({ ingredients_text: text }, {});
+    return extract.looksLikeIngredients(text) && engine.isReadable(result) ? result.coverage : false;
+  });
+  assert.equal(best.url, 'third');
+  const qualified = ocr.labelFromOcr('Ingredients: oats, sugar;\nContains less than 2% of: salt, citric acid.\nContains: wheat. May contain soy.');
+  assert.match(qualified.text, /salt, citric acid$/);
+  assert.equal(qualified.advisory, 'Contains: wheat. May contain soy');
+  assert.equal(ocr.labelFromOcr(DARK_PHOTO).advisory, 'CONTAINS: PEANUTS, SOY');
+  assert.deepEqual(ocr.labelFromOcr('Ingredients: oats.\nIngredientes: avena.\nContains: wheat.'), { text: 'oats', advisory: '' });
+  assert.equal(ocr.ingredientsFromOcr('Ingredients: oats, nutritional yeast, salt. Nutritional information: Calories 140'), 'oats, nutritional yeast, salt');
+});
+
 if (failed) { console.error('\n' + failed + ' failed'); process.exit(1); }
 console.log('\nall passed');

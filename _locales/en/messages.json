@@ -1076,7 +1076,13 @@
     "message": "Could not open a new tab. Try again from Chrome."
   },
   "sortedStop": {
-    "message": "Stop rating"
+    "message": "Stop loading results"
+  },
+  "sortedStopped": {
+    "message": "Stopped loading results."
+  },
+  "sortedStopFailed": {
+    "message": "Could not stop loading. Try again."
   },
   "sortedSettings": {
     "message": "Settings"
@@ -2047,7 +2053,7 @@
     "message": "Look up a barcode"
   },
   "barcodePrivacy": {
-    "message": "Sends only the barcode to Open Food Facts with your permission."
+    "message": "Sends only the barcode to Open Food Facts with your permission. USDA is tried only when its fallback is enabled in Settings."
   },
   "barcodeLookup": {
     "message": "Look up barcode"
@@ -2093,6 +2099,18 @@
   },
   "saveFailed": {
     "message": "Could not save — try again"
+  },
+  "removeFailed": {
+    "message": "Could not remove this product — try again"
+  },
+  "shortlistFull": {
+    "message": "The shopping lists are full (200 products). Remove an entry before adding another."
+  },
+  "exportShortlist": {
+    "message": "Export saved products"
+  },
+  "shortlistExportFailed": {
+    "message": "Could not export saved products — try again"
   },
   "noSavedProducts": {
     "message": "Save products from their score panels or check a label here."
@@ -2183,6 +2201,15 @@
   },
   "evidenceUnknown": {
     "message": "Evidence not recorded"
+  },
+  "evidenceSourceRecordDate": {
+    "message": "USDA record dated $1"
+  },
+  "evidenceOlderSourceRecord": {
+    "message": "Older database record. Compare with the package."
+  },
+  "evidenceCapturedDate": {
+    "message": "Captured $1"
   },
   "evidenceEntered": {
     "message": "Entered label"
@@ -2427,5 +2454,113 @@
         "content": "$2"
       }
     }
+  },
+  "nutritionLensAddedSugar": {
+    "message": "Added sugar $FIRST$ g",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "nutritionLensSugar": {
+    "message": "Sugar $FIRST$ g",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "nutritionLensSodium": {
+    "message": "Sodium $FIRST$ mg",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "nutritionLensFiber": {
+    "message": "Fiber $FIRST$ g",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "nutritionLensProtein": {
+    "message": "Protein $FIRST$ g",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "nutritionLensAria": {
+    "message": "Nutrition snapshot ($FIRST$)",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "popupOpenSidePanel": {
+    "message": "Side panel"
+  },
+  "popupCleanerSwap": {
+    "message": "Cleaner swap (+$FIRST$ pts): $SECOND$",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      },
+      "second": {
+        "content": "$2"
+      }
+    }
+  },
+  "libraryDropHint": {
+    "message": "Drag & drop a label photo here, paste a screenshot (Ctrl/Cmd+V), or choose a file."
+  },
+  "libraryExportSaved": {
+    "message": "Export saved products (JSON)"
+  },
+  "libraryExported": {
+    "message": "Exported $FIRST$ saved products",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "libraryNoSavedExport": {
+    "message": "No saved products to export."
+  },
+  "srcAiPhoto": {
+    "message": "AI transcription of a product photo"
+  },
+  "photoWords": {
+    "message": "Check these uncertain words against the package: $FIRST$.",
+    "placeholders": {
+      "first": {
+        "content": "$1"
+      }
+    }
+  },
+  "photoUnverified": {
+    "message": "Photo transcriptions can miss ingredients and allergen statements. Check the package."
+  },
+  "loadingAiPhotoBody": {
+    "message": "Sending the public label photo address to OpenRouter for transcription."
+  },
+  "failOcrUncertain": {
+    "message": "The photo transcription contains unclear words. Check the package before entering the ingredients. "
+  },
+  "photoNeedsList": {
+    "message": "No ingredient list was found. Replace the extracted text with the complete ingredient list. For another scan, use a clear, upright English label."
+  },
+  "photoConfirm": {
+    "message": "I checked the ingredients and allergen statements against the package."
+  },
+  "photoConfirmNeeded": {
+    "message": "Check the ingredients and allergen statements against the package before scoring."
   }
 }

@@ -482,7 +482,8 @@ function wireAi() {
       chrome.permissions.contains(permission, granted => { box.checked = PREFS.sanitizeToggles(raw)[id] && granted; });
     });
     read();
-    chrome.storage.onChanged.addListener(changes => { if (changes[id]) read(); });
+    chrome.storage.onChanged.addListener((changes, area) => { if (area && area !== 'local') return; if (changes[id]) read(); });
+    chrome.permissions.onRemoved?.addListener(removed => { if (removed?.origins?.some(o => o.includes('openrouter.ai'))) read(); });
     box.addEventListener('change', () => {
       const enabled = box.checked;
       box.disabled = true;
@@ -544,7 +545,8 @@ function wireUsda() {
     chrome.permissions.contains(permission, granted => { box.checked = PREFS.sanitizeToggles(raw).useUsda && (!own || granted); });
   });
   read();
-  chrome.storage.onChanged.addListener(changes => { if (changes.useUsda) read(); });
+  chrome.storage.onChanged.addListener((changes, area) => { if (area && area !== 'local') return; if (changes.useUsda) read(); });
+  chrome.permissions.onRemoved?.addListener(removed => { if (removed?.origins?.some(o => o.includes('api.nal.usda.gov'))) read(); });
   box.addEventListener('change', () => {
     const enabled = box.checked;
     box.disabled = true;

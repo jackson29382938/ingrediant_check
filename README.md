@@ -166,9 +166,10 @@ faster; freshness, changed goals and changed scoring rules can still require a r
 
 ### Check labels and keep a shopping shortlist
 
-Use **Check a label · Saved & compare** in the popup to paste ingredients, read a local photo,
-or explicitly look up a barcode. Review photo text before scoring. **Save product** on a product's
-score panel keeps its label in a local shopping list, independently of expiring caches.
+Use **Check a label · Saved & compare** in the popup to paste ingredients, choose or paste a label
+photo, or explicitly look up a barcode. Review photo text before scoring. **Save product** on a
+product's score panel keeps its label in a local shopping list, independently of expiring caches.
+**Export saved products** downloads your shopping lists and their saved label evidence as JSON.
 
 Detailed comparisons show current-goal scores, warning evidence, available nutrients, missing
 factors and score contributions. Goal previews leave your settings unchanged. Amazon's comparison

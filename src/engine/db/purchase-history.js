@@ -15,7 +15,9 @@
       }
     }
     for (const [key, limit] of Object.entries({ name: 250, ingredients_text: 6000, advisory_text: 6000, labels: 3000, certifications: 500 })) {
-      if (typeof raw[key] === 'string') out[key] = raw[key].replace(/[<>]/g, '').slice(0, limit);
+      if (typeof raw[key] !== 'string') continue;
+      // The scorer reads separators and quantity markers such as <br> and <2% from the saved label.
+      out[key] = (key === 'ingredients_text' || key === 'advisory_text' ? raw[key] : raw[key].replace(/[<>]/g, '')).slice(0, limit);
     }
     if (raw.nutrition && typeof raw.nutrition === 'object' && !Array.isArray(raw.nutrition)) {
       out.nutrition = {};

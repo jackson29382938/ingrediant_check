@@ -413,7 +413,7 @@
         const assessed = okRow ? root.AIR.engine.score(C.toInput(row), state.prefs) : null;
         const sameScore = assessed && !unreadable(assessed) && assessed.score === hit.score;
         const why = sameScore ? whyOf(assessed) : null;
-        const evidence = sameScore ? root.AIR.db.shopping?.evidence(assessed, { source: row.data.via, capturedAt: Date.parse(row.scanned_at), prefs: state.prefs }) : hit.evidence;
+        const evidence = sameScore ? root.AIR.db.shopping?.evidence(assessed, { source: row.data.via, capturedAt: Date.parse(row.scanned_at), sourceRecordDate: row.data.sourceRecordDate, prefs: state.prefs }) : hit.evidence;
         out.set(asin, { score: hit.score, category: hit.category || 'food', ratingStyle: hit.ratingStyle || 'food', verdict: hit.verdict, source: 'scored', evidence, why, servings: okRow ? servingsFor(C.toInput(row)) : null });
         continue;
       }
@@ -422,8 +422,8 @@
       if (row.status === 'unreadable') { out.set(asin, { score: null, source: 'unreadable' }); continue; }
       const result = root.AIR.engine.score(C.toInput(row), state.prefs);
       if (unreadable(result)) { out.set(asin, { score: null, source: 'unreadable' }); continue; }
-      cacheScore(asin, result, row.data.title, row.data.via || 'search-tile', '', Date.parse(row.scanned_at));
-      out.set(asin, { score: result.score, category: result.category || 'food', ratingStyle: result.ratingStyle || 'food', verdict: result.verdict, source: 'scored', evidence: root.AIR.db.shopping?.evidence(result, { source: row.data.via, capturedAt: Date.parse(row.scanned_at), prefs: state.prefs }), why: whyOf(result), servings: servingsFor(C.toInput(row)) });
+      cacheScore(asin, result, row.data.title, row.data.via || 'search-tile', '', Date.parse(row.scanned_at), row.data.sourceRecordDate);
+      out.set(asin, { score: result.score, category: result.category || 'food', ratingStyle: result.ratingStyle || 'food', verdict: result.verdict, source: 'scored', evidence: root.AIR.db.shopping?.evidence(result, { source: row.data.via, capturedAt: Date.parse(row.scanned_at), sourceRecordDate: row.data.sourceRecordDate, prefs: state.prefs }), why: whyOf(result), servings: servingsFor(C.toInput(row)) });
     }
     return out;
   }
@@ -701,12 +701,7 @@
       return false;
     }
     if (!msg || msg.type !== 'sortStop') return false;
-    let fromList;
-    try {
-      fromList = sender && sender.id === chrome.runtime.id && !sender.tab
-        && /\/src\/options\/(sorted|sidepanel)\.html(?:[?#]|$)/.test(new URL(sender.url || '').pathname + '#');
-    } catch (e) { fromList = false; }
-    if (!fromList || (msg.runId && msg.runId !== runId)) return false;
+    if (sender?.id !== chrome.runtime.id || sender.tab || msg.target !== 'sort-source' || !msg.runId || msg.runId !== runId) return false;
     run++;
     for (const c of controllers) c.abort();
     controllers.clear();

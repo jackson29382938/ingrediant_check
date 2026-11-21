@@ -65,6 +65,14 @@ try {
   });
   for (const script of scripts) await page.addScriptTag({ path: path.join(root, script) });
   await page.evaluate(() => window.__boot());
+  await page.locator('#air-retailer-sort').getByRole('button', { name: 'Ingredient Check sort' }).waitFor();
+  assert.equal(await page.locator('[data-item-id="10000000"]').isVisible(), false);
+  assert.equal(await page.locator('.air-badge').count(), 0);
+  assert.equal(fetched.length, 0, 'disabling automatic rating prevents uncached reads while ads are still hidden');
+  await page.evaluate(() => window.__settings({ badges: true, autoScoreSearch: true }));
+  await page.waitForFunction(() => document.querySelectorAll('.air-badge[data-air-status="scored"]').length === 20, null, { timeout: 30000 });
+  assert.equal(fetched.length, 20, 'Walmart honors the Fastest speed budget');
+  await page.evaluate(() => window.__settings({ speedMode: 'balanced' }));
   await page.waitForFunction(() => document.querySelectorAll('.air-badge[data-air-status="scored"]').length === 65, null, { timeout: 60000 }).catch(async error => {
     console.error({ errors, fetched: fetched.length, badges: await page.locator('.air-badge').allTextContents() });
     throw error;
@@ -80,7 +88,7 @@ try {
   const badgeBox = await page.locator('.air-badge').first().boundingBox();
   assert(badgeBox?.width >= 20 && badgeBox.height >= 20, 'rating must not inherit the overlay heading clipping');
   assert.equal(await page.locator('.air-badge').first().locator('..').getAttribute('data-automation-id'), 'product-title');
-  console.log('ok Walmart beef: 65 real scores with global badges/auto-rate off; sponsored cards and modules hidden, never fetched');
+  console.log('ok Walmart beef: opt-out and speed budget honored, ads hidden independently, 65 organic results rated after opt-in and a budget increase');
   assert.equal(new URL(page.url()).searchParams.get('facet'), 'fulfillment_method:Delivery');
   await page.locator('main').evaluate((el, html) => el.insertAdjacentHTML('beforeend', html), card('10000001'));
   await page.waitForFunction(() => document.querySelectorAll('[data-item-id="10000001"] .air-badge[data-air-status="scored"]').length === 2);

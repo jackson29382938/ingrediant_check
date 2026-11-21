@@ -13,6 +13,7 @@ function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true, pro
   const order = [];
   let locked = false, failFlush = false, legacy = '{}', tokenChecks = 0;
   const cache = new Map();
+  let usdaUsage = null;
   function newSheet() {
     const data = [];
     let maxColumns = 26;
@@ -61,6 +62,7 @@ function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true, pro
     // Google's tokeninfo: `tokens` maps an access token to what Google would say about it.
     UrlFetchApp: { fetch(url, options) {
       if (String(url).startsWith('https://api.nal.usda.gov/')) {
+        assert.equal(locked, false, 'release quota reservation lock before calling USDA');
         usdaCalls.push({ url, options });
         const reply = usdaFetch ? usdaFetch(url, options) : { status: 500, text: '{}' };
         return { getResponseCode: () => reply.status, getContentText: () => reply.text };
@@ -75,16 +77,24 @@ function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true, pro
     // The script cache: values with the lifetime they were given, so a test can let them lapse.
     CacheService: { getScriptCache: () => ({
       get: key => (cache.has(key) ? cache.get(key).value : null),
-      put(key, value, seconds) { cache.set(key, { value, seconds }); },
+      put(key, value, seconds) {
+        if (Buffer.byteLength(value) > 100 * 1024) throw new Error('cache value exceeds 100 KB');
+        cache.set(key, { value, seconds });
+      },
     }) },
     Utilities: { DigestAlgorithm: { SHA_256: 'sha256' },
       computeDigest: (_alg, text) => [...require('node:crypto').createHash('sha256').update(text).digest()].map(b => (b << 24) >> 24) },
     PropertiesService: { getScriptProperties: () => ({
       getProperty: key => (key === 'PRODUCTS_OPEN' ? (productsOpen ? 'true' : null) : key === 'OAUTH_CLIENT_ID' ? propertyClientId
         : key === 'USDA_API_KEY' ? usdaKey
+        : key === 'USDA_HOURLY_USAGE' ? usdaUsage
         : key === 'ANON_WRITES_PER_MINUTE' ? String(anonLimits.writes) : key === 'ANON_ROWS_PER_MINUTE' ? String(anonLimits.rows) : legacy),
       deleteProperty(key) { if (key === 'PRODUCTS_OPEN') productsOpen = false; },
-      setProperty() { throw new Error('dedup must not depend on property writes'); } }) },
+      setProperty(key, value) {
+        assert.equal(key, 'USDA_HOURLY_USAGE', 'dedup must not depend on property writes');
+        assert.equal(locked, true, 'reserve quota under the shared lock');
+        usdaUsage = value;
+      } }) },
     ContentService: { MimeType: { JSON: 'json' },
       createTextOutput: text => ({ setMimeType: () => JSON.parse(text) }) },
   });

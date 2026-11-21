@@ -119,7 +119,7 @@
 
   // `t` is when the ingredients were read: a score worked out now from a 20-day-old reading must
   // expire when that reading does.
-  function cacheScore(asin, result, name, source, provenanceSource, t = Date.now()) {
+  function cacheScore(asin, result, name, source, provenanceSource, t = Date.now(), sourceRecordDate) {
     if (!asin || !result) return;
     const entry = {
       schema: CACHE.SCHEMA, cacheRevision: CACHE.CACHE_REVISION, v: ENGINE_VERSION, t,
@@ -127,7 +127,7 @@
       score: result.score, verdict: result.verdict, nova: result.nova, category: result.category || 'food', ratingStyle: result.ratingStyle || 'food',
       source: source || 'page',
       ...(result.ai ? { ai: true } : {}),
-      ...(root.AIR.db.shopping ? { evidence: root.AIR.db.shopping.evidence(result, { source: source || 'page', capturedAt: t, prefs: state.prefs }) } : {}),
+      ...(root.AIR.db.shopping ? { evidence: root.AIR.db.shopping.evidence(result, { source: source || 'page', capturedAt: t, sourceRecordDate, prefs: state.prefs }) } : {}),
       provenanceSource: provenanceSource || '',
       name: String(name || '').replace(/\s+/g, ' ').trim().slice(0, 120),
     };

@@ -46,7 +46,7 @@ On Amazon product, search, browse, and store pages it already has permission to 
 
 Regular scoring does not read passwords or payment details. The narrowly scoped Amazon.com Orders reader above reads identifiable order items to place scores; saving those purchases is opt-in. Other account pages are excluded. Cart rating reads only product links and product titles from cart line items. It does not collect quantities, prices, cart totals, delivery addresses, account identifiers or payment fields, and it never changes the cart or submits checkout. The cart average and the optional points are worked out on your computer from the scores.
 
-Retailer previews read the product title, published ingredients, allergen warnings, nutrition and product identity on narrowly scoped public product/search pages. With **Rate search results and cart items** enabled (the default), they request each uncached result’s public product page on the same origin, without cookies (`credentials: omit`). Two requests run concurrently; the existing speed setting caps requests at 20–60 per search page. Requests stop on recognized challenges or rate-limit responses; no internal retailer APIs or access controls are bypassed. Missing labels remain unknown. Turning automatic rating off uses saved local scores only.
+Retailer previews read the product title, published ingredients, allergen warnings, nutrition and product identity on narrowly scoped public product and search pages. With **Rate search results and cart items** enabled (the default), they request uncached results' public product pages on the same origin. Walmart includes its own site's cookies on these search requests. The other previews omit cookies. Two requests run concurrently, with 20–60 per search page depending on the Speed setting. Recognized challenges and rate limits stop requests. Turning automatic rating off leaves saved local scores available and stops new automatic product lookups, including on Walmart.
 
 These previews do not share readings, call barcode/OCR services, or upload product data to Google. Product/search routes and narrowly scoped cart routes are matched. Account, order and checkout pages remain outside scoring routes. Automatic report screenshots still exclude carts.
 
@@ -87,9 +87,8 @@ or through the shared database. Scoring on product pages you open does not chang
 Target and the other retailer previews use narrowly scoped product, search and cart content scripts.
 Since 1.23.1 the Walmart and Target script also loads on those sites' public home and category or browse pages
 (Walmart: `/`, `/browse/*`, `/cp/*`, `/shop/*`; Target: `/`, `/c/*`, `/pl/*`, `/b/*`), because both sites open
-search results without loading a page and a script that was not already there would never run. On those pages it
-reads nothing from the page and makes no request; it only waits for a search or product page to appear. Account,
-cart-checkout, login and order pages are not matched.
+search results without loading a page. Supported category and browse results use the same rating preferences.
+Other public pages wait for a supported route to appear. Account, cart-checkout, login and order pages are excluded.
 
 The **Ingredient Check sort** button that retailer search pages now carry (the same two entries as Amazon's sort
 menu) builds the sorted list from the cards already on screen, and nothing else unless you turn on **Load more
@@ -103,8 +102,8 @@ them**, it then requests product pages as the badges do. A challenge or rate-lim
 anywhere else: the list goes to this extension's own worker and is kept in memory for the browser session. The worker
 accepts it only for the store that sent it, drops links and pictures that are not that store's, and still fetches
 nothing for a store's tab.
-They have no additional broad host permissions. Automatic rating can fetch public product pages
-from the same origin without cookies; cart lookups also omit the referrer. These scans do not call
+They have no additional broad host permissions. The search and cart lookup rules above apply to these pages,
+including Walmart's search-cookie exception. These scans do not call
 the shared database, Open Food Facts, OCR or Google. Chrome lists these sites in the extension's
 site access because of the content scripts; you can disable them in
 `chrome://extensions` → *Details* → *Site access*.
@@ -147,14 +146,16 @@ There is no Ingredient Check account, no analytics SDK, and no third-party ad or
 
 Settings → *Label reading* can add [FoodData Central](https://fdc.nal.usda.gov) as a second barcode database for
 US packaged foods. It is public-domain US government data; branded foods come from manufacturers' label submissions.
-It is **off** until you turn the switch on. The extension contains no USDA key (a key in an extension, or in a public
+It is **off** until you turn the switch on. This also applies to a manual barcode lookup in the Library.
+The extension contains no USDA key (a key in an extension, or in a public
 repository, is readable by everyone and gets deactivated by USDA). By default the barcode is sent to the Ingredient
 Check Apps Script, which holds the project's key as a script property, asks USDA, and returns only the records
 that carry that barcode; turning off the *Shared online database* stops this. If you would rather the barcode went
 straight to USDA, paste your own free key (from fdc.nal.usda.gov/api-key-signup) and allow Chrome's optional
 permission for `api.nal.usda.gov`. That key is stored in its own browser storage key and is not part of a backup,
 settings file, Chrome sync or problem report; only the service worker reads it. The shared `DEMO_KEY` is not used. A record is accepted only when it carries the barcode that was asked for, and the panel says
-the label was matched by barcode via USDA FoodData Central, not read from the page.
+the label was matched by barcode via USDA FoodData Central. Where available, label evidence shows the source
+record date separately from the capture date and flags records over 730 days old for a package comparison.
 
 ## AI help (optional)
 

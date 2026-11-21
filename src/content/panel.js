@@ -94,6 +94,11 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
   .flag { font-size: 11px; font-weight: 600; padding: 4px 9px; border-radius: 999px;
           background: #fff4e5; color: #8a4b00; border: 1px solid #ffd8a8; }
   .flag.avoid { background: #fdecec; color: #a4161a; border-color: #f5b5b5; }
+  .nut-lens { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; padding: 8px 16px 0; }
+  .nut-basis { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: #565959; margin-right: 2px; }
+  .nut-pill { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: #f0f2f2; color: #2b3030; border: 1px solid #d5d9d9; font-variant-numeric: tabular-nums; }
+  .nut-pill.high { background: #fff4e5; color: #8a4b00; border-color: #f2c58a; }
+  .nut-pill.good { background: #e7f4ec; color: #0b5a2e; border-color: #a9d9bc; }
   .prov { padding: 10px 16px 0; }
   .prov h5 { font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: #565959;
              margin: 8px 0 6px; font-weight: 700; }
@@ -153,6 +158,10 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
     button.go:disabled { background: #2d2f2f; border-color: #3a3c3c; color: #8a8a8a; }
     .flag { background: #3d2e14; color: #f3d19c; border-color: #8a6a2a; }
     .flag.avoid { background: #3a1c1c; color: #f5b5b5; border-color: #8a3a3a; }
+    .nut-basis { color: #aeaeae; }
+    .nut-pill { background: #262828; color: #e3e3e3; border-color: #3a3c3c; }
+    .nut-pill.high { background: #3d2e14; color: #f3d19c; border-color: #8a6a2a; }
+    .nut-pill.good { background: #173a26; color: #bfe8cf; border-color: #2f7d60; }
     .report, button.copy { color: #4db6c8; }
     .report:hover, button.copy:hover { color: #e8a07a; }
     .hint { color: #f5b5b5; }
@@ -180,6 +189,22 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
       ? `<p class="disclaim" style="padding:6px 16px 0">${esc(t('allergenCaveat',
           'Found in the ingredient text on this page. Absence of a warning is not a safety check — never rely on this for an allergy.'))}</p>`
       : ''}`;
+  }
+
+  function nutritionLensHTML(raw) {
+    if (!raw || typeof raw !== 'object') return '';
+    const norm = root.AIR.engine?.normaliseNutrition?.(raw);
+    if (!norm || !['per 100g', 'per 100ml'].includes(norm.basis)) return '';
+    const v = norm.values || {};
+    const round = n => Math.round(n * 10) / 10;
+    const pills = [];
+    if (v.addedSugar != null) pills.push({ text: t('nutritionLensAddedSugar', 'Added sugar $1 g', round(v.addedSugar)), cls: v.addedSugar >= 10 ? 'high' : '' });
+    else if (v.sugar != null) pills.push({ text: t('nutritionLensSugar', 'Sugar $1 g', round(v.sugar)), cls: v.sugar >= 15 ? 'high' : '' });
+    if (v.sodium != null) pills.push({ text: t('nutritionLensSodium', 'Sodium $1 mg', Math.round(v.sodium)), cls: v.sodium >= 600 ? 'high' : '' });
+    if (v.fibre != null) pills.push({ text: t('nutritionLensFiber', 'Fiber $1 g', round(v.fibre)), cls: v.fibre >= 5 ? 'good' : '' });
+    if (v.protein != null) pills.push({ text: t('nutritionLensProtein', 'Protein $1 g', round(v.protein)), cls: v.protein >= 10 ? 'good' : '' });
+    if (!pills.length) return '';
+    return `<div class="nut-lens" aria-label="${esc(t('nutritionLensAria', 'Nutrition snapshot ($1)', norm.basis))}"><span class="nut-basis">${esc(norm.basis)}</span>${pills.map(p => `<span class="nut-pill${p.cls ? ' ' + p.cls : ''}">${esc(p.text)}</span>`).join('')}</div>`;
   }
 
   function assessmentHTML(result) {
@@ -237,7 +262,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
   // indistinguishable "55% confidence".
   function sourceLabel(meta) {
     if (meta.via === 'manual-paste') return t('srcPasted', 'Ingredients you pasted');
-    if (meta.via === 'label-ocr') return t('srcOcr', 'Read from the label photo on this page');
+    if (meta.via === 'label-ocr' || meta.via === 'ocr') return t('srcShortOcr', 'Label photo');
+    if (meta.via === 'label-ai') return t('srcAiPhoto', 'AI transcription of a product photo');
     if (meta.via === 'usda-fdc') return t('srcUsda', 'Matched by barcode via USDA FoodData Central — not from this page');
     if (meta.via === 'open-food-facts') return t('srcBarcode', 'Matched by barcode via Open Food Facts — not from this page');
     if (meta.confidence >= 0.9) return t('srcPage', 'Ingredients read from page');
@@ -289,11 +315,15 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
           'Only $1% of this list was recognised — treat the score as a partial reading.',
           Math.round(result.coverage * 100)))}</p>`
         : ''}
+      ${['label-ocr', 'ocr', 'label-ai'].includes(meta.via) ? `<p class="disclaim" style="padding:4px 16px 0">${esc(meta.uncertain?.length
+        ? t('photoWords', 'Check these uncertain words against the package: $1.', meta.uncertain.map(item => item.word).join(', '))
+        : t('photoUnverified', 'Photo transcriptions can miss ingredients and allergen statements. Check the package.'))}</p>` : ''}
       ${flagsHTML(result.flags, !!result.selectedAllergens?.length)}
+      ${!result.category ? nutritionLensHTML(meta && meta.nutrition) : ''}
       ${result.category ? `<p class="disclaim" style="padding:6px 16px">${esc(t('indexNote',
         'Limited label index using the selected rubric. It does not establish safety, effectiveness, dose suitability or absence of allergens. Compare within the same category and style.'))}</p>` : ''}
       ${assessmentHTML(result)}
-      ${root.AIR.db.shopping ? `<p class="disclaim" style="padding:4px 16px 0">${esc(root.AIR.db.shopping.describe(root.AIR.db.shopping.evidence(result, { source: meta.via, capturedAt: meta.capturedAt || Date.now() }), t))}</p>` : ''}
+      ${root.AIR.db.shopping ? `<p class="disclaim" style="padding:4px 16px 0">${esc(root.AIR.db.shopping.describe(root.AIR.db.shopping.evidence(result, { source: meta.via, capturedAt: meta.capturedAt || Date.now(), sourceRecordDate: meta.sourceRecordDate }), t))}</p>` : ''}
       ${provenanceHTML(result.provenance, meta)}
       ${sourceLinks(result.sources)}
       <div class="body" id="air-panel-details">
@@ -360,7 +390,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
       const compact = meta.detail === 'compact';
       const { caps, minus, plus, neutral } = sections(result);
       const top = (rows, n) => (compact ? rows.slice().sort((a, b) => Math.abs(b.c) - Math.abs(a.c)).slice(0, n) : rows);
-      body = `${result.category ? `<p class="note">${esc(t('indexNoteShort', 'Limited label index; compare within the same category and style.'))}</p>` : ''}${sourceLinks(result.sources)}${flagsHTML(result.flags, !!result.selectedAllergens?.length)}${assessmentHTML(result)}
+      body = `${result.category ? `<p class="note">${esc(t('indexNoteShort', 'Limited label index; compare within the same category and style.'))}</p>` : ''}${sourceLinks(result.sources)}${flagsHTML(result.flags, !!result.selectedAllergens?.length)}${!result.category ? nutritionLensHTML(meta && meta.nutrition) : ''}${assessmentHTML(result)}
         ${compact ? '' : provenanceHTML(result.provenance, meta)}
         ${caps.length ? `<h4>${esc(t('headDisqualifying', 'Score limits'))}</h4>${rowsHTML(caps, 'minus')}` : ''}
         ${plus.length ? `<h4>${esc(t('headGood', "What's good"))}</h4>${rowsHTML(top(plus, 3), 'plus')}` : ''}
@@ -393,7 +423,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
         ? t('loadingOcrSlowTitle', 'Still reading the label…')
         : t('loadingOcrTitle', 'Reading the label photo…'))
       : t('loadingTitle', 'Checking Open Food Facts…');
-    const body = ocr
+    const body = meta?.aiPhoto
+      ? t('loadingAiPhotoBody', 'Sending the public label photo address to OpenRouter for transcription.')
+      : ocr
       ? (slow
         ? t('loadingOcrSlowBody', 'Large photos take longer. This stays on your computer — nothing is sent anywhere.')
         : t('loadingOcrBody', "Amazon didn't publish the ingredients as text, so the label image is being read on your computer. This takes a few seconds and nothing is sent anywhere."))
@@ -486,6 +518,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('..
           ? esc(t('failOcrNoImages', 'No usable label photo was available to check. '))
           : meta && meta.ocrOutcome === 'error'
           ? esc(t('failOcrError', 'The label photo could not be checked because the reader failed. '))
+          : meta && meta.ocrOutcome === 'uncertain'
+          ? esc(t('failOcrUncertain', 'The photo transcription contains unclear words. Check the package before entering the ingredients. '))
           : meta && meta.ocrOutcome === 'no-match'
           ? esc(t('failOcrNoMatch', 'The label photo was checked, but no ingredient list could be read from it. '))
           : meta && meta.lookupAttempted

@@ -24,6 +24,21 @@ test('snapshots preserve original full inputs and order grouping through older b
   const merged = H.merge([first], [later])[0]; assert.equal(merged.score, 50); assert.equal(merged.input.nutrition.protein, 5); assert.equal(merged.orderKey, 'a'.repeat(64)); assert.ok(!('address' in merged.input));
   assert.throws(() => H.merge([first], [r(1, 'b')]), /invalid-history-identity/);
 });
+test('history replay keeps quantitative and markup separators from the full input', () => {
+  const engine = require('../src/engine/score.js');
+  const input = { inputSchema: 1, name: 'Snack', ingredients_text: 'Oats<br>water, <2% of: sugar, salt', advisory_text: 'May contain milk.' };
+  const record = r(1, 'a', { input });
+  assert.deepEqual(record.input, input);
+  const score = value => engine.score(value, { allergens: ['milk'] });
+  assert.equal(A.project(record, 'current', score).score, score(input).score);
+});
+test('the history source filter identifies legacy OCR, AI transcriptions and USDA independently', () => {
+  const sources = ['ocr', 'label-ocr', 'label-ai', 'usda-fdc', 'open-food-facts', 'embedded', undefined];
+  const input = rows(sources.map((source, index) => r(index, 'a', { source })));
+  for (const [source, expected] of [['label-ocr', ['ocr', 'label-ocr']], ['label-ai', ['label-ai']], ['usda-fdc', ['usda-fdc']], ['page', ['embedded']], ['unknown', [undefined]]]) {
+    assert.deepEqual(A.filter(input, { source }).map(row => row.record.source), expected);
+  }
+});
 test('current-goal comparison is separate, coverage gated, and cannot change snapshots', () => {
   const record = r(1), original = JSON.stringify(record);
   const compared = A.project(record, 'current', () => ({ parsed: 1, coverage: 1, readable: true, score: 70 }));

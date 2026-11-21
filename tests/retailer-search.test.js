@@ -123,23 +123,27 @@ test('a non-food product page does not start rating its recommendations', async 
   assert.equal(w.badges().length, 0);
 });
 
-test('always-rate stores rate results with global badge switches off but still honor pause', async () => {
-  const w = runner({ stored: { badges: false, autoScoreSearch: false }, adapterOptions: { alwaysRateSearch: true } });
-  await waitForRequest(w); w.reply(0); await w.flush();
-  assert.equal(w.badges()[0]?.textContent, '93');
-  w.change({ enabled: false }); await w.flush();
+test('session-based stores keep ad hiding and explicit sorting when automatic ratings and badges are off', async () => {
+  const events = [];
+  const w = runner({ stored: { badges: false, autoScoreSearch: false }, adapterOptions: {
+    publicCredentials: 'same-origin', hideSponsored: () => events.push('hide'),
+  }, sort: { reset: enabled => events.push(enabled), update: items => events.push(items.length) } });
+  await w.flush();
+  assert.deepEqual(events, [true, 'hide', 1]);
+  assert.equal(w.requests.length, 0);
   assert.equal(w.badges().length, 0);
-  assert.equal(w.settings.badges, false, 'the global preference is preserved');
-  assert.equal(w.settings.autoScoreSearch, false);
+  w.change({ enabled: false }); await w.flush();
+  assert.equal(events.at(-1), false);
 });
 
-test('always-rate stores process all discovered results beyond the default fetch allowance', async () => {
+test('session-based stores respect the same request budget as other previews', async () => {
   const ids = Array.from({ length: 65 }, (_, i) => String(79364800 + i));
-  const w = runner({ ids, adapterOptions: { alwaysRateSearch: true } });
+  const w = runner({ ids, stored: { speedMode: 'fastest' },
+    adapterOptions: { publicCredentials: 'same-origin' }, db: { speed: require('../src/engine/db/speed.js') } });
   await waitForRequest(w);
-  for (let i = 0; i < ids.length; i++) { w.reply(i); await w.flush(); }
-  assert.equal(w.requests.length, 65);
-  assert.equal(w.badges().filter(badge => badge.textContent === '93').length, 65);
+  for (let i = 0; i < 20; i++) { w.reply(i); await w.flush(); }
+  assert.equal(w.requests.length, 20);
+  assert.equal(w.badges().filter(badge => badge.textContent === '93').length, 20);
 });
 
 test('retailer search rates a previously unopened product and caches its score', async () => {

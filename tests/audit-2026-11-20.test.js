@@ -107,11 +107,17 @@ test('purchaseAnalytics.detectReformulations flags changed ingredients across re
     { key: '3'.repeat(64), store: 'amazon.com', asin: 'B002222222', date: '2026-08-01', state: 'purchased', name: 'Milk', score: 92, ingredients: 'Organic whole milk' },
     { key: '4'.repeat(64), store: 'amazon.com', asin: 'B002222222', date: '2026-10-15', state: 'purchased', name: 'Milk', score: 92, ingredients: '  organic   whole milk ' },
   ];
-  const changes = analytics.detectReformulations(records);
+  const withSetup = records.map(record => ({ ...record, version: '1.27.0', profile: 'profile', rulesRevision: 'same' }));
+  const changes = analytics.detectReformulations(withSetup);
   assert.equal(changes.length, 1);
   assert.equal(changes[0].asin, 'B001111111');
   assert.equal(changes[0].delta, -33);
   assert.equal(changes[0].scoreDropped, true);
+  assert.equal(analytics.detectReformulations(records)[0].delta, null, 'legacy scores have unknown comparability');
+  assert.equal(analytics.detectReformulations([withSetup[0], { ...withSetup[1], rulesRevision: 'changed' }])[0].delta, null);
+  assert.deepEqual(analytics.detectReformulations([withSetup[0], { ...withSetup[1], source: 'label-ai' }]), []);
+  assert.deepEqual(analytics.detectReformulations([withSetup[0], { ...withSetup[1], date: withSetup[0].date }]), []);
+  assert.deepEqual(analytics.detectReformulations([withSetup[0], { ...withSetup[1], ingredients: 'Ingredients: Oats , Honey, Olive Oil.' }]), []);
 });
 
 test('sortedResults.paretoFront returns only non-dominated score-vs-unit-price picks', () => {
@@ -130,18 +136,34 @@ test('sortedResults.paretoFront returns only non-dominated score-vs-unit-price p
 test('shopping.cleanerSwaps finds higher-scoring same-category swaps sorted by score then unit price', () => {
   require('../src/engine/db/unit-price.js');
   const shopping = require('../src/engine/db/shopping.js');
-  const target = { asin: 'LOW', title: 'Sugary Cereal', score: 40, unitPrice: 0.30, category: 'food' };
+  const target = { asin: 'LOW', title: 'Sugary Cereal', score: 40, unitPrice: 0.30, unitKind: 'weight', category: 'food' };
   const candidates = [
     target,
-    { asin: 'HIGHA', title: 'Clean Oats Expensive', score: 88, unitPrice: 0.60, category: 'food' },
-    { asin: 'HIGHB', title: 'Clean Oats Value', score: 88, unitPrice: 0.35, category: 'food' },
+    { asin: 'HIGHA', title: 'Clean Oats Expensive', score: 88, unitPrice: 0.60, unitKind: 'weight', category: 'food' },
+    { asin: 'HIGHB', title: 'Clean Oats Value', score: 88, unitPrice: 0.35, unitKind: 'weight', category: 'food' },
+    { asin: 'FLUID', title: 'Oat Drink', score: 88, unitPrice: 0.05, unitKind: 'fluid', category: 'food' },
     { asin: 'CARE', title: 'Shampoo', score: 95, unitPrice: 0.20, category: 'shampoo' },
     { asin: 'CLOSE', title: 'Slightly Better', score: 45, unitPrice: 0.25, category: 'food' },
   ];
-  const swaps = shopping.cleanerSwaps(target, candidates, { minGain: 15, limit: 2, family: 'weight' });
-  assert.equal(swaps.length, 2);
+  const swaps = shopping.cleanerSwaps(target, candidates, { minGain: 15, family: 'weight' });
+  assert.equal(swaps.length, 3);
   assert.equal(swaps[0].product.asin, 'HIGHB');
   assert.equal(swaps[0].scoreDelta, 48);
   assert.equal(swaps[0].unitPriceDelta, 0.05);
   assert.equal(swaps[1].product.asin, 'HIGHA');
+  assert.equal(swaps[2].product.asin, 'FLUID');
+  assert.equal(swaps[2].unitPriceDelta, null);
+});
+
+test('best-value badges require a comparable score and unit-price peer', () => {
+  const sorted = require('../src/engine/db/sorted-results.js');
+  const items = [
+    { asin: 'FOOD1', score: 85, unitPrice: 0.25, unitKind: 'weight' },
+    { asin: 'FOOD2', score: 65, unitPrice: 0.35, unitKind: 'weight' },
+    { asin: 'FLUID', score: 95, unitPrice: 0.05, unitKind: 'fluid' },
+    { asin: 'CARE1', score: 99, unitPrice: 0.10, unitKind: 'weight', category: 'shampoo', ratingStyle: 'evidence' },
+    { asin: 'CARE2', score: 78, unitPrice: 0.16, unitKind: 'weight', category: 'shampoo', ratingStyle: 'minimal' },
+  ];
+  assert.deepEqual(sorted.paretoFront(items).map(p => p.asin), ['FOOD1']);
+  assert.deepEqual(sorted.paretoFront([items[0], items[2]], { family: 'weight' }), []);
 });

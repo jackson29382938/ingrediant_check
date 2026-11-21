@@ -252,10 +252,15 @@ function exportPayload(prefs) {
   };
 }
 
-const WORKFLOW_KEYS = ['orderBadgePlacement', 'speedMode', 'ratePace', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'sortMissing', 'sortLoadMore', 'sortCount', 'sortTimeLimit', 'sortPriorities', 'unitMissing'];
+const AI_PROVIDERS = ['auto', 'gemini-nano', 'openrouter'];
+const WORKFLOW_KEYS = ['orderBadgePlacement', 'aiProvider', 'speedMode', 'ratePace', 'cacheFirst', 'cacheMemory', 'cacheBackgroundRefresh', 'cacheGraceDays', 'sortMissing', 'sortLoadMore', 'sortCount', 'sortTimeLimit', 'sortPriorities', 'unitMissing'];
 function sanitizeWorkflow(raw) {
-  return { orderBadgePlacement: raw?.orderBadgePlacement === 'title' ? 'title' : 'image', ...db('speed').sanitizeSpeed(raw), ...db('speed').sanitizePace(raw), ...db('speed').sanitizeRecall(raw), ...db('sortedResults').sanitizeSort(raw),
-    ...db('sortedResults').sanitizePriorities(raw), ...db('unitPrice').sanitizeUnit(raw) };
+  return {
+    orderBadgePlacement: raw?.orderBadgePlacement === 'title' ? 'title' : 'image',
+    aiProvider: AI_PROVIDERS.includes(raw?.aiProvider) ? raw.aiProvider : 'auto',
+    ...db('speed').sanitizeSpeed(raw), ...db('speed').sanitizePace(raw), ...db('speed').sanitizeRecall(raw), ...db('sortedResults').sanitizeSort(raw),
+    ...db('sortedResults').sanitizePriorities(raw), ...db('unitPrice').sanitizeUnit(raw),
+  };
 }
 
 function oauthClientId(raw) {

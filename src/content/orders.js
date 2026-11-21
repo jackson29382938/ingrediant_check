@@ -123,8 +123,8 @@
       const found = await chrome.runtime.sendMessage({ type: 'lookupBarcode', code: data.upc, foodOnly: true });
       if (turn !== generation || !O.allowed(location)) return null;
       if (found?.rejected === 'not-food') return { nonfood: true };
-      const rating = rate({ ...input, name: data.title || found?.name, labels: `${input.labels || ''} ${found?.labels || ''}`, ingredients_text: found?.ingredients_text, nutrition: input.nutrition || found?.nutrition }, A.db.productCache.barcodeVia(found), conf);
-      if (rating) return rating;
+      const rating = rate({ ...input, name: data.title || found?.name, labels: `${input.labels || ''} ${found?.labels || ''}`, ingredients_text: found?.ingredients_text, nutrition: input.nutrition || found?.nutrition, sourceRecordDate: found?.sourceRecordDate }, A.db.productCache.barcodeVia(found), conf);
+      if (rating) return { ...rating, capturedAt: found?.capturedAt };
     }
     if (toggles.ocrLabels && urls.length) {
       status('Reading label photo…');
@@ -224,7 +224,7 @@
       if (turn !== generation || !O.allowed(location)) return;
       const persistReading = async (line, rating) => {
         if (!rating?.input || turn !== generation || !O.allowed(location)) return;
-        const row = P.fromScan({ store: 'amazon.com', asin: line.asin, input: rating.input, via: rating.source, confidence: rating.source === 'label-ocr' ? 0.7 : ['open-food-facts', 'usda-fdc'].includes(rating.source) ? 0.55 : 1 });
+        const row = P.fromScan({ store: 'amazon.com', asin: line.asin, input: rating.input, via: rating.source, t: rating.capturedAt, confidence: rating.source === 'label-ocr' ? 0.7 : ['open-food-facts', 'usda-fdc'].includes(rating.source) ? 0.55 : 1 });
         if (row) await chrome.storage.local.set({ [P.localKey(location.hostname, line.asin)]: row });
       };
       const complete = async (affected, rating) => {

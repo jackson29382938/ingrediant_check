@@ -34,7 +34,6 @@ function msg(key, fallback, sub) {
 
 const state = PREFS.sanitizeScoring({});
 let saveTimer = null;
-let writing = false;
 let scoringDirty = false;
 let restoringSettings = false;
 let settingsReady = false;
@@ -69,7 +68,6 @@ function flash(msg, kind) {
 function persist(values, done) {
   const keys = Object.keys(values || {});
   pendingWrites++;
-  writing = true;
   for (const k of keys) pendingKeys.set(k, (pendingKeys.get(k) || 0) + 1);
   // Which settings changed, for "Report a problem"'s recent actions (names and short values only).
   if (AIR.db.activity) {
@@ -78,7 +76,6 @@ function persist(values, done) {
   }
   chrome.storage.local.set(values, () => {
     pendingWrites--;
-    writing = pendingWrites > 0;
     for (const k of keys) {
       const left = (pendingKeys.get(k) || 1) - 1;
       if (left <= 0) pendingKeys.delete(k); else pendingKeys.set(k, left);

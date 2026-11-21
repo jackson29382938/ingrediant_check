@@ -249,11 +249,12 @@ test('a report or contribution must name a product, and no cell can be larger th
   // What the extension sends for a page that gave no ASIN or barcode: blank strings, not missing fields.
   assert.equal(r.post({ kind: 'report', asin: '', upc: '', brand: '', product_name: 'Oats', notes: 'scored 40', certifications: '', verified_by: 'user report' }).wrote, 1);
   // Nothing that names no product is a row, whatever it calls itself.
-  for (const body of [{}, { kind: 'beef' }, { kind: 'report' }, { kind: 'nonsense', notes: 'x' }, { notes: 'x' }, { asin: 5 }, { asin: 'not-an-asin' }, { upc: 'abc' }, { product_name: '   ' }, []]) {
+  for (const body of [{}, { kind: 'beef' }, { kind: 'report' }, { kind: 'nonsense', notes: 'x' }, { notes: 'x' }, { asin: 5 }, { asin: 'not-an-asin' }, { upc: 'abc' }, { product_name: '   ' }]) {
     const reply = r.post(body);
     assert.equal(reply.ok, false, JSON.stringify(body));
     assert.match(reply.error, /invalid (?:contribution|report)/, JSON.stringify(body));
   }
+  for (const body of [null, [], 'report', true]) assert.deepEqual(r.post(body), { ok: false, error: 'invalid request' });
   assert.equal(r.tabs.get('contributions').data.length, 2, 'header and the one valid row');
   assert.equal(r.tabs.get('reports').data.length, 4, 'header and the three valid rows');
   // A cell is cut at the cap, a formula is still quoted, and numbers and blanks pass through.

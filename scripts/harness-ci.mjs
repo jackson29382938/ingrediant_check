@@ -1389,7 +1389,7 @@ async function appearanceEndToEnd(context, worker, extensionId, pageErrors) {
     await popup.waitForFunction(() => document.getElementById('badges').closest('[data-level]').classList.contains('lvl-hidden'));
     // The popup's global write guard is read inside its own browser realm.
     // eslint-disable-next-line no-undef
-    const pending = await popup.evaluate(() => { const state = { writing, checked: document.getElementById('badges').checked };
+    const pending = await popup.evaluate(() => { const state = { writing: pendingKeys.has('badges'), checked: document.getElementById('badges').checked };
       window.__finishPopupWrite(); chrome.storage.local.set = window.__originalSet; return state; });
     if (!pending.writing || !pending.checked) throw new Error(`popup writing/level event: ${JSON.stringify(pending)}`);
     await worker.evaluate(() => chrome.storage.local.set({ settingsLevel: 'expert' }));

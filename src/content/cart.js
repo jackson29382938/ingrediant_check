@@ -126,7 +126,7 @@
     if (!A.engine.isReadable(result)) return null;
     return { schema: cache.SCHEMA, cacheRevision: cache.CACHE_REVISION, v: version, t: capturedAt,
       prefs: cache.fingerprint(raw, source, result.category), source, input,
-      ...(A.db.shopping ? { evidence: A.db.shopping.evidence(result, { source, capturedAt, prefs: raw }) } : {}),
+      ...(A.db.shopping ? { evidence: A.db.shopping.evidence(result, { source, capturedAt, sourceRecordDate: input.sourceRecordDate, prefs: raw }) } : {}),
       score: result.score, verdict: result.verdict, nova: result.nova, category: result.category || 'food', ratingStyle: result.ratingStyle || 'food', name: String(input.name || '').slice(0, 120) };
   }
   async function finish(job, hit, turn, remember = true, confidence = 1) {
@@ -134,7 +134,7 @@
     if (!hit) { job.status = 'unavailable'; job.reason ||= 'no-readable-label'; schedule(); return; }
     job.hit = { ...hit, store: cache.normalizeStore(location.hostname), asin: job.id }; job.status = 'scored'; job.detail = '';
     // Public label evidence only, never the cart title/URL/quantity; it stays on this computer.
-    if (remember) A.page?.rememberProduct(job.id, { input: hit.input, via: hit.source, confidence, food: hit.category === 'food' && job.food !== false }, { share: false });
+    if (remember) A.page?.rememberProduct(job.id, { input: hit.input, via: hit.source, confidence, t: hit.t, food: hit.category === 'food' && job.food !== false }, { share: false });
     await chrome.storage.local.set({ [cache.key(location.hostname, job.id)]: job.hit });
     if (live(turn)) schedule();
   }
@@ -146,7 +146,7 @@
       try {
         const found = await chrome.runtime.sendMessage({ type: 'lookupBarcode', code: data.upc, foodOnly: settings.foodOnly });
         if (!live(turn)) return;
-        if (found?.ingredients_text && !found.rejected) hit = rate({ ...input, ingredients_text: found.ingredients_text, nutrition: input.nutrition || found.nutrition }, A.db.productCache.barcodeVia(found));
+        if (found?.ingredients_text && !found.rejected) hit = rate({ ...input, ingredients_text: found.ingredients_text, nutrition: input.nutrition || found.nutrition, sourceRecordDate: found.sourceRecordDate }, A.db.productCache.barcodeVia(found), found.capturedAt);
       } catch { /* an optional source must not stop photo fallback */ }
     }
     if (!live(turn)) return;

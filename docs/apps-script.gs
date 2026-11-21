@@ -31,6 +31,7 @@
 // OAuth client id for the optional Google sign-in; the same value as OAUTH_CLIENT_ID in prefs.js.
 // Empty turns account storage off.
 var OAUTH_CLIENT_ID = '483888107675-hofgo4a3uh1g2khv4hja9ci8nhama6tk.apps.googleusercontent.com';
+var BACKEND_SCHEMA_VERSION = 2;
 
 var DIAGNOSTIC_COLUMNS = ["ts","version","store","asin","upc","brand","product_name","source","via","confidence","gate","coverage","parsed","score","verdict","nova","base","cap","penalties","bonuses","flags","provenance","weights","ingredients","outcome","feedback"];
 
@@ -125,8 +126,7 @@ function itemsOf(body) {
 // extension, which anyone can unzip and read, and a key found in a public repository is deactivated by USDA.
 // It is sent to USDA in a header, never echoed to a caller, and an upstream error body is never passed on.
 // The extension re-checks every record's barcode itself, so this script is a courier, not a source of truth.
-// Answers are cached for six hours, and the script spends at most USDA_HOURLY_BUDGET upstream requests an hour
-// (the key allows 1,000), so a flood of lookups can use up the budget but cannot reach the owner's key.
+// Answers are cached for six hours, and each upstream request reserves one of USDA_HOURLY_BUDGET slots per UTC hour.
 var USDA_SEARCH = 'https://api.nal.usda.gov/fdc/v1/foods/search';
 var USDA_HOURLY_BUDGET = 600;
 var USDA_CACHE_SECONDS = 21600;
@@ -148,10 +148,25 @@ function usdaQuery(digits) {
 }
 var USDA_MISS_CACHE_SECONDS = 1800;
 var CACHE_VALUE_MAX_BYTES = 95000;
+function reserveUsdaRequest(properties) {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(1000)) return false;
+  try {
+    var hour = Math.floor(Date.now() / 3600000);
+    var raw = properties.getProperty('USDA_HOURLY_USAGE');
+    var held = raw === null ? null : safeParseJson(raw);
+    if (raw !== null && (!held || !Number.isSafeInteger(held.hour) || !Number.isSafeInteger(held.used) || held.used < 0 || held.hour > hour)) return false;
+    var used = held && held.hour === hour ? held.used : 0;
+    if (used >= USDA_HOURLY_BUDGET) return false;
+    properties.setProperty('USDA_HOURLY_USAGE', JSON.stringify({ hour: hour, used: used + 1 }));
+    return true;
+  } finally { lock.releaseLock(); }
+}
 function usdaLookup(code) {
   var digits = usdaDigits(code);
   if (digits.length < 7 || digits.length > 14) return json({ ok: false, error: 'invalid barcode' });
-  var key = PropertiesService.getScriptProperties().getProperty('USDA_API_KEY');
+  var properties = PropertiesService.getScriptProperties();
+  var key = properties.getProperty('USDA_API_KEY');
   if (!key) return json({ ok: false, error: 'usda not configured' });
   var cache = CacheService.getScriptCache();
   // 'usda2:': answers cached before the zero-padding fix (usdaQuery) were empty for most barcodes.
@@ -160,33 +175,32 @@ function usdaLookup(code) {
     var cachedFoods = safeParseJson(held);
     if (Array.isArray(cachedFoods)) return json({ ok: true, foods: cachedFoods });
   }
-  var hour = 'usdaBudget:' + Math.floor(Date.now() / 3600000);
-  var used = Number(cache.get(hour) || 0);
-  if (used >= USDA_HOURLY_BUDGET) return json({ ok: false, error: 'busy; retry later' });
-  cache.put(hour, String(used + 1), 7200);
+  if (!reserveUsdaRequest(properties)) return json({ ok: false, error: 'busy; retry later' });
   var res = UrlFetchApp.fetch(USDA_SEARCH + '?query=' + encodeURIComponent(usdaQuery(digits)) + '&dataType=Branded&pageSize=10',
     { method: 'get', headers: { 'X-Api-Key': key }, muteHttpExceptions: true });
   var status = res.getResponseCode();
   if (status !== 200) return json({ ok: false, error: status === 429 ? 'busy; retry later' : 'upstream ' + status });
   var parsed = safeParseJson(res.getContentText());
-  if (!parsed || typeof parsed !== 'object') return json({ ok: false, error: 'upstream invalid json' });
-  var found = parsed.foods;
+  if (!parsed || !Array.isArray(parsed.foods)) return json({ ok: false, error: 'upstream invalid json' });
   var foods = [];
-  (Array.isArray(found) ? found : []).forEach(function (f) {
+  parsed.foods.forEach(function (f) {
     if (!f || typeof f !== 'object' || usdaDigits(f.gtinUpc) !== digits || typeof f.ingredients !== 'string') return;
     foods.push({
       gtinUpc: String(f.gtinUpc), ingredients: f.ingredients.slice(0, 6000), description: String(f.description || '').slice(0, 200),
       brandName: String(f.brandName || '').slice(0, 100), brandOwner: String(f.brandOwner || '').slice(0, 100),
       foodCategory: String(f.foodCategory || '').slice(0, 120), servingSizeUnit: String(f.servingSizeUnit || '').slice(0, 12),
-      modifiedDate: String(f.modifiedDate || f.publishedDate || '').slice(0, 20),
+      modifiedDate: String(f.modifiedDate || '').slice(0, 20),
+      ...(typeof f.publishedDate === 'string' ? { publishedDate: f.publishedDate.slice(0, 20) } : {}),
       foodNutrients: (Array.isArray(f.foodNutrients) ? f.foodNutrients : []).filter(function (n) {
-        return n && USDA_NUTRIENT_IDS.indexOf(Number(n.nutrientId)) !== -1 && isFinite(Number(n.value));
+        return n && USDA_NUTRIENT_IDS.indexOf(Number(n.nutrientId)) !== -1
+          && (typeof n.value === 'number' || (typeof n.value === 'string' && n.value.trim())) && isFinite(Number(n.value));
       }).map(function (n) { return { nutrientId: Number(n.nutrientId), value: Number(n.value) }; }),
     });
   });
   var serialized = JSON.stringify(foods);
   if (serialized.length <= CACHE_VALUE_MAX_BYTES) {
-    cache.put('usda2:' + digits, serialized, foods.length ? USDA_CACHE_SECONDS : USDA_MISS_CACHE_SECONDS);
+    try { cache.put('usda2:' + digits, serialized, foods.length ? USDA_CACHE_SECONDS : USDA_MISS_CACHE_SECONDS); }
+    catch (err) { /* A multibyte result may exceed the byte cap and still be usable. */ }
   }
   return json({ ok: true, foods: foods });
 }
@@ -205,6 +219,7 @@ function handlePost(e, seen) {
   var body;
   try { body = JSON.parse(e.postData.contents); }
   catch (err) { return json({ ok: false, error: 'invalid json' }); }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return json({ ok: false, error: 'invalid request' });
   seen(body);
   // Verify Google remotely before taking the global sheet lock. Identity is computed here,
   // never accepted from the request body; sheet reads/merges/deletions remain atomic below.
@@ -277,7 +292,7 @@ function handleGet(e) {
   // `accounts` says whether Google account storage has a client id, so a deployment can be checked
   // by opening the /exec URL: `"accounts":true` means this version is live and configured.
   var clientId = PropertiesService.getScriptProperties().getProperty('OAUTH_CLIENT_ID') || OAUTH_CLIENT_ID;
-  return json({ ok: true, service: 'ingredient-check', diagnosticsSchema: 2, accounts: !!clientId, history: !!clientId, historySchema: 1, historyCapacity: AIR.db.purchaseHistory.MAX,
+  return json({ ok: true, service: 'ingredient-check', schemaVersion: BACKEND_SCHEMA_VERSION, diagnosticsSchema: 2, accounts: !!clientId, history: !!clientId, historySchema: 1, historyCapacity: AIR.db.purchaseHistory.MAX,
     accepts: ['lookup', 'usda', 'products', 'diagnostics', 'report', 'account', 'accountGet', 'historyGet', 'historyPut', 'historyClear', 'contribution'] });
 }
 
@@ -779,7 +794,9 @@ function installDriftTrigger() {
       }
     }
     for (const [key, limit] of Object.entries({ name: 250, ingredients_text: 6000, advisory_text: 6000, labels: 3000, certifications: 500 })) {
-      if (typeof raw[key] === 'string') out[key] = raw[key].replace(/[<>]/g, '').slice(0, limit);
+      if (typeof raw[key] !== 'string') continue;
+      // The scorer reads separators and quantity markers such as <br> and <2% from the saved label.
+      out[key] = (key === 'ingredients_text' || key === 'advisory_text' ? raw[key] : raw[key].replace(/[<>]/g, '')).slice(0, limit);
     }
     if (raw.nutrition && typeof raw.nutrition === 'object' && !Array.isArray(raw.nutrition)) {
       out.nutrition = {};

@@ -32,13 +32,23 @@ function resetWorker() {
   previous?.then(worker => worker.terminate()).catch(() => {});
 }
 
+async function recognizeLabel(worker, image) {
+  const { data } = await worker.recognize(image, {}, { blocks: false, hocr: false, tsv: true });
+  const words = [];
+  for (const line of (data.tsv || '').split('\n')) {
+    const fields = line.split('\t', 12);
+    if (fields[0] === '5' && fields[11]) words.push({ text: fields[11], confidence: Number(fields[10]) });
+  }
+  return { text: (data.text || '').slice(0, 24000), confidence: data.confidence || 0, words: words.slice(0, 4000) };
+}
+
 const MAX_OCR_IMAGE_BYTES = 10 * 1024 * 1024;
 
 // Images are fetched here rather than passed as blobs, because m.media-amazon.com serves them with
 // Access-Control-Allow-Origin: * — verified — so no host permission is needed for any of this.
 async function ocrOne(url, signal) {
   if (!AIR.db.ocrText.isAllowedOcrUrl(url)) throw new Error('blocked-url');
-  const res = await fetch(url, { credentials: 'omit', signal, redirect: 'follow' });
+  const res = await fetch(url, { credentials: 'omit', signal, redirect: 'error' });
   if (!res.ok) throw new Error('HTTP ' + res.status);
   if (res.url && !AIR.db.ocrText.isAllowedOcrUrl(res.url)) throw new Error('blocked-url');
   const contentType = res.headers?.get?.('content-type') || '';
@@ -50,8 +60,7 @@ async function ocrOne(url, signal) {
   if (blob.type && !/^image\/(?:jpeg|jpg|png|webp|gif)$/i.test(blob.type)) throw new Error('bad-content-type');
   const worker = await getWorker();
   if (signal.aborted) throw new Error('cancelled');
-  const { data } = await worker.recognize(blob);
-  return { url, text: data.text || '', confidence: data.confidence || 0 };
+  return { url, ...await recognizeLabel(worker, blob) };
 }
 
 // Nothing closed this page once it existed, so after the first label the engine's memory stayed
@@ -75,6 +84,7 @@ const jobs = new Set();
 function ocrImages(urls, { limit = 5, timeoutMs = 45000 } = {}) {
   clearTimeout(idleTimer);
   const controller = new AbortController();
+  const results = [];
   const job = { controller };
   jobs.add(job);
   const duration = Math.min(45000, Math.max(1, Number(timeoutMs) || 45000));
@@ -82,15 +92,14 @@ function ocrImages(urls, { limit = 5, timeoutMs = 45000 } = {}) {
   const cancelled = new Promise(resolve => {
     controller.signal.addEventListener('abort', () => {
       if (activeJob === job) resetWorker();
-      resolve([]);
+      resolve(controller.signal.reason === 'deadline' ? results.slice() : []);
     }, { once: true });
-    deadline = setTimeout(() => controller.abort(), duration);
+    deadline = setTimeout(() => controller.abort('deadline'), duration);
   });
   const run = async () => {
     if (controller.signal.aborted) return [];
     activeJob = job;
     const scan = async () => {
-      const results = [];
       const count = Math.min(5, Math.max(1, Number(limit) || 5));
       const safe = AIR.db.ocrText.allowedOcrUrls(urls, count);
       for (const url of safe) {
@@ -99,7 +108,6 @@ function ocrImages(urls, { limit = 5, timeoutMs = 45000 } = {}) {
           const r = await ocrOne(url, controller.signal);
           if (controller.signal.aborted) break;
           results.push(r);
-          if (AIR.db.ocrText.ingredientsFromOcr(r.text)) break;
         } catch (e) { /* try the next image unless cancelled */ }
       }
       return results;
@@ -121,7 +129,7 @@ function ocrImages(urls, { limit = 5, timeoutMs = 45000 } = {}) {
 // from a content script, or another extension page — would skip all of that.
 function fromWorker(sender) {
   if (!sender || sender.tab) return false;
-  if (sender.id && sender.id !== chrome.runtime.id) return false;
+  if (!sender.id || sender.id !== chrome.runtime.id) return false;
   try {
     const pathname = new URL(sender.url).pathname;
     return pathname === '/src/background.js' || pathname === '/_generated_background_page.html';

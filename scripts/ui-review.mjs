@@ -60,11 +60,12 @@ try {
       }
       if (screen === 'options') {
         const before = await page.evaluate(() => JSON.stringify([window.__uiData.weights, window.__uiData.allergens, window.__uiData.avoidList]));
-        await page.getByLabel('Find a setting', { exact: true }).fill('barcode');
+        const search = page.getByRole('searchbox', { name: 'Find a setting', exact: true });
+        await search.fill('barcode');
         assert.equal(await page.locator('#sec-presets').isVisible(), false);
-        await page.getByLabel('Find a setting', { exact: true }).press('Escape');
+        await search.press('Escape');
         assert.equal(await page.locator('#sec-presets').isVisible(), true);
-        await page.getByLabel('Find a setting', { exact: true }).fill('zz-no-such-setting');
+        await search.fill('zz-no-such-setting');
         assert.equal(await page.getByText('No matching sections', { exact: false }).isVisible(), true);
         await page.getByRole('button', { name: 'Show essentials', exact: true }).click();
         assert.equal(await page.evaluate(() => window.__uiData.settingsLevel), 'simple');
@@ -96,6 +97,23 @@ try {
       await page.setViewportSize({ width: 375, height: 844 });
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2), `${screen} horizontal overflow`);
       if (screen === 'library') assert(await page.locator('.file-button').evaluate(el => el.getBoundingClientRect().right <= el.closest('section').getBoundingClientRect().right), 'Photo picker stays inside the label card');
+      if (screen === 'history') {
+        const table = page.getByRole('region', { name: 'Imported items' }).and(page.locator('.table'));
+        const verifyScroll = async () => {
+          await table.scrollIntoViewIfNeeded();
+          await table.focus();
+          await page.keyboard.press('ArrowRight');
+          await page.waitForFunction(() => document.querySelector('[role=region][aria-labelledby=entries]').scrollLeft > 0);
+          await table.evaluate(el => { el.scrollLeft = 0; });
+        };
+        await verifyScroll();
+        await page.evaluate(() => chrome.storage.local.set({ purchaseHistory: [{
+          key: 'a'.repeat(64), asin: 'B012345678', store: 'amazon.com', date: new Date().toISOString().slice(0, 10),
+          state: 'purchased', name: 'Rolled oats', score: 90,
+        }] }));
+        await table.getByText('Rolled oats').waitFor();
+        await verifyScroll();
+      }
       await page.evaluate(() => { scrollTo(0, 0); });
       await page.screenshot({ path: path.join(output, `${screen}-mobile.png`) });
       await page.evaluate(() => chrome.storage.local.set({ theme: 'dark' }));

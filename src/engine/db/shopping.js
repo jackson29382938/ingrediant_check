@@ -3,6 +3,11 @@
   const PREFIX = 'savedProduct:', MAX = 200;
   // eslint-disable-next-line no-control-regex
   const text = (v, max = 200) => typeof v === 'string' ? v.replace(/[<>\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').slice(0, max).trim() : '';
+  function sourceRecordDate(value, now = Date.now()) {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return '';
+    const stamp = Date.parse(value);
+    return Number.isFinite(stamp) && stamp <= now && new Date(stamp).toISOString().slice(0, 10) === value ? value : '';
+  }
   function warningProfile(raw = {}) {
     const ids = values => [...new Set((Array.isArray(values) ? values : []).filter(v => typeof v === 'string').map(v => text(v, 120).toLowerCase()))].sort();
     const avoid = root.AIR.db.prefs?.sanitizeAvoidList(raw.avoidList) || raw.avoidList;
@@ -24,9 +29,12 @@
     return out;
   }
   function evidence(result, meta = {}) {
+    const source = text(meta.source || meta.via, 60);
+    const date = source === 'usda-fdc' && sourceRecordDate(meta.sourceRecordDate);
     return {
       coverage: Number.isFinite(result?.coverage) ? Math.max(0, Math.min(1, result.coverage)) : null,
-      source: text(meta.source || meta.via, 60), capturedAt: Number.isFinite(meta.capturedAt) && meta.capturedAt > 0 && meta.capturedAt <= Date.now() ? meta.capturedAt : null,
+      source, capturedAt: Number.isFinite(meta.capturedAt) && meta.capturedAt > 0 && meta.capturedAt <= Date.now() ? meta.capturedAt : null,
+      ...(date ? { sourceRecordDate: date } : {}),
       readable: result?.readable === true,
       warningProfile: meta.prefs ? warningProfile(meta.prefs) : typeof meta.warningProfile === 'string' && meta.warningProfile.length <= 10000 ? meta.warningProfile : null,
       missing: (result?.nutritionAssessment || []).filter(f => f.status !== 'assessed').map(f => text(f.label, 80)).slice(0, 12),
@@ -42,12 +50,24 @@
     ] }, raw);
   }
   function sourceLabel(source) {
+    if (source === 'label-ai') return 'AI transcription of a product photo';
     return /ocr/.test(source) ? 'Label photo' : /^(?:open-food-facts|usda-fdc)$/.test(source) ? 'Barcode database' : /manual|paste/.test(source) ? 'Entered label' : source ? 'Product page' : 'Source not recorded';
   }
   function describe(raw, t = (_key, fallback) => fallback) {
     const ev = cleanEvidence(raw); if (!ev) return t('evidenceUnknown', 'Evidence not recorded');
-    const source = /ocr/.test(ev.source) ? t('srcShortOcr', 'Label photo') : ev.source === 'usda-fdc' ? t('srcShortUsda', 'USDA FoodData Central') : ev.source === 'open-food-facts' ? t('srcShortBarcode', 'Open Food Facts') : /manual|paste/.test(ev.source) ? t('evidenceEntered', 'Entered label') : ev.source ? t('srcShortPage', 'Product page') : t('evidenceUnknown', 'Evidence not recorded');
-    return [source, ev.coverage !== null && ev.coverage < 0.7 ? t('evidencePartial', 'Partial reading') : '', ev.missing.length ? t('evidenceMissing', 'Missing selected nutrition data') : '', ev.capturedAt ? new Date(ev.capturedAt).toLocaleDateString() : ''].filter(Boolean).join(' · ');
+    const source = ev.source === 'label-ai' ? t('srcAiPhoto', 'AI transcription of a product photo') : /ocr/.test(ev.source) ? t('srcShortOcr', 'Label photo') : ev.source === 'usda-fdc' ? t('srcShortUsda', 'USDA FoodData Central') : ev.source === 'open-food-facts' ? t('srcShortBarcode', 'Open Food Facts') : /manual|paste/.test(ev.source) ? t('evidenceEntered', 'Entered label') : ev.source ? t('srcShortPage', 'Product page') : t('evidenceUnknown', 'Evidence not recorded');
+    const date = ev.sourceRecordDate;
+    const dated = date && new Date(date).toLocaleDateString(undefined, { timeZone: 'UTC' });
+    const captured = ev.capturedAt && new Date(ev.capturedAt).toLocaleDateString();
+    // Flag labels over 730 days old even if they were just downloaded.
+    const olderRecord = date && Date.now() - Date.parse(date) > 730 * 86400000;
+    return [source,
+      date ? t('evidenceSourceRecordDate', `USDA record dated ${dated}`, dated) : '',
+      olderRecord ? t('evidenceOlderSourceRecord', 'Older database record. Compare with the package.') : '',
+      ev.coverage !== null && ev.coverage < 0.7 ? t('evidencePartial', 'Partial reading') : '',
+      ev.missing.length ? t('evidenceMissing', 'Missing selected nutrition data') : '',
+      date && captured ? t('evidenceCapturedDate', `Captured ${captured}`, captured) : captured,
+    ].filter(Boolean).join(' · ');
   }
   function warningLabel(type, t = (_key, fallback) => fallback) {
     const labels = { ingredient: ['warningEvidence_ingredient', 'Ingredient detected'], contains: ['warningEvidence_contains', 'Contains statement'], 'cross-contact': ['warningEvidence_crossContact', 'May contain / shared facility'], advisory: ['warningEvidence_advisory', 'Label advisory'] };
@@ -59,7 +79,7 @@
     const ev = cleanEvidence(product.evidence);
     if (filters.complete && (!ev?.readable || ev.coverage === null || ev.coverage < 0.7 || ev.missing.length)) return false;
     const choicesMatch = ev && (!filters.warningProfile || ev.warningProfile === filters.warningProfile);
-    const warningsKnown = choicesMatch && ev.readable && ev.coverage === 1;
+    const warningsKnown = choicesMatch && ev.readable && ev.coverage === 1 && !['label-ocr', 'ocr', 'label-ai'].includes(ev.source);
     if (filters.noMatches && ((choicesMatch && ev.flags.length > 0) || (!warningsKnown && filters.unknown !== 'include'))) return false;
     return true;
   }
@@ -68,22 +88,52 @@
     if (!input || !/^(?:product:[a-z0-9.-]+:[A-Z0-9_-]{5,40}|label:[a-f0-9-]{10,40})$/i.test(raw?.id || '')) return null;
     let url = '';
     try { const u = new URL(raw.url); if (u.protocol === 'https:' && !u.username && !u.password && root.AIR.stores?.storeForHost(u.hostname)) { u.search = ''; u.hash = ''; u.pathname = u.pathname.replace(/\/ref=[^/]*.*$/, ''); url = u.href; } } catch { /* a standalone label has no retailer URL */ }
+    const source = text(raw.source, 60);
+    const date = source === 'usda-fdc' && sourceRecordDate(raw.sourceRecordDate);
     return { id: raw.id, input, name: text(raw.name || input.name, 250) || 'Saved label', list: text(raw.list, 60) || 'Shopping list', url,
-      source: text(raw.source, 60), capturedAt: Number.isFinite(raw.capturedAt) && raw.capturedAt > 0 && raw.capturedAt <= Date.now() ? raw.capturedAt : null,
+      source, ...(date ? { sourceRecordDate: date } : {}), capturedAt: Number.isFinite(raw.capturedAt) && raw.capturedAt > 0 && raw.capturedAt <= Date.now() ? raw.capturedAt : null,
       savedAt: Number.isFinite(raw.savedAt) && raw.savedAt > 0 ? Math.min(Date.now(), raw.savedAt) : Date.now(),
       savedScore: Number.isFinite(raw.savedScore) && raw.savedScore >= 0 && raw.savedScore <= 100 ? raw.savedScore : null };
   }
   async function list(area) {
     const keys = typeof area.getKeys === 'function' ? await area.getKeys() : Object.keys(await area.get(null));
-    const selected = keys.filter(k => k.startsWith(PREFIX)).slice(0, MAX);
-    const rows = await area.get(selected);
-    return Object.entries(rows).filter(([key]) => selected.includes(key)).map(([, value]) => cleanSaved(value)).filter(Boolean).sort((a, b) => b.savedAt - a.savedAt);
+    const selected = new Set(keys.filter(k => k.startsWith(PREFIX)));
+    if (!selected.size) return [];
+    const rows = await area.get([...selected]);
+    return Object.entries(rows).flatMap(([key, value]) => {
+      const row = selected.has(key) && cleanSaved(value);
+      return row && key === PREFIX + row.id ? [row] : [];
+    }).sort((a, b) => b.savedAt - a.savedAt || a.id.localeCompare(b.id));
   }
-  async function save(area, raw) {
-    const row = cleanSaved(raw); if (!row) throw new Error('invalid-saved-label');
-    const rows = await list(area);
-    if (!rows.some(r => r.id === row.id) && rows.length >= MAX) throw new Error('shortlist-full');
-    await area.set({ [PREFIX + row.id]: row }); return row;
+  let shortlistWrite = Promise.resolve();
+  function write(area, rows, removeId) {
+    const run = shortlistWrite.then(async () => {
+      if (removeId) {
+        const existing = await list(area);
+        if (existing.some(row => row.id === removeId)) await area.remove(PREFIX + removeId);
+        return { ok: true };
+      }
+      if (!Array.isArray(rows) || !rows.length || rows.length > 2) return { ok: false, reason: 'invalid-saved-label' };
+      const cleaned = rows.map(cleanSaved);
+      if (cleaned.some(row => !row)) return { ok: false, reason: 'invalid-saved-label' };
+      const updates = Object.fromEntries(cleaned.map(row => [PREFIX + row.id, row]));
+      const existing = new Set((await list(area)).map(row => PREFIX + row.id));
+      const newCount = Object.keys(updates).filter(key => !existing.has(key)).length;
+      if (newCount && existing.size + newCount > MAX) return { ok: false, reason: 'shortlist-full' };
+      await area.set(updates);
+      return { ok: true };
+    });
+    shortlistWrite = run.catch(() => {});
+    return run;
+  }
+  async function save(rows) {
+    const response = await chrome.runtime.sendMessage({ type: 'shortlistSave', rows });
+    if (!response?.ok) throw new Error(response?.reason || 'save-failed');
+  }
+  function saveError(error, t) {
+    return error?.message === 'shortlist-full'
+      ? t('shortlistFull', 'The shopping lists are full (200 products). Remove an entry before adding another.')
+      : t('saveFailed', 'Could not save — try again');
   }
   function offerSave(shadow, raw) {
     if (!cleanSaved(raw)) return;
@@ -92,26 +142,25 @@
       const button = document.createElement('button'); button.type = 'button'; button.className = 'copy save-product'; button.textContent = t('saveProduct', 'Save product'); box.append(button);
       button.addEventListener('click', async () => {
         button.disabled = true;
-        try { await save(chrome.storage.local, raw); button.textContent = t('savedProduct', 'Saved'); }
-        catch { button.disabled = false; button.textContent = t('saveFailed', 'Could not save — try again'); }
+        try { await save([raw]); button.textContent = t('savedProduct', 'Saved'); }
+        catch (error) { button.disabled = false; button.textContent = saveError(error, t); }
       });
     }
   }
   function cleanerSwaps(target, candidates, { minGain = 10, limit = 3, family } = {}) {
-    if (!target || typeof target.score !== 'number' || !Array.isArray(candidates) || !candidates.length) return [];
+    if (!Number.isFinite(target?.score) || !Array.isArray(candidates) || !candidates.length) return [];
     const targetKey = target.asin || target.url || '';
     const targetCat = target.category || 'food';
     const targetStyle = target.ratingStyle || 'food';
     const U = root.AIR.db?.unitPrice;
     const unitOf = item => {
-      const fromFamily = family && U ? U.priceIn(item, family) : null;
-      if (Number.isFinite(fromFamily)) return fromFamily;
-      return Number.isFinite(item.unitPrice) && item.unitPrice > 0 ? item.unitPrice : null;
+      const price = family ? U?.priceIn(item, family) : item.unitKind === target.unitKind ? item.unitPrice : null;
+      return Number.isFinite(price) && price > 0 ? price : null;
     };
     const targetUnit = unitOf(target);
     const out = [];
     for (const c of candidates) {
-      if (!c || typeof c.score !== 'number') continue;
+      if (!Number.isFinite(c?.score)) continue;
       const key = c.asin || c.url || '';
       if (key && key === targetKey) continue;
       if ((c.category || 'food') !== targetCat || (c.ratingStyle || 'food') !== targetStyle) continue;
@@ -127,7 +176,25 @@
       || String(a.product.title || '').localeCompare(String(b.product.title || '')));
     return out.slice(0, Math.max(0, limit)).map(({ product, scoreDelta, unitPriceDelta }) => ({ product, scoreDelta, unitPriceDelta }));
   }
-  const api = { evidence, cleanEvidence, describe, warningLabel, warningProfile, sourceLabel, matches, cleanerSwaps, cleanInput, cleanSaved, list, save, offerSave, PREFIX, MAX };
+  function csvCell(value) {
+    const raw = String(value == null ? '' : value).replace(/\r?\n/g, ' ');
+    // eslint-disable-next-line no-control-regex
+    const safe = /^[\s\u0000-\u001f]*[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
+    return /[",]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+  }
+  function toCsv(rows, scoreFn) {
+    const header = ['List', 'Name', 'Score', 'Verdict', 'Source', 'Warnings', 'URL'];
+    const lines = [header.map(csvCell).join(',')];
+    for (const row of Array.isArray(rows) ? rows : []) {
+      const result = typeof scoreFn === 'function' ? scoreFn(row.input) : null;
+      const score = result && Number.isFinite(result.score) ? result.score : (row.savedScore ?? '');
+      const verdict = result?.verdict || '';
+      const warnings = (result?.flags || []).map(f => f.label).join('; ');
+      lines.push([row.list || '', row.name || '', score, verdict, sourceLabel(row.source || ''), warnings, row.url || ''].map(csvCell).join(','));
+    }
+    return lines.join('\n') + '\n';
+  }
+  const api = { evidence, cleanEvidence, describe, warningLabel, warningProfile, sourceLabel, sourceRecordDate, matches, cleanerSwaps, cleanInput, cleanSaved, list, write, save, saveError, offerSave, toCsv, PREFIX, MAX };
   root.AIR = root.AIR || {}; root.AIR.db = root.AIR.db || {}; root.AIR.db.shopping = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof globalThis !== 'undefined' ? globalThis : self);

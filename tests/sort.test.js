@@ -265,7 +265,7 @@ const panelPage = { id: 'ext', url: 'chrome-extension://ext/src/options/sidepane
 const settingsPage = { id: 'ext', url: 'chrome-extension://ext/src/options/options.html' };
 const popup = { id: 'ext', url: 'chrome-extension://ext/src/options/popup.html' };
 
-test('who may ask: Amazon tabs and the supported stores\' tabs; the list pages send no messages at all', () => {
+test('sort messages distinguish retailer tabs and extension list pages', () => {
   const w = worker();
   const allow = (type, s) => w.call(`allowMessage({type:${JSON.stringify(type)}}, ${JSON.stringify(s)})`);
   const tab = url => ({ id: 'ext', tab: { id: 9, url } });
@@ -284,9 +284,30 @@ test('who may ask: Amazon tabs and the supported stores\' tabs; the list pages s
   for (const network of ['ocrLabels', 'lookupBarcode', 'aiRateIngredients', 'productsLookup', 'contribute']) {
     assert.equal(allow(network, targetTab), false, `${network} stays Amazon-only`);
   }
+  for (const allowed of [sortedPage, panelPage]) assert.equal(allow('stopSortedList', allowed), true);
+  for (const denied of [amazonTab, targetTab, popup, settingsPage]) assert.equal(allow('stopSortedList', denied), false);
   for (const gone of ['openSortedResults', 'openSortSettings', 'openResultsSidePanel']) {
     assert.equal(allow(gone, amazonTab) || allow(gone, sortedPage), false, `${gone} is no longer a message`);
   }
+});
+
+test('stopping an in-progress sort keeps partial results and rejects late updates', async () => {
+  const w = worker({ answer: 'throw' });
+  const { reply: opened } = await w.send({ type: 'openSortedPanel', mode: 'unitPrice', sourceUrl: targetTab.tab.url, priceOnly: true }, targetTab);
+  const { runId } = opened;
+  const items = [{ asin: '79364857', listingPrice: 3.59 }];
+  const progress = { type: 'updateSortedResults', runId, items, priceOnly: true, loading: true, status: 'Loading more' };
+  assert.equal((await w.send(progress, targetTab)).reply.ok, true);
+  assert.equal((await w.send({ type: 'stopSortedList', runId: 'older' }, sortedPage)).reply.ok, false);
+  assert.equal(w.session.sortedResults.loading, true);
+  assert.equal((await w.send({ type: 'stopSortedList', runId }, panelPage)).reply.ok, true);
+  assert.equal(w.sent[0][0], targetTab.tab.id);
+  assert.equal(w.sent[0][1].runId, runId);
+  assert.equal(w.session.sortedResults.loading, false);
+  assert.equal(w.session.sortedResults.items[0].asin, '79364857');
+  assert.match(w.session.sortedResults.status, /Stopped/);
+  assert.equal((await w.send(progress, targetTab)).reply.stale, true);
+  assert.equal(w.session.sortedResults.loading, false);
 });
 
 test('choosing a menu option opens the side panel before anything else, then stores an empty list', async () => {

@@ -6,6 +6,7 @@ export async function shoppingEndToEnd(context, worker, errors) {
   const url = await worker.evaluate(() => chrome.runtime.getURL('src/options/library.html'));
   const page = await context.newPage(); page.on('pageerror', error => errors.push('shopping: ' + error.message));
   const savedIds = [];
+  const fixturePrefix = 'savedProduct:label:cc9089a1-0000-4000-8000-';
   try {
     await worker.evaluate(() => chrome.storage.local.set({ enabled: true, historyEnabled: false, autoScoreSearch: false, sharedCache: false, allergens: ['milk', 'soy'], weights: {}, useOpenFoodFacts: false, theme: 'light' }));
     await page.goto(url);
@@ -30,12 +31,52 @@ export async function shoppingEndToEnd(context, worker, errors) {
     await page.reload(); await page.waitForFunction(() => document.querySelectorAll('.saved-row').length >= 2);
     await page.selectOption('#listFilter', 'Feature test breakfast');
     if (await page.locator('.saved-row').count() !== 2) throw new Error('Named shortlist did not survive reload');
+    const [download] = await Promise.all([page.waitForEvent('download'), page.click('#exportShortlist')]);
+    const data = [];
+    for await (const chunk of await download.createReadStream()) data.push(chunk);
+    const exported = JSON.parse(Buffer.concat(data).toString());
+    if (exported.format !== 'ingredient-check-shortlist' || !savedIds.every(id => exported.products.some(p => p.id === id))) throw new Error('Export omitted saved labels');
+
+    const contender = await context.newPage();
+    try {
+      await contender.goto(url);
+      await worker.evaluate(async prefix => {
+        const S = AIR.db.shopping, keys = (await chrome.storage.local.getKeys()).filter(k => k.startsWith(S.PREFIX));
+        const rows = Array.from({ length: S.MAX - 1 - keys.length }, (_, i) => {
+          const key = prefix + String(i).padStart(12, '0');
+          return [key, { id: key.slice(S.PREFIX.length), input: { ingredients_text: 'oats' } }];
+        });
+        await chrome.storage.local.set(Object.fromEntries(rows));
+      }, fixturePrefix);
+      const outcomes = await Promise.all([page, contender].map((tab, i) => tab.evaluate(key => {
+        const id = key.slice(AIR.db.shopping.PREFIX.length);
+        return chrome.runtime.sendMessage({ type: 'shortlistSave', rows: [{ id, input: { ingredients_text: 'whole grain oats' } }] });
+      }, fixturePrefix + String(1000 + i).padStart(12, '0'))));
+      if (outcomes.filter(outcome => outcome.ok).length !== 1 || outcomes.filter(outcome => outcome.reason === 'shortlist-full').length !== 1) throw new Error('Simultaneous saves exceeded shortlist capacity or lost both writes');
+    } finally {
+      await contender.close();
+      await worker.evaluate(async prefix => chrome.storage.local.remove((await chrome.storage.local.getKeys()).filter(k => k.startsWith(prefix))), fixturePrefix);
+    }
     await page.fill('#labelText', 'ingredients that cannot be read xyzq xyzq'); await page.getByRole('button', { name: 'Check a label', exact: true }).click();
     if (!await page.locator('#saveLabelControls').evaluate(el => el.hidden)) throw new Error('Unreadable manual label received a score');
-    const photo = await page.evaluate(() => { const canvas = document.createElement('canvas'); canvas.width = 1200; canvas.height = 200; const ctx = canvas.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 1200, 200); ctx.fillStyle = '#000'; ctx.font = '36px Arial'; ctx.fillText('INGREDIENTS: WHOLE GRAIN OATS, MILK, SALT.', 20, 80); return canvas.toDataURL('image/png').split(',')[1]; });
+    const makePhoto = text => page.evaluate(text => { const canvas = document.createElement('canvas'); canvas.width = 1200; canvas.height = 200; const ctx = canvas.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 1200, 200); ctx.fillStyle = '#000'; ctx.font = '36px Arial'; ctx.fillText(text, 20, 80); return canvas.toDataURL('image/png').split(',')[1]; }, text);
+    const photo = await makePhoto('INGREDIENTS: WHOLE GRAIN OATS, MILK, SALT.');
     await page.setInputFiles('#labelPhoto', { name: 'test-label.png', mimeType: 'image/png', buffer: Buffer.from(photo, 'base64') });
     await page.waitForFunction(() => document.getElementById('checkStatus').textContent.includes('Review the extracted text'), null, { timeout: 50000 });
     if (!/oats/i.test(await page.inputValue('#labelText')) || await page.locator('#checkResult .score').count()) throw new Error('OCR failed or bypassed text review');
+    const noHeading = await makePhoto('WHOLE GRAIN OATS, MILK, SALT.');
+    await page.setInputFiles('#labelPhoto', { name: 'no-heading.png', mimeType: 'image/png', buffer: Buffer.from(noHeading, 'base64') });
+    await page.waitForFunction(() => document.getElementById('checkStatus').textContent.startsWith('No ingredient list was found'));
+    if (!/oats/i.test(await page.inputValue('#labelText'))) throw new Error('Unmatched OCR text was lost instead of made editable');
+    const checkLabel = page.getByRole('button', { name: 'Check a label', exact: true });
+    await checkLabel.click();
+    if (!await page.locator('#saveLabelControls').evaluate(el => el.hidden)) throw new Error('Raw OCR was scored without a detected ingredient block');
+    await page.fill('#labelText', 'whole grain oats, milk, sea salt');
+    await checkLabel.click();
+    if (!await page.locator('#saveLabelControls').evaluate(el => el.hidden)) throw new Error('Corrected OCR was scored without confirmation');
+    await page.check('#photoConfirmed');
+    await checkLabel.click();
+    await page.waitForFunction(() => !document.getElementById('saveLabelControls').hidden);
     await worker.evaluate(() => {
       self.__shoppingFetch = self.fetch; self.__shoppingPermission = chrome.permissions.contains;
       chrome.permissions.contains = async () => true;

@@ -26,6 +26,8 @@
  .ps-sub,.ps-empty{color:var(--muted);font-size:12px;line-height:1.4;
    overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
  .ps-empty{-webkit-line-clamp:3}
+ .ps-swap{margin:8px 0 0;padding-top:7px;border-top:1px solid var(--soft);font-size:12px;line-height:1.35}
+ .ps-swap a{color:var(--accent);font-weight:600;text-decoration:underline}
  .page-score.empty{background:var(--card);border-color:var(--line)}
  /* Goals */
  .goals{padding:0 16px 14px}
@@ -105,6 +107,7 @@
  </div>
  <div class="fine-links">
   <a href="library.html" target="_blank" class="ui-primary" data-i18n="uiCheckLabel">Check a label</a>
+  <button type="button" id="openSidePanel" class="linkbtn" data-i18n="popupOpenSidePanel">Side panel</button>
   <a href="history.html" target="_blank" data-i18n="uiHistory">Purchase history</a>
   <a href="#" id="openNetwork" data-level="1" data-i18n="popupNetworkLink">Access and what is sent</a>
  </div>
@@ -150,6 +153,7 @@
   <p class="fine" data-i18n="popupDisclaimer">A guide, not health or allergy advice. Read the label.</p>
  </footer>
  <script src="../browser-compat.js"></script>
+ <script src="../browser-platform.js"></script>
 <script src="../engine/db/_module.js"></script>
  <script src="../engine/categories.js"></script>
  <script src="../engine/db/product-ratings.js"></script>

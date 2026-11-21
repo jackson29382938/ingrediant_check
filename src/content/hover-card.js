@@ -87,7 +87,7 @@
       openFor = badge;
       badge.setAttribute('aria-expanded', 'true');
       root.AIR.panel.mount(ensureHost(), root.AIR.panel.renderBreakdown(result, {
-        asin, score: Number(score), verdict: verdict || '', category, detail: state.breakdownDetail,
+        asin, score: Number(score), verdict: verdict || '', category, nutrition: row?.data?.nutrition, detail: state.breakdownDetail,
       }));
       place(badge);
     });

@@ -32,7 +32,7 @@ function worker(initial, answer, { permission = true, session = null, keepPause 
     chrome: {
       runtime: { id: 'ext', getManifest: () => ({ version: '1.0.0' }), getURL: p => `chrome-extension://ext/${p}`,
         sendMessage: async () => ({ ok: true }), getContexts: async () => [], onMessage: { addListener(fn) { onMessage = fn; } }, onStartup: event, onInstalled: event },
-      permissions: { contains: async origins => permission && origins.origins.includes('https://openrouter.ai/*') },
+      permissions: { contains: async origins => (typeof permission === 'function' ? permission() : permission) && origins.origins.includes('https://openrouter.ai/*') },
       offscreen: { createDocument: async () => {} },
       alarms: { create() {}, clear() {}, onAlarm: event },
       action: { setBadgeText() {}, setBadgeBackgroundColor() {}, setBadgeTextColor() {}, getBadgeText: async () => '' },
@@ -173,6 +173,42 @@ test('a model without structured output is asked again without the schema', asyn
   const res = await w.send({ type: 'aiRateIngredients', names: ['plimm'] }, amazonTab);
   assert.deepEqual(res.ratings, { plimm: { c: 'sugar', k: 0.9 } });
   assert.ok(w.calls[0].body.response_format && !w.calls[1].body.response_format);
+});
+
+test('a queued OpenRouter request rechecks consent, application pause, permission and key before it sends', async () => {
+  const cases = [
+    ['aiRateIngredients', data => { data.aiRatings = false; }, 'not-enabled'],
+    ['aiReadLabels', data => { data.aiLabels = false; }, 'not-enabled'],
+    ['aiReadLabels', data => { delete data.openrouterKey; }, 'no-key'],
+    ['aiRateIngredients', data => { data.openrouterKey = 'another-key-0123456789'; }, 'key-changed'],
+    ['aiRateIngredients', data => { data.enabled = false; }, 'paused'],
+    ['aiRateIngredients', (_data, permission) => { permission.allowed = false; }, 'no-permission'],
+  ];
+  for (const [type, change, reason] of cases) {
+    let start, finish;
+    const started = new Promise(resolve => { start = resolve; });
+    const permission = { allowed: true };
+    const w = worker(on, () => new Promise(resolve => { finish = resolve; start(); }), { permission: () => permission.allowed });
+    const first = w.send({ type: 'aiTest' }, settingsPage);
+    await started;
+    const queued = w.send({ type, names: ['plimm'], urls: [IMG] }, amazonTab);
+    await new Promise(resolve => setImmediate(resolve));
+    change(w.data, permission);
+    finish(reply('ok'));
+    assert.equal((await first).ok, true);
+    assert.equal((await queued).reason, reason);
+    assert.equal(w.calls.length, 1, reason);
+  }
+});
+
+test('an OpenRouter schema retry honors consent revoked during the first request', async () => {
+  const w = worker(on, () => {
+    w.data.aiRatings = false;
+    return reply('', 400);
+  });
+  const res = await w.send({ type: 'aiRateIngredients', names: ['plimm'] }, amazonTab);
+  assert.equal(res.reason, 'not-enabled');
+  assert.equal(w.calls.length, 1);
 });
 
 test('label photos: only the product-image CDN, only a list that looks like a list, and each photo once', async () => {

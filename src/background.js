@@ -94,8 +94,8 @@ const NOT_FOOD_REASON = 'Open Food Facts lists this as a non-food product';
 const offInFlight = new Map();
 
 // A barcode, looked up in Open Food Facts first and, when that has no ingredient list, in USDA FoodData Central
-// (worker/usda.js; needs the reader's own key and permission). The USDA step runs under the same barcode switch,
-// because the pages only ask for a barcode while it is on. Open Food Facts' "this is not food" is final.
+// (worker/usda.js; a personal key or the shared script). USDA always needs its own opt-in. Open Food Facts'
+// "this is not food" is final.
 async function lookupBarcode(code, options = {}) {
   const found = await lookupOpenFoodFacts(code, options);
   if (found && (found.ingredients_text || found.rejected)) return found;
@@ -103,7 +103,7 @@ async function lookupBarcode(code, options = {}) {
   const conf = await chrome.storage.local.get(['enabled', 'useOpenFoodFacts']);
   const toggles = AIR.db.prefs.sanitizeToggles(conf);
   if (!toggles.enabled || (!manual && !toggles.useOpenFoodFacts) || !self.AIR.usdaWorker) return found;
-  return (await self.AIR.usdaWorker.lookup(code, { manual, foodOnly, networkRequest })) || found;
+  return (await self.AIR.usdaWorker.lookup(code, { foodOnly, networkRequest })) || found;
 }
 
 async function lookupOpenFoodFacts(code, { foodOnly = true, manual = false } = {}) {
@@ -309,6 +309,13 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (self.AIR.scanWorker?.handle(msg, sender, reply)) return true;
   if (self.AIR.historyWorker?.handle(msg, sender, reply)) return true;
   if (self.AIR.aiWorker?.handle(msg, sender, reply)) return true;
+  if (msg.type === 'shortlistSave' || msg.type === 'shortlistRemove') {
+    const write = () => msg.type === 'shortlistRemove'
+      ? AIR.db.shopping.write(chrome.storage.local, null, msg.id)
+      : AIR.db.shopping.write(chrome.storage.local, msg.rows);
+    answer(msg.type, write, reply, { ok: false, reason: 'save-failed' });
+    return true;
+  }
   if (msg && msg.type === 'usdaTest') {
     answer('usdaTest', () => self.AIR.usdaWorker.test(networkRequest), reply, { ok: false, reason: 'unavailable' });
     return true;
@@ -344,6 +351,10 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (msg && msg.type === 'openSortedPanel') { openSortedPanel(msg, sender, reply); return true; }
   if (msg && msg.type === 'updateSortedResults') {
     updateSortedResults(msg, sender).then(reply, e => { noteWorkerError('updateSortedResults', e); reply({ ok: false, reason: String((e && e.message) || e) }); });
+    return true;
+  }
+  if (msg.type === 'stopSortedList') {
+    answer('stopSortedList', () => stopSortedList(msg.runId), reply, { ok: false });
     return true;
   }
   // A line for "Report a problem" (engine/db/activity.js), from a content script, which cannot reach
@@ -484,11 +495,21 @@ function isSortableSearchUrl(raw) {
 function endSortedList(runId, key, fallback) {
   return serializeSorted(async () => {
     const { sortedResults: list } = await chrome.storage.session.get('sortedResults');
-    if (!list || list.runId !== runId) return;
+    if (!runId || list?.runId !== runId || !list.loading) return null;
     let text = fallback;
     try { text = chrome.i18n.getMessage(key) || fallback; } catch (e) { /* no locale */ }
     await chrome.storage.session.set({ sortedResults: { ...list, loading: false, status: self.AIR.db.sortedResults.sanitizeStatus(text), t: Date.now() } });
+    return list;
   });
+}
+
+async function stopSortedList(runId) {
+  const list = await endSortedList(runId, 'sortedStopped', 'Stopped loading results.');
+  if (!list) return { ok: false };
+  if (Number.isInteger(list.sourceTabId)) {
+    await chrome.tabs.sendMessage(list.sourceTabId, { type: 'sortStop', runId, target: 'sort-source' }).catch(() => {});
+  }
+  return { ok: true };
 }
 
 function sortFromCommand(command, tab) {
@@ -519,7 +540,7 @@ function updateSortedResults(msg, sender) {
     const R = self.AIR.db.sortedResults;
     const { sortedResults: list } = await chrome.storage.session.get('sortedResults');
     const tabId = sender && sender.tab && sender.tab.id;
-    if (!list || !msg.runId || list.runId !== msg.runId || list.sourceTabId !== tabId) return { ok: false, stale: true };
+    if (!list?.loading || !msg.runId || list.runId !== msg.runId || list.sourceTabId !== tabId) return { ok: false, stale: true };
     // What the list may link to and show is decided by the address of the tab that sent it, never by the message.
     const scope = R.scopeFor(sender.tab.url);
     if (!scope) return { ok: false, reason: 'unsupported-page' };

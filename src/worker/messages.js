@@ -11,8 +11,7 @@ var PAGE_MESSAGE_TYPES = new Set([
   'aiRateIngredients', 'aiReadLabels',
   'contribute', 'report', 'diagnostic', 'productsLookup', 'productsQueue',
   // Amazon's sort menu (src/content/sort.js): open the side panel, send the list as it fills in, and
-  // open it in a tab when Chrome would not open the panel. The list pages themselves send nothing:
-  // they call chrome.tabs / chrome.sidePanel directly.
+  // open it in a tab when Chrome would not open the panel.
   'openSortedPanel', 'updateSortedResults', 'openSortedTab', 'followSortedSearch',
   // A line for "Report a problem"'s recent actions (engine/db/activity.js).
   'logAction',
@@ -25,8 +24,10 @@ var PAGE_MESSAGE_TYPES = new Set([
 // message, so neither is affected. tests/sanity.test.js fails if another page starts sending one.
 var SETTINGS_MESSAGE_TYPES = new Set([
   'flushDiagnostics', 'diagnosticsStatus', 'refreshSheet',
-  'accountSave', 'accountLoad', 'accountFetch', 'aiTest', 'usdaTest',
+  'accountSave', 'accountLoad', 'accountFetch', 'aiTest', 'aiNanoStatus', 'usdaTest',
 ]);
+var SHORTLIST_MESSAGE_TYPES = new Set(['shortlistSave', 'shortlistRemove']);
+var SORTED_MESSAGE_TYPES = new Set(['stopSortedList']);
 var HISTORY_MESSAGE_TYPES = new Set(['purchaseScanStart', 'purchaseScanResume', 'purchaseScanPause', 'purchaseScanCancel', 'purchaseScanState', 'purchaseScanProgress', 'purchaseImport', 'purchaseOpenHistory', 'purchaseSync', 'purchaseConfigure', 'purchaseDelete']);
 var OFFSCREEN_MESSAGE_TYPES = new Set(['ocrIdle']);
 var AMAZON_HOST = /(^|\.)amazon\.(com|co\.uk|ca|com\.au|ie|in|sg|ae|sa|de|fr|es|it|nl|se|pl|com\.be|com\.tr|com\.mx|com\.br|co\.jp)$/i;
@@ -82,7 +83,17 @@ function isOffscreenSender(sender) {
 
 function allowMessage(msg, sender) {
   if (!msg || !isOwnExtension(sender)) return false;
-  if (msg.type === 'lookupBarcode' && extensionPagePath(sender) === '/src/options/library.html') return true;
+  if (SORTED_MESSAGE_TYPES.has(msg.type)) return ['/src/options/sorted.html', '/src/options/sidepanel.html'].includes(extensionPagePath(sender));
+  if ((msg.type === 'lookupBarcode' || SHORTLIST_MESSAGE_TYPES.has(msg.type)) && extensionPagePath(sender) === '/src/options/library.html') return true;
+  if (msg.type === 'shortlistSave') {
+    if (sender.frameId !== 0 || !sender.tab) return false;
+    try {
+      const page = new URL(sender.url), store = page.hostname.replace(/^www\./i, '');
+      return page.protocol === 'https:' && (AMAZON_HOST.test(page.hostname) || RETAILER_HOST.test(page.hostname))
+        && (!sender.tab.url || page.href === new URL(sender.tab.url).href) && Array.isArray(msg.rows) && msg.rows.length === 1
+        && typeof msg.rows[0]?.id === 'string' && msg.rows[0].id.startsWith(`product:${store}:`);
+    } catch { return false; }
+  }
   if (msg.type === 'purchaseImport' || msg.type === 'purchaseOpenHistory' || msg.type === 'purchaseScanState' || msg.type === 'purchaseScanProgress') {
     try {
       const u = new URL(sender.url || '');

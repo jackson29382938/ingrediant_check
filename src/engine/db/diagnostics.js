@@ -18,6 +18,9 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
 
 (function () {
 
+// Bumped when the Apps Script backend contract changes (enforced by scripts/preflight.mjs).
+const BACKEND_SCHEMA_VERSION = 2;
+
 // One row per scored product. Column order is the sheet's column order.
 const COLUMNS = [
   'ts', 'version', 'store', 'asin', 'upc', 'brand', 'product_name',
@@ -103,7 +106,7 @@ function buildRecord(data, result, meta = {}) {
   };
 }
 
-const _exports = AIRmodule('diagnostics', { COLUMNS, OUTCOMES, buildRecord, rows, provenanceSummary, weightSummary });
+const _exports = AIRmodule('diagnostics', { BACKEND_SCHEMA_VERSION, COLUMNS, OUTCOMES, buildRecord, rows, provenanceSummary, weightSummary });
 if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 
 })();
