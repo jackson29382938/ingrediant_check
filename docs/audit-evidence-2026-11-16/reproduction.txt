@@ -1,0 +1,4 @@
+real-photo soy omission {"truth":{"score":19,"readable":true,"coverage":0.95,"warnings":["peanut","soy","sesame"]},"ocr":{"score":22,"readable":true,"coverage":0.72,"warnings":["peanut","sesame"]}}
+OCR block includes importer true
+raw OCR fallback {"hasBlock":false,"truth":{"score":27,"readable":true,"coverage":0.9473684210526315,"warnings":["milk","soy","wheat"]},"rawFallback":{"score":65,"readable":true,"coverage":0.46153846153846156,"warnings":["milk","soy","wheat"]}}
+AI sends after opt-out/key removal {"totalRequests":2,"queuedNames":["plimm"],"queuedUsedRemovedKey":true}

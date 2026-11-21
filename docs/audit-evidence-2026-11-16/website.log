@@ -1,0 +1,33 @@
+
+> website:check
+> node scripts/website-check.mjs
+
+  ok website / light 390px
+  ok website /privacy light 390px
+  ok website /features light 390px
+  ok website /scoring light 390px
+  ok website /stores light 390px
+  ok website /install light 390px
+  ok website /faq light 390px
+  ok website / light 1280px
+  ok website /privacy light 1280px
+  ok website /features light 1280px
+  ok website /scoring light 1280px
+  ok website /stores light 1280px
+  ok website /install light 1280px
+  ok website /faq light 1280px
+  ok website / dark 390px
+  ok website /privacy dark 390px
+  ok website /features dark 390px
+  ok website /scoring dark 390px
+  ok website /stores dark 390px
+  ok website /install dark 390px
+  ok website /faq dark 390px
+  ok website / dark 1280px
+  ok website /privacy dark 1280px
+  ok website /features dark 1280px
+  ok website /scoring dark 1280px
+  ok website /stores dark 1280px
+  ok website /install dark 1280px
+  ok website /faq dark 1280px
+Website checks passed (pages, navigation, privacy, responsive themes, production headers).

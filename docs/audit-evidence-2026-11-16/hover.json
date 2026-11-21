@@ -1,0 +1,28 @@
+{
+  "first": {
+    "tooltip": false,
+    "events": [
+      {
+        "type": "mouseenter",
+        "target": "score-chip",
+        "t": 512.5,
+        "tooltip": false
+      },
+      {
+        "mutation": "add",
+        "t": 514.5
+      },
+      {
+        "type": "scroll",
+        "t": 515.3000000000466,
+        "tooltip": true
+      },
+      {
+        "mutation": "remove",
+        "t": 515.5
+      }
+    ]
+  },
+  "second": 1,
+  "focus": 1
+}

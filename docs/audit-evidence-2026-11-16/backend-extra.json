@@ -1,0 +1,22 @@
+[
+  {
+    "label": "invalid-google-token",
+    "bodyAndStatus": "{\"ok\":false,\"error\":\"Error: token rejected\"}\n200",
+    "error": ""
+  },
+  {
+    "label": "invalid-google-history",
+    "bodyAndStatus": "{\"ok\":false,\"error\":\"Error: token rejected\"}\n200",
+    "error": ""
+  },
+  {
+    "label": "usda-oats",
+    "bodyAndStatus": "{\"ok\":true,\"foods\":[]}\n200",
+    "error": ""
+  },
+  {
+    "label": "closed-products",
+    "bodyAndStatus": "{\"ok\":false,\"error\":\"products closed\",\"tab\":\"products\"}\n200",
+    "error": ""
+  }
+]

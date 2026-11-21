@@ -1,0 +1,28 @@
+
+> harness:firefox
+> node scripts/firefox-harness.mjs
+
+Firefox 157.0.1
+  Firefox OAuth redirect: https://47e92c5d65dc0d985657412cae182ea41c77185f.extensions.allizom.org/
+  ok Promise/callback APIs, session cache, background modules, own-page messaging, OAuth redirect, local OCR worker startup/cleanup
+  ok real Firefox Settings persistence, contextual links, purchase averages/contributors, dark theme and narrow layout
+  ok Firefox Compare: Instacart/Kroger picker, safe product links, compatible cached scores across app versions
+  checking Firefox store www.amazon.com
+  checking Firefox store www.target.com
+  checking Firefox store www.walmart.com
+  checking Firefox store www.costco.com
+  checking Firefox store www.instacart.com
+  checking Firefox store www.kroger.com
+  checking Firefox store www.frysfood.com
+  checking Firefox store www.ralphs.com
+  checking Firefox store www.kingsoopers.com
+  checking Firefox store www.smithsfoodanddrug.com
+  checking Firefox store www.fredmeyer.com
+  checking Firefox store www.qfc.com
+  checking Firefox store www.harristeeter.com
+  checking Firefox store www.dillons.com
+  checking Firefox store www.safeway.com
+  checking Firefox store www.albertsons.com
+  Firefox native inactive-page diagnostics: 1
+  ok real Firefox: Amazon + 15 retailers, search/product/cart ratings through isolated content scripts; no retailer network
+Firefox harness passed (temporary unsigned extension; no live accounts).

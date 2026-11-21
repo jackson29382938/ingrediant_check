@@ -1,0 +1,31 @@
+
+manifest
+  [32mok[0m   manifest v3, version 1.26.4, Chrome 116+
+  [32mok[0m   72 declared files present
+  [32mok[0m   offscreen + wasm-unsafe-eval + locale "en"
+  [32mok[0m   21 Amazon stores, 1386 path patterns (incl. slug + apex + mobile)
+  [32mok[0m   378 cart patterns (incl. /cart/smart-wagon)
+  [32mok[0m   page / product / search / main in order
+  [32mok[0m   9 exclude_globs
+  [32mok[0m   heaviest group 881 KB of 1100
+
+OCR
+  [32mok[0m   browser runtimes + panel sanitizer load order
+  [32mok[0m   no eval or Function constructor in OCR bundles
+  [32mok[0m   engine present (6.0 MB)
+  [32mok[0m   combined .wasm.js vendored
+  [32mok[0m   5 scripts resolve
+  [32mok[0m   vendor + offscreen stay extension-origin
+
+diagnostics
+  [32mok[0m   26 columns aligned
+
+localisation
+  [32mok[0m   502 keys resolve against 715 messages
+  [32mok[0m   de match 715 English keys
+  [32mok[0m   de: 14 kept as English on purpose
+
+[32mReady to load unpacked.[0m
+
+packed chrome: ingredient-check-1.26.4.zip (4.0 MB), folder dist/unpacked
+packed firefox: ingredient-check-1.26.4-firefox.zip (4.0 MB), folder dist/firefox

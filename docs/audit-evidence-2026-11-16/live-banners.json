@@ -1,0 +1,556 @@
+{
+  "frys": {
+    "search": {
+      "url": "https://www.frysfood.com/search?query=organic+rolled+oats",
+      "ok": true,
+      "status": 200,
+      "finalUrl": "https://www.frysfood.com/search?query=organic+rolled+oats",
+      "title": "Search Products - Fry’s Food Stores",
+      "challenge": false,
+      "panel": null,
+      "badges": 96,
+      "numericBadges": 24,
+      "badgeValues": [
+        "96",
+        "Label unavailable",
+        "96",
+        "36",
+        "98",
+        "98",
+        "96",
+        "Label unavailable",
+        "42",
+        "96",
+        "96",
+        "29"
+      ],
+      "tilesGuess": 534,
+      "errors": [
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu"
+      ],
+      "transportFailure": false
+    },
+    "productUrl": "https://www.frysfood.com/p/bob-s-red-mill-gluten-free-quick-cooking-rolled-oats-28-oz/0003997803376",
+    "product": {
+      "url": "https://www.frysfood.com/p/bob-s-red-mill-gluten-free-quick-cooking-rolled-oats-28-oz/0003997803376",
+      "ok": true,
+      "status": 200,
+      "finalUrl": "https://www.frysfood.com/p/bob-s-red-mill-gluten-free-quick-cooking-rolled-oats-28-oz/0003997803376",
+      "title": "Bob's Red Mill Gluten Free Quick Cooking Rolled Oats - 28 oz, 28 oz - Fry’s Food Stores",
+      "challenge": false,
+      "panel": {
+        "state": "scored",
+        "connected": true
+      },
+      "badges": 0,
+      "numericBadges": 0,
+      "badgeValues": [],
+      "tilesGuess": 123,
+      "errors": [
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #422; visit https://reactjs.org/docs/error-decoder.html?invariant=422 for the full message or use the non-minified dev environment for full errors and additional helpfu"
+      ],
+      "transportFailure": false
+    }
+  },
+  "ralphs": {
+    "search": {
+      "url": "https://www.ralphs.com/search?query=organic+rolled+oats",
+      "ok": true,
+      "status": 200,
+      "finalUrl": "https://www.ralphs.com/search?query=organic+rolled+oats",
+      "title": "Search Products - Ralphs",
+      "challenge": false,
+      "panel": null,
+      "badges": 98,
+      "numericBadges": 22,
+      "badgeValues": [
+        "96",
+        "98",
+        "98",
+        "96",
+        "96",
+        "98",
+        "98",
+        "98",
+        "Label unavailable",
+        "96",
+        "29",
+        "42"
+      ],
+      "tilesGuess": 550,
+      "errors": [
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu"
+      ],
+      "transportFailure": false
+    },
+    "productUrl": "https://www.ralphs.com/p/bob-s-red-mill-gluten-free-whole-grain-old-fashioned-rolled-oats/0003997803375",
+    "product": {
+      "url": "https://www.ralphs.com/p/bob-s-red-mill-gluten-free-whole-grain-old-fashioned-rolled-oats/0003997803375",
+      "ok": true,
+      "status": 200,
+      "finalUrl": "https://www.ralphs.com/p/bob-s-red-mill-gluten-free-whole-grain-old-fashioned-rolled-oats/0003997803375",
+      "title": "Bob's Red Mill Gluten Free Whole Grain Old Fashioned Rolled Oats, 32 oz - Ralphs",
+      "challenge": false,
+      "panel": {
+        "state": "scored",
+        "connected": true
+      },
+      "badges": 0,
+      "numericBadges": 0,
+      "badgeValues": [],
+      "tilesGuess": 187,
+      "errors": [
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu"
+      ],
+      "transportFailure": false
+    }
+  },
+  "kingsoopers": {
+    "search": {
+      "url": "https://www.kingsoopers.com/search?query=organic+rolled+oats",
+      "ok": true,
+      "status": 200,
+      "finalUrl": "https://www.kingsoopers.com/search?query=organic+rolled+oats",
+      "title": "Search Products - King Soopers",
+      "challenge": false,
+      "panel": null,
+      "badges": 26,
+      "numericBadges": 23,
+      "badgeValues": [
+        "96",
+        "96",
+        "98",
+        "96",
+        "96",
+        "36",
+        "98",
+        "98",
+        "42",
+        "96",
+        "63",
+        "96"
+      ],
+      "tilesGuess": 258,
+      "errors": [
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu"
+      ],
+      "transportFailure": false
+    },
+    "productUrl": "https://www.kingsoopers.com/p/bob-s-red-mill-gluten-free-quick-cooking-rolled-oats-28-oz/0003997803376",
+    "product": {
+      "url": "https://www.kingsoopers.com/p/bob-s-red-mill-gluten-free-quick-cooking-rolled-oats-28-oz/0003997803376",
+      "ok": true,
+      "status": 200,
+      "finalUrl": "https://www.kingsoopers.com/p/bob-s-red-mill-gluten-free-quick-cooking-rolled-oats-28-oz/0003997803376",
+      "title": "Bob's Red Mill Gluten Free Quick Cooking Rolled Oats - 28 oz, 28 oz - King Soopers",
+      "challenge": false,
+      "panel": {
+        "state": "scored",
+        "connected": true
+      },
+      "badges": 0,
+      "numericBadges": 0,
+      "badgeValues": [],
+      "tilesGuess": 139,
+      "errors": [
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #422; visit https://reactjs.org/docs/error-decoder.html?invariant=422 for the full message or use the non-minified dev environment for full errors and additional helpfu"
+      ],
+      "transportFailure": false
+    }
+  },
+  "smiths": {
+    "search": {
+      "url": "https://www.smithsfoodanddrug.com/search?query=organic+rolled+oats",
+      "ok": true,
+      "status": 200,
+      "finalUrl": "https://www.smithsfoodanddrug.com/search?query=organic+rolled+oats",
+      "title": "Search Products - Smith’s Food and Drug",
+      "challenge": false,
+      "panel": null,
+      "badges": 86,
+      "numericBadges": 23,
+      "badgeValues": [
+        "96",
+        "96",
+        "96",
+        "96",
+        "98",
+        "95",
+        "96",
+        "36",
+        "98",
+        "98",
+        "96",
+        "96"
+      ],
+      "tilesGuess": 490,
+      "errors": [
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu"
+      ],
+      "transportFailure": false
+    },
+    "productUrl": "https://www.smithsfoodanddrug.com/p/bob-s-red-mill-gluten-free-whole-grain-old-fashioned-rolled-oats/0003997803375",
+    "product": {
+      "url": "https://www.smithsfoodanddrug.com/p/bob-s-red-mill-gluten-free-whole-grain-old-fashioned-rolled-oats/0003997803375",
+      "ok": true,
+      "status": 200,
+      "finalUrl": "https://www.smithsfoodanddrug.com/p/bob-s-red-mill-gluten-free-whole-grain-old-fashioned-rolled-oats/0003997803375",
+      "title": "Bob's Red Mill Gluten Free Whole Grain Old Fashioned Rolled Oats, 32 oz - Smith’s Food and",
+      "challenge": false,
+      "panel": {
+        "state": "scored",
+        "connected": true
+      },
+      "badges": 0,
+      "numericBadges": 0,
+      "badgeValues": [],
+      "tilesGuess": 179,
+      "errors": [
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #422; visit https://reactjs.org/docs/error-decoder.html?invariant=422 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu"
+      ],
+      "transportFailure": false
+    }
+  },
+  "fredmeyer": {
+    "search": {
+      "url": "https://www.fredmeyer.com/search?query=organic+rolled+oats",
+      "ok": true,
+      "status": 200,
+      "finalUrl": "https://www.fredmeyer.com/search?query=organic+rolled+oats",
+      "title": "Search Products - Fred Meyer",
+      "challenge": false,
+      "panel": null,
+      "badges": 26,
+      "numericBadges": 19,
+      "badgeValues": [
+        "96",
+        "96",
+        "98",
+        "98",
+        "96",
+        "36",
+        "96",
+        "96",
+        "98",
+        "96",
+        "98",
+        "96"
+      ],
+      "tilesGuess": 259,
+      "errors": [
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu"
+      ],
+      "transportFailure": false
+    },
+    "productUrl": "https://www.fredmeyer.com/p/bob-s-red-mill-gluten-free-whole-grain-old-fashioned-rolled-oats/0003997803375",
+    "product": {
+      "url": "https://www.fredmeyer.com/p/bob-s-red-mill-gluten-free-whole-grain-old-fashioned-rolled-oats/0003997803375",
+      "ok": true,
+      "status": 200,
+      "finalUrl": "https://www.fredmeyer.com/p/bob-s-red-mill-gluten-free-whole-grain-old-fashioned-rolled-oats/0003997803375",
+      "title": "Bob's Red Mill Gluten Free Whole Grain Old Fashioned Rolled Oats, 32 oz - Fred Meyer",
+      "challenge": false,
+      "panel": {
+        "state": "scored",
+        "connected": true
+      },
+      "badges": 0,
+      "numericBadges": 0,
+      "badgeValues": [],
+      "tilesGuess": 203,
+      "errors": [
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #422; visit https://reactjs.org/docs/error-decoder.html?invariant=422 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #422; visit https://reactjs.org/docs/error-decoder.html?invariant=422 for the full message or use the non-minified dev environment for full errors and additional helpfu"
+      ],
+      "transportFailure": false
+    }
+  },
+  "qfc": {
+    "search": {
+      "url": "https://www.qfc.com/search?query=organic+rolled+oats",
+      "ok": true,
+      "status": 200,
+      "finalUrl": "https://www.qfc.com/search?query=organic+rolled+oats",
+      "title": "Search Products - QFC",
+      "challenge": false,
+      "panel": null,
+      "badges": 26,
+      "numericBadges": 21,
+      "badgeValues": [
+        "96",
+        "96",
+        "98",
+        "96",
+        "98",
+        "98",
+        "96",
+        "36",
+        "96",
+        "96",
+        "98",
+        "96"
+      ],
+      "tilesGuess": 239,
+      "errors": [
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu"
+      ],
+      "transportFailure": false
+    },
+    "productUrl": "https://www.qfc.com/p/bob-s-red-mill-gluten-free-quick-cooking-rolled-oats-28-oz/0003997803376",
+    "product": {
+      "url": "https://www.qfc.com/p/bob-s-red-mill-gluten-free-quick-cooking-rolled-oats-28-oz/0003997803376",
+      "ok": true,
+      "status": 200,
+      "finalUrl": "https://www.qfc.com/p/bob-s-red-mill-gluten-free-quick-cooking-rolled-oats-28-oz/0003997803376",
+      "title": "Bob's Red Mill Gluten Free Quick Cooking Rolled Oats - 28 oz, 28 oz - QFC",
+      "challenge": false,
+      "panel": {
+        "state": "scored",
+        "connected": true
+      },
+      "badges": 0,
+      "numericBadges": 0,
+      "badgeValues": [],
+      "tilesGuess": 139,
+      "errors": [
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #422; visit https://reactjs.org/docs/error-decoder.html?invariant=422 for the full message or use the non-minified dev environment for full errors and additional helpfu"
+      ],
+      "transportFailure": false
+    }
+  },
+  "harristeeter": {
+    "search": {
+      "url": "https://www.harristeeter.com/search?query=organic+rolled+oats",
+      "ok": true,
+      "status": 200,
+      "finalUrl": "https://www.harristeeter.com/search?query=organic+rolled+oats",
+      "title": "Search Products - Harris Teeter",
+      "challenge": false,
+      "panel": null,
+      "badges": 28,
+      "numericBadges": 15,
+      "badgeValues": [
+        "98",
+        "96",
+        "98",
+        "96",
+        "96",
+        "98",
+        "36",
+        "98",
+        "Label unavailable",
+        "97",
+        "96",
+        "97"
+      ],
+      "tilesGuess": 116,
+      "errors": [
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu"
+      ],
+      "transportFailure": false
+    },
+    "productUrl": "https://www.harristeeter.com/p/simple-truth-organic-100-whole-grain-rolled-1-minute-oats/0001111002805",
+    "product": {
+      "url": "https://www.harristeeter.com/p/simple-truth-organic-100-whole-grain-rolled-1-minute-oats/0001111002805",
+      "ok": true,
+      "status": 200,
+      "finalUrl": "https://www.harristeeter.com/p/simple-truth-organic-100-whole-grain-rolled-1-minute-oats/0001111002805",
+      "title": "Simple Truth Organic® 100% Whole Grain Rolled 1 Minute Oats, 18 oz - Harris Teeter",
+      "challenge": false,
+      "panel": {
+        "state": "scored",
+        "connected": true
+      },
+      "badges": 0,
+      "numericBadges": 0,
+      "badgeValues": [],
+      "tilesGuess": 12,
+      "errors": [
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #422; visit https://reactjs.org/docs/error-decoder.html?invariant=422 for the full message or use the non-minified dev environment for full errors and additional helpfu"
+      ],
+      "transportFailure": false
+    }
+  },
+  "dillons": {
+    "search": {
+      "url": "https://www.dillons.com/search?query=organic+rolled+oats",
+      "ok": true,
+      "status": 200,
+      "finalUrl": "https://www.dillons.com/search?query=organic+rolled+oats",
+      "title": "Search Products - Dillons Food Stores",
+      "challenge": false,
+      "panel": null,
+      "badges": 102,
+      "numericBadges": 19,
+      "badgeValues": [
+        "96",
+        "96",
+        "Label unavailable",
+        "98",
+        "96",
+        "36",
+        "98",
+        "98",
+        "95",
+        "Label unavailable",
+        "96",
+        "42"
+      ],
+      "tilesGuess": 554,
+      "errors": [
+        "pageerror: Minified React error #421; visit https://reactjs.org/docs/error-decoder.html?invariant=421 for the full message or use the non-minified dev environment for full errors and additional helpfu"
+      ],
+      "transportFailure": false
+    },
+    "productUrl": "https://www.dillons.com/p/bob-s-red-mill-gluten-free-whole-grain-old-fashioned-rolled-oats/0003997803375",
+    "product": {
+      "url": "https://www.dillons.com/p/bob-s-red-mill-gluten-free-whole-grain-old-fashioned-rolled-oats/0003997803375",
+      "ok": true,
+      "status": 200,
+      "finalUrl": "https://www.dillons.com/p/bob-s-red-mill-gluten-free-whole-grain-old-fashioned-rolled-oats/0003997803375",
+      "title": "Bob's Red Mill Gluten Free Whole Grain Old Fashioned Rolled Oats, 32 oz - Dillons Food Sto",
+      "challenge": false,
+      "panel": {
+        "state": "scored",
+        "connected": true
+      },
+      "badges": 0,
+      "numericBadges": 0,
+      "badgeValues": [],
+      "tilesGuess": 187,
+      "errors": [
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #418; visit https://reactjs.org/docs/error-decoder.html?invariant=418 for the full message or use the non-minified dev environment for full errors and additional helpfu",
+        "pageerror: Minified React error #422; visit https://reactjs.org/docs/error-decoder.html?invariant=422 for the full message or use the non-minified dev environment for full errors and additional helpfu"
+      ],
+      "transportFailure": false
+    }
+  },
+  "albertsons": {
+    "search": {
+      "url": "https://www.albertsons.com/shop/search-results.html?q=organic+rolled+oats",
+      "ok": true,
+      "status": 200,
+      "finalUrl": "https://www.albertsons.com/shop/search-results.html?q=organic+rolled+oats",
+      "title": "Search Results | Albertsons",
+      "challenge": false,
+      "panel": null,
+      "badges": 0,
+      "numericBadges": 0,
+      "badgeValues": [],
+      "tilesGuess": 0,
+      "errors": [],
+      "transportFailure": false
+    },
+    "productUrl": "https://www.albertsons.com/shop/pd/product/111050071",
+    "product": {
+      "url": "https://www.albertsons.com/shop/pd/product/111050071",
+      "ok": true,
+      "status": 200,
+      "finalUrl": "https://www.albertsons.com/shop/pd/quaker-oats-whole-grain-quick-1-minute-42-oz/111050071",
+      "title": "Quaker Oats Whole Grain Quick 1 Minute - 42 Oz - albertsons",
+      "challenge": false,
+      "panel": {
+        "state": "scored",
+        "connected": true
+      },
+      "badges": 0,
+      "numericBadges": 0,
+      "badgeValues": [],
+      "tilesGuess": 3,
+      "errors": [],
+      "transportFailure": false
+    }
+  }
+}

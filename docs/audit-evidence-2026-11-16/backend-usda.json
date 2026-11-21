@@ -1,0 +1,12 @@
+[
+  {
+    "code": "016000275683",
+    "bodyAndStatus": "{\"ok\":true,\"foods\":[{\"gtinUpc\":\"016000275683\",\"ingredients\":\"WHOLE GRAIN CORN, SUGAR, CORN MEAL, CORN SYRUP, COCOA PROCESSED WITH ALKALI, CANOLA OIL, FRUCTOSE, SALT, CARAMEL COLOR, REFINER'S SYRUP, BAKING SODA, NATURAL FLAVOR. VITAMINS AND MINERALS: TRICALCIUM PHOSPHATE, CALCIUM CARBONATE, ZINC AND IRON (MINERAL NUTRIENTS), VITAMIN C (SODIUM ASCORBATE), A B VITAMIN (NIACINAMIDE), VITAMIN B6 (PYRIDOXINE HYDROCHLORIDE), VITAMIN B2 (RIBOFLAVIN), VITAMIN B1 (THIAMIN MONONITRATE), VITAMIN A (PALMITATE), A B VITAMIN (FOLIC ACID), VITAMIN B12, VITAMIN D3.\",\"description\":\"FROSTED CORN PUFFS\",\"brandName\":\"COCOA PUFFS\",\"brandOwner\":\"General Mills, Inc.\",\"foodCategory\":\"Cereal\",\"servingSizeUnit\":\"g\",\"modifiedDate\":\"2017-07-14\",\"foodNutrients\":[{\"nutrientId\":1003,\"value\":3.7},{\"nutrientId\":1004,\"value\":5.56},{\"nutrientId\":1005,\"value\":85.2},{\"nutrientId\":2000,\"value\":33.3},{\"nutrientId\":1079,\"value\":3.7},{\"nutrientId\":1093,\"value\":370},{\"nutrientId\":1258,\"value\":0}]}]}\n200",
+    "error": ""
+  },
+  {
+    "code": "017077103329",
+    "bodyAndStatus": "{\"ok\":true,\"foods\":[{\"gtinUpc\":\"00017077103329\",\"ingredients\":\"Pasteurized Lowfat Milk, Nonfat Milk, Cane Sugar, Pectin, Natural Strawberry Flavor, Natural Flavors, Red Beet Juice (for Color), Vitamin A Palmitate, Vitamin D3, Live and Active Cultures.\",\"description\":\"Lifeway Low- Fat Strawberry Kefir Milk Smoothie\",\"brandName\":\"Lifeway\",\"brandOwner\":\"\",\"foodCategory\":\"Milk/Milk Substitutes\",\"servingSizeUnit\":\"g\",\"modifiedDate\":\"2026-04-23\",\"foodNutrients\":[{\"nutrientId\":1003,\"value\":4.17},{\"nutrientId\":1004,\"value\":0.833},{\"nutrientId\":1005,\"value\":7.5},{\"nutrientId\":2000,\"value\":7.5},{\"nutrientId\":1079,\"value\":0},{\"nutrientId\":1093,\"value\":52.1},{\"nutrientId\":1258,\"value\":0.625}]}]}\n200",
+    "error": ""
+  }
+]

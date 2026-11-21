@@ -1,0 +1,18 @@
+{
+  "disabledWhileQueued": true,
+  "keyRemoved": true,
+  "requests": [
+    {
+      "names": [
+        "zorbex"
+      ],
+      "usedRemovedKey": true
+    },
+    {
+      "names": [
+        "plimm"
+      ],
+      "usedRemovedKey": true
+    }
+  ]
+}
