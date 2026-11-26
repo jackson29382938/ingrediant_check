@@ -55,8 +55,10 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') require('./
   // 2026-11-20.1 (1.26.4 audit fixes): qualifier-stripped entries de-hyphenate via eitherForm, capsHit runs per
   // entry, HTML entities decode before a second tag/angle-bracket pass, two-digit footnotes 10-19 are handled,
   // and small-serving nutrition panels scale their rounding tolerance with 100/serving.
-  const RULES_REVISION = '2026-11-20.1';
-  const RULES_HASH = '5490dd02-287369';
+  // 2026-11-25.1: preserve quantity weighting with decimal commas and colon headings, validate
+  // nutrition subsets on both bases, and distinguish declared allergens from possible contact.
+  const RULES_REVISION = '2026-11-25.1';
+  const RULES_HASH = 'e102ccc5-288417';
   const _exports = AIRmodule('revision', { RULES_REVISION, RULES_HASH });
   if (typeof module !== 'undefined' && module.exports) module.exports = _exports;
 })();

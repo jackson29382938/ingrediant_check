@@ -83,10 +83,12 @@ function imageCandidates(doc, limit = 8) {
 // Match the printed heading as a word, or as a Japanese heading next to the list.
 const HEADING = String.raw`(?:(?<![\p{L}\p{N}])(?:ingredientes|ingredienti|ingredi[eë]nten|ingr[eé]dients?|zutaten|sk[łl]adniki|sk[łl]ad(?=\s*:)|ingredienser|[iİ][çc]indekiler)(?![\p{L}\p{N}])|原材料)`;
 const AMOUNT = String.raw`\s*(?:(?:LESS\s+THAN|UP\s+TO|NOT\s+MORE\s+THAN)\s+)?\d`;
+const FACILITY_ADVISORY = String.raw`\b(?:PRODUCED|MADE|MANUFACTURED|PACKED|PACKAGED|PROCESSED|PREPARED|BOTTLED|ROASTED)\s+(?:IN|ON|AT)\s+(?:(?:A|THE|OUR)\s+)?(?:(?:SHARED|SAME)\s+)?(?:FACTORY|FACILITY|PLANT|SITE|PREMISES|EQUIPMENT|(?:PRODUCTION\s+)?LINE)\b`;
 const ADVISORY = [
   String.raw`\b(?:ALLERGENS?(?:\s+INFORMATION)?\s*:|CONTAINS\s*:(?!${AMOUNT}))`,
   String.raw`\b(?:MAY\s+CONTAIN|KANN\s+SPUREN|PEUT\s+CONTENIR|PUEDE\s+CONTENER|PU[ÒO]\s+CONTENERE|KAN\s+SPOREN|PODE\s+CONTER|KAN\s+INNEH[ÅA]LLA|MO[ŻZ]E\s+ZAWIERA)\b`,
   String.raw`(?<=[.\n])[ \t]*(?:THIS\s+PRODUCT\s+)?\b(?:CONTAINS|CONTIENE)\b(?![ \t]*:?${AMOUNT})`,
+  FACILITY_ADVISORY,
 ].join('|');
 const OTHER_SECTION = String.raw`\b(?:IMPORTED\s+BY|DISTRIBUTED|MANUFACTURED|PRODUCED\s+(?:BY|FOR)|PACKED\s+(?:BY|FOR)|KEEP\s+(?:REFRIGERATED|FROZEN)|REFRIGERATE|NUTRITION(?:AL)?(?:\s+(?:FACTS|INFORMATION|VALUES?|DECLARATION|PANEL)|(?=[ \t]*[:(]))|N[ÄA]HRWERT\w*|VALEURS\s+NUTRITIONNELLES|BEST\s+(?:BY|BEFORE)|QUESTIONS|HTTP|[ÀA]\s+CONSERVER|INFORMACI[ÓO]N\s+NUTRICIONAL|VALORI\s+NUTRIZIONALI|CONSERVARE|BEWAREN|VOEDINGSWAARDE\w*|INFORMA[ÇC][ÃA]O\s+NUTRICIONAL|F[ÖO]RVARA\w*|N[ÄA]RINGSV[ÄA]RDE\w*|PRZECHOWYWA\w*|WARTO[ŚS][ĆC]\s+OD[ŻZ]YWCZA|BES[İI]N\s+DE[ĞG]ERLER|SER[İI]N\s+VE)\b|\bWWW\.|\.\s+[^.,]{1,40}?\s+[İI][ÇC]EREB[İI]L[İI]R`;
 const START = new RegExp(HEADING + String.raw`\s*[:.\-–：]?\s*`, 'iu');
@@ -94,7 +96,7 @@ const NEXT_HEADING = String.raw`(?:[.;/\n][ \t]*)${HEADING}(?=\s*[:\-–：]|[ \
 const NEXT_SECTION = new RegExp(`(${ADVISORY})|${OTHER_SECTION}|${NEXT_HEADING}`, 'iu');
 const NEXT_ADVISORY = new RegExp(ADVISORY, 'iu');
 const TRANSLATION = new RegExp(NEXT_HEADING, 'iu');
-const ADVISORY_END = new RegExp(OTHER_SECTION, 'iu');
+const ADVISORY_END = new RegExp(`(?!${FACILITY_ADVISORY})(?:${OTHER_SECTION})`, 'iu');
 
 // OCR noise that is safe to remove: it never carries meaning, and leaving it in only lowers the
 // recognition coverage the engine measures. Nothing here rewrites a WORD into another word —

@@ -159,6 +159,12 @@ record date separately from the capture date and flags records over 730 days old
 
 ## AI help (optional)
 
+In **Labels & saved products**, **Check with on-device AI** calls Chrome's built-in model only after
+you choose that action. It receives unfamiliar ingredient names from the label you are checking.
+Chrome may download the model first. The label and estimates stay local to this device. If you
+save the product, the shortlist and its JSON export retain the validated estimates used for
+that saved score. See [Chrome's Prompt API documentation](https://developer.chrome.com/docs/ai/prompt-api).
+
 Settings → *AI help* offers two features that use a free model through [OpenRouter](https://openrouter.ai).
 Both are **off** until you paste your own OpenRouter API key, turn a switch on and allow Chrome's optional
 permission for `openrouter.ai`. Nothing is sent before then, and scoring without them is unchanged.

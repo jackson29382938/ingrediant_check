@@ -290,6 +290,43 @@ test('Chrome profile: the backup fits Chrome sync limits even with everything se
   assert.equal(got.values.avoidList.length, 80);
 });
 
+test('Chrome profile: another device with the same settings does not allocate its own sync chunks', async () => {
+  const first = world({ signedIn: false });
+  await first.change({ avoidList: ['milk'] });
+  const old = json(first.profile.sync);
+  const second = world({ signedIn: false, profile: first.profile });
+  await second.change({ avoidList: ['milk'] });
+  assert.deepEqual(second.profile.sync, old);
+  assert.equal(second.local.data.backupDeviceId, undefined);
+  assert.equal(second.local.data.backupStatus.ok, true);
+});
+
+test('Chrome profile: an older staging attempt preserves the fallback alarm for newer settings', async () => {
+  const w = world({ signedIn: false });
+  await w.change({ avoidList: ['milk'] });
+  const set = w.sync.set;
+  let release;
+  w.sync.set = async values => {
+    if (!values.icBackup) await new Promise(resolve => { release = resolve; });
+    return set(values);
+  };
+  await w.local.set({ avoidList: ['wheat'] });
+  w.fire();
+  await drain();
+  assert.equal(typeof release, 'function');
+  await w.local.set({ avoidList: ['soy'] });
+  w.dropTimers();
+  w.cleared.length = 0;
+  w.sync.set = set;
+  release();
+  await drain();
+  assert.equal(w.cleared.includes('ic-backup-retry'), false);
+  assert.deepEqual((await prefs.readSync(w.sync)).values.avoidList, ['milk']);
+  await w.fireAlarm('ic-backup-retry');
+  await drain();
+  assert.deepEqual((await prefs.readSync(w.sync)).values.avoidList, ['soy']);
+});
+
 test('Chrome profile: switching the backup off keeps the last copy; switching it on writes again at once', async () => {
   const w = world();
   await w.change({ ratePace: 'fast' });
@@ -449,6 +486,28 @@ test('Google: a competing write after the automatic check is rejected under the 
   await drain();
   assert.equal(a.local.data.googleBackupStatus.reason, 'backup-conflict');
   assert.equal((await a.googleCopy()).values.sortCount, 333);
+});
+
+test('Google: a settings edit during an automatic check preserves its own fallback alarm', async () => {
+  const w = world();
+  await linked(w);
+  const before = w.state.posts.length;
+  w.state.hold = true;
+  await w.local.set({ sortCount: 215 });
+  w.fire();
+  await drain();
+  assert.equal(w.state.holds.length, 1);
+  await w.local.set({ sortCount: 316 });
+  w.dropTimers();
+  w.cleared.length = 0;
+  w.state.hold = false;
+  w.state.holds.shift()();
+  await drain();
+  assert.deepEqual(w.state.posts.slice(before), ['accountGet']);
+  assert.equal(w.cleared.includes('ic-google-save'), false);
+  await w.fireAlarm('ic-google-save');
+  await drain();
+  assert.equal((await w.googleCopy()).values.sortCount, 316);
 });
 
 test('Google: the identity permission being withdrawn pauses saving the same way', async () => {

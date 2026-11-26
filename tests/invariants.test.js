@@ -704,7 +704,7 @@ test('"less than" written with a sign, in words or with a colon is read as a qua
     assert.equal(engine.parse(text)[1], 'sugar', text);
   }
   const block = score('Oats, less than 2% of: sugar, salt');
-  for (const text of ['Oats, less than 2%: sugar, salt', 'Oats, <2% of: sugar, salt', 'Oats, <2% of sugar, salt', 'Oats, contains <2% of sugar, salt', 'Oats, 2% or less: sugar, salt']) {
+  for (const text of ['Oats, less than 2%: sugar, salt', 'Oats, <2% of: sugar, salt', 'Oats, <2% of sugar, salt', 'Oats, contains <2% of sugar, salt', 'Oats, 2% or less: sugar, salt', 'Oats, contains: 2,0  % or less of sugar, salt']) {
     assert.equal(score(text).score, block.score, text);
     assert.deepEqual(engine.parse(text), ['oats', 'sugar', 'salt'], text);
   }

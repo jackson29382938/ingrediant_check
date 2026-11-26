@@ -41,13 +41,24 @@
   // refrigerated, Best by date on package" as 96/100 NOVA 1. Both were confidently wrong.
   const PLACEHOLDER = /\b(see (the |each |individual |product )?(label|package|packaging|product)s?|refer to (the )?(label|package)|listed on (the )?(label|package)|information (is )?unavailable|not available|var(?:y|ies) by|may vary|check (the )?(label|package)|see (the )?(nutrition|ingredients?) (panel|facts|label|information)|see (the )?(back|side|bottom) of|photo|image)\b/i;
   const NON_INGREDIENT = /\b(product of|distributed by|manufactured (by|for)|keep (refrigerated|frozen|cool)|best (by|before)|use by|sell by|store in|net wt|serving size|calories|made in|packaged? in|packed (in|by)|questions\??|call \d|www\.|http|may contain|contains traces?|not suitable for|facility that also processes)\b/i;
-  const ADVISORY = /\b(may contain|contains traces?|not suitable for|facility that also processes|manufactured in a facility|made in a facility)\b/i;
+  const ADVISORY = /\b(?:(?:this product )?(?:may|can) (?:also )?contain|contains traces?|not suitable for|facility that also processes|manufactured in a facility|made in a facility|kann spuren|peut contenir|puede contener|pu[òo] contenere|pode conter|kan (?:sporen|innehålla)|mo[żz]e zawiera[ćc])\b/i;
+  const DECLARED_ADVISORY = /^(?:(?:this product )?contains?|contiene|enth[äa]lt|contient|cont[ée]m|bevat|inneh[åa]ller|zawiera)(?:\s*:\s*|\s+)\S/i;
   const splitAdvisory = text => {
     // Amazon's sandwich-cookie label publishes escaped <br/> tags inside its text. If those
     // breaks stay literal, "MAY CONTAIN" makes the entire recipe look like an advisory.
     const lines = String(text || '').replace(/(?:<|&lt;|&#0*60;|&#x0*3c;)\s*br\s*\/?\s*(?:>|&gt;|&#0*62;|&#x0*3e;)/gi, '\n')
-      .split(/(?<=[.!?])\s+(?=[A-Z(*])|;\s*(?=(?:may contain|contains traces?|not suitable for|facility that also processes|manufactured in a facility|made in a facility)\b)|\n+/i);
-    return { ingredients: lines.filter(line => !ADVISORY.test(line)).join(' ').trim(), advisory: lines.filter(line => ADVISORY.test(line)).join(' ').trim() };
+      .split(/(?<=[.!?])\s+(?=[A-Z(*])|\n+/i);
+    const ingredients = [], advisory = [];
+    for (const line of lines) {
+      const start = line.search(ADVISORY);
+      if (start < 0) ingredients.push(line);
+      else {
+        const left = line.slice(0, start).trimEnd().replace(/[,;]$/, '');
+        if (left) ingredients.push(left);
+        advisory.push(line.slice(start));
+      }
+    }
+    return { ingredients: ingredients.join(' ').trim(), advisory: advisory.join(' ').trim() };
   };
 
   // Amazon's ingredients field is sometimes populated with the product NAME plus its pack specs.
@@ -295,6 +306,7 @@
     ['sodium',       new RegExp('\\b(?:sodium|natrium|sodio|s[oó]dio|s[oó]d|sodyum)\\b[^0-9a-zà-ÿ\\u0100-\\u017f\\n]{0,20}' + NUM + '\\s*mg', 'i')],
     ['saturatedFat', new RegExp('\\b(?:saturated fat|ges[äa]ttigte fetts[äa]uren|acides gras satur[eé]s|grasas saturadas|grassi saturi|gorduras saturadas|verzadigde vetzuren|m[äa]ttat fett|m[äa]ttade fettsyror|nasycone kwasy t[łl]uszczowe|kwasy t[łl]uszczowe nasycone|doymu[şs] ya[ğg])[^0-9a-zà-ÿ\\u0100-\\u017f\\n]{0,20}' + NUM + '\\s*g', 'i')],
     ['transFat',     new RegExp('\\btrans fat\\b[^0-9a-zà-ÿ\\u0100-\\u017f\\n]{0,20}' + NUM + '\\s*g', 'i')],
+    ['fat',         new RegExp('\\b(?:total fat|total lipids?|(?<!m[äa]ttat |ges[äa]ttigtes )fett(?: insgesamt)?|mati[eè]res grasses|grasas totales|gorduras totais|grassi|(?<!verzadigde )vetten)\\b[^0-9a-zà-ÿ\\u0100-\\u017f\\n]{0,20}' + NUM + '\\s*g', 'i')],
     ['sugar',        new RegExp('(?<!added )\\b(?:total sugars?|sugars?|zucker|az[uú]cares?|a[çc][uú]cares|sucres?|zuccheri|suikers?|socker(?:arter)?|cukry)\\b[^0-9a-zà-ÿ\\u0100-\\u017f\\n]{0,20}' + NUM + '\\s*g', 'i')],
     // Turkish "Şekerler" starts with a letter `\b` cannot see.
     ['sugar',        new RegExp('(?<![a-zà-ÿ\\u0100-\\u017f])[şs]ekerler?[^0-9a-zà-ÿ\\u0100-\\u017f\\n]{0,20}' + NUM + '\\s*g', 'i')],
@@ -304,7 +316,7 @@
     ['fibre',        new RegExp('\\b(?:dietary fib(?:er|re)|fib(?:er|re)|ballaststoffe|fibra(?:s)?(?: alimentaria| alimentar)?|fibres? alimentaires?|(?:voedings)?vezels?|kostfiber|b[łl]onnik|lif)\\b[^0-9a-zà-ÿ\\u0100-\\u017f\\n]{0,20}' + NUM + '\\s*g', 'i')],
     ['carbs', new RegExp('\\b(?:total carbohydrate|carbohydrates?|kohlenhydrate|glucides|hidratos de carbono|carboidrati|koolhydraten|kolhydrater|w[ęe]glowodany|karbonhidrat)\\b[^0-9a-zà-ÿ\\u0100-\\u017f\\n]{0,20}' + NUM + '\\s*g', 'i')],
     ['protein',      new RegExp('\\b(?:protein|eiweiss|prot[eé]ines?|prote[ií]nas?|eiwitten|bia[łl]ko)\\b[^0-9a-zà-ÿ\\u0100-\\u017f\\n]{0,20}' + NUM + '\\s*g|eiwei[sß][^0-9a-z]{0,20}' + NUM + '\\s*g', 'i')],
-    ['calories',     new RegExp('\\b(?:calories|energie|energ[ií]a|énergie)\\b[^0-9a-zà-ÿ\\u0100-\\u017f\\n]{0,20}' + NUM, 'i')],
+    ['calories',     new RegExp('\\bcalories\\b[^0-9a-zà-ÿ\\u0100-\\u017f\\n]{0,20}' + NUM, 'i')],
   ];
 
   // Amazon's grocery card renders its nutrition summary as a table with the VALUES row above the
@@ -438,7 +450,13 @@
       // EU panels give energy as "1580 kJ / 377 kcal": the kilocalories are the calories, not the
       // first number after "Energie".
       const kcal = text.match(new RegExp('(?<![\\d.,])' + NUM + '\\s*kcal\\b', 'i'));
-      if (kcal && Number.isFinite(toNumber(kcal[1]))) out.calories = toNumber(kcal[1]);
+      const calories = kcal && toNumber(kcal[1], 'kcal');
+      if (Number.isFinite(calories)) out.calories = calories;
+      if (out.calories == null) {
+        const kj = text.match(new RegExp('(?<![\\d.,])' + NUM + '\\s*kj\\b', 'i'));
+        const kilojoules = kj && toNumber(kj[1], 'kj');
+        if (Number.isFinite(kilojoules)) out.calories = Math.round(kilojoules / 4.184);
+      }
       // EU panels declare salt, not sodium; by EU definition salt = sodium × 2.5, so 1 g of salt is
       // 400 mg of sodium. Without this the sodium dial never applied on an EU label.
       if (out.sodium == null) {
@@ -446,6 +464,7 @@
         const grams = salt && toNumber(salt[1]);
         if (Number.isFinite(grams)) out.sodium = Math.round(grams * 400);
       }
+      if (Object.keys(out).length < 2) continue;
       // Stop at the next panel field. An unbounded 40-character window ran straight past the end
       // of the size declaration and into the rows below it, so "Serving size 1 slice Calories 80
       // Total Fat 1g" yielded a ONE GRAM serving — read off the fat line — and every per-100g
@@ -474,7 +493,7 @@
         delete out.servingGrams; delete out.servingMl;
         out[/ml/i.test(basis[0]) ? 'servingMl' : 'servingGrams'] = 100;
       }
-      if (Object.keys(out).length >= 2) return out;
+      return out;
     }
     return null;
   }
@@ -496,9 +515,9 @@
     const warnings = [];
     for (const node of doc.querySelectorAll(selectors)) {
       const text = norm(node.innerText);
-      if (text && text.length <= 2000 && ADVISORY.test(text)) warnings.push(text);
+      if (text && text.length <= 2000 && (ADVISORY.test(text) || DECLARED_ADVISORY.test(text))) warnings.push(text);
     }
-    return [...new Set(warnings)].join(' ');
+    return [...new Set(warnings)].join('\n');
   }
 
   function supplementFacts(doc) {
@@ -615,7 +634,7 @@
       // The title is passed in so a tier can tell a real list from the product name echoed back.
       try { hit = tier(doc, identity.title); } catch (e) { /* a broken tier must never break the page */ }
       if (hit) return { ok: true, ...identity, ...hit,
-        advisoryText: [...new Set([identity.advisoryText, hit.advisoryText].filter(Boolean))].join(' ') };
+        advisoryText: [...new Set([identity.advisoryText, hit.advisoryText].filter(Boolean))].join('\n') };
     }
     // Honest failure. A wrong score is worse than no score.
     return { ok: false, ...identity, reason: identity.upc ? 'no-dom-match-barcode-available' : 'no-dom-match' };

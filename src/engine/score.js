@@ -651,7 +651,7 @@ function joinStatements(parts) {
 // that closes a US or EU label, in the store languages. Everything after the heading must be an allergen
 // (or "none"), so a real ingredient written after the word "contains" is never mistaken for one. Turkish
 // writes the verb after the allergens ("Süt, soya içerir"), which this does not read.
-const DECLARATION_HEAD = /^(?:allerg(?:en|y)s?(?: (?:information|advice|statement|warning|note))?\s*[:\-–]|(?:contains?|contiene|enth[äa]lt|contient|cont[ée]m|bevat|inneh[åa]ller|zawiera)(?:\s*[:\-–]\s*|\s+)(?=\S))/i;
+const DECLARATION_HEAD = /^(?:allerg(?:en|y)s?(?: (?:information|advice|statement|warning|note))?\s*[:\-–]|(?:(?:this product )?contains?|contiene|enth[äa]lt|contient|cont[ée]m|bevat|inneh[åa]ller|zawiera)(?:\s*[:\-–]\s*|\s+)(?=\S))/i;
 const NO_ALLERGEN = /^(?:none|nil|n\/a|no allergens?|nothing)$/i;
 const DECLARATION_ITEMS = /[,;]|\s(?:and|&|und|et|y|e|en|och|ve|oraz)\s/i;
 function allergenDeclaration(text) {
@@ -835,7 +835,7 @@ function parseEntries(text) {
   // The limit is also written with a sign, and with a colon in place of "of": "<2% of: sugar, salt",
   // "less than 2%: sugar". Neither was read, and the first ingredient after it kept the words (90 against 73).
   const flat = joinStrains(numbered.replace(MINOR_BLOCK,
-    (all, lessThan, orLess) => (lessThan ?? orLess) !== undefined && parseFloat(lessThan ?? orLess) <= MINOR_LIMIT ? `,${MINOR_MARK},` : ','))
+    (all, lessThan, orLess) => (lessThan ?? orLess) !== undefined && parseFloat((lessThan ?? orLess).replace(',', '.')) <= MINOR_LIMIT ? `,${MINOR_MARK},` : ','))
     // "...of the following: sugar" left the lead-in glued to the first ingredient ("the following: sugar"),
     // which no anchored rule could read: that sugar was charged nothing.
     .replace(LEAD_IN, ',');
@@ -879,8 +879,8 @@ const weight = i => POSITION_WEIGHTS[i === 0 ? 0 : i <= 2 ? 1 : i <= 6 ? 2 : 3];
 const SHARE_TIERS = [[25, 0], [10, 1], [2, 2]];
 const MINOR_LIMIT = 2;
 const MINOR_MARK = '\u0001minor\u0001';
-const MINOR_BLOCK = new RegExp('(?:\\bcontains\\s+)?(?:\\bless than\\s+|<\\s*)(\\d+(?:\\.\\d+)?)\\s?%(?:\\s+of\\b|\\s*:)'
-  + '|(?:\\bcontains\\s+)?\\b(\\d+(?:\\.\\d+)?)\\s?% or less(?:\\s+of\\b|\\s*:)|\\band\\/or\\b', 'gi');
+const MINOR_BLOCK = new RegExp('(?:\\bcontains\\s*:\\s*|\\bcontains\\s+)?(?:\\bless than\\s+|<\\s*)(\\d+(?:[.,]\\d+)?)\\s*%(?:\\s+of\\b|\\s*:)'
+  + '|(?:\\bcontains\\s*:\\s*|\\bcontains\\s+)?\\b(\\d+(?:[.,]\\d+)?)\\s*% or less(?:\\s+of\\b|\\s*:)|\\band\\/or\\b', 'gi');
 const LEAD_IN = /\b(?:contains\s+)?(?:(?:one|any) or more of\s+|any of\s+|all of\s+)?the following(?:\s+ingredients?)?\s*:/gi;
 const shareWeight = pct => POSITION_WEIGHTS[(SHARE_TIERS.find(([min]) => pct >= min) || [0, 3])[1]];
 const entryWeight = e => {
@@ -957,15 +957,13 @@ function normaliseNutrition(raw) {
   if (values.addedSugar != null && values.sugar != null && values.addedSugar > values.sugar) delete values.addedSugar;
   // Subsets must fit their totals, and independent macronutrients must fit the declared mass.
   // Volume has no mass bound: 100ml is not necessarily 100g. Allow label rounding of up to 2g.
-  if (hasGrams) {
-    const normalizedFat = Number.isFinite(raw.fat) && raw.fat >= 0 ? raw.fat * factor : null;
-    const fat = normalizedFat ?? values.saturatedFat ?? 0;
-    // Scale FDA label rounding tolerance (~0.5g per macro) with 100/serving so small servings stay valid.
-    const macroTolerance = Math.max(2, Math.min(20, 1.5 * factor));
-    if ((values.sugar != null && values.carbs != null && values.sugar > values.carbs + 2)
-      || (normalizedFat != null && values.saturatedFat != null && values.saturatedFat > normalizedFat + 2)
-      || fat + (values.carbs ?? values.sugar ?? 0) + (values.protein || 0) > 100 + macroTolerance) return {values:{},basis:'invalid'};
-  }
+  const normalizedFat = Number.isFinite(raw.fat) && raw.fat >= 0 ? raw.fat * factor : null;
+  const fat = normalizedFat ?? values.saturatedFat ?? 0;
+  // Scale rounding tolerance with 100/serving so small servings stay valid.
+  const macroTolerance = Math.max(2, Math.min(20, 1.5 * factor));
+  if ((values.sugar != null && values.carbs != null && values.sugar > values.carbs + macroTolerance)
+    || (normalizedFat != null && values.saturatedFat != null && values.saturatedFat > normalizedFat + macroTolerance)
+    || (hasGrams && fat + (values.carbs ?? values.sugar ?? 0) + (values.protein || 0) > 100 + macroTolerance)) return {values:{},basis:'invalid'};
   return {values, basis:hasGrams ? 'per 100g' : 'per 100ml'};
 }
 
@@ -990,6 +988,10 @@ const MAY_CONTAIN = new RegExp('^(?:(?:this product )?(?:may|can) (?:also )?cont
   + '|peut contenir|traces? (?:[ée]ventuelles? )?d[e\'’]|kann (?:spuren|.*enthalten)|enth[äa]lt spuren|puede contener|trazas de'
   + '|pu[òo] contenere|tracce di|pode conter|vest[íi]gios de|kan (?:sporen|innehålla|spår)|mo[żz]e zawiera[ćc]'
   + '|.*\\bi[çc]erebilir|eser miktarda)', 'i');
+// Flattened retailer text can place the next warning on the same line. Split on an explicit
+// advisory heading, keeping punctuation between items inside a single declaration.
+const ADVISORY_BREAK = /[.!?]+|(?<=[\s,;])(?=(?:(?:this product )?(?:may|can) (?:also )?contain|not suitable for|peut contenir|kann spuren|enth[äa]lt spuren|puede contener|pu[òo] contenere|pode conter|kan (?:sporen|innehålla)|mo[żz]e zawiera[ćc]|(?:produced|made|manufactured|packed|packaged|processed|prepared|bottled|roasted) (?:in|on|at) (?:a |the |our )?(?:shared |same )?(?:factory|facility|plant|site|premises|equipment|(?:production )?line)|(?<!(?:may|can) (?:also )?)(?:contains? traces?|(?:contains?|contiene|enth[äa]lt|contient|cont[ée]m|bevat|inneh[åa]ller|zawiera)\s*:)))/i;
+const advisoryStatements = text => text.replace(/\s+/g, ' ').split(ADVISORY_BREAK).map(part => part.trim()).filter(Boolean);
 // Notes printed inside the list that are not ingredients: organic footnotes, "gluten free", "contains a
 // source of phenylalanine", "packaged in a protective atmosphere". Like a "may contain" statement they
 // were read as unrecognised ingredients and pulled real lists under the coverage gate.
@@ -1135,8 +1137,10 @@ function score(product, options = {}) {
   // Absence/packaging notes are not allergen declarations: sending "sans gluten" through
   // the advisory detector falsely flags wheat. Preserve actual cross-contact and the Turkish
   // positive declaration "gluten içerir" while leaving unrelated notes out of the detector.
-  const mayContain = [...parsed.filter(e => MAY_CONTAIN.test(e.ing) || /^gluten i[çc]erir$/i.test(e.ing)).map(e => e.ing),
-    ...(product.advisory_text ? [String(product.advisory_text)] : [])];
+  const advisory = [
+    ...parsed.filter(e => MAY_CONTAIN.test(e.ing) || /^gluten i[çc]erir$/i.test(e.ing)).map(e => e.ing),
+    ...(product.advisory_text ? [cleanText(product.advisory_text).replace(/_+/g, '')] : []),
+  ].flatMap(advisoryStatements);
   // The label's own allergen line ("Contains: milk, soy") is set aside from scoring but, unlike a "may contain"
   // warning, it also feeds the avoid list: a reader who avoids soy asked about exactly this.
   const statements = parsed.filter(e => e.parent === 0 && allergenDeclaration(e.ing)).map(e => e.ing);
@@ -1563,9 +1567,13 @@ function score(product, options = {}) {
 
   // Flags never move the score. "Does this contain dairy" is a different question from "is this a
   // good product", and answering both with one number helps nobody.
+  const confirmedAdvisory = advisory.filter(text => !MAY_CONTAIN.test(text) && (allergenDeclaration(text) || /^gluten i[çc]erir$/i.test(text)));
   const flags = db.allergens
-    ? [...(w_('allergens') ? db.allergens.detect([...list, ...declared, ...mayContain], options.allergens || [], options.diets || []) : []),
-       ...(w_('avoidList') ? db.allergens.matchAvoidList([...list, ...declared], options.avoidList || []) : [])]
+    ? [...(w_('allergens') ? [
+      ...db.allergens.detect([...list, ...declared, ...advisory], options.allergens || []),
+      ...db.allergens.detect([...list, ...declared, ...confirmedAdvisory], [], options.diets || []),
+    ] : []),
+    ...(w_('avoidList') ? db.allergens.matchAvoidList([...list, ...declared], options.avoidList || []) : [])]
     : [];
 
   // Keep the existing warning matches, but preserve why an allergen was flagged. A facility
@@ -1574,10 +1582,11 @@ function score(product, options = {}) {
   for (const flag of flags.filter(f => f.kind === 'allergen')) {
     const matches = text => db.allergens.detect([text], [flag.id]).length > 0;
     const ingredient = list.find(matches), declaration = declared.find(matches);
-    const advisory = mayContain.flatMap(text => text.split(/[.;\n]+|(?=\bmay contain\b)/i)).filter(text => text.trim() && matches(text));
-    const contains = advisory.find(text => !MAY_CONTAIN.test(text) && allergenDeclaration(text.trim()));
-    flag.evidence = ingredient ? 'ingredient' : declaration || contains ? 'contains' : advisory.some(text => MAY_CONTAIN.test(text)) ? 'cross-contact' : 'advisory';
-    flag.evidenceText = ingredient || declaration || contains || advisory[0] || flag.ingredient;
+    const matched = advisory.filter(matches);
+    const contains = matched.find(text => !MAY_CONTAIN.test(text) && allergenDeclaration(text));
+    const crossContact = matched.find(text => MAY_CONTAIN.test(text));
+    flag.evidence = ingredient ? 'ingredient' : declaration || contains ? 'contains' : crossContact ? 'cross-contact' : 'advisory';
+    flag.evidenceText = ingredient || declaration || contains || crossContact || matched[0] || flag.ingredient;
   }
 
   // How much of this list the rulebase could actually read. Reported, never scored — a low number

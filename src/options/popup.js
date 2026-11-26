@@ -2,6 +2,8 @@ const CACHE = AIR.db.scoreCache;
 const CATS = AIR.db.categories;
 const PREFS = AIR.db.prefs;
 const KEYS = ['enabled', 'badges', 'foodOnly', 'autoScoreSearch', 'hoverBreakdown', 'hoverScore', 'unitPrice', 'ocrLabels', 'useOpenFoodFacts'];
+const SCORE_KEYS = ['weights', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'avoidList', 'ocrLabels', 'useOpenFoodFacts', 'useUsda',
+  'aiLabels', 'aiRatings', 'sheetIndexRev', 'producerIndexRev', 'speedMode'];
 // Every plain checkbox. useOpenFoodFacts is handled separately because it also drives an
 // optional-permission request. hoverScore was missing from this list, which left the
 // checkbox inert: it never loaded its stored value and never wrote one.
@@ -277,7 +279,7 @@ function asinFromUrl(url) {
 }
 
 function isAmazonUrl(url) {
-  try { return /(^|\.)amazon\./i.test(new URL(url).hostname); }
+  try { return AIR.stores.storeForHost(new URL(url).hostname)?.id === 'amazon'; }
   catch (e) { return false; }
 }
 
@@ -293,10 +295,11 @@ function productOnPage(url) {
 
 // The "This page" card from a content script's own answer (see paintPageScore). The entry is the
 // score the page just computed, validated like any cached score before it is shown.
-function paintStoreCard(card, live, adapter) {
+function paintStoreCard(card, live, adapter, turn) {
   let version = '';
   try { version = chrome.runtime.getManifest().version; } catch (e) { /* ignore */ }
-  chrome.storage.local.get(['weights', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'avoidList', 'sheetIndexRev', 'producerIndexRev', 'speedMode'], obj => {
+  chrome.storage.local.get(SCORE_KEYS, obj => {
+    if (turn !== pageScoreTurn) return;
     if (!CACHE.valid(live, { store: live.store, asin: live.asin, version, prefs: obj, allowManual: true, maxAgeMs: maxAgeFor(obj.speedMode) })) {
       card.hidden = true;
       return;
@@ -331,10 +334,35 @@ function paintStoreCard(card, live, adapter) {
   });
 }
 
+// A candidate must appear beside this product in the same completed search and still have a valid local score.
+async function findPageSwap(sorted, tab, hit, context) {
+  const R = AIR.db.sortedResults;
+  const url = R.sanitizeSourceUrl(sorted?.sourceUrl);
+  if (!url || sorted.loading || sorted.priceOnly || !Number.isInteger(tab.windowId) || sorted.sourceWindowId !== tab.windowId
+    || CACHE.normalizeStore(new URL(url).hostname) !== CACHE.normalizeStore(hit.store)) return null;
+  const scope = R.scopeFor(url);
+  if (scope?.kind !== 'amazon') return null;
+  const items = R.sanitizeResults(sorted.items, scope);
+  const target = items.find(item => item.asin === hit.asin && item.score === hit.score && item.category === 'food');
+  if (!target) return null;
+  const candidates = items.filter(item => item.asin !== hit.asin && item.score >= hit.score + 15 && item.category === 'food'
+    && item.url && productOnPage(item.url) === item.asin && CACHE.normalizeStore(new URL(item.url).hostname) === CACHE.normalizeStore(hit.store));
+  if (!candidates.length) return null;
+  const cached = await chrome.storage.local.get(candidates.map(item => CACHE.key(hit.store, item.asin)));
+  const fresh = candidates.filter(item => {
+    const row = cached[CACHE.key(hit.store, item.asin)];
+    return CACHE.valid(row, { ...context, asin: item.asin }) && row.score === item.score && !isIndex(row);
+  });
+  return AIR.db.shopping.cleanerSwaps(target, fresh, { minGain: 15, limit: 1, family: AIR.db.unitPrice.familyOf(sorted.unit) })[0] || null;
+}
+
+let pageScoreTurn = 0;
 function paintPageScore() {
   const card = document.getElementById('pageScore');
   if (!card || !chrome.tabs || typeof chrome.tabs.query !== 'function') return;
+  const turn = ++pageScoreTurn;
   chrome.tabs.query({ active: true, currentWindow: true }, async tabs => {
+    if (turn !== pageScoreTurn) return;
     const tab = tabs && tabs[0];
     let url = tab && tab.url;
     // A store the extension reaches only through a content script (Target) grants no host
@@ -343,10 +371,11 @@ function paintPageScore() {
     if (!url && tab && typeof tab.id === 'number') {
       let live = null;
       try { live = await chrome.tabs.sendMessage(tab.id, { type: 'currentPageScore' }); } catch { /* no content script */ }
+      if (turn !== pageScoreTurn) return;
       if (live && live.store && live.asin) url = `https://www.${live.store}/`;
       if (url) {
         const adapter = Object.values(AIR.storeAdapters || {}).find(a => a.matchesHost(new URL(url).hostname));
-        if (adapter) return paintStoreCard(card, live, adapter);
+        if (adapter) return paintStoreCard(card, live, adapter, turn);
       }
     }
     const asin = url ? productOnPage(url) : null;
@@ -369,9 +398,10 @@ function paintPageScore() {
     }
     const store = new URL(url).hostname;
     const key = CACHE.key(store, asin);
-    chrome.storage.local.get([key, 'weights', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'avoidList', 'ocrLabels', 'useOpenFoodFacts', 'sheetIndexRev', 'producerIndexRev', 'speedMode'], async obj => {
+    chrome.storage.local.get([key, ...SCORE_KEYS], async obj => {
       let live = null;
       try { live = await chrome.tabs.sendMessage(tab.id, { type: 'currentPageScore' }); } catch { /* tab has no active content script */ }
+      if (turn !== pageScoreTurn) return;
       const context = { store, asin, version, prefs: obj, maxAgeMs: maxAgeFor(obj.speedMode) };
       const hit = CACHE.valid(live, { ...context, allowManual: true }) ? live : obj[key];
       card.textContent = '';
@@ -415,26 +445,18 @@ function paintPageScore() {
       row.append(num, meta);
       card.append(kicker, row);
       if (!isIndex(hit) && typeof hit.score === 'number' && hit.score < 60 && AIR.db.shopping?.cleanerSwaps && chrome.storage.session?.get) {
-        chrome.storage.session.get('sortedResults', sess => {
-          void chrome.runtime.lastError;
-          const sorted = sess?.sortedResults, rule = AIR.db.sortedResults;
-          const sourceUrl = rule?.sanitizeSourceUrl(sorted?.sourceUrl);
-          if (!sourceUrl || !row.isConnected || CACHE.normalizeStore(new URL(sourceUrl).hostname) !== CACHE.normalizeStore(hit.store)) return;
-          const scope = rule.scopeFor(sourceUrl);
-          if (scope?.kind !== 'amazon') return;
-          const items = rule.sanitizeResults(sorted.items, scope);
-          const swap = AIR.db.shopping.cleanerSwaps({ asin, score: hit.score, category: 'food', ratingStyle: 'food' }, items, { minGain: 15, limit: 1 })[0];
-          if (!swap) return;
+        try {
+          const { sortedResults } = await chrome.storage.session.get('sortedResults');
+          const swap = await findPageSwap(sortedResults, tab, hit, context);
+          if (!swap || turn !== pageScoreTurn || !row.isConnected) return;
           const p = document.createElement('p');
           p.className = 'ps-swap';
-          const label = msg('popupCleanerSwap', 'Cleaner swap (+$1 pts): $2', swap.scoreDelta, (swap.product.title || swap.product.asin || '').slice(0, 56));
-          if (swap.product.url && /^https:\/\//.test(swap.product.url)) {
-            const a = document.createElement('a');
-            a.href = swap.product.url; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = label;
-            p.append(a);
-          } else p.textContent = label;
+          const a = document.createElement('a');
+          a.href = swap.product.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+          a.textContent = msg('popupCleanerSwap', 'Higher-scoring search result (+$1 pts): $2', swap.scoreDelta, swap.product.title.slice(0, 56));
+          p.append(a);
           card.append(p);
-        });
+        } catch { /* the product score still shows without a comparison */ }
       }
     });
   });
@@ -498,6 +520,7 @@ function fillCompareSelect(select, listed, chosen) {
   return select.value;
 }
 
+let compareTurn = 0;
 function paintCompare() {
   const block = document.getElementById('compareBlock');
   const empty = document.getElementById('compareEmpty');
@@ -506,19 +529,15 @@ function paintCompare() {
   const selA = document.getElementById('compareA');
   const selB = document.getElementById('compareB');
   if (!block || !empty || !pick || !grid || !selA || !selB) return;
+  const turn = ++compareTurn;
   let version = '';
   try { version = chrome.runtime.getManifest().version; } catch (e) { /* ignore */ }
   // Only the saved scores and the settings they are checked against, not the product readings.
   (async () => {
     const scoreKeys = (await CACHE.storedKeys(chrome.storage.local)).filter(k => k.startsWith('s:'));
-    const all = await chrome.storage.local.get([...scoreKeys, 'weights', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'avoidList', 'ocrLabels', 'useOpenFoodFacts',
-      'sheetIndexRev', 'producerIndexRev', 'compareA', 'compareB', 'speedMode']);
-    const prefs = {
-      weights: all.weights, foodOnly: all.foodOnly, ratingStyle: all.ratingStyle, personalCareEnabled: all.personalCareEnabled, avoidList: all.avoidList, ocrLabels: all.ocrLabels,
-      useOpenFoodFacts: all.useOpenFoodFacts,
-      sheetIndexRev: all.sheetIndexRev, producerIndexRev: all.producerIndexRev,
-    };
-    const listed = CACHE.listScores(all, { version, prefs, maxAgeMs: maxAgeFor(all.speedMode) });
+    const all = await chrome.storage.local.get([...scoreKeys, ...SCORE_KEYS, 'compareA', 'compareB']);
+    if (turn !== compareTurn) return;
+    const listed = CACHE.listScores(all, { version, prefs: all, maxAgeMs: maxAgeFor(all.speedMode) });
     if (listed.length < 2) {
       block.hidden = true;
       empty.hidden = false;
@@ -547,7 +566,7 @@ function paintCompare() {
       const note = document.createElement('p'); note.textContent = msg('compareMixed', 'Different categories or rating styles: these scores are not directly comparable.'); grid.append(note);
     }
     if (aKey !== all.compareA || bKey !== all.compareB) persist({ compareA: aKey, compareB: bKey });
-  })().catch(() => { block.hidden = true; });
+  })().catch(() => { if (turn === compareTurn) block.hidden = true; });
 }
 
 function wireCompare() {
@@ -582,7 +601,13 @@ function paintWhy(on) {
 }
 
 chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'session' && changes.sortedResults) { paintPageScore(); return; }
   if (area && area !== 'local') return;
+  if (Object.keys(changes).some(k => /^(s|p|off):/.test(k) || SCORE_KEYS.includes(k))) {
+    paintCacheCount();
+    paintPageScore();
+    paintCompare();
+  }
   const ext = Object.fromEntries(Object.entries(changes).filter(([k]) => !pendingKeys.has(k)));
   if (!Object.keys(ext).length) return;
   if (ext.settingsLevel || ext.onboarded) chrome.storage.local.get(['settingsLevel', 'onboarded'], o => applyLevel(PREFS.levelOf(o)));
@@ -602,11 +627,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
     renderPresets(o.weights, o.goals);
   });
   if (ext.popupShowWhy) paintWhy(ext.popupShowWhy.newValue === true);
-  if (Object.keys(ext).some(k => /^(s|p|off):/.test(k) || ['weights', 'foodOnly', 'ratingStyle', 'personalCareEnabled', 'avoidList', 'ocrLabels', 'useOpenFoodFacts', 'sheetIndexRev', 'producerIndexRev', 'compareA', 'compareB'].includes(k))) {
-    paintCacheCount();
-    paintPageScore();
-    paintCompare();
-  }
+  if (ext.compareA || ext.compareB) paintCompare();
 });
 
 document.getElementById('openSidePanel')?.addEventListener('click', () => {

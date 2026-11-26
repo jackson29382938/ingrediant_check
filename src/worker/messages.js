@@ -12,7 +12,7 @@ var PAGE_MESSAGE_TYPES = new Set([
   'contribute', 'report', 'diagnostic', 'productsLookup', 'productsQueue',
   // Amazon's sort menu (src/content/sort.js): open the side panel, send the list as it fills in, and
   // open it in a tab when Chrome would not open the panel.
-  'openSortedPanel', 'updateSortedResults', 'openSortedTab', 'followSortedSearch',
+  'openSortedPanel', 'updateSortedResults', 'openSortedTab', 'followSortedSearch', 'cancelSortedList',
   // A line for "Report a problem"'s recent actions (engine/db/activity.js).
   'logAction',
 ]);
@@ -36,7 +36,7 @@ var AMAZON_HOST = /(^|\.)amazon\.(com|co\.uk|ca|com\.au|ie|in|sg|ae|sa|de|fr|es|
 // open the side panel, send the list as it fills in, follow a new search, open a tab when the panel cannot open, and
 // leave a line in "Report a problem". None of these makes the worker request anything: the list is checked
 // against the sender's own store (sorted-results.js scopeFor) and kept in session storage. Worker network paths stay Amazon-only.
-var RETAILER_MESSAGE_TYPES = new Set(['pageScore', 'openSortedPanel', 'updateSortedResults', 'openSortedTab', 'followSortedSearch', 'logAction']);
+var RETAILER_MESSAGE_TYPES = new Set(['pageScore', 'openSortedPanel', 'updateSortedResults', 'openSortedTab', 'followSortedSearch', 'cancelSortedList', 'logAction']);
 var RETAILER_HOST = /^(?:www\.)?(?:target\.com|walmart\.com|costco\.com|instacart\.com|kroger\.com|frysfood\.com|ralphs\.com|kingsoopers\.com|smithsfoodanddrug\.com|fredmeyer\.com|qfc\.com|harristeeter\.com|dillons\.com|safeway\.com|albertsons\.com)$/i;
 
 function isOwnExtension(sender) {

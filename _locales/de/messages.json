@@ -1066,6 +1066,9 @@
   "sortedStopped": {
     "message": "Das Laden der Ergebnisse wurde gestoppt."
   },
+  "sortedInterrupted": {
+    "message": "Das Laden wurde gestoppt, weil sich die Quellseite oder ihre Einstellungen geändert haben."
+  },
   "sortedStopFailed": {
     "message": "Das Laden konnte nicht gestoppt werden. Versuche es erneut."
   },
@@ -2106,6 +2109,27 @@
   "exportShortlist": {
     "message": "Gespeicherte Produkte exportieren"
   },
+  "exportShortlistCsv": {
+    "message": "Ausgewählte Liste als CSV exportieren"
+  },
+  "localAiCheck": {
+    "message": "Mit lokaler KI prüfen"
+  },
+  "localAiHint": {
+    "message": "Schätzt unbekannte Zutaten auf diesem Gerät ein. Chrome muss sein Modell möglicherweise erst herunterladen."
+  },
+  "localAiWorking": {
+    "message": "Unbekannte Zutaten werden auf diesem Gerät geprüft…"
+  },
+  "localAiDownload": {
+    "message": "Chrome-Modell wird heruntergeladen ($1 %) …"
+  },
+  "localAiNoEstimate": {
+    "message": "Das Chrome-Modell lieferte keine brauchbaren Einschätzungen."
+  },
+  "localAiFailed": {
+    "message": "Die lokale KI ist nicht verfügbar. Das Etikett wurde ohne KI geprüft."
+  },
   "shortlistExportFailed": {
     "message": "Export fehlgeschlagen. Versuche es erneut."
   },
@@ -2507,7 +2531,7 @@
     "message": "Seitenleiste"
   },
   "popupCleanerSwap": {
-    "message": "Saubere Alternative (+$FIRST$ Pkt.): $SECOND$",
+    "message": "Suchergebnis mit höherer Bewertung (+$FIRST$ Pkt.): $SECOND$",
     "placeholders": {
       "first": {
         "content": "$1"

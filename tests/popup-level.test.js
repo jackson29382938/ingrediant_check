@@ -120,3 +120,36 @@ test('the popup listens for level changes before its write guard, and never writ
   assert.ok(!/persist\(\s*\{\s*settingsLevel/.test(script) && !/save\('settingsLevel'/.test(script));
   assert.ok(script.includes("'settingsLevel', 'onboarded'"), 'the first read asks for the level');
 });
+
+test('popup suggestions require membership in the completed search and currently valid saved scores', async () => {
+  const stores = require('../src/stores/registry.js');
+  const CACHE = require('../src/engine/db/score-cache.js');
+  const sortedResults = require('../src/engine/db/sorted-results.js');
+  const unitPrice = require('../src/engine/db/unit-price.js');
+  const shopping = require('../src/engine/db/shopping.js');
+  assert.match(popup, /src="\.\.\/engine\/db\/sorted-results\.js"/);
+  const store = 'amazon.com', version = '1.28.2';
+  const target = { store, asin: 'B000000001', score: 30 };
+  const alternate = { asin: 'B000000002', score: 85, url: 'https://www.amazon.com/dp/B000000002' };
+  const sorted = { sourceUrl: 'https://www.amazon.com/s?k=oats', sourceWindowId: 1, items: [target, alternate] };
+  const row = { schema: CACHE.SCHEMA, cacheRevision: CACHE.CACHE_REVISION, store, asin: alternate.asin, score: alternate.score,
+    source: 'label-ai', prefs: CACHE.fingerprint({ aiLabels: true }, 'label-ai'), v: version, t: Date.now() };
+  const cached = { [CACHE.key(store, alternate.asin)]: row };
+  const ctx = vm.createContext({
+    URL, CACHE, AIR: { stores, db: { sortedResults, unitPrice, shopping } },
+    chrome: { storage: { local: { get: async () => cached } } },
+  });
+  const helper = name => script.match(new RegExp(`(?:async )?function ${name}\\([^\\n]*\\n[\\s\\S]*?\\n\\}`))[0];
+  const find = vm.runInContext(['asinFromUrl', 'isAmazonUrl', 'productOnPage', 'findPageSwap'].map(helper).join('\n') +
+    '\nconst isIndex = hit => hit?.category && hit.category !== "food";\nfindPageSwap', ctx);
+  const tab = { windowId: 1 };
+  const context = { store, version, prefs: { aiLabels: true } };
+  assert.equal((await find(sorted, tab, target, context)).product.asin, alternate.asin);
+  assert.equal(await find(sorted, tab, target, { ...context, prefs: { aiLabels: false } }), null);
+  assert.equal(await find(sorted, { windowId: 2 }, target, context), null);
+  assert.equal(await find({ ...sorted, loading: true }, tab, target, context), null);
+  assert.equal(await find({ ...sorted, items: [alternate] }, tab, target, context), null);
+  assert.equal(await find({ ...sorted, items: [target, { ...alternate, url: 'https://www.amazon.ca/dp/B000000002' }] }, tab, target, context), null);
+  row.score = 70;
+  assert.equal(await find(sorted, tab, target, context), null);
+});

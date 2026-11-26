@@ -50,6 +50,23 @@ check('every declared file exists', () => {
   if (missing.length) throw new Error('missing: ' + missing.join(', '));
   return `${files.length} declared files present`;
 });
+check('extension pages resolve their scripts and styles', () => {
+  let references = 0;
+  for (const directory of ['src/options', 'src/offscreen']) {
+    for (const name of fs.readdirSync(path.join(root, directory)).filter(name => name.endsWith('.html'))) {
+      const page = path.posix.join(directory, name);
+      const files = read(page).matchAll(/<(?:script\b[^>]*\bsrc|link\b[^>]*\bhref)\s*=\s*(["'])([^"']+)\1/gi);
+      for (const [, , ref] of files) {
+        const resolved = path.resolve(root, directory, ref);
+        if (!resolved.startsWith(root + path.sep) || !fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) {
+          throw new Error(`${page}: unresolvable ${ref}`);
+        }
+        references++;
+      }
+    }
+  }
+  return `${references} extension page scripts and styles resolve`;
+});
 check('permissions and CSP match the features', () => {
   if (!manifest.permissions.includes('offscreen')) throw new Error('offscreen permission missing (OCR)');
   // activeTab is only for the report's screenshot (chrome.tabs.captureVisibleTab needs it or
@@ -167,13 +184,6 @@ check('the core build the worker asks for, not the split pair', () => {
     throw new Error('split .js/.wasm vendored; the worker importScripts()s the combined .wasm.js');
   }
   return 'combined .wasm.js vendored';
-});
-check('offscreen page resolves its scripts', () => {
-  const html = read('src/offscreen/ocr.html');
-  const srcs = [...html.matchAll(/<script src="([^"]+)"/g)].map(m => m[1]);
-  const missing = srcs.filter(s => !fs.existsSync(path.resolve(root, 'src/offscreen', s)));
-  if (missing.length) throw new Error('unresolvable: ' + missing.join(', '));
-  return `${srcs.length} scripts resolve`;
 });
 check('OCR assets are not web-accessible', () => {
   const war = (manifest.web_accessible_resources || []).flatMap(r => r.resources || []);

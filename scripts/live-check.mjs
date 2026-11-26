@@ -41,7 +41,7 @@ const SITES = {
   dillons: { search: 'https://www.dillons.com/search?query=organic+rolled+oats', link: 'a[href*="/p/"]', product: /\/p\/[^/]+\/(\d{10,14})\/?$/ , known: 'https://www.dillons.com/p/doritos-nacho-cheese-tortilla-chips/0002840051646' },
   safeway: { search: 'https://www.safeway.com/shop/search-results.html?q=organic+rolled+oats', link: 'a[href*="/shop/"]', product: /\/shop\/(?:pd\/product\/|product-details\.)(\d+)(?:\.html)?\/?$/ , known: 'https://www.safeway.com/shop/pd/product/111050071' },
   albertsons: { search: 'https://www.albertsons.com/shop/search-results.html?q=organic+rolled+oats', link: 'a[href*="/shop/"]', product: /\/shop\/(?:pd\/product\/|product-details\.)(\d+)(?:\.html)?\/?$/ , known: 'https://www.albertsons.com/shop/pd/product/111050071' },
-  instacart: { search: 'https://www.instacart.com/store/s?k=organic+rolled+oats', link: 'a[href*="/products/"]', product: /\/products\/(\d+)(?:[-/]|$)/ },
+  instacart: { search: 'https://www.instacart.com/store/s?k=organic+rolled+oats', link: 'a[href*="/products/"], a[href*="/items/"]', product: /\/(?:products|items)\/(\d+)(?:[-/]|$)/ },
 };
 const CHALLENGE = /press\s*&\s*hold|robot or human|verify you are human|access denied|are you a robot|unusual traffic|captcha|temporarily blocked|just a moment/i;
 

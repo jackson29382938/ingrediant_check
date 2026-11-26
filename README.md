@@ -170,6 +170,9 @@ Use **Check a label · Saved & compare** in the popup to paste ingredients, choo
 photo, or explicitly look up a barcode. Review photo text before scoring. **Save product** on a
 product's score panel keeps its label in a local shopping list, independently of expiring caches.
 **Export saved products** downloads your shopping lists and their saved label evidence as JSON.
+**Export selected list as CSV** downloads the filtered list with current scores and warning matches.
+On supported Chrome installations, **Check with on-device AI** can estimate unfamiliar ingredients
+in a Library label you review. Chrome may download its model the first time you use it.
 
 Detailed comparisons show current-goal scores, warning evidence, available nutrients, missing
 factors and score contributions. Goal previews leave your settings unchanged. Amazon's comparison

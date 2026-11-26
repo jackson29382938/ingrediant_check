@@ -104,6 +104,16 @@ test('cached product readings preserve separately published cross-contact warnin
   assert.equal(cached.score, fresh.score, 'warnings do not alter the ingredient score');
   assert.equal(C.stale(again, NOW), false);
 });
+test('cached readings keep ingredient separators and warning statements distinct', () => {
+  const product = input({ ingredients_text: 'Oats\nSugar\nSalt', advisory_text: 'Contains milk\nMay contain soy' });
+  const original = engine.score(product, { allergens: ['milk', 'soy'] });
+  const restored = C.toInput(C.sanitize(JSON.parse(JSON.stringify(scanned({ input: product }))), NOW));
+  assert.equal(restored.ingredients_text, product.ingredients_text);
+  assert.equal(restored.advisory_text, product.advisory_text);
+  const cached = engine.score(restored, { allergens: ['milk', 'soy'] });
+  assert.deepEqual(cached.flags, original.flags);
+  assert.equal(cached.score, original.score);
+});
 test('older product rows that discarded advisory text must be reread', () => {
   const old = scanned();
   delete old.data.advisory_text;

@@ -1081,6 +1081,9 @@
   "sortedStopped": {
     "message": "Stopped loading results."
   },
+  "sortedInterrupted": {
+    "message": "Loading stopped because the source page or its settings changed."
+  },
   "sortedStopFailed": {
     "message": "Could not stop loading. Try again."
   },
@@ -2109,6 +2112,27 @@
   "exportShortlist": {
     "message": "Export saved products"
   },
+  "exportShortlistCsv": {
+    "message": "Export selected list as CSV"
+  },
+  "localAiCheck": {
+    "message": "Check with on-device AI"
+  },
+  "localAiHint": {
+    "message": "Estimates unknown ingredients on this device. Chrome may need to download its model first."
+  },
+  "localAiWorking": {
+    "message": "Checking unfamiliar ingredients on this device…"
+  },
+  "localAiDownload": {
+    "message": "Downloading Chrome’s model ($1%)…"
+  },
+  "localAiNoEstimate": {
+    "message": "Chrome’s model returned no usable estimates."
+  },
+  "localAiFailed": {
+    "message": "On-device AI is unavailable. The regular label check was used."
+  },
   "shortlistExportFailed": {
     "message": "Could not export saved products — try again"
   },
@@ -2507,7 +2531,7 @@
     "message": "Side panel"
   },
   "popupCleanerSwap": {
-    "message": "Cleaner swap (+$FIRST$ pts): $SECOND$",
+    "message": "Higher-scoring search result (+$FIRST$ pts): $SECOND$",
     "placeholders": {
       "first": {
         "content": "$1"

@@ -382,6 +382,18 @@ test('an unreadable product page is answered by a saved reading before OCR or th
   assert.equal(w.rendered.length, 1, 'shown at once, before any re-read');
 });
 
+test('saved photo warnings survive alongside an advisory published on the open product page', () => {
+  for (const advisory_text of ['Contains peanuts', 'May contain soy\nContains peanuts']) {
+    const row = cachedRow('B000000001', { via: 'label-ocr', input: { name: 'Kefir', ingredients_text: 'cultured milk, cane sugar', advisory_text } });
+    const w = cacheSetup({ local: { [PC.localKey('amazon.com', 'B000000001')]: { ...row, t: Date.parse(row.scanned_at) } } });
+    w.h.state.ocrLabels = true;
+    w.context.AIR.extract.extract = () => ({ ok: false, title: 'Kefir', asin: 'B000000001', advisoryText: 'May contain soy' });
+    w.h.scoreCurrentPage();
+    assert.equal(w.host.dataset.airState, 'scored');
+    assert.equal(w.rendered.at(-1).input.advisory_text, 'May contain soy\nContains peanuts');
+  }
+});
+
 // Opening the product page always reads it again: the saved reading shows first, then the label
 // photo (or the barcode lookup) is read, and replaces the saved one only when it differs.
 function refreshSetup(ocrText) {
@@ -874,10 +886,15 @@ function mountedSort({ enabled = true } = {}) {
   const c = w.context;
   w.listener = null;
   w.updates = [];
+  w.cancelledSorts = [];
   c.chrome.runtime.id = 'ext';
   c.chrome.runtime.onMessage = { addListener: fn => { w.listener = fn; } };
   const send = c.chrome.runtime.sendMessage;
-  c.chrome.runtime.sendMessage = (m, cb) => { if (m.type === 'updateSortedResults') w.updates.push(m); return send(m, cb); };
+  c.chrome.runtime.sendMessage = (m, cb) => {
+    if (m.type === 'updateSortedResults') w.updates.push(m);
+    if (m.type === 'cancelSortedList') w.cancelledSorts.push(m.runId);
+    return send(m, cb);
+  };
   c.window = c.window || {};
   c.window.addEventListener = c.window.addEventListener || (() => {});
   c.MutationObserver = class { observe() {} disconnect() {} };
@@ -934,6 +951,15 @@ test('shortcut: a second key press supersedes the first list', async () => {
   assert.equal(w.sort.runId, 'second-2');
   await flushAll();
   assert.ok(w.updates.some(u => u.runId === 'second-2'));
+});
+
+test('leaving an active sort asks the worker to keep its partial results and settle the list', async () => {
+  const w = mountedSort();
+  w.ask({ type: 'sortStart', mode: 'health', runId: 'interrupted' });
+  w.sort.unmount();
+  await flushAll();
+  assert.deepEqual(w.cancelledSorts, ['interrupted']);
+  assert.equal(w.updates.length, 0);
 });
 
 test('Amazon Fresh arms titled carousel cards without a data-asin, using only same-store links', () => {

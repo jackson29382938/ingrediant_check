@@ -32,6 +32,7 @@
 // Empty turns account storage off.
 var OAUTH_CLIENT_ID = '483888107675-hofgo4a3uh1g2khv4hja9ci8nhama6tk.apps.googleusercontent.com';
 var BACKEND_SCHEMA_VERSION = 2;
+var SCRIPT_REVISION = '2026-11-25.1';
 
 var DIAGNOSTIC_COLUMNS = ["ts","version","store","asin","upc","brand","product_name","source","via","confidence","gate","coverage","parsed","score","verdict","nova","base","cap","penalties","bonuses","flags","provenance","weights","ingredients","outcome","feedback"];
 
@@ -292,7 +293,7 @@ function handleGet(e) {
   // `accounts` says whether Google account storage has a client id, so a deployment can be checked
   // by opening the /exec URL: `"accounts":true` means this version is live and configured.
   var clientId = PropertiesService.getScriptProperties().getProperty('OAUTH_CLIENT_ID') || OAUTH_CLIENT_ID;
-  return json({ ok: true, service: 'ingredient-check', schemaVersion: BACKEND_SCHEMA_VERSION, diagnosticsSchema: 2, accounts: !!clientId, history: !!clientId, historySchema: 1, historyCapacity: AIR.db.purchaseHistory.MAX,
+  return json({ ok: true, service: 'ingredient-check', schemaVersion: BACKEND_SCHEMA_VERSION, scriptRevision: SCRIPT_REVISION, diagnosticsSchema: 2, accounts: !!clientId, history: !!clientId, historySchema: 1, historyCapacity: AIR.db.purchaseHistory.MAX,
     accepts: ['lookup', 'usda', 'products', 'diagnostics', 'report', 'account', 'accountGet', 'historyGet', 'historyPut', 'historyClear', 'contribution'] });
 }
 
@@ -331,8 +332,11 @@ function productIndex(sheet) {
   return { at: at, count: count };
 }
 
-// ponytail: reads the key column on every lookup — O(rows) per request, fine into the tens of
-// thousands of products. Past that, keep a key->row map in CacheService or move off Sheets.
+function productRanges(sheet, indexes) {
+  return indexes.length ? sheet.getRangeList(indexes.map(function (i) { return 'A' + (i + 2) + ':G' + (i + 2); })).getRanges() : [];
+}
+
+// shortcut: each request reads the key column, revisit indexing when live lookup latency warrants it.
 function lookupProducts(keys) {
   if (!Array.isArray(keys) || keys.length > LOOKUP_MAX) throw new Error('invalid lookup');
   if (!productsOpen()) return json({ ok: true, rows: [], closed: true });
@@ -346,8 +350,7 @@ function lookupProducts(keys) {
     if (i !== undefined && hits.indexOf(i) === -1) hits.push(i);
   });
   if (!hits.length) return json({ ok: true, rows: [] });
-  var ranges = sheet.getRangeList(hits.map(function (i) { return 'A' + (i + 2) + ':G' + (i + 2); })).getRanges();
-  var rows = ranges.map(function (range) {
+  var rows = productRanges(sheet, hits).map(function (range) {
     var r = range.getValues()[0];
     var data = null;
     try { data = JSON.parse(unquote(r[4])); } catch (err) { data = null; }
@@ -357,50 +360,54 @@ function lookupProducts(keys) {
   return json({ ok: true, rows: rows });
 }
 
-// ponytail: reads and rewrites the whole tab under the script lock on every batch — O(rows) per
-// POST. Fine into the low tens of thousands of rows; past that, prune stale rows or switch to
-// per-row writes (TextFinder on the key column + setValues on the one row).
 function writeProducts(body) {
   if (!productsOpen()) return json({ ok: false, error: 'products closed', tab: 'products' });
   var upserts = Array.isArray(body.upserts) ? body.upserts : [];
   var pulls = Array.isArray(body.pulls) ? body.pulls : [];
   if (upserts.length + pulls.length > PRODUCTS_MAX) throw new Error('invalid products batch');
   var sheet = sheetFor('products', PRODUCT_COLUMNS);
-  var count = Math.max(0, sheet.getLastRow() - 1);
-  var values = count ? sheet.getRange(2, 1, count, PRODUCT_COLUMNS.length).getValues() : [];
-  var at = {};
-  values.forEach(function (r, i) { at['k' + unquote(r[0])] = i; });
+  var index = productIndex(sheet), at = index.at;
+  upserts = upserts.map(cleanProduct).filter(Boolean);
+  pulls = pulls.filter(function (p) { return p && typeof p.key === 'string' && isFinite(Date.parse(p.scanned_at)); });
+  var touched = Array.from(new Set(upserts.concat(pulls).map(function (p) { return at['k' + p.key]; })
+    .filter(function (i) { return i !== undefined; })));
+  var values = new Map(), dirty = new Set(), appended = [];
+  productRanges(sheet, touched).forEach(function (range, n) { values.set(touched[n], range.getValues()[0]); });
   var upserted = 0, pulled = 0;
-  upserts.forEach(function (raw) {
-    var row = cleanProduct(raw);
-    if (!row) return;
+  upserts.forEach(function (row) {
     var cells = PRODUCT_COLUMNS.map(function (c) { return row[c]; });
     var i = at['k' + row.key];
     if (i === undefined) {
-      at['k' + row.key] = values.length;
-      values.push(cells);
-    } else if (!(Date.parse(unquote(values[i][5])) >= Date.parse(row.scanned_at))) {
-      values[i] = cells;            // a newer scan replaces the row and resets its pulls
-    } else {
-      return;                       // an older scan never overwrites a newer one
+      i = index.count + appended.length;
+      at['k' + row.key] = i;
+      appended.push(i);
+    } else if (Date.parse(unquote(values.get(i)[5])) >= Date.parse(row.scanned_at)) {
+      return;
     }
+    values.set(i, cells);
+    if (i < index.count) dirty.add(i);
     upserted++;
   });
   pulls.forEach(function (p) {
-    var i = p && at['k' + String(p.key)];
-    var t = p && Date.parse(p.scanned_at);
+    var i = at['k' + p.key], cells = values.get(i);
     // A pull counts only against the scan the reader actually saw.
-    if (i === undefined || !isFinite(t) || unquote(values[i][5]) !== new Date(t).toISOString()) return;
-    values[i][6] = (Number(values[i][6]) || 0) + Math.min(100, Math.max(1, Math.floor(Number(p.n) || 1)));
+    if (!cells || unquote(cells[5]) !== new Date(Date.parse(p.scanned_at)).toISOString()) return;
+    cells[6] = (Number(cells[6]) || 0) + Math.min(100, Math.max(1, Math.floor(Number(p.n) || 1)));
+    if (i < index.count) dirty.add(i);
     pulled++;
   });
-  if (upserted || pulled) {
-    // A leading ' keeps text as text: ISO dates and all-digit ASINs would otherwise be converted,
-    // and =+-@ would be evaluated as formulas.
-    sheet.getRange(2, 1, values.length, PRODUCT_COLUMNS.length).setValues(values.map(function (r) {
-      return r.map(function (v) { return typeof v === 'string' && v !== '' ? "'" + unquote(v) : v; });
-    }));
+  function storedCells(i) {
+    // Keep ISO dates, numeric identifiers and untrusted text from being interpreted by Sheets.
+    return values.get(i).map(function (v) { return typeof v === 'string' && v !== '' ? "'" + unquote(v) : v; });
   }
+  var indexes = Array.from(dirty).sort(function (a, b) { return a - b; });
+  for (var start = 0; start < indexes.length;) {
+    var end = start + 1;
+    while (end < indexes.length && indexes[end] === indexes[end - 1] + 1) end++;
+    sheet.getRange(indexes[start] + 2, 1, end - start, PRODUCT_COLUMNS.length).setValues(indexes.slice(start, end).map(storedCells));
+    start = end;
+  }
+  appendSheetRows(sheet, appended.map(storedCells));
   SpreadsheetApp.flush();
   return json({ ok: true, wrote: 1, tab: 'products', upserted: upserted, pulled: pulled });
 }
@@ -525,7 +532,7 @@ function writeHistory(token, payload, identity) {
     if (at[r.key]) sheet.getRange(at[r.key], 1, 1, 3).setValues([row]); else toAppend.push(row);
   });
   if (toAppend.length) {
-    sheet.getRange(sheet.getLastRow() + 1, 1, toAppend.length, HISTORY_COLUMNS.length).setValues(toAppend);
+    appendSheetRows(sheet, toAppend);
   }
   SpreadsheetApp.flush();
   return json({ ok: true, kind: 'historyPut', count: records.length });
@@ -631,7 +638,7 @@ function writeRows(tabName, columns, rows, existingSheet) {
     });
   });
   // Append before trimming so deleteRows never attempts to delete all non-frozen rows.
-  sheet.getRange(sheet.getLastRow() + 1, 1, values.length, columns.length).setValues(values);
+  appendSheetRows(sheet, values);
   trimToCap(sheet, TAB_ROW_CAPS[tabName], 0);
   SpreadsheetApp.flush();
   return json({ ok: true, wrote: values.length, tab: tabName });
@@ -639,6 +646,14 @@ function writeRows(tabName, columns, rows, existingSheet) {
 
 function unquote(v) {
   return String(v == null ? '' : v).replace(/^'/, '');
+}
+
+function appendSheetRows(sheet, values) {
+  if (!values.length) return;
+  var last = sheet.getLastRow(), capacity = sheet.getMaxRows();
+  var needed = last + values.length - capacity;
+  if (needed > 0) sheet.insertRowsAfter(capacity, needed);
+  sheet.getRange(last + 1, 1, values.length, values[0].length).setValues(values);
 }
 
 function sheetFor(name, columns) {

@@ -99,6 +99,7 @@ check('no panel means no nutrition rows at all', () => {
 check('a panel with only one readable field is discarded', () => {
   // nutritionFacts requires two fields; one number in a wall of prose is noise, not a panel.
   assert.strictEqual(parsePanel('Nutrition Facts Calories 120'), null);
+  assert.strictEqual(parsePanel('Nutrition Facts Serving size 30g Calories 120'), null);
 });
 
 console.log('\nnumber formats');
@@ -110,6 +111,17 @@ check('an EU "kJ / kcal" energy line reads the kcal, not the kilojoules', () => 
   const out = parsePanel('Nährwerte je 100 g Energie 1.580 kJ / 377 kcal Zucker 12 g Eiweiß 4 g Salz 0,02 g');
   assert.strictEqual(out.calories, 377);
   assert.strictEqual(out.sodium, 8, 'salt 0.02 g is 8 mg sodium');
+});
+check('grouped calories and total fat survive the prose-panel path', () => {
+  const out = parsePanel('Nutrition Facts per 100 g Calories 1,200 kcal Total Fat 1g Saturated Fat 12g Protein 8g');
+  assert.equal(out.calories, 1200);
+  assert.equal(out.fat, 1);
+  assert.equal(out.saturatedFat, 12);
+  assert.equal(parsePanel('Nährwertangaben je 100 g Energie 1.580 kJ Fett 7 g Eiweiß 8 g').calories, 378);
+  assert.equal(engine.normaliseNutrition(out).basis, 'invalid', 'saturated fat exceeds total fat');
+  assert.equal(engine.normaliseNutrition({ servingMl: 100, fat: 4, saturatedFat: 20 }).basis, 'invalid');
+  assert.equal(engine.normaliseNutrition({ servingMl: 100, carbs: 4, sugar: 20 }).basis, 'invalid');
+  assert.equal(engine.normaliseNutrition({ servingGrams: 5, fat: 0.2, saturatedFat: 0.35 }).basis, 'per 100g', 'allow rounding on a small serving');
 });
 check('EU salt stands in for sodium only when no sodium is given', () => {
   assert.strictEqual(parsePanel('Valeurs nutritionnelles Sucres 12 g Sel 1,5 g').sodium, 600);

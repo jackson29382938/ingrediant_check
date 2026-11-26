@@ -19,7 +19,7 @@
 //   2. when "Load more results" is on (Settings > Search and unit-price sorting), further results pages, until the
 //      reader's count is reached or their time limit is up;
 //   3. when the sort setting and automatic rating allow, the product pages of listings still without a score,
-//      through the runner's own reader (retailer.js readProductScore), a few at a time, one request per product,
+//      through the runner's shared badge and sort queue, two at a time, one request per product,
 //      stopped by Stop, the master switch, the store refusing, or the per-page budget.
 // Nothing here fetches what the badges would not, and nothing leaves the browser.
 //
@@ -194,10 +194,17 @@
     root.AIR.db.theme?.force(shadow);
   }
   function unmount() {
-    mounted = false; pending = false; run++;
+    mounted = false; pending = false;
+    cancelCurrentRun();
+    host?.remove(); host = null;
+  }
+
+  function cancelCurrentRun() {
+    run++;
     for (const controller of controllers) controller.abort();
     controllers.clear();
-    host?.remove(); host = null;
+    if (runId) void send({ type: 'cancelSortedList', runId });
+    runId = '';
   }
 
   // ------------------------------------------------------------------ choosing
@@ -210,7 +217,8 @@
     logAction('sort menu', `${storeName}: chose ${mode === 'unitPrice' ? 'Unit price' : 'Ingredient Check score'} on ${location.pathname}`);
     send({ type: 'openSortedPanel', mode, sourceUrl: location.href, priceOnly, unitEnabled: true }).then(async reply => {
       pending = false;
-      if (token !== run || !reply || !reply.runId) return;
+      if (!reply?.runId) return;
+      if (token !== run) { void send({ type: 'cancelSortedList', runId: reply.runId }); return; }
       runId = reply.runId;
       // No side panel (an older Chrome, or the click no longer counted): the same list in a tab.
       if (!reply.ok) {
@@ -292,43 +300,35 @@
   // Product pages for listings still without a score, through the runner's reader: a few at a time, one request per
   // product, one throttle flag shared with the badges, one budget per results page in the list.
   async function rateByProductPage(ids, products, token, onProgress, budget, timeUp) {
-    const { state, readProductScore } = runner();
+    const { state, requestProductScore } = runner();
     const out = new Map();
-    let next = 0, done = 0, stopped = '', fetches = 0, lastStart = 0;
+    let next = 0, done = 0, stopped = '', fetches = 0, limited = false;
     const halted = () => token !== run || !!stopped || !state.enabled || !state.autoScoreSearch || timeUp();
     const throttled = () => t('sortThrottledStore', '$1 stopped answering product pages, so rating paused.', storeName);
     async function worker() {
       while (next < ids.length && !halted()) {
         if (state.throttled) { stopped = throttled(); break; }
-        if (fetches >= budget()) { stopped = t('sortBudgetStore', 'Rating stopped at $2 product pages, the limit for the $1 results pages in this list.', storeName, budget()); break; }
         const id = ids[next++];
-        const seen = state.requests.get(id);
-        // A product the badges already read costs nothing more.
-        if (seen && seen.status !== 'checking') {
-          if (seen.hit) out.set(id, scoreRow(seen.hit, state.prefs));
-          else out.set(id, { score: null, source: seen.status === 'not-food' ? 'not-food' : 'unreadable' });
-          done++; onProgress(done, ids.length, out); continue;
+        const product = products.get(id);
+        const firstPage = product.pageNumber === 1;
+        if (!firstPage && !state.requests.has(id)) {
+          if (fetches >= budget()) {
+            limited = true;
+            done++;
+            onProgress(done, ids.length, out);
+            continue;
+          }
+          fetches++;
         }
-        fetches++;
-        const wait = Math.max(0, lastStart + REQUEST_GAP_MS - Date.now());
-        lastStart = Date.now() + wait;
-        if (wait) await sleep(wait);
-        if (halted()) break;
         const controller = new AbortController();
         controllers.add(controller);
         const timer = setTimeout(() => controller.abort(), PAGE_TIMEOUT_MS);
         try {
-          const reading = await readProductScore(id, controller.signal, () => token === run && state.enabled, products.get(id)?.url);
+          const reading = await requestProductScore(id, product.url, controller.signal, firstPage);
           if (token !== run) return;
-          if (!reading) continue;
-          if (reading.hit) {
-            state.requests.set(id, { hit: reading.hit });
-            out.set(id, scoreRow(reading.hit, state.prefs));
-          } else { state.requests.set(id, { status: 'not-food' }); out.set(id, { score: null, source: 'not-food' }); }
-        } catch (e) {
-          // Refused, offline, aborted or unreadable: the listing stays without a score.
-          if (e && e.message === 'blocked') state.throttled = true;
-          if (token === run) { state.requests.set(id, { status: 'unavailable' }); out.set(id, { score: null, source: 'unreadable' }); }
+          if (reading?.hit) out.set(id, scoreRow(reading.hit, state.prefs));
+          else if (reading?.status === 'limited') limited = true;
+          else if (reading) out.set(id, { score: null, source: reading.status === 'not-food' ? 'not-food' : 'unreadable' });
         } finally {
           clearTimeout(timer); controllers.delete(controller);
           done++; onProgress(done, ids.length, out);
@@ -336,7 +336,8 @@
       }
     }
     await Promise.all(Array.from({ length: CONCURRENT }, worker));
-    if (!stopped && state.throttled) stopped = throttled();
+    if (state.throttled) stopped = throttled();
+    else if (limited) stopped = t('sortBudgetStore', 'Rating stopped at $2 product pages, the limit for the $1 results pages in this list.', storeName, state.fetchLimit + budget());
     return { scores: out, stopped, timedOut: !stopped && timeUp() };
   }
 
@@ -448,7 +449,8 @@
       if (new Set(items.filter(p => Number.isFinite(p.score)).map(p => p.category || 'food')).size > 1) status = t('sortMixed', 'Mixed categories: score ranking is disabled; other priorities still apply.') + ' ' + status;
       const reply = await send({ type: 'updateSortedResults', runId: id, items, loading, status, priceOnly, unit: likely ? likely.unit : '' });
       // A newer sort (in this tab or another) took the panel over: stop working for this one.
-      if (reply && reply.stale) { if (token === run) run++; return false; }
+      if (reply?.stale) { if (token === run) cancelCurrentRun(); return false; }
+      if (!loading && reply?.ok && token === run) runId = '';
       return true;
     });
     return publishing;
@@ -560,7 +562,7 @@
     const rateAllowed = !pricesOnly && settings.sortMissing === 'rate-first' && state.autoScoreSearch;
     if (rateAllowed && noScore().length && token === run) {
       const ids = noScore();
-      const budget = () => state.fetchLimit * pagesInList;
+      const budget = () => state.fetchLimit * (pagesInList - 1);
       const rated = await rateByProductPage(ids, products, token, (done, total, got) => {
         for (const [id, s] of got) scores.set(id, s);
         publish(token, list(), true, t('sortRatingMore', 'Rating listings without a score: $1 of $2…', done, total));
@@ -602,6 +604,7 @@
     if (!msg || msg.type !== 'sortStop') return false;
     if (!own || msg.target !== 'sort-source' || !msg.runId || msg.runId !== runId) return false;
     run++;
+    runId = '';
     for (const controller of controllers) controller.abort();
     controllers.clear();
     return false;
@@ -612,7 +615,9 @@
     const url = location.href, generation = run;
     followedURL = url;
     send({ type: 'followSortedSearch', sourceUrl: url, priceOnly, unitEnabled: true, ...(rerun ? { rerun: true } : {}) }).then(reply => {
-      if (reply?.ok && typeof reply.runId === 'string' && mounted && location.href === url && run === generation) void startFromCommand(reply);
+      if (!reply?.ok || typeof reply.runId !== 'string') return;
+      if (mounted && location.href === url && run === generation) void startFromCommand(reply);
+      else void send({ type: 'cancelSortedList', runId: reply.runId });
     });
   }
 
@@ -624,9 +629,8 @@
     if (!active) return;
     const next = options.priceOnly === true;
     if (mounted && next !== priceOnly) {
-      run++; pending = false; followedURL = '';
-      for (const controller of controllers) controller.abort();
-      controllers.clear();
+      pending = false; followedURL = '';
+      cancelCurrentRun();
     }
     priceOnly = next;
     lastTiles = entries.map(entry => entry.tile);
@@ -655,10 +659,9 @@
     unitHeld = { sig: '', unit: null };
     lastTiles = [];
     // Another search, a settings change or the switch: whatever list was being built for the old page stops here.
-    run++; pending = false; mounted = false;
-    for (const controller of controllers) controller.abort();
-    controllers.clear();
+    pending = false; mounted = false;
     if (!enabled) { unmount(); followedURL = ''; }
+    else cancelCurrentRun();
   }
   root.AIR.retailerSort = { update, reset, extractProduct, whyOf, findNextLink, pagedUrl, cardOf, choose, get runId() { return runId; } };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.AIR.retailerSort;

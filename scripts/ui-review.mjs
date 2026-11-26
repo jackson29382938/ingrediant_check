@@ -82,11 +82,34 @@ try {
         await page.locator('#presetCats [role=tab]').first().focus();
         await page.keyboard.press('ArrowRight');
         assert.equal(await page.locator('#presetCats [role=tab][aria-selected=true]').evaluate(n => n === document.activeElement), true);
+        await page.evaluate(() => {
+          const { scoreCache: cache } = AIR.db, store = 'amazon.com';
+          const current = 'B000000001', alternate = 'B000000002';
+          chrome.tabs.query = (_query, callback) => callback([{ id: 1, windowId: 1, url: `https://www.amazon.com/dp/${current}` }]);
+          const prefs = { ...window.__uiData, aiLabels: true };
+          const row = (asin, score, source) => ({ schema: cache.SCHEMA, cacheRevision: cache.CACHE_REVISION,
+            store, asin, score, source, prefs: cache.fingerprint(prefs, source), v: chrome.runtime.getManifest().version,
+            t: Date.now() });
+          return chrome.storage.local.set({
+            aiLabels: true,
+            [cache.key(store, current)]: row(current, 30, 'page'),
+            [cache.key(store, alternate)]: row(alternate, 85, 'label-ai'),
+            sortedResults: { sourceUrl: 'https://www.amazon.com/s?k=oats', sourceWindowId: 1, items: [
+              { asin: current, score: 30 }, { asin: alternate, score: 85, title: 'Rolled oats', url: `https://www.amazon.com/dp/${alternate}` },
+            ] },
+          });
+        });
+        const related = page.getByRole('link', { name: /Higher-scoring search result/ });
+        await related.waitFor();
+        assert.equal(await related.getAttribute('href'), 'https://www.amazon.com/dp/B000000002');
+        await page.evaluate(() => chrome.storage.local.set({ aiLabels: false }));
+        await related.waitFor({ state: 'detached' });
+        assert.equal(await page.locator('#pageScore .ps-num').textContent(), '30');
       }
       if (screen === 'library') {
         await page.locator('#labelName').fill('Rolled oats');
         await page.locator('#labelText').fill('Whole grain rolled oats.');
-        await page.locator('button[type=submit]').click();
+        await page.getByRole('button', { name: 'Check a label', exact: true }).click();
         await page.waitForFunction(() => !document.getElementById('saveLabelControls').hidden);
         assert(await page.evaluate(() => {
           const host = document.querySelector('#checkResult > div');

@@ -5,8 +5,12 @@
   let prefs = {}, products = [], currentLabel = null, currentSource = 'manual-paste', busy = false, loadVersion = 0, prices = null;
   let barcodeEvidence = {};
   let sourceRequest = 0, unmatchedPhoto = null;
+  let localCheck = null, savingComparison = false;
+  let priceRevision = 0;
+  const localAI = AIR.db.onDeviceAI;
+  void localAI.available().then(available => { $('localAiControls').hidden = !available; });
   const make = (tag, value) => { const el = document.createElement(tag); if (value != null) el.textContent = value; return el; };
-  const settingsKeys = ['weights', 'goals', 'allergens', 'diets', 'avoidList', 'ratingStyle', 'personalCareEnabled', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'sheetIndexRev', 'producerIndexRev', 'theme', 'palette', 'accent'];
+  const settingsKeys = ['weights', 'goals', 'goalImportance', 'allergens', 'diets', 'avoidList', 'ratingStyle', 'personalCareEnabled', 'foodOnly', 'ocrLabels', 'useOpenFoodFacts', 'useUsda', 'aiLabels', 'aiRatings', 'speedMode', 'sheetIndexRev', 'producerIndexRev', 'theme', 'palette', 'accent'];
   const score = (input, preview = false) => {
     const options = AIR.db.prefs.sanitizeScoring(prefs), goal = preview && $('previewGoal').value;
     if (goal && AIR.db.categories.PRESETS[goal]) options.weights = AIR.db.categories.presetWeightMap(goal);
@@ -21,17 +25,19 @@
     AIR.db.theme.force(AIR.panel.shadowOf($('checkResult').firstElementChild));
     const saved = await S.list(chrome.storage.local), keys = await AIR.db.scoreCache.storedKeys(chrome.storage.local);
     const cached = await chrome.storage.local.get(keys.filter(k => k.startsWith('s:')));
-    const listed = AIR.db.scoreCache.listScores(cached, { version: chrome.runtime.getManifest().version, prefs: nextPrefs }).slice(0, 200);
+    const maxAgeMs = AIR.db.speed.profile(nextPrefs.speedMode).maxAgeMs;
+    const listed = AIR.db.scoreCache.listScores(cached, { version: chrome.runtime.getManifest().version, prefs: nextPrefs, maxAgeMs }).slice(0, 200);
     const readings = await chrome.storage.local.get(listed.map(p => AIR.db.productCache.localKey(p.store, p.asin)));
+    const revision = priceRevision;
     const session = await chrome.storage.session.get('sortedResults');
     if (turn !== loadVersion) return;
-    const search = session.sortedResults, sourceURL = AIR.db.sortedResults.sanitizeSourceUrl(search?.sourceUrl);
-    prices = sourceURL && AIR.db.sortedResults.scopeFor(sourceURL)?.kind === 'amazon' ? { items: AIR.db.sortedResults.sanitizeResults(search.items), store: new URL(sourceURL).hostname.replace(/^www\./, ''), currency: AIR.db.storefronts.storefront(sourceURL).currency, unit: AIR.db.unitPrice.isUnitId(search.unit) ? search.unit : '100g' } : null;
+    if (revision === priceRevision) setPrices(session.sortedResults);
     const recent = listed.flatMap(p => {
       const row = AIR.db.productCache.sanitizeLocal(readings[AIR.db.productCache.localKey(p.store, p.asin)]);
-      const reading = row?.status === 'ok' ? row : null;
-      const input = S.cleanInput(reading ? AIR.db.productCache.toInput(reading) : cached[p.key]?.input);
-      return input ? [{ id: 'cached:' + p.key, name: p.name || input.name, input, source: reading ? reading.data.via : p.source, capturedAt: reading ? Date.parse(reading.scanned_at) : p.t, cached: true, store: p.store, asin: p.asin, sourceRecordDate: reading ? reading.data.sourceRecordDate : p.evidence?.sourceRecordDate }] : [];
+      const reading = row?.status === 'ok' && row.data.via === p.source && Date.now() - Date.parse(row.scanned_at) < maxAgeMs ? row : null;
+      const held = cached[p.key]?.input;
+      const input = S.cleanInput(held || (reading && AIR.db.productCache.toInput(reading)), { keepRatings: nextPrefs.aiRatings === true });
+      return input ? [{ id: 'cached:' + p.key, name: p.name || input.name, input, source: p.source, capturedAt: held ? p.t : Date.parse(reading.scanned_at), cached: true, store: p.store, asin: p.asin, sourceRecordDate: held ? p.evidence?.sourceRecordDate : reading.data.sourceRecordDate }] : [];
     });
     products = [...saved, ...recent];
     $('exportShortlist').disabled = !saved.length;
@@ -47,9 +53,16 @@
     }
     compare();
   }
+  function setPrices(search) {
+    const R = AIR.db.sortedResults, sourceURL = R.sanitizeSourceUrl(search?.sourceUrl), scope = R.scopeFor(sourceURL);
+    prices = scope ? { items: R.sanitizeResults(search.items, scope), store: AIR.db.scoreCache.normalizeStore(new URL(sourceURL).hostname), currency: AIR.db.storefronts.storefront(sourceURL).currency, unit: AIR.db.unitPrice.isUnitId(search.unit) ? search.unit : '100g' } : null;
+  }
   function renderSaved() {
     const root = $('savedProducts'); root.replaceChildren();
-    for (const p of products.filter(p => !p.cached && (!$('listFilter').value || p.list === $('listFilter').value))) {
+    const list = $('listFilter').value;
+    const displayed = products.filter(p => !p.cached && (!list || p.list === list));
+    $('exportShortlistCsv').disabled = !displayed.length;
+    for (const p of displayed) {
       const row = make('article'); row.className = 'saved-row'; const body = make('div'), result = score(p.input), ev = S.evidence(result, p);
       body.append(make('strong', p.name), make('p', `${AIR.engine.isReadable(result) ? result.score + '/100' : t('labelUnavailable', 'Label unavailable')} · ${p.list}`), make('p', S.describe(ev, t)));
       if (p.url) { const link = make('a', t('openFreshLabel', 'Open product to check freshness')); link.href = p.url; link.target = '_blank'; link.rel = 'noopener noreferrer'; body.append(link); }
@@ -69,6 +82,8 @@
   function compare() {
     const selected = [$('productA').value, $('productB').value].map(id => products.find(p => p.id === id));
     const root = $('comparison'); root.replaceChildren(); $('comparisonSummary').textContent = '';
+    $('saveComparison').disabled = savingComparison || !selected.some(p => p?.cached);
+    root.removeAttribute('tabindex');
     if (selected.some(p => !p) || selected[0].id === selected[1].id) { $('comparisonSummary').textContent = t('popupCompareEmpty', 'Score two products, then compare them here.'); return; }
     const results = selected.map(p => score(p.input, true)), usable = results.map(r => AIR.engine.isReadable(r));
     const compatible = (results[0].category || 'food') === (results[1].category || 'food') && (results[0].ratingStyle || 'food') === (results[1].ratingStyle || 'food');
@@ -98,6 +113,7 @@
     }
     add(t('scoreContributors', 'Main score contributions'), results.map(r => [...(r.bad || []), ...(r.good || [])].filter(f => Number.isFinite(f.c) && f.c !== 0).sort((a, b) => Math.abs(b.c) - Math.abs(a.c)).slice(0, 4).map(f => `${f.c > 0 ? '+' : ''}${f.c} ${f.why}`).join('\n') || unavailable));
     root.append(table);
+    root.tabIndex = 0;
   }
   function checkedLabel() {
     const input = { name: $('labelName').value || t('savedLabel', 'Saved label'), ingredients_text: $('labelText').value, advisory_text: $('labelAdvisory').value }, nutrition = {};
@@ -106,9 +122,17 @@
     return input;
   }
   const photoNeedsList = () => t('photoNeedsList', 'No ingredient list was found. Replace the extracted text with the complete ingredient list. For another scan, use a clear, upright English label.');
-  $('labelForm').addEventListener('submit', event => {
+  function cancelLocalCheck() {
+    if (!localCheck) return;
+    localCheck.abort();
+    localCheck = null;
+    $('localAi').disabled = false;
+    $('checkStatus').textContent = '';
+  }
+  $('labelForm').addEventListener('submit', async event => {
     event.preventDefault();
     if (busy) return;
+    cancelLocalCheck();
     if (unmatchedPhoto !== null && $('labelText').value.trim() === unmatchedPhoto) {
       $('checkStatus').textContent = photoNeedsList();
       $('labelText').focus();
@@ -119,8 +143,36 @@
       $('photoConfirmed').focus();
       return;
     }
-    const input = checkedLabel(), result = score(input), readable = AIR.engine.isReadable(result);
-    $('checkStatus').textContent = readable ? '' : t('incompleteLabel', 'This label cannot be assessed. Check the extracted text and include the complete ingredient list.');
+    const input = checkedLabel();
+    let result = score(input), message = '';
+    if (event.submitter === $('localAi') && result.unrecognised?.length) {
+      const task = new AbortController();
+      localCheck = task;
+      $('localAi').disabled = true;
+      currentLabel = null;
+      $('saveLabelControls').hidden = true;
+      $('checkResult').replaceChildren();
+      const status = $('checkStatus');
+      status.textContent = t('localAiWorking', 'Checking unfamiliar ingredients on this device…');
+      try {
+        const ratings = await localAI.classify(result.unrecognised, task.signal, progress => {
+          if (localCheck === task) status.textContent = t('localAiDownload', 'Downloading Chrome’s model ($1%)…', Math.round(progress.loaded * 100));
+        });
+        if (localCheck !== task) return;
+        if (Object.keys(ratings).length) {
+          input.aiRatings = ratings;
+          result = score(input);
+        } else message = t('localAiNoEstimate', 'Chrome’s model returned no usable estimates.');
+      } catch {
+        if (localCheck !== task) return;
+        message = t('localAiFailed', 'On-device AI is unavailable. The regular label check was used.');
+      } finally {
+        if (localCheck === task) { localCheck = null; $('localAi').disabled = false; }
+      }
+    }
+    const readable = AIR.engine.isReadable(result);
+    const incomplete = readable ? '' : t('incompleteLabel', 'This label cannot be assessed. Check the extracted text and include the complete ingredient list.');
+    $('checkStatus').textContent = [message, incomplete].filter(Boolean).join(' ');
     $('checkResult').replaceChildren(); $('saveLabelControls').hidden = !readable;
     if (!readable) { currentLabel = null; return; }
     currentLabel = { id: 'label:' + crypto.randomUUID(), name: input.name, input, source: currentSource, capturedAt: Date.now(), savedScore: result.score, ...barcodeEvidence };
@@ -128,6 +180,7 @@
   });
   $('labelForm').addEventListener('input', event => {
     if (event.target.id === 'labelPhoto') return;
+    cancelLocalCheck();
     if (['labelText', 'labelAdvisory'].includes(event.target.id)) {
       sourceRequest++;
       $('photoConfirmed').checked = false;
@@ -144,6 +197,8 @@
     catch (error) { $('checkStatus').textContent = S.saveError(error, t); } finally { button.disabled = false; }
   });
   $('saveComparison').addEventListener('click', async () => {
+    if (savingComparison) return;
+    savingComparison = true;
     $('saveComparison').disabled = true;
     try {
       const rows = [];
@@ -154,11 +209,12 @@
       }
       if (rows.length) await S.save(rows);
       $('savedStatus').textContent = t('savedProduct', 'Saved'); await load();
-    } catch (error) { $('savedStatus').textContent = S.saveError(error, t); } finally { $('saveComparison').disabled = false; }
+    } catch (error) { $('savedStatus').textContent = S.saveError(error, t); } finally { savingComparison = false; compare(); }
   });
   async function readPhotoFile(file) {
     if (!file || busy) return;
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 8 * 1024 * 1024) { $('checkStatus').textContent = t('photoLimit', 'Choose a PNG, JPEG or WebP photo smaller than 8 MB.'); return; }
+    cancelLocalCheck();
     const request = ++sourceRequest;
     busy = true; currentLabel = null; $('saveLabelControls').hidden = true; $('checkResult').replaceChildren();
     $('labelPhoto').disabled = true; $('checkStatus').textContent = t('photoReading', 'Reading photo locally…'); let frame, timer;
@@ -223,6 +279,7 @@
   });
   $('lookupBarcode').addEventListener('click', async () => {
     const code = $('barcode').value.trim(); if (!/^\d{8,14}$/.test(code)) { $('checkStatus').textContent = t('barcodeInvalid', 'Enter an 8–14 digit barcode.'); return; }
+    cancelLocalCheck();
     const request = ++sourceRequest;
     $('lookupBarcode').disabled = true;
     try {
@@ -231,6 +288,7 @@
       const found = await chrome.runtime.sendMessage({ type: 'lookupBarcode', code, foodOnly: true });
       if (request !== sourceRequest) return;
       if (!found?.ingredients_text || found.ingredients_text.length > 6000 || found.rejected) throw new Error('unavailable');
+      cancelLocalCheck();
       $('labelName').value = found.name || ''; $('labelText').value = found.ingredients_text; $('labelAdvisory').value = ''; currentSource = AIR.db.productCache.barcodeVia(found); currentLabel = null; $('saveLabelControls').hidden = true; $('checkResult').replaceChildren();
       barcodeEvidence = currentSource === 'usda-fdc' ? { capturedAt: found.capturedAt ?? Date.now(), sourceRecordDate: found.sourceRecordDate } : {};
       unmatchedPhoto = null;
@@ -245,16 +303,27 @@
   });
   for (const id of ['productA', 'productB', 'previewGoal']) $(id).addEventListener('change', compare);
   $('listFilter').addEventListener('change', renderSaved);
-  $('exportShortlist').addEventListener('click', async () => {
+  async function exportSaved(csv) {
     try {
+      const list = $('listFilter').value;
       const rows = await S.list(chrome.storage.local);
-      const payload = { format: 'ingredient-check-shortlist', version: 1, products: rows };
-      const file = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
-      const link = make('a'); link.href = file; link.download = 'ingredient-check-shortlist.json'; link.click();
+      const content = csv ? S.toCsv(rows.filter(p => !list || p.list === list), score)
+        : JSON.stringify({ format: 'ingredient-check-shortlist', version: 1, products: rows }, null, 2);
+      const file = URL.createObjectURL(new Blob([content], { type: csv ? 'text/csv;charset=utf-8' : 'application/json' }));
+      const link = make('a'); link.href = file; link.download = csv ? 'ingredient-check-shortlist.csv' : 'ingredient-check-shortlist.json'; link.click();
       setTimeout(() => URL.revokeObjectURL(file), 10000);
     } catch { $('savedStatus').textContent = t('shortlistExportFailed', 'Could not export saved products — try again'); }
-  });
+  }
+  $('exportShortlist').addEventListener('click', () => void exportSaved(false));
+  $('exportShortlistCsv').addEventListener('click', () => void exportSaved(true));
   for (const [id, goal] of Object.entries(AIR.db.categories.PRESETS)) $('previewGoal').append(new Option(goal.label || goal.name || id, id));
-  chrome.storage.onChanged.addListener((changes, area) => { if (area === 'local' && Object.keys(changes).some(k => settingsKeys.includes(k) || k.startsWith(S.PREFIX))) void load().catch(() => { $('savedStatus').textContent = t('saveFailed', 'Could not save — try again'); }); });
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'session' && changes.sortedResults) {
+      priceRevision++;
+      setPrices(changes.sortedResults.newValue);
+      compare();
+    }
+    if (area === 'local' && Object.keys(changes).some(k => settingsKeys.includes(k) || k.startsWith(S.PREFIX))) void load().catch(() => { $('savedStatus').textContent = t('saveFailed', 'Could not save — try again'); });
+  });
   void load().catch(() => { $('savedStatus').textContent = t('saveFailed', 'Could not save — try again'); });
 })();

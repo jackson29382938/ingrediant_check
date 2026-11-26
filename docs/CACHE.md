@@ -140,6 +140,9 @@ not restore them. Open Food Facts records (`off:`) keep their own 30 days at eve
 | `scanned_at` | ISO time of the read |
 | `pulls` | How many times this read was served from the tab |
 
+The Apps Script finds the requested keys through the key column. A write batch reads only the
+matching product rows, writes changed rows in contiguous ranges and appends new rows together.
+
 Nothing about the reader is stored: no settings, no score, no user or session id. Every field is
 re-bounded by `sanitize()` whenever a row is read back, so a hand-made row cannot widen what the
 engine is fed. A test scores the whole corpus from rows that went through a sheet cell and back and

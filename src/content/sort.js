@@ -247,7 +247,8 @@
     P().logAction?.('Amazon sort menu', `chose ${mode === 'unitPrice' ? 'Unit price' : 'Ingredient Check score'} on ${location.pathname}`);
     send({ type: 'openSortedPanel', mode, sourceUrl, priceOnly, unitEnabled: P().state.unitPrice !== false }).then(async reply => {
       pending = false;
-      if (token !== run || !reply || !reply.runId) return;
+      if (!reply?.runId) return;
+      if (token !== run) { void send({ type: 'cancelSortedList', runId: reply.runId }); return; }
       runId = reply.runId;
       // No side panel (an older Chrome, or the click no longer counted): the same list in a tab.
       if (!reply.ok) {
@@ -539,7 +540,8 @@
       if (new Set(items.filter(p => Number.isFinite(p.score)).map(p => p.category || 'food')).size > 1) status = t('sortMixed', 'Mixed categories: score ranking is disabled; other priorities still apply.') + ' ' + status;
       const reply = await send({ type: 'updateSortedResults', runId: id, items, loading, status, priceOnly, unit: likely ? likely.unit : '' });
       // A newer sort (in this tab or another) took the panel over: stop working for this one.
-      if (reply && reply.stale) { if (token === run) run++; return false; }
+      if (reply?.stale) { if (token === run) cancelCurrentRun(); return false; }
+      if (!loading && reply?.ok && token === run) runId = '';
       return true;
     });
     return publishing;
@@ -703,6 +705,7 @@
     if (!msg || msg.type !== 'sortStop') return false;
     if (sender?.id !== chrome.runtime.id || sender.tab || msg.target !== 'sort-source' || !msg.runId || msg.runId !== runId) return false;
     run++;
+    runId = '';
     for (const c of controllers) c.abort();
     controllers.clear();
     return false;
@@ -719,7 +722,9 @@
     const url = location.href, generation = run;
     followedURL = url;
     send({type:'followSortedSearch',sourceUrl:url,priceOnly,unitEnabled:P().state.unitPrice!==false,...(rerun?{rerun:true}:{})}).then(reply => {
-      if (reply?.ok && typeof reply.runId === 'string' && mounted && location.href === url && run === generation) void startFromCommand(reply);
+      if (!reply?.ok || typeof reply.runId !== 'string') return;
+      if (mounted && location.href === url && run === generation) void startFromCommand(reply);
+      else void send({ type: 'cancelSortedList', runId: reply.runId });
     });
   }
   function mount(options = {}) {
@@ -758,14 +763,20 @@
   function unmount() {
     mounted = false;
     pending = false;
-    run++;
-    for (const c of controllers) c.abort();
-    controllers.clear();
+    cancelCurrentRun();
     if (observer) observer.disconnect();
     observer = null;
     clearTimeout(observerTimer);
     observerTimer = 0;
     uninstall();
+  }
+
+  function cancelCurrentRun() {
+    run++;
+    for (const c of controllers) c.abort();
+    controllers.clear();
+    if (runId) void send({ type: 'cancelSortedList', runId });
+    runId = '';
   }
 
   // A setting that changes which options exist (price per ounce on or off).

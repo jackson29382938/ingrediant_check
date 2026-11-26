@@ -7,7 +7,7 @@ const vm = require('node:vm');
 
 // productsOpen: the PRODUCTS_OPEN script property. The product tests below model an opened receiver.
 // usdaKey: the USDA_API_KEY script property; usdaFetch: answers api.nal.usda.gov requests (url, options) -> { status, text }.
-function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true, propertyClientId = null, usdaKey = null, usdaFetch = null, anonLimits = { writes: 1e9, rows: 1e9 } } = {}) {
+function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true, propertyClientId = null, usdaKey = null, usdaFetch = null, maxRows = 1000, anonLimits = { writes: 1e9, rows: 1e9 } } = {}) {
   const usdaCalls = [];
   const tabs = new Map();
   const order = [];
@@ -15,30 +15,36 @@ function receiver({ clientId = 'client-1', tokens = {}, productsOpen = true, pro
   const cache = new Map();
   let usdaUsage = null;
   function newSheet() {
-    const data = [];
+    const data = [], reads = [], writes = [];
     let maxColumns = 26;
-    const sheet = { data, getLastRow: () => data.length,
+    let capacity = maxRows;
+    const sheet = { data, reads, writes, getLastRow: () => data.length, getMaxRows: () => capacity,
+      insertRowsAfter(row, count) { assert.equal(locked, true); assert.equal(row, capacity); capacity += count; },
       getMaxColumns: () => maxColumns,
       insertColumnsAfter(column, count) { assert.equal(column, maxColumns); maxColumns += count; },
       getLastColumn: () => Math.max(0, ...data.map(r => r.length)),
-      appendRow(row) { assert.equal(locked, true, 'all appends must hold the shared lock'); data.push([...row]); },
+      appendRow(row) { assert.equal(locked, true, 'all appends must hold the shared lock'); data.push([...row]); capacity = Math.max(capacity, data.length); },
       setFrozenRows() {},
-      deleteRow(row) { assert.equal(locked, true); data.splice(row - 1, 1); },
-      deleteRows(row, count) { assert.equal(locked, true); data.splice(row - 1, count); },
+      deleteRow(row) { sheet.deleteRows(row, 1); },
+      deleteRows(row, count) { assert.equal(locked, true); data.splice(row - 1, count); capacity -= count; },
       getRangeList: a1s => ({ getRanges: () => a1s.map(a1 => {
         const [, r] = a1.match(/^A(\d+):G\d+$/);
         return sheet.getRange(Number(r), 1, 1, 7);
       }) }),
       getRange(r, c, height = 1, width = 1) {
         assert.ok(c + width - 1 <= maxColumns, 'range exceeds sheet column grid');
-        const values = () => Array.from({ length: height }, (_, i) =>
-          Array.from({ length: width }, (_, j) => data[r - 1 + i]?.[c - 1 + j] ?? ''));
+        assert.ok(r + height - 1 <= capacity, 'range exceeds sheet row grid');
+        const values = () => {
+          reads.push([r, c, height, width]);
+          return Array.from({ length: height }, (_, i) => Array.from({ length: width }, (_, j) => data[r - 1 + i]?.[c - 1 + j] ?? ''));
+        };
         return {
           getValues: values,
           getDisplayValues: () => values().map(row => row.map(String)),
           setValue(value) { this.setValues([[value]]); },
           setValues(values) {
             assert.equal(locked, true, 'all appends must hold the shared lock');
+            writes.push([r, c, height, width]);
             values.forEach((row, i) => {
               data[r - 1 + i] ||= [];
               row.forEach((v, j) => { data[r - 1 + i][c - 1 + j] = v; });

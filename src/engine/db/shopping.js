@@ -13,7 +13,7 @@
     const avoid = root.AIR.db.prefs?.sanitizeAvoidList(raw.avoidList) || raw.avoidList;
     return JSON.stringify([ids(raw.allergens), ids(raw.diets), ids(avoid), Number.isFinite(raw.weights?.allergens) ? raw.weights.allergens : 1, Number.isFinite(raw.weights?.avoidList) ? raw.weights.avoidList : 1]);
   }
-  function cleanInput(raw) {
+  function cleanInput(raw, { keepRatings = false } = {}) {
     if (!raw || typeof raw !== 'object' || !text(raw.ingredients_text, 6000)) return null;
     if (raw.ingredients_text.length > 6000 || (typeof raw.advisory_text === 'string' && raw.advisory_text.length > 6000)) return null;
     const out = {};
@@ -26,6 +26,10 @@
       if (raw.nutrition.servingSize) out.nutrition.servingSize = text(raw.nutrition.servingSize, 80);
     }
     if (raw.provenanceRecord && typeof raw.provenanceRecord === 'object') out.provenanceRecord = { certifications: text(raw.provenanceRecord.certifications, 500), source: text(raw.provenanceRecord.source, 120), producerRegistry: { certifications: text(raw.provenanceRecord.producerRegistry?.certifications, 500) } };
+    if (keepRatings && raw.aiRatings && root.AIR.db.aiRatings) {
+      const ratings = root.AIR.db.aiRatings.sanitize(raw.aiRatings);
+      if (Object.keys(ratings).length) out.aiRatings = ratings;
+    }
     return out;
   }
   function evidence(result, meta = {}) {
@@ -84,7 +88,7 @@
     return true;
   }
   function cleanSaved(raw) {
-    const input = cleanInput(raw?.input);
+    const input = cleanInput(raw?.input, { keepRatings: true });
     if (!input || !/^(?:product:[a-z0-9.-]+:[A-Z0-9_-]{5,40}|label:[a-f0-9-]{10,40})$/i.test(raw?.id || '')) return null;
     let url = '';
     try { const u = new URL(raw.url); if (u.protocol === 'https:' && !u.username && !u.password && root.AIR.stores?.storeForHost(u.hostname)) { u.search = ''; u.hash = ''; u.pathname = u.pathname.replace(/\/ref=[^/]*.*$/, ''); url = u.href; } } catch { /* a standalone label has no retailer URL */ }
@@ -177,22 +181,21 @@
     return out.slice(0, Math.max(0, limit)).map(({ product, scoreDelta, unitPriceDelta }) => ({ product, scoreDelta, unitPriceDelta }));
   }
   function csvCell(value) {
-    const raw = String(value == null ? '' : value).replace(/\r?\n/g, ' ');
-    // eslint-disable-next-line no-control-regex
-    const safe = /^[\s\u0000-\u001f]*[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
+    const raw = String(value ?? '').replace(/[\r\n\t]+/g, ' ');
+    const safe = /^[\s\p{Cc}\p{Cf}]*[=+\-@]/u.test(raw.normalize('NFKC')) ? `'${raw}` : raw;
     return /[",]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
   }
   function toCsv(rows, scoreFn) {
-    const header = ['List', 'Name', 'Score', 'Verdict', 'Source', 'Warnings', 'URL'];
+    const header = ['List', 'Name', 'Score', 'Verdict', 'Source', 'Source date', 'Warning matches', 'URL'];
     const lines = [header.map(csvCell).join(',')];
-    for (const row of Array.isArray(rows) ? rows : []) {
-      const result = typeof scoreFn === 'function' ? scoreFn(row.input) : null;
-      const score = result && Number.isFinite(result.score) ? result.score : (row.savedScore ?? '');
-      const verdict = result?.verdict || '';
+    for (const row of rows) {
+      const result = scoreFn(row.input);
+      const assessed = result?.readable === true && Number.isFinite(result.score);
       const warnings = (result?.flags || []).map(f => f.label).join('; ');
-      lines.push([row.list || '', row.name || '', score, verdict, sourceLabel(row.source || ''), warnings, row.url || ''].map(csvCell).join(','));
+      lines.push([row.list, row.name, assessed ? result.score : '', assessed ? result.verdict : '',
+        sourceLabel(row.source), row.sourceRecordDate, warnings, row.url].map(csvCell).join(','));
     }
-    return lines.join('\n') + '\n';
+    return lines.join('\r\n') + '\r\n';
   }
   const api = { evidence, cleanEvidence, describe, warningLabel, warningProfile, sourceLabel, sourceRecordDate, matches, cleanerSwaps, cleanInput, cleanSaved, list, write, save, saveError, offerSave, toCsv, PREFIX, MAX };
   root.AIR = root.AIR || {}; root.AIR.db = root.AIR.db || {}; root.AIR.db.shopping = api;

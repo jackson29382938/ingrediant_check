@@ -1,7 +1,7 @@
 # Current validation
 
-**Source version** 1.28.2. The [codebase audit](AUDIT-2026-11-21-FULL.md) records the 1.27.0
-baseline, fixes and regression coverage. The scoring revision stays `2026-11-20.1`.
+**Source version** 1.29.0. The [November 25 audit](AUDIT-2026-11-25.md) records findings from
+the 1.28.2 baseline. The scoring rules revision is `2026-11-25.1`.
 
 ## Automated verification
 
@@ -9,14 +9,16 @@ baseline, fixes and regression coverage. The scoring revision stays `2026-11-20.
   purchase-history replay, and the Apps Script relay. The engine coverage run also enforces its
   line, branch, and function floors.
 - Browser fixtures exercise the unpacked extension, including keyboard navigation, shortlist
-  export and final-slot concurrency, OCR review, carts, purchase history, and the retailer
-  sort controls. The website check covers navigation and both themes at mobile and desktop sizes.
+  exports and final-slot concurrency, OCR review, carts, purchase history, and canceled retailer
+  searches. The Chromium Library fixture uses a Prompt API double to verify the click gesture,
+  response handling, and save-and-replay path. Native model availability was unavailable in that
+  environment. The website check covers navigation and both themes at mobile and desktop sizes.
 - Both browser packages build from the same source. Preflight checks the manifest, locale keys,
   vendor assets and schema alignment. Firefox packaging passes WebExtension lint.
 
 ## Live-site and service evidence
 
-- Three prior package images were rerun in unpacked Chromium after their SHA-256 digests were
+- On November 21, three prior package images were rerun in Chromium after their SHA-256 digests were
   matched to the original audit. The noodle photo highlighted the uncertain `SO¥` transcription
   and showed soy, peanut and sesame after correction. The French biscuit photo without a detected
   heading stayed unscored. The bilingual crisps photo kept the wheat advisory and omitted the

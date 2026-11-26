@@ -37,6 +37,43 @@ export async function shoppingEndToEnd(context, worker, errors) {
     const exported = JSON.parse(Buffer.concat(data).toString());
     if (exported.format !== 'ingredient-check-shortlist' || !savedIds.every(id => exported.products.some(p => p.id === id))) throw new Error('Export omitted saved labels');
 
+    const local = await context.newPage();
+    local.on('pageerror', error => errors.push('on-device AI: ' + error.message));
+    try {
+      await local.addInitScript(() => {
+        Object.defineProperty(globalThis, 'LanguageModel', { configurable: true, value: {
+          availability: async () => 'downloadable',
+          async create() {
+            if (!navigator.userActivation.isActive) throw new Error('Model creation lost the click gesture');
+            return {
+              async prompt(payload) {
+                const { ingredients } = JSON.parse(payload);
+                return JSON.stringify({ ratings: ingredients.map(name => ({ name, class: 'texture', confidence: 0.9 })) });
+              },
+              destroy() {},
+            };
+          },
+        } });
+      });
+      await local.goto(url);
+      await local.fill('#labelName', 'Feature test local estimate'); await local.fill('#labelText', 'oats, fungal binder, salt');
+      await local.getByRole('button', { name: 'Check with on-device AI' }).click();
+      await local.waitForFunction(() => !document.getElementById('saveLabelControls').hidden);
+      await local.fill('#shortlistName', '=Other list');
+      await local.click('#saveLabel');
+      await local.waitForFunction(() => document.getElementById('checkStatus').textContent === 'Saved');
+      const saved = await local.evaluate(async () => (await AIR.db.shopping.list(chrome.storage.local)).find(p => p.name === 'Feature test local estimate'));
+      if (saved) savedIds.push(saved.id);
+      if (saved?.input.aiRatings?.['fungal binder']?.c !== 'texture') throw new Error('Local estimate was not retained for shortlist replay');
+      await page.waitForFunction(() => [...document.getElementById('listFilter').options].some(option => option.value === '=Other list'));
+      await page.selectOption('#listFilter', 'Feature test breakfast');
+      const [csvDownload] = await Promise.all([page.waitForEvent('download'), page.click('#exportShortlistCsv')]);
+      const csv = [];
+      for await (const chunk of await csvDownload.createReadStream()) csv.push(chunk);
+      const csvText = Buffer.concat(csv).toString();
+      if (!csvText.includes('Feature test oats') || !csvText.includes('Feature test cereal') || csvText.includes('Feature test local estimate')) throw new Error('CSV did not follow the selected list');
+    } finally { await local.close(); }
+
     const contender = await context.newPage();
     try {
       await contender.goto(url);

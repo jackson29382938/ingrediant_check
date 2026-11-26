@@ -269,7 +269,7 @@ test('sort messages distinguish retailer tabs and extension list pages', () => {
   const w = worker();
   const allow = (type, s) => w.call(`allowMessage({type:${JSON.stringify(type)}}, ${JSON.stringify(s)})`);
   const tab = url => ({ id: 'ext', tab: { id: 9, url } });
-  for (const type of ['openSortedPanel', 'updateSortedResults', 'openSortedTab', 'followSortedSearch']) {
+  for (const type of ['openSortedPanel', 'updateSortedResults', 'openSortedTab', 'followSortedSearch', 'cancelSortedList']) {
     for (const allowed of [amazonTab, targetTab, tab('https://www.walmart.com/search?q=oats'), tab('https://www.costco.com/CatalogSearch?keyword=oats'),
       tab('https://www.kroger.com/search?query=oats'), tab('https://www.safeway.com/shop/search-results.html?q=oats')]) {
       assert.equal(allow(type, allowed), true, `${type} from ${allowed.tab.url}`);
@@ -308,6 +308,22 @@ test('stopping an in-progress sort keeps partial results and rejects late update
   assert.match(w.session.sortedResults.status, /Stopped/);
   assert.equal((await w.send(progress, targetTab)).reply.stale, true);
   assert.equal(w.session.sortedResults.loading, false);
+});
+
+test('only the active source tab can settle an interrupted comparison run', async () => {
+  const w = worker();
+  const { reply: opened } = await w.send({ type: 'openSortedPanel', mode: 'health', sourceUrl: amazonTab.tab.url }, amazonTab);
+  const request = { type: 'cancelSortedList', runId: opened.runId };
+  const progress = { type: 'updateSortedResults', runId: opened.runId, items: [p('B000000001', 70)], loading: true, status: 'Reading' };
+  await w.send(progress, amazonTab);
+  assert.equal((await w.send(request, otherAmazonTab)).reply.ok, false);
+  assert.equal((await w.send({ ...request, runId: 'stale' }, amazonTab)).reply.ok, false);
+  assert.equal(w.session.sortedResults.loading, true);
+  assert.equal((await w.send(request, amazonTab)).reply.ok, true);
+  assert.equal(w.session.sortedResults.loading, false);
+  assert.equal(w.session.sortedResults.items.length, 1);
+  assert.match(w.session.sortedResults.status, /source page or its settings changed/);
+  assert.equal((await w.send(progress, amazonTab)).reply.stale, true);
 });
 
 test('choosing a menu option opens the side panel before anything else, then stores an empty list', async () => {

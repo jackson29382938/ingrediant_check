@@ -68,4 +68,5 @@ test('apps-script.gs: doGet exposes schemaVersion matching diagnostics.BACKEND_S
   assert.equal(status.ok, true);
   assert.equal(status.schemaVersion, diagnostics.BACKEND_SCHEMA_VERSION);
   assert.equal(status.schemaVersion, 2);
+  assert.match(status.scriptRevision, /^\d{4}-\d{2}-\d{2}\.\d+$/);
 });

@@ -102,6 +102,35 @@ test('lookup returns only the rows asked for, parsed, without taking the write l
   assert.equal(res.rows[0].scanned_at, '2026-09-20T00:00:00.000Z');
   assert.equal(r.post({ kind: 'lookup', keys: Array(101).fill(KEY) }).ok, false);
 });
+
+test('product batches keep untouched rows intact and batch appends beyond the sheet grid', () => {
+  const r = receiver({ maxRows: 3 });
+  const asins = ['B00TESTOA1', 'B00TESTOA2', 'B00TESTOA3'];
+  assert.equal(r.post({ kind: 'products', upserts: asins.map(asin => product({ asin })) }).upserted, 3);
+  const tab = r.tabs.get('products');
+  assert.equal(tab.getMaxRows(), 4);
+  assert.deepEqual(tab.writes.at(-1), [2, 1, 3, 7]);
+  const untouched = [...tab.data[3]];
+  tab.reads.length = 0;
+  tab.writes.length = 0;
+  const scanned_at = '2026-09-22T00:00:00.000Z';
+  const res = r.post({ kind: 'products', upserts: [product({ asin: asins[0], scanned_at }), product({ asin: KEY.split(':')[1] })],
+    pulls: [{ key: 'amazon.com:' + asins[1], scanned_at: product().scanned_at }, { key: KEY, scanned_at: product().scanned_at, n: 3 }] });
+  assert.equal(res.upserted, 2);
+  assert.equal(res.pulled, 2);
+  assert.deepEqual(tab.reads.filter(read => read[3] > 1), [[2, 1, 1, 7], [3, 1, 1, 7]]);
+  assert.deepEqual(tab.writes, [[2, 1, 2, 7], [5, 1, 1, 7]]);
+  assert.deepEqual(tab.data[3], untouched);
+  assert.equal(tab.data[4][6], 3, 'a pull can target a new reading within the same batch');
+});
+
+test('report and diagnostics appends expand a full sheet before writing rows', () => {
+  const r = receiver({ maxRows: 2 });
+  assert.equal(r.post(batch(0, 4)).inserted, 4);
+  assert.equal(r.tabs.get('diagnostics').getMaxRows(), 5);
+  for (let i = 0; i < 3; i++) assert.equal(r.post({ kind: 'report', product_name: 'Oats' }).wrote, 1);
+  assert.equal(r.tabs.get('reports').getMaxRows(), 4);
+});
 test('products are closed until the owner opens them: nothing stored, nothing served', () => {
   const r = receiver({ productsOpen: false });
   const res = r.post({ kind: 'products', upserts: [product()] });

@@ -38,7 +38,8 @@ read the allergens in it) and the `ratings_cache` tab are no longer used and can
 4. Copy the URL ending in `/exec` into `ENDPOINT` in `src/engine/db/prefs.js` and ship the build.
    It must come from a **Web app** deployment. A **Library** deployment also gets an `AKfycb…` id,
    but its `/exec` URL answers `403 Access Denied` to everyone. Check in an incognito window: a
-   working URL shows `{"ok":true,"service":"ingredient-check",…}`.
+   working URL shows `{"ok":true,"service":"ingredient-check",…}`. Compare its `scriptRevision`
+   with `SCRIPT_REVISION` in `apps-script.gs` to verify which source revision the URL serves.
 
 Product rows (`lookup`, `products`) stay **closed** after this: the script neither stores nor serves
 them. Anyone who has the `/exec` URL can write a row, and nothing checks that its ingredient text is
@@ -55,8 +56,7 @@ key it finds in a public repository**. The key belongs to the script instead. Ge
 deploy a new version (below). Never paste the key into `apps-script.gs`, `prefs.js` or any file in this repository.
 Without the property the script answers `usda not configured` and readers fall back to their own key, if they saved one.
 The script sends the key to USDA in a header, never returns it or an upstream error body, caches an answer for six
-hours and spends at most 600 upstream requests an hour (the key allows 3,600 at the time of writing), so a flood of
-lookups can use up the budget but cannot exhaust or expose the key. A reader can switch it off with *Shared online
+hours and reserves at most 600 upstream requests per UTC hour. A reader can switch it off with *Shared online
 database*, and a build with `ENDPOINT` empty never asks.
 
 After changing the script, **Deploy → Manage deployments → Edit → New version**. That keeps the
@@ -70,6 +70,8 @@ The settings on the computer are always the ones in use. Nothing is ever applied
 - **Chrome account backup** (default on). After every change the settings — weights, allergens,
   diets, goals and their importance, the avoid list, sort/speed/display preferences and the toggles, never the master switch — are written to
   `chrome.storage.sync`. New backups use a versioned `icBackup` pointer plus byte-sized avoid-list chunks in alternating banks, committed only after the parts are written. Legacy `icBackupAvoid` backups remain readable. Failed writes retain the prior copy, show an error, and retry through a Chrome alarm. Partial cross-device sync is detected and must finish before restore.
+  A complete identical copy is reused, including when it came from another device. Older chunks
+  can still belong to a pointer on a device that has yet to finish syncing, so the writer keeps them.
   Chrome syncs that privately to the Google account signed into Chrome. **Restore from my Chrome
   account** brings it back after a confirmation. No setup, and nothing goes to the shared sheet.
 - **Sign in with Google** (optional, disabled until configured). For a browser that is not signed

@@ -283,5 +283,12 @@ check('candidate quality takes precedence over length and low-coverage images ca
   assert.equal(ocr.ingredientsFromOcr('Ingredients: oats, nutritional yeast, salt. Nutritional information: Calories 140'), 'oats, nutritional yeast, salt');
 });
 
+check('manufacturing cross-contact is preserved without importer text', () => {
+  const label = ocr.labelFromOcr('Ingredients: oats, salt. Manufactured in a shared facility that also processes milk. Imported by Example');
+  assert.deepEqual(label, { text: 'oats, salt', advisory: 'Manufactured in a shared facility that also processes milk' });
+  const result = engine.score({ ingredients_text: label.text, advisory_text: label.advisory }, { allergens: ['milk'] });
+  assert.equal(result.flags.find(f => f.id === 'milk').evidence, 'cross-contact');
+});
+
 if (failed) { console.error('\n' + failed + ' failed'); process.exit(1); }
 console.log('\nall passed');

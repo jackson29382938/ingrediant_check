@@ -160,6 +160,17 @@ test('Amazon advisory sibling survives unreadable ingredients for barcode/photo 
   assert.equal(data.advisoryText, 'May contain peanuts.');
 });
 
+test('Amazon preserves an inline list and independently declared allergen widgets', () => {
+  const doc = createDocument(`<section id="nutritionalInfoAndIngredients_feature_div">
+  <div id="nic-ingredients-content">Oat flakes, sugar, salt May contain peanuts.</div>
+  <div id="nic-allergens-Contains">Contains:milk</div>
+  <div id="nic-allergens-May contain:">May contain soy</div></section>`);
+  const data = extract.extract(doc, { asin: 'B000000001', foodOnly: false });
+  assert.equal(data.ok, true);
+  assert.equal(data.text, 'Oat flakes, sugar, salt');
+  assert.equal(data.advisoryText, 'Contains:milk\nMay contain soy\nMay contain peanuts.');
+});
+
 test('allergen widgets outside the product nutrition card do not supply product advisory', () => {
   const doc = createDocument(`<div id="nic-ingredients-content">Oats, salt</div>
   <aside><div id="nic-allergens-May contain:">May contain peanuts.</div></aside>`);

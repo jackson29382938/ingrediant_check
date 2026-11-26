@@ -4,6 +4,8 @@
 (function (root) {
   root.AIR = root.AIR || {};
   const P = () => root.AIR.page;
+  const mergeAdvisories = (...warnings) => [...new Set(warnings.flatMap(value => (value || '').split(/\r?\n/))
+    .map(line => line.trim()).filter(Boolean))].join('\n');
 
   // Engine input for ingredients read from somewhere other than the page text (the label photo, a
   // barcode lookup): the page still supplies the title, labels, certifications and nutrition
@@ -360,9 +362,11 @@
       done();
       // The saved list can answer missing ingredients, while this open page supplies newer label
       // nutrition and cross-contact warnings. Preserve the ingredient reading's original age.
+      const photo = ['label-ocr', 'ocr', 'label-ai'].includes(row.data.via);
+      const advisory = photo ? mergeAdvisories(data.advisoryText, row.data.advisory_text) : data.advisoryText;
       const updated = { ...row, data: { ...row.data,
         ...(data.nutrition ? { nutrition: data.nutrition } : {}),
-        ...(data.advisoryText ? { advisory_text: data.advisoryText } : {}),
+        ...(advisory ? { advisory_text: advisory } : {}),
       } };
       const result = root.AIR.engine.score(C.toInput(updated), state.prefs);
       if (!presentResult(host, data, key, result, {
@@ -516,7 +520,7 @@
   function photoInput(data, read) {
     return pageInput(data, {
       ingredients_text: read.text,
-      advisory_text: [data.advisoryText, read.advisory].filter(Boolean).join('. '),
+      advisory_text: mergeAdvisories(data.advisoryText, read.advisory),
     });
   }
 

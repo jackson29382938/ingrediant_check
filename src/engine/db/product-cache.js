@@ -30,6 +30,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
     'calories', 'fat', 'carbs', 'servingGrams', 'servingMl'];
 
   const str = (v, n) => String(v == null ? '' : v).replace(/^'/, '').replace(/\s+/g, ' ').trim().slice(0, n);
+  // Line breaks and tabs distinguish ingredient lists from wrapped words and separate warnings.
+  const labelText = (v, n) => typeof v === 'string' ? v.trim().slice(0, n) : '';
   const normalizeStore = s => str(s, 60).toLowerCase().replace(/^www\./, '');
   const key = (store, asin) => `${normalizeStore(store)}:${String(asin || '').toUpperCase()}`;
   const localKey = (store, asin) => `p:${key(store, asin)}`;
@@ -65,7 +67,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
     if (!src || typeof src !== 'object' || Array.isArray(src)) return null;
     const out = {
       title: str(src.title, 200),
-      text: str(src.text, 6000),
+      text: labelText(src.text, 6000),
       labels: str(src.labels, 3000),
       certifications: str(src.certifications, 500),
       via: str(src.via, 60),
@@ -84,7 +86,7 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined') { require('
     }
     if (Object.hasOwn(src, 'advisory_text')) {
       if (typeof src.advisory_text !== 'string' || src.advisory_text.length > 6000) return null;
-      out.advisory_text = str(src.advisory_text, 6000);
+      out.advisory_text = labelText(src.advisory_text, 6000);
     }
     // 4000 matches extract.js and label-reader.js: a multivitamin panel with thirty nutrients runs past
     // 2000 characters, and a panel dropped here would make a cached reading unrated that a live one is not.

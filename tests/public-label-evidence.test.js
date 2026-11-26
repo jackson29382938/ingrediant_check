@@ -28,3 +28,28 @@ test('free-from label notes cannot create a wheat flag or erase actual ingredien
     assert.ok(engine.score({ ingredients_text: 'Oats, ' + declaration }, { allergens: ['wheat'] }).flags.some(f => f.id === 'wheat'), declaration);
   }
 });
+
+test('flattened and multiline allergen warnings retain their declaration and cross-contact evidence', () => {
+  for (const [advisory_text, expected] of [
+    ['Enthält Milch Kann Spuren von Soja enthalten', [['milk', 'contains'], ['soy', 'cross-contact']]],
+    ['Contient du lait Peut contenir du soja', [['milk', 'contains'], ['soy', 'cross-contact']]],
+    ['Contains milk. This product can also contain: soy', [['milk', 'contains'], ['soy', 'cross-contact']]],
+    ['This product contains: milk; soy', [['milk', 'contains'], ['soy', 'contains']]],
+    ['Contains: milk; manufactured in a shared facility with soy', [['milk', 'contains'], ['soy', 'cross-contact']]],
+    ['Contains: _MILK_&nbsp;May contain soy', [['milk', 'contains'], ['soy', 'cross-contact']]],
+  ]) {
+    const result = engine.score({ ingredients_text: 'Oats, salt', advisory_text }, { allergens: ['milk', 'soy'] });
+    assert.deepEqual(result.flags.map(f => [f.id, f.evidence]), expected, advisory_text);
+    for (const flag of result.flags.filter(f => f.evidence === 'cross-contact')) assert.doesNotMatch(flag.evidenceText, /milk|milch|lait/i);
+  }
+});
+
+test('possible dairy cross-contact warns an allergy but does not establish a dietary conflict', () => {
+  const options = { allergens: ['milk'], diets: ['vegan'] };
+  const check = advisory_text => engine.score({ ingredients_text: 'Oats, salt', advisory_text }, options);
+  for (const phrase of ['May contain milk', 'Allergy advice: not suitable for those with a milk allergy']) {
+    assert.deepEqual(check(phrase).flags.map(f => f.id), ['milk'], phrase);
+  }
+  assert.deepEqual(check('Contains: milk').flags.map(f => f.id), ['milk', 'vegan']);
+  assert.equal(check('Contains: milk').score, check('May contain milk').score);
+});

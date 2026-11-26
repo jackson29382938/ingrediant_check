@@ -107,7 +107,7 @@ function runner({ ids = ['79364857'], stored = {}, query = 'oats', adapterOption
     const request = requests[index]; assert.ok(request, `request ${index} exists`);
     request.resolve({ ok: true, status: 200, url: request.url, text: async () => JSON.stringify(data), ...extra });
   };
-  return { api, tiles, body, nodes, requests, writes, observers, intervals, settings, location, flush, reply,
+  return { api, requestProductScore: sandbox.AIR.retailerRunner.requestProductScore, tiles, body, nodes, requests, writes, observers, intervals, settings, location, flush, reply,
     badges: () => body.querySelectorAll('.air-badge'),
     change: values => { Object.assign(settings, values); settingsChanged(Object.fromEntries(Object.entries(values).map(([key, value]) => [key, { newValue: value }])), 'local'); },
     navigate: href => { const next = new URL(href); Object.assign(location, { href: next.href, hostname: next.hostname, origin: next.origin, pathname: next.pathname, search: next.search }); intervals.forEach(fn => fn()); } };
@@ -222,6 +222,54 @@ test('retailer search fetch work has bounded concurrency', async () => {
   assert.ok(w.requests[1].started - w.requests[0].started >= 400, 'public label requests are paced');
   for (let i = 0; i < 6; i++) { if (w.requests[i]) w.reply(i); await w.flush(); }
   assert.equal(w.badges().filter(badge => badge.textContent === '93').length, 6);
+});
+
+test('a sorted list shares the two paced badge slots and does not repeat a pending product read', async () => {
+  const w = runner({ ids: ['79364857', '79364858', '79364859'] });
+  await waitForRequest(w);
+  const join = w.requestProductScore('79364857', '', new AbortController().signal, true);
+  const additional = w.requestProductScore('79364860', '', new AbortController().signal, false);
+  await w.flush();
+  assert.equal(w.requests.length, 2, 'no extra slot opened for sorting');
+  w.reply(0);
+  assert.equal((await join).hit.asin, '79364857');
+  await w.flush();
+  assert.match(w.requests[2].url, /79364860$/, 'the explicit comparison runs next');
+  assert(w.requests[2].started - w.requests[1].started >= 400, 'both callers use the same pacing');
+  w.reply(2);
+  assert.equal((await additional).hit.asin, '79364860');
+  assert.equal(w.requests.filter(request => request.url.endsWith('/79364857')).length, 1);
+});
+
+test('canceling a sort leaves its shared badge request running and aborts its exclusive request', async () => {
+  const w = runner();
+  await waitForRequest(w);
+  const controller = new AbortController();
+  const joined = w.requestProductScore('79364857', '', controller.signal, true);
+  const exclusive = w.requestProductScore('79364860', '', controller.signal, false);
+  await w.flush();
+  assert.equal(w.requests.length, 2);
+  controller.abort();
+  assert.equal(await joined, undefined);
+  assert.equal(await exclusive, undefined);
+  assert.equal(w.requests[0].options.signal.aborted, false);
+  assert.equal(w.requests[1].options.signal.aborted, true);
+  w.reply(0); await w.flush();
+  assert.equal(w.badges()[0].textContent, '93');
+});
+
+test('sorting a first-page product cannot bypass the automatic rating budget', async () => {
+  const w = runner({ ids: Array.from({ length: 21 }, (_, i) => String(79364800 + i)), stored: { speedMode: 'fastest' },
+    db: { speed: require('../src/engine/db/speed.js') } });
+  await waitForRequest(w);
+  const signal = new AbortController().signal;
+  assert.equal((await w.requestProductScore('79364820', '', signal, true)).status, 'limited');
+  const waiting = w.requestProductScore('79364801', '', signal, true);
+  w.change({ autoScoreSearch: false });
+  assert.equal(await waiting, undefined);
+  await w.flush();
+  assert.equal(w.requests.length, 2);
+  assert(w.requests.every(request => request.options.signal.aborted));
 });
 
 for (const [description, extra] of [['rate limit', { ok: false, status: 429 }], ['forbidden', { ok: false, status: 403 }]]) {

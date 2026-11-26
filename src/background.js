@@ -357,6 +357,15 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     answer('stopSortedList', () => stopSortedList(msg.runId), reply, { ok: false });
     return true;
   }
+  if (msg.type === 'cancelSortedList') {
+    answer('cancelSortedList', async () => {
+      const sourceTabId = sender.tab?.id;
+      if (!Number.isInteger(sourceTabId)) return { ok: false };
+      const list = await endSortedList(msg.runId, 'sortedInterrupted', 'Loading stopped because the source page or its settings changed.', sourceTabId);
+      return { ok: !!list };
+    }, reply, { ok: false });
+    return true;
+  }
   // A line for "Report a problem" (engine/db/activity.js), from a content script, which cannot reach
   // session storage itself. Short text only; nothing leaves the browser.
   if (msg && msg.type === 'logAction') {
@@ -492,10 +501,10 @@ function isSortableSearchUrl(raw) {
   return isAmazonSearchUrl(raw) || !!(self.AIR.stores && self.AIR.stores.searchStore(raw));
 }
 
-function endSortedList(runId, key, fallback) {
+function endSortedList(runId, key, fallback, sourceTabId = null) {
   return serializeSorted(async () => {
     const { sortedResults: list } = await chrome.storage.session.get('sortedResults');
-    if (!runId || list?.runId !== runId || !list.loading) return null;
+    if (!runId || list?.runId !== runId || !list.loading || (sourceTabId !== null && list.sourceTabId !== sourceTabId)) return null;
     let text = fallback;
     try { text = chrome.i18n.getMessage(key) || fallback; } catch (e) { /* no locale */ }
     await chrome.storage.session.set({ sortedResults: { ...list, loading: false, status: self.AIR.db.sortedResults.sanitizeStatus(text), t: Date.now() } });
@@ -1032,10 +1041,12 @@ async function sendProducts() {
 const BACKUP_SOURCE_KEYS = self.AIR.db.prefs.SETTING_KEYS;
 let backupTimer = null;
 let backupChain = Promise.resolve();
+let backupRevision = 0;
 const BACKUP_ALARM = 'ic-backup-retry';
 
 function noteBackupChange(changes) {
   if (!changes || !BACKUP_SOURCE_KEYS.some(key => changes[key])) return;
+  backupRevision++;
   clearTimeout(backupTimer);
   // An alarm survives worker suspension; timers alone can lose the last edit.
   chrome.alarms.create(BACKUP_ALARM, { delayInMinutes: 1 });
@@ -1065,8 +1076,9 @@ function noteGoogleChange() {
 // clear it; a failure that may pass (the network) leaves it for one more try a minute later.
 const GOOGLE_DONE = new Set(['off', 'no-client', 'backup-conflict']);   // only a manual choice resolves a conflict
 function googleAutoSave() {
+  const revision = backupRevision;
   const attempt = googleSaveOnce().then(res => {
-    if (res.ok || GOOGLE_DONE.has(res.reason)) chrome.alarms.clear(GOOGLE_ALARM);
+    if (revision === backupRevision && (res.ok || GOOGLE_DONE.has(res.reason))) chrome.alarms.clear(GOOGLE_ALARM);
     return res;
   });
   googleChain = attempt;
@@ -1109,32 +1121,38 @@ function googleSaveOnce() {
 
 function backupToChrome() {
   const attempt = backupChain.catch(() => {}).then(async () => {
-    if (!chrome.storage.sync) return { ok: false, reason: 'no-sync' };
+    const sync = chrome.storage.sync;
+    if (!sync) return { ok: false, reason: 'no-sync' };
+    const revision = backupRevision;
+    const clearAlarm = () => { if (revision === backupRevision) chrome.alarms.clear(BACKUP_ALARM); };
     const conf = await chrome.storage.local.get(BACKUP_SOURCE_KEYS);
-    if (conf.settingsBackup === false) { chrome.alarms.clear(BACKUP_ALARM); return { ok: false, reason: 'not-enabled' }; }
+    if (conf.settingsBackup === false) { clearAlarm(); return { ok: false, reason: 'not-enabled' }; }
     if (self.AIR.platform?.hasDataSharingPermission && !await self.AIR.platform.hasDataSharingPermission()) {
-      chrome.alarms.clear(BACKUP_ALARM);
+      clearAlarm();
       return { ok: false, reason: 'permission-required' };
     }
     const P = self.AIR.db.prefs;
     try {
-      const local = await chrome.storage.local.get('backupDeviceId');
-      const device = /^[a-f0-9]{32}$/.test(local.backupDeviceId || '') ? local.backupDeviceId : crypto.randomUUID().replace(/-/g, '');
-      if (device !== local.backupDeviceId) await chrome.storage.local.set({ backupDeviceId: device });
-      const old = await chrome.storage.sync.get('icBackup');
-      const bank = old.icBackup?._syncBank === 'a' ? 'b' : 'a';
-      const { icBackup, ...parts } = P.toSyncItems(P.backupPayload(conf), bank, device);
-      await chrome.storage.sync.set(parts);
-      // A user can turn backup off while the staged parts are being written.
-      // Keep the prior committed backup instead of publishing the in-flight snapshot.
-      if ((await chrome.storage.local.get('settingsBackup')).settingsBackup === false) return { ok: false, reason: 'not-enabled' };
-      await chrome.storage.sync.set({ icBackup });
+      // A second device or a fallback alarm may already have saved exactly this snapshot.
+      const previous = await P.readSync(sync);
+      if (!previous.ok || previous.ts === null || P.diffSettings(conf, previous.values).differing.length) {
+        const local = await chrome.storage.local.get('backupDeviceId');
+        const device = /^[a-f0-9]{32}$/.test(local.backupDeviceId || '') ? local.backupDeviceId : crypto.randomUUID().replace(/-/g, '');
+        if (device !== local.backupDeviceId) await chrome.storage.local.set({ backupDeviceId: device });
+        const old = await sync.get('icBackup');
+        const bank = old.icBackup?._syncBank === 'a' ? 'b' : 'a';
+        const { icBackup, ...parts } = P.toSyncItems(P.backupPayload(conf), bank, device);
+        await sync.set(parts);
+        if ((await chrome.storage.local.get('settingsBackup')).settingsBackup === false) return { ok: false, reason: 'not-enabled' };
+        if (revision !== backupRevision) return { ok: false, reason: 'superseded' };
+        await sync.set({ icBackup });
+      }
       await chrome.storage.local.set({ backupStatus: { ok: true, t: Date.now() } });
-      chrome.alarms.clear(BACKUP_ALARM);   // the fallback alarm is only for a suspended worker; done, so no second save
+      clearAlarm();
       return { ok: true };
     } catch (e) {
       noteWorkerError('backupToChrome', e);
-      chrome.alarms.create(BACKUP_ALARM, { delayInMinutes: 5 });
+      if (revision === backupRevision) chrome.alarms.create(BACKUP_ALARM, { delayInMinutes: 5 });
       await chrome.storage.local.set({ backupStatus: { ok: false, t: Date.now(), reason: 'sync-write-failed' } });
       return { ok: false, reason: 'sync-write-failed' };
     }
@@ -1171,6 +1189,7 @@ async function noteGoogleResult(res, backupTs) {
 
 async function accountSave(token, automaticOwner) {
   const P = self.AIR.db.prefs;
+  const revision = backupRevision;
   const conf = await chrome.storage.local.get(BACKUP_SOURCE_KEYS);
   let expectedTs;
   if (automaticOwner) {
@@ -1178,6 +1197,7 @@ async function accountSave(token, automaticOwner) {
     const current = await chrome.storage.local.get(['googleProfile', 'googleLinked', 'googleAutoSave', 'enabled', 'googleBackupTs']);
     if (current.enabled === false || current.googleLinked !== true || !P.sanitizeToggles(current).googleAutoSave
       || String(current.googleProfile?.email || '').toLowerCase() !== automaticOwner) return { ok: false, reason: 'off' };
+    if (revision !== backupRevision) return { ok: false, reason: 'superseded' };
     if (!remote.ok && remote.reason !== 'no-backup') {
       await noteGoogleResult(remote);
       return remote;

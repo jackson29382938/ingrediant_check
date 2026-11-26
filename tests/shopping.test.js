@@ -6,6 +6,24 @@ const vm = require('node:vm');
 const engine = require('../src/engine/score.js');
 require('../src/stores/registry.js');
 const S = require('../src/engine/db/shopping.js');
+test('shortlist CSV preserves quoted text, protects formula-leading fields and leaves unassessed scores blank', () => {
+  const rows = [
+    { list: '\u200b＝1+1', name: 'Cereal, "Oats"', input: 'readable', source: 'usda-fdc', sourceRecordDate: '2024-09-30' },
+    { list: 'Snacks', name: '\t@formula\rHidden', input: 'partial', savedScore: 70 },
+  ];
+  const csv = S.toCsv(rows, input => ({ score: 92, verdict: 'EXCELLENT', readable: input === 'readable', flags: [{ label: 'Milk' }] }));
+  const lines = csv.split('\r\n');
+  assert.match(lines[0], /Score,Verdict,Source,Source date,Warning matches/);
+  assert.equal(lines[1], '\'\u200b＝1+1,"Cereal, ""Oats""",92,EXCELLENT,Barcode database,2024-09-30,Milk,');
+  assert.equal(lines[2], "Snacks,' @formula Hidden,,,Source not recorded,,Milk,");
+});
+test('explicitly saved labels preserve valid AI estimates for score replay', () => {
+  const input = { ingredients_text: 'oats, fungal binder', aiRatings: { 'fungal binder': { c: 'texture', k: 0.9, debug: 'discard' }, broken: { c: 'bogus', k: 1 } } };
+  assert.equal(S.cleanInput(input).aiRatings, undefined);
+  const saved = S.cleanSaved({ id: 'label:0000000001', input });
+  assert.deepEqual(Object.entries(saved.input.aiRatings), [['fungal binder', { c: 'texture', k: 0.9 }]]);
+  assert.equal(engine.score(saved.input).score, engine.score(input).score);
+});
 test('saved inputs preserve vertical labels, nutrition and sourcing for score replay', () => {
   const input = { name: 'Oats', ingredients_text: 'oats\nwater\nsalt\nsugar', nutrition: { protein: 9, servingGrams: 100 }, provenanceRecord: { certifications: 'USDA Organic', source: 'page' } };
   const clean = S.cleanInput(input);

@@ -325,7 +325,7 @@
   // each wait: false means the page moved on, and nothing is saved or returned. Returns { hit } for a score,
   // { status: 'not-food' } for a product outside food scoring, or undefined when it is no longer wanted;
   // throws Error('unavailable') for a page that gave no readable label, Error('blocked') for a challenge page.
-  async function readProductScore(id, signal, alive = () => true, listingUrl) {
+  async function readProductScore(id, signal, alive, listingUrl) {
     const allowed = () => state.enabled && state.autoScoreSearch && !signal.aborted && alive();
     if (!allowed()) return;
     const href = root.AIR.retailerLabels.listingProductUrl(adapter, id, location, listingUrl);
@@ -364,8 +364,57 @@
     return { hit: entry };
   }
 
+  function queueProductScore(id, url, ownerSignal = null) {
+    const controller = new AbortController();
+    let resolveJob;
+    const promise = new Promise(resolve => { resolveJob = resolve; });
+    const job = { id, url, controller, promise, status: 'checking', generation: state.generation };
+    const cancel = () => { controller.abort(); job.finish?.(); };
+    job.finish = outcome => {
+      if (!job.finish) return;
+      job.finish = null;
+      ownerSignal?.removeEventListener('abort', cancel);
+      if (state.requests.get(id) === job) {
+        if (outcome) state.requests.set(id, outcome);
+        else state.requests.delete(id);
+      }
+      resolveJob(outcome);
+    };
+    state.requests.set(id, job);
+    if (ownerSignal) {
+      ownerSignal.addEventListener('abort', cancel, { once: true });
+      state.queue.unshift(job);
+    } else {
+      state.queue.push(job);
+    }
+    return job;
+  }
+
+  // A sorted list can join a pending badge request without owning its cancellation.
+  async function requestProductScore(id, url, signal, firstPage) {
+    if (!state.enabled || !state.autoScoreSearch || !state.searchAllowed || state.throttled || signal.aborted || location.href !== state.url) return;
+    let job = state.requests.get(id);
+    if (!job) {
+      if (firstPage && state.fetchCount >= state.fetchLimit) return { status: 'limited' };
+      if (firstPage) state.fetchCount++;
+      job = queueProductScore(id, url, signal);
+    }
+    if (job.status !== 'checking') return job;
+    const pending = state.queue.indexOf(job);
+    if (pending > 0) state.queue.unshift(...state.queue.splice(pending, 1));
+    drain();
+    return new Promise(resolve => {
+      const cancel = () => resolve(undefined);
+      signal.addEventListener('abort', cancel, { once: true });
+      job.promise.then(result => {
+        signal.removeEventListener('abort', cancel);
+        resolve(result);
+      });
+    });
+  }
+
   function drain() {
-    while (state.active < 2 && state.queue.length && state.enabled && state.badges && state.autoScoreSearch && state.searchAllowed && !state.throttled && location.href === state.url && ratesTiles()) {
+    while (state.active < 2 && state.queue.length && state.enabled && state.autoScoreSearch && state.searchAllowed && !state.throttled && location.href === state.url) {
       const delay = state.nextRequest - Date.now();
       if (delay > 0) {
         if (!state.drainTimer) state.drainTimer = setTimeout(() => { state.drainTimer = null; drain(); }, delay);
@@ -373,26 +422,26 @@
       }
       const job = state.queue.shift();
       const generation = state.generation;
-      if (job.generation !== generation) continue;
+      if (!job.finish || job.generation !== generation) continue;
       state.nextRequest = Date.now() + REQUEST_GAP_MS;
       state.active++;
-      const controller = new AbortController();
+      const { controller } = job;
       state.controllers.add(controller);
       const timer = setTimeout(() => controller.abort(), 15000);
       (async () => {
         const out = await readProductScore(job.id, controller.signal,
           () => generation === state.generation && location.href === state.url, job.url);
-        if (out) state.requests.set(job.id, out.hit ? { hit: out.hit } : { status: out.status });
+        job.finish?.(out);
       })().catch(error => {
         if (generation === state.generation && error.message === 'blocked') state.throttled = true;
-        if (generation === state.generation) state.requests.set(job.id, { status: 'unavailable' });
+        job.finish?.(controller.signal.aborted && generation !== state.generation ? undefined : { status: 'unavailable' });
       }).finally(() => {
         clearTimeout(timer);
         state.controllers.delete(controller);
         if (generation !== state.generation) return;
         state.active--;
         if (state.throttled) {
-          for (const pending of state.queue) state.requests.set(pending.id, { status: 'unavailable' });
+          for (const pending of state.queue) pending.finish?.({ status: 'unavailable' });
           state.queue = [];
         }
         if (state.enabled && ratesTiles()) searchPass();
@@ -406,6 +455,7 @@
     clearTimeout(state.drainTimer);
     state.drainTimer = null; state.nextRequest = 0;
     for (const controller of state.controllers) controller.abort();
+    for (const job of state.requests.values()) job.finish?.();
     state.controllers.clear(); state.requests.clear(); state.queue = []; state.active = 0;
   }
 
@@ -460,10 +510,8 @@
         if (saved && !saved.refresh) { paintBadge(x, hit, '', saved.stale); ranked.push({ tile: x, hit }); continue; }
         let job = state.requests.get(x.id);
         if (!job && state.autoScoreSearch && adapter.productUrl && !state.throttled && state.fetchCount < state.fetchLimit) {
-          job = { status: 'checking' };
-          state.requests.set(x.id, job);
+          job = queueProductScore(x.id, x.url);
           state.fetchCount++;
-          state.queue.push({ id: x.id, url: x.url, generation });
         }
         paintBadge(x, job?.hit || saved?.hit || null, job?.status || (state.throttled ? 'unavailable' : 'limited'), saved?.stale && !job?.hit);
         ranked.push({ tile: x, hit: job?.hit || saved?.hit || null });
@@ -627,6 +675,6 @@
   });
 
   // What the sorted list (retailer-sort.js, loaded before this file and used only at call time) needs of the runner.
-  root.AIR.retailerRunner = { adapter, state, CACHE, STORE, VERSION, readProductScore, publicDocument, refit, saveRefits };
+  root.AIR.retailerRunner = { adapter, state, CACHE, STORE, VERSION, requestProductScore, publicDocument, refit, saveRefits };
   if (typeof module !== 'undefined' && module.exports) module.exports = { state, pass, reset, adapter };
 })(typeof globalThis !== 'undefined' ? globalThis : self);
